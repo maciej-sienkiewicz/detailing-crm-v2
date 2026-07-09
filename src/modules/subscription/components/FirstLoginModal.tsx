@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/common/components/Toast';
-import { useFeaturePlans, useAddOns, useStartTrial, useActivatePackage } from '../api/subscriptionQueries';
+import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
@@ -123,7 +123,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const { data: plans, isLoading: plansLoading } = useFeaturePlans();
     const { data: addOns } = useAddOns();
     const startTrial = useStartTrial();
-    const activatePackage = useActivatePackage();
+    const checkout = useCheckout();
 
     const [phase, setPhase] = useState<Phase>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -180,7 +180,14 @@ export function FirstLoginModal({ trialUsed }: Props) {
         setError(null);
         setPhase('pending-plan');
         try {
-            await activatePackage.mutateAsync({ planKey: planKey as PlanKey, addOnKeys: [] });
+            const order = await checkout.mutateAsync({
+                type: 'INITIAL_PURCHASE',
+                planKey: planKey as PlanKey,
+                addOnKeys: [],
+            });
+            if (order.paymentUrl) {
+                window.location.assign(order.paymentUrl);
+            }
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
@@ -194,10 +201,14 @@ export function FirstLoginModal({ trialUsed }: Props) {
         setError(null);
         setPhase('pending-custom');
         try {
-            await activatePackage.mutateAsync({
+            const order = await checkout.mutateAsync({
+                type: 'INITIAL_PURCHASE',
                 planKey: 'BASIC',
                 addOnKeys: Array.from(selectedAddOns),
             });
+            if (order.paymentUrl) {
+                window.location.assign(order.paymentUrl);
+            }
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
@@ -235,8 +246,8 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         <LoadingOverlay>
                             <Spinner />
                             {phase === 'pending-trial' && 'Aktywowanie okresu próbnego…'}
-                            {phase === 'pending-plan' && 'Aktywowanie planu…'}
-                            {phase === 'pending-custom' && 'Konfigurowanie planu…'}
+                            {phase === 'pending-plan' && 'Przekierowywanie do płatności…'}
+                            {phase === 'pending-custom' && 'Przekierowywanie do płatności…'}
                         </LoadingOverlay>
                     )}
 
@@ -283,7 +294,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                     </SectionLabel>
                                     <PlansGrid>
                                         {sortedPlans.map(plan => {
-                                            const isHighlighted = plan.key === 'EVERYTHING';
+                                            const isHighlighted = plan.key === 'FULL';
                                             return (
                                                 <PlanBtn
                                                     key={plan.key}
@@ -323,8 +334,8 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                             <BasePlanRow>
                                                 <BasePlanCheck><CheckSmall /></BasePlanCheck>
                                                 <AddOnMeta>
-                                                    <AddOnName>Plan Podstawowy (BASIC)</AddOnName>
-                                                    <AddOnDesc>Kalendarz, Wizyty, Klienci, Pojazdy, Dokumenty, Galeria</AddOnDesc>
+                                                    <AddOnName>Pakiet BASIC</AddOnName>
+                                                    <AddOnDesc>Kalendarz i rezerwacje, baza klientów i pojazdów z pełną historią wizyt</AddOnDesc>
                                                 </AddOnMeta>
                                                 <AddOnPrice>
                                                     {basePriceCents != null
@@ -364,7 +375,14 @@ export function FirstLoginModal({ trialUsed }: Props) {
 
                                             <CustomSummary>
                                                 <SummaryPrice>
-                                                    <SummaryLabel>Łącznie miesięcznie</SummaryLabel>
+                                                    <SummaryLabel>
+                                                        Łącznie miesięcznie
+                                                        {customPrice?.savingsWithFullCents != null && customPrice.savingsWithFullCents > 0 && (
+                                                            <span style={{ display: 'block', fontSize: 11, color: '#d97706', fontWeight: 600 }}>
+                                                                Pakiet FULL byłby tańszy o {formatCents(customPrice.savingsWithFullCents)}/mies.
+                                                            </span>
+                                                        )}
+                                                    </SummaryLabel>
                                                     <SummaryAmount>
                                                         {priceLoading
                                                             ? '…'
@@ -377,7 +395,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                     onClick={handleCustomConfirm}
                                                     disabled={priceLoading}
                                                 >
-                                                    Aktywuj pakiet
+                                                    Przejdź do płatności
                                                 </CustomConfirmBtn>
                                             </CustomSummary>
                                         </CustomPanel>
@@ -388,7 +406,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                     )}
 
                     <CardFooter>
-                        Bezpieczne płatności. Możliwość anulowania w dowolnym momencie.
+                        Bezpieczne płatności online obsługuje Przelewy24. Możliwość anulowania w dowolnym momencie.
                         <br />
                         Masz pytania? Napisz do nas: <strong>pomoc@detailboost.pl</strong>
                     </CardFooter>

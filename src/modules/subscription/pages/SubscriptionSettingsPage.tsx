@@ -4,7 +4,9 @@ import {
     useMyPlan,
     useFeaturePlans,
     useAddOns,
+    useCheckout,
 } from '../api/subscriptionQueries';
+import { useToast } from '@/common/components/Toast';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { PlanChangeDialog, AddOnActivationDialog, AddOnDeactivationDialog } from '../components/PlanChangeDialog';
 import { PlanCard } from '../components/PlanCard';
@@ -118,6 +120,8 @@ export function SubscriptionSettingsPage() {
     const { data: myPlan, isLoading: planLoading, isError: planError, refetch: refetchPlan } = useMyPlan();
     const { data: featurePlans, isLoading: plansLoading } = useFeaturePlans();
     const { data: addOns, isLoading: addOnsLoading } = useAddOns();
+    const checkout = useCheckout();
+    const { showSuccess, showError } = useToast();
 
     const [dialog, setDialog] = useState<DialogState>(null);
 
@@ -155,8 +159,24 @@ export function SubscriptionSettingsPage() {
     const isExpired = myPlan.billingStatus === 'EXPIRED';
     const isTrial = myPlan.billingStatus === 'TRIALING';
     const isPastDue = myPlan.billingStatus === 'PAST_DUE';
-    const isEverything = myPlan.plan.key === 'EVERYTHING';
+    const isFull = myPlan.plan.key === 'FULL';
     const isUrgent = myPlan.daysRemaining <= 7;
+
+    // ── Renewal handler (Przelewy24) ───────────────────────────────────────────
+    const handleRenew = async () => {
+        if (checkout.isPending) return;
+        try {
+            const order = await checkout.mutateAsync({ type: 'RENEWAL' });
+            if (order.paymentUrl) {
+                window.location.assign(order.paymentUrl);
+                return;
+            }
+            showSuccess('Subskrypcja przedłużona', 'Twoja subskrypcja została przedłużona o 30 dni.');
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Błąd przedłużenia', msg ?? 'Nie udało się rozpocząć płatności. Spróbuj ponownie.');
+        }
+    };
 
     // ── Plan select handler ────────────────────────────────────────────────────
     const handleSelectPlan = async (plan: FeaturePlan) => {
@@ -200,7 +220,7 @@ export function SubscriptionSettingsPage() {
                 <EyeLabel>Konto i rozliczenia</EyeLabel>
                 <SectionTitle>Abonament</SectionTitle>
                 <SectionDesc>
-                    Zarządzaj planem i dodatkowymi modułami. Wszelkie zmiany wchodzą w życie natychmiast (upgrade) lub na koniec okresu rozliczeniowego (downgrade).
+                    Zarządzaj pakietem i dodatkowymi modułami. Płatności obsługuje Przelewy24 — upgrade i dokupienie modułu wchodzą w życie natychmiast po opłaceniu, downgrade na koniec okresu rozliczeniowego.
                 </SectionDesc>
             </SectionHead>
 
@@ -216,8 +236,8 @@ export function SubscriptionSettingsPage() {
                             Twoja subskrypcja wygasła. Odnów plan, aby przywrócić pełny dostęp do systemu.
                         </BannerText>
                     </BannerContent>
-                    <BannerCta onClick={() => {/* scroll to plans */}}>
-                        Odnów subskrypcję
+                    <BannerCta onClick={handleRenew} disabled={checkout.isPending}>
+                        {checkout.isPending ? 'Przekierowywanie…' : 'Odnów i zapłać (P24)'}
                     </BannerCta>
                 </ExpiredBanner>
             )}
@@ -288,10 +308,29 @@ export function SubscriptionSettingsPage() {
                         <InfoSub>{formatDate(myPlan.periodEndsAt)}</InfoSub>
                     </InfoCell>
                 </InfoGrid>
+
+                {!isTrial && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 16px' }}>
+                        <button
+                            onClick={handleRenew}
+                            disabled={checkout.isPending}
+                            style={{
+                                padding: '10px 18px', borderRadius: 10, border: 'none',
+                                background: '#0ea5e9', color: 'white', fontWeight: 700,
+                                fontSize: 13, cursor: checkout.isPending ? 'wait' : 'pointer',
+                                fontFamily: 'inherit',
+                            }}
+                        >
+                            {checkout.isPending
+                                ? 'Przekierowywanie do płatności…'
+                                : `Przedłuż o 30 dni — ${formatCents(myPlan.monthlyCostCents)}`}
+                        </button>
+                    </div>
+                )}
             </Panel>
 
             {/* ── Active add-ons ───────────────────────────────────────────── */}
-            {myPlan.activeAddOns.length > 0 && !isEverything && (
+            {myPlan.activeAddOns.length > 0 && !isFull && (
                 <SectionBlock>
                     <BlockLabel>Aktywne moduły dodatkowe</BlockLabel>
                     {myPlan.activeAddOns.map(addOn => (
@@ -336,7 +375,7 @@ export function SubscriptionSettingsPage() {
             </SectionBlock>
 
             {/* ── Available add-ons (only for BASIC plan) ──────────────────── */}
-            {!isEverything && (
+            {!isFull && (
                 <SectionBlock>
                     <BlockLabel>Dostępne moduły dodatkowe</BlockLabel>
                     {addOnsLoading ? (

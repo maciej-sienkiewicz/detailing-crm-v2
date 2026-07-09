@@ -11,12 +11,10 @@ import type {
     AddOnKey,
     PlanKey,
     PaymentHistoryResponse,
+    CheckoutRequest,
+    CheckoutResponse,
+    PaymentOrder,
 } from '../types';
-
-export interface ActivatePackageRequest {
-    planKey: PlanKey;
-    addOnKeys?: AddOnKey[];
-}
 
 const BASE = '/v1/subscription';
 
@@ -61,19 +59,25 @@ export const newSubscriptionApi = {
         return res.data;
     },
 
-    // ── Mutacje ──────────────────────────────────────────────────────────────────
-    activatePackage: async (body: ActivatePackageRequest): Promise<EntitlementsResponse> => {
-        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/activate-package`, body);
+    // ── Checkout (Przelewy24) ────────────────────────────────────────────────────
+    // Every paid operation (first purchase, renewal, upgrade, module purchase)
+    // creates a payment order. When paymentUrl is returned, redirect the browser
+    // there; the webhook fulfils the order and the /payments/result page picks
+    // the buyer up on return.
+    checkout: async (body: CheckoutRequest): Promise<CheckoutResponse> => {
+        const res = await apiClient.post<CheckoutResponse>(`${BASE}/checkout`, body);
         return res.data;
     },
 
+    getOrder: async (orderId: string): Promise<PaymentOrder> => {
+        const res = await apiClient.get<PaymentOrder>(`${BASE}/orders/${orderId}`);
+        return res.data;
+    },
+
+    // ── Free mutations (no payment) ──────────────────────────────────────────────
+    /** Schedules a downgrade at period end. Upgrades must go through checkout. */
     changePlan: async (planKey: PlanKey): Promise<EntitlementsResponse> => {
         const res = await apiClient.post<EntitlementsResponse>(`${BASE}/change-plan`, { planKey });
-        return res.data;
-    },
-
-    activateAddOn: async (addOnKey: AddOnKey): Promise<EntitlementsResponse> => {
-        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/activate-add-on`, { addOnKey });
         return res.data;
     },
 

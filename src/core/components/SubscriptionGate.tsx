@@ -2,19 +2,10 @@ import { ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '@/common/components/Toast';
-import {
-    useSubscriptionStatus,
-    useSubscriptionPlans,
-    usePurchaseSubscription,
-} from '@/modules/settings/hooks/useSubscription';
+import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
+import { useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
-import type { SubscriptionPlanType } from '@/modules/settings/api/subscriptionApi';
-
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-function formatPrice(amount: number, currency: string): string {
-    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency }).format(amount);
-}
+import { formatCents } from '@/modules/subscription/utils/formatters';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -130,20 +121,6 @@ const PlanCard = styled.button<{ $highlighted: boolean; $disabled: boolean }>`
     }
 `;
 
-const SaveBadge = styled.div`
-    position: absolute;
-    top: -1px;
-    right: 14px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    background: #f59e0b;
-    color: white;
-    padding: 3px 9px;
-    border-radius: 0 0 8px 8px;
-`;
-
 const PlanName = styled.div<{ $light: boolean }>`
     font-size: 13px;
     font-weight: 700;
@@ -163,12 +140,6 @@ const PlanAmount = styled.div<{ $light: boolean }>`
 const PlanPer = styled.div<{ $light: boolean }>`
     font-size: 12px;
     color: ${p => p.$light ? 'rgba(255,255,255,0.65)' : '#94a3b8'};
-`;
-
-const PlanTotal = styled.div<{ $light: boolean }>`
-    font-size: 11px;
-    color: ${p => p.$light ? 'rgba(255,255,255,0.55)' : '#94a3b8'};
-    margin-top: 2px;
 `;
 
 const PurchaseBtn = styled.button`
@@ -212,21 +183,21 @@ const BtnSpinner = styled.div`
 
 function ExpiredModal() {
     const { user } = useAuth();
-    const { showSuccess, showError } = useToast();
-    const { plans } = useSubscriptionPlans();
-    const purchase = usePurchaseSubscription();
+    const { showError } = useToast();
+    const { data: myPlan } = useMyPlan();
+    const checkout = useCheckout();
 
     const isOwner = user?.role === 'OWNER';
-    const monthlyPlan = plans.find(p => p.type === 'MONTHLY');
-    const yearlyPlan  = plans.find(p => p.type === 'YEARLY');
 
-    const handlePurchase = async (planType: SubscriptionPlanType) => {
-        if (!isOwner) return;
+    const handleRenew = async () => {
+        if (!isOwner || checkout.isPending) return;
         try {
-            await purchase.mutateAsync(planType);
-            showSuccess('Subskrypcja aktywowana', 'Miłego korzystania z systemu!');
+            const order = await checkout.mutateAsync({ type: 'RENEWAL' });
+            if (order.paymentUrl) {
+                window.location.assign(order.paymentUrl);
+            }
         } catch {
-            showError('Błąd płatności', 'Nie udało się aktywować subskrypcji. Spróbuj ponownie.');
+            showError('Błąd płatności', 'Nie udało się rozpocząć płatności. Spróbuj ponownie.');
         }
     };
 
@@ -243,52 +214,25 @@ function ExpiredModal() {
                     </IconWrap>
                     <Title>Twoja subskrypcja wygasła</Title>
                     <Subtitle>
-                        Aby kontynuować korzystanie z systemu, wybierz jeden z poniższych planów i odnów dostęp. Wszystkie Twoje dane są bezpieczne.
+                        Aby kontynuować korzystanie z systemu, przedłuż swój pakiet. Płatność
+                        obsługuje Przelewy24. Wszystkie Twoje dane są bezpieczne.
                     </Subtitle>
                 </Head>
 
-                <PlansGrid>
-                    {monthlyPlan && (
-                        <PlanCard
-                            $highlighted={false}
-                            $disabled={!isOwner || purchase.isPending}
-                            disabled={!isOwner || purchase.isPending}
-                            onClick={() => handlePurchase('MONTHLY')}
-                        >
-                            <PlanName $light={false}>{monthlyPlan.name}</PlanName>
-                            <PlanAmount $light={false}>
-                                {formatPrice(monthlyPlan.priceGross, monthlyPlan.currency)}
-                            </PlanAmount>
-                            <PlanPer $light={false}>/ miesiąc</PlanPer>
+                {myPlan && (
+                    <PlansGrid style={{ gridTemplateColumns: '1fr' }}>
+                        <PlanCard $highlighted={true} $disabled={true} disabled>
+                            <PlanName $light={true}>Pakiet {myPlan.plan.name}</PlanName>
+                            <PlanAmount $light={true}>{formatCents(myPlan.monthlyCostCents)}</PlanAmount>
+                            <PlanPer $light={true}>/ 30 dni (pakiet + aktywne moduły)</PlanPer>
                         </PlanCard>
-                    )}
-
-                    {yearlyPlan && (
-                        <PlanCard
-                            $highlighted={true}
-                            $disabled={!isOwner || purchase.isPending}
-                            disabled={!isOwner || purchase.isPending}
-                            onClick={() => handlePurchase('YEARLY')}
-                        >
-                            <SaveBadge>Najlepsza oferta</SaveBadge>
-                            <PlanName $light={true}>{yearlyPlan.name}</PlanName>
-                            <PlanAmount $light={true}>
-                                {formatPrice(yearlyPlan.pricePerMonth, yearlyPlan.currency)}
-                            </PlanAmount>
-                            <PlanPer $light={true}>/ miesiąc</PlanPer>
-                            <PlanTotal $light={true}>
-                                {formatPrice(yearlyPlan.priceGross, yearlyPlan.currency)} / rok
-                            </PlanTotal>
-                        </PlanCard>
-                    )}
-                </PlansGrid>
-
-                {purchase.isPending && (
-                    <PurchaseBtn disabled>
-                        <BtnSpinner />
-                        Przetwarzanie płatności…
-                    </PurchaseBtn>
+                    </PlansGrid>
                 )}
+
+                <PurchaseBtn onClick={handleRenew} disabled={!isOwner || checkout.isPending}>
+                    {checkout.isPending && <BtnSpinner />}
+                    {checkout.isPending ? 'Przekierowywanie do Przelewy24…' : 'Odnów subskrypcję i zapłać'}
+                </PurchaseBtn>
 
                 {!isOwner && (
                     <OwnerNote>

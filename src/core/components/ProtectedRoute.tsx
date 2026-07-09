@@ -5,9 +5,14 @@ import { SubscriptionGate } from './SubscriptionGate';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  /**
+   * Skip the SubscriptionGate for pages that must stay reachable when the
+   * subscription is expired — e.g. the Przelewy24 payment result page.
+   */
+  withSubscriptionGate?: boolean;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, withSubscriptionGate = true }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -32,6 +37,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  if (!withSubscriptionGate) {
+    return <>{children}</>;
   }
 
   return <SubscriptionGate>{children}</SubscriptionGate>;

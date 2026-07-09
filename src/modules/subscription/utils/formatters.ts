@@ -44,9 +44,13 @@ const FEATURE_LABELS: Record<string, string> = {
     VEHICLES: 'Pojazdy',
     DOCUMENTS: 'Dokumenty',
     GALLERY: 'Galeria',
+    AI_LEADS: 'Asystent AI dla leadów',
+    INSTAGRAM_MONITORING: 'Monitoring Instagrama',
+    SMS_EMAIL: 'Automatyzacja SMS i E-mail',
+    CAMPAIGNS: 'Kampanie marketingowe',
+    E_SIGNATURES: 'Podpisy elektroniczne',
     FINANCE: 'Finanse',
-    EMPLOYEES: 'Pracownicy',
-    SMS_EMAIL: 'SMS i E-maile',
+    STATISTICS: 'Statystyki',
 };
 
 export function featureLabel(key: string): string {

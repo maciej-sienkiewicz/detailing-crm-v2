@@ -9,7 +9,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
-import { useChangePlan, useActivateAddOn, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
+import { useChangePlan, useCheckout, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
 import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../types';
 import { formatDate } from '../utils/formatters';
 import {
@@ -56,10 +56,24 @@ export function PlanChangeDialog({
 }: PlanDialogProps) {
     const { showSuccess, showError } = useToast();
     const changePlan = useChangePlan();
+    const checkout = useCheckout();
+
+    const isDowngrade = preview?.changeType === 'DOWNGRADE';
 
     const handleConfirm = async () => {
         try {
-            await changePlan.mutateAsync(newPlanKey);
+            if (isDowngrade) {
+                await changePlan.mutateAsync(newPlanKey);
+                showSuccess('Zmiana zaplanowana', `Plan zostanie zmieniony na ${newPlanName} na koniec okresu rozliczeniowego.`);
+                onClose();
+                return;
+            }
+            // Upgrade — paid operation, goes through Przelewy24.
+            const order = await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey });
+            if (order.paymentUrl) {
+                window.location.assign(order.paymentUrl);
+                return;
+            }
             showSuccess('Plan zmieniony', `Twój plan został zmieniony na ${newPlanName}.`);
             onClose();
         } catch (err: unknown) {
@@ -68,7 +82,7 @@ export function PlanChangeDialog({
         }
     };
 
-    const isDowngrade = preview?.changeType === 'DOWNGRADE';
+    const isPending = changePlan.isPending || checkout.isPending;
 
     return (
         <ModalShell isOpen onClose={onClose} maxWidth="480px">
@@ -131,18 +145,18 @@ export function PlanChangeDialog({
             </DialogBody>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={changePlan.isPending}>
+                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={isPending}>
                     Anuluj
                 </SharedButton>
                 <SharedButton
                     $variant={isDowngrade ? 'ghost' : 'primary'}
                     $size="sm"
                     onClick={handleConfirm}
-                    disabled={changePlan.isPending || isLoadingPreview || !preview}
+                    disabled={isPending || isLoadingPreview || !preview}
                     style={isDowngrade ? { background: '#f59e0b', color: 'white' } : undefined}
                 >
-                    {changePlan.isPending && <BtnSpinner />}
-                    {isDowngrade ? 'Zaplanuj zmianę' : 'Potwierdź i zapłać'}
+                    {isPending && <BtnSpinner />}
+                    {isDowngrade ? 'Zaplanuj zmianę' : 'Przejdź do płatności'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>
@@ -167,11 +181,15 @@ export function AddOnActivationDialog({
     onClose,
 }: AddOnDialogProps) {
     const { showSuccess, showError } = useToast();
-    const activateAddOn = useActivateAddOn();
+    const checkout = useCheckout();
 
     const handleConfirm = async () => {
         try {
-            await activateAddOn.mutateAsync(addOnKey);
+            const order = await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey] });
+            if (order.paymentUrl) {
+                window.location.assign(order.paymentUrl);
+                return;
+            }
             showSuccess('Moduł aktywowany', `Moduł ${addOnName} został pomyślnie aktywowany.`);
             onClose();
         } catch (err: unknown) {
@@ -228,17 +246,17 @@ export function AddOnActivationDialog({
             </DialogBody>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={activateAddOn.isPending}>
+                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={checkout.isPending}>
                     Anuluj
                 </SharedButton>
                 <SharedButton
                     $variant="primary"
                     $size="sm"
                     onClick={handleConfirm}
-                    disabled={activateAddOn.isPending || isLoadingPreview || !preview}
+                    disabled={checkout.isPending || isLoadingPreview || !preview}
                 >
-                    {activateAddOn.isPending && <BtnSpinner />}
-                    {isTrial ? 'Aktywuj bezpłatnie' : 'Potwierdź i zapłać'}
+                    {checkout.isPending && <BtnSpinner />}
+                    {isTrial ? 'Aktywuj bezpłatnie' : 'Przejdź do płatności'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

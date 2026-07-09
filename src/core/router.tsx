@@ -30,6 +30,7 @@ import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { SettingsView } from '@/modules/settings';
+import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
 
 /**
  * Authenticated app page: session guard + optional permission guard + layout.
@@ -213,6 +214,18 @@ export const router = createBrowserRouter([
     {
         path: '/settings',
         element: page(<SettingsView />, ANY_SETTINGS),
+    },
+
+    // ── Powrót z płatności Przelewy24 ────────────────────────────────────
+    // Bez SubscriptionGate: strona musi działać także dla wygasłych kont,
+    // które właśnie opłaciły przedłużenie.
+    {
+        path: '/payments/result',
+        element: (
+            <ProtectedRoute withSubscriptionGate={false}>
+                <PaymentResultPage />
+            </ProtectedRoute>
+        ),
     },
 
     {

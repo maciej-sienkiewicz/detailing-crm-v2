@@ -30,7 +30,7 @@ const CheckIcon = ({ light }: { light: boolean }) => (
 
 export function PlanCard({ plan, currentPlanKey, disabled, onSelect }: Props) {
     const isActive = plan.key === currentPlanKey;
-    const isHighlighted = plan.key === 'EVERYTHING';
+    const isHighlighted = plan.key === 'FULL';
 
     return (
         <Card

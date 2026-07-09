@@ -1,6 +1,6 @@
 export type BillingStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED';
 
-export type PlanKey = 'BASIC' | 'EVERYTHING';
+export type PlanKey = 'BASIC' | 'FULL';
 
 export type FeatureKey =
     | 'CALENDAR'
@@ -9,14 +9,26 @@ export type FeatureKey =
     | 'VEHICLES'
     | 'DOCUMENTS'
     | 'GALLERY'
+    | 'AI_LEADS'
+    | 'INSTAGRAM_MONITORING'
+    | 'SMS_EMAIL'
+    | 'CAMPAIGNS'
+    | 'E_SIGNATURES'
     | 'FINANCE'
-    | 'EMPLOYEES'
-    | 'SMS_EMAIL';
+    | 'STATISTICS';
 
-export type AddOnKey = 'SMS_EMAIL_MODULE' | 'FINANCE_MODULE' | 'EMPLOYEES_MODULE';
+export type AddOnKey =
+    | 'AI_LEAD_ASSISTANT'
+    | 'INSTAGRAM_MONITORING'
+    | 'CLIENT_COMMUNICATION'
+    | 'MARKETING_CAMPAIGNS'
+    | 'E_SIGNATURES'
+    | 'FINANCE_MODULE'
+    | 'STATISTICS_MODULE';
 
 export type PaymentEventType =
     | 'SUBSCRIPTION_PURCHASE'
+    | 'SUBSCRIPTION_RENEWAL'
     | 'PLAN_UPGRADE'
     | 'PLAN_DOWNGRADE'
     | 'ADD_ON_ACTIVATION'
@@ -115,6 +127,10 @@ export interface CalculatePriceResponse {
     }>;
     totalMonthlyPriceCents: number | null;
     hasUndefinedPrices: boolean;
+    /** FULL bundle price, for the "cheaper than à la carte" upsell hint. */
+    fullPlanMonthlyPriceCents: number | null;
+    /** Positive when the assembled package costs more than FULL. */
+    savingsWithFullCents: number | null;
 }
 
 // ─── Plan Change Preview ──────────────────────────────────────────────────────
@@ -143,6 +159,45 @@ export interface AddOnPreview {
     daysRemaining: number;
     periodEndsAt: string;
     explanation: string;
+}
+
+// ─── Checkout (Przelewy24) ────────────────────────────────────────────────────
+
+export type CheckoutType = 'INITIAL_PURCHASE' | 'RENEWAL' | 'PLAN_UPGRADE' | 'ADD_ON_PURCHASE';
+
+export type PaymentOrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+
+export interface CheckoutRequest {
+    type: CheckoutType;
+    planKey?: PlanKey;
+    addOnKeys?: AddOnKey[];
+}
+
+/**
+ * paymentUrl — Przelewy24 payment page to redirect the buyer to.
+ * Null when the order needed no payment (trial / zero amount) and was fulfilled
+ * immediately — in that case status is already PAID.
+ */
+export interface CheckoutResponse {
+    orderId: string;
+    status: PaymentOrderStatus;
+    amountCents: number;
+    currency: string;
+    description: string;
+    paymentUrl: string | null;
+}
+
+export interface PaymentOrder {
+    orderId: string;
+    type: CheckoutType;
+    typeDisplayName: string;
+    status: PaymentOrderStatus;
+    amountCents: number;
+    currency: string;
+    description: string;
+    createdAt: string;
+    paidAt: string | null;
+    failureReason: string | null;
 }
 
 // ─── Payment History ──────────────────────────────────────────────────────────

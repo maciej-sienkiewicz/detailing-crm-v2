@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useFeature } from '../hooks/useFeature';
-import { useEntitlements } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import type { FeatureKey, AddOnKey, AddOnPreview } from '../types';
@@ -12,7 +11,6 @@ import {
     OverlayCard,
     LockIcon,
     OverlayTitle,
-    OverlaySubtitle,
     PriceHint,
     UnlockBtn,
     WaitlistBtn,
@@ -43,7 +41,6 @@ const ZapIcon = () => (
 
 export function FeatureGate({ featureKey, children, demoContent }: Props) {
     const feature = useFeature(featureKey);
-    const { data: entitlements } = useEntitlements();
 
     const [addOnPreview, setAddOnPreview] = useState<AddOnPreview | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
@@ -56,7 +53,6 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
     }
 
     const upsell = feature.upsell;
-    const everythingPlan = entitlements ? undefined : undefined;
 
     const handleUnlock = async () => {
         if (!upsell?.addOnKey || !upsell.isAvailable) return;
@@ -127,8 +123,8 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                         )}
 
                         <UpgradeHint>
-                            Lub przejdź na plan <a href="/settings?tab=plan">Wszystko</a> (199,00 PLN/mies.)
-                            i zyskaj pełny dostęp.
+                            Lub przejdź na pakiet <a href="/settings?tab=plan">FULL</a> (299,00 PLN/mies.)
+                            i zyskaj dostęp do wszystkich modułów.
                         </UpgradeHint>
                     </OverlayCard>
                 </Overlay>

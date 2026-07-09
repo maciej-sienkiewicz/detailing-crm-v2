@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { newSubscriptionApi } from './subscriptionApi';
-import type { ActivatePackageRequest } from './subscriptionApi';
-import type { AddOnKey, PlanKey } from '../types';
+import type { AddOnKey, PlanKey, CheckoutRequest, CheckoutResponse } from '../types';
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
 
@@ -51,21 +50,29 @@ export const usePaymentHistory = (page = 0) => {
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-// Key used by the old SubscriptionGate — must be invalidated so the gate re-evaluates
-const OLD_STATUS_KEY = ['subscription', 'status'] as const;
+// Key used by the SubscriptionGate — must be invalidated so the gate re-evaluates
+const STATUS_KEY = ['subscription', 'status'] as const;
 
-const invalidateAfterMutation = (queryClient: ReturnType<typeof useQueryClient>) => {
+export const invalidateSubscriptionData = (queryClient: ReturnType<typeof useQueryClient>) => {
     queryClient.invalidateQueries({ queryKey: ENTITLEMENTS_KEY });
     queryClient.invalidateQueries({ queryKey: MY_PLAN_KEY });
     queryClient.invalidateQueries({ queryKey: PAYMENT_HISTORY_KEY });
-    queryClient.invalidateQueries({ queryKey: OLD_STATUS_KEY });
+    queryClient.invalidateQueries({ queryKey: STATUS_KEY });
 };
 
-export const useActivatePackage = () => {
+/**
+ * Creates a payment order. When the response carries a paymentUrl the caller
+ * must redirect the browser to Przelewy24 (`window.location.assign(paymentUrl)`);
+ * when paymentUrl is null the order was fulfilled instantly (zero amount) and
+ * subscription data is refreshed here.
+ */
+export const useCheckout = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (body: ActivatePackageRequest) => newSubscriptionApi.activatePackage(body),
-        onSuccess: () => invalidateAfterMutation(queryClient),
+        mutationFn: (body: CheckoutRequest) => newSubscriptionApi.checkout(body),
+        onSuccess: (response: CheckoutResponse) => {
+            if (!response.paymentUrl) invalidateSubscriptionData(queryClient);
+        },
     });
 };
 
@@ -73,23 +80,16 @@ export const useStartTrial = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => newSubscriptionApi.startTrial(),
-        onSuccess: () => invalidateAfterMutation(queryClient),
+        onSuccess: () => invalidateSubscriptionData(queryClient),
     });
 };
 
+/** Downgrade only — upgrades go through useCheckout (PLAN_UPGRADE). */
 export const useChangePlan = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (planKey: PlanKey) => newSubscriptionApi.changePlan(planKey),
-        onSuccess: () => invalidateAfterMutation(queryClient),
-    });
-};
-
-export const useActivateAddOn = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (addOnKey: AddOnKey) => newSubscriptionApi.activateAddOn(addOnKey),
-        onSuccess: () => invalidateAfterMutation(queryClient),
+        onSuccess: () => invalidateSubscriptionData(queryClient),
     });
 };
 
@@ -97,7 +97,7 @@ export const useDeactivateAddOn = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (addOnKey: AddOnKey) => newSubscriptionApi.deactivateAddOn(addOnKey),
-        onSuccess: () => invalidateAfterMutation(queryClient),
+        onSuccess: () => invalidateSubscriptionData(queryClient),
     });
 };
 
@@ -105,6 +105,6 @@ export const useCancelPendingPlanChange = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => newSubscriptionApi.cancelPendingPlanChange(),
-        onSuccess: () => invalidateAfterMutation(queryClient),
+        onSuccess: () => invalidateSubscriptionData(queryClient),
     });
 };
