@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '@/core/context/AuthContext';
+import { usePermissions } from '@/core/permissions';
+import type { PermissionRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
@@ -288,20 +289,48 @@ const VALID_SECTIONS = new Set<SectionId>([
     'integrations', 'api',
 ]);
 
-export function SettingsView() {
-    const { user } = useAuth();
-    const [searchParams] = useSearchParams();
+// Permission (or owner-only) requirements per settings tab. Tabs without an
+// entry are visible to everyone. Hidden tabs disappear from the nav and cannot
+// be reached via ?tab= — the view falls back to the first visible tab.
+const SECTION_REQUIREMENTS: Partial<Record<SectionId, PermissionRequirement | 'OWNER_ONLY'>> = {
+    services: 'SERVICES_VIEW',
+    team: 'EMPLOYEES_MANAGE',
+    roles: 'EMPLOYEES_MANAGE',
+    templates: 'COMMUNICATION_SEND',
+    'email-templates': 'COMMUNICATION_SEND',
+    reminders: 'COMMUNICATION_SEND',
+    documents: 'VISITS_DOCUMENTS_MANAGE',
+    tablets: 'VISITS_DOCUMENTS_MANAGE',
+    // Billing is the owner's domain — no permission code exists for it.
+    plan: 'OWNER_ONLY',
+    credits: 'OWNER_ONLY',
+    invoices: 'OWNER_ONLY',
+};
 
-    // null permissions = owner (full access); array must include SERVICES_VIEW to show the tab
-    const canViewServices = !user?.permissions || user.permissions.includes('SERVICES_VIEW');
+export function SettingsView() {
+    const [searchParams] = useSearchParams();
+    const { can, isOwner } = usePermissions();
+
+    const canSee = useMemo(() => (id: SectionId) => {
+        const requirement = SECTION_REQUIREMENTS[id];
+        if (!requirement) return true;
+        if (requirement === 'OWNER_ONLY') return isOwner;
+        return can(requirement);
+    }, [can, isOwner]);
 
     const visibleNavGroups = useMemo(() => NAV_GROUPS.map(g => ({
         ...g,
-        items: g.items.filter(it => it.id !== 'services' || canViewServices),
-    })).filter(g => g.items.length > 0), [canViewServices]);
+        items: g.items.filter(it => canSee(it.id)),
+    })).filter(g => g.items.length > 0), [canSee]);
+
+    const firstVisibleSection: SectionId =
+        visibleNavGroups[0]?.items[0]?.id ?? 'security';
 
     const tabParam = searchParams.get('tab') as SectionId | null;
-    const initialSection: SectionId = tabParam && VALID_SECTIONS.has(tabParam) ? tabParam : 'company';
+    const initialSection: SectionId =
+        tabParam && VALID_SECTIONS.has(tabParam) && canSee(tabParam)
+            ? tabParam
+            : firstVisibleSection;
     const [section, setSection] = useState<SectionId>(initialSection);
     const [helpOpen, setHelpOpen] = useState(false);
 

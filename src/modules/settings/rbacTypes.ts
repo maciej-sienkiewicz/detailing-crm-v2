@@ -5,18 +5,17 @@
 // require the node itself, so granting a permission implies granting its whole
 // ancestor chain. The editor renders the hierarchy and cascades selection along it.
 
-/** Permission modules grouping (hardcoded on the backend). */
+/** Permission modules grouping (hardcoded on the backend, `PermissionModule`). */
 export type PermissionModuleKey =
-    | 'CALENDAR'
     | 'VISITS'
     | 'CUSTOMERS'
-    | 'VEHICLES'
     | 'FINANCE'
     | 'EMPLOYEES'
     | 'COMMUNICATION'
     | 'STATISTICS'
     | 'LEADS'
-    | 'TASKS';
+    | 'TASKS'
+    | 'SERVICES';
 
 export interface PermissionTreeNode {
     code: string;

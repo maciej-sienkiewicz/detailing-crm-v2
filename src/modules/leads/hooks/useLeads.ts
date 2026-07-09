@@ -96,11 +96,14 @@ export const useLead = (id: LeadId | undefined) => {
  * Subscribes to LEAD_PIPELINE_KEY — deduplicates with useLeadPipelineSummary,
  * and is automatically invalidated by useLeadSocket on incoming WebSocket events.
  */
-export const useNewLeadsCount = (): number => {
+export const useNewLeadsCount = (options?: { enabled?: boolean }): number => {
   const { data } = useQuery<LeadPipelineSummary, Error, number>({
     queryKey: LEAD_PIPELINE_KEY,
     queryFn: () => leadApi.getPipelineSummary(),
     select: (summary) => summary.newLeadsCount,
+    // Callers without the LEADS_MANAGE permission must not poll — the backend
+    // guards the pipeline endpoint and would answer 403.
+    enabled: options?.enabled ?? true,
   });
   return data ?? 0;
 };
