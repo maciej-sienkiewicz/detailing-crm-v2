@@ -1,4 +1,5 @@
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../../types';
+import { PiiText } from '@/common/pii';
 import { formatTime, formatPrice } from './layout';
 import { Card, CardTime, CardTitle, CardMeta, CardFooter, CardPrice, CardService } from './styles';
 
@@ -30,7 +31,7 @@ export const EventCard = ({ event, onClick }: EventCardProps) => {
         <Card $color={color} $dimmed={isDimmed} $crossedOut={isCrossedOut} onClick={onClick}>
             {timeLabel && <CardTime>{timeLabel}</CardTime>}
 
-            <CardTitle>{event.title}</CardTitle>
+            <CardTitle><PiiText value={event.title} kind="name" /></CardTitle>
 
             {props.vehicleInfo && <CardMeta>{props.vehicleInfo}</CardMeta>}
             {props.customerPhone && <CardMeta>{props.customerPhone}</CardMeta>}

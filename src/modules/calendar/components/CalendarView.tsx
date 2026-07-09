@@ -1,6 +1,7 @@
 // src/modules/calendar/components/CalendarView.tsx
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { PiiText } from '@/common/pii';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -1691,7 +1692,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                     fontWeight: 500,
                                     textDecoration: isCancelled ? 'line-through' : 'none',
                                 }}>
-                                    {arg.event.title}
+                                    <PiiText value={arg.event.title} kind="name" />
                                 </span>
                             </div>
                         );
@@ -1726,7 +1727,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                 </svg>
                             )}
                             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '13px', lineHeight: '1.4', textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                                {arg.event.title}
+                                <PiiText value={arg.event.title} kind="name" />
                             </span>
                             {statusBadge && (
                                 <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: `${statusBadge.color}28`, color: statusBadge.color, border: `1px solid ${statusBadge.color}50`, lineHeight: '1.5' }}>

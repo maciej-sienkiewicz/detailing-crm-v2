@@ -293,6 +293,8 @@ const VALID_SECTIONS = new Set<SectionId>([
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
 // be reached via ?tab= — the view falls back to the first visible tab.
 const SECTION_REQUIREMENTS: Partial<Record<SectionId, PermissionRequirement | 'OWNER_ONLY'>> = {
+    // Company data (NIP, address, branding) is studio configuration — owner's call.
+    company: 'OWNER_ONLY',
     services: 'SERVICES_VIEW',
     team: 'EMPLOYEES_MANAGE',
     roles: 'EMPLOYEES_MANAGE',

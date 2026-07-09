@@ -25,7 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
-import { usePermissions, ANY_FINANCE } from '@/core/permissions';
+import { usePermissions, ANY_FINANCE, ANY_SETTINGS } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
@@ -91,15 +91,15 @@ const buildMenuSections = (
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
                 { path: '/gallery',    label: 'Galeria',    icon: Images,     requires: 'VISITS_VIEW' },
-                { path: '/settings',   label: 'Ustawienia', icon: Settings },
+                { path: '/settings',   label: 'Ustawienia', icon: Settings, requires: ANY_SETTINGS },
             ],
         },
         {
             title: 'Marketing',
             items: [
                 { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
-                { path: '/instagram',      label: 'Instagram',      icon: Camera },
-                { path: '/google-reviews', label: 'Google Reviews', icon: Search },
+                { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' },
+                { path: '/google-reviews', label: 'Google Reviews', icon: Search, requires: 'MARKETING_MANAGE' },
             ],
         },
         {

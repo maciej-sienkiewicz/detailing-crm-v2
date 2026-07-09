@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { calendarApi } from '../api/calendarApi';
+import { PiiValue } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -493,8 +494,8 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                                 <ResultLeft>
                                                     <ColorDot $color={event.backgroundColor || '#6366f1'} $muted={muted} />
                                                     <ResultContent>
-                                                        <ResultTitle>{event.title}</ResultTitle>
-                                                        <ResultMeta>{props.customerName} · {vehicle}</ResultMeta>
+                                                        <ResultTitle><PiiText value={event.title} kind="name" /></ResultTitle>
+                                                        <ResultMeta><PiiValue value={props.customerName} kind="name" /> · {vehicle}</ResultMeta>
                                                     </ResultContent>
                                                 </ResultLeft>
                                                 {(props.totalPrice || props.totalNet) ? (

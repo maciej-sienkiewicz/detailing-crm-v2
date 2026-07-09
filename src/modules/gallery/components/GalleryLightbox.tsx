@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { PiiValue } from '@/common/pii';
 import { useNavigate } from 'react-router-dom';
 import { TagChip } from '@/modules/photos/components/TagChip';
 import type { GalleryPhoto } from '../types';
@@ -517,7 +518,7 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
                                     <span>
                                         <strong style={{ display: 'block', lineHeight: 1.3 }}>Klient</strong>
                                         {photo.customerName && (
-                                            <span style={{ fontSize: '11px', opacity: 0.6 }}>{photo.customerName}</span>
+                                            <span style={{ fontSize: '11px', opacity: 0.6 }}><PiiValue value={photo.customerName} kind="name" /></span>
                                         )}
                                     </span>
                                     <svg className="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PiiValue, joinPiiName } from '@/common/pii';
 import styled from 'styled-components';
 import { User, MessageSquare, Mail } from 'lucide-react';
 import type { NotificationChannels } from '../../hooks/useStateTransition';
@@ -147,10 +148,12 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                 </CustomerAvatar>
                 <CustomerDetails>
                     <CustomerName>
-                        {customer.firstName} {customer.lastName}
+                        <PiiValue value={joinPiiName(customer.firstName, customer.lastName)} kind="name" />
                     </CustomerName>
                     <CustomerContact>
-                        {[customer.phone, customer.email].filter(Boolean).join(' · ')}
+                        <PiiValue value={customer.phone} kind="phone" />
+                        {customer.phone && customer.email ? ' · ' : ''}
+                        <PiiValue value={customer.email} kind="email" />
                     </CustomerContact>
                 </CustomerDetails>
             </CustomerRow>
@@ -173,7 +176,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                     </ChannelIcon>
                     <ChannelText>
                         <ChannelLabel>SMS</ChannelLabel>
-                        <ChannelDetail>{customer.phone}</ChannelDetail>
+                        <ChannelDetail><PiiValue value={customer.phone} kind="phone" /></ChannelDetail>
                     </ChannelText>
                 </ChannelItem>
                 </LockedSection>
@@ -190,7 +193,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                     </ChannelIcon>
                     <ChannelText>
                         <ChannelLabel>Email</ChannelLabel>
-                        <ChannelDetail>{customer.email || 'Brak adresu email'}</ChannelDetail>
+                        <ChannelDetail><PiiValue value={customer.email} kind="email" emptyFallback="Brak adresu email" /></ChannelDetail>
                     </ChannelText>
                 </ChannelItem>
             </ChannelList>

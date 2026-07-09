@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core';
+import { PiiValue, isPiiMasked } from '@/common/pii';
 import styled, { css, keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import {
@@ -1452,6 +1453,12 @@ const STATUS_FILTER_OPTIONS: { id: LeadStatus; label: string }[] = [
 
 const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
   const identifier = lead.contactIdentifier ?? '';
+  // Masked values must reach PiiValue untouched (formatting would mangle "***")
+  if (isPiiMasked(lead.customerName) || isPiiMasked(identifier)) {
+    return lead.customerName
+      ? { primary: lead.customerName, secondary: identifier || undefined }
+      : { primary: identifier };
+  }
   if (lead.customerName) {
     return {
       primary: lead.customerName,
@@ -2103,8 +2110,8 @@ export const LeadListView: React.FC = () => {
               );
             })() : (
               <CellStack>
-                <CellMain>{contact.primary}</CellMain>
-                {contact.secondary && <CellSub>{contact.secondary}</CellSub>}
+                <CellMain><PiiValue value={contact.primary} kind="name" /></CellMain>
+                {contact.secondary && <CellSub><PiiValue value={contact.secondary} kind="phone" /></CellSub>}
                 <CustomerChip
                   $primary
                   title="Przypisz klienta z bazy"
@@ -2264,7 +2271,7 @@ export const LeadListView: React.FC = () => {
               <IconBtn
                 $danger
                 title="Usuń leada"
-                onClick={e => { e.stopPropagation(); setDeleteTarget({ id: lead.id, name: lead.customerName || lead.contactIdentifier }); }}
+                onClick={e => { e.stopPropagation(); setDeleteTarget({ id: lead.id, name: isPiiMasked(lead.customerName || lead.contactIdentifier) ? 'bez nazwy' : (lead.customerName || lead.contactIdentifier) }); }}
               >
                 <Trash2 />
               </IconBtn>

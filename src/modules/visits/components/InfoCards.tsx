@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -356,8 +357,9 @@ interface CustomerInfoCardProps {
 }
 
 export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardProps) => {
-    const initials = getInitials(customer.firstName, customer.lastName);
-    const fullName = `${customer.firstName} ${customer.lastName}`.trim();
+    const fullName = joinPiiName(customer.firstName, customer.lastName) ?? '';
+    const masked = isPiiMasked(fullName);
+    const initials = masked ? '•' : getInitials(customer.firstName, customer.lastName);
 
     return (
         <SidebarCard>
@@ -388,7 +390,7 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
                 <CustomerRow>
                     <CustomerAvatar aria-hidden="true">{initials || '?'}</CustomerAvatar>
                     <div>
-                        <CustomerName>{fullName || 'Brak nazwy'}</CustomerName>
+                        <CustomerName><PiiValue value={fullName} kind="name" emptyFallback="Brak nazwy" /></CustomerName>
                         {customer.companyName && (
                             <CustomerSub>{customer.companyName}</CustomerSub>
                         )}
@@ -398,11 +400,11 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
                 {/* Contact links */}
                 <ContactLinks>
                     {customer.phone ? (
-                        <ContactLink href={`tel:${customer.phone}`}>
+                        <ContactLink href={isPiiMasked(customer.phone) ? undefined : `tel:${customer.phone}`}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
                             </svg>
-                            {customer.phone}
+                            <PiiValue value={customer.phone} kind="phone" />
                         </ContactLink>
                     ) : (
                         <ContactPlaceholder>
@@ -414,12 +416,12 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
                     )}
 
                     {customer.email ? (
-                        <ContactLink href={`mailto:${customer.email}`}>
+                        <ContactLink href={isPiiMasked(customer.email) ? undefined : `mailto:${customer.email}`}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="4" width="20" height="16" rx="2" />
                                 <path d="M2 7l10 7 10-7" />
                             </svg>
-                            {customer.email}
+                            <PiiValue value={customer.email} kind="email" />
                         </ContactLink>
                     ) : (
                         <ContactPlaceholder>
@@ -560,19 +562,19 @@ export const VehicleInfoCard = ({
                             <HandoffRow>
                                 <HandoffKey>Imię</HandoffKey>
                                 <HandoffVal>
-                                    {vehicleHandoff.contactPerson.firstName} {vehicleHandoff.contactPerson.lastName}
+                                    <PiiValue value={joinPiiName(vehicleHandoff.contactPerson.firstName, vehicleHandoff.contactPerson.lastName)} kind="name" />
                                 </HandoffVal>
                             </HandoffRow>
                             {vehicleHandoff.contactPerson.phone && (
                                 <HandoffRow>
                                     <HandoffKey>Telefon</HandoffKey>
-                                    <HandoffVal>{vehicleHandoff.contactPerson.phone}</HandoffVal>
+                                    <HandoffVal><PiiValue value={vehicleHandoff.contactPerson.phone} kind="phone" /></HandoffVal>
                                 </HandoffRow>
                             )}
                             {vehicleHandoff.contactPerson.email && (
                                 <HandoffRow>
                                     <HandoffKey>E-mail</HandoffKey>
-                                    <HandoffVal>{vehicleHandoff.contactPerson.email}</HandoffVal>
+                                    <HandoffVal><PiiValue value={vehicleHandoff.contactPerson.email} kind="email" /></HandoffVal>
                                 </HandoffRow>
                             )}
                         </HandoffKv>

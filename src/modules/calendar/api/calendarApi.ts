@@ -1,6 +1,7 @@
 // src/modules/calendar/api/calendarApi.ts
 
 import { apiClient } from '@/core';
+import { joinPiiName } from '@/common/pii';
 import type {
     CalendarEvent,
     CalendarEventsResponse,
@@ -50,7 +51,7 @@ const isVisitOverdue = (status: VisitResponse['status'], estimatedCompletionDate
 // ---------------------------------------------------------------------------
 
 const transformAppointment = (appointment: AppointmentResponse): CalendarEvent => {
-    const customerName = `${appointment.customer.firstName} ${appointment.customer.lastName}`;
+    const customerName = joinPiiName(appointment.customer.firstName, appointment.customer.lastName) ?? '';
     const vehicleInfo = appointment.vehicle
         ? `${appointment.vehicle.brand} ${appointment.vehicle.model}`
         : 'Brak pojazdu';
@@ -105,7 +106,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
 };
 
 const transformVisit = (visit: VisitResponse): CalendarEvent => {
-    const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`;
+    const customerName = joinPiiName(visit.customer.firstName, visit.customer.lastName) ?? '';
     const vehicleInfo = `${visit.vehicle.brand} ${visit.vehicle.model}`;
     const status = visit.status;
 

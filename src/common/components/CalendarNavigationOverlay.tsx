@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PiiValue } from '@/common/pii';
 import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
@@ -236,7 +237,7 @@ export const CalendarNavigationOverlay = () => {
           </Avatar>
           <Info>
             <Label>{card.label}</Label>
-            <Sub>{card.customer}</Sub>
+            <Sub><PiiValue value={card.customer} kind="name" /></Sub>
           </Info>
           <Amount $color={card.accentColor}>{card.amount}</Amount>
         </Card>

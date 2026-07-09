@@ -12,6 +12,7 @@ export type PermissionModuleKey =
     | 'FINANCE'
     | 'EMPLOYEES'
     | 'COMMUNICATION'
+    | 'MARKETING'
     | 'STATISTICS'
     | 'LEADS'
     | 'TASKS'

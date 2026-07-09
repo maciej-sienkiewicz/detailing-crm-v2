@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { t } from '@/common/i18n';
+import { PiiValue, joinPiiName } from '@/common/pii';
 import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
@@ -447,13 +448,13 @@ const VisitRow = ({
         <VisitSecondRow>
           { (visit.customerFirstName && visit.customerLastName) && (
               <>
-                <CustomerName>{visit.customerFirstName} {visit.customerLastName}</CustomerName>
+                <CustomerName><PiiValue value={joinPiiName(visit.customerFirstName, visit.customerLastName)} kind="name" /></CustomerName>
                 <Dot />
               </>
           )}
           {visit.phoneNumber && (
             <>
-              <PhoneChip>{formatPhoneNumber(visit.phoneNumber)}</PhoneChip>
+              <PhoneChip><PiiValue value={visit.phoneNumber} kind="phone" format={formatPhoneNumber} /></PhoneChip>
             </>
           )}
         </VisitSecondRow>
@@ -641,7 +642,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     const snap = {
       id: visit.id,
       label: `${visit.brand} ${visit.model ?? ''}`.trim() || visit.name,
-      customer: `${visit.customerFirstName} ${visit.customerLastName}`.trim(),
+      customer: joinPiiName(visit.customerFirstName, visit.customerLastName) ?? '',
       amount: formatCurrency(visit.amount),
       accentColor: CARD_CONFIG[variant].accentColor,
       sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),

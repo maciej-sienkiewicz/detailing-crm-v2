@@ -7,6 +7,7 @@
 import type { DashboardData, IncomingCall, DashboardTask, UpcomingVisit, VisitStatusKind, DashboardRevenueSummary, DashboardReservationSummary } from '../types';
 import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
 import { apiClient } from '@/core';
+import { joinPiiName, PII_MASK } from '@/common/pii';
 
 const USE_MOCKS = false;
 
@@ -540,7 +541,7 @@ export const dashboardApi = {
           dateLabel: label,
           isoDate: toLocalDay(a.schedule.startDateTime),
           serviceName: a.appointmentTitle || a.services.map(s => s.serviceName).slice(0, 2).join(', ') || 'Rezerwacja',
-          customerName: `${a.customer.firstName} ${a.customer.lastName}`,
+          customerName: joinPiiName(a.customer.firstName, a.customer.lastName) ?? '',
           vehicleName: a.vehicle ? `${a.vehicle.brand} ${a.vehicle.model}` : '—',
           price: (a.totalGross ?? 0) / 100,
           priceNetto: (a.totalNet ?? 0) / 100,
@@ -561,7 +562,7 @@ export const dashboardApi = {
           dateLabel: dateLabel(v.scheduledDate),
           isoDate: toLocalDay(v.scheduledDate),
           serviceName: v.title || v.visitNumber,
-          customerName: `${v.customer.firstName} ${v.customer.lastName}`,
+          customerName: joinPiiName(v.customer.firstName, v.customer.lastName) ?? '',
           vehicleName: `${v.vehicle.brand} ${v.vehicle.model}`,
           price: (v.totalGross ?? 0) / 100,
           priceNetto: (v.totalNet ?? 0) / 100,

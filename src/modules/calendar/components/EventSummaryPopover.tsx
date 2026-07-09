@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppointmentEventData, VisitEventData, SmsSendStatus, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
-import { PiiValue } from '@/common/pii';
+import { PiiValue, PiiText } from '@/common/pii';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -909,7 +909,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </HeaderDeleteButton>
                     )}
                     <EventType>{isAppointment ? 'Rezerwacja' : 'Wizyta'}</EventType>
-                    <EventTitle>{event.title}</EventTitle>
+                    <EventTitle><PiiText value={event.title} kind="name" /></EventTitle>
                 </PopoverHeader>
 
                 <PopoverBody>

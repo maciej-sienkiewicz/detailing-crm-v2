@@ -28,6 +28,8 @@ export const PERMISSIONS = {
     EMPLOYEES_PAYROLL: 'EMPLOYEES_PAYROLL',
     // Komunikacja
     COMMUNICATION_SEND: 'COMMUNICATION_SEND',
+    // Marketing
+    MARKETING_MANAGE: 'MARKETING_MANAGE',
     // Statystyki
     STATISTICS_VIEW: 'STATISTICS_VIEW',
     // Leady
@@ -53,4 +55,16 @@ export const ANY_FINANCE: PermissionCode[] = [
     'FINANCE_INVOICES',
     'FINANCE_MANAGE_CASH_REGISTER',
     'FINANCE_VIEW_REPORTS',
+];
+
+/**
+ * ANY-OF shorthand: the Settings view. A user sees Settings when at least one
+ * administration area inside it is permitted (owners always pass). Tabs are
+ * additionally filtered one by one inside SettingsView.
+ */
+export const ANY_SETTINGS: PermissionCode[] = [
+    'EMPLOYEES_MANAGE',
+    'COMMUNICATION_SEND',
+    'VISITS_DOCUMENTS_MANAGE',
+    'SERVICES_VIEW',
 ];

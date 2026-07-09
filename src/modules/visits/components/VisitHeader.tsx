@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { PiiValue, joinPiiName } from '@/common/pii';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
@@ -535,7 +536,7 @@ export const VisitHeader = ({
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
     const dotCfg = DOT_CONFIG[visit.status];
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
-    const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`.trim();
+    const customerName = joinPiiName(visit.customer.firstName, visit.customer.lastName) ?? '';
     const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate && `(${visit.vehicle.licensePlate})`]
         .filter(Boolean)
         .join(' ');
@@ -625,7 +626,7 @@ export const VisitHeader = ({
                                     <circle cx="12" cy="8" r="4" />
                                     <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
                                 </svg>
-                                {customerName}
+                                <PiiValue value={customerName} kind="name" />
                             </MetaItem>
                         )}
                         <MetaItem>

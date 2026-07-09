@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { t } from '@/common/i18n';
+import { PiiValue } from '@/common/pii';
 import type { Lead, LeadStatus } from '../types';
 import { LeadSource } from '../types';
 import {
@@ -421,7 +422,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
     [LeadSource.MANUAL]: ManualIcon,
   }[lead.source];
 
-  const formattedContact = formatContactIdentifier(lead.contactIdentifier);
+  const formattedContact = <PiiValue value={lead.contactIdentifier} kind="phone" format={formatContactIdentifier} />;
   const formattedValue = formatCurrency(lead.estimatedValue);
   const relativeTime = formatRelativeTime(lead.createdAt);
 
@@ -442,7 +443,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
         <TopRow>
           <ContactInfo>
             <ContactIdentifier>{formattedContact}</ContactIdentifier>
-            {lead.customerName && <CustomerName>{lead.customerName}</CustomerName>}
+            {lead.customerName && <CustomerName><PiiValue value={lead.customerName} kind="name" /></CustomerName>}
           </ContactInfo>
 
           <DesktopActions>

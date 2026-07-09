@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { PiiText } from '@/common/pii';
 import { useAuditLog } from '../../hooks/useAuditLog';
 import type { AuditEntry } from '../../types/audit';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -548,7 +549,7 @@ function renderMetadata(entry: AuditEntry): React.ReactNode {
             {pairs.map((p, i) => (
                 <MetaChip key={i}>
                     <MetaKey>{p.key}</MetaKey>
-                    {p.value}
+                    <PiiText value={String(p.value)} kind="name" />
                 </MetaChip>
             ))}
         </MetaPanel>

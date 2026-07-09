@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { PiiValue } from '@/common/pii';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
@@ -540,7 +541,7 @@ export const GalleryView = () => {
                                         )}
                                         <CardMeta>
                                             <CardVehicle>
-                                                {photo.vehicleLicensePlate ?? photo.customerName ?? ''}
+                                                {photo.vehicleLicensePlate ?? (photo.customerName ? <PiiValue value={photo.customerName} kind="name" /> : '')}
                                             </CardVehicle>
                                             <SourceBadge $source={photo.source}>
                                                 {photo.source === 'VISIT' ? 'Wizyta' : 'Pojazd'}

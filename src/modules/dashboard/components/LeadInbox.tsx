@@ -8,6 +8,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { Phone, Check, X, Edit2 } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatPhoneNumber } from '@/common/utils/formatters';
+import { PiiValue } from '@/common/pii';
 import type { IncomingCall } from '../types';
 
 interface LeadInboxProps {
@@ -285,8 +286,8 @@ export const LeadInbox = ({ calls, onAccept, onEdit, onReject }: LeadInboxProps)
                 <CallHeader>
                   <PhoneIcon />
                   <div>
-                    {call.contactName && <ContactName>{call.contactName}</ContactName>}
-                    <PhoneNumber>{formatPhoneNumber(call.phoneNumber)}</PhoneNumber>
+                    {call.contactName && <ContactName><PiiValue value={call.contactName} kind="name" /></ContactName>}
+                    <PhoneNumber><PiiValue value={call.phoneNumber} kind="phone" format={formatPhoneNumber} /></PhoneNumber>
                   </div>
                 </CallHeader>
                 <CallMeta>

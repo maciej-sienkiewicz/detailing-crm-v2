@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
+import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData, CalendarViewType } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -519,7 +520,7 @@ const EventCard = ({ slot, onClick }: EventCardProps) => {
             {timeLabel && <CardTime>{timeLabel}</CardTime>}
 
             <CardTitle $crossedOut={crossedOut}>
-                {event.title}
+                <PiiText value={event.title} kind="name" />
             </CardTitle>
 
             {props.customerPhone && (

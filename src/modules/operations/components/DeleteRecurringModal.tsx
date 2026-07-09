@@ -1,5 +1,6 @@
 // src/modules/operations/components/DeleteRecurringModal.tsx
 import { useState } from 'react';
+import { PiiText, joinPiiName } from '@/common/pii';
 import styled from 'styled-components';
 import {
     ModalShell,
@@ -104,7 +105,7 @@ export const DeleteRecurringModal = ({
     const future = total - idx;
     const past = idx;
 
-    const customerName = `${operation.customerFirstName} ${operation.customerLastName}`.trim();
+    const customerName = joinPiiName(operation.customerFirstName, operation.customerLastName) ?? '';
     const title = operation.title ? `"${operation.title}"` : `rezerwacja klienta ${customerName}`;
 
     return (
@@ -118,7 +119,7 @@ export const DeleteRecurringModal = ({
 
             <ModalContent>
                 <Subtitle>
-                    {title} ({idx + 1} z {total}). Co chcesz usunąć?
+                    <PiiText value={title} kind="name" /> ({idx + 1} z {total}). Co chcesz usunąć?
                 </Subtitle>
 
                 <OptionList>

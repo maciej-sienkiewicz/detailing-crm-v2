@@ -1,5 +1,6 @@
 // src/modules/leads/components/LeadDetailModal/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
+import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
@@ -1384,7 +1385,7 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
   const visit = detailData?.visit;
   const photos: VisitPhoto[] = photosData?.photos ?? [];
   const visitTitle = visit?.visitNumber ? `Wizyta ${visit.visitNumber}` : 'Podgląd wizyty';
-  const customerName = visit?.customer ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim() : null;
+  const customerName = visit?.customer ? joinPiiName(visit.customer.firstName, visit.customer.lastName) : null;
   const vehicleLabel = visit?.vehicle ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim() : null;
   const vehicleSubShort = visit?.vehicle
     ? [
@@ -1402,7 +1403,7 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
   const grossTotal = visit?.totalCost?.grossAmount ?? services.reduce((s, x) => s + x.finalPriceGross, 0);
   const vatTotal = Math.max(0, grossTotal - netTotal);
 
-  const custInitials = visit?.customer
+  const custInitials = visit?.customer && !isPiiMasked(customerName)
     ? `${visit.customer.firstName?.[0] ?? ''}${visit.customer.lastName?.[0] ?? ''}`.toUpperCase() || '?'
     : '?';
 
@@ -1568,10 +1569,10 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
                 <VPartyCard>
                   <VPartyAvatar>{custInitials}</VPartyAvatar>
                   <VPartyInfo>
-                    <VPartyName>{customerName ?? '—'}</VPartyName>
+                    <VPartyName><PiiValue value={customerName} kind="name" emptyFallback="—" /></VPartyName>
                     <VPartyMeta>
-                      {visit.customer.phone && <span>{visit.customer.phone}</span>}
-                      {visit.customer.email && <span>{visit.customer.email}</span>}
+                      {visit.customer.phone && <span><PiiValue value={visit.customer.phone} kind="phone" /></span>}
+                      {visit.customer.email && <span><PiiValue value={visit.customer.email} kind="email" /></span>}
                       {visit.customer.stats && (
                         <VPartyStat>
                           {visit.customer.stats.totalVisits} wiz. · {formatCurrency(visit.customer.stats.totalSpent.grossAmount)}
@@ -2322,7 +2323,7 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
                   onClick={() => setSelectedId(selected ? null : lead.id)}
                 >
                   <MergeRowMain>
-                    <MergeLeadName>{lead.customerName || lead.contactIdentifier}</MergeLeadName>
+                    <MergeLeadName><PiiValue value={lead.customerName || lead.contactIdentifier} kind="name" /></MergeLeadName>
                     <MergeLeadMeta>
                       <MergeStatusPill $color={STATUS_COLORS[lead.status] ?? '#64748b'}>
                         {STATUS_LABELS[lead.status] ?? lead.status}
@@ -2783,9 +2784,11 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       ? <Mail />
       : <PenLine />;
 
-  const contactSub = lead.contactIdentifier?.includes('@')
-    ? truncateEmail(lead.contactIdentifier, 34)
-    : formatPhoneNumber(lead.contactIdentifier);
+  const contactSub = isPiiMasked(lead.contactIdentifier)
+    ? lead.contactIdentifier
+    : lead.contactIdentifier?.includes('@')
+      ? truncateEmail(lead.contactIdentifier, 34)
+      : formatPhoneNumber(lead.contactIdentifier);
 
   const assignedUserName = detail?.assignedUserName ?? lead.assignedUserName;
   const assignedUserInitials = assignedUserName
@@ -2800,7 +2803,9 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const statusColor = STATUS_COLORS[currentStatus] ?? '#64748b';
   const isEmailLead = lead.source === LeadSource.EMAIL;
 
-  const modalTitle = lead.customerName || lead.contactIdentifier || 'Szczegóły leada';
+  const modalTitle = isPiiMasked(lead.customerName || lead.contactIdentifier)
+    ? 'Szczegóły leada'
+    : lead.customerName || lead.contactIdentifier || 'Szczegóły leada';
 
   return (
     <>
@@ -2812,8 +2817,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             <SourceIcon $source={lead.source}>{sourceIcon}</SourceIcon>
 
             <HeaderMain>
-              <HeaderName>{lead.customerName || lead.contactIdentifier}</HeaderName>
-              {lead.customerName && <HeaderContact>{contactSub}</HeaderContact>}
+              <HeaderName><PiiValue value={lead.customerName || lead.contactIdentifier} kind="name" /></HeaderName>
+              {lead.customerName && <HeaderContact><PiiValue value={contactSub} kind="phone" /></HeaderContact>}
               <HeaderMeta>
                 {formatDateTime(lead.createdAt)}
                 {vehicleLabel && ` · ${vehicleLabel}`}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { ArrowRight, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { PiiValue } from '@/common/pii';
 import { formatCurrency } from '@/common/utils/formatters';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import { useUpcomingVisits } from '../hooks/useUpcomingVisits';
@@ -410,7 +411,7 @@ const VisitRowItem = ({
       )}
       <VisitMeta>
         <User />
-        {visit.customerName} · {visit.vehicleName}
+        <PiiValue value={visit.customerName} kind="name" /> · {visit.vehicleName}
       </VisitMeta>
     </div>
     <StatusBadge $kind={visit.statusKind}>{visit.statusLabel}</StatusBadge>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
+import { PiiValue } from '@/common/pii';
 import type { AppointmentEventData, VisitEventData } from '../types';
 
 const TooltipContainer = styled.div`
@@ -140,7 +141,7 @@ export const EventTooltip: React.FC<EventTooltipProps> = ({ eventData, position 
 
             <InfoRow>
                 <InfoLabel>Klient:</InfoLabel>
-                <InfoValue>{eventData.customerName}</InfoValue>
+                <InfoValue><PiiValue value={eventData.customerName} kind="name" /></InfoValue>
             </InfoRow>
 
             {eventData.customerPhone && (

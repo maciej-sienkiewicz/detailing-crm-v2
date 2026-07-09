@@ -19,7 +19,7 @@ import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { LeadListView } from "@/modules/leads";
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { RequirePermission, HomeRedirect, ANY_FINANCE } from './permissions';
+import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_SETTINGS } from './permissions';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
@@ -192,7 +192,7 @@ export const router = createBrowserRouter([
     },
     {
         path: '/instagram',
-        element: page(<CompetitionMonitoringView />),
+        element: page(<CompetitionMonitoringView />, 'MARKETING_MANAGE'),
     },
     {
         path: '/consents',
@@ -209,10 +209,10 @@ export const router = createBrowserRouter([
         element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
     },
 
-    // ── Ustawienia (zakładki filtrowane wewnątrz widoku) ─────────────────
+    // ── Ustawienia (dodatkowo zakładki filtrowane wewnątrz widoku) ───────
     {
         path: '/settings',
-        element: page(<SettingsView />),
+        element: page(<SettingsView />, ANY_SETTINGS),
     },
 
     {
