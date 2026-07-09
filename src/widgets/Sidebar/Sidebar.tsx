@@ -6,7 +6,6 @@ import {
     Users,
     Car,
     Images,
-    BarChart3,
     TrendingUp,
     MessageSquare,
     FileText,
@@ -25,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
+import { usePermission } from '@/core/context/PermissionContext';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
@@ -56,48 +56,6 @@ import {
     SmsCreditsValue,
 } from './SidebarStyles';
 
-const buildMenuSections = (newLeadsCount: number): MenuSection[] => [
-    {
-        title: 'Główne',
-        items: [
-            { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
-            { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
-            { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
-            { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0 },
-        ],
-    },
-    {
-        title: 'Baza klientów',
-        items: [
-            { path: '/customers', label: 'Klienci',   icon: Users },
-            { path: '/vehicles',  label: 'Samochody', icon: Car },
-        ],
-    },
-    {
-        title: 'Administracja',
-        items: [
-            { path: '/finances',   label: 'Finanse',    icon: FileText },
-            { path: '/statistics', label: 'Statystyki', icon: TrendingUp },
-            { path: '/gallery',    label: 'Galeria',    icon: Images },
-            { path: '/settings',   label: 'Ustawienia', icon: Settings },
-        ],
-    },
-    {
-        title: 'Marketing',
-        items: [
-            { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare },
-            { path: '/instagram',      label: 'Instagram',      icon: Camera },
-            { path: '/google-reviews', label: 'Google Reviews', icon: Search },
-        ],
-    },
-    {
-        title: 'Mobilne',
-        items: [
-            { path: '/mobile-shortcuts', label: 'Skróty mobilne', icon: Smartphone },
-        ],
-    },
-];
-
 const getRoleLabel = (role: string): string => {
     const map: Record<string, string> = {
         owner:    'Właściciel',
@@ -117,6 +75,7 @@ const getInitials = (firstName?: string, lastName?: string): string => {
 export const Sidebar = () => {
     const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
     const { user, setAuthenticated } = useAuth();
+    const { hasPermission, hasAnyPermission } = usePermission();
     const navigate = useNavigate();
 
     const isDetailer = user?.role?.toLowerCase() === 'detailer';
@@ -125,7 +84,59 @@ export const Sidebar = () => {
 
     // Persistent WebSocket connection for the entire CRM session
     useLeadSocket();
-    const menuSections = buildMenuSections(newLeadsCount);
+
+    // Build menu dynamically based on effective permissions.
+    // null permissions = owner (full access) → hasPermission always returns true.
+    const menuSections: MenuSection[] = ([
+        {
+            title: 'Główne',
+            items: [
+                { path: '/dashboard', label: 'Tablica', icon: LayoutDashboard },
+                ...(hasPermission('VISITS_VIEW') ? [
+                    { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
+                    { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
+                ] : []),
+                ...(hasPermission('LEADS_MANAGE') ? [{
+                    path: '/leads',
+                    label: 'Leady',
+                    icon: Inbox,
+                    badge: newLeadsCount > 0 ? newLeadsCount : undefined,
+                    alert: newLeadsCount > 0,
+                }] : []),
+            ],
+        },
+        (hasAnyPermission(['CUSTOMERS_VIEW', 'VISITS_VIEW']) ? {
+            title: 'Baza klientów',
+            items: [
+                ...(hasPermission('CUSTOMERS_VIEW') ? [{ path: '/customers', label: 'Klienci',   icon: Users }] : []),
+                ...(hasPermission('VISITS_VIEW')    ? [{ path: '/vehicles',  label: 'Samochody', icon: Car }]   : []),
+            ],
+        } : null),
+        {
+            title: 'Administracja',
+            items: [
+                ...(hasAnyPermission(['FINANCE_INVOICES', 'FINANCE_VIEW_REPORTS']) ? [{ path: '/finances',   label: 'Finanse',    icon: FileText }]   : []),
+                ...(hasPermission('STATISTICS_VIEW')  ? [{ path: '/statistics', label: 'Statystyki', icon: TrendingUp }] : []),
+                ...(hasPermission('VISITS_VIEW')      ? [{ path: '/gallery',    label: 'Galeria',    icon: Images }]     : []),
+                ...(hasPermission('EMPLOYEES_MANAGE') ? [{ path: '/team',       label: 'Zespół',     icon: UserCog }]    : []),
+                { path: '/settings', label: 'Ustawienia', icon: Settings },
+            ],
+        },
+        (hasPermission('COMMUNICATION_SEND') ? {
+            title: 'Marketing',
+            items: [
+                { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare },
+                { path: '/instagram',      label: 'Instagram',      icon: Camera },
+                { path: '/google-reviews', label: 'Google Reviews', icon: Search },
+            ],
+        } : null),
+        {
+            title: 'Mobilne',
+            items: [
+                { path: '/mobile-shortcuts', label: 'Skróty mobilne', icon: Smartphone },
+            ],
+        },
+    ] as (MenuSection | null)[]).filter((s): s is MenuSection => s !== null && s.items.length > 0);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {

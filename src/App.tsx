@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/common/theme';
 import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { router } from '@/core';
 import { AuthProvider } from '@/core/context/AuthContext';
+import { PermissionProvider } from '@/core/context/PermissionContext';
 import { ToastProvider } from '@/common/components/Toast';
 import { vehicleMetadataApi } from '@/modules/vehicles/api/vehicleMetadataApi';
 
@@ -29,9 +30,11 @@ const App = () => {
             <ThemeProvider>
                 <ToastProvider>
                     <AuthProvider>
+                        <PermissionProvider>
                         <SidebarProvider>
                             <RouterProvider router={router} />
                         </SidebarProvider>
+                        </PermissionProvider>
                     </AuthProvider>
                 </ToastProvider>
             </ThemeProvider>
