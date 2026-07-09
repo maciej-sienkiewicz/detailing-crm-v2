@@ -31,6 +31,8 @@ import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { SettingsView } from '@/modules/settings';
 import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
+import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
+import type { FeatureKey } from '@/modules/subscription/types';
 
 /**
  * Authenticated app page: session guard + optional permission guard + layout.
@@ -45,6 +47,46 @@ const page = (view: ReactNode, requires?: PermissionRequirement) => (
             : <Layout>{view}</Layout>}
     </ProtectedRoute>
 );
+
+/**
+ * Module-gated page: like `page`, but the view is wrapped in a ModuleGate.
+ * When the studio hasn't purchased the module, the view renders as a blurred,
+ * non-interactive demonstration with an unlock overlay (Przelewy24 checkout)
+ * instead of being hidden — the user sees exactly what they're missing.
+ */
+const gatedPage = (
+    view: ReactNode,
+    featureKey: FeatureKey,
+    benefits: string[],
+    requires?: PermissionRequirement,
+) => page(<ModuleGate featureKey={featureKey} benefits={benefits}>{view}</ModuleGate>, requires);
+
+// ── Copy for the module-gate overlays (what the user loses) ──────────────
+const FINANCE_BENEFITS = [
+    'Dokumenty finansowe i faktury w jednym miejscu',
+    'Kontrola przychodów i kosztów studia',
+    'Obsługa kas fiskalnych i integracja z KSeF',
+];
+const STATISTICS_BENEFITS = [
+    'Raporty przychodów i rentowności usług',
+    'Statystyki kategorii i najpopularniejszych usług',
+    'Analiza opóźnień i wąskich gardeł w pracy studia',
+];
+const CAMPAIGNS_BENEFITS = [
+    'Masowe kampanie SMS i e-mail do bazy klientów',
+    'Segmentacja odbiorców i personalizacja treści',
+    'Historia i skuteczność wysyłek',
+];
+const INSTAGRAM_BENEFITS = [
+    'Śledzenie profili konkurencji na Instagramie',
+    'Analiza trendów i najpopularniejszych treści',
+    'Inspiracje do własnych publikacji',
+];
+const E_SIGNATURES_BENEFITS = [
+    'Elektroniczne podpisywanie dokumentów na tablecie',
+    'Zgody i regulaminy podpisywane bez papieru',
+    'Bezpieczne archiwum podpisanych dokumentów',
+];
 
 export const router = createBrowserRouter([
     {
@@ -161,43 +203,43 @@ export const router = createBrowserRouter([
     // ── Finanse ──────────────────────────────────────────────────────────
     {
         path: '/finance',
-        element: page(<FinanceView />, ANY_FINANCE),
+        element: gatedPage(<FinanceView />, 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
     },
     {
         path: '/finances',
-        element: page(<FinanceView />, ANY_FINANCE),
+        element: gatedPage(<FinanceView />, 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
     },
 
     // ── Statystyki i raporty ─────────────────────────────────────────────
     {
         path: '/statistics',
-        element: page(<StatisticsView />, 'STATISTICS_VIEW'),
+        element: gatedPage(<StatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
     },
     {
         path: '/statistics/delays',
-        element: page(<DelayStatisticsView />, 'STATISTICS_VIEW'),
+        element: gatedPage(<DelayStatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
     },
     {
         path: '/statistics/categories/:categoryId',
-        element: page(<CategoryDetailView />, 'STATISTICS_VIEW'),
+        element: gatedPage(<CategoryDetailView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
     },
     {
         path: '/reports',
-        element: page(<GrowthEngineView />, 'STATISTICS_VIEW'),
+        element: gatedPage(<GrowthEngineView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
     },
 
     // ── Komunikacja i marketing ──────────────────────────────────────────
     {
         path: '/sms-campaigns',
-        element: page(<SmsCampaignsView />, 'COMMUNICATION_SEND'),
+        element: gatedPage(<SmsCampaignsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
     },
     {
         path: '/instagram',
-        element: page(<CompetitionMonitoringView />, 'MARKETING_MANAGE'),
+        element: gatedPage(<CompetitionMonitoringView />, 'INSTAGRAM_MONITORING', INSTAGRAM_BENEFITS, 'MARKETING_MANAGE'),
     },
     {
         path: '/consents',
-        element: page(<ConsentSettingsView />, 'CUSTOMERS_VIEW'),
+        element: gatedPage(<ConsentSettingsView />, 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
     },
 
     // ── Zespół ───────────────────────────────────────────────────────────

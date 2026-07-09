@@ -69,6 +69,8 @@ const ManageBtn = styled.button`
 const EXAMPLES_KEY = ['quote-reply-examples'];
 const MAX_EXAMPLES = 10;
 
+import { FeatureGate, useFeature } from '@/modules/subscription';
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -79,6 +81,7 @@ interface Props {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function OfferComposerModal({ lead, onClose }: Props) {
+  const aiFeature = useFeature('AI_LEADS');
   const { phase, displayedBody, title } = useOfferContent(lead);
   const queryClient = useQueryClient();
 
@@ -133,6 +136,29 @@ export function OfferComposerModal({ lead, onClose }: Props) {
 
   const isTyping = phase === 'typing';
   const canSave = !isTyping && !!bodyValue.trim() && examples.length < MAX_EXAMPLES;
+
+  // AI offer composer belongs to the AI lead-assistant module. Without it the
+  // window opens as a locked demonstration with an unlock/upsell overlay.
+  if (!aiFeature.enabled) {
+    return createPortal(
+      <Overlay $closing={closing} onClick={handleClose}>
+        <ComposeWindow $closing={closing} onClick={e => e.stopPropagation()}>
+          <TitleBar>
+            <TrafficLights>
+              <TrafficLight $color="red" onClick={handleClose} title="Zamknij" />
+              <TrafficLight $color="yellow" onClick={() => {}} title="" />
+              <TrafficLight $color="green" onClick={() => {}} title="" />
+            </TrafficLights>
+            <TitleBarText>Nowa wiadomość — Asystent AI</TitleBarText>
+          </TitleBar>
+          <FeatureGate featureKey="AI_LEADS">
+            <div style={{ minHeight: 380 }} />
+          </FeatureGate>
+        </ComposeWindow>
+      </Overlay>,
+      document.body,
+    );
+  }
 
   return createPortal(
     <Overlay $closing={closing} onClick={handleClose}>
