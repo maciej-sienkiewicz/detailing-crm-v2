@@ -13,6 +13,7 @@ import { VehicleSearchFilter } from '../components/VehicleSearchFilter';
 import { VehiclePagination } from '../components/VehiclePagination';
 import { CreateVehicleModal } from '../components/CreateVehicleModal';
 import { VehicleFilterPanel } from '../components/VehicleFilterPanel';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
@@ -273,6 +274,7 @@ export const VehicleListView = () => {
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<VehicleAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [showDeleted, setShowDeleted] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const { searchInput, debouncedSearch, handleSearchChange } = useVehicleSearch();
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
     const { deleteVehicle } = useDeleteVehicle();
@@ -312,9 +314,17 @@ export const VehicleListView = () => {
     }, [resetPagination]);
 
     const handleDelete = useCallback((vehicleId: string) => {
-        if (!window.confirm('Czy na pewno chcesz usunąć ten pojazd? Pojazd zostanie zarchiwizowany, a powiązane wizyty pozostaną nienaruszone.')) return;
-        deleteVehicle(vehicleId);
-    }, [deleteVehicle]);
+        setPendingDeleteId(vehicleId);
+    }, []);
+
+    const handleDeleteConfirm = useCallback(() => {
+        if (pendingDeleteId) deleteVehicle(pendingDeleteId);
+        setPendingDeleteId(null);
+    }, [pendingDeleteId, deleteVehicle]);
+
+    const handleDeleteCancel = useCallback(() => {
+        setPendingDeleteId(null);
+    }, []);
 
     const renderContent = () => {
         if (isLoading) {
@@ -453,6 +463,17 @@ export const VehicleListView = () => {
                     resetPagination();
                 }}
                 onClose={() => setIsFilterPanelOpen(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={pendingDeleteId !== null}
+                title="Usuń pojazd"
+                message="Pojazd zostanie zarchiwizowany. Powiązane wizyty, dokumenty i zdjęcia pozostaną nienaruszone."
+                variant="danger"
+                confirmText="Usuń pojazd"
+                cancelText="Anuluj"
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
             />
         </ViewContainer>
     );

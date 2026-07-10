@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDeleteVehicle } from '../hooks/useDeleteVehicle';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useVehicleHistory } from '../hooks/useVehicleHistory';
 import type { VehicleHistoryEvent } from '../hooks/useVehicleHistory';
@@ -74,46 +75,6 @@ const ToggleThumb = styled.span<{ $active: boolean }>`
     background: #fff;
     transform: translateX(${p => p.$active ? '16px' : '0'});
     transition: transform 150ms ease;
-`;
-
-const DeleteConfirmOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-`;
-
-const DeleteConfirmDialog = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 420px;
-    width: 90%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-`;
-
-const DeleteConfirmTitle = styled.h3`
-    margin: 0 0 12px;
-    font-size: 18px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-`;
-
-const DeleteConfirmBody = styled.p`
-    margin: 0 0 24px;
-    font-size: 14px;
-    color: ${p => p.theme.colors.textMuted};
-    line-height: 1.5;
-`;
-
-const DeleteConfirmActions = styled.div`
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -686,40 +647,20 @@ export const VehicleDetailView = () => {
                 owners={vehicle.owners}
             />
 
-            {showDeleteConfirm && (
-                <DeleteConfirmOverlay onClick={() => setShowDeleteConfirm(false)}>
-                    <DeleteConfirmDialog onClick={e => e.stopPropagation()}>
-                        <DeleteConfirmTitle>Usuń pojazd</DeleteConfirmTitle>
-                        <DeleteConfirmBody>
-                            Czy na pewno chcesz usunąć pojazd <strong>{vehicleName}</strong>
-                            {vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''}?
-                            Pojazd zostanie zarchiwizowany, a powiązane wizyty i dokumenty pozostaną nienaruszone.
-                        </DeleteConfirmBody>
-                        <DeleteConfirmActions>
-                            <SharedButton
-                                $variant="secondary"
-                                $size="sm"
-                                onClick={() => setShowDeleteConfirm(false)}
-                                disabled={isDeleting}
-                            >
-                                Anuluj
-                            </SharedButton>
-                            <SharedButton
-                                $variant="danger"
-                                $size="sm"
-                                disabled={isDeleting}
-                                onClick={() => {
-                                    deleteVehicle(vehicleId!, {
-                                        onSuccess: () => navigate('/vehicles'),
-                                    });
-                                }}
-                            >
-                                {isDeleting ? 'Usuwanie...' : 'Usuń pojazd'}
-                            </SharedButton>
-                        </DeleteConfirmActions>
-                    </DeleteConfirmDialog>
-                </DeleteConfirmOverlay>
-            )}
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                title="Usuń pojazd"
+                message={`Pojazd ${vehicleName}${vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''} zostanie zarchiwizowany. Powiązane wizyty, dokumenty i zdjęcia pozostaną nienaruszone.`}
+                variant="danger"
+                confirmText="Usuń pojazd"
+                cancelText="Anuluj"
+                onConfirm={() => {
+                    deleteVehicle(vehicleId!, {
+                        onSuccess: () => navigate('/vehicles'),
+                    });
+                }}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
         </ViewContainer>
     );
 };

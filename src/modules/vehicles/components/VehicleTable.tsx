@@ -349,12 +349,10 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
         }
     };
 
-    const handleDelete = (e: React.MouseEvent, vehicleId: string, licensePlate: string) => {
+    const handleDelete = (e: React.MouseEvent, vehicleId: string) => {
         e.stopPropagation();
         setOpenMenuId(null);
-        if (window.confirm(`Czy na pewno chcesz usunąć pojazd ${licensePlate}? Ta operacja jest nieodwracalna.`)) {
-            onDelete?.(vehicleId);
-        }
+        onDelete?.(vehicleId);
     };
 
     return (
@@ -453,7 +451,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                             <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
                                                 <DropdownItem
                                                     $danger
-                                                    onClick={e => handleDelete(e, vehicle.id, vehicle.licensePlate || '')}
+                                                    onClick={e => handleDelete(e, vehicle.id)}
                                                 >
                                                     <TrashIcon />
                                                     Usuń pojazd
