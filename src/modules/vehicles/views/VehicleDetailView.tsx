@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDeleteVehicle } from '../hooks/useDeleteVehicle';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useVehicleHistory } from '../hooks/useVehicleHistory';
 import type { VehicleHistoryEvent } from '../hooks/useVehicleHistory';
@@ -75,6 +76,46 @@ const ToggleThumb = styled.span<{ $active: boolean }>`
     transition: transform 150ms ease;
 `;
 
+const DeleteConfirmOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+`;
+
+const DeleteConfirmDialog = styled.div`
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+`;
+
+const DeleteConfirmTitle = styled.h3`
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
+`;
+
+const DeleteConfirmBody = styled.p`
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: ${p => p.theme.colors.textMuted};
+    line-height: 1.5;
+`;
+
+const DeleteConfirmActions = styled.div`
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -127,6 +168,9 @@ export const VehicleDetailView = () => {
     const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const { deleteVehicle, isDeleting } = useDeleteVehicle();
 
     const { vehicleDetail, isLoading, isError, refetch } = useVehicleDetail(vehicleId!);
     const { events: historyEvents } = useVehicleHistory(vehicleId!);
@@ -266,6 +310,21 @@ export const VehicleDetailView = () => {
                                 <line x1="10" y1="16" x2="14" y2="16"/>
                             </svg>
                             Nowa wizyta
+                        </SharedButton>
+                        <SharedButton
+                            $variant="danger"
+                            $size="sm"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            disabled={isDeleting || vehicle.status === 'archived'}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M10 11v6"/>
+                                <path d="M14 11v6"/>
+                                <path d="M9 6V4h6v2"/>
+                            </svg>
+                            Usuń pojazd
                         </SharedButton>
                     </HeaderActions>
                 </PageHeader>
@@ -626,6 +685,41 @@ export const VehicleDetailView = () => {
                 vehicleId={vehicleId!}
                 owners={vehicle.owners}
             />
+
+            {showDeleteConfirm && (
+                <DeleteConfirmOverlay onClick={() => setShowDeleteConfirm(false)}>
+                    <DeleteConfirmDialog onClick={e => e.stopPropagation()}>
+                        <DeleteConfirmTitle>Usuń pojazd</DeleteConfirmTitle>
+                        <DeleteConfirmBody>
+                            Czy na pewno chcesz usunąć pojazd <strong>{vehicleName}</strong>
+                            {vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''}?
+                            Pojazd zostanie zarchiwizowany, a powiązane wizyty i dokumenty pozostaną nienaruszone.
+                        </DeleteConfirmBody>
+                        <DeleteConfirmActions>
+                            <SharedButton
+                                $variant="secondary"
+                                $size="sm"
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={isDeleting}
+                            >
+                                Anuluj
+                            </SharedButton>
+                            <SharedButton
+                                $variant="danger"
+                                $size="sm"
+                                disabled={isDeleting}
+                                onClick={() => {
+                                    deleteVehicle(vehicleId!, {
+                                        onSuccess: () => navigate('/vehicles'),
+                                    });
+                                }}
+                            >
+                                {isDeleting ? 'Usuwanie...' : 'Usuń pojazd'}
+                            </SharedButton>
+                        </DeleteConfirmActions>
+                    </DeleteConfirmDialog>
+                </DeleteConfirmOverlay>
+            )}
         </ViewContainer>
     );
 };

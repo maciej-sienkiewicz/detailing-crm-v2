@@ -285,6 +285,7 @@ export const VehicleListView = () => {
     }, [resetPagination]);
 
     const handleDelete = useCallback((vehicleId: string) => {
+        if (!window.confirm('Czy na pewno chcesz usunąć ten pojazd? Pojazd zostanie zarchiwizowany, a powiązane wizyty pozostaną nienaruszone.')) return;
         deleteVehicle(vehicleId);
     }, [deleteVehicle]);
 
