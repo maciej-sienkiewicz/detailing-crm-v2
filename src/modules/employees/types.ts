@@ -7,7 +7,6 @@ export type PaymentFrequency = 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' | 'ONE_TIME'
 export type WorkTimeEntryType = 'REGULAR' | 'OVERTIME_150' | 'OVERTIME_200' | 'HOLIDAY_WORK' | 'NIGHT_WORK';
 export type WorkTimeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type LeaveType = 'ANNUAL' | 'SICK' | 'UNPAID' | 'SPECIAL' | 'PARENTAL' | 'CARE';
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 export type PayrollStatus = 'DRAFT' | 'CONFIRMED' | 'PAID';
 export type EmploymentMode = 'SALARY' | 'HOURLY';
 export type EtatFraction = 'FULL' | 'HALF' | 'QUARTER';
@@ -19,12 +18,9 @@ export interface EmployeeListItem {
     firstName: string;
     lastName: string;
     fullName: string;
-    position: string;
     email: string | null;
     phone: string | null;
-    status: EmployeeStatus;
-    hireDate: string;
-    linkedUserId: string | null;
+    hasAccount: boolean;
 }
 
 export interface EmployeePaginationInfo {
@@ -39,48 +35,51 @@ export interface EmployeeListResponse {
     pagination: EmployeePaginationInfo;
 }
 
+export interface EmployeeAccountInfo {
+    userId: string;
+    roleId: string | null;
+    isActive: boolean;
+}
+
 export interface EmployeeDetail {
     id: string;
     firstName: string;
     lastName: string;
     fullName: string;
-    linkedUserId: string | null;
     phone: string | null;
     email: string | null;
-    personalEmail: string | null;
-    pesel: string | null;
-    nip: string | null;
-    addressStreet: string | null;
-    addressCity: string | null;
-    addressPostalCode: string | null;
-    position: string;
-    hireDate: string;
-    terminationDate: string | null;
-    status: EmployeeStatus;
-    notes: string | null;
+    account: EmployeeAccountInfo | null;
     createdAt: string;
     updatedAt: string;
-}
-
-export interface CreateEmployeePayload {
-    linkedUserId?: string | null;
-    firstName: string;
-    lastName: string;
-    phone?: string | null;
-    email?: string | null;
+    // Pola planowane na kolejne iteracje modułu kadrowego — backend jeszcze ich nie zwraca
     personalEmail?: string | null;
     pesel?: string | null;
     nip?: string | null;
     addressStreet?: string | null;
     addressCity?: string | null;
     addressPostalCode?: string | null;
-    position: string;
-    hireDate: string;
+    position?: string;
+    hireDate?: string;
+    terminationDate?: string | null;
+    status?: EmployeeStatus;
     notes?: string | null;
+}
+
+export interface CreateEmployeePayload {
+    firstName: string;
+    lastName: string;
+    phone?: string | null;
+    email?: string | null;
+    createAccount?: boolean;
     roleId?: string | null;
 }
 
-export type UpdateEmployeePayload = CreateEmployeePayload;
+export interface UpdateEmployeePayload {
+    firstName: string;
+    lastName: string;
+    phone?: string | null;
+    email?: string | null;
+}
 
 export interface TerminateEmployeePayload {
     terminationDate: string;
@@ -89,7 +88,6 @@ export interface TerminateEmployeePayload {
 
 export interface EmployeeFilters {
     search: string;
-    includeTerminated: boolean;
     page: number;
     limit: number;
 }
@@ -261,53 +259,33 @@ export interface SavePeriodPayload {
 
 // ─── Leaves ───────────────────────────────────────────────────────────────────
 
-export interface LeaveRequest {
+export interface EmployeeLeave {
     id: string;
     employeeId: string;
     leaveType: LeaveType;
     startDate: string;
     endDate: string;
-    businessDaysCount: number;
-    status: LeaveStatus;
-    reason: string | null;
-    reviewedBy: string | null;
-    reviewedAt: string | null;
-    reviewNote: string | null;
+    daysCount: number;
+    note: string | null;
     createdAt: string;
 }
 
-export interface LeaveBalance {
-    id: string;
-    employeeId: string;
-    year: number;
-    totalDays: number;
-    usedDays: number;
-    pendingDays: number;
-    carriedOverDays: number;
-    adjustmentDays: number;
-    remainingDays: number;
-    notes: string | null;
-    updatedAt: string;
-}
-
-export interface RequestLeavePayload {
+export interface AddLeavePayload {
     leaveType: LeaveType;
     startDate: string;
     endDate: string;
-    reason?: string | null;
+    note?: string | null;
 }
 
-export interface ReviewLeavePayload {
-    approve: boolean;
-    reviewNote?: string | null;
+export interface LeaveCalendarEmployee {
+    id: string;
+    fullName: string;
 }
 
-export interface InitLeaveBalancePayload {
-    year: number;
-    totalDays: number;
-    carriedOverDays?: number;
-    adjustmentDays?: number;
-    notes?: string | null;
+export interface LeaveCalendarDay {
+    date: string;
+    count: number;
+    employees: LeaveCalendarEmployee[];
 }
 
 // ─── Payroll ──────────────────────────────────────────────────────────────────

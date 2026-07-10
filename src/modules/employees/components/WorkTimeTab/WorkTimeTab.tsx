@@ -74,11 +74,10 @@ export const WorkTimeTab = ({ employeeId, hireDate }: Props) => {
         return map;
     }, [summaries]);
 
-    // Build set of all dates covered by approved leave requests
+    // Build set of all dates covered by recorded leaves
     const approvedLeaveDates = useMemo(() => {
         const dates = new Set<string>();
         for (const leave of leaves) {
-            if (leave.status !== 'APPROVED') continue;
             const start = new Date(leave.startDate + 'T00:00:00');
             const end   = new Date(leave.endDate   + 'T00:00:00');
             const cur   = new Date(start);

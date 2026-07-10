@@ -4,15 +4,8 @@ import styled from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useEmployee } from '../hooks/useEmployees';
-import { EmployeeStatusBadge } from '../components/EmployeeStatusBadge';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
-import { TerminateEmployeeModal } from '../components/TerminateEmployeeModal';
-import { ContractCompensationTab } from '../components/ContractCompensationTab';
-import { WorkTimeTab } from '../components/WorkTimeTab';
 import { LeavesTab } from '../components/LeavesTab';
-import { PayrollTab } from '../components/PayrollTab';
-import { BonusesTab } from '../components/BonusesTab';
-import { DocumentsTab } from '../components/DocumentsTab';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
@@ -99,11 +92,6 @@ const FullName = styled.h1`
     color: ${st.text};
 `;
 
-const Position = styled.span`
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-`;
-
 const MetaRow = styled.div`
     display: flex;
     align-items: center;
@@ -115,6 +103,19 @@ const MetaRow = styled.div`
 const MetaItem = styled.span`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
+`;
+
+const AccountBadge = styled.span<{ $active?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    ${({ $active }) => ($active
+        ? 'background: rgba(16,185,129,0.12); color: #059669;'
+        : 'background: rgba(100,116,139,0.10); color: #64748B;')}
 `;
 
 const ProfileActions = styled.div`
@@ -134,49 +135,6 @@ const EditBtn = styled.button`
     cursor: pointer;
     transition: all ${st.transition};
     &:hover { border-color: ${st.borderHover}; color: ${st.text}; }
-`;
-
-const TerminateBtn = styled.button`
-    padding: 8px 16px;
-    background: none;
-    border: 1px solid ${st.accentRed};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.accentRed};
-    cursor: pointer;
-    transition: all ${st.transition};
-    &:hover { background: ${st.accentRedDim}; }
-`;
-
-// ─── Detail Grid ─────────────────────────────────────────────────────────────
-
-const DetailGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-top: 4px;
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr 1fr;
-    }
-`;
-
-const DetailItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const DetailLabel = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const DetailValue = styled.span`
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    font-weight: 500;
 `;
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -261,15 +219,6 @@ const InfoValue = styled.span`
     font-weight: 500;
 `;
 
-const NotesBox = styled.div`
-    background: ${st.bgCardAlt};
-    border-radius: ${st.radiusSm};
-    padding: 12px;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
-
 // ─── Loading / Error ─────────────────────────────────────────────────────────
 
 const LoadingOverlay = styled.div`
@@ -297,17 +246,14 @@ const ErrorContainer = styled.div`
 `;
 
 // ─── Tabs definition ──────────────────────────────────────────────────────────
+// Kolejne zakładki (dokumenty, czas pracy, przypomnienia o umowach/certyfikatach)
+// dojdą wraz z kolejnymi iteracjami modułu kadrowego.
 
-type TabId = 'profile' | 'employment' | 'bonuses' | 'worktime' | 'leaves' | 'payroll' | 'documents';
+type TabId = 'profile' | 'leaves';
 
 const TABS: { id: TabId; label: string }[] = [
     { id: 'profile', label: 'Profil' },
-    { id: 'employment', label: 'Umowy i wynagrodzenie' },
-    { id: 'bonuses', label: 'Bonusy i dodatki' },
-    { id: 'worktime', label: 'Czas pracy' },
     { id: 'leaves', label: 'Urlopy' },
-    { id: 'payroll', label: 'Historia płatności' },
-    { id: 'documents', label: 'Dokumenty' },
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -315,9 +261,8 @@ const TABS: { id: TabId; label: string }[] = [
 export const EmployeeDetailView = () => {
     const { employeeId } = useParams<{ employeeId: string }>();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<TabId>('employment');
+    const [activeTab, setActiveTab] = useState<TabId>('leaves');
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [isTerminateOpen, setIsTerminateOpen] = useState(false);
 
     const { employee, isLoading, isError, refetch } = useEmployee(employeeId ?? '');
 
@@ -354,12 +299,8 @@ export const EmployeeDetailView = () => {
                             <InfoSectionTitle>Dane kontaktowe</InfoSectionTitle>
                             <InfoGrid>
                                 <InfoItem>
-                                    <InfoLabel>Email służbowy</InfoLabel>
+                                    <InfoLabel>Email</InfoLabel>
                                     <InfoValue>{employee.email ?? '—'}</InfoValue>
-                                </InfoItem>
-                                <InfoItem>
-                                    <InfoLabel>Email prywatny</InfoLabel>
-                                    <InfoValue>{employee.personalEmail ?? '—'}</InfoValue>
                                 </InfoItem>
                                 <InfoItem>
                                     <InfoLabel>Telefon</InfoLabel>
@@ -369,59 +310,36 @@ export const EmployeeDetailView = () => {
                         </InfoSection>
 
                         <InfoSection>
-                            <InfoSectionTitle>Dane formalne</InfoSectionTitle>
+                            <InfoSectionTitle>Konto użytkownika</InfoSectionTitle>
                             <InfoGrid>
                                 <InfoItem>
-                                    <InfoLabel>PESEL</InfoLabel>
-                                    <InfoValue>{employee.pesel ?? '—'}</InfoValue>
-                                </InfoItem>
-                                <InfoItem>
-                                    <InfoLabel>NIP</InfoLabel>
-                                    <InfoValue>{employee.nip ?? '—'}</InfoValue>
+                                    <InfoLabel>Status konta</InfoLabel>
+                                    <InfoValue>
+                                        {employee.account
+                                            ? (employee.account.isActive ? 'Aktywne' : 'Zablokowane')
+                                            : 'Brak konta'}
+                                    </InfoValue>
                                 </InfoItem>
                             </InfoGrid>
                         </InfoSection>
 
-                        {(employee.addressStreet || employee.addressCity || employee.addressPostalCode) && (
-                            <InfoSection>
-                                <InfoSectionTitle>Adres zamieszkania</InfoSectionTitle>
-                                <InfoGrid>
-                                    <InfoItem>
-                                        <InfoLabel>Ulica</InfoLabel>
-                                        <InfoValue>{employee.addressStreet ?? '—'}</InfoValue>
-                                    </InfoItem>
-                                    <InfoItem>
-                                        <InfoLabel>Miasto</InfoLabel>
-                                        <InfoValue>{employee.addressCity ?? '—'}</InfoValue>
-                                    </InfoItem>
-                                    <InfoItem>
-                                        <InfoLabel>Kod pocztowy</InfoLabel>
-                                        <InfoValue>{employee.addressPostalCode ?? '—'}</InfoValue>
-                                    </InfoItem>
-                                </InfoGrid>
-                            </InfoSection>
-                        )}
-
-                        {employee.notes && (
-                            <InfoSection>
-                                <InfoSectionTitle>Notatki</InfoSectionTitle>
-                                <NotesBox>{employee.notes}</NotesBox>
-                            </InfoSection>
-                        )}
+                        <InfoSection>
+                            <InfoSectionTitle>W systemie</InfoSectionTitle>
+                            <InfoGrid>
+                                <InfoItem>
+                                    <InfoLabel>Dodany</InfoLabel>
+                                    <InfoValue>{new Date(employee.createdAt).toLocaleDateString('pl-PL')}</InfoValue>
+                                </InfoItem>
+                                <InfoItem>
+                                    <InfoLabel>Ostatnia aktualizacja</InfoLabel>
+                                    <InfoValue>{new Date(employee.updatedAt).toLocaleDateString('pl-PL')}</InfoValue>
+                                </InfoItem>
+                            </InfoGrid>
+                        </InfoSection>
                     </ProfileTabContent>
                 );
-            case 'employment':
-                return <ContractCompensationTab employeeId={employeeId} />;
-            case 'worktime':
-                return <WorkTimeTab employeeId={employeeId} hireDate={employee.hireDate} />;
             case 'leaves':
                 return <LeavesTab employeeId={employeeId} />;
-            case 'bonuses':
-                return <BonusesTab employeeId={employeeId} />;
-            case 'payroll':
-                return <PayrollTab employeeId={employeeId} />;
-            case 'documents':
-                return <DocumentsTab employeeId={employeeId} />;
         }
     };
 
@@ -436,41 +354,21 @@ export const EmployeeDetailView = () => {
                     <Avatar>{initials}</Avatar>
                     <ProfileInfo>
                         <FullName>{employee.fullName}</FullName>
-                        <Position>{employee.position}</Position>
                         <MetaRow>
-                            <EmployeeStatusBadge status={employee.status} />
-                            <MetaItem>
-                                Zatrudniony od: {new Date(employee.hireDate).toLocaleDateString('pl-PL')}
-                            </MetaItem>
-                            {employee.terminationDate && (
-                                <MetaItem>
-                                    Zwolniony: {new Date(employee.terminationDate).toLocaleDateString('pl-PL')}
-                                </MetaItem>
-                            )}
+                            <AccountBadge $active={employee.account?.isActive}>
+                                {employee.account
+                                    ? (employee.account.isActive ? 'Konto aktywne' : 'Konto zablokowane')
+                                    : 'Brak konta'}
+                            </AccountBadge>
+                            {employee.email && <MetaItem>{employee.email}</MetaItem>}
+                            {employee.phone && <MetaItem>{employee.phone}</MetaItem>}
                         </MetaRow>
-                        <DetailGrid style={{ marginTop: 8 }}>
-                            {employee.email && (
-                                <DetailItem>
-                                    <DetailLabel>Email</DetailLabel>
-                                    <DetailValue>{employee.email}</DetailValue>
-                                </DetailItem>
-                            )}
-                            {employee.phone && (
-                                <DetailItem>
-                                    <DetailLabel>Telefon</DetailLabel>
-                                    <DetailValue>{employee.phone}</DetailValue>
-                                </DetailItem>
-                            )}
-                        </DetailGrid>
                     </ProfileInfo>
                 </ProfileMain>
 
-                {employee.status === 'ACTIVE' && (
-                    <ProfileActions>
-                        <EditBtn onClick={() => setIsEditOpen(true)}>Edytuj</EditBtn>
-                        <TerminateBtn onClick={() => setIsTerminateOpen(true)}>Zwolnij</TerminateBtn>
-                    </ProfileActions>
-                )}
+                <ProfileActions>
+                    <EditBtn onClick={() => setIsEditOpen(true)}>Edytuj</EditBtn>
+                </ProfileActions>
             </ProfileCard>
 
             <TabsWrapper>
@@ -496,16 +394,6 @@ export const EmployeeDetailView = () => {
                     onClose={() => setIsEditOpen(false)}
                     onSuccess={() => { setIsEditOpen(false); refetch(); }}
                     employee={employee}
-                />
-            )}
-
-            {isTerminateOpen && (
-                <TerminateEmployeeModal
-                    isOpen={isTerminateOpen}
-                    onClose={() => setIsTerminateOpen(false)}
-                    onSuccess={() => { setIsTerminateOpen(false); navigate('/team'); }}
-                    employeeId={employee.id}
-                    employeeName={employee.fullName}
                 />
             )}
         </ViewContainer>

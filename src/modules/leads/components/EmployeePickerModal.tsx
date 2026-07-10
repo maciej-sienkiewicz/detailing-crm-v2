@@ -136,12 +136,6 @@ const PickerName = styled.div`
   color: ${st.text};
 `;
 
-const PickerSub = styled.div`
-  font-size: 11px;
-  color: ${st.textMuted};
-  margin-top: 1px;
-`;
-
 const PickerEmpty = styled.div`
   padding: 32px 16px;
   text-align: center;
@@ -175,7 +169,7 @@ export const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({
 
   const { data, isLoading } = useQuery({
     queryKey: ['employee-picker', debouncedSearch],
-    queryFn: () => employeeApi.listEmployees({ search: debouncedSearch, page: 1, limit: 15, includeTerminated: false }),
+    queryFn: () => employeeApi.listEmployees({ search: debouncedSearch, page: 1, limit: 15 }),
     enabled: isOpen,
   });
 
@@ -225,7 +219,6 @@ export const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({
               </PickerAvatar>
               <div>
                 <PickerName>{emp.fullName}</PickerName>
-                {emp.position && <PickerSub>{emp.position}</PickerSub>}
               </div>
             </PickerRow>
           ))}

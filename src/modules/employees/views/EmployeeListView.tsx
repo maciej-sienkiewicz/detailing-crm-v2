@@ -137,16 +137,6 @@ const SearchInput = styled.input`
     }
 `;
 
-const ToggleLabel = styled.label`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    cursor: pointer;
-    white-space: nowrap;
-`;
-
 const LoadingOverlay = styled.div`
     display: flex;
     align-items: center;
@@ -234,24 +224,18 @@ const PageBtn = styled.button<{ $active?: boolean }>`
 
 export const EmployeeListView = () => {
     const [search, setSearch] = useState('');
-    const [includeTerminated, setIncludeTerminated] = useState(false);
     const [page, setPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const filters = useMemo<EmployeeFilters>(
-        () => ({ search, includeTerminated, page, limit: 50 }),
-        [search, includeTerminated, page]
+        () => ({ search, page, limit: 50 }),
+        [search, page]
     );
 
     const { employees, pagination, isLoading, isError, refetch } = useEmployees(filters);
 
     const handleSearchChange = useCallback((value: string) => {
         setSearch(value);
-        setPage(1);
-    }, []);
-
-    const handleToggleTerminated = useCallback((checked: boolean) => {
-        setIncludeTerminated(checked);
         setPage(1);
     }, []);
 
@@ -303,16 +287,8 @@ export const EmployeeListView = () => {
                     <SearchInput
                         value={search}
                         onChange={e => handleSearchChange(e.target.value)}
-                        placeholder="Szukaj po nazwisku, emailu lub stanowisku..."
+                        placeholder="Szukaj po imieniu, nazwisku lub emailu..."
                     />
-                    <ToggleLabel>
-                        <input
-                            type="checkbox"
-                            checked={includeTerminated}
-                            onChange={e => handleToggleTerminated(e.target.checked)}
-                        />
-                        Pokaż zwolnionych
-                    </ToggleLabel>
                 </FilterBar>
 
                 {renderContent()}

@@ -1546,12 +1546,12 @@ export const LeadListView: React.FC = () => {
 
   const { data: empListData } = useQuery({
     queryKey: ['employee-filter-list'],
-    queryFn: () => employeeApi.listEmployees({ search: '', page: 1, limit: 50, includeTerminated: false }),
+    queryFn: () => employeeApi.listEmployees({ search: '', page: 1, limit: 50 }),
   });
   const empList = empListData?.items ?? [];
 
   const handleSelectEmp = (emp: EmployeeListItem) => {
-    const uid = emp.linkedUserId ?? emp.id;
+    const uid = emp.id;
     setSelectedEmpId(uid);
     setSelectedEmpName(emp.fullName);
     setFilters(p => ({ ...p, assignedUserId: uid, page: 1 }));
@@ -2639,7 +2639,7 @@ export const LeadListView: React.FC = () => {
                     : empList.map(emp => (
                       <EmpFilterRow
                         key={emp.id}
-                        $checked={(emp.linkedUserId ?? emp.id) === selectedEmpId}
+                        $checked={(emp.id) === selectedEmpId}
                         onClick={() => handleSelectEmp(emp)}
                       >
                         <EmpAvatar>
@@ -2927,7 +2927,7 @@ export const LeadListView: React.FC = () => {
         onSelect={emp => {
           if (!empPickerLeadId) return;
           empAssignUser.mutate(
-            { leadId: empPickerLeadId, userId: emp.linkedUserId ?? emp.id, userName: emp.fullName },
+            { leadId: empPickerLeadId, userId: emp.id, userName: emp.fullName },
             { onSuccess: () => setEmpPickerLeadId(null) }
           );
         }}

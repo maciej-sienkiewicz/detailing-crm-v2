@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { EmployeeStatusBadge } from './EmployeeStatusBadge';
 import type { EmployeeListItem } from '../types';
 
 const Table = styled.table`
@@ -59,9 +58,14 @@ const FullName = styled.span`
     color: ${st.text};
 `;
 
-const Position = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
+const AccountBadge = styled.span<{ $hasAccount: boolean }>`
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    ${({ $hasAccount }) => ($hasAccount
+        ? 'background: rgba(14,165,233,0.10); color: #0284C7;'
+        : 'background: rgba(100,116,139,0.10); color: #64748B;')}
 `;
 
 const ContactLine = styled.div`
@@ -106,8 +110,7 @@ export const EmployeeTable = ({ employees }: Props) => {
                 <tr>
                     <Th>Pracownik</Th>
                     <Th>Kontakt</Th>
-                    <Th>Data zatrudnienia</Th>
-                    <Th>Status</Th>
+                    <Th>Konto</Th>
                 </tr>
             </Thead>
             <Tbody>
@@ -116,7 +119,6 @@ export const EmployeeTable = ({ employees }: Props) => {
                         <Td>
                             <NameCell>
                                 <FullName>{emp.fullName}</FullName>
-                                <Position>{emp.position}</Position>
                             </NameCell>
                         </Td>
                         <Td>
@@ -126,9 +128,10 @@ export const EmployeeTable = ({ employees }: Props) => {
                                 {!emp.email && !emp.phone && <span>—</span>}
                             </ContactLine>
                         </Td>
-                        <Td>{new Date(emp.hireDate).toLocaleDateString('pl-PL')}</Td>
                         <Td>
-                            <EmployeeStatusBadge status={emp.status} />
+                            <AccountBadge $hasAccount={emp.hasAccount}>
+                                {emp.hasAccount ? 'Ma konto' : 'Brak konta'}
+                            </AccountBadge>
                         </Td>
                     </Tr>
                 ))}

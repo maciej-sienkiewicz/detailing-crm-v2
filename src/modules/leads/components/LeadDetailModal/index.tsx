@@ -3106,7 +3106,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
         hasAssigned={!!assignedUserName}
         onSelect={emp => {
           assignUser.mutate(
-            { userId: emp.linkedUserId ?? emp.id, userName: emp.fullName },
+            { userId: emp.id, userName: emp.fullName },
             { onSuccess: () => showSuccess('Pracownik przypisany') }
           );
         }}

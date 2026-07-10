@@ -16,11 +16,9 @@ import type {
     WorkTimeEntry,
     WorkTimePeriodSummary,
     SavePeriodPayload,
-    LeaveRequest,
-    LeaveBalance,
-    RequestLeavePayload,
-    ReviewLeavePayload,
-    InitLeaveBalancePayload,
+    EmployeeLeave,
+    AddLeavePayload,
+    LeaveCalendarDay,
     PayrollEntry,
     GeneratePayrollPayload,
     ConfirmPayrollPayload,
@@ -40,7 +38,6 @@ export const employeeApi = {
         const params = new URLSearchParams({
             page: filters.page.toString(),
             limit: filters.limit.toString(),
-            includeTerminated: filters.includeTerminated.toString(),
         });
         if (filters.search) params.append('search', filters.search);
         const res = await apiClient.get<EmployeeListResponse>(`${BASE}?${params}`);
@@ -152,32 +149,23 @@ export const employeeApi = {
 
     // ─── Leaves ───────────────────────────────────────────────────────────────
 
-    listLeaves: async (employeeId: string): Promise<LeaveRequest[]> => {
-        const res = await apiClient.get<LeaveRequest[]>(`${BASE}/${employeeId}/leaves`);
+    listLeaves: async (employeeId: string): Promise<EmployeeLeave[]> => {
+        const res = await apiClient.get<EmployeeLeave[]>(`${BASE}/${employeeId}/leaves`);
         return res.data;
     },
 
-    requestLeave: async (employeeId: string, payload: RequestLeavePayload): Promise<{ leaveRequestId: string }> => {
-        const res = await apiClient.post<{ leaveRequestId: string }>(`${BASE}/${employeeId}/leaves`, payload);
+    addLeave: async (employeeId: string, payload: AddLeavePayload): Promise<{ leaveId: string }> => {
+        const res = await apiClient.post<{ leaveId: string }>(`${BASE}/${employeeId}/leaves`, payload);
         return res.data;
     },
 
-    reviewLeave: async (leaveRequestId: string, payload: ReviewLeavePayload): Promise<void> => {
-        await apiClient.post(`${BASE}/leaves/${leaveRequestId}/review`, payload);
+    deleteLeave: async (employeeId: string, leaveId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}/leaves/${leaveId}`);
     },
 
-    cancelLeave: async (leaveRequestId: string): Promise<void> => {
-        await apiClient.post(`${BASE}/leaves/${leaveRequestId}/cancel`);
-    },
-
-    getLeaveBalance: async (employeeId: string, year?: number): Promise<LeaveBalance | LeaveBalance[]> => {
-        const query = year ? `?year=${year}` : '';
-        const res = await apiClient.get<LeaveBalance | LeaveBalance[]>(`${BASE}/${employeeId}/leave-balance${query}`);
-        return res.data;
-    },
-
-    initLeaveBalance: async (employeeId: string, payload: InitLeaveBalancePayload): Promise<LeaveBalance> => {
-        const res = await apiClient.post<LeaveBalance>(`${BASE}/${employeeId}/leave-balance`, payload);
+    /** Dzienna liczba pracowników na urlopie w zakresie dat (dla widoku kalendarza). */
+    getLeaveCalendar: async (from: string, to: string): Promise<LeaveCalendarDay[]> => {
+        const res = await apiClient.get<LeaveCalendarDay[]>(`${BASE}/leaves/calendar?from=${from}&to=${to}`);
         return res.data;
     },
 

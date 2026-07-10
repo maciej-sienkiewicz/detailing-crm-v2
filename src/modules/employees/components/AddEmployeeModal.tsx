@@ -47,22 +47,6 @@ const Input = styled.input`
     &::placeholder { color: ${st.textMuted}; }
 `;
 
-const Textarea = styled.textarea`
-    padding: 9px 12px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    resize: vertical;
-    min-height: 72px;
-    font-family: inherit;
-    transition: border-color ${st.transition};
-    &:focus { border-color: ${st.accentBlue}; }
-    &::placeholder { color: ${st.textMuted}; }
-`;
-
 const ErrorMsg = styled.p`
     margin: 0;
     font-size: ${st.fontXs};
@@ -82,6 +66,15 @@ const Select = styled.select`
     appearance: auto;
 `;
 
+const CheckboxLabel = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+    cursor: pointer;
+`;
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
@@ -92,17 +85,9 @@ interface Props {
 const emptyForm = (): CreateEmployeePayload => ({
     firstName: '',
     lastName: '',
-    position: '',
-    hireDate: new Date().toISOString().slice(0, 10),
     phone: '',
     email: '',
-    personalEmail: '',
-    pesel: '',
-    nip: '',
-    addressStreet: '',
-    addressCity: '',
-    addressPostalCode: '',
-    notes: '',
+    createAccount: false,
     roleId: null,
 });
 
@@ -113,17 +98,8 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
             ? {
                   firstName: employee.firstName,
                   lastName: employee.lastName,
-                  position: employee.position,
-                  hireDate: employee.hireDate,
                   phone: employee.phone ?? '',
                   email: employee.email ?? '',
-                  personalEmail: employee.personalEmail ?? '',
-                  pesel: employee.pesel ?? '',
-                  nip: employee.nip ?? '',
-                  addressStreet: employee.addressStreet ?? '',
-                  addressCity: employee.addressCity ?? '',
-                  addressPostalCode: employee.addressPostalCode ?? '',
-                  notes: employee.notes ?? '',
               }
             : emptyForm()
     );
@@ -131,29 +107,27 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
 
     const createMutation = useCreateEmployee();
     const updateMutation = useUpdateEmployee(employee?.id ?? '');
-    const { data: roles = [] } = useRoles();
+    const { roles } = useRoles();
 
-    const set = (key: keyof CreateEmployeePayload, value: string | null) =>
+    const set = (key: keyof CreateEmployeePayload, value: string | boolean | null) =>
         setForm(prev => ({ ...prev, [key]: value }));
 
     const handleSubmit = async () => {
-        if (!form.firstName.trim() || !form.lastName.trim() || !form.position.trim() || !form.hireDate) {
-            setError('Imię, nazwisko, stanowisko i data zatrudnienia są wymagane.');
+        if (!form.firstName.trim() || !form.lastName.trim()) {
+            setError('Imię i nazwisko są wymagane.');
+            return;
+        }
+        if (form.createAccount && !form.email?.trim()) {
+            setError('Adres e-mail jest wymagany przy tworzeniu konta użytkownika.');
             return;
         }
         setError('');
         const payload: CreateEmployeePayload = {
-            ...form,
-            phone: form.phone || null,
-            email: form.email || null,
-            personalEmail: form.personalEmail || null,
-            pesel: form.pesel || null,
-            nip: form.nip || null,
-            addressStreet: form.addressStreet || null,
-            addressCity: form.addressCity || null,
-            addressPostalCode: form.addressPostalCode || null,
-            notes: form.notes || null,
-            roleId: form.roleId || null,
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            phone: form.phone?.trim() || null,
+            email: form.email?.trim() || null,
+            ...(isEdit ? {} : { createAccount: form.createAccount, roleId: form.roleId || null }),
         };
 
         try {
@@ -181,24 +155,6 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
             </ModalHeader>
 
             <ModalContent>
-                {!isEdit && (
-                    <div>
-                        <ModalSectionTitle>Rola i dostęp</ModalSectionTitle>
-                        <Field>
-                            <Label>Rola systemowa</Label>
-                            <Select
-                                value={form.roleId ?? ''}
-                                onChange={e => set('roleId', e.target.value || null)}
-                            >
-                                <option value="">— bez roli —</option>
-                                {roles.map(role => (
-                                    <option key={role.id} value={role.id}>{role.name}</option>
-                                ))}
-                            </Select>
-                        </Field>
-                    </div>
-                )}
-
                 <div>
                     <ModalSectionTitle>Dane podstawowe</ModalSectionTitle>
                     <Row>
@@ -211,23 +167,13 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
                             <Input value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="Kowalski" />
                         </Field>
                     </Row>
-                    <Row style={{ marginTop: 12 }}>
-                        <Field>
-                            <Label>Stanowisko *</Label>
-                            <Input value={form.position} onChange={e => set('position', e.target.value)} placeholder="Detailer" />
-                        </Field>
-                        <Field>
-                            <Label>Data zatrudnienia *</Label>
-                            <Input type="date" value={form.hireDate} onChange={e => set('hireDate', e.target.value)} />
-                        </Field>
-                    </Row>
                 </div>
 
                 <div>
                     <ModalSectionTitle>Kontakt</ModalSectionTitle>
                     <Row>
                         <Field>
-                            <Label>Email służbowy</Label>
+                            <Label>Email</Label>
                             <Input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} placeholder="jan@firma.pl" />
                         </Field>
                         <Field>
@@ -235,50 +181,35 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
                             <Input value={form.phone ?? ''} onChange={e => set('phone', e.target.value)} placeholder="+48 123 456 789" />
                         </Field>
                     </Row>
-                    <Row style={{ marginTop: 12 }}>
-                        <Field>
-                            <Label>Email prywatny</Label>
-                            <Input type="email" value={form.personalEmail ?? ''} onChange={e => set('personalEmail', e.target.value)} placeholder="jan@gmail.com" />
-                        </Field>
-                    </Row>
                 </div>
 
-                <div>
-                    <ModalSectionTitle>Dane formalne</ModalSectionTitle>
-                    <Row>
-                        <Field>
-                            <Label>PESEL</Label>
-                            <Input value={form.pesel ?? ''} onChange={e => set('pesel', e.target.value)} placeholder="00000000000" maxLength={11} />
-                        </Field>
-                        <Field>
-                            <Label>NIP</Label>
-                            <Input value={form.nip ?? ''} onChange={e => set('nip', e.target.value)} placeholder="0000000000" maxLength={10} />
-                        </Field>
-                    </Row>
-                </div>
-
-                <div>
-                    <ModalSectionTitle>Adres zamieszkania</ModalSectionTitle>
-                    <Field>
-                        <Label>Ulica</Label>
-                        <Input value={form.addressStreet ?? ''} onChange={e => set('addressStreet', e.target.value)} placeholder="ul. Przykładowa 1" />
-                    </Field>
-                    <Row style={{ marginTop: 12 }}>
-                        <Field>
-                            <Label>Miasto</Label>
-                            <Input value={form.addressCity ?? ''} onChange={e => set('addressCity', e.target.value)} placeholder="Warszawa" />
-                        </Field>
-                        <Field>
-                            <Label>Kod pocztowy</Label>
-                            <Input value={form.addressPostalCode ?? ''} onChange={e => set('addressPostalCode', e.target.value)} placeholder="00-000" maxLength={6} />
-                        </Field>
-                    </Row>
-                </div>
-
-                <Field>
-                    <Label>Notatki</Label>
-                    <Textarea value={form.notes ?? ''} onChange={e => set('notes', e.target.value)} placeholder="Dodatkowe informacje..." />
-                </Field>
+                {!isEdit && (
+                    <div>
+                        <ModalSectionTitle>Konto i dostęp</ModalSectionTitle>
+                        <CheckboxLabel>
+                            <input
+                                type="checkbox"
+                                checked={!!form.createAccount}
+                                onChange={e => set('createAccount', e.target.checked)}
+                            />
+                            Utwórz konto użytkownika i wyślij zaproszenie
+                        </CheckboxLabel>
+                        {form.createAccount && (
+                            <Field style={{ marginTop: 12 }}>
+                                <Label>Rola systemowa</Label>
+                                <Select
+                                    value={form.roleId ?? ''}
+                                    onChange={e => set('roleId', e.target.value || null)}
+                                >
+                                    <option value="">— bez roli —</option>
+                                    {roles.map(role => (
+                                        <option key={role.id} value={role.id}>{role.name}</option>
+                                    ))}
+                                </Select>
+                            </Field>
+                        )}
+                    </div>
+                )}
 
                 {error && <ErrorMsg>{error}</ErrorMsg>}
             </ModalContent>
