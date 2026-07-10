@@ -155,22 +155,26 @@ const CalendarContainer = styled.div`
         font-weight: 400;
     }
 
-    /* ===================== LEAVE INDICATOR (ludzik) ===================== */
+    /* ===================== LEAVE INDICATOR (ludzik) =====================
+       Badge is injected imperatively into .fc-daygrid-day-frame (see effect
+       below) so it can absolute-position against the whole cell rather than
+       colliding with the centred .fc-daygrid-day-number. */
+    .fc-daygrid-day-frame {
+        position: relative;
+    }
+
     .fc-leave-badge {
         position: absolute;
-        top: 3px;
-        right: 4px;
+        top: 4px;
+        right: 5px;
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        color: #10b981;
+        color: #ef4444;
         z-index: 5;
         cursor: default;
         line-height: 1;
-    }
-
-    .fc-leave-badge.fc-leave-badge--on-leave {
-        color: #ef4444;
+        pointer-events: auto;
     }
 
     .fc-leave-badge svg {
@@ -1043,6 +1047,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, selectedColorIds);
 
     // Urlopy pracowników per dzień — zasila ikonkę "ludzika" w rogu każdego dnia.
+    // Ludzik pojawia się TYLKO dla dni z urlopami; renderowany imperatywnie do
+    // .fc-daygrid-day-frame (patrz efekt niżej), bo dayCellContent trzymałby go
+    // w kontenerze .fc-daygrid-day-number i zachodziłby na numer dnia.
     // dateRange.end jest ekskluzywne (FullCalendar), backend przyjmuje zakres domknięty.
     const leaveRangeFrom = dateRange ? dateRange.start.slice(0, 10) : null;
     const leaveRangeTo = dateRange
@@ -1053,6 +1060,52 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         })()
         : null;
     const { leaveDayMap } = useLeaveCalendar(leaveRangeFrom, leaveRangeTo);
+
+    // Wstrzykuje/aktualizuje ikonkę "ludzika" w prawym-górnym rogu każdej komórki
+    // dnia. Uruchamia się przy zmianie zakresu widoku (nowe DOM cells FC) oraz
+    // przy zmianie mapy urlopów (dodanie/usunięcie urlopu przez inną zakładkę).
+    useEffect(() => {
+        if (currentView !== 'dayGridMonth') return;
+        const root = calendarRef.current?.getApi().el;
+        if (!root) return;
+
+        const applyBadges = () => {
+            const cells = root.querySelectorAll<HTMLElement>('.fc-daygrid-day[data-date]');
+            cells.forEach(cell => {
+                const iso = cell.getAttribute('data-date');
+                const frame = cell.querySelector<HTMLElement>('.fc-daygrid-day-frame');
+                if (!frame) return;
+
+                const existing = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
+                const info = iso ? leaveDayMap.get(iso) : undefined;
+
+                if (!info || info.count <= 0) {
+                    existing?.remove();
+                    return;
+                }
+
+                const title = `Na urlopie (${info.count}): ${info.employees.map(e => e.fullName).join(', ')}`;
+                const badge = existing ?? document.createElement('span');
+                if (!existing) {
+                    badge.className = 'fc-leave-badge';
+                    badge.innerHTML =
+                        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+                        '<circle cx="12" cy="7" r="4"/>' +
+                        '<path d="M12 13c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5z"/>' +
+                        '</svg><span class="fc-leave-count"></span>';
+                    frame.appendChild(badge);
+                }
+                badge.title = title;
+                badge.setAttribute('aria-label', title);
+                const countEl = badge.querySelector<HTMLElement>('.fc-leave-count');
+                if (countEl) countEl.textContent = String(info.count);
+            });
+        };
+
+        // Zaczekaj jedną klatkę, aż FC ustabilizuje DOM po datesSet.
+        const rafId = requestAnimationFrame(applyBadges);
+        return () => cancelAnimationFrame(rafId);
+    }, [leaveDayMap, dateRange, currentView]);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -1685,33 +1738,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
                 // Hide event time from calendar tiles
                 displayEventTime={false}
-
-                // Day number + leave indicator (ludzik) in the top-right corner of each day cell
-                dayCellContent={(arg) => {
-                    const d = arg.date;
-                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    const leaveInfo = leaveDayMap.get(iso);
-                    const count = leaveInfo?.count ?? 0;
-                    const title = count > 0
-                        ? `Na urlopie (${count}): ${leaveInfo!.employees.map(e => e.fullName).join(', ')}`
-                        : 'Nikt nie jest na urlopie';
-                    return (
-                        <>
-                            {arg.dayNumberText}
-                            <span
-                                className={`fc-leave-badge${count > 0 ? ' fc-leave-badge--on-leave' : ''}`}
-                                title={title}
-                                aria-label={title}
-                            >
-                                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                    <circle cx="12" cy="7" r="4" />
-                                    <path d="M12 13c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5z" />
-                                </svg>
-                                {count > 0 && <span className="fc-leave-count">{count}</span>}
-                            </span>
-                        </>
-                    );
-                }}
 
                 // Custom event content
                 eventClassNames={(arg) => {
