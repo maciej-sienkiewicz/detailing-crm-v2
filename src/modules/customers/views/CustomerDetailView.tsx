@@ -16,6 +16,7 @@ import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { AddVehicleModal } from '../components/AddVehicleModal';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
@@ -196,6 +197,8 @@ export const CustomerDetailView = () => {
     const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
     const [isAddVehicleOpen,  setIsAddVehicleOpen]  = useState(false);
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showDeleteBlocked, setShowDeleteBlocked] = useState(false);
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
     const [isCommOpen,             setIsCommOpen]             = useState(false);
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
@@ -349,6 +352,18 @@ export const CustomerDetailView = () => {
                                 <line x1="10" y1="16" x2="14" y2="16"/>
                             </svg>
                             Nowa wizyta
+                        </SharedButton>
+                        <SharedButton
+                            $variant="danger"
+                            $size="sm"
+                            onClick={() => setShowDeleteConfirm(true)}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M9 6V4h6v2"/>
+                            </svg>
+                            Usuń klienta
                         </SharedButton>
                     </HeaderActions>
                 </PageHeader>
@@ -884,6 +899,31 @@ export const CustomerDetailView = () => {
                     onClose={() => setReservationMenu(null)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                title="Usuń klienta"
+                message={`Czy na pewno chcesz usunąć klienta ${fullName}? Tej operacji nie można cofnąć.`}
+                variant="danger"
+                confirmText="Usuń klienta"
+                cancelText="Anuluj"
+                onConfirm={() => {
+                    setShowDeleteConfirm(false);
+                    setShowDeleteBlocked(true);
+                }}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={showDeleteBlocked}
+                title="Usunięcie niemożliwe"
+                message="Nie usuniemy klienta dopóki kancelaria nam nie odpowie co możemy trzymać, a czego nie możemy."
+                variant="info"
+                confirmText="Rozumiem"
+                cancelText="Zamknij"
+                onConfirm={() => setShowDeleteBlocked(false)}
+                onCancel={() => setShowDeleteBlocked(false)}
+            />
         </ViewContainer>
     );
 };
