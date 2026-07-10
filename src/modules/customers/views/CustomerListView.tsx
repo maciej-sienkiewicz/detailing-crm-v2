@@ -12,6 +12,7 @@ import { CustomerPagination } from '../components/CustomerPagination';
 import { AddCustomerModal } from '../components/AddCustomerModal';
 import { CustomerFilterPanel } from '../components/CustomerFilterPanel';
 import { ExportModal } from '../components/ExportModal';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -226,6 +227,8 @@ export const CustomerListView = () => {
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [showDeleteBlocked, setShowDeleteBlocked] = useState(false);
     const [activeTab, setActiveTab] = useState<CustomerTab>('all');
     const [sortBy, setSortBy] = useState<CustomerSortField>('lastName');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -307,6 +310,7 @@ export const CustomerListView = () => {
                         sortBy={sortBy}
                         sortDirection={sortDirection}
                         onSort={handleSort}
+                        onDelete={id => setPendingDeleteId(id)}
                     />
                 ) : (
                     <CustomerGrid customers={customers} />
@@ -402,6 +406,28 @@ export const CustomerListView = () => {
                     ...appliedFilters,
                 }}
                 filteredCount={pagination?.totalItems ?? 0}
+            />
+
+            <ConfirmationModal
+                isOpen={pendingDeleteId !== null}
+                title="Usuń klienta"
+                message="Czy na pewno chcesz usunąć tego klienta? Tej operacji nie można cofnąć."
+                variant="danger"
+                confirmText="Usuń klienta"
+                cancelText="Anuluj"
+                onConfirm={() => { setPendingDeleteId(null); setShowDeleteBlocked(true); }}
+                onCancel={() => setPendingDeleteId(null)}
+            />
+
+            <ConfirmationModal
+                isOpen={showDeleteBlocked}
+                title="Usunięcie niemożliwe"
+                message="Nie usuniemy klienta dopóki kancelaria nam nie odpowie co możemy trzymać, a czego nie możemy."
+                variant="info"
+                confirmText="Rozumiem"
+                cancelText="Zamknij"
+                onConfirm={() => setShowDeleteBlocked(false)}
+                onCancel={() => setShowDeleteBlocked(false)}
             />
         </ViewContainer>
     );

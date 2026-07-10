@@ -1,4 +1,6 @@
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import type { Customer, CustomerSortField, SortDirection } from '../types';
@@ -214,6 +216,45 @@ const IconBtn = styled.button`
     }
 `;
 
+// ─── Dropdown menu ────────────────────────────────────────────────────────────
+
+const DropdownMenu = styled.div<{ $top: number; $right: number }>`
+    position: fixed;
+    top: ${p => p.$top}px;
+    right: ${p => p.$right}px;
+    z-index: 1000;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 4px;
+    min-width: 160px;
+    animation: ${fadeIn} 120ms ease both;
+`;
+
+const DropdownItem = styled.button<{ $danger?: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${p => p.$danger ? '#ef4444' : st.text};
+    cursor: pointer;
+    text-align: left;
+    transition: background ${st.transition};
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    &:hover {
+        background: ${p => p.$danger ? '#fef2f2' : st.bg};
+    }
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fullName = (c: Customer) =>
@@ -243,12 +284,35 @@ interface CustomerTableProps {
     sortBy?: CustomerSortField;
     sortDirection?: SortDirection;
     onSort?: (field: CustomerSortField) => void;
+    onDelete?: (customerId: string) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort }: CustomerTableProps) => {
+export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort, onDelete }: CustomerTableProps) => {
     const navigate = useNavigate();
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+
+    useEffect(() => {
+        if (!openMenuId) return;
+        const handler = () => setOpenMenuId(null);
+        document.addEventListener('click', handler);
+        return () => document.removeEventListener('click', handler);
+    }, [openMenuId]);
+
+    const toggleMenu = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (openMenuId === id) {
+            setOpenMenuId(null);
+            setMenuPos(null);
+        } else {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+            setOpenMenuId(id);
+        }
+    };
 
     return (
         <TableWrapper>
@@ -348,7 +412,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                     <IconBtn
                                         title="Więcej"
                                         aria-label="Więcej opcji"
-                                        onClick={() => navigate(`/customers/${customer.id}`)}
+                                        onClick={e => toggleMenu(customer.id, e)}
                                     >
                                         <svg viewBox="0 0 24 24" fill="currentColor">
                                             <circle cx="12" cy="5"  r="1.5" />
@@ -356,6 +420,34 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                             <circle cx="12" cy="19" r="1.5" />
                                         </svg>
                                     </IconBtn>
+
+                                    {openMenuId === customer.id && menuPos && createPortal(
+                                        <DropdownMenu
+                                            $top={menuPos.top}
+                                            $right={menuPos.right}
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <DropdownItem onClick={() => { setOpenMenuId(null); navigate(`/customers/${customer.id}`); }}>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                </svg>
+                                                Zobacz profil
+                                            </DropdownItem>
+                                            <DropdownItem
+                                                $danger
+                                                onClick={e => { e.stopPropagation(); setOpenMenuId(null); onDelete?.(customer.id); }}
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <polyline points="3 6 5 6 21 6"/>
+                                                    <path d="M19 6l-1 14H6L5 6"/>
+                                                    <path d="M9 6V4h6v2"/>
+                                                </svg>
+                                                Usuń klienta
+                                            </DropdownItem>
+                                        </DropdownMenu>,
+                                        document.body
+                                    )}
                                 </TdActions>
                             </Tr>
                         );
