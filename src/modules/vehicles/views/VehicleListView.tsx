@@ -203,6 +203,31 @@ const SecondaryBtn = styled.button`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
+const ShowDeletedBtn = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: ${p => p.$active ? '#fef2f2' : '#f1f5f9'};
+    color: ${p => p.$active ? '#dc2626' : '#475569'};
+    border: 1.5px solid ${p => p.$active ? '#fca5a5' : '#e2e8f0'};
+    border-radius: 9999px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 180ms ease;
+
+    &:hover {
+        background: ${p => p.$active ? '#fee2e2' : '#e2e8f0'};
+        color: ${p => p.$active ? '#b91c1c' : '#0f172a'};
+    }
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
 const FilterBadge = styled.span`
     display: inline-flex;
     align-items: center;
@@ -247,6 +272,7 @@ export const VehicleListView = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<VehicleAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
+    const [showDeleted, setShowDeleted] = useState(false);
     const { searchInput, debouncedSearch, handleSearchChange } = useVehicleSearch();
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
     const { deleteVehicle } = useDeleteVehicle();
@@ -262,8 +288,9 @@ export const VehicleListView = () => {
             sortBy: 'createdAt' as const,
             sortDirection: 'desc' as const,
             ...appliedFilters,
+            ...(showDeleted && { includeDeleted: true }),
         }),
-        [debouncedSearch, page, limit, appliedFilters]
+        [debouncedSearch, page, limit, appliedFilters, showDeleted]
     );
 
     const { vehicles, pagination, isLoading, isError, refetch } = useVehicles(filters);
@@ -388,6 +415,17 @@ export const VehicleListView = () => {
                             </svg>
                             Eksport
                         </SecondaryBtn>
+                        <ShowDeletedBtn
+                            $active={showDeleted}
+                            onClick={() => setShowDeleted(v => !v)}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M9 6V4h6v2"/>
+                            </svg>
+                            Pokaż usunięte
+                        </ShowDeletedBtn>
                     </FilterTopRow>
                 </FilterBar>
 

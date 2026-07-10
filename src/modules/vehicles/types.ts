@@ -127,6 +127,7 @@ export interface VehicleFilters {
     services?: string[];
     lastServiceWithinDays?: number | null;
     notServicedSinceDays?: number | null;
+    includeDeleted?: boolean;
 }
 
 export interface CreateVehiclePayload {

@@ -332,6 +332,7 @@ export const vehicleApi = {
             ...(filters.services?.length && { services: filters.services.join(',') }),
             ...(filters.lastServiceWithinDays != null && { lastServiceWithinDays: filters.lastServiceWithinDays.toString() }),
             ...(filters.notServicedSinceDays != null && { notServicedSinceDays: filters.notServicedSinceDays.toString() }),
+            ...(filters.includeDeleted && { includeDeleted: 'true' }),
         });
         const response = await apiClient.get(`${BASE_PATH}?${params}`);
         return response.data;
