@@ -305,8 +305,9 @@ interface CalendarFilterBarProps {
     selectedVisitStatuses: VisitStatus[];
     onAppointmentStatusesChange: (statuses: AppointmentStatus[]) => void;
     onVisitStatusesChange: (statuses: VisitStatus[]) => void;
-    selectedColorIds: string[];
-    onColorIdsChange: (ids: string[]) => void;
+    /** Kolory ukryte przez użytkownika (blacklist); puste = wszystkie widoczne. */
+    hiddenColorIds: string[];
+    onHiddenColorIdsChange: (ids: string[]) => void;
     /** When true, forces the popup open (e.g. triggered by mobile filter pill). */
     popupOpen?: boolean;
     onPopupClose?: () => void;
@@ -322,8 +323,8 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     selectedVisitStatuses,
     onAppointmentStatusesChange,
     onVisitStatusesChange,
-    selectedColorIds,
-    onColorIdsChange,
+    hiddenColorIds,
+    onHiddenColorIdsChange,
     popupOpen: popupOpenProp,
     onPopupClose,
     eventsCount,
@@ -339,7 +340,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     ] as (AppointmentStatus | VisitStatus)[];
 
     const allStatusesActive = activeStatuses.length === ALL_STATUSES.length;
-    const allActive = allStatusesActive && selectedColorIds.length === 0;
+    const allActive = allStatusesActive && hiddenColorIds.length === 0;
 
     const toggle = (status: AppointmentStatus | VisitStatus) => {
         const meta = STATUS_META[status];
@@ -360,23 +361,19 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         }
     };
 
+    // Blacklist: przełącza ukrycie pojedynczego koloru. Kolory spoza listy
+    // (w tym nowo utworzone) są zawsze widoczne.
     const toggleColor = (id: string) => {
-        const allIds = availableColors.map(c => c.id);
-        const effective = selectedColorIds.length === 0 ? allIds : selectedColorIds;
-        let next: string[];
-        if (effective.includes(id)) {
-            next = effective.filter(c => c !== id);
-        } else {
-            next = [...effective, id];
-        }
-        // if all colors are selected again, reset to empty (= no filter)
-        onColorIdsChange(next.length === allIds.length ? [] : next);
+        const next = hiddenColorIds.includes(id)
+            ? hiddenColorIds.filter(c => c !== id)
+            : [...hiddenColorIds, id];
+        onHiddenColorIdsChange(next);
     };
 
     const resetAll = () => {
         onAppointmentStatusesChange(ALL_APPOINTMENT_STATUSES);
         onVisitStatusesChange(ALL_VISIT_STATUSES);
-        onColorIdsChange([]);
+        onHiddenColorIdsChange([]);
     };
 
     const closePopup = () => {
@@ -452,17 +449,16 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                             );
                         })}
 
-                        {selectedColorIds.map(id => {
-                            const color = availableColors.find(c => c.id === id);
-                            if (!color) return null;
-                            return (
-                                <ColorChip key={id} $hex={color.hexColor}>
+                        {hiddenColorIds.length > 0 && availableColors
+                            .filter(color => !hiddenColorIds.includes(color.id))
+                            .map(color => (
+                                <ColorChip key={color.id} $hex={color.hexColor}>
                                     <ColorSwatch $hex={color.hexColor} />
                                     {color.name}
                                     <ChipRemove
-                                        onClick={() => toggleColor(id)}
-                                        title={`Usuń filtr koloru: ${color.name}`}
-                                        aria-label={`Usuń filtr koloru: ${color.name}`}
+                                        onClick={() => toggleColor(color.id)}
+                                        title={`Ukryj kolor: ${color.name}`}
+                                        aria-label={`Ukryj kolor: ${color.name}`}
                                     >
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                             strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -471,8 +467,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                                         </svg>
                                     </ChipRemove>
                                 </ColorChip>
-                            );
-                        })}
+                            ))}
                     </>
                 )}
 
@@ -532,7 +527,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                         <>
                             <PopupSection>Kolory</PopupSection>
                             {availableColors.map(color => {
-                                const on = selectedColorIds.length === 0 || selectedColorIds.includes(color.id);
+                                const on = !hiddenColorIds.includes(color.id);
                                 return (
                                     <PopupRow key={color.id} $active={on} onClick={() => toggleColor(color.id)} role="option" aria-selected={on}>
                                         <ColorSwatch $hex={color.hexColor} />

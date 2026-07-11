@@ -943,10 +943,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const {
         appointmentStatuses: selectedAppointmentStatuses,
         visitStatuses: selectedVisitStatuses,
-        colorIds: selectedColorIds,
+        hiddenColorIds,
         setAppointmentStatuses: setSelectedAppointmentStatuses,
         setVisitStatuses: setSelectedVisitStatuses,
-        setColorIds: setSelectedColorIds,
+        setHiddenColorIds,
     } = useCalendarFilters();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
@@ -1096,7 +1096,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // Reservation options modal state
 
     const { createQuickEventAsync } = useQuickEventCreation();
-    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, selectedColorIds);
+    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, hiddenColorIds);
 
     // Urlopy pracowników per dzień — zasila ikonkę "ludzika" w rogu każdego dnia.
     // Ludzik pojawia się TYLKO dla dni z urlopami; renderowany imperatywnie do
@@ -1632,8 +1632,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 selectedVisitStatuses={selectedVisitStatuses}
                 onAppointmentStatusesChange={setSelectedAppointmentStatuses}
                 onVisitStatusesChange={setSelectedVisitStatuses}
-                selectedColorIds={selectedColorIds}
-                onColorIdsChange={setSelectedColorIds}
+                hiddenColorIds={hiddenColorIds}
+                onHiddenColorIdsChange={setHiddenColorIds}
                 popupOpen={isFilterOpen}
                 onPopupClose={() => setIsFilterOpen(false)}
                 eventsCount={events.length}

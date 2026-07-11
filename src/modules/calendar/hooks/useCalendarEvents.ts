@@ -7,32 +7,34 @@ import type { DateRange, VisitStatus, AppointmentStatus } from '../types';
 
 /**
  * Hook to fetch calendar events for a given date range with status and color filters.
- * colorIds filtering is applied client-side (backend support via colorIds param is proposed).
+ * Color filtering is applied client-side as a blacklist (hiddenColorIds): events
+ * whose color the user hid are dropped, everything else — including events with
+ * no color or with a newly created color — stays visible.
  */
 export const useCalendarEvents = (
     dateRange: DateRange | null,
     appointmentStatuses: AppointmentStatus[] = [],
     visitStatuses: VisitStatus[] = [],
-    colorIds: string[] = [],
+    hiddenColorIds: string[] = [],
 ) => {
     const query = useQuery({
-        queryKey: ['calendar-events', dateRange, appointmentStatuses, visitStatuses, colorIds],
+        queryKey: ['calendar-events', dateRange, appointmentStatuses, visitStatuses],
         queryFn: () => {
             if (!dateRange) {
                 return Promise.resolve([]);
             }
-            return calendarApi.getCalendarEvents(dateRange, appointmentStatuses, visitStatuses, colorIds);
+            return calendarApi.getCalendarEvents(dateRange, appointmentStatuses, visitStatuses);
         },
         enabled: !!dateRange,
     });
 
     const filteredData = useMemo(() => {
-        if (!colorIds.length) return query.data;
+        if (!hiddenColorIds.length) return query.data;
         return query.data?.filter(event => {
             const id = (event.extendedProps as { colorId?: string }).colorId;
-            return id !== undefined && colorIds.includes(id);
+            return id === undefined || !hiddenColorIds.includes(id);
         });
-    }, [query.data, colorIds]);
+    }, [query.data, hiddenColorIds]);
 
     return { ...query, data: filteredData };
 };

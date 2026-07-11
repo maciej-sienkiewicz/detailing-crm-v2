@@ -1,7 +1,11 @@
 import { useLocalStorage } from '../../../common/hooks';
 import { AppointmentStatus, VisitStatus } from '../types';
 
-const STORAGE_KEY = 'calendar-filters-v2';
+// v3: filtr kolorów przechowuje kolory UKRYTE (blacklist) zamiast snapshotu
+// zaznaczonych (whitelist). Whitelist z v2 psuła kalendarz po dodaniu nowego
+// koloru — nie było go w zapisanym snapshocie, więc wydarzenia z nowym kolorem
+// znikały po cichu. Zmiana klucza celowo porzuca stare, przeterminowane filtry.
+const STORAGE_KEY = 'calendar-filters-v3';
 
 const ALL_APPOINTMENT_STATUSES: AppointmentStatus[] = ['CREATED', 'ABANDONED', 'CANCELLED'];
 const ALL_VISIT_STATUSES: VisitStatus[] = ['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'REJECTED', 'ARCHIVED'];
@@ -9,13 +13,14 @@ const ALL_VISIT_STATUSES: VisitStatus[] = ['IN_PROGRESS', 'READY_FOR_PICKUP', 'C
 interface CalendarFiltersState {
     appointmentStatuses: AppointmentStatus[];
     visitStatuses: VisitStatus[];
-    colorIds: string[];
+    /** Kolory ukryte przez użytkownika; puste = pokazuj wszystkie (także nowe). */
+    hiddenColorIds: string[];
 }
 
 const DEFAULT_FILTERS: CalendarFiltersState = {
     appointmentStatuses: ALL_APPOINTMENT_STATUSES,
     visitStatuses: ALL_VISIT_STATUSES,
-    colorIds: [],
+    hiddenColorIds: [],
 };
 
 /**
@@ -43,7 +48,7 @@ export function useCalendarFilters() {
     const appointmentStatuses = validateAppointmentStatuses(stored.appointmentStatuses);
     const visitStatuses = validateVisitStatuses(stored.visitStatuses);
 
-    const colorIds: string[] = Array.isArray(stored.colorIds) ? stored.colorIds : [];
+    const hiddenColorIds: string[] = Array.isArray(stored.hiddenColorIds) ? stored.hiddenColorIds : [];
 
     const setAppointmentStatuses = (statuses: AppointmentStatus[]) => {
         setStored((prev) => ({ ...prev, appointmentStatuses: statuses }));
@@ -53,16 +58,16 @@ export function useCalendarFilters() {
         setStored((prev) => ({ ...prev, visitStatuses: statuses }));
     };
 
-    const setColorIds = (ids: string[]) => {
-        setStored((prev) => ({ ...prev, colorIds: ids }));
+    const setHiddenColorIds = (ids: string[]) => {
+        setStored((prev) => ({ ...prev, hiddenColorIds: ids }));
     };
 
     return {
         appointmentStatuses,
         visitStatuses,
-        colorIds,
+        hiddenColorIds,
         setAppointmentStatuses,
         setVisitStatuses,
-        setColorIds,
+        setHiddenColorIds,
     };
 }
