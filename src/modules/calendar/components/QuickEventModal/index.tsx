@@ -127,6 +127,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 vatRate,
                 adjustment: (form.serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 }) as ServiceAdjustment,
                 note: form.serviceNotes[id] ?? '',
+                isPackage: svc.isPackage ?? false,
+                packageItems: svc.packageItems ?? null,
             } as ServiceLineItem;
         }).filter((x): x is ServiceLineItem => x !== null);
     }, [form.selectedServiceIds, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]);

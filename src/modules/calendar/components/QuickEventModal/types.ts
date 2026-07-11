@@ -22,12 +22,20 @@ export interface QuickEventInitialData {
   tempServices?: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
 }
 
+export interface ServicePackageItem {
+    serviceId: string;
+    serviceName: string;
+    position: number;
+}
+
 export interface Service {
     id: string;
     name: string;
     basePriceNet: number;
     vatRate: number;
     requireManualPrice: boolean;
+    isPackage?: boolean;
+    packageItems?: ServicePackageItem[] | null;
 }
 
 export interface AppointmentColor {
