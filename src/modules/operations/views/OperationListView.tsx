@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { useOperationPagination } from '../hooks/useOperationPagination';
 import { useOperationFilters } from '../hooks/useOperationFilters';
 import { OperationalDataTable } from '../components/OperationalDataTable';
 import { OperationFilterBar } from '../components/OperationFilterBar';
+import { OperationFilterPanel } from '../components/OperationFilterPanel';
 import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
@@ -88,11 +89,16 @@ export const OperationListView = () => {
     const {
         selectedFilter,
         selectedDate,
+        advancedFilters,
+        activeAdvancedFilterCount,
         handleFilterChange,
         handleDateChange,
+        setAdvancedFilters,
         clearFilters,
         getApiFilters,
     } = useOperationFilters();
+
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
     const apiFilters = getApiFilters();
 
@@ -107,8 +113,9 @@ export const OperationListView = () => {
             scheduledDate: selectedDate,
             sortBy: 'startDateTime' as const,
             sortDirection: 'desc' as const,
+            ...advancedFilters,
         }),
-        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status, apiFilters.deleted, selectedDate]
+        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status, apiFilters.deleted, selectedDate, advancedFilters]
     );
 
     const { pagination } = useOperations(filters);
@@ -164,6 +171,8 @@ export const OperationListView = () => {
                     onFilterChange={handleFilterChangeWithReset}
                     onDateChange={handleDateChange}
                     onClearFilters={handleClearFiltersWithReset}
+                    activeAdvancedFilterCount={activeAdvancedFilterCount}
+                    onOpenAdvancedFilters={() => setIsFilterPanelOpen(true)}
                 />
 
                 <OperationalDataTable
@@ -184,6 +193,12 @@ export const OperationListView = () => {
                     />
                 )}
             </ContentCard>
+            <OperationFilterPanel
+                isOpen={isFilterPanelOpen}
+                initialFilters={advancedFilters}
+                onApply={filters => { setAdvancedFilters(filters); resetPagination(); }}
+                onClose={() => setIsFilterPanelOpen(false)}
+            />
         </ViewContainer>
     );
 };

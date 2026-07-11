@@ -218,6 +218,46 @@ const FILTERS: { value: FilterStatus; label: string }[] = [
     { value: 'DELETED',          label: 'Usunięte'     },
 ];
 
+const FilterBtn = styled.button<{ $active?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    background: ${props => props.$active ? st.accentBlueDim : st.bgCardAlt};
+    color: ${props => props.$active ? st.accentBlue : st.textSecondary};
+    border: 1.5px solid ${props => props.$active ? st.accentBlue : st.border};
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
+    }
+
+    svg { width: 14px; height: 14px; }
+`;
+
+const FilterBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: ${st.accentBlue};
+    color: #fff;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface OperationFilterBarProps {
@@ -228,6 +268,8 @@ interface OperationFilterBarProps {
     onFilterChange: (filter: FilterStatus | undefined) => void;
     onDateChange: (date: string | undefined) => void;
     onClearFilters: () => void;
+    activeAdvancedFilterCount?: number;
+    onOpenAdvancedFilters?: () => void;
 }
 
 export const OperationFilterBar = ({
@@ -238,8 +280,10 @@ export const OperationFilterBar = ({
     onFilterChange,
     onDateChange,
     onClearFilters,
+    activeAdvancedFilterCount = 0,
+    onOpenAdvancedFilters,
 }: OperationFilterBarProps) => {
-    const hasActiveFilters = !!selectedFilter || !!selectedDate;
+    const hasActiveFilters = !!selectedFilter || !!selectedDate || activeAdvancedFilterCount > 0;
 
     return (
         <Wrapper>
@@ -274,6 +318,21 @@ export const OperationFilterBar = ({
                         </ClearDateBtn>
                     )}
                 </DateWrap>
+
+                {onOpenAdvancedFilters && (
+                    <FilterBtn
+                        $active={activeAdvancedFilterCount > 0}
+                        onClick={onOpenAdvancedFilters}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                        </svg>
+                        Filtry
+                        {activeAdvancedFilterCount > 0 && (
+                            <FilterBadge>{activeAdvancedFilterCount}</FilterBadge>
+                        )}
+                    </FilterBtn>
+                )}
             </TopRow>
 
             <FiltersRow>

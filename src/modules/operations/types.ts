@@ -91,6 +91,18 @@ export interface OperationListResponse {
     };
 }
 
+export interface OperationAdvancedFilters {
+    serviceCountMin?: number | null;
+    serviceCountMax?: number | null;
+    minAmount?: number | null;
+    maxAmount?: number | null;
+    dateFrom?: string;
+    dateTo?: string;
+    serviceIds?: string[];
+    vehicleBrand?: string;
+    vehicleModel?: string;
+}
+
 export interface OperationFilters {
     search: string;
     page: number;
@@ -101,4 +113,14 @@ export interface OperationFilters {
     sortBy?: 'startDateTime' | 'customerLastName' | 'grossAmount' | 'lastModification';
     sortDirection?: 'asc' | 'desc';
     deleted?: boolean;
+    // advanced filters
+    serviceCountMin?: number | null;
+    serviceCountMax?: number | null;
+    minAmount?: number | null;
+    maxAmount?: number | null;
+    dateFrom?: string;
+    dateTo?: string;
+    serviceIds?: string[];
+    vehicleBrand?: string;
+    vehicleModel?: string;
 }

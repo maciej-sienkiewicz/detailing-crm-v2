@@ -330,13 +330,17 @@ export const operationApi = {
                 size: filters.limit.toString(),
             });
 
-            if (filters.status) {
-                params.append('status', filters.status);
-            }
-
-            if (filters.scheduledDate) {
-                params.append('scheduledDate', filters.scheduledDate);
-            }
+            if (filters.status) params.append('status', filters.status);
+            if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
+            if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+            if (filters.dateTo) params.append('dateTo', filters.dateTo);
+            if (filters.minAmount != null) params.append('minAmount', filters.minAmount.toString());
+            if (filters.maxAmount != null) params.append('maxAmount', filters.maxAmount.toString());
+            if (filters.serviceCountMin != null) params.append('serviceCountMin', filters.serviceCountMin.toString());
+            if (filters.serviceCountMax != null) params.append('serviceCountMax', filters.serviceCountMax.toString());
+            if (filters.vehicleBrand) params.append('vehicleBrand', filters.vehicleBrand);
+            if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
+            if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
 
             const response = await apiClient.get<VisitsListResponse>(
                 `/visits?${params.toString()}`
@@ -412,9 +416,16 @@ export const operationApi = {
                 size: filters.limit.toString(),
             });
 
-            if (filters.scheduledDate) {
-                params.append('scheduledDate', filters.scheduledDate);
-            }
+            if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
+            if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+            if (filters.dateTo) params.append('dateTo', filters.dateTo);
+            if (filters.minAmount != null) params.append('minAmount', filters.minAmount.toString());
+            if (filters.maxAmount != null) params.append('maxAmount', filters.maxAmount.toString());
+            if (filters.serviceCountMin != null) params.append('serviceCountMin', filters.serviceCountMin.toString());
+            if (filters.serviceCountMax != null) params.append('serviceCountMax', filters.serviceCountMax.toString());
+            if (filters.vehicleBrand) params.append('vehicleBrand', filters.vehicleBrand);
+            if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
+            if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
 
             const response = await apiClient.get<VisitsListResponse>(
                 `/visits?${params.toString()}`

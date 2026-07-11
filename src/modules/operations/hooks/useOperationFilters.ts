@@ -1,12 +1,14 @@
 // src/modules/operations/hooks/useOperationFilters.ts
 
 import { useState, useCallback } from 'react';
-import type { FilterStatus, OperationType, VisitStatus } from '../types';
+import type { FilterStatus, OperationType, VisitStatus, OperationAdvancedFilters } from '../types';
+
+const EMPTY_ADVANCED: OperationAdvancedFilters = {};
 
 export const useOperationFilters = () => {
-    // Set default filter to 'IN_PROGRESS' to show visits in progress
     const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>('IN_PROGRESS');
     const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+    const [advancedFilters, setAdvancedFilters] = useState<OperationAdvancedFilters>(EMPTY_ADVANCED);
 
     const handleFilterChange = useCallback((filter: FilterStatus | undefined) => {
         setSelectedFilter(filter);
@@ -19,6 +21,7 @@ export const useOperationFilters = () => {
     const clearFilters = useCallback(() => {
         setSelectedFilter(undefined);
         setSelectedDate(undefined);
+        setAdvancedFilters(EMPTY_ADVANCED);
     }, []);
 
     const getApiFilters = useCallback(() => {
@@ -34,7 +37,6 @@ export const useOperationFilters = () => {
             return { type: 'RESERVATION' as OperationType, status: undefined, deleted: undefined };
         }
 
-        // REJECTED pokazuje zarówno odrzucone wizyty jak i porzucone rezerwacje (ABANDONED)
         if (selectedFilter === 'REJECTED') {
             return { type: undefined, status: 'REJECTED' as VisitStatus, deleted: undefined };
         }
@@ -42,11 +44,20 @@ export const useOperationFilters = () => {
         return { type: 'VISIT' as OperationType, status: selectedFilter as VisitStatus, deleted: undefined };
     }, [selectedFilter]);
 
+    const activeAdvancedFilterCount = Object.entries(advancedFilters).reduce((count, [, value]) => {
+        if (value === null || value === undefined || value === '') return count;
+        if (Array.isArray(value) && value.length === 0) return count;
+        return count + 1;
+    }, 0);
+
     return {
         selectedFilter,
         selectedDate,
+        advancedFilters,
+        activeAdvancedFilterCount,
         handleFilterChange,
         handleDateChange,
+        setAdvancedFilters,
         clearFilters,
         getApiFilters,
     };

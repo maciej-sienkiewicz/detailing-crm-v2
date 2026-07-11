@@ -15,6 +15,15 @@ export const operationsQueryKey = (filters: OperationFilters) => [
     filters.sortBy,
     filters.sortDirection,
     filters.deleted ?? false,
+    filters.dateFrom,
+    filters.dateTo,
+    filters.minAmount,
+    filters.maxAmount,
+    filters.serviceCountMin,
+    filters.serviceCountMax,
+    filters.vehicleBrand,
+    filters.vehicleModel,
+    filters.serviceIds?.join(','),
 ];
 
 export const useOperations = (filters: OperationFilters) => {
