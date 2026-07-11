@@ -9,7 +9,7 @@ import { LeavesTab } from '../components/LeavesTab';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
-const ViewContainer = styled.main`
+const Page = styled.main`
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -23,7 +23,7 @@ const ViewContainer = styled.main`
     }
 
     @media (min-width: 1280px) {
-        padding: 40px 48px;
+        padding: 36px 48px;
     }
 `;
 
@@ -31,58 +31,87 @@ const BackLink = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    align-self: flex-start;
     background: none;
     border: none;
     color: ${st.textMuted};
     font-size: ${st.fontSm};
+    font-weight: 500;
     cursor: pointer;
     padding: 0;
     transition: color ${st.transition};
 
-    &:hover {
-        color: ${st.accentBlue};
+    &:hover { color: ${st.accentBlue}; }
+
+    svg { width: 14px; height: 14px; }
+`;
+
+// ─── Hero ────────────────────────────────────────────────────────────────────
+
+const Hero = styled.section`
+    position: relative;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusLg};
+    box-shadow: ${st.shadowSm};
+    overflow: hidden;
+`;
+
+const HeroAccent = styled.div`
+    height: 64px;
+    background: ${st.gradientBlue};
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 85% -20%, rgba(255, 255, 255, 0.25) 0%, transparent 45%),
+            radial-gradient(circle at 15% 120%, rgba(255, 255, 255, 0.12) 0%, transparent 40%);
     }
 `;
 
-// ─── Profile Header ───────────────────────────────────────────────────────────
-
-const ProfileCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    padding: 24px;
+const HeroBody = styled.div`
     display: flex;
-    align-items: flex-start;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+    padding: 0 24px 20px;
+    margin-top: -32px;
 `;
 
-const ProfileMain = styled.div`
+const HeroMain = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 16px;
+    min-width: 0;
 `;
 
 const Avatar = styled.div`
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: ${st.gradientBlue};
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 700;
+    letter-spacing: 0.5px;
     flex-shrink: 0;
+    border: 3px solid ${st.bgCard};
+    box-shadow: ${st.shadowMd};
 `;
 
-const ProfileInfo = styled.div`
+const HeroInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    padding-bottom: 2px;
+    min-width: 0;
 `;
 
 const FullName = styled.h1`
@@ -90,122 +119,154 @@ const FullName = styled.h1`
     font-size: ${st.fontXl};
     font-weight: 700;
     color: ${st.text};
+    letter-spacing: -0.3px;
+    line-height: 1.15;
 `;
 
-const MetaRow = styled.div`
+const ChipRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
-    margin-top: 4px;
 `;
 
-const MetaItem = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const AccountBadge = styled.span<{ $active?: boolean }>`
+const Chip = styled.span`
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 2px 10px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 600;
-    ${({ $active }) => ($active
-        ? 'background: rgba(16,185,129,0.12); color: #059669;'
-        : 'background: rgba(100,116,139,0.10); color: #64748B;')}
-`;
-
-const ProfileActions = styled.div`
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-`;
-
-const EditBtn = styled.button`
-    padding: 8px 16px;
-    background: none;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCardAlt};
     font-size: ${st.fontXs};
     font-weight: 600;
     color: ${st.textSecondary};
-    cursor: pointer;
-    transition: all ${st.transition};
-    &:hover { border-color: ${st.borderHover}; color: ${st.text}; }
+
+    svg { width: 12px; height: 12px; color: ${st.textMuted}; }
 `;
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-
-const TabsWrapper = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    overflow: hidden;
-`;
-
-const TabBar = styled.div`
-    display: flex;
-    border-bottom: 1px solid ${st.border};
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-    padding: 13px 20px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid ${({ $active }) => ($active ? st.accentBlue : 'transparent')};
-    font-size: ${st.fontSm};
-    font-weight: ${({ $active }) => ($active ? '600' : '400')};
-    color: ${({ $active }) => ($active ? st.accentBlue : st.textMuted)};
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all ${st.transition};
-    &:hover { color: ${({ $active }) => ($active ? st.accentBlue : st.text)}; }
-`;
-
-const TabContent = styled.div`
-    padding: 24px;
-`;
-
-// ─── Profile Tab Content ──────────────────────────────────────────────────────
-
-const ProfileTabContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-`;
-
-const InfoSection = styled.div``;
-
-const InfoSectionTitle = styled.h3`
-    margin: 0 0 12px 0;
+const AccountChip = styled.span<{ $tone: 'active' | 'blocked' | 'none' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: ${st.radiusFull};
     font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
+    font-weight: 700;
+    ${({ $tone }) => {
+        if ($tone === 'active') return `background: ${st.accentGreenDim}; color: #059669;`;
+        if ($tone === 'blocked') return `background: ${st.accentRedDim}; color: #DC2626;`;
+        return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
+    }}
 
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-
-    @media (min-width: 768px) {
-        grid-template-columns: repeat(3, 1fr);
+    &::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
     }
 `;
 
-const InfoItem = styled.div`
+const EditBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.textSecondary};
+    cursor: pointer;
+    box-shadow: ${st.shadowXs};
+    transition: all ${st.transition};
+
+    &:hover {
+        border-color: ${st.borderHover};
+        color: ${st.text};
+        box-shadow: ${st.shadowSm};
+    }
+
+    svg { width: 13px; height: 13px; }
+`;
+
+// ─── Content grid ────────────────────────────────────────────────────────────
+
+const ContentGrid = styled.div`
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    align-items: start;
+
+    @media (max-width: 960px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+// ─── Sidebar (informacje) ────────────────────────────────────────────────────
+
+const SideCard = styled.aside`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowXs};
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 20px;
+
+    @media (max-width: 960px) {
+        order: 2;
+    }
+`;
+
+const SideSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const SideSectionTitle = styled.h3`
+    margin: 0;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+`;
+
+const SideDivider = styled.div`
+    height: 1px;
+    background: ${st.bgCardAlt};
+`;
+
+const InfoRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+`;
+
+const InfoIcon = styled.span`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+    color: ${st.textSecondary};
+    flex-shrink: 0;
+
+    svg { width: 14px; height: 14px; }
+`;
+
+const InfoText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
 `;
 
 const InfoLabel = styled.span`
@@ -213,18 +274,31 @@ const InfoLabel = styled.span`
     color: ${st.textMuted};
 `;
 
-const InfoValue = styled.span`
+const InfoValue = styled.span<{ $muted?: boolean }>`
     font-size: ${st.fontSm};
-    color: ${st.text};
     font-weight: 500;
+    color: ${({ $muted }) => ($muted ? st.textMuted : st.text)};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const MainCol = styled.div`
+    min-width: 0;
+
+    @media (max-width: 960px) {
+        order: 1;
+    }
 `;
 
 // ─── Loading / Error ─────────────────────────────────────────────────────────
 
-const LoadingOverlay = styled.div`
+const CenterBox = styled.div`
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 12px;
     min-height: 400px;
 `;
 
@@ -238,155 +312,191 @@ const Spinner = styled.div`
     @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-const ErrorContainer = styled.div`
-    padding: 48px 24px;
-    text-align: center;
+const ErrorText = styled.p`
+    margin: 0;
     color: ${st.accentRed};
     font-size: ${st.fontSm};
 `;
 
-// ─── Tabs definition ──────────────────────────────────────────────────────────
-// Kolejne zakładki (dokumenty, czas pracy, przypomnienia o umowach/certyfikatach)
-// dojdą wraz z kolejnymi iteracjami modułu kadrowego.
+const RetryBtn = styled.button`
+    padding: 8px 20px;
+    background: none;
+    border: 1px solid ${st.accentBlue};
+    color: ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
 
-type TabId = 'profile' | 'leaves';
+    &:hover { background: ${st.accentBlueDim}; }
+`;
 
-const TABS: { id: TabId; label: string }[] = [
-    { id: 'profile', label: 'Profil' },
-    { id: 'leaves', label: 'Urlopy' },
-];
+// ─── Ikony ───────────────────────────────────────────────────────────────────
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const ArrowLeftIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="15 18 9 12 15 6" />
+    </svg>
+);
+
+const MailIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+);
+
+const PhoneIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+);
+
+const KeyIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3" />
+    </svg>
+);
+
+const ClockIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+    </svg>
+);
+
+const PencilIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>
+);
+
+// ─── Komponent ───────────────────────────────────────────────────────────────
 
 export const EmployeeDetailView = () => {
     const { employeeId } = useParams<{ employeeId: string }>();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<TabId>('leaves');
     const [isEditOpen, setIsEditOpen] = useState(false);
 
     const { employee, isLoading, isError, refetch } = useEmployee(employeeId ?? '');
 
     if (isLoading) {
         return (
-            <ViewContainer>
-                <LoadingOverlay><Spinner /></LoadingOverlay>
-            </ViewContainer>
+            <Page>
+                <CenterBox><Spinner /></CenterBox>
+            </Page>
         );
     }
 
-    if (isError || !employee) {
+    if (isError || !employee || !employeeId) {
         return (
-            <ViewContainer>
-                <ErrorContainer>
-                    <p>Nie udało się załadować danych pracownika.</p>
-                    <button onClick={() => refetch()} style={{ marginTop: 12, padding: '8px 16px', cursor: 'pointer' }}>
-                        Spróbuj ponownie
-                    </button>
-                </ErrorContainer>
-            </ViewContainer>
+            <Page>
+                <CenterBox>
+                    <ErrorText>Nie udało się załadować danych pracownika.</ErrorText>
+                    <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
+                </CenterBox>
+            </Page>
         );
     }
 
     const initials = `${employee.firstName[0] ?? ''}${employee.lastName[0] ?? ''}`.toUpperCase();
-
-    const renderTabContent = () => {
-        if (!employeeId) return null;
-        switch (activeTab) {
-            case 'profile':
-                return (
-                    <ProfileTabContent>
-                        <InfoSection>
-                            <InfoSectionTitle>Dane kontaktowe</InfoSectionTitle>
-                            <InfoGrid>
-                                <InfoItem>
-                                    <InfoLabel>Email</InfoLabel>
-                                    <InfoValue>{employee.email ?? '—'}</InfoValue>
-                                </InfoItem>
-                                <InfoItem>
-                                    <InfoLabel>Telefon</InfoLabel>
-                                    <InfoValue>{employee.phone ?? '—'}</InfoValue>
-                                </InfoItem>
-                            </InfoGrid>
-                        </InfoSection>
-
-                        <InfoSection>
-                            <InfoSectionTitle>Konto użytkownika</InfoSectionTitle>
-                            <InfoGrid>
-                                <InfoItem>
-                                    <InfoLabel>Status konta</InfoLabel>
-                                    <InfoValue>
-                                        {employee.account
-                                            ? (employee.account.isActive ? 'Aktywne' : 'Zablokowane')
-                                            : 'Brak konta'}
-                                    </InfoValue>
-                                </InfoItem>
-                            </InfoGrid>
-                        </InfoSection>
-
-                        <InfoSection>
-                            <InfoSectionTitle>W systemie</InfoSectionTitle>
-                            <InfoGrid>
-                                <InfoItem>
-                                    <InfoLabel>Dodany</InfoLabel>
-                                    <InfoValue>{new Date(employee.createdAt).toLocaleDateString('pl-PL')}</InfoValue>
-                                </InfoItem>
-                                <InfoItem>
-                                    <InfoLabel>Ostatnia aktualizacja</InfoLabel>
-                                    <InfoValue>{new Date(employee.updatedAt).toLocaleDateString('pl-PL')}</InfoValue>
-                                </InfoItem>
-                            </InfoGrid>
-                        </InfoSection>
-                    </ProfileTabContent>
-                );
-            case 'leaves':
-                return <LeavesTab employeeId={employeeId} />;
-        }
-    };
+    const accountTone = employee.account
+        ? (employee.account.isActive ? 'active' : 'blocked')
+        : 'none';
+    const accountLabel = employee.account
+        ? (employee.account.isActive ? 'Konto aktywne' : 'Konto zablokowane')
+        : 'Brak konta';
 
     return (
-        <ViewContainer>
+        <Page>
             <BackLink onClick={() => navigate('/team')}>
-                ← Powrót do listy pracowników
+                <ArrowLeftIcon /> Pracownicy
             </BackLink>
 
-            <ProfileCard>
-                <ProfileMain>
-                    <Avatar>{initials}</Avatar>
-                    <ProfileInfo>
-                        <FullName>{employee.fullName}</FullName>
-                        <MetaRow>
-                            <AccountBadge $active={employee.account?.isActive}>
-                                {employee.account
-                                    ? (employee.account.isActive ? 'Konto aktywne' : 'Konto zablokowane')
-                                    : 'Brak konta'}
-                            </AccountBadge>
-                            {employee.email && <MetaItem>{employee.email}</MetaItem>}
-                            {employee.phone && <MetaItem>{employee.phone}</MetaItem>}
-                        </MetaRow>
-                    </ProfileInfo>
-                </ProfileMain>
+            <Hero>
+                <HeroAccent />
+                <HeroBody>
+                    <HeroMain>
+                        <Avatar>{initials}</Avatar>
+                        <HeroInfo>
+                            <FullName>{employee.fullName}</FullName>
+                            <ChipRow>
+                                <AccountChip $tone={accountTone}>{accountLabel}</AccountChip>
+                                {employee.email && (
+                                    <Chip><MailIcon />{employee.email}</Chip>
+                                )}
+                                {employee.phone && (
+                                    <Chip><PhoneIcon />{employee.phone}</Chip>
+                                )}
+                            </ChipRow>
+                        </HeroInfo>
+                    </HeroMain>
 
-                <ProfileActions>
-                    <EditBtn onClick={() => setIsEditOpen(true)}>Edytuj</EditBtn>
-                </ProfileActions>
-            </ProfileCard>
+                    <EditBtn onClick={() => setIsEditOpen(true)}>
+                        <PencilIcon /> Edytuj dane
+                    </EditBtn>
+                </HeroBody>
+            </Hero>
 
-            <TabsWrapper>
-                <TabBar>
-                    {TABS.map(tab => (
-                        <Tab
-                            key={tab.id}
-                            $active={activeTab === tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                        >
-                            {tab.label}
-                        </Tab>
-                    ))}
-                </TabBar>
-                <TabContent>
-                    {renderTabContent()}
-                </TabContent>
-            </TabsWrapper>
+            <ContentGrid>
+                <SideCard>
+                    <SideSection>
+                        <SideSectionTitle>Kontakt</SideSectionTitle>
+                        <InfoRow>
+                            <InfoIcon><MailIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>Email</InfoLabel>
+                                <InfoValue $muted={!employee.email}>{employee.email ?? 'Nie podano'}</InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                        <InfoRow>
+                            <InfoIcon><PhoneIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>Telefon</InfoLabel>
+                                <InfoValue $muted={!employee.phone}>{employee.phone ?? 'Nie podano'}</InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                    </SideSection>
+
+                    <SideDivider />
+
+                    <SideSection>
+                        <SideSectionTitle>Dostęp do systemu</SideSectionTitle>
+                        <InfoRow>
+                            <InfoIcon><KeyIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>Konto użytkownika</InfoLabel>
+                                <InfoValue $muted={!employee.account}>
+                                    {employee.account
+                                        ? (employee.account.isActive ? 'Aktywne' : 'Zablokowane')
+                                        : 'Nie utworzono'}
+                                </InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                    </SideSection>
+
+                    <SideDivider />
+
+                    <SideSection>
+                        <SideSectionTitle>W systemie</SideSectionTitle>
+                        <InfoRow>
+                            <InfoIcon><ClockIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>Dodany</InfoLabel>
+                                <InfoValue>
+                                    {new Date(employee.createdAt).toLocaleDateString('pl-PL', {
+                                        day: 'numeric', month: 'long', year: 'numeric',
+                                    })}
+                                </InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                    </SideSection>
+                </SideCard>
+
+                <MainCol>
+                    <LeavesTab employeeId={employeeId} />
+                </MainCol>
+            </ContentGrid>
 
             {isEditOpen && (
                 <AddEmployeeModal
@@ -396,6 +506,6 @@ export const EmployeeDetailView = () => {
                     employee={employee}
                 />
             )}
-        </ViewContainer>
+        </Page>
     );
 };

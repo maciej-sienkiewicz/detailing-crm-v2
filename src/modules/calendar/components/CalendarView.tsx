@@ -165,16 +165,23 @@ const CalendarContainer = styled.div`
 
     .fc-leave-badge {
         position: absolute;
-        top: 4px;
-        right: 5px;
+        top: 3px;
+        right: 3px;
         display: inline-flex;
         align-items: center;
         gap: 2px;
+        padding: 2px 4px;
+        border-radius: 6px;
         color: #ef4444;
         z-index: 5;
         cursor: default;
         line-height: 1;
         pointer-events: auto;
+        transition: background 0.15s ease;
+    }
+
+    .fc-leave-badge:hover {
+        background: rgba(239, 68, 68, 0.1);
     }
 
     .fc-leave-badge svg {
@@ -859,6 +866,51 @@ const NewEventBtn = styled.button`
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
+/* ===================== LEAVE TOOLTIP ===================== */
+
+const LeaveTooltipBox = styled.div`
+    position: fixed;
+    transform: translateX(-50%);
+    z-index: 10000;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03), 0 12px 28px rgba(0, 0, 0, 0.12);
+    padding: 10px 12px;
+    min-width: 180px;
+    max-width: 260px;
+`;
+
+const LeaveTooltipTitle = styled.div`
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 7px;
+    white-space: nowrap;
+`;
+
+const LeaveTooltipRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f172a;
+    padding: 3px 0;
+
+    &::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ef4444;
+        flex-shrink: 0;
+    }
+`;
+
 interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
@@ -1061,51 +1113,66 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         : null;
     const { leaveDayMap } = useLeaveCalendar(leaveRangeFrom, leaveRangeTo);
 
-    // Wstrzykuje/aktualizuje ikonkę "ludzika" w prawym-górnym rogu każdej komórki
-    // dnia. Uruchamia się przy zmianie zakresu widoku (nowe DOM cells FC) oraz
-    // przy zmianie mapy urlopów (dodanie/usunięcie urlopu przez inną zakładkę).
-    useEffect(() => {
-        if (currentView !== 'dayGridMonth') return;
-        const root = calendarRef.current?.getApi().el;
-        if (!root) return;
+    // ── Ludzik na dniach z urlopami ──────────────────────────────────────────
+    // Komórki rejestrują się w dayCellDidMount/dayCellWillUnmount (przeżywa to
+    // każdy re-render FullCalendara — wcześniejsze jednorazowe wstrzykiwanie do
+    // DOM znikało, gdy FC przebudowywał siatkę po doładowaniu eventów).
+    // Badge pokazuje się na KAŻDYM dniu objętym urlopem; hover otwiera tooltip
+    // z listą osób.
+    const leaveDayMapRef = useRef(leaveDayMap);
+    const leaveCellsRef = useRef<Map<string, HTMLElement>>(new Map());
+    const [leaveTooltip, setLeaveTooltip] = useState<{
+        x: number;
+        y: number;
+        date: string;
+        employees: { id: string; fullName: string }[];
+    } | null>(null);
 
-        const applyBadges = () => {
-            const cells = root.querySelectorAll<HTMLElement>('.fc-daygrid-day[data-date]');
-            cells.forEach(cell => {
-                const iso = cell.getAttribute('data-date');
-                const frame = cell.querySelector<HTMLElement>('.fc-daygrid-day-frame');
-                if (!frame) return;
+    const applyLeaveBadge = useCallback((iso: string, frame: HTMLElement) => {
+        const info = leaveDayMapRef.current.get(iso);
+        const existing = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
 
-                const existing = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
-                const info = iso ? leaveDayMap.get(iso) : undefined;
+        if (!info || info.count <= 0) {
+            existing?.remove();
+            return;
+        }
 
-                if (!info || info.count <= 0) {
-                    existing?.remove();
-                    return;
-                }
-
-                const title = `Na urlopie (${info.count}): ${info.employees.map(e => e.fullName).join(', ')}`;
-                const badge = existing ?? document.createElement('span');
-                if (!existing) {
-                    badge.className = 'fc-leave-badge';
-                    badge.innerHTML =
-                        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
-                        '<circle cx="12" cy="7" r="4"/>' +
-                        '<path d="M12 13c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5z"/>' +
-                        '</svg><span class="fc-leave-count"></span>';
-                    frame.appendChild(badge);
-                }
-                badge.title = title;
-                badge.setAttribute('aria-label', title);
-                const countEl = badge.querySelector<HTMLElement>('.fc-leave-count');
-                if (countEl) countEl.textContent = String(info.count);
+        let badge = existing;
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'fc-leave-badge';
+            badge.innerHTML =
+                '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+                '<circle cx="12" cy="7" r="4"/>' +
+                '<path d="M12 13c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5z"/>' +
+                '</svg><span class="fc-leave-count"></span>';
+            badge.addEventListener('mouseenter', () => {
+                const current = leaveDayMapRef.current.get(iso);
+                if (!current) return;
+                const rect = badge!.getBoundingClientRect();
+                setLeaveTooltip({
+                    x: rect.left + rect.width / 2,
+                    y: rect.bottom + 6,
+                    date: iso,
+                    employees: current.employees,
+                });
             });
-        };
+            badge.addEventListener('mouseleave', () => {
+                setLeaveTooltip(prev => (prev?.date === iso ? null : prev));
+            });
+            frame.appendChild(badge);
+        }
+        badge.setAttribute('aria-label', `Na urlopie: ${info.count}`);
+        const countEl = badge.querySelector<HTMLElement>('.fc-leave-count');
+        if (countEl) countEl.textContent = String(info.count);
+    }, []);
 
-        // Zaczekaj jedną klatkę, aż FC ustabilizuje DOM po datesSet.
-        const rafId = requestAnimationFrame(applyBadges);
-        return () => cancelAnimationFrame(rafId);
-    }, [leaveDayMap, dateRange, currentView]);
+    // Po zmianie danych urlopowych odśwież badge na wszystkich zamontowanych komórkach
+    useEffect(() => {
+        leaveDayMapRef.current = leaveDayMap;
+        leaveCellsRef.current.forEach((frame, iso) => applyLeaveBadge(iso, frame));
+        setLeaveTooltip(null);
+    }, [leaveDayMap, applyLeaveBadge]);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -1739,6 +1806,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Hide event time from calendar tiles
                 displayEventTime={false}
 
+                // Leave indicator (ludzik) — register month-grid day cells
+                dayCellDidMount={(arg) => {
+                    if (arg.view.type !== 'dayGridMonth') return;
+                    const d = arg.date;
+                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    const frame = arg.el.querySelector<HTMLElement>('.fc-daygrid-day-frame') ?? arg.el;
+                    leaveCellsRef.current.set(iso, frame);
+                    applyLeaveBadge(iso, frame);
+                }}
+                dayCellWillUnmount={(arg) => {
+                    if (arg.view.type !== 'dayGridMonth') return;
+                    const d = arg.date;
+                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    leaveCellsRef.current.delete(iso);
+                }}
+
                 // Custom event content
                 eventClassNames={(arg) => {
                     if (highlightedEventId === arg.event.id) return ['fc-event-search-highlight'];
@@ -1852,6 +1935,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 onClose={handleModalClose}
                 onSave={handleQuickSave}
             />
+
+            {leaveTooltip && (
+                <LeaveTooltipBox style={{ left: leaveTooltip.x, top: leaveTooltip.y }}>
+                    <LeaveTooltipTitle>
+                        Na urlopie · {new Date(leaveTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                            day: 'numeric', month: 'long',
+                        })}
+                    </LeaveTooltipTitle>
+                    {leaveTooltip.employees.map(e => (
+                        <LeaveTooltipRow key={e.id}>{e.fullName}</LeaveTooltipRow>
+                    ))}
+                </LeaveTooltipBox>
+            )}
 
             {popoverOpen && popoverEvent && (
                 <EventSummaryPopover
