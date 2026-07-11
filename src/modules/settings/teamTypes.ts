@@ -13,7 +13,7 @@ export interface TeamEmployeeListItem {
     fullName: string;
     email: string | null;
     phone: string | null;
-    linkedUserId: string | null;
+    hasAccount: boolean;
 }
 
 export interface TeamPagination {
@@ -33,7 +33,6 @@ export interface TeamEmployeeDetail {
     firstName: string;
     lastName: string;
     fullName: string;
-    linkedUserId: string | null;
     account: TeamEmployeeAccount | null;
     phone: string | null;
     email: string | null;

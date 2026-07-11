@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/common/components/Toast';
 import {
     Container, Toolbar, SearchWrap, SearchIconWrap, SearchInput,
     AddButton, StatsRow, StatText, Card, ColLabel, Badge, Dot, EmptyWrap,
     EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
 } from './rbacShared.styles';
-import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeDetail, useCreateAccount } from '../hooks/useTeam';
+import { useEmployees, useCreateEmployee, useCreateAccount } from '../hooks/useTeam';
 import { useRoles } from '../hooks/useRoles';
 import { rolesApi } from '../api/rolesApi';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
-import { EmployeeDetailModal } from './team/EmployeeDetailModal';
-import type { UpdateEmployeeRequest, CreateEmployeeFormOutput } from '../teamTypes';
+import type { CreateEmployeeFormOutput } from '../teamTypes';
 
 const PAGE_SIZE = 20;
 
@@ -26,15 +26,14 @@ function buildPageNumbers(current: number, total: number): (number | '…')[] {
 }
 
 export function TeamSection() {
+    const navigate = useNavigate();
     const { showSuccess } = useToast();
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(1);
 
-    const [formMode, setFormMode] = useState<'add' | 'edit' | null>(null);
-    const [detailId, setDetailId] = useState<string | null>(null);
-    const [editId, setEditId] = useState<string | null>(null);
+    const [isAddOpen, setIsAddOpen] = useState(false);
 
     useEffect(() => {
         const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
@@ -45,17 +44,14 @@ export function TeamSection() {
     const { items, pagination, isLoading } = useEmployees(filters);
 
     const createEmployee = useCreateEmployee();
-    const updateEmployee = useUpdateEmployee();
     const createAccount = useCreateAccount();
     const { roles } = useRoles();
-    const { employee: editTarget } = useEmployeeDetail(formMode === 'edit' ? editId : null);
 
     const totalItems = pagination?.totalItems ?? 0;
     const totalPages = pagination?.totalPages ?? 1;
 
-    const openAdd = () => { setEditId(null); setFormMode('add'); };
-    const openEditFromDetail = (id: string) => { setDetailId(null); setEditId(id); setFormMode('edit'); };
-    const closeForm = () => { setFormMode(null); setEditId(null); };
+    const openAdd = () => setIsAddOpen(true);
+    const closeForm = () => setIsAddOpen(false);
 
     const handleCreate = (data: CreateEmployeeFormOutput) => {
         createEmployee.mutate(
@@ -83,16 +79,6 @@ export function TeamSection() {
                 },
             },
         );
-    };
-
-    const handleUpdate = (payload: UpdateEmployeeRequest) => {
-        if (!editId) return;
-        updateEmployee.mutate({ employeeId: editId, payload }, {
-            onSuccess: () => {
-                showSuccess('Dane zaktualizowane');
-                closeForm();
-            },
-        });
     };
 
     const pageNumbers = buildPageNumbers(page, totalPages);
@@ -158,9 +144,9 @@ export function TeamSection() {
                     </EmptyWrap>
                 ) : (
                     items.map(emp => {
-                        const hasAccount = emp.linkedUserId !== null;
+                        const hasAccount = emp.hasAccount;
                         return (
-                            <Row key={emp.id} onClick={() => setDetailId(emp.id)}>
+                            <Row key={emp.id} onClick={() => navigate(`/team/${emp.id}`)}>
                                 <NameCell>
                                     <Avatar>{(emp.firstName[0] ?? '') + (emp.lastName[0] ?? '')}</Avatar>
                                     <strong>{emp.fullName}</strong>
@@ -202,16 +188,7 @@ export function TeamSection() {
                 )}
             </Card>
 
-            {detailId && (
-                <EmployeeDetailModal
-                    employeeId={detailId}
-                    onClose={() => setDetailId(null)}
-                    onEdit={() => openEditFromDetail(detailId)}
-                    onDeleted={() => setDetailId(null)}
-                />
-            )}
-
-            {formMode === 'add' && (
+            {isAddOpen && (
                 <EmployeeFormModal
                     mode="add"
                     roles={roles}
@@ -219,17 +196,6 @@ export function TeamSection() {
                     onClose={closeForm}
                     onSubmitCreate={handleCreate}
                     onSubmitUpdate={() => {}}
-                />
-            )}
-
-            {formMode === 'edit' && editTarget && (
-                <EmployeeFormModal
-                    mode="edit"
-                    employee={editTarget}
-                    isSaving={updateEmployee.isPending}
-                    onClose={closeForm}
-                    onSubmitCreate={() => {}}
-                    onSubmitUpdate={handleUpdate}
                 />
             )}
         </Container>

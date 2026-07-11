@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import { useEmployee } from '../hooks/useEmployees';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
+import { AccountManagementCard } from '../components/AccountManagementCard';
 import { LeavesTab } from '../components/LeavesTab';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
@@ -27,168 +29,27 @@ const Page = styled.main`
     }
 `;
 
-const BackLink = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    align-self: flex-start;
+const SubtitleLink = styled.button`
     background: none;
     border: none;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    cursor: pointer;
     padding: 0;
-    transition: color ${st.transition};
-
-    &:hover { color: ${st.accentBlue}; }
-
-    svg { width: 14px; height: 14px; }
-`;
-
-// ─── Hero ────────────────────────────────────────────────────────────────────
-
-const Hero = styled.section`
-    position: relative;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusLg};
-    box-shadow: ${st.shadowSm};
-    overflow: hidden;
-`;
-
-const HeroAccent = styled.div`
-    height: 64px;
-    background: ${st.gradientBlue};
-    position: relative;
-
-    &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background:
-            radial-gradient(circle at 85% -20%, rgba(255, 255, 255, 0.25) 0%, transparent 45%),
-            radial-gradient(circle at 15% 120%, rgba(255, 255, 255, 0.12) 0%, transparent 40%);
-    }
-`;
-
-const HeroBody = styled.div`
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    padding: 0 24px 20px;
-    margin-top: -32px;
-`;
-
-const HeroMain = styled.div`
-    display: flex;
-    align-items: flex-end;
-    gap: 16px;
-    min-width: 0;
-`;
-
-const Avatar = styled.div`
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
-    background: ${st.gradientBlue};
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
-    border: 3px solid ${st.bgCard};
-    box-shadow: ${st.shadowMd};
-`;
-
-const HeroInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-bottom: 2px;
-    min-width: 0;
-`;
-
-const FullName = styled.h1`
-    margin: 0;
-    font-size: ${st.fontXl};
-    font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.3px;
-    line-height: 1.15;
-`;
-
-const ChipRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
-
-const Chip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 11px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCardAlt};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-
-    svg { width: 12px; height: 12px; color: ${st.textMuted}; }
-`;
-
-const AccountChip = styled.span<{ $tone: 'active' | 'blocked' | 'none' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 11px;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    ${({ $tone }) => {
-        if ($tone === 'active') return `background: ${st.accentGreenDim}; color: #059669;`;
-        if ($tone === 'blocked') return `background: ${st.accentRedDim}; color: #DC2626;`;
-        return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
-    }}
-
-    &::before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: currentColor;
-    }
-`;
-
-const EditBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 18px;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.textSecondary};
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
     cursor: pointer;
-    box-shadow: ${st.shadowXs};
-    transition: all ${st.transition};
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    transition: color 180ms ease;
 
-    &:hover {
-        border-color: ${st.borderHover};
-        color: ${st.text};
-        box-shadow: ${st.shadowSm};
-    }
+    &:hover { color: #94a3b8; }
 
     svg { width: 13px; height: 13px; }
+`;
+
+const SubtitleSep = styled.span`
+    color: #334155;
 `;
 
 // ─── Content grid ────────────────────────────────────────────────────────────
@@ -352,12 +213,6 @@ const PhoneIcon = () => (
     </svg>
 );
 
-const KeyIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3" />
-    </svg>
-);
-
 const ClockIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -399,44 +254,35 @@ export const EmployeeDetailView = () => {
         );
     }
 
-    const initials = `${employee.firstName[0] ?? ''}${employee.lastName[0] ?? ''}`.toUpperCase();
-    const accountTone = employee.account
-        ? (employee.account.isActive ? 'active' : 'blocked')
-        : 'none';
-    const accountLabel = employee.account
-        ? (employee.account.isActive ? 'Konto aktywne' : 'Konto zablokowane')
-        : 'Brak konta';
-
     return (
         <Page>
-            <BackLink onClick={() => navigate('/team')}>
-                <ArrowLeftIcon /> Pracownicy
-            </BackLink>
-
-            <Hero>
-                <HeroAccent />
-                <HeroBody>
-                    <HeroMain>
-                        <Avatar>{initials}</Avatar>
-                        <HeroInfo>
-                            <FullName>{employee.fullName}</FullName>
-                            <ChipRow>
-                                <AccountChip $tone={accountTone}>{accountLabel}</AccountChip>
-                                {employee.email && (
-                                    <Chip><MailIcon />{employee.email}</Chip>
-                                )}
-                                {employee.phone && (
-                                    <Chip><PhoneIcon />{employee.phone}</Chip>
-                                )}
-                            </ChipRow>
-                        </HeroInfo>
-                    </HeroMain>
-
-                    <EditBtn onClick={() => setIsEditOpen(true)}>
+            <PageHeader
+                title={employee.fullName}
+                subtitle={
+                    <>
+                        <SubtitleLink onClick={() => navigate('/team')}>
+                            <ArrowLeftIcon /> Pracownicy
+                        </SubtitleLink>
+                        {employee.email && (
+                            <>
+                                <SubtitleSep>·</SubtitleSep>
+                                <span>{employee.email}</span>
+                            </>
+                        )}
+                        {employee.phone && (
+                            <>
+                                <SubtitleSep>·</SubtitleSep>
+                                <span>{employee.phone}</span>
+                            </>
+                        )}
+                    </>
+                }
+                actions={
+                    <PageHeaderGhostButton onClick={() => setIsEditOpen(true)}>
                         <PencilIcon /> Edytuj dane
-                    </EditBtn>
-                </HeroBody>
-            </Hero>
+                    </PageHeaderGhostButton>
+                }
+            />
 
             <ContentGrid>
                 <SideCard>
@@ -456,33 +302,10 @@ export const EmployeeDetailView = () => {
                                 <InfoValue $muted={!employee.phone}>{employee.phone ?? 'Nie podano'}</InfoValue>
                             </InfoText>
                         </InfoRow>
-                    </SideSection>
-
-                    <SideDivider />
-
-                    <SideSection>
-                        <SideSectionTitle>Dostęp do systemu</SideSectionTitle>
-                        <InfoRow>
-                            <InfoIcon><KeyIcon /></InfoIcon>
-                            <InfoText>
-                                <InfoLabel>Konto użytkownika</InfoLabel>
-                                <InfoValue $muted={!employee.account}>
-                                    {employee.account
-                                        ? (employee.account.isActive ? 'Aktywne' : 'Zablokowane')
-                                        : 'Nie utworzono'}
-                                </InfoValue>
-                            </InfoText>
-                        </InfoRow>
-                    </SideSection>
-
-                    <SideDivider />
-
-                    <SideSection>
-                        <SideSectionTitle>W systemie</SideSectionTitle>
                         <InfoRow>
                             <InfoIcon><ClockIcon /></InfoIcon>
                             <InfoText>
-                                <InfoLabel>Dodany</InfoLabel>
+                                <InfoLabel>W systemie od</InfoLabel>
                                 <InfoValue>
                                     {new Date(employee.createdAt).toLocaleDateString('pl-PL', {
                                         day: 'numeric', month: 'long', year: 'numeric',
@@ -491,6 +314,14 @@ export const EmployeeDetailView = () => {
                             </InfoText>
                         </InfoRow>
                     </SideSection>
+
+                    <SideDivider />
+
+                    <AccountManagementCard
+                        employee={employee}
+                        onChanged={() => refetch()}
+                        onEmployeeDeleted={() => navigate('/team')}
+                    />
                 </SideCard>
 
                 <MainCol>
