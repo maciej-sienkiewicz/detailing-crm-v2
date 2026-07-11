@@ -216,6 +216,32 @@ const ServicePortalMenu = styled.div`
     flex-direction: column;
 `;
 
+const ServiceMenuDoneBar = styled.div`
+    border-top: 1px solid #f1f5f9;
+    padding: 8px 10px;
+    flex-shrink: 0;
+`;
+
+const ServiceMenuDoneBtn = styled.button`
+    width: 100%;
+    padding: 8px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover {
+        border-color: #0ea5e9;
+        color: #0ea5e9;
+        background: rgba(14, 165, 233, 0.06);
+    }
+`;
+
 const ServiceMenuSearch = styled.div`
     position: sticky;
     top: 0;
@@ -243,7 +269,8 @@ const ServiceMenuSearchInput = styled.input`
 
 const ServiceMenuList = styled.div`
     overflow-y: auto;
-    max-height: 240px;
+    flex: 1;
+    min-height: 0;
     padding: 4px 0;
 `;
 
@@ -326,7 +353,7 @@ const ApplyBtn = styled.button`
 
 // ─── ServiceMultiSelect ───────────────────────────────────────────────────────
 
-type MenuPos = { top?: number; bottom?: number; left: number; width: number };
+type MenuPos = { top?: number; bottom?: number; left: number; width: number; maxHeight: number };
 
 interface ServiceMultiSelectProps {
     selectedIds: string[];
@@ -355,15 +382,20 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
         [services, selectedIds]
     );
 
+    const MENU_MIN_HEIGHT = 180;
+    const MENU_MAX_HEIGHT = 280;
+    const GAP = 6;
+
     const updatePos = () => {
         const el = triggerRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom - 6;
-        if (spaceBelow < 160) {
-            setMenuPos({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
+        const spaceBelow = window.innerHeight - rect.bottom - GAP;
+        const spaceAbove = rect.top - GAP;
+        if (spaceBelow >= MENU_MIN_HEIGHT || spaceBelow >= spaceAbove) {
+            setMenuPos({ top: rect.bottom + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceBelow, MENU_MAX_HEIGHT) });
         } else {
-            setMenuPos({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+            setMenuPos({ bottom: window.innerHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
         }
     };
 
@@ -434,7 +466,7 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
                     ref={menuRef}
                     role="listbox"
                     aria-multiselectable="true"
-                    style={{ top: menuPos.top, bottom: menuPos.bottom, left: menuPos.left, width: menuPos.width }}
+                    style={{ top: menuPos.top, bottom: menuPos.bottom, left: menuPos.left, width: menuPos.width, maxHeight: menuPos.maxHeight }}
                 >
                     <ServiceMenuSearch>
                         <ServiceMenuSearchInput
@@ -460,6 +492,11 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
                             ))
                         }
                     </ServiceMenuList>
+                    <ServiceMenuDoneBar>
+                        <ServiceMenuDoneBtn type="button" onClick={() => setOpen(false)}>
+                            Gotowe
+                        </ServiceMenuDoneBtn>
+                    </ServiceMenuDoneBar>
                 </ServicePortalMenu>,
                 document.body
             )}
@@ -612,8 +649,8 @@ export const OperationFilterPanel = ({
                     <FilterSection>
                         <SectionLabel>Marka i model pojazdu</SectionLabel>
                         <VehicleRow>
-                            <BrandSelect value={brand} onChange={handleBrandChange} placeholder="Wybierz markę" />
-                            <ModelSelect brand={brand} value={model} onChange={setModel} placeholder="Wybierz model" />
+                            <BrandSelect value={brand} onChange={handleBrandChange} placeholder="Wybierz markę" onDone={() => {}} />
+                            <ModelSelect brand={brand} value={model} onChange={setModel} placeholder="Wybierz model" onDone={() => {}} />
                         </VehicleRow>
                     </FilterSection>
                 </DrawerBody>

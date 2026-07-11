@@ -80,10 +80,42 @@ const PortalMenu = styled.div`
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.lg};
   box-shadow: ${props => props.theme.shadows.lg};
-  padding: 0 0 ${props => props.theme.spacing.xs} 0;
-  z-index: 2001; // above modal overlay (1000)
-  max-height: 320px;
-  overflow: auto;
+  z-index: 2001;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const PortalMenuList = styled.div`
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0 4px;
+`;
+
+const PortalMenuDoneBar = styled.div`
+  border-top: 1px solid ${props => props.theme.colors.border};
+  padding: 8px 10px;
+  flex-shrink: 0;
+`;
+
+const PortalMenuDoneBtn = styled.button`
+  width: 100%;
+  padding: 8px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 150ms ease;
+
+  &:hover {
+    border-color: #0ea5e9;
+    color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.06);
+  }
 `;
 
 const MenuItem = styled.button<{ $selected?: boolean }>`
@@ -142,7 +174,7 @@ const EmptyState = styled.div`
   font-size: ${props => props.theme.fontSizes.sm};
 `;
 
-type MenuStyle = { top?: number; bottom?: number; left: number; width: number };
+type MenuStyle = { top?: number; bottom?: number; left: number; width: number; maxHeight: number };
 
 interface BrandSelectProps {
   value?: string;
@@ -151,9 +183,10 @@ interface BrandSelectProps {
   onBlur?: () => void;
   autoOpen?: boolean;
   compact?: boolean;
+  onDone?: () => void;
 }
 
-export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false }: BrandSelectProps) => {
+export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false, onDone }: BrandSelectProps) => {
   const { data, isLoading } = useVehicleMetadata();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -172,15 +205,20 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
   }, [brands, query]);
   const selectedLabel = value || '';
 
+  const MENU_MIN_HEIGHT = 200;
+  const MENU_MAX_HEIGHT = 320;
+  const GAP = 8;
+
   const updatePosition = () => {
     const el = triggerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom - 6;
-    if (spaceBelow < 150) {
-      setMenuStyle({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
+    const spaceBelow = window.innerHeight - rect.bottom - GAP;
+    const spaceAbove = rect.top - GAP;
+    if (spaceBelow >= MENU_MIN_HEIGHT || spaceBelow >= spaceAbove) {
+      setMenuStyle({ top: rect.bottom + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceBelow, MENU_MAX_HEIGHT) });
     } else {
-      setMenuStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+      setMenuStyle({ bottom: window.innerHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
     }
   };
 
@@ -252,7 +290,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
         <Caret />
       </Trigger>
       {open && menuStyle && createPortal(
-        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width }}>
+        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width, maxHeight: menuStyle.maxHeight }}>
           <SearchContainer>
             <SearchInput
               ref={searchRef}
@@ -262,14 +300,23 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
               onChange={e => setQuery(e.target.value)}
             />
           </SearchContainer>
-          {filteredBrands.length === 0 && (
-            <EmptyState>Brak wyników</EmptyState>
+          <PortalMenuList>
+            {filteredBrands.length === 0 && (
+              <EmptyState>Brak wyników</EmptyState>
+            )}
+            {filteredBrands.map(b => (
+              <MenuItem key={b} onClick={() => { onChange(b); setOpen(false); onBlur?.(); }} $selected={b === value}>
+                {b}
+              </MenuItem>
+            ))}
+          </PortalMenuList>
+          {onDone && (
+            <PortalMenuDoneBar>
+              <PortalMenuDoneBtn type="button" onClick={() => { setOpen(false); onDone(); }}>
+                Gotowe
+              </PortalMenuDoneBtn>
+            </PortalMenuDoneBar>
           )}
-          {filteredBrands.map(b => (
-            <MenuItem key={b} onClick={() => { onChange(b); setOpen(false); onBlur?.(); }} $selected={b === value}>
-              {b}
-            </MenuItem>
-          ))}
         </PortalMenu>,
         document.body
       )}
@@ -285,9 +332,10 @@ interface ModelSelectProps {
   onBlur?: () => void;
   autoOpen?: boolean;
   compact?: boolean;
+  onDone?: () => void;
 }
 
-export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false }: ModelSelectProps) => {
+export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false, onDone }: ModelSelectProps) => {
   const { data, isLoading } = useVehicleMetadata();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -313,15 +361,20 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
   const disabled = isLoading || !brand;
   const selectedLabel = value || '';
 
+  const MENU_MIN_HEIGHT = 200;
+  const MENU_MAX_HEIGHT = 320;
+  const GAP = 8;
+
   const updatePosition = () => {
     const el = triggerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom - 6;
-    if (spaceBelow < 150) {
-      setMenuStyle({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
+    const spaceBelow = window.innerHeight - rect.bottom - GAP;
+    const spaceAbove = rect.top - GAP;
+    if (spaceBelow >= MENU_MIN_HEIGHT || spaceBelow >= spaceAbove) {
+      setMenuStyle({ top: rect.bottom + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceBelow, MENU_MAX_HEIGHT) });
     } else {
-      setMenuStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+      setMenuStyle({ bottom: window.innerHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
     }
   };
 
@@ -392,7 +445,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
         <Caret />
       </Trigger>
       {open && menuStyle && createPortal(
-        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width }}>
+        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width, maxHeight: menuStyle.maxHeight }}>
           <SearchContainer>
             <SearchInput
               ref={searchRef}
@@ -403,14 +456,23 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
               disabled={!brand}
             />
           </SearchContainer>
-          {filteredModels.length === 0 && (
-            <EmptyState>Brak wyników</EmptyState>
+          <PortalMenuList>
+            {filteredModels.length === 0 && (
+              <EmptyState>Brak wyników</EmptyState>
+            )}
+            {filteredModels.map(m => (
+              <MenuItem key={m} onClick={() => { onChange(m); setOpen(false); onBlur?.(); }} $selected={m === value}>
+                {m}
+              </MenuItem>
+            ))}
+          </PortalMenuList>
+          {onDone && (
+            <PortalMenuDoneBar>
+              <PortalMenuDoneBtn type="button" onClick={() => { setOpen(false); onDone(); }}>
+                Gotowe
+              </PortalMenuDoneBtn>
+            </PortalMenuDoneBar>
           )}
-          {filteredModels.map(m => (
-            <MenuItem key={m} onClick={() => { onChange(m); setOpen(false); onBlur?.(); }} $selected={m === value}>
-              {m}
-            </MenuItem>
-          ))}
         </PortalMenu>,
         document.body
       )}
