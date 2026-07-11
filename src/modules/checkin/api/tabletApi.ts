@@ -13,6 +13,7 @@ export interface SignatureRequestResponse {
     protocolId: string;
     tabletId: string | null;
     status: string;
+    failureReason?: string | null;
 }
 
 export const tabletApi = {
@@ -31,6 +32,12 @@ export const tabletApi = {
             `/v1/visits/${visitId}/protocols/${protocolId}/signature-requests`,
             { tabletId: tabletId ?? null, signerName },
         );
+        return response.data;
+    },
+
+    /** Polling fallback — used to re-sync after a lost WebSocket connection. */
+    getSignatureRequest: async (requestId: string): Promise<SignatureRequestResponse> => {
+        const response = await apiClient.get(`/v1/signature-requests/${requestId}`);
         return response.data;
     },
 };

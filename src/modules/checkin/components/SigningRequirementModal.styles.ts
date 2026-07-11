@@ -73,16 +73,16 @@ export const ActionButtons = styled.div`
     flex-shrink: 0;
 `;
 
-export const IconButton = styled.button<{ $active?: boolean }>`
+export const IconButton = styled.button<{ $active?: boolean; $success?: boolean }>`
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid ${st.border};
-    background: ${props => props.$active ? st.accentBlueDim : '#F8FAFC'};
+    border: 1px solid ${props => props.$success ? '#10B981' : st.border};
+    background: ${props => props.$success ? 'rgba(16, 185, 129, 0.12)' : props.$active ? st.accentBlueDim : '#F8FAFC'};
     border-radius: ${st.radiusSm};
-    color: ${props => props.$active ? st.accentBlue : st.textSecondary};
+    color: ${props => props.$success ? '#10B981' : props.$active ? st.accentBlue : st.textSecondary};
     cursor: pointer;
     transition: all ${st.transition};
 
@@ -93,13 +93,45 @@ export const IconButton = styled.button<{ $active?: boolean }>`
     }
 
     &:disabled {
-        opacity: 0.35;
-        cursor: not-allowed;
+        opacity: ${props => props.$success ? 1 : 0.35};
+        cursor: ${props => props.$success ? 'default' : 'not-allowed'};
     }
 
     svg {
         width: 16px;
         height: 16px;
+    }
+`;
+
+export const RetryButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        background: #FEE2E2;
+        border-color: #DC2626;
+    }
+
+    &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
     }
 `;
 

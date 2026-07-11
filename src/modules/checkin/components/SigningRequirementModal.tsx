@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
     ModalShell,
@@ -8,8 +8,11 @@ import {
     ModalContent,
     CloseBtn,
 } from '@/common/components/ModalKit';
+import { useToast } from '@/common/components/Toast';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { tabletApi } from '../api/tabletApi';
+import { useSignatureRequestsSocket } from '../hooks/useSignatureRequestsSocket';
+import type { SignatureRequestSocketEvent } from '../hooks/useSignatureRequestsSocket';
 import { DocumentPreview } from './DocumentPreview';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import type { NotificationOptions } from './NotificationSection';
@@ -27,6 +30,7 @@ import {
     PrimaryActionGroup,
     CancelBtn,
     ConfirmBtn,
+    RetryButton,
     Spinner,
     LoadingContainer,
     EmptyState,
@@ -70,6 +74,21 @@ const CheckIcon = () => (
     </svg>
 );
 
+/* ─── Signing session state (per protocol) ──────────────────────────────────── */
+
+type SigningState =
+    | { phase: 'sending' }
+    | { phase: 'waiting'; requestId: string }
+    | { phase: 'signed'; requestId: string }
+    | { phase: 'declined'; requestId: string }
+    | { phase: 'failed'; requestId?: string; errorMessage?: string };
+
+const extractApiErrorMessage = (error: unknown): string | undefined => {
+    const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    if (apiMessage) return apiMessage;
+    return error instanceof Error ? error.message : undefined;
+};
+
 /* ─── Props ──────────────────────────────────────────────────────────────────── */
 
 interface SigningRequirementModalProps {
@@ -98,9 +117,9 @@ export const SigningRequirementModal = ({
 }: SigningRequirementModalProps) => {
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [tabletPickerProtocolId, setTabletPickerProtocolId] = useState<string | null>(null);
-    const [sendingProtocolId, setSendingProtocolId] = useState<string | null>(null);
-    const [sentProtocolIds, setSentProtocolIds] = useState<Set<string>>(new Set());
+    const [signingByProtocol, setSigningByProtocol] = useState<Record<string, SigningState>>({});
     const tabletPickerRef = useRef<HTMLDivElement>(null);
+    const { showSuccess, showError } = useToast();
 
     const { data: emailConfig, isPending: emailConfigPending } = useQuery({
         queryKey: ['email-automation-config'],
@@ -145,8 +164,7 @@ export const SigningRequirementModal = ({
         if (isOpen) {
             setPreviewProtocolId(null);
             setTabletPickerProtocolId(null);
-            setSendingProtocolId(null);
-            setSentProtocolIds(new Set());
+            setSigningByProtocol({});
             setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled));
         }
     }, [isOpen, hasProtocol, visitWelcomeEnabled]);
@@ -168,15 +186,23 @@ export const SigningRequirementModal = ({
         if (pdfUrl) window.open(pdfUrl, '_blank');
     };
 
+    const setSigningState = (protocolId: string, state: SigningState) => {
+        setSigningByProtocol(prev => ({ ...prev, [protocolId]: state }));
+    };
+
     const handleSendToTablet = async (protocolId: string, tabletId: string) => {
-        if (!visitId || sendingProtocolId) return;
+        if (!visitId) return;
+        const phase = signingByProtocol[protocolId]?.phase;
+        if (phase === 'sending' || phase === 'waiting' || phase === 'signed') return;
         setTabletPickerProtocolId(null);
-        setSendingProtocolId(protocolId);
+        setSigningState(protocolId, { phase: 'sending' });
         try {
-            await tabletApi.requestTabletSignature(visitId, protocolId, customerName, tabletId);
-            setSentProtocolIds(prev => new Set(prev).add(protocolId));
-        } finally {
-            setSendingProtocolId(null);
+            const request = await tabletApi.requestTabletSignature(visitId, protocolId, customerName, tabletId);
+            setSigningState(protocolId, { phase: 'waiting', requestId: request.id });
+        } catch (error) {
+            const errorMessage = extractApiErrorMessage(error);
+            setSigningState(protocolId, { phase: 'failed', errorMessage });
+            showError('Coś poszło nie tak. Spróbuj jeszcze raz.', errorMessage);
         }
     };
 
@@ -188,9 +214,57 @@ export const SigningRequirementModal = ({
         }
     };
 
+    // ─── Live status of awaited signing sessions (WebSocket + reconnect re-sync) ─
+
+    const awaitedRequests = useMemo(() =>
+        Object.entries(signingByProtocol).flatMap(([protocolId, state]) =>
+            state.phase === 'waiting' ? [{ protocolId, requestId: state.requestId }] : []
+        ),
+    [signingByProtocol]);
+
+    const applySignatureOutcome = (protocolId: string, requestId: string, outcome: string, errorMessage?: string | null) => {
+        switch (outcome) {
+            case 'SIGNATURE_COMPLETED':
+                setSigningState(protocolId, { phase: 'signed', requestId });
+                showSuccess('Klient pomyślnie podpisał dokument');
+                break;
+            case 'SIGNATURE_DECLINED':
+                setSigningState(protocolId, { phase: 'declined', requestId });
+                showError('Klient odrzucił dokument. Spróbuj ponownie.');
+                break;
+            case 'SIGNATURE_FAILED':
+            case 'SIGNATURE_EXPIRED':
+                setSigningState(protocolId, { phase: 'failed', requestId, errorMessage: errorMessage ?? undefined });
+                showError('Coś poszło nie tak. Spróbuj jeszcze raz.', errorMessage ?? undefined);
+                break;
+            // SIGNATURE_REQUESTED / SIGNATURE_DISPLAYED / SIGNATURE_CANCELLED: still waiting or handled elsewhere
+        }
+    };
+
+    useSignatureRequestsSocket(awaitedRequests.map(r => r.requestId), {
+        onEvent: (event: SignatureRequestSocketEvent) => {
+            const awaited = awaitedRequests.find(r => r.requestId === event.requestId);
+            if (!awaited) return;
+            applySignatureOutcome(awaited.protocolId, event.requestId, event.type, event.errorMessage);
+        },
+        // Events may have been missed while the socket was down — poll the final state
+        onReconnect: () => {
+            awaitedRequests.forEach(async ({ protocolId, requestId }) => {
+                try {
+                    const request = await tabletApi.getSignatureRequest(requestId);
+                    applySignatureOutcome(protocolId, requestId, `SIGNATURE_${request.status}`, request.failureReason);
+                } catch (err) {
+                    console.error('[SigningRequirementModal] Failed to re-sync signature request:', err);
+                }
+            });
+        },
+    });
+
     const tabletButtonTitle = (protocol: ProtocolResponse): string => {
+        const phase = signingByProtocol[protocol.id]?.phase;
+        if (phase === 'signed') return 'Klient podpisał dokument';
+        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
         if (tablets.length === 0) return 'Brak sparowanego tabletu';
-        if (sentProtocolIds.has(protocol.id)) return 'Wysłano na tablet';
         if (tablets.length === 1) return `Wyślij na tablet: ${tablets[0].deviceName}`;
         return 'Wybierz tablet do podpisu';
     };
@@ -221,8 +295,11 @@ export const SigningRequirementModal = ({
                         ) : (
                             <DocumentList>
                                 {protocols.map(protocol => {
-                                    const isSending = sendingProtocolId === protocol.id;
-                                    const isSent = sentProtocolIds.has(protocol.id);
+                                    const signingPhase = signingByProtocol[protocol.id]?.phase;
+                                    const isSending = signingPhase === 'sending';
+                                    const isWaiting = signingPhase === 'waiting';
+                                    const isSigned = signingPhase === 'signed';
+                                    const needsRetry = signingPhase === 'failed' || signingPhase === 'declined';
                                     const isPickerOpen = tabletPickerProtocolId === protocol.id;
 
                                     return (
@@ -246,24 +323,35 @@ export const SigningRequirementModal = ({
                                                 </IconButton>
 
                                                 <TabletPickerWrapper ref={isPickerOpen ? tabletPickerRef : undefined}>
-                                                    <IconButton
-                                                        onClick={() => handleTabletButtonClick(protocol.id)}
-                                                        title={tabletButtonTitle(protocol)}
-                                                        disabled={!hasTablets || isSending || isSent}
-                                                        $active={isSent || isPickerOpen}
-                                                    >
-                                                        {isSending ? (
-                                                            <SpinningIconWrapper>
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                                </svg>
-                                                            </SpinningIconWrapper>
-                                                        ) : isSent ? (
-                                                            <CheckIcon />
-                                                        ) : (
-                                                            <TabletIcon />
-                                                        )}
-                                                    </IconButton>
+                                                    {needsRetry ? (
+                                                        <RetryButton
+                                                            onClick={() => handleTabletButtonClick(protocol.id)}
+                                                            title={tabletButtonTitle(protocol)}
+                                                            disabled={!hasTablets}
+                                                        >
+                                                            Ponów
+                                                        </RetryButton>
+                                                    ) : (
+                                                        <IconButton
+                                                            onClick={() => handleTabletButtonClick(protocol.id)}
+                                                            title={tabletButtonTitle(protocol)}
+                                                            disabled={!hasTablets || isSending || isWaiting || isSigned}
+                                                            $active={isPickerOpen}
+                                                            $success={isSigned}
+                                                        >
+                                                            {isSending || isWaiting ? (
+                                                                <SpinningIconWrapper>
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                    </svg>
+                                                                </SpinningIconWrapper>
+                                                            ) : isSigned ? (
+                                                                <CheckIcon />
+                                                            ) : (
+                                                                <TabletIcon />
+                                                            )}
+                                                        </IconButton>
+                                                    )}
 
                                                     {isPickerOpen && tablets.length > 1 && (
                                                         <TabletPickerDropdown>
