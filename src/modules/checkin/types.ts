@@ -2,6 +2,18 @@
 
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
 
+export interface DoorToDoorAddress {
+    city: string;
+    street: string;
+}
+
+export interface DoorToDoorInfo {
+    enabled: boolean;
+    pickupAddress: DoorToDoorAddress;
+    deliveryAddress: DoorToDoorAddress;
+    notes: string;
+}
+
 export interface DepositItem {
     keys: boolean;
     registrationDocument: boolean;
@@ -110,6 +122,7 @@ export interface CheckInFormData {
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];
     appointmentColorId: string;
+    doorToDoor?: DoorToDoorInfo;
 }
 
 export type CheckInCustomerIdentity =

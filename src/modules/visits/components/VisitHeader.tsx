@@ -471,6 +471,7 @@ interface VisitHeaderProps {
     onPrintProtocol: () => void;
     onCancelVisit: () => void;
     onGeneratePost: () => void;
+    onDoorToDoor?: () => void;
     onTitleUpdate?: (title: string) => Promise<void>;
     onEstimatedCompletionDateUpdate?: (isoDate: string) => Promise<void>;
 }
@@ -481,6 +482,7 @@ export const VisitHeader = ({
     onPrintProtocol,
     onCancelVisit,
     onGeneratePost,
+    onDoorToDoor,
     onTitleUpdate,
     onEstimatedCompletionDateUpdate,
 }: VisitHeaderProps) => {
@@ -669,6 +671,16 @@ export const VisitHeader = ({
                         </svg>
                         Drukuj
                     </ActionButton>
+
+                    {visit.status === 'READY_FOR_PICKUP' && onDoorToDoor && (
+                        <ActionButton $variant="ghost" $mobileHide onClick={onDoorToDoor}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            Door to door
+                        </ActionButton>
+                    )}
 
                     <ActionButton
                         $variant="complete"

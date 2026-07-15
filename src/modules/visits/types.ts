@@ -1,5 +1,17 @@
 export type VisitStatus = 'DRAFT' | 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
+export interface DoorToDoorAddress {
+    city: string;
+    street: string;
+}
+
+export interface DoorToDoorInfo {
+    enabled: boolean;
+    pickupAddress: DoorToDoorAddress;
+    deliveryAddress: DoorToDoorAddress;
+    notes: string;
+}
+
 export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' | 'DAMAGE_MAP' | 'OTHER';
 
 export type CommentType = 'INTERNAL' | 'FOR_CUSTOMER';
@@ -134,6 +146,7 @@ export interface Visit {
     };
     technicalNotes?: string;
     colorId: string;
+    doorToDoor?: DoorToDoorInfo;
     createdAt: string;
     updatedAt: string;
 }
@@ -149,6 +162,7 @@ export interface UpdateVisitPayload {
     keysHandedOver?: boolean;
     documentsHandedOver?: boolean;
     technicalNotes?: string;
+    doorToDoor?: DoorToDoorInfo;
 }
 
 export interface UploadDocumentPayload {

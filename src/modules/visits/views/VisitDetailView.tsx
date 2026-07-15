@@ -26,6 +26,7 @@ import { useToast } from '@/common/components/Toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
+import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useAutomationConfig } from '@/modules/sms-campaigns/hooks';
@@ -597,6 +598,7 @@ export const VisitDetailView = () => {
     const navigate = useNavigate();
 
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
+    const [isDoorToDoorOpen, setIsDoorToDoorOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
@@ -790,6 +792,7 @@ export const VisitDetailView = () => {
                     onPrintProtocol={handlePrintProtocol}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
+                    onDoorToDoor={() => setIsDoorToDoorOpen(true)}
                     onTitleUpdate={updateTitle}
                     onEstimatedCompletionDateUpdate={updateEstimatedCompletionDate}
                 />
@@ -1055,6 +1058,15 @@ export const VisitDetailView = () => {
                     onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
                 />
             )}
+
+            <DoorToDoorModal
+                isOpen={isDoorToDoorOpen}
+                initialData={visit.doorToDoor}
+                onClose={() => setIsDoorToDoorOpen(false)}
+                onConfirm={(data) => {
+                    updateVisit({ doorToDoor: data });
+                }}
+            />
 
             {isGeneratePostOpen && (
                 <GeneratePostModal

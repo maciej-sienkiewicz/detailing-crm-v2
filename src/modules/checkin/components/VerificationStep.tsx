@@ -1551,6 +1551,105 @@ export const VerificationStep = ({
                 </SectionBody>
             </SectionCard>
 
+            {/* ── 7. Door to Door ───────────────────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>{showTechnicalSection ? 7 : 6}</SectionNum>
+                        <SectionLabel>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            Door to Door
+                            {formData.doorToDoor?.enabled && (
+                                <StatusPill>Aktywna</StatusPill>
+                            )}
+                        </SectionLabel>
+                    </SectionTitleRow>
+                    <Toggle
+                        checked={formData.doorToDoor?.enabled ?? false}
+                        onChange={(checked) => onChange({
+                            doorToDoor: {
+                                enabled: checked,
+                                pickupAddress: formData.doorToDoor?.pickupAddress ?? { city: '', street: '' },
+                                deliveryAddress: formData.doorToDoor?.deliveryAddress ?? { city: '', street: '' },
+                                notes: formData.doorToDoor?.notes ?? '',
+                            },
+                        })}
+                    />
+                </SectionHead>
+                {formData.doorToDoor?.enabled && (
+                    <SectionBody>
+                        <FormGrid>
+                            <FieldGroup>
+                                <Label>Miasto odbioru</Label>
+                                <Input
+                                    value={formData.doorToDoor.pickupAddress.city}
+                                    onChange={(e) => onChange({
+                                        doorToDoor: {
+                                            ...formData.doorToDoor!,
+                                            pickupAddress: { ...formData.doorToDoor!.pickupAddress, city: e.target.value },
+                                        },
+                                    })}
+                                    placeholder="np. Warszawa"
+                                />
+                            </FieldGroup>
+                            <FieldGroup>
+                                <Label>Ulica i numer (odbiór)</Label>
+                                <Input
+                                    value={formData.doorToDoor.pickupAddress.street}
+                                    onChange={(e) => onChange({
+                                        doorToDoor: {
+                                            ...formData.doorToDoor!,
+                                            pickupAddress: { ...formData.doorToDoor!.pickupAddress, street: e.target.value },
+                                        },
+                                    })}
+                                    placeholder="np. ul. Kowalska 12"
+                                />
+                            </FieldGroup>
+                            <FieldGroup>
+                                <Label>Miasto dostarczenia</Label>
+                                <Input
+                                    value={formData.doorToDoor.deliveryAddress.city}
+                                    onChange={(e) => onChange({
+                                        doorToDoor: {
+                                            ...formData.doorToDoor!,
+                                            deliveryAddress: { ...formData.doorToDoor!.deliveryAddress, city: e.target.value },
+                                        },
+                                    })}
+                                    placeholder="np. Warszawa"
+                                />
+                            </FieldGroup>
+                            <FieldGroup>
+                                <Label>Ulica i numer (dostarczenie)</Label>
+                                <Input
+                                    value={formData.doorToDoor.deliveryAddress.street}
+                                    onChange={(e) => onChange({
+                                        doorToDoor: {
+                                            ...formData.doorToDoor!,
+                                            deliveryAddress: { ...formData.doorToDoor!.deliveryAddress, street: e.target.value },
+                                        },
+                                    })}
+                                    placeholder="np. ul. Kowalska 12"
+                                />
+                            </FieldGroup>
+                        </FormGrid>
+                        <FieldGroup style={{ marginTop: 12 }}>
+                            <Label>Uwagi do usługi door to door</Label>
+                            <TextArea
+                                value={formData.doorToDoor.notes}
+                                onChange={(e) => onChange({
+                                    doorToDoor: { ...formData.doorToDoor!, notes: e.target.value },
+                                })}
+                                placeholder="Dodatkowe informacje dotyczące odbioru lub dostarczenia pojazdu..."
+                                style={{ width: '100%', boxSizing: 'border-box', minHeight: '80px' }}
+                            />
+                        </FieldGroup>
+                    </SectionBody>
+                )}
+            </SectionCard>
+
             {/* ── Modals ────────────────────────────────────────────────── */}
             <Modal
                 isOpen={showCustomerChoice}

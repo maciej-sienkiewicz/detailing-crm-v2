@@ -8,6 +8,14 @@ import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { formatDateTimeLocal, formatDate, roundTo2, calculateFinalPrice } from './helpers';
+import type { DoorToDoorInfo } from '@/modules/visits/types';
+
+const EMPTY_DOOR_TO_DOOR: DoorToDoorInfo = {
+    enabled: false,
+    pickupAddress: { city: '', street: '' },
+    deliveryAddress: { city: '', street: '' },
+    notes: '',
+};
 
 const capitalizeWords = (value: string): string =>
     value.replace(/\S+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
@@ -59,6 +67,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const [endDateTime, setEndDateTime] = useState('');
     const [isAllDay, setIsAllDay] = useState(false);
     const [notes, setNotes] = useState('');
+    const [doorToDoor, setDoorToDoor] = useState<DoorToDoorInfo>({ ...EMPTY_DOOR_TO_DOOR });
     const [selectedColorId, setSelectedColorId] = useState('');
 
     // ─── Customer state ────────────────────────────────────────────────────────
@@ -338,6 +347,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         vehicleAutoSelectedRef.current = false;
         vehicleAutoOpenRef.current = false;
         setNotes('');
+        setDoorToDoor({ ...EMPTY_DOOR_TO_DOOR });
         setTempServices({});
         setSendConfirmationSms(false);
         setSendReminderSms(false);
@@ -508,6 +518,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 tempServices,
                 colorId: selectedColorId,
                 notes,
+                doorToDoor: doorToDoor.enabled ? doorToDoor : undefined,
                 sendConfirmationSms: bookingConfirmationEnabled && sendConfirmationSms,
                 sendReminderSms: preVisitEnabled && sendReminderSms,
                 recurrence: isRecurring ? recurrenceRule : null,
@@ -826,6 +837,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         endDateTime, setEndDateTime,
         isAllDay,
         notes, setNotes,
+        doorToDoor, setDoorToDoor,
         selectedColorId, setSelectedColorId,
 
         // Customer

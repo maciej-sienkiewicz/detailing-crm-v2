@@ -92,6 +92,133 @@ const SmsDisabledHint = styled.span`
     margin-top: 2px;
 `;
 
+const D2DToggleRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+`;
+
+const D2DToggleLabel = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+`;
+
+const D2DBadge = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+`;
+
+const D2DToggleSwitch = styled.button<{ $active: boolean }>`
+    position: relative;
+    width: 36px;
+    height: 20px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: ${p => p.$active ? '#0ea5e9' : '#cbd5e1'};
+    transition: background 200ms ease;
+    flex-shrink: 0;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: ${p => p.$active ? '18px' : '2px'};
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+        transition: left 200ms ease;
+    }
+`;
+
+const D2DFields = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+`;
+
+const D2DAddressGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const D2DAddressLabel = styled.span`
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #64748b;
+`;
+
+const D2DAddressInputs = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+`;
+
+const D2DInput = styled.input`
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 11px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    &::placeholder { color: #b0bec5; }
+
+    &:focus {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+    }
+`;
+
+const D2DNotes = styled.textarea`
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 11px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    outline: none;
+    font-family: inherit;
+    resize: none;
+    line-height: 1.45;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    &::placeholder { color: #b0bec5; }
+
+    &:focus {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+    }
+`;
+
 export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalProps>(({
     isOpen,
     eventData,
@@ -985,6 +1112,74 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         onFocus={() => form.setFocusedField('notes')}
                                         onBlur={() => form.setFocusedField(null)}
                                     />
+                                </S.RowContent>
+                            </S.Row>
+
+                            <S.Divider />
+
+                            {/* ── Door to Door row ───────────────────────────────── */}
+                            <S.Row>
+                                <S.IconWrapper $color={form.doorToDoor.enabled ? '#0ea5e9' : undefined}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                        <polyline points="9 22 9 12 15 12 15 22"/>
+                                    </svg>
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <D2DToggleRow onClick={() => form.setDoorToDoor(d => ({ ...d, enabled: !d.enabled }))}>
+                                        <D2DToggleLabel>
+                                            Door to Door
+                                            <D2DBadge>Odbiór / Dostawa</D2DBadge>
+                                        </D2DToggleLabel>
+                                        <D2DToggleSwitch
+                                            type="button"
+                                            $active={form.doorToDoor.enabled}
+                                            onClick={e => { e.stopPropagation(); form.setDoorToDoor(d => ({ ...d, enabled: !d.enabled })); }}
+                                        />
+                                    </D2DToggleRow>
+                                    {form.doorToDoor.enabled && (
+                                        <D2DFields>
+                                            <D2DAddressGroup>
+                                                <D2DAddressLabel>Miejsce odbioru</D2DAddressLabel>
+                                                <D2DAddressInputs>
+                                                    <D2DInput
+                                                        placeholder="Miasto"
+                                                        value={form.doorToDoor.pickupAddress.city}
+                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, pickupAddress: { ...d.pickupAddress, city: e.target.value } }))}
+                                                    />
+                                                    <D2DInput
+                                                        placeholder="Ulica i numer"
+                                                        value={form.doorToDoor.pickupAddress.street}
+                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, pickupAddress: { ...d.pickupAddress, street: e.target.value } }))}
+                                                    />
+                                                </D2DAddressInputs>
+                                            </D2DAddressGroup>
+                                            <D2DAddressGroup>
+                                                <D2DAddressLabel>Miejsce dostarczenia</D2DAddressLabel>
+                                                <D2DAddressInputs>
+                                                    <D2DInput
+                                                        placeholder="Miasto"
+                                                        value={form.doorToDoor.deliveryAddress.city}
+                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, deliveryAddress: { ...d.deliveryAddress, city: e.target.value } }))}
+                                                    />
+                                                    <D2DInput
+                                                        placeholder="Ulica i numer"
+                                                        value={form.doorToDoor.deliveryAddress.street}
+                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, deliveryAddress: { ...d.deliveryAddress, street: e.target.value } }))}
+                                                    />
+                                                </D2DAddressInputs>
+                                            </D2DAddressGroup>
+                                            <D2DAddressGroup>
+                                                <D2DAddressLabel>Uwagi</D2DAddressLabel>
+                                                <D2DNotes
+                                                    rows={2}
+                                                    placeholder="Dodaj uwagi do usługi door to door..."
+                                                    value={form.doorToDoor.notes}
+                                                    onChange={e => form.setDoorToDoor(d => ({ ...d, notes: e.target.value }))}
+                                                />
+                                            </D2DAddressGroup>
+                                        </D2DFields>
+                                    )}
                                 </S.RowContent>
                             </S.Row>
 

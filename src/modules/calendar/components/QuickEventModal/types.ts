@@ -1,5 +1,6 @@
 import type { EventCreationData } from '../../types';
 import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
+import type { DoorToDoorInfo } from '@/modules/visits/types';
 
 export type { EventCreationData };
 
@@ -60,6 +61,7 @@ export interface QuickEventFormData {
     tempServices?: { [key: string]: { name: string; basePriceNet: number; vatRate: number } };
     colorId: string;
     notes?: string;
+    doorToDoor?: DoorToDoorInfo;
     sendConfirmationSms: boolean;
     sendReminderSms: boolean;
     recurrence?: RecurrenceRuleRequest | null;
