@@ -6,38 +6,28 @@ import type { DoorToDoorInfo } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
-const FormGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-
-    @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
 const FieldGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
 `;
 
 const Label = styled.label`
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
 `;
 
 const Input = styled.input`
-    padding: 9px 12px;
+    padding: 8px 11px;
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
     font-size: 14px;
     color: #0f172a;
     outline: none;
-    transition: border-color 180ms ease, box-shadow 180ms ease;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
     background: #fff;
 
     &:focus {
@@ -47,16 +37,16 @@ const Input = styled.input`
 `;
 
 const TextArea = styled.textarea`
-    padding: 9px 12px;
+    padding: 8px 11px;
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
     font-size: 14px;
     color: #0f172a;
     outline: none;
-    resize: vertical;
-    min-height: 72px;
+    resize: none;
+    height: 64px;
     font-family: inherit;
-    transition: border-color 180ms ease, box-shadow 180ms ease;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
     background: #fff;
 
     &:focus {
@@ -65,105 +55,125 @@ const TextArea = styled.textarea`
     }
 `;
 
-const SectionLabel = styled.p`
-    margin: 0 0 10px;
-    font-size: 12px;
+const TwoCol = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+`;
+
+const Section = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const SectionHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
     font-weight: 700;
     color: #0ea5e9;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    margin-bottom: 2px;
 
-    svg { width: 14px; height: 14px; }
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
 `;
 
 const Divider = styled.hr`
     border: none;
     border-top: 1px solid #f1f5f9;
-    margin: 16px 0;
+    margin: 4px 0;
 `;
 
-const ConfirmContent = styled.div`
+const ReadonlyRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 11px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #475569;
+    grid-column: 1 / -1;
+`;
+
+const ReadonlyLabel = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+const ReadonlyValue = styled.span`
+    color: #0f172a;
+    font-weight: 500;
+`;
+
+// ─── Confirm phase ────────────────────────────────────────────────────────────
+
+const ConfirmBody = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
-`;
-
-const ConfirmGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 12px;
-
-    @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-    }
 `;
 
-const InfoBlock = styled.div`
+const AddressCard = styled.div`
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 `;
 
-const InfoBlockLabel = styled.div`
+const CardLabel = styled.div`
     font-size: 11px;
     font-weight: 700;
     color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 4px;
+    letter-spacing: 0.05em;
     display: flex;
     align-items: center;
     gap: 5px;
-    svg { width: 12px; height: 12px; }
+    svg { width: 11px; height: 11px; }
 `;
 
-const InfoBlockValue = styled.div`
+const CardValue = styled.div`
     font-size: 14px;
     font-weight: 600;
     color: #0f172a;
 `;
 
-const ActionRow = styled.div`
-    display: flex;
-    gap: 12px;
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-    }
-`;
-
-const BigActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
-    flex: 1;
+const NavButton = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 14px 20px;
+    width: 100%;
+    padding: 13px 20px;
     border-radius: 10px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 180ms ease;
-    border: 1.5px solid;
+    border: 1.5px solid #0ea5e9;
+    background: #0ea5e9;
+    color: #fff;
+    transition: all 160ms ease;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
 
-    svg { width: 18px; height: 18px; }
+    svg { width: 17px; height: 17px; }
 
-    ${p => p.$variant === 'primary' ? `
-        background: #0ea5e9;
-        color: #fff;
-        border-color: #0ea5e9;
-        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
-        &:hover { background: #0284c7; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4); transform: translateY(-1px); }
-    ` : `
-        background: #fff;
-        color: #0f172a;
-        border-color: #e2e8f0;
-        &:hover { background: #f8fafc; border-color: #cbd5e1; transform: translateY(-1px); }
-    `}
+    &:hover {
+        background: #0284c7;
+        border-color: #0284c7;
+        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.38);
+        transform: translateY(-1px);
+    }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -185,7 +195,7 @@ const EMPTY: DoorToDoorInfo = {
 export const DoorToDoorModal = ({ isOpen, initialData, onClose, onConfirm }: DoorToDoorModalProps) => {
     const [phase, setPhase] = useState<'form' | 'confirm'>('form');
     const [data, setData] = useState<DoorToDoorInfo>(() => initialData ?? { ...EMPTY });
-    // Reset when modal opens
+
     if (!isOpen) return null;
 
     const update = (patch: Partial<DoorToDoorInfo>) => setData(d => ({ ...d, ...patch }));
@@ -195,79 +205,69 @@ export const DoorToDoorModal = ({ isOpen, initialData, onClose, onConfirm }: Doo
         setPhase('confirm');
     };
 
+    const pickupDisplay = [data.pickupAddress.street, data.pickupAddress.city].filter(Boolean).join(', ') || '—';
+
     if (phase === 'confirm') {
         return (
             <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Door to Door — dalsze kroki</ModalTitle>
+                        <ModalTitle>Door to Door — dostarczenie</ModalTitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={onClose} />
                 </ModalHeader>
                 <ModalContent>
-                    <ConfirmContent>
-                        <ConfirmGrid>
-                            <InfoBlock>
-                                <InfoBlockLabel>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="10" r="3" />
-                                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                                    </svg>
-                                    Miejsce odbioru
-                                </InfoBlockLabel>
-                                <InfoBlockValue>
-                                    {data.pickupAddress.street || '—'}
-                                    {data.pickupAddress.city && `, ${data.pickupAddress.city}`}
-                                </InfoBlockValue>
-                            </InfoBlock>
-                            <InfoBlock>
-                                <InfoBlockLabel>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                        <polyline points="9 22 9 12 15 12 15 22" />
-                                    </svg>
-                                    Miejsce dostarczenia
-                                </InfoBlockLabel>
-                                <InfoBlockValue>
-                                    {data.deliveryAddress.street || '—'}
-                                    {data.deliveryAddress.city && `, ${data.deliveryAddress.city}`}
-                                </InfoBlockValue>
-                            </InfoBlock>
-                        </ConfirmGrid>
+                    <ConfirmBody>
+                        <AddressCard>
+                            <CardLabel>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="10" r="3" />
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                </svg>
+                                Odbiór
+                            </CardLabel>
+                            <CardValue>{pickupDisplay}</CardValue>
+                        </AddressCard>
+
+                        <AddressCard>
+                            <CardLabel>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                    <polyline points="9 22 9 12 15 12 15 22" />
+                                </svg>
+                                Dostarczenie
+                            </CardLabel>
+                            <CardValue>
+                                {[data.deliveryAddress.street, data.deliveryAddress.city].filter(Boolean).join(', ') || '—'}
+                            </CardValue>
+                        </AddressCard>
+
                         {data.notes && (
-                            <InfoBlock>
-                                <InfoBlockLabel>Uwagi</InfoBlockLabel>
-                                <InfoBlockValue style={{ fontWeight: 400, fontSize: 13 }}>{data.notes}</InfoBlockValue>
-                            </InfoBlock>
+                            <AddressCard>
+                                <CardLabel>Uwagi</CardLabel>
+                                <CardValue style={{ fontWeight: 400, fontSize: 13 }}>{data.notes}</CardValue>
+                            </AddressCard>
                         )}
-                        <ActionRow>
-                            <BigActionButton
-                                $variant="primary"
-                                onClick={() => {
-                                    const addr = `${data.deliveryAddress.street}, ${data.deliveryAddress.city}`;
-                                    window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`, '_blank');
-                                }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                </svg>
-                                Prowadź
-                            </BigActionButton>
-                            <BigActionButton $variant="secondary" onClick={() => {}}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                                </svg>
-                                Podpisz
-                            </BigActionButton>
-                        </ActionRow>
-                    </ConfirmContent>
+
+                        <NavButton
+                            onClick={() => {
+                                const addr = `${data.deliveryAddress.street}, ${data.deliveryAddress.city}`;
+                                window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`, '_blank');
+                            }}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                            </svg>
+                            Prowadź
+                        </NavButton>
+                    </ConfirmBody>
                 </ModalContent>
             </ModalShell>
         );
     }
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Door to Door — dostarczenie pojazdu</ModalTitle>
@@ -275,70 +275,62 @@ export const DoorToDoorModal = ({ isOpen, initialData, onClose, onConfirm }: Doo
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
             <ModalContent>
-                <SectionLabel>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="10" r="3" />
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                    </svg>
-                    Miejsce odbioru
-                </SectionLabel>
-                <FormGrid>
+                <Section>
+                    <div>
+                        <SectionHeader>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="10" r="3" />
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                            </svg>
+                            Miejsce odbioru
+                        </SectionHeader>
+                        <TwoCol>
+                            <ReadonlyRow style={{ gridColumn: '1 / -1' }}>
+                                <ReadonlyLabel>Adres:</ReadonlyLabel>
+                                <ReadonlyValue>{pickupDisplay}</ReadonlyValue>
+                            </ReadonlyRow>
+                        </TwoCol>
+                    </div>
+
+                    <Divider />
+
+                    <div>
+                        <SectionHeader>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            Miejsce dostarczenia
+                        </SectionHeader>
+                        <TwoCol>
+                            <FieldGroup>
+                                <Label>Miasto</Label>
+                                <Input
+                                    value={data.deliveryAddress.city}
+                                    onChange={e => update({ deliveryAddress: { ...data.deliveryAddress, city: e.target.value } })}
+                                    placeholder="np. Warszawa"
+                                />
+                            </FieldGroup>
+                            <FieldGroup>
+                                <Label>Ulica i numer</Label>
+                                <Input
+                                    value={data.deliveryAddress.street}
+                                    onChange={e => update({ deliveryAddress: { ...data.deliveryAddress, street: e.target.value } })}
+                                    placeholder="np. ul. Kowalska 12"
+                                />
+                            </FieldGroup>
+                        </TwoCol>
+                    </div>
+
                     <FieldGroup>
-                        <Label>Miasto</Label>
-                        <Input
-                            value={data.pickupAddress.city}
-                            onChange={e => update({ pickupAddress: { ...data.pickupAddress, city: e.target.value } })}
-                            placeholder="np. Warszawa"
+                        <Label>Uwagi</Label>
+                        <TextArea
+                            value={data.notes}
+                            onChange={e => update({ notes: e.target.value })}
+                            placeholder="Dodatkowe informacje..."
                         />
                     </FieldGroup>
-                    <FieldGroup>
-                        <Label>Ulica i numer</Label>
-                        <Input
-                            value={data.pickupAddress.street}
-                            onChange={e => update({ pickupAddress: { ...data.pickupAddress, street: e.target.value } })}
-                            placeholder="np. ul. Kowalska 12"
-                        />
-                    </FieldGroup>
-                </FormGrid>
-
-                <Divider />
-
-                <SectionLabel>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                        <polyline points="9 22 9 12 15 12 15 22" />
-                    </svg>
-                    Miejsce dostarczenia
-                </SectionLabel>
-                <FormGrid>
-                    <FieldGroup>
-                        <Label>Miasto</Label>
-                        <Input
-                            value={data.deliveryAddress.city}
-                            onChange={e => update({ deliveryAddress: { ...data.deliveryAddress, city: e.target.value } })}
-                            placeholder="np. Warszawa"
-                        />
-                    </FieldGroup>
-                    <FieldGroup>
-                        <Label>Ulica i numer</Label>
-                        <Input
-                            value={data.deliveryAddress.street}
-                            onChange={e => update({ deliveryAddress: { ...data.deliveryAddress, street: e.target.value } })}
-                            placeholder="np. ul. Kowalska 12"
-                        />
-                    </FieldGroup>
-                </FormGrid>
-
-                <Divider />
-
-                <FieldGroup>
-                    <Label>Uwagi</Label>
-                    <TextArea
-                        value={data.notes}
-                        onChange={e => update({ notes: e.target.value })}
-                        placeholder="Dodatkowe informacje dotyczące odbioru lub dostarczenia..."
-                    />
-                </FieldGroup>
+                </Section>
             </ModalContent>
             <ModalFooter>
                 <SharedButton $variant="secondary" onClick={onClose}>Anuluj</SharedButton>

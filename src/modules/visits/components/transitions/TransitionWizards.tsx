@@ -236,7 +236,7 @@ export const ReadyToCompletedWizard = ({
                     />
                 );
             case 2:
-                return <SignatureStep onConfirm={handleNext} />;
+                return <SignatureStep onConfirm={handleNext} isDoorToDoor={!!visit.doorToDoor?.enabled} />;
             case 3:
                 return (
                     <PaymentStep

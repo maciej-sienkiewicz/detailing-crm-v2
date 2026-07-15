@@ -133,7 +133,12 @@ const ChecklistItem = styled.li`
     }
 `;
 
-export const SignatureStep = ({ onConfirm }: { onConfirm: () => void }) => {
+interface SignatureStepProps {
+    onConfirm: () => void;
+    isDoorToDoor?: boolean;
+}
+
+export const SignatureStep = ({ onConfirm, isDoorToDoor = false }: SignatureStepProps) => {
     return (
         <Container>
 
@@ -141,8 +146,10 @@ export const SignatureStep = ({ onConfirm }: { onConfirm: () => void }) => {
                 <SignatureIcon>✍️</SignatureIcon>
                 <SignatureTitle>Podpis klienta</SignatureTitle>
                 <SignatureSubtitle>
-                    Poproś klienta o podpisanie protokołu wydania pojazdu na urządzeniu mobilnym
-                    lub tradycyjnym formularzu papierowym.
+                    {isDoorToDoor
+                        ? 'Poproś klienta o podpisanie protokołu odbioru pojazdu oraz potwierdzenia dostarczenia (Door to Door).'
+                        : 'Poproś klienta o podpisanie protokołu wydania pojazdu na urządzeniu mobilnym lub tradycyjnym formularzu papierowym.'
+                    }
                 </SignatureSubtitle>
                 <Button $variant="primary" onClick={onConfirm}>
                     Podpisano
@@ -153,20 +160,34 @@ export const SignatureStep = ({ onConfirm }: { onConfirm: () => void }) => {
             </SignatureArea>
 
             <ChecklistSection>
-                <ChecklistTitle>Przed potwierdzeniem upewnij się, że:</ChecklistTitle>
+                <ChecklistTitle>
+                    {isDoorToDoor
+                        ? `Dokumenty do podpisania (${2}):`
+                        : 'Przed potwierdzeniem upewnij się, że:'
+                    }
+                </ChecklistTitle>
                 <ChecklistItems>
-                    <ChecklistItem>
-                        Klient zapoznał się z listą wykonanych usług
-                    </ChecklistItem>
-                    <ChecklistItem>
-                        Stan pojazdu został zweryfikowany przy kliencie
-                    </ChecklistItem>
-                    <ChecklistItem>
-                        Wszystkie dokumenty zostały przekazane klientowi
-                    </ChecklistItem>
-                    <ChecklistItem>
-                        Kluczyki i pilot zostały zwrócone klientowi
-                    </ChecklistItem>
+                    {isDoorToDoor ? (
+                        <>
+                            <ChecklistItem>Protokół wydania pojazdu</ChecklistItem>
+                            <ChecklistItem>Potwierdzenie dostarczenia pojazdu (Door to Door)</ChecklistItem>
+                        </>
+                    ) : (
+                        <>
+                            <ChecklistItem>
+                                Klient zapoznał się z listą wykonanych usług
+                            </ChecklistItem>
+                            <ChecklistItem>
+                                Stan pojazdu został zweryfikowany przy kliencie
+                            </ChecklistItem>
+                            <ChecklistItem>
+                                Wszystkie dokumenty zostały przekazane klientowi
+                            </ChecklistItem>
+                            <ChecklistItem>
+                                Kluczyki i pilot zostały zwrócone klientowi
+                            </ChecklistItem>
+                        </>
+                    )}
                 </ChecklistItems>
             </ChecklistSection>
         </Container>
