@@ -33,6 +33,7 @@ export interface AppointmentPayload {
   appointmentColorId: string;
   sendConfirmationSms: boolean;
   sendReminderSms: boolean;
+  doorToDoor?: { pickupCity: string; pickupStreet: string; deliveryCity: string; deliveryStreet: string; notes?: string };
 }
 
 export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPayload {
@@ -124,5 +125,12 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
     appointmentColorId: data.colorId,
     sendConfirmationSms: data.sendConfirmationSms,
     sendReminderSms: data.sendReminderSms,
+    doorToDoor: data.doorToDoor?.enabled ? {
+      pickupCity: data.doorToDoor.pickupAddress?.city ?? '',
+      pickupStreet: data.doorToDoor.pickupAddress?.street ?? '',
+      deliveryCity: data.doorToDoor.deliveryAddress?.city ?? '',
+      deliveryStreet: data.doorToDoor.deliveryAddress?.street ?? '',
+      notes: data.doorToDoor.notes || undefined,
+    } : undefined,
   };
 }

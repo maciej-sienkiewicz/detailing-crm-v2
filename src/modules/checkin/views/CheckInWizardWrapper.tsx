@@ -132,6 +132,13 @@ interface ReservationResponse {
         name: string;
         hexColor: string;
     };
+    doorToDoor?: {
+        pickupCity: string;
+        pickupStreet: string;
+        deliveryCity: string;
+        deliveryStreet: string;
+        notes?: string;
+    };
 }
 
 
@@ -221,6 +228,7 @@ export const CheckInWizardWrapper = () => {
         })) || [],
         status: reservationData.status,
         appointmentColor: reservationData.appointmentColor,
+        doorToDoor: reservationData.doorToDoor,
     } : undefined;
 
     const handleComplete = (visitId: string) => {
@@ -382,6 +390,12 @@ export const CheckInWizardWrapper = () => {
         },
         visitStartAt: fromInstantToLocalInput(startRaw),
         visitEndAt: fromInstantToLocalInput(endRaw),
+        doorToDoor: reservation.doorToDoor ? {
+            enabled: true,
+            pickupAddress: { city: reservation.doorToDoor.pickupCity, street: reservation.doorToDoor.pickupStreet },
+            deliveryAddress: { city: reservation.doorToDoor.deliveryCity, street: reservation.doorToDoor.deliveryStreet },
+            notes: reservation.doorToDoor.notes ?? '',
+        } : undefined,
     };
 
     return (
