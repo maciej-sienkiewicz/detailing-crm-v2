@@ -1064,7 +1064,11 @@ export const VisitDetailView = () => {
                 initialData={visit.doorToDoor}
                 onClose={() => setIsDoorToDoorOpen(false)}
                 onConfirm={(data) => {
-                    updateVisit({ doorToDoor: data });
+                    visitApi.updateDoorToDoor(visit.id, {
+                        pickupAddress: data.pickupAddress,
+                        deliveryAddress: data.deliveryAddress,
+                        notes: data.notes || undefined,
+                    });
                 }}
             />
 

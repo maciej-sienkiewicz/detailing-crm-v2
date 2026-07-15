@@ -568,6 +568,13 @@ export const visitApi = {
         await apiClient.patch(`${BASE_PATH}/${visitId}/title`, { title });
     },
 
+    updateDoorToDoor: async (
+        visitId: string,
+        data: { pickupAddress: { city: string; street: string }; deliveryAddress: { city: string; street: string }; notes?: string }
+    ): Promise<void> => {
+        await apiClient.put(`${BASE_PATH}/${visitId}/door-to-door`, data);
+    },
+
     updateEstimatedCompletionDate: async (visitId: string, date: string): Promise<void> => {
         await apiClient.patch(`${BASE_PATH}/${visitId}/estimated-completion-date`, { estimatedCompletionDate: date });
     },
