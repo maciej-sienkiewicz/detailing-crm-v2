@@ -52,6 +52,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         damagePoints: initialData.damagePoints || [],
         services: initialData.services || [],
         appointmentColorId: initialData.appointmentColorId || '',
+        doorToDoor: initialData.doorToDoor,
     });
 
     const steps: Array<{ id: CheckInStep; label: string }> = [
