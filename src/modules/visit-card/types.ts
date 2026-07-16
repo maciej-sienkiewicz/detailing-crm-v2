@@ -53,7 +53,7 @@ export interface VisitCardTotals {
 
 export interface VisitCardSignedDocument {
     name: string;
-    signedAt: string;
+    signedAt: string | null;
     downloadUrl: string | null;
 }
 

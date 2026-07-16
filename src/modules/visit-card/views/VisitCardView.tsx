@@ -538,7 +538,7 @@ export const VisitCardView = () => {
     }, [token]);
 
     useEffect(() => {
-        if (card) document.title = `Karta wizyty ${card.visitNumber} — ${card.company.name}`;
+        if (card) document.title = `Karta wizyty — ${card.company.name}`;
     }, [card]);
 
     if (!token || error) {
@@ -583,8 +583,8 @@ export const VisitCardView = () => {
                             ? <CompanyLogo src={company.logoUrl} alt={company.name} />
                             : <CompanyMark>{company.name}</CompanyMark>}
                     </CompanyLine>
-                    <Overline>Karta wizyty · {card.visitNumber}</Overline>
-                    <DocTitle>{card.title || vehicleLabel}</DocTitle>
+                    <Overline>Karta wizyty</Overline>
+                    <DocTitle>{vehicleLabel}</DocTitle>
                     <Lede>
                         {greetingName ? `${greetingName}, na` : 'Na'} tej stronie znajdziesz
                         wszystkie informacje o wizycie Twojego pojazdu — od rezerwacji po odbiór.
@@ -600,16 +600,6 @@ export const VisitCardView = () => {
                             <Fact>
                                 <FactLabel>Termin wizyty</FactLabel>
                                 <FactValue>{formatDateTime(card.reservation.scheduledDate)}</FactValue>
-                            </Fact>
-                            {card.reservation.estimatedCompletionDate && (
-                                <Fact>
-                                    <FactLabel>Planowane zakończenie</FactLabel>
-                                    <FactValue>{formatDateTime(card.reservation.estimatedCompletionDate)}</FactValue>
-                                </Fact>
-                            )}
-                            <Fact>
-                                <FactLabel>Numer wizyty</FactLabel>
-                                <FactValue>{card.visitNumber}</FactValue>
                             </Fact>
                         </FactGrid>
                     </SectionBody>
@@ -634,12 +624,6 @@ export const VisitCardView = () => {
                                 <Fact>
                                     <FactLabel>Rok produkcji</FactLabel>
                                     <FactValue>{card.vehicle.yearOfProduction}</FactValue>
-                                </Fact>
-                            )}
-                            {card.vehicle.color && (
-                                <Fact>
-                                    <FactLabel>Kolor</FactLabel>
-                                    <FactValue>{card.vehicle.color}</FactValue>
                                 </Fact>
                             )}
                         </FactGrid>
@@ -718,14 +702,17 @@ export const VisitCardView = () => {
                 {/* ── Podpisane zgody (po rozpoczęciu) ── */}
                 {inProgress && inProgress.signedConsents.length > 0 && (
                     <Section>
-                        <SectionTitle>Podpisane dokumenty i zgody</SectionTitle>
+                        <SectionTitle>Protokoły i dokumenty</SectionTitle>
                         <SectionBody>
                             <DocList>
                                 {inProgress.signedConsents.map((consent, idx) => (
                                     <DocRow key={idx}>
                                         <DocInfo>
                                             <DocName>{consent.name}</DocName>
-                                            <DocMeta>podpisano {formatDateTime(consent.signedAt)}</DocMeta>
+                                            {consent.signedAt
+                                                ? <DocMeta>podpisano {formatDateTime(consent.signedAt)}</DocMeta>
+                                                : <DocMeta>do podpisu</DocMeta>
+                                            }
                                         </DocInfo>
                                         {consent.downloadUrl && (
                                             <TextLink href={consent.downloadUrl} target="_blank" rel="noopener noreferrer">
