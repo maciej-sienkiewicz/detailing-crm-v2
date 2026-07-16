@@ -11,7 +11,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { visitCardApi } from '../api/visitCardApi';
-import type { VisitCard, VisitCardPaymentStatus, VisitCardStatus } from '../types';
+import type {
+    VisitCard,
+    VisitCardPaymentStatus,
+    VisitCardStatus,
+    VisitCardUpsellSuggestion,
+} from '../types';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 // Warm paper + ink + one muted accent. No gradients, no glow.
@@ -439,6 +444,113 @@ const TextLink = styled.a`
     &:hover { color: #2e4839; }
 `;
 
+/* ── Upsell (suggested additional services) ── */
+
+const UpsellIntro = styled.p`
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: ${INK_SOFT};
+    max-width: 52ch;
+`;
+
+const UpsellRow = styled.label<{ $interactive: boolean }>`
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid ${RULE};
+    cursor: ${p => (p.$interactive ? 'pointer' : 'default')};
+
+    &:last-of-type { border-bottom: none; }
+`;
+
+const UpsellCheck = styled.input`
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    position: relative;
+    top: 2px;
+    accent-color: ${ACCENT};
+    cursor: pointer;
+`;
+
+const UpsellInfo = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const UpsellName = styled.div`
+    font-size: 15px;
+    font-weight: 500;
+    color: ${INK};
+`;
+
+const UpsellNote = styled.div`
+    font-size: 13px;
+    color: ${INK_SOFT};
+`;
+
+const UpsellStateNote = styled.div`
+    font-size: 13px;
+    color: ${ACCENT};
+    font-weight: 500;
+`;
+
+const UpsellPrice = styled.div`
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+`;
+
+const UpsellPriceGross = styled.div`
+    font-size: 15px;
+    font-weight: 500;
+    color: ${INK};
+`;
+
+const UpsellPriceOld = styled.div`
+    font-size: 13px;
+    color: ${INK_FAINT};
+    text-decoration: line-through;
+`;
+
+const UpsellActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding-top: 16px;
+`;
+
+const UpsellButton = styled.button`
+    padding: 11px 22px;
+    border: 1px solid ${INK};
+    border-radius: 2px;
+    background: ${INK};
+    color: ${PAPER};
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 160ms ease;
+
+    &:hover:not(:disabled) { opacity: 0.85; }
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+`;
+
+const UpsellResult = styled.p<{ $ok: boolean }>`
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: ${p => (p.$ok ? ACCENT : '#8a3b2e')};
+    max-width: 52ch;
+`;
+
 /* ── Contact ── */
 
 const ContactBlock = styled.address`
@@ -523,10 +635,46 @@ const StateText = styled.div`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const UPSELL_STATE_LABEL: Record<Exclude<VisitCardUpsellSuggestion['status'], 'SUGGESTED'>, string> = {
+    REQUESTED: 'Oczekuje na potwierdzenie SMS',
+    CONFIRMED: 'Dodano do wizyty',
+};
+
 export const VisitCardView = () => {
     const { token } = useParams<{ token: string }>();
     const [card, setCard] = useState<VisitCard | null>(null);
     const [error, setError] = useState(false);
+    const [selectedUpsell, setSelectedUpsell] = useState<Set<string>>(new Set());
+    const [upsellSending, setUpsellSending] = useState(false);
+    const [upsellResult, setUpsellResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+    const toggleUpsell = (id: string) => {
+        setSelectedUpsell(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleRequestUpsell = async () => {
+        if (!token || selectedUpsell.size === 0) return;
+        setUpsellSending(true);
+        setUpsellResult(null);
+        try {
+            const result = await visitCardApi.requestUpsellServices(token, [...selectedUpsell]);
+            setUpsellResult({ ok: result.smsSent, message: result.message });
+            setSelectedUpsell(new Set());
+            setCard(prev => (prev ? { ...prev, upsellSuggestions: result.suggestions } : prev));
+        } catch {
+            setUpsellResult({
+                ok: false,
+                message: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie lub skontaktuj się z serwisem.',
+            });
+        } finally {
+            setUpsellSending(false);
+        }
+    };
 
     useEffect(() => {
         if (!token) return;
@@ -698,6 +846,70 @@ export const VisitCardView = () => {
                         )}
                     </SectionBody>
                 </Section>
+
+                {/* ── Sugerowane usługi dodatkowe (upselling) ── */}
+                {card.upsellSuggestions.length > 0 && (
+                    <Section>
+                        <SectionTitle>Polecane usługi dodatkowe</SectionTitle>
+                        <SectionBody>
+                            <UpsellIntro>
+                                Przygotowaliśmy propozycje usług dopasowane do Twojego pojazdu.
+                                Zaznacz interesujące Cię pozycje — wyślemy SMS z prośbą
+                                o potwierdzenie, zanim cokolwiek doliczymy do rezerwacji.
+                            </UpsellIntro>
+
+                            {card.upsellSuggestions.map(suggestion => {
+                                const selectable = suggestion.status === 'SUGGESTED';
+                                return (
+                                    <UpsellRow key={suggestion.id} $interactive={selectable}>
+                                        {selectable && (
+                                            <UpsellCheck
+                                                type="checkbox"
+                                                checked={selectedUpsell.has(suggestion.id)}
+                                                onChange={() => toggleUpsell(suggestion.id)}
+                                                disabled={upsellSending}
+                                            />
+                                        )}
+                                        <UpsellInfo>
+                                            <UpsellName>{suggestion.name}</UpsellName>
+                                            {suggestion.note && <UpsellNote>{suggestion.note}</UpsellNote>}
+                                            {suggestion.status !== 'SUGGESTED' && (
+                                                <UpsellStateNote>
+                                                    {UPSELL_STATE_LABEL[suggestion.status]}
+                                                </UpsellStateNote>
+                                            )}
+                                        </UpsellInfo>
+                                        <UpsellPrice>
+                                            <UpsellPriceGross>{formatPln(suggestion.priceGross)}</UpsellPriceGross>
+                                            {suggestion.originalPriceGross != null && (
+                                                <UpsellPriceOld>{formatPln(suggestion.originalPriceGross)}</UpsellPriceOld>
+                                            )}
+                                        </UpsellPrice>
+                                    </UpsellRow>
+                                );
+                            })}
+
+                            {card.upsellSuggestions.some(s => s.status === 'SUGGESTED') && (
+                                <UpsellActions>
+                                    <UpsellButton
+                                        onClick={handleRequestUpsell}
+                                        disabled={selectedUpsell.size === 0 || upsellSending}
+                                    >
+                                        {upsellSending
+                                            ? 'Wysyłanie…'
+                                            : selectedUpsell.size > 1
+                                                ? `Dodaj wybrane usługi (${selectedUpsell.size})`
+                                                : 'Dodaj wybraną usługę'}
+                                    </UpsellButton>
+                                </UpsellActions>
+                            )}
+
+                            {upsellResult && (
+                                <UpsellResult $ok={upsellResult.ok}>{upsellResult.message}</UpsellResult>
+                            )}
+                        </SectionBody>
+                    </Section>
+                )}
 
                 {/* ── Podpisane zgody (po rozpoczęciu) ── */}
                 {inProgress && inProgress.signedConsents.length > 0 && (

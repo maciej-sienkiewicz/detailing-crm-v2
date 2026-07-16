@@ -86,6 +86,28 @@ export interface VisitCardCompletion {
     paymentStatus: VisitCardPaymentStatus | null;
 }
 
+// ── Upselling (suggested additional services) ──
+
+export type UpsellSuggestionStatus = 'SUGGESTED' | 'REQUESTED' | 'CONFIRMED';
+
+/** Customer-facing suggestion shown on the public card. */
+export interface VisitCardUpsellSuggestion {
+    id: string;
+    name: string;
+    note: string | null;
+    priceNet: number;   // grosz
+    priceGross: number; // grosz
+    /** Gross price before the discount; null when no discount. */
+    originalPriceGross: number | null;
+    status: UpsellSuggestionStatus;
+}
+
+export interface RequestUpsellResponse {
+    smsSent: boolean;
+    message: string;
+    suggestions: VisitCardUpsellSuggestion[];
+}
+
 export interface VisitCard {
     visitNumber: string;
     title: string | null;
@@ -98,6 +120,7 @@ export interface VisitCard {
     totals: VisitCardTotals;
     inProgress: VisitCardInProgress | null;
     completion: VisitCardCompletion | null;
+    upsellSuggestions: VisitCardUpsellSuggestion[];
 }
 
 // Employee-side (authenticated) endpoints
@@ -112,4 +135,37 @@ export interface VisitCardSendResponse {
     emailSent: boolean;
     smsSent: boolean;
     message: string;
+}
+
+// Employee-side upsell suggestion management
+
+export type UpsellAdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
+
+export interface UpsellSuggestion {
+    id: string;
+    serviceId: string;
+    serviceName: string;
+    basePriceNet: number;
+    vatRate: number;
+    adjustmentType: UpsellAdjustmentType;
+    /** PERCENT: basis points (negative = discount); other types: grosz. */
+    adjustmentValue: number;
+    finalPriceNet: number;
+    finalPriceGross: number;
+    originalPriceGross: number;
+    note: string | null;
+    status: UpsellSuggestionStatus;
+    createdAt: string;
+    requestedAt: string | null;
+    confirmedAt: string | null;
+}
+
+export interface CreateUpsellSuggestionRequest {
+    serviceId: string;
+    adjustment?: {
+        type: UpsellAdjustmentType;
+        /** PERCENT: human percentage (e.g. -10.5); other types: grosz. */
+        value: number;
+    };
+    note?: string;
 }

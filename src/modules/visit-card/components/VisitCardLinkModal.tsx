@@ -11,6 +11,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { visitCardApi } from '../api/visitCardApi';
+import { UpsellSuggestionsManager } from './UpsellSuggestionsManager';
 
 const Description = styled.p`
     margin: 0 0 14px;
@@ -129,7 +130,7 @@ export const VisitCardLinkModal = ({ visitId, isOpen, onClose }: VisitCardLinkMo
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Karta Wizyty</ModalTitle>
@@ -161,6 +162,8 @@ export const VisitCardLinkModal = ({ visitId, isOpen, onClose }: VisitCardLinkMo
                 {sendResult && (
                     <SendResult $success={sendResult.success}>{sendResult.message}</SendResult>
                 )}
+
+                <UpsellSuggestionsManager visitId={visitId} active={isOpen} />
             </ModalContent>
             <ModalFooter>
                 <SharedButton
