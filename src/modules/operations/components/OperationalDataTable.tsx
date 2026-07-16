@@ -499,6 +499,22 @@ const RecurrencePill = styled.span`
     flex-shrink: 0;
 `;
 
+const DoorToDoorPill = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    background: rgba(14, 165, 233, 0.10);
+    color: #0284C7;
+    flex-shrink: 0;
+
+    svg { width: 10px; height: 10px; flex-shrink: 0; }
+`;
+
 const DetachedDot = styled.span`
     width: 6px;
     height: 6px;
@@ -951,6 +967,24 @@ export const OperationalDataTable = ({
                                                         {op.recurrenceInfo.recurrenceIndex + 1}/{op.recurrenceInfo.totalInSeries}
                                                         {op.recurrenceInfo.isDetached && <DetachedDot title="Odłączona od serii" />}
                                                     </RecurrencePill>
+                                                )}
+                                                {!isDeleted && op.type === 'RESERVATION' && op.doorToDoor?.hasPickup && (
+                                                    <DoorToDoorPill title="Door to Door — odbiór pojazdu od klienta">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <circle cx="12" cy="10" r="3" />
+                                                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                                        </svg>
+                                                        Z odbiorem pojazdu
+                                                    </DoorToDoorPill>
+                                                )}
+                                                {!isDeleted && op.type === 'VISIT' && op.doorToDoor?.hasDelivery && (
+                                                    <DoorToDoorPill title="Door to Door — dostarczenie pojazdu do klienta">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                                            <polyline points="9 22 9 12 15 12 15 22" />
+                                                        </svg>
+                                                        Z dostawą pod drzwi
+                                                    </DoorToDoorPill>
                                                 )}
                                             </RowMeta>
                                             {!isVisit && op.smsInfo && (

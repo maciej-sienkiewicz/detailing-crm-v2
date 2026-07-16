@@ -48,6 +48,13 @@ interface AppointmentResponse {
         confirmationSms: { status: 'SENT' | 'FAILED'; sentAt: string } | null;
         reminderSms: { requested: boolean; status: string | null; sentAt: string | null; editable: boolean };
     };
+    doorToDoor?: {
+        pickupCity: string;
+        pickupStreet: string;
+        deliveryCity: string;
+        deliveryStreet: string;
+        notes?: string | null;
+    } | null;
 }
 
 interface AppointmentsListResponse {
@@ -86,6 +93,13 @@ interface VisitResponse {
     createdAt: string;
     updatedAt: string;
     deletedAt?: string | null;
+    doorToDoor?: {
+        pickupCity: string;
+        pickupStreet: string;
+        deliveryCity: string;
+        deliveryStreet: string;
+        status: string;
+    } | null;
 }
 
 interface VisitsListResponse {
@@ -131,6 +145,10 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         },
         recurrenceInfo: appointment.recurrenceInfo ?? null,
         smsInfo: appointment.smsInfo as Operation['smsInfo'],
+        doorToDoor: appointment.doorToDoor ? {
+            hasPickup: !!(appointment.doorToDoor.pickupCity || appointment.doorToDoor.pickupStreet),
+            hasDelivery: !!(appointment.doorToDoor.deliveryCity || appointment.doorToDoor.deliveryStreet),
+        } : null,
     };
 };
 
@@ -166,6 +184,10 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
             },
         },
         deletedAt: visit.deletedAt ?? null,
+        doorToDoor: visit.doorToDoor ? {
+            hasPickup: !!(visit.doorToDoor.pickupCity || visit.doorToDoor.pickupStreet),
+            hasDelivery: !!(visit.doorToDoor.deliveryCity || visit.doorToDoor.deliveryStreet),
+        } : null,
     };
 };
 

@@ -79,6 +79,10 @@ export interface Operation {
     smsInfo?: OperationSmsInfo;
     recurrenceInfo?: RecurrenceInfo | null;
     deletedAt?: string | null;
+    doorToDoor?: {
+        hasPickup: boolean;
+        hasDelivery: boolean;
+    } | null;
 }
 
 export interface OperationListResponse {
