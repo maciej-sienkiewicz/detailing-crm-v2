@@ -10,7 +10,7 @@ import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { visitCardApi } from '../api/visitCardApi';
+import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
 import { UpsellSuggestionsManager } from './UpsellSuggestionsManager';
 
 const Description = styled.p`
@@ -69,27 +69,37 @@ const ErrorText = styled.div`
 `;
 
 interface VisitCardLinkModalProps {
-    visitId: string;
+    /** Visit the card belongs to. Provide either visitId or appointmentId. */
+    visitId?: string;
+    /** Reservation (appointment) the card belongs to — for pre-check-in cards. */
+    appointmentId?: string;
     isOpen: boolean;
     onClose: () => void;
 }
 
-export const VisitCardLinkModal = ({ visitId, isOpen, onClose }: VisitCardLinkModalProps) => {
+export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: VisitCardLinkModalProps) => {
     const [link, setLink] = useState<string | null>(null);
     const [loadError, setLoadError] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
+    const target: UpsellTarget = visitId
+        ? { kind: 'visit', id: visitId }
+        : { kind: 'appointment', id: appointmentId ?? '' };
+
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || !target.id) return;
         setLink(null);
         setLoadError(false);
         setCopied(false);
         setSendResult(null);
 
         let cancelled = false;
-        visitCardApi.getCardLink(visitId)
+        const fetchLink = target.kind === 'visit'
+            ? visitCardApi.getCardLink(target.id)
+            : visitCardApi.getAppointmentCardLink(target.id);
+        fetchLink
             .then(res => {
                 if (cancelled) return;
                 // Build the URL on the current origin so the preview works in every environment
@@ -97,7 +107,7 @@ export const VisitCardLinkModal = ({ visitId, isOpen, onClose }: VisitCardLinkMo
             })
             .catch(() => { if (!cancelled) setLoadError(true); });
         return () => { cancelled = true; };
-    }, [isOpen, visitId]);
+    }, [isOpen, target.kind, target.id]);
 
     const handleCopy = async () => {
         if (!link) return;
@@ -120,7 +130,9 @@ export const VisitCardLinkModal = ({ visitId, isOpen, onClose }: VisitCardLinkMo
         setIsSending(true);
         setSendResult(null);
         try {
-            const res = await visitCardApi.sendCardLink(visitId);
+            const res = target.kind === 'visit'
+                ? await visitCardApi.sendCardLink(target.id)
+                : await visitCardApi.sendAppointmentCardLink(target.id);
             setSendResult({ success: res.emailSent || res.smsSent, message: res.message });
         } catch {
             setSendResult({ success: false, message: 'Nie udało się wysłać Karty Wizyty' });
@@ -163,7 +175,7 @@ export const VisitCardLinkModal = ({ visitId, isOpen, onClose }: VisitCardLinkMo
                     <SendResult $success={sendResult.success}>{sendResult.message}</SendResult>
                 )}
 
-                <UpsellSuggestionsManager visitId={visitId} active={isOpen} />
+                <UpsellSuggestionsManager target={target} active={isOpen} />
             </ModalContent>
             <ModalFooter>
                 <SharedButton

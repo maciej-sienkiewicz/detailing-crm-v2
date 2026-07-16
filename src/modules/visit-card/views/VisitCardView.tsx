@@ -42,6 +42,7 @@ const formatDateTime = (iso: string): string =>
     });
 
 const STATUS_LABEL: Record<VisitCardStatus, string> = {
+    RESERVATION:      'Rezerwacja potwierdzona',
     DRAFT:            'Przyjęcie w toku',
     IN_PROGRESS:      'W realizacji',
     READY_FOR_PICKUP: 'Gotowy do odbioru',
@@ -711,7 +712,9 @@ export const VisitCardView = () => {
     }
 
     const greetingName = card.customer.firstName;
-    const vehicleLabel = `${card.vehicle.brand} ${card.vehicle.model}`;
+    const vehicleLabel = card.vehicle
+        ? `${card.vehicle.brand} ${card.vehicle.model}`
+        : 'Twoja rezerwacja';
     const { inProgress, completion, company } = card;
 
     const addressLine = [company.street, [company.postalCode, company.city].filter(Boolean).join(' ')]
@@ -754,29 +757,31 @@ export const VisitCardView = () => {
                 </Section>
 
                 {/* ── Pojazd ── */}
-                <Section>
-                    <SectionTitle>Pojazd</SectionTitle>
-                    <SectionBody>
-                        <FactGrid>
-                            <Fact>
-                                <FactLabel>Marka i model</FactLabel>
-                                <FactValue>{vehicleLabel}</FactValue>
-                            </Fact>
-                            {card.vehicle.licensePlate && (
+                {card.vehicle && (
+                    <Section>
+                        <SectionTitle>Pojazd</SectionTitle>
+                        <SectionBody>
+                            <FactGrid>
                                 <Fact>
-                                    <FactLabel>Numer rejestracyjny</FactLabel>
-                                    <FactValue>{card.vehicle.licensePlate}</FactValue>
+                                    <FactLabel>Marka i model</FactLabel>
+                                    <FactValue>{vehicleLabel}</FactValue>
                                 </Fact>
-                            )}
-                            {card.vehicle.yearOfProduction != null && (
-                                <Fact>
-                                    <FactLabel>Rok produkcji</FactLabel>
-                                    <FactValue>{card.vehicle.yearOfProduction}</FactValue>
-                                </Fact>
-                            )}
-                        </FactGrid>
-                    </SectionBody>
-                </Section>
+                                {card.vehicle.licensePlate && (
+                                    <Fact>
+                                        <FactLabel>Numer rejestracyjny</FactLabel>
+                                        <FactValue>{card.vehicle.licensePlate}</FactValue>
+                                    </Fact>
+                                )}
+                                {card.vehicle.yearOfProduction != null && (
+                                    <Fact>
+                                        <FactLabel>Rok produkcji</FactLabel>
+                                        <FactValue>{card.vehicle.yearOfProduction}</FactValue>
+                                    </Fact>
+                                )}
+                            </FactGrid>
+                        </SectionBody>
+                    </Section>
+                )}
 
                 {/* ── Przebieg wizyty ── */}
                 <Section>

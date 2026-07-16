@@ -2,6 +2,7 @@
 // Types mirroring backend pl.detailing.crm.visitcard.VisitCardDtos
 
 export type VisitCardStatus =
+    | 'RESERVATION'
     | 'DRAFT'
     | 'IN_PROGRESS'
     | 'READY_FOR_PICKUP'
@@ -113,7 +114,8 @@ export interface VisitCard {
     title: string | null;
     status: VisitCardStatus;
     reservation: VisitCardReservation;
-    vehicle: VisitCardVehicle;
+    /** Null for reservations without an assigned vehicle. */
+    vehicle: VisitCardVehicle | null;
     customer: VisitCardCustomer;
     company: VisitCardCompany;
     services: VisitCardServiceLine[];

@@ -29,6 +29,20 @@ export const visitCardApi = {
         return response.data;
     },
 
+    // ── Reservation (appointment) variants — same card, issued before check-in ──
+
+    /** Employee endpoint: stable shareable link for a reservation's card. */
+    getAppointmentCardLink: async (appointmentId: string): Promise<VisitCardLinkResponse> => {
+        const response = await apiClient.get<VisitCardLinkResponse>(`/appointments/${appointmentId}/card-link`);
+        return response.data;
+    },
+
+    /** Employee endpoint: send the reservation card link to the customer. */
+    sendAppointmentCardLink: async (appointmentId: string): Promise<VisitCardSendResponse> => {
+        const response = await apiClient.post<VisitCardSendResponse>(`/appointments/${appointmentId}/card-link/send`);
+        return response.data;
+    },
+
     // ── Upselling ──
 
     /** Public endpoint: customer requests adding selected suggested services (triggers consent SMS). */
@@ -40,23 +54,33 @@ export const visitCardApi = {
         return response.data;
     },
 
-    /** Employee endpoint: list upsell suggestions assigned to the visit. */
-    getUpsellSuggestions: async (visitId: string): Promise<UpsellSuggestion[]> => {
-        const response = await apiClient.get<UpsellSuggestion[]>(`/visits/${visitId}/upsell-suggestions`);
+    /** Employee endpoint: list upsell suggestions assigned to the visit/reservation. */
+    getUpsellSuggestions: async (target: UpsellTarget): Promise<UpsellSuggestion[]> => {
+        const response = await apiClient.get<UpsellSuggestion[]>(`${upsellBasePath(target)}`);
         return response.data;
     },
 
-    /** Employee endpoint: attach a suggested service (with optional discount) to the visit. */
+    /** Employee endpoint: attach a suggested service (with optional discount) to the visit/reservation. */
     createUpsellSuggestion: async (
-        visitId: string,
+        target: UpsellTarget,
         request: CreateUpsellSuggestionRequest,
     ): Promise<UpsellSuggestion> => {
-        const response = await apiClient.post<UpsellSuggestion>(`/visits/${visitId}/upsell-suggestions`, request);
+        const response = await apiClient.post<UpsellSuggestion>(`${upsellBasePath(target)}`, request);
         return response.data;
     },
 
     /** Employee endpoint: remove a suggestion (only while it is still SUGGESTED). */
-    deleteUpsellSuggestion: async (visitId: string, suggestionId: string): Promise<void> => {
-        await apiClient.delete(`/visits/${visitId}/upsell-suggestions/${suggestionId}`);
+    deleteUpsellSuggestion: async (target: UpsellTarget, suggestionId: string): Promise<void> => {
+        await apiClient.delete(`${upsellBasePath(target)}/${suggestionId}`);
     },
 };
+
+/** The card and its suggestions can hang off a visit or a reservation (appointment). */
+export type UpsellTarget =
+    | { kind: 'visit'; id: string }
+    | { kind: 'appointment'; id: string };
+
+const upsellBasePath = (target: UpsellTarget): string =>
+    target.kind === 'visit'
+        ? `/visits/${target.id}/upsell-suggestions`
+        : `/appointments/${target.id}/upsell-suggestions`;

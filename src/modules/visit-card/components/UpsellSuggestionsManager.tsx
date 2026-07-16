@@ -1,15 +1,23 @@
 // src/modules/visit-card/components/UpsellSuggestionsManager.tsx
 //
 // Employee-facing manager of "suggested additional services" (upselling) for a
-// single visit. Suggestions are assigned intentionally, one by one, and appear
-// on the customer's public Visit Card, where the customer can request them
-// (which triggers a consent SMS: "Odpisz TAK…").
+// single visit or reservation. Suggestions are assigned intentionally, one by
+// one, and appear on the customer's public Visit Card, where the customer can
+// request them (which triggers a consent SMS: "Odpisz TAK…").
+//
+// UI follows the app-wide patterns: the service picker is the shared
+// ServiceAutocomplete (styled suggestion dropdown), and the discount editor
+// offers the same adjustment types as everywhere else (percent, fixed net/gross,
+// set net/gross).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { servicesApi } from '@/modules/services/api/servicesApi';
+import { FieldGroup, Label, Input, Select } from '@/common/components/Form';
+import { t } from '@/common/i18n';
+import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjustment';
+import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
 import type { Service } from '@/modules/services/types';
-import { visitCardApi } from '../api/visitCardApi';
+import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
 import type { UpsellSuggestion, UpsellSuggestionStatus } from '../types';
 
 const formatPln = (grosz: number): string =>
@@ -18,7 +26,7 @@ const formatPln = (grosz: number): string =>
 const STATUS_LABEL: Record<UpsellSuggestionStatus, string> = {
     SUGGESTED: 'Widoczna na karcie',
     REQUESTED: 'Klient wybrał — czeka na SMS „TAK”',
-    CONFIRMED: 'Potwierdzona i dodana do wizyty',
+    CONFIRMED: 'Potwierdzona i dodana',
 };
 
 const Wrap = styled.div`
@@ -41,42 +49,67 @@ const Hint = styled.p`
     color: #64748b;
 `;
 
-const FormRow = styled.div`
+const SelectedServicePanel = styled.div`
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+`;
+
+const SelectedServiceHeader = styled.div`
     display: flex;
-    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+`;
+
+const SelectedServiceName = styled.div`
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const SelectedServicePrice = styled.div`
+    font-size: 12.5px;
+    color: #64748b;
+    white-space: nowrap;
+    font-feature-settings: 'tnum';
+`;
+
+const DiscountGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    @media (min-width: 480px) {
+        grid-template-columns: 1fr 1fr;
+    }
+`;
+
+const PreviewLine = styled.div`
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: #0f172a;
+    font-feature-settings: 'tnum';
+
+    strong { font-weight: 700; }
+`;
+
+const PreviewOld = styled.span`
+    margin-right: 6px;
+    color: #94a3b8;
+    text-decoration: line-through;
+`;
+
+const PanelActions = styled.div`
+    display: flex;
     gap: 8px;
+    margin-top: 12px;
 `;
 
-const Select = styled.select`
-    flex: 1 1 200px;
-    min-width: 0;
-    padding: 9px 10px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #0f172a;
-    background: #fff;
-`;
-
-const DiscountInput = styled.input`
-    width: 92px;
-    padding: 9px 10px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #0f172a;
-`;
-
-const NoteInput = styled.input`
-    flex: 1 1 100%;
-    padding: 9px 10px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #0f172a;
-`;
-
-const AddBtn = styled.button`
+const PrimaryBtn = styled.button`
     padding: 9px 16px;
     border: none;
     border-radius: 8px;
@@ -87,6 +120,19 @@ const AddBtn = styled.button`
     cursor: pointer;
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const GhostBtn = styled.button`
+    padding: 9px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover { border-color: #cbd5e1; }
 `;
 
 const List = styled.ul`
@@ -127,6 +173,7 @@ const RowPrice = styled.div`
     font-weight: 600;
     color: #0f172a;
     white-space: nowrap;
+    font-feature-settings: 'tnum';
 `;
 
 const RowOldPrice = styled.span`
@@ -164,67 +211,80 @@ const EmptyText = styled.div`
 `;
 
 interface UpsellSuggestionsManagerProps {
-    visitId: string;
+    /** Visit or reservation the suggestions are attached to. */
+    target: UpsellTarget;
     /** Reload trigger — the parent passes its `isOpen` so data refreshes on each open. */
     active: boolean;
 }
 
-export const UpsellSuggestionsManager = ({ visitId, active }: UpsellSuggestionsManagerProps) => {
+const MONEY_TYPES: AdjustmentType[] = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'];
+
+export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsManagerProps) => {
     const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
-    const [services, setServices] = useState<Service[]>([]);
-    const [selectedServiceId, setSelectedServiceId] = useState('');
-    const [discountPercent, setDiscountPercent] = useState('');
+    const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [adjustmentType, setAdjustmentType] = useState<AdjustmentType>('PERCENT');
+    const [adjustmentInput, setAdjustmentInput] = useState('');
     const [note, setNote] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
-        const list = await visitCardApi.getUpsellSuggestions(visitId);
+        const list = await visitCardApi.getUpsellSuggestions(target);
         setSuggestions(list);
-    }, [visitId]);
+    }, [target]);
 
     useEffect(() => {
         if (!active) return;
         let cancelled = false;
         setError(null);
-        Promise.all([
-            visitCardApi.getUpsellSuggestions(visitId),
-            servicesApi.getServices({ search: '', page: 1, limit: 200 }),
-        ])
-            .then(([list, servicesResponse]) => {
-                if (cancelled) return;
-                setSuggestions(list);
-                setServices(servicesResponse.services.filter(s => s.isActive));
-            })
+        setSelectedService(null);
+        visitCardApi.getUpsellSuggestions(target)
+            .then(list => { if (!cancelled) setSuggestions(list); })
             .catch(() => { if (!cancelled) setError('Nie udało się pobrać sugerowanych usług.'); });
         return () => { cancelled = true; };
-    }, [active, visitId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active, target.kind, target.id]);
 
-    // Services already suggested are hidden from the picker to avoid duplicates.
-    const availableServices = useMemo(() => {
-        const suggestedServiceIds = new Set(suggestions.map(s => s.serviceId));
-        return services.filter(s => !suggestedServiceIds.has(s.id));
-    }, [services, suggestions]);
+    const parsedValue = Number(adjustmentInput.replace(',', '.'));
+    const hasValue = adjustmentInput.trim() !== '' && !Number.isNaN(parsedValue) && parsedValue >= 0;
+
+    /** UI value → shared PriceAdjustment semantics (percent signed, money in cents). */
+    const toAdjustment = () => ({
+        type: adjustmentType,
+        value: adjustmentType === 'PERCENT'
+            ? -Math.abs(parsedValue || 0)
+            : Math.round(Math.abs(parsedValue || 0) * 100),
+    });
+
+    const preview = selectedService
+        ? applyAdjustment(selectedService.basePriceNet, selectedService.vatRate, hasValue ? toAdjustment() : { type: 'PERCENT', value: 0 })
+        : null;
+
+    const handleSelectService = (service: Service) => {
+        setSelectedService(service);
+        setAdjustmentType('PERCENT');
+        setAdjustmentInput('');
+        setNote('');
+        setError(null);
+    };
 
     const handleAdd = async () => {
-        if (!selectedServiceId) return;
-        const percent = discountPercent.trim() === '' ? 0 : Number(discountPercent.replace(',', '.'));
-        if (Number.isNaN(percent) || percent < 0 || percent >= 100) {
-            setError('Rabat musi być liczbą z zakresu 0–99,99%.');
+        if (!selectedService) return;
+        if (adjustmentInput.trim() !== '' && (Number.isNaN(parsedValue) || parsedValue < 0)) {
+            setError('Wartość rabatu musi być liczbą nieujemną.');
             return;
         }
 
         setBusy(true);
         setError(null);
         try {
-            await visitCardApi.createUpsellSuggestion(visitId, {
-                serviceId: selectedServiceId,
-                adjustment: percent > 0 ? { type: 'PERCENT', value: -percent } : undefined,
+            const adjustment = hasValue && parsedValue > 0 ? toAdjustment() : undefined;
+            await visitCardApi.createUpsellSuggestion(target, {
+                serviceId: selectedService.id,
+                adjustment,
                 note: note.trim() || undefined,
             });
-            setSelectedServiceId('');
-            setDiscountPercent('');
-            setNote('');
+            setSelectedService(null);
             await reload();
         } catch {
             setError('Nie udało się dodać sugestii.');
@@ -237,7 +297,7 @@ export const UpsellSuggestionsManager = ({ visitId, active }: UpsellSuggestionsM
         setBusy(true);
         setError(null);
         try {
-            await visitCardApi.deleteUpsellSuggestion(visitId, suggestionId);
+            await visitCardApi.deleteUpsellSuggestion(target, suggestionId);
             await reload();
         } catch {
             setError('Nie udało się usunąć sugestii.');
@@ -245,6 +305,8 @@ export const UpsellSuggestionsManager = ({ visitId, active }: UpsellSuggestionsM
             setBusy(false);
         }
     };
+
+    const discountLabels = t.appointments.invoiceSummary.discountTypes;
 
     return (
         <Wrap>
@@ -254,44 +316,95 @@ export const UpsellSuggestionsManager = ({ visitId, active }: UpsellSuggestionsM
                 Gdy klient je wybierze, otrzyma SMS z prośbą o potwierdzenie odpowiedzią „TAK”.
             </Hint>
 
-            <FormRow>
-                <Select
-                    value={selectedServiceId}
-                    onChange={e => setSelectedServiceId(e.target.value)}
-                    disabled={busy}
-                >
-                    <option value="">Wybierz usługę z cennika…</option>
-                    {availableServices.map(service => (
-                        <option key={service.id} value={service.id}>
-                            {service.name}
-                        </option>
-                    ))}
-                </Select>
-                <DiscountInput
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Rabat %"
-                    value={discountPercent}
-                    onChange={e => setDiscountPercent(e.target.value)}
-                    disabled={busy}
-                />
-                <AddBtn onClick={handleAdd} disabled={!selectedServiceId || busy}>
-                    Dodaj
-                </AddBtn>
-                <NoteInput
-                    type="text"
-                    maxLength={500}
-                    placeholder="Notatka dla klienta (opcjonalnie)"
-                    value={note}
-                    onChange={e => setNote(e.target.value)}
-                    disabled={busy}
-                />
-            </FormRow>
+            {!selectedService && <ServiceAutocomplete onSelect={handleSelectService} />}
+
+            {selectedService && (
+                <SelectedServicePanel>
+                    <SelectedServiceHeader>
+                        <SelectedServiceName>{selectedService.name}</SelectedServiceName>
+                        <SelectedServicePrice>
+                            netto {formatPln(selectedService.basePriceNet)}
+                        </SelectedServicePrice>
+                    </SelectedServiceHeader>
+
+                    <DiscountGrid>
+                        <FieldGroup>
+                            <Label>Rabat</Label>
+                            <Select
+                                value={adjustmentType}
+                                onChange={e => setAdjustmentType(e.target.value as AdjustmentType)}
+                                disabled={busy}
+                            >
+                                <option value="PERCENT">{discountLabels.percent}</option>
+                                <option value="FIXED_NET">{discountLabels.fixedNet}</option>
+                                <option value="FIXED_GROSS">{discountLabels.fixedGross}</option>
+                                <option value="SET_NET">{discountLabels.setNet}</option>
+                                <option value="SET_GROSS">{discountLabels.setGross}</option>
+                            </Select>
+                        </FieldGroup>
+                        <FieldGroup>
+                            <Label>{adjustmentType === 'PERCENT' ? 'Wartość (%)' : 'Wartość (PLN)'}</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder={adjustmentType === 'PERCENT' ? 'np. 10' : 'np. 50,00'}
+                                value={adjustmentInput}
+                                onChange={e => setAdjustmentInput(e.target.value)}
+                                disabled={busy}
+                            />
+                        </FieldGroup>
+                    </DiscountGrid>
+
+                    <FieldGroup style={{ marginTop: 10 }}>
+                        <Label>Notatka dla klienta (opcjonalnie)</Label>
+                        <Input
+                            type="text"
+                            maxLength={500}
+                            placeholder="np. polecane przy tym przebiegu"
+                            value={note}
+                            onChange={e => setNote(e.target.value)}
+                            disabled={busy}
+                        />
+                    </FieldGroup>
+
+                    {preview && (
+                        <PreviewLine>
+                            Cena dla klienta:{' '}
+                            {preview.hasDiscount && (
+                                <PreviewOld>
+                                    {formatPln(applyAdjustment(selectedService.basePriceNet, selectedService.vatRate, { type: 'PERCENT', value: 0 }).finalGrossCents)}
+                                </PreviewOld>
+                            )}
+                            <strong>{formatPln(preview.finalGrossCents)} brutto</strong>
+                            {' '}({formatPln(preview.finalNetCents)} netto)
+                        </PreviewLine>
+                    )}
+
+                    {MONEY_TYPES.includes(adjustmentType) && !hasValue && (
+                        <Hint style={{ marginTop: 8, marginBottom: 0 }}>
+                            Podaj kwotę, aby zastosować ten typ rabatu.
+                        </Hint>
+                    )}
+
+                    <PanelActions>
+                        <PrimaryBtn
+                            onClick={handleAdd}
+                            disabled={busy || (MONEY_TYPES.includes(adjustmentType) && !hasValue)}
+                        >
+                            Dodaj sugestię
+                        </PrimaryBtn>
+                        <GhostBtn onClick={() => setSelectedService(null)} disabled={busy}>
+                            Anuluj
+                        </GhostBtn>
+                    </PanelActions>
+                </SelectedServicePanel>
+            )}
 
             {error && <ErrorText>{error}</ErrorText>}
 
             {suggestions.length === 0 ? (
-                <EmptyText>Brak sugerowanych usług dla tej wizyty.</EmptyText>
+                <EmptyText>Brak sugerowanych usług.</EmptyText>
             ) : (
                 <List>
                     {suggestions.map(suggestion => (
