@@ -147,22 +147,16 @@ const RowKebabBtn = styled(KebabBtn)`
     @media (max-width: 767px) { opacity: 1; }
 `;
 
-const VatEditSelect = styled.select`
-    padding: 8px 8px;
-    border: 1.5px solid ${st.border};
+const EditorVatStatic = styled.div`
+    padding: 8px 10px;
+    border: 1.5px dashed ${st.border};
     border-radius: 9px;
-    font-size: 13px;
-    font-family: inherit;
-    color: ${st.text};
-    background: ${st.bgCard};
-    outline: none;
-    cursor: pointer;
-    transition: border-color 180ms, box-shadow 180ms;
-
-    &:focus {
-        border-color: ${BRAND};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
+    font-size: 14px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    background: ${st.bg};
+    text-align: center;
+    cursor: help;
 `;
 
 const Table = styled.table`
@@ -1538,15 +1532,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         if (g !== null) setEdNetStr(eFmt(eNetFromGross(g, edVatRate)));
     };
 
-    const handleEdVatChange = (vat: number) => {
-        setEdVatRate(vat);
-        setEdDirty(true);
-        if (edMode === 'SET') {
-            const n = eParse(edNetStr);
-            if (n !== null) setEdGrossStr(eFmt(eGrossFromNet(n, vat)));
-        }
-    };
-
     const pickQuickDiscount = (pct: number) => {
         setEdMode('DISCOUNT');
         setEdAdjType('PERCENT');
@@ -2167,14 +2152,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </EditorField>
                                     <EditorField>
                                         <EditorFieldLabel>VAT</EditorFieldLabel>
-                                        <VatEditSelect
-                                            value={edVatRate}
-                                            onChange={e => handleEdVatChange(Number(e.target.value))}
-                                        >
-                                            {[23, 8, 5, 0, -1].map(rate => (
-                                                <option key={rate} value={rate}>{rate === -1 ? 'zw.' : `${rate}%`}</option>
-                                            ))}
-                                        </VatEditSelect>
+                                        <EditorVatStatic title="Stawkę VAT zmienisz zbiorczo dla wszystkich usług — menu ⋯ nad tabelą">
+                                            {fmtVat(edVatRate)}
+                                        </EditorVatStatic>
                                     </EditorField>
                                 </EditorGrid>
                             </div>
