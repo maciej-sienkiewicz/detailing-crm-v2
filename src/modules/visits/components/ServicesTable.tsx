@@ -68,24 +68,6 @@ const TableSubtitle = styled.p`
     color: ${st.textMuted};
 `;
 
-const BulkVatTrigger = styled.button`
-    display: inline-flex;
-    align-items: center;
-    padding: 0;
-    margin-left: 3px;
-    background: transparent;
-    color: ${st.textMuted};
-    border: none;
-    cursor: pointer;
-    opacity: 0.5;
-    vertical-align: middle;
-    line-height: 1;
-
-    svg { width: 9px; height: 9px; display: block; }
-    &:hover:not(:disabled) { opacity: 1; }
-    &:disabled { opacity: 0.2; cursor: not-allowed; }
-`;
-
 const AddBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -117,127 +99,70 @@ const AddBtn = styled.button`
     }
 
     @media (max-width: 640px) {
-        width: 100%;
+        flex: 1;
         justify-content: center;
     }
 `;
 
-const DeleteRowBtn = styled.button`
+const KebabBtn = styled.button`
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 9px;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
     border: 1px solid ${st.border};
     border-radius: ${st.radiusFull};
-    background: transparent;
+    background: ${st.bgCard};
     color: ${st.textMuted};
-    font-size: ${st.fontXs};
-    font-weight: 600;
     cursor: pointer;
-    transition: background 150ms, border-color 150ms, color 150ms;
-    white-space: nowrap;
+    transition: all ${st.transition};
+    flex-shrink: 0;
 
-    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; color: ${st.textSecondary}; }
-    svg { width: 11px; height: 11px; }
+    svg { width: 15px; height: 15px; }
 
-    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
+    &:hover:not(:disabled) {
+        border-color: ${BRAND};
+        color: ${BRAND_DARK};
+        background: ${BRAND_DIM};
+    }
+
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
-const EditPriceBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 9px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
+const RowKebabBtn = styled(KebabBtn)`
+    width: 28px;
+    height: 28px;
+    border-color: transparent;
     background: transparent;
-    color: ${st.textMuted};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 150ms, border-color 150ms, color 150ms;
-    white-space: nowrap;
+    opacity: 0.45;
 
-    &:hover { background: ${BRAND_DIM}; border-color: ${BRAND}; color: ${BRAND_DARK}; }
-    svg { width: 11px; height: 11px; }
+    tr:hover & { opacity: 1; }
 
-    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
+    &:hover:not(:disabled) {
+        border-color: ${st.border};
+        background: ${st.bg};
+        color: ${st.textSecondary};
+    }
+
+    @media (max-width: 767px) { opacity: 1; }
 `;
 
 const VatEditSelect = styled.select`
-    padding: 4px 6px;
-    border: 1.5px solid ${BRAND};
-    border-radius: 7px;
+    padding: 8px 8px;
+    border: 1.5px solid ${st.border};
+    border-radius: 9px;
     font-size: 13px;
     font-family: inherit;
     color: ${st.text};
     background: ${st.bgCard};
     outline: none;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     cursor: pointer;
-`;
+    transition: border-color 180ms, box-shadow 180ms;
 
-const PriceEditInput = styled.input`
-    width: 80px;
-    padding: 4px 7px;
-    border: 1.5px solid ${BRAND};
-    border-radius: 7px;
-    font-size: 13px;
-    font-family: inherit;
-    color: ${st.text};
-    background: ${st.bgCard};
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    font-feature-settings: 'tnum';
-    text-align: right;
-`;
-
-const EditConfirmBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 50%;
-    background: #22c55e;
-    color: white;
-    cursor: pointer;
-    transition: background 150ms;
-    flex-shrink: 0;
-
-    &:hover { background: #16a34a; }
-    svg { width: 13px; height: 13px; }
-`;
-
-const EditCancelBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border: 1px solid ${st.border};
-    border-radius: 50%;
-    background: transparent;
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: background 150ms, border-color 150ms;
-    flex-shrink: 0;
-
-    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
-    svg { width: 11px; height: 11px; }
-`;
-
-const EditedPriceWrap = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-`;
-
-const EditedBadge = styled.span`
-    font-size: 10px;
-    color: ${BRAND_DARK};
-    font-weight: 600;
+    &:focus {
+        border-color: ${BRAND};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
 `;
 
 const Table = styled.table`
@@ -256,9 +181,9 @@ const Thead = styled.thead`
     @media (max-width: 767px) { display: none; }
 `;
 
-const Th = styled.th`
+const Th = styled.th<{ $right?: boolean }>`
     padding: 9px 16px;
-    text-align: left;
+    text-align: ${p => p.$right ? 'right' : 'left'};
     font-size: ${st.fontXs};
     font-weight: 700;
     color: ${st.textMuted};
@@ -268,53 +193,16 @@ const Th = styled.th`
 `;
 
 const ActionsCell = styled.td`
-    padding: 12px 16px;
+    padding: 10px 12px 10px 4px;
     text-align: right;
+    width: 44px;
 
-    @media (max-width: 767px) { padding: 0; }
-`;
-
-const RowActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-
-    @media (max-width: 767px) { flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
+    @media (max-width: 767px) { padding: 0; width: auto; }
 `;
 
 const ActionMenuWrapper = styled.div`
     position: relative;
     display: inline-flex;
-`;
-
-const ActionMenuBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCard};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-    box-shadow: ${st.shadowXs};
-
-    &:hover:not(:disabled) {
-        border-color: ${BRAND};
-        color: ${BRAND};
-        background: ${BRAND_DIM};
-    }
-
-    &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
-
-    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
 `;
 
 const ContextMenu = styled.div`
@@ -326,7 +214,7 @@ const ContextMenu = styled.div`
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     box-shadow: ${st.shadowLg};
-    min-width: 180px;
+    min-width: 190px;
     overflow: hidden;
 `;
 
@@ -352,7 +240,8 @@ const ContextMenuItem = styled.button<{ $variant?: 'danger' }>`
     }
 `;
 
-// Confirm modal
+/* ─── Confirm modal ─── */
+
 const ModalOverlay = styled.div`
     position: fixed;
     inset: 0;
@@ -452,6 +341,12 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
         : props.$pendingOp === 'ADD' ? 'rgba(16,185,129,0.04)'
         : 'transparent'};
 
+    /* Exceptional states get a thin accent bar on the left edge */
+    box-shadow: ${props => props.$pendingOp === 'DELETE' ? 'inset 3px 0 0 #ef4444'
+        : props.$pendingOp === 'EDIT' ? 'inset 3px 0 0 #f59e0b'
+        : props.$pendingOp === 'ADD' ? 'inset 3px 0 0 #10b981'
+        : 'none'};
+
     ${props => props.$highlight && css`animation: ${pendingPulse} 0.9s ease-in-out 4;`}
 
     &:hover {
@@ -464,80 +359,28 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
 
     @media (max-width: 767px) {
         display: flex;
-        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px;
         padding: 14px 16px;
 
-        /* Usługa — full width */
+        /* Usługa — grows */
         td:nth-child(1) {
-            flex: 0 0 100%;
-            padding: 0 0 12px;
-            border-bottom: 1px dashed ${st.border};
-            margin-bottom: 12px;
+            flex: 1;
+            padding: 0;
+            min-width: 0;
         }
 
-        /* Netto */
+        /* Cena — right */
         td:nth-child(2) {
-            flex: 1;
+            flex: 0 0 auto;
             padding: 0;
-            min-width: 0;
-        }
-        td:nth-child(2)::before {
-            content: 'Netto';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: ${st.textMuted};
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
-        }
-
-        /* VAT */
-        td:nth-child(3) {
-            flex: 0 0 52px;
-            padding: 0 10px;
-            text-align: center;
-            border-left: 1px solid ${st.border};
-            border-right: 1px solid ${st.border};
-        }
-        td:nth-child(3)::before {
-            content: 'VAT';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: ${st.textMuted};
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
-            text-align: center;
-        }
-
-        /* Brutto */
-        td:nth-child(4) {
-            flex: 1;
-            padding: 0;
-            min-width: 0;
-            text-align: right;
-        }
-        td:nth-child(4)::before {
-            content: 'Brutto';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: ${st.textMuted};
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
             text-align: right;
         }
 
         /* Akcje */
-        td:nth-child(5) {
-            flex: 0 0 100%;
-            padding: 10px 0 0;
-            border-top: 1px dashed ${st.border};
-            margin-top: 10px;
-            text-align: left;
+        td:nth-child(3) {
+            flex: 0 0 auto;
+            padding: 0;
         }
     }
 `;
@@ -546,13 +389,33 @@ const Td = styled.td`
     padding: 12px 16px;
     font-size: ${st.fontSm};
     color: ${st.text};
+    vertical-align: top;
 
     @media (max-width: 767px) { padding: 0; }
 `;
 
-const ServiceName = styled.div`
+const PriceTd = styled(Td)<{ $clickable?: boolean }>`
+    text-align: right;
+    white-space: nowrap;
+    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
+    border-radius: 8px;
+
+    ${p => p.$clickable && css`
+        &:hover {
+            background: ${BRAND_DIM};
+        }
+    `}
+`;
+
+const NameLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+`;
+
+const ServiceName = styled.span`
     font-weight: 600;
-    margin-bottom: 2px;
     color: ${st.text};
 `;
 
@@ -560,6 +423,7 @@ const ServiceNote = styled.div`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
     font-style: italic;
+    margin-top: 2px;
 `;
 
 const PackageSubTr = styled.tr<{ $last?: boolean }>`
@@ -570,6 +434,8 @@ const PackageSubTr = styled.tr<{ $last?: boolean }>`
             ? '2px solid rgba(37, 99, 235, 0.08)'
             : '1px solid rgba(37, 99, 235, 0.06)'} !important;
     }
+
+    @media (max-width: 767px) { display: block; }
 `;
 
 const PackageSubTd = styled.td`
@@ -606,71 +472,92 @@ const PackageBadge = styled.span`
     flex-shrink: 0;
 `;
 
-
-const ServiceStatusBadge = styled.div<{ $status: 'CONFIRMED' | 'PENDING' }>`
+/* Status shown only by exception — pending states */
+const PendingChip = styled.span`
     display: inline-flex;
     align-items: center;
-    padding: 3px 8px;
-    background: ${props => props.$status === 'PENDING' ? st.accentAmberDim : st.accentGreenDim};
-    color: ${props => props.$status === 'PENDING' ? st.accentAmber : st.accentGreen};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    margin-left: 8px;
-    white-space: nowrap;
-`;
-
-const PriceStack = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const PriceValue = styled.div<{ $strikethrough?: boolean; $secondary?: boolean }>`
-    font-weight: 500;
-    ${props => props.$strikethrough && `
-        text-decoration: line-through;
-        opacity: 0.5;
-        font-size: ${st.fontXs};
-    `}
-    ${props => props.$secondary && `
-        color: ${st.textSecondary};
-        font-size: ${st.fontXs};
-        font-weight: 500;
-    `}
-`;
-
-const PriceLabel = styled.span`
-    display: inline-block;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    margin-left: 6px;
-`;
-
-const ChangePill = styled.span<{ $trend: 'up' | 'down' | 'neutral' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 6px;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    margin-left: 6px;
-    background: ${p => p.$trend === 'up' ? st.accentRedDim : p.$trend === 'down' ? st.accentGreenDim : st.bg};
-    color: ${p => p.$trend === 'up' ? st.accentRed : p.$trend === 'down' ? st.accentGreen : st.textMuted};
-`;
-
-const DiscountBadge = styled.div`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 7px;
+    padding: 2px 8px;
     background: ${st.accentAmberDim};
     color: ${st.accentAmber};
     border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
+    font-size: 10px;
     font-weight: 700;
-    margin-top: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
 `;
+
+const DiscountChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: ${st.accentGreenDim};
+    color: ${st.accentGreen};
+    border-radius: ${st.radiusFull};
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+const EditedChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: ${BRAND_DIM};
+    color: ${BRAND_DARK};
+    border-radius: ${st.radiusFull};
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+/* ─── Price cell — one column, one story ─── */
+
+const PriceMain = styled.div`
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 7px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+`;
+
+const PriceFinal = styled.span`
+    font-size: 14px;
+    font-weight: 700;
+    color: ${st.text};
+    letter-spacing: -0.2px;
+`;
+
+const PriceOld = styled.span`
+    font-size: 12px;
+    color: ${st.textMuted};
+    text-decoration: line-through;
+    font-weight: 400;
+`;
+
+const PriceSub = styled.div`
+    margin-top: 2px;
+    font-size: 11px;
+    color: ${st.textMuted};
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    white-space: nowrap;
+`;
+
+const TrendMark = styled.span<{ $trend: 'up' | 'down' | 'neutral' }>`
+    font-size: 10px;
+    font-weight: 700;
+    color: ${p => p.$trend === 'up' ? st.accentRed : p.$trend === 'down' ? st.accentGreen : st.textMuted};
+`;
+
+const PendingArrow = styled.span`
+    font-size: 11px;
+    color: ${st.accentAmber};
+`;
+
+/* ─── Totals ─── */
 
 const TotalRow = styled.div`
     display: flex;
@@ -709,53 +596,15 @@ const TotalBreakdown = styled.div`
     align-items: flex-end;
 `;
 
-const BreakdownItem = styled.div`
+const BreakdownItem = styled.div<{ $accent?: boolean }>`
     font-size: ${st.fontXs};
-    color: ${st.textMuted};
+    color: ${p => p.$accent ? st.accentGreen : st.textMuted};
+    font-weight: ${p => p.$accent ? 700 : 400};
     font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
 `;
 
-const RabatujCaoscBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fde68a;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-    box-shadow: ${st.shadowXs};
-
-    svg { width: 13px; height: 13px; }
-    &:hover:not(:disabled) { background: #fde68a; border-color: #f59e0b; transform: translateY(-1px); }
-    &:disabled { opacity: 0.45; cursor: not-allowed; }
-`;
-
-const RabatujBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 9px;
-    border: 1px solid #fde68a;
-    border-radius: ${st.radiusFull};
-    background: #fef3c7;
-    color: #92400e;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 150ms, border-color 150ms;
-    white-space: nowrap;
-
-    &:hover { background: #fde68a; border-color: #f59e0b; }
-    svg { width: 11px; height: 11px; }
-
-    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
-`;
+/* ─── Discount / editor modal shared styles ─── */
 
 const DiscountModalOverlay = styled.div`
     position: fixed;
@@ -769,7 +618,7 @@ const DiscountModalOverlay = styled.div`
 `;
 
 const DiscountModalCard = styled.div`
-    width: min(400px, calc(100vw - 32px));
+    width: min(440px, calc(100vw - 32px));
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusLg};
@@ -801,7 +650,7 @@ const DiscountModalSubtitle = styled.p`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 300px;
+    max-width: 320px;
 `;
 
 const DiscountModalBody = styled.div`
@@ -1015,6 +864,102 @@ const DiscountRemoveBtn = styled.button`
     margin-right: auto;
     transition: all ${st.transition};
     &:hover { color: ${st.accentRed}; border-color: #fca5a5; background: ${st.accentRedDim}; }
+`;
+
+/* ─── Unified price editor ─── */
+
+const EditorGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr 84px;
+    gap: 10px;
+`;
+
+const EditorField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const EditorFieldLabel = styled.label`
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+const EditorPriceInput = styled.input`
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1.5px solid ${st.border};
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    color: ${st.text};
+    background: ${st.bgCard};
+    outline: none;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 180ms, box-shadow 180ms;
+
+    &:focus {
+        border-color: ${BRAND};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+`;
+
+const EditorPreview = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+`;
+
+const EditorPreviewLine = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-variant-numeric: tabular-nums;
+    flex-wrap: wrap;
+`;
+
+const EditorPreviewLabel = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+const EditorPreviewOld = styled.span`
+    font-size: 13px;
+    color: ${st.textMuted};
+    text-decoration: line-through;
+`;
+
+const EditorPreviewNew = styled.span`
+    font-size: 17px;
+    font-weight: 800;
+    color: ${BRAND_DARK};
+    letter-spacing: -0.3px;
+`;
+
+const EditorSavedChip = styled.span`
+    font-size: 11px;
+    font-weight: 700;
+    color: ${st.accentGreen};
+    background: ${st.accentGreenDim};
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: ${st.radiusFull};
+    padding: 3px 9px;
+    white-space: nowrap;
+    flex-shrink: 0;
 `;
 
 /* ─── Bulk-discount "wide" modal with live preview ─── */
@@ -1334,6 +1279,15 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'SET_GROSS', label: '=Brutto' },
 ];
 
+/* Editor uses only the true discount types — setting a price is done via the price fields */
+const EDITOR_DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
+    { type: 'PERCENT', label: '%' },
+    { type: 'FIXED_NET', label: '−Netto' },
+    { type: 'FIXED_GROSS', label: '−Brutto' },
+];
+
+const QUICK_DISCOUNTS = [5, 10, 15, 20];
+
 const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 const DraftBar = styled.div`
@@ -1430,18 +1384,20 @@ interface ServicesTableProps {
     highlightPending?: boolean;
 }
 
+const HEADER_MENU = '__header__';
+
 export const ServicesTable = ({ services, visitStatus, visitId, highlightPending }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
     const smsFeature = useFeature('SMS_EMAIL');
 
-    /* ── Per-service approve/reject menu ── */
+    /* ── Row / header menus ── */
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<null | 'approve' | 'reject'>(null);
     const [targetService, setTargetService] = useState<ServiceLineItem | null>(null);
 
-    /* ── Draft / inline-edit state ── */
+    /* ── Draft state ── */
     const [newRows, setNewRows] = useState<NewRow[]>([]);
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
     const [notifyCustomer, setNotifyCustomer] = useState(true);
@@ -1450,20 +1406,18 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [quickServicePrefill, setQuickServicePrefill] = useState('');
     const [quickServiceDraftId, setQuickServiceDraftId] = useState<string | null>(null);
 
-    /* ── Price editing state ── */
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editNetStr, setEditNetStr] = useState('');
-    const [editGrossStr, setEditGrossStr] = useState('');
-    const [editLastField, setEditLastField] = useState<'net' | 'gross'>('gross');
     const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: AdjustmentType; value: number } }>>({}); // id → price override
-    const [editVatRate, setEditVatRate] = useState<number>(23);
 
-    /* ── Per-service discount modal ── */
-    const [discountModalId, setDiscountModalId] = useState<string | null>(null);
-    const [discountModalType, setDiscountModalType] = useState<AdjustmentType>('PERCENT');
-    const [discountModalValue, setDiscountModalValue] = useState('');
-    // Snapshot of basePriceNet/vatRate at modal open time (may differ from state if just-edited)
-    const [discountModalBase, setDiscountModalBase] = useState<{ basePriceNet: number; vatRate: number } | null>(null);
+    /* ── Unified price editor ── */
+    const [editorId, setEditorId] = useState<string | null>(null);
+    const [edNetStr, setEdNetStr] = useState('');
+    const [edGrossStr, setEdGrossStr] = useState('');
+    const [edLastField, setEdLastField] = useState<'net' | 'gross'>('gross');
+    const [edVatRate, setEdVatRate] = useState<number>(23);
+    const [edMode, setEdMode] = useState<'SET' | 'DISCOUNT'>('SET');
+    const [edAdjType, setEdAdjType] = useState<AdjustmentType>('PERCENT');
+    const [edDiscountValue, setEdDiscountValue] = useState('');
+    const [edDirty, setEdDirty] = useState(false);
 
     /* ── Bulk discount modal ── */
     const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
@@ -1482,93 +1436,132 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const eNetFromGross = grossPlnToNetPln;
     const eFmt = (v: number) => v.toFixed(2);
     const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
+    const fmtVat = (v: number) => v === -1 ? 'zw.' : `${v}%`;
 
-    const startEditPrice = (service: ServiceLineItem) => {
+    /* ── Editor open / close / apply ── */
+
+    const openEditor = (service: ServiceLineItem) => {
         const ep = editedPrices[service.id];
-        let netCents: number;
-        let vatRate: number;
+        const vat = ep?.vatRate ?? service.vatRate;
+        const adj = ep?.adjustment ?? service.adjustment;
+        const isDiscountAdj = (adj.type === 'PERCENT' || adj.type === 'FIXED_NET' || adj.type === 'FIXED_GROSS') && adj.value !== 0;
+
+        let finalNetCents: number;
         if (ep) {
-            // Show current effective price (after adjustment), not the stored base
-            const { finalNetCents } = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
-            netCents = finalNetCents;
-            vatRate = ep.vatRate;
+            finalNetCents = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment).finalNetCents;
         } else {
-            const pricing = calculateServicePrice(service);
-            netCents = pricing.finalPriceNet;
-            vatRate = service.vatRate;
+            finalNetCents = calculateServicePrice(service).finalPriceNet;
         }
-        const netPln = epln(netCents);
-        setEditingId(service.id);
-        setEditVatRate(vatRate);
-        setEditNetStr(eFmt(netPln));
-        setEditGrossStr(eFmt(eGrossFromNet(netPln, vatRate)));
-    };
+        const netPlnVal = epln(finalNetCents);
 
-    const confirmEditPrice = (serviceId: string) => {
-        const net = eParse(editNetStr);
-        const gross = eParse(editGrossStr);
-        if (net !== null) {
-            const adjustment = editLastField === 'gross' && gross !== null
-                ? { type: 'SET_GROSS' as const, value: eCents(gross) }
-                : { type: 'SET_NET' as const, value: eCents(net) };
-            // Always preserve the original server basePriceNet so the "before discount" price stays correct
-            const service = services.find(s => s.id === serviceId);
-            const originalBaseNet = service?.basePriceNet ?? eCents(net);
-            setEditedPrices(prev => ({ ...prev, [serviceId]: { basePriceNet: originalBaseNet, vatRate: editVatRate, adjustment } }));
+        setEditorId(service.id);
+        setEdVatRate(vat);
+        setEdNetStr(eFmt(netPlnVal));
+        setEdGrossStr(eFmt(eGrossFromNet(netPlnVal, vat)));
+        setEdLastField('gross');
+        if (isDiscountAdj) {
+            setEdMode('DISCOUNT');
+            setEdAdjType(adj.type);
+            setEdDiscountValue(adj.type === 'PERCENT' ? String(Math.abs(adj.value)) : String(adj.value / 100));
+        } else {
+            setEdMode('SET');
+            setEdAdjType('PERCENT');
+            setEdDiscountValue('');
         }
-        setEditingId(null);
+        setEdDirty(false);
     };
 
-    const handleEditVatChange = (vat: number) => {
-        setEditVatRate(vat);
-        const net = eParse(editNetStr);
-        if (net !== null) setEditGrossStr(eFmt(eGrossFromNet(net, vat)));
+    const closeEditor = () => { setEditorId(null); setEdDirty(false); };
+
+    /** Preview of the editor's current state against the ORIGINAL base price. */
+    const editorPreview = (service: ServiceLineItem) => {
+        const baseNet = service.basePriceNet;
+        let adj: { type: AdjustmentType; value: number };
+        if (edMode === 'DISCOUNT') {
+            const val = parseFloat(edDiscountValue.replace(',', '.'));
+            const storeVal = isNaN(val) ? 0
+                : edAdjType === 'PERCENT' ? -Math.abs(val) : Math.round(val * 100);
+            adj = { type: edAdjType, value: storeVal };
+        } else {
+            const net = eParse(edNetStr);
+            const gross = eParse(edGrossStr);
+            adj = edLastField === 'gross' && gross !== null
+                ? { type: 'SET_GROSS', value: eCents(gross) }
+                : { type: 'SET_NET', value: eCents(net ?? 0) };
+        }
+        const result = applyAdjustment(baseNet, edVatRate, adj);
+        const listGross = netToGross(baseNet, edVatRate);
+        return { adj, finalNetCents: result.finalNetCents, finalGrossCents: result.finalGrossCents, listGross, savedGross: listGross - result.finalGrossCents };
     };
 
-    const cancelEditPrice = () => setEditingId(null);
-
-    /* ── Discount helpers ── */
-    const openDiscountModal = (service: ServiceLineItem) => {
-        // Base is ALWAYS the original service price — discounts stack/replace on top of it,
-        // never compound on a previously-discounted value.
-        const originalBase = { basePriceNet: service.basePriceNet, vatRate: service.vatRate };
-        const existing = editedPrices[service.id];
-        const adj = existing?.adjustment ?? service.adjustment;
-        const isInlinePriceEdit = adj.type === 'SET_NET' || adj.type === 'SET_GROSS';
-        setDiscountModalId(service.id);
-        setDiscountModalBase(originalBase);
-        setDiscountModalType(isInlinePriceEdit ? 'PERCENT' : adj.type);
-        setDiscountModalValue(
-            isInlinePriceEdit || adj.value === 0 ? ''
-                : adj.type === 'PERCENT'
-                    ? String(Math.abs(adj.value))
-                    : String(adj.value / 100)
-        );
-    };
-
-    const closeDiscountModal = () => { setDiscountModalId(null); setDiscountModalValue(''); setDiscountModalBase(null); };
-
-    const applyServiceDiscount = () => {
-        if (!discountModalId || !discountModalBase) return;
-        const val = parseFloat(discountModalValue.replace(',', '.'));
-        const storeVal = isNaN(val) ? 0
-            : discountModalType === 'PERCENT' ? -Math.abs(val) : Math.round(val * 100);
-        // Preserve original basePriceNet so future discounts always re-base from it
+    const applyEditor = () => {
+        if (!editorId) return;
+        const service = services.find(s => s.id === editorId);
+        if (!service) { closeEditor(); return; }
+        if (!edDirty) { closeEditor(); return; }
+        const { adj } = editorPreview(service);
         setEditedPrices(prev => ({
             ...prev,
-            [discountModalId]: { ...discountModalBase, adjustment: { type: discountModalType, value: storeVal } },
+            [editorId]: { basePriceNet: service.basePriceNet, vatRate: edVatRate, adjustment: adj },
         }));
-        closeDiscountModal();
+        closeEditor();
     };
 
-    const removeServiceDiscount = () => {
-        if (!discountModalId || !discountModalBase) return;
+    const removeEditorDiscount = () => {
+        if (!editorId) return;
+        const service = services.find(s => s.id === editorId);
+        if (!service) { closeEditor(); return; }
         setEditedPrices(prev => ({
             ...prev,
-            [discountModalId]: { ...discountModalBase, adjustment: { type: 'PERCENT', value: 0 } },
+            [editorId]: { basePriceNet: service.basePriceNet, vatRate: edVatRate, adjustment: { type: 'PERCENT', value: 0 } },
         }));
-        closeDiscountModal();
+        closeEditor();
     };
+
+    const handleEdNetChange = (val: string) => {
+        if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
+        setEdMode('SET');
+        setEdLastField('net');
+        setEdNetStr(val);
+        setEdDirty(true);
+        const n = eParse(val);
+        if (n !== null) setEdGrossStr(eFmt(eGrossFromNet(n, edVatRate)));
+    };
+
+    const handleEdGrossChange = (val: string) => {
+        if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
+        setEdMode('SET');
+        setEdLastField('gross');
+        setEdGrossStr(val);
+        setEdDirty(true);
+        const g = eParse(val);
+        if (g !== null) setEdNetStr(eFmt(eNetFromGross(g, edVatRate)));
+    };
+
+    const handleEdVatChange = (vat: number) => {
+        setEdVatRate(vat);
+        setEdDirty(true);
+        if (edMode === 'SET') {
+            const n = eParse(edNetStr);
+            if (n !== null) setEdGrossStr(eFmt(eGrossFromNet(n, vat)));
+        }
+    };
+
+    const pickQuickDiscount = (pct: number) => {
+        setEdMode('DISCOUNT');
+        setEdAdjType('PERCENT');
+        setEdDiscountValue(String(pct));
+        setEdDirty(true);
+    };
+
+    const handleEdDiscountValueChange = (val: string) => {
+        if (val && !MAX_2_DECIMALS.test(val)) return;
+        setEdMode('DISCOUNT');
+        setEdDiscountValue(val);
+        setEdDirty(true);
+    };
+
+    /* ── Bulk actions ── */
 
     const applyBulkDiscount = () => {
         const val = parseFloat(bulkDiscountValue.replace(',', '.'));
@@ -1656,21 +1649,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setBulkVatOpen(false);
     };
 
-    const handleEditNetChange = (val: string) => {
-        if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
-        setEditLastField('net');
-        setEditNetStr(val);
-        const n = eParse(val);
-        if (n !== null) setEditGrossStr(eFmt(eGrossFromNet(n, editVatRate)));
-    };
-
-    const handleEditGrossChange = (val: string) => {
-        if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
-        setEditLastField('gross');
-        setEditGrossStr(val);
-        const g = eParse(val);
-        if (g !== null) setEditNetStr(eFmt(eNetFromGross(g, editVatRate)));
-    };
+    /* ── New rows ── */
 
     const addNewRow = () => {
         const draftId = `draft-${Date.now()}`;
@@ -1726,7 +1705,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setNewRows([]);
         setDeletedIds(new Set());
         setEditedPrices({});
-        setEditingId(null);
+        closeEditor();
     };
 
     const acceptDraft = () => {
@@ -1774,7 +1753,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const pricesHidden = services.length > 0 && services[0]?.basePriceNet === null;
 
     const totals = (() => {
-        if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, hasTotalDiscount: false };
+        if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, totalDiscountGross: 0, hasTotalDiscount: false };
 
         let totalFinalNet = 0;
         let totalFinalGross = 0;
@@ -1817,11 +1796,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             totalOriginalGross += gross;
         });
 
+        const totalDiscountGross = Math.max(totalOriginalGross - totalFinalGross, 0);
+
         return {
             totalFinalNet,
             totalFinalGross,
             totalVat,
-            hasTotalDiscount: totalFinalGross < totalOriginalGross,
+            totalDiscountGross,
+            hasTotalDiscount: totalDiscountGross > 0,
         };
     })();
 
@@ -1831,6 +1813,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const canEdit = !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
     const showActionsCol = canEdit || hasPendingServices;
+    const bulkEligibleCount = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length;
+
+    const colSpan = 1 + (pricesHidden ? 0 : 1) + (showActionsCol ? 1 : 0);
+
+    const editorService = editorId ? services.find(s => s.id === editorId) ?? null : null;
 
     return (
         <>
@@ -1850,17 +1837,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     </TableSubtitle>
                 </TableHeaderLeft>
                 {canEdit && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <RabatujCaoscBtn
-                            onClick={openBulkDiscountModal}
-                            disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
-                            title="Zastosuj rabat do wszystkich usług"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="19" y1="5" x2="5" y2="19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" />
-                            </svg>
-                            Rabatuj całość
-                        </RabatujCaoscBtn>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <AddBtn onClick={addNewRow} disabled={isSaving}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -1868,6 +1845,33 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             </svg>
                             Dodaj usługę
                         </AddBtn>
+                        <ActionMenuWrapper>
+                            <KebabBtn
+                                onClick={() => setOpenMenuId(openMenuId === HEADER_MENU ? null : HEADER_MENU)}
+                                disabled={isSaving}
+                                title="Operacje zbiorcze"
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+                                </svg>
+                            </KebabBtn>
+                            {openMenuId === HEADER_MENU && (
+                                <ContextMenu>
+                                    <ContextMenuItem
+                                        disabled={bulkEligibleCount === 0}
+                                        onClick={() => { setOpenMenuId(null); openBulkDiscountModal(); }}
+                                    >
+                                        Rabatuj całość…
+                                    </ContextMenuItem>
+                                    <ContextMenuItem
+                                        disabled={bulkEligibleCount === 0}
+                                        onClick={() => { setOpenMenuId(null); setBulkVatOpen(true); }}
+                                    >
+                                        VAT dla wszystkich usług…
+                                    </ContextMenuItem>
+                                </ContextMenu>
+                            )}
+                        </ActionMenuWrapper>
                     </div>
                 )}
             </TableHeader>
@@ -1876,26 +1880,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 <Thead>
                     <Tr>
                         <Th>Usługa</Th>
-                        {!pricesHidden && <Th>Cena netto</Th>}
-                        {!pricesHidden && (
-                            <Th style={{ whiteSpace: 'nowrap' }}>
-                                VAT
-                                {canEdit && (
-                                    <BulkVatTrigger
-                                        type="button"
-                                        onClick={() => setBulkVatOpen(true)}
-                                        disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
-                                        title="Zmień stawkę VAT dla wszystkich usług"
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="6 9 12 15 18 9" />
-                                        </svg>
-                                    </BulkVatTrigger>
-                                )}
-                            </Th>
-                        )}
-                        {!pricesHidden && <Th>Cena brutto</Th>}
-                        {showActionsCol && <Th style={{ textAlign: 'right' }}>Akcje</Th>}
+                        {!pricesHidden && <Th $right>Cena</Th>}
+                        {showActionsCol && <Th $right aria-label="Akcje" />}
                     </Tr>
                 </Thead>
                 <Tbody>
@@ -1907,11 +1893,23 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         const isMarkedForDelete = deletedIds.has(service.id);
                         const isPendingRow = service.hasPendingChange ?? (service.status === 'PENDING');
                         const canDelete = canEdit && !isPendingRow && !isMarkedForDelete;
-                        const isEditing = editingId === service.id;
-                        const canEditPrice = canEdit && !isPendingRow && !isMarkedForDelete && !isEditing;
-                        const hasEditedPrice = editedPrices[service.id] !== undefined;
+                        const canEditPrice = canEdit && !isPendingRow && !isMarkedForDelete;
+                        const hasEditedPrice = ep !== undefined;
+                        const effectiveVat = ep?.vatRate ?? service.vatRate;
 
-                        const colSpan = showActionsCol ? 5 : 4;
+                        const isEditPending = isPendingRow && service.pendingOperation === 'EDIT'
+                            && (service.previousPriceNet ?? null) !== null
+                            && (service.previousPriceGross ?? null) !== null;
+
+                        const pendingLabel = isPendingRow
+                            ? (service.pendingOperation === 'ADD' ? 'Nowa — oczekuje'
+                                : service.pendingOperation === 'EDIT' ? 'Edycja — oczekuje'
+                                : service.pendingOperation === 'DELETE' ? 'Usunięcie — oczekuje'
+                                : 'Oczekuje')
+                            : null;
+
+                        const showRowMenu = showActionsCol && (isPendingRow || canEditPrice || canDelete || isMarkedForDelete);
+
                         const packageSubRows = service.isPackage && service.packageItems && service.packageItems.length > 0
                             ? service.packageItems
                             : null;
@@ -1921,241 +1919,110 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             <Tr
                                 $pendingOp={isMarkedForDelete ? 'DELETE' : (isPendingRow ? (service.pendingOperation || 'EDIT') : null)}
                                 $highlight={highlightPending && service.status === 'PENDING'}
-                                style={isMarkedForDelete ? { opacity: 0.5 } : undefined}
+                                style={isMarkedForDelete ? { opacity: 0.55 } : undefined}
                             >
                                 <Td>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                                                <ServiceName style={{ marginBottom: 0 }}>{service.serviceName}</ServiceName>
-                                                {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
-                                            </div>
-                                            {service.note && <ServiceNote>{service.note}</ServiceNote>}
-                                            {showDiscount && (
-                                                <DiscountBadge>{pricing!.discountLabel}</DiscountBadge>
-                                            )}
-                                        </div>
-                                        <ServiceStatusBadge $status={service.status}>
-                                            {(service.hasPendingChange ?? (service.status === 'PENDING'))
-                                                ? (service.pendingOperation === 'ADD' ? 'Nowa (oczekuje)'
-                                                    : service.pendingOperation === 'EDIT' ? 'Edycja (oczekuje)'
-                                                    : service.pendingOperation === 'DELETE' ? 'Usunięcie (oczekuje)'
-                                                    : 'Oczekuje')
-                                                : 'Potwierdzona'}
-                                        </ServiceStatusBadge>
-                                    </div>
+                                    <NameLine>
+                                        <ServiceName>{service.serviceName}</ServiceName>
+                                        {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
+                                        {pendingLabel && <PendingChip>{pendingLabel}</PendingChip>}
+                                        {isMarkedForDelete && <PendingChip style={{ background: st.accentRedDim, color: st.accentRed }}>Do usunięcia</PendingChip>}
+                                        {!isPendingRow && showDiscount && <DiscountChip>{pricing!.discountLabel}</DiscountChip>}
+                                        {!isPendingRow && !showDiscount && hasEditedPrice && <EditedChip>Zmieniona</EditedChip>}
+                                    </NameLine>
+                                    {service.note && <ServiceNote>{service.note}</ServiceNote>}
                                 </Td>
-                                {!pricesHidden && <Td>
-                                    <PriceStack>
-                                        {(() => {
-                                            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
-                                            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null;
-                                            if (isEditPending) {
-                                                const prevNet = service.previousPriceNet as number;
-                                                const proposedNet = pricing!.finalPriceNet;
-                                                const trendNet: 'up' | 'down' | 'neutral' = proposedNet > prevNet ? 'up' : proposedNet < prevNet ? 'down' : 'neutral';
-                                                return (
-                                                    <>
-                                                        <div>
-                                                            <PriceValue>
-                                                                {formatCurrency(prevNet / 100)}
-                                                                <PriceLabel>Obowiązująca</PriceLabel>
-                                                            </PriceValue>
-                                                        </div>
-                                                        <div>
-                                                            <PriceValue $secondary>
-                                                                {formatCurrency(proposedNet / 100)}
-                                                                <PriceLabel>Proponowana</PriceLabel>
-                                                                <ChangePill $trend={trendNet}>
-                                                                    {trendNet === 'up' ? '▲' : trendNet === 'down' ? '▼' : '▬'}
-                                                                </ChangePill>
-                                                            </PriceValue>
-                                                        </div>
-                                                    </>
-                                                );
-                                            }
-
-                                            if (isEditing) {
-                                                return (
-                                                    <PriceEditInput
-                                                        value={editNetStr}
-                                                        onChange={e => handleEditNetChange(e.target.value)}
-                                                        onKeyDown={e => { if (e.key === 'Enter') confirmEditPrice(service.id); if (e.key === 'Escape') cancelEditPrice(); }}
-                                                        autoFocus
-                                                        placeholder="0.00"
-                                                    />
-                                                );
-                                            }
-                                            if (hasEditedPrice) {
-                                                return (
-                                                    <EditedPriceWrap>
-                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing!.originalPriceNet / 100)}</PriceValue>}
-                                                        <PriceValue>{formatCurrency(pricing!.finalPriceNet / 100)}</PriceValue>
-                                                        <EditedBadge>Zmieniona</EditedBadge>
-                                                    </EditedPriceWrap>
-                                                );
-                                            }
+                                {!pricesHidden && (
+                                    <PriceTd
+                                        $clickable={canEditPrice}
+                                        onClick={canEditPrice ? () => openEditor(service) : undefined}
+                                        title={canEditPrice ? 'Kliknij, aby zmienić cenę lub rabat' : undefined}
+                                    >
+                                        {isEditPending ? (() => {
+                                            const prevGross = service.previousPriceGross as number;
+                                            const prevNet = service.previousPriceNet as number;
+                                            const proposedGross = pricing!.finalPriceGross;
+                                            const proposedNet = pricing!.finalPriceNet;
+                                            const trend: 'up' | 'down' | 'neutral' = proposedGross > prevGross ? 'up' : proposedGross < prevGross ? 'down' : 'neutral';
                                             return (
                                                 <>
-                                                    {showDiscount && (
-                                                        <PriceValue $strikethrough>
-                                                            {formatCurrency(pricing!.originalPriceNet / 100)}
-                                                        </PriceValue>
-                                                    )}
-                                                    <PriceValue>
-                                                        {formatCurrency(pricing!.finalPriceNet / 100)}
-                                                    </PriceValue>
+                                                    <PriceMain>
+                                                        <PriceOld>{formatCurrency(prevGross / 100)}</PriceOld>
+                                                        <PendingArrow>→</PendingArrow>
+                                                        <PriceFinal>{formatCurrency(proposedGross / 100)}</PriceFinal>
+                                                        <TrendMark $trend={trend}>{trend === 'up' ? '▲' : trend === 'down' ? '▼' : '▬'}</TrendMark>
+                                                    </PriceMain>
+                                                    <PriceSub>
+                                                        netto {formatCurrency(prevNet / 100)} → {formatCurrency(proposedNet / 100)}
+                                                    </PriceSub>
                                                 </>
                                             );
-                                        })()}
-                                    </PriceStack>
-                                </Td>}
-                                {!pricesHidden && <Td>
-                                    <PriceValue>{editedPrices[service.id]?.vatRate !== undefined
-                                        ? (editedPrices[service.id].vatRate === -1 ? 'zw.' : `${editedPrices[service.id].vatRate}%`)
-                                        : (service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`)
-                                    }</PriceValue>
-                                </Td>}
-                                {!pricesHidden && <Td>
-                                    <PriceStack>
-                                        {(() => {
-                                            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
-                                            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceGross ?? null) !== null;
-                                            if (isEditPending) {
-                                                const prevGross = service.previousPriceGross as number;
-                                                const proposedGross = pricing!.finalPriceGross;
-                                                const trendGross: 'up' | 'down' | 'neutral' = proposedGross > prevGross ? 'up' : proposedGross < prevGross ? 'down' : 'neutral';
-                                                return (
-                                                    <>
-                                                        <div>
-                                                            <PriceValue>
-                                                                {formatCurrency(prevGross / 100)}
-                                                                <PriceLabel>Obowiązująca</PriceLabel>
-                                                            </PriceValue>
-                                                        </div>
-                                                        <div>
-                                                            <PriceValue $secondary>
-                                                                {formatCurrency(proposedGross / 100)}
-                                                                <PriceLabel>Proponowana</PriceLabel>
-                                                                <ChangePill $trend={trendGross}>
-                                                                    {trendGross === 'up' ? '▲' : trendGross === 'down' ? '▼' : '▬'}
-                                                                </ChangePill>
-                                                            </PriceValue>
-                                                        </div>
-                                                    </>
-                                                );
-                                            }
-
-                                            if (isEditing) {
-                                                return (
-                                                    <PriceEditInput
-                                                        value={editGrossStr}
-                                                        onChange={e => handleEditGrossChange(e.target.value)}
-                                                        onKeyDown={e => { if (e.key === 'Enter') confirmEditPrice(service.id); if (e.key === 'Escape') cancelEditPrice(); }}
-                                                        placeholder="0.00"
-                                                    />
-                                                );
-                                            }
-                                            if (hasEditedPrice) {
-                                                return (
-                                                    <EditedPriceWrap>
-                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing!.originalPriceGross / 100)}</PriceValue>}
-                                                        <PriceValue>{formatCurrency(pricing!.finalPriceGross / 100)}</PriceValue>
-                                                        <EditedBadge>Zmieniona</EditedBadge>
-                                                    </EditedPriceWrap>
-                                                );
-                                            }
-                                            return (
-                                                <>
+                                        })() : (
+                                            <>
+                                                <PriceMain>
                                                     {showDiscount && (
-                                                        <PriceValue $strikethrough>
-                                                            {formatCurrency(pricing!.originalPriceGross / 100)}
-                                                        </PriceValue>
+                                                        <PriceOld>{formatCurrency(pricing!.originalPriceGross / 100)}</PriceOld>
                                                     )}
-                                                    <PriceValue>
-                                                        {formatCurrency(pricing!.finalPriceGross / 100)}
-                                                    </PriceValue>
-                                                </>
-                                            );
-                                        })()}
-                                    </PriceStack>
-                                </Td>}
+                                                    <PriceFinal>{formatCurrency(pricing!.finalPriceGross / 100)}</PriceFinal>
+                                                </PriceMain>
+                                                <PriceSub>
+                                                    netto {formatCurrency(pricing!.finalPriceNet / 100)} · VAT {fmtVat(effectiveVat)}
+                                                </PriceSub>
+                                            </>
+                                        )}
+                                    </PriceTd>
+                                )}
                                 {showActionsCol && (
                                     <ActionsCell>
-                                        <RowActions>
-                                            {isEditing && (
-                                                <>
-                                                    <RabatujBtn
-                                                        onClick={() => {
-                                                            confirmEditPrice(service.id);
-                                                            openDiscountModal(service);
-                                                        }}
-                                                    >
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                                            <line x1="19" y1="5" x2="5" y2="19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" />
-                                                        </svg>
-                                                        Rabatuj
-                                                    </RabatujBtn>
-                                                    <EditConfirmBtn onClick={() => confirmEditPrice(service.id)} title="Zatwierdź">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                                            <polyline points="20 6 9 17 4 12" />
-                                                        </svg>
-                                                    </EditConfirmBtn>
-                                                    <EditCancelBtn onClick={cancelEditPrice} title="Anuluj">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                                        </svg>
-                                                    </EditCancelBtn>
-                                                </>
-                                            )}
-                                            {isPendingRow && !isEditing && (
-                                                <ActionMenuWrapper>
-                                                    <ActionMenuBtn
-                                                        onClick={() => setOpenMenuId(openMenuId === service.id ? null : service.id)}
-                                                        disabled={!visitId || isApproving || isRejecting}
-                                                    >
-                                                        Podejmij akcję
-                                                        <span style={{ fontSize: '9px' }}>▾</span>
-                                                    </ActionMenuBtn>
-                                                    {openMenuId === service.id && (
-                                                        <ContextMenu>
-                                                            <ContextMenuItem onClick={() => { setOpenMenuId(null); openConfirm(service, 'approve'); }}>
-                                                                Zatwierdź zmianę
-                                                            </ContextMenuItem>
-                                                            <ContextMenuItem $variant="danger" onClick={() => { setOpenMenuId(null); openConfirm(service, 'reject'); }}>
-                                                                Wycofaj zmianę
-                                                            </ContextMenuItem>
-                                                        </ContextMenu>
-                                                    )}
-                                                </ActionMenuWrapper>
-                                            )}
-                                            {canEditPrice && (
-                                                <EditPriceBtn onClick={() => startEditPrice(service)}>
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                    </svg>
-                                                    Edytuj cenę
-                                                </EditPriceBtn>
-                                            )}
-                                            {canDelete && (
-                                                <DeleteRowBtn onClick={() => toggleDelete(service.id)}>
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                                    </svg>
-                                                    Usuń
-                                                </DeleteRowBtn>
-                                            )}
-                                            {isMarkedForDelete && (
-                                                <DeleteRowBtn
-                                                    style={{ borderColor: 'rgba(14,165,233,0.3)', color: BRAND_DARK, background: BRAND_DIM }}
-                                                    onClick={() => toggleDelete(service.id)}
+                                        {showRowMenu && (
+                                            <ActionMenuWrapper>
+                                                <RowKebabBtn
+                                                    onClick={() => setOpenMenuId(openMenuId === service.id ? null : service.id)}
+                                                    disabled={isApproving || isRejecting}
+                                                    title="Akcje"
                                                 >
-                                                    Przywróć
-                                                </DeleteRowBtn>
-                                            )}
-                                        </RowActions>
+                                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                                        <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+                                                    </svg>
+                                                </RowKebabBtn>
+                                                {openMenuId === service.id && (
+                                                    <ContextMenu>
+                                                        {isPendingRow && (
+                                                            <>
+                                                                <ContextMenuItem
+                                                                    disabled={!visitId}
+                                                                    onClick={() => { setOpenMenuId(null); openConfirm(service, 'approve'); }}
+                                                                >
+                                                                    Zatwierdź zmianę
+                                                                </ContextMenuItem>
+                                                                <ContextMenuItem
+                                                                    $variant="danger"
+                                                                    disabled={!visitId}
+                                                                    onClick={() => { setOpenMenuId(null); openConfirm(service, 'reject'); }}
+                                                                >
+                                                                    Wycofaj zmianę
+                                                                </ContextMenuItem>
+                                                            </>
+                                                        )}
+                                                        {canEditPrice && (
+                                                            <ContextMenuItem onClick={() => { setOpenMenuId(null); openEditor(service); }}>
+                                                                Zmień cenę / rabat
+                                                            </ContextMenuItem>
+                                                        )}
+                                                        {canDelete && (
+                                                            <ContextMenuItem $variant="danger" onClick={() => { setOpenMenuId(null); toggleDelete(service.id); }}>
+                                                                Usuń usługę
+                                                            </ContextMenuItem>
+                                                        )}
+                                                        {isMarkedForDelete && (
+                                                            <ContextMenuItem onClick={() => { setOpenMenuId(null); toggleDelete(service.id); }}>
+                                                                Przywróć
+                                                            </ContextMenuItem>
+                                                        )}
+                                                    </ContextMenu>
+                                                )}
+                                            </ActionMenuWrapper>
+                                        )}
                                     </ActionsCell>
                                 )}
                             </Tr>
@@ -2184,17 +2051,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
             {!pricesHidden && (
             <TotalRow>
-                <div>
-                    <TotalLabel>Razem do zapłaty</TotalLabel>
-                    {totals.hasTotalDiscount && (
-                        <div style={{ fontSize: st.fontXs, color: st.accentAmber, marginTop: '3px', fontWeight: 600 }}>
-                            Uwzględniono rabaty
-                        </div>
-                    )}
-                </div>
+                <TotalLabel>Razem do zapłaty</TotalLabel>
                 <TotalBreakdown>
                     <BreakdownItem>Netto: {formatCurrency(totals.totalFinalNet / 100)}</BreakdownItem>
                     <BreakdownItem>VAT: {formatCurrency(totals.totalVat / 100)}</BreakdownItem>
+                    {totals.hasTotalDiscount && (
+                        <BreakdownItem $accent>Rabaty: −{formatCurrency(totals.totalDiscountGross / 100)}</BreakdownItem>
+                    )}
                     <TotalValue>{formatCurrency(totals.totalFinalGross / 100)}</TotalValue>
                 </TotalBreakdown>
             </TotalRow>
@@ -2249,72 +2112,142 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             />
         </div>
 
-        {/* Per-service discount modal */}
-        {discountModalId && discountModalBase && (() => {
-            const svc = services.find(s => s.id === discountModalId);
-            if (!svc) return null;
-            const result = applyAdjustment(discountModalBase.basePriceNet, discountModalBase.vatRate, { type: 'PERCENT', value: 0 });
-            const baseNet = result.finalNetCents / 100;
-            const baseGross = result.finalGrossCents / 100;
-            const ep = editedPrices[discountModalId];
-            const adj = ep?.adjustment ?? svc.adjustment;
-            const hasExistingDiscount = adj.type !== 'SET_NET' && adj.type !== 'SET_GROSS' && adj.value !== 0;
+        {/* ─── Unified price editor ─── */}
+        {editorService && (() => {
+            const svc = editorService;
+            const preview = editorPreview(svc);
+            const listNet = svc.basePriceNet;
+            const listGross = preview.listGross;
+            const changed = preview.finalGrossCents !== listGross;
+            const existingAdj = editedPrices[svc.id]?.adjustment ?? svc.adjustment;
+            const hasExistingDiscount = (existingAdj.type === 'PERCENT' || existingAdj.type === 'FIXED_NET' || existingAdj.type === 'FIXED_GROSS') && existingAdj.value !== 0;
+
+            const discountValNum = parseFloat(edDiscountValue.replace(',', '.'));
+            const discountInvalid = edMode === 'DISCOUNT' && (isNaN(discountValNum) || discountValNum <= 0);
+            const setInvalid = edMode === 'SET' && eParse(edNetStr) === null;
+            const applyDisabled = discountInvalid || setInvalid;
+
+            // In discount mode the price fields show the computed result
+            const displayNet = edMode === 'DISCOUNT' ? eFmt(preview.finalNetCents / 100) : edNetStr;
+            const displayGross = edMode === 'DISCOUNT' ? eFmt(preview.finalGrossCents / 100) : edGrossStr;
+
             return (
-                <DiscountModalOverlay onClick={closeDiscountModal}>
+                <DiscountModalOverlay onClick={closeEditor}>
                     <DiscountModalCard onClick={e => e.stopPropagation()}>
                         <DiscountModalHeader>
                             <div>
-                                <DiscountModalTitle>Rabat dla usługi</DiscountModalTitle>
+                                <DiscountModalTitle>Cena usługi</DiscountModalTitle>
                                 <DiscountModalSubtitle>{svc.serviceName}</DiscountModalSubtitle>
                             </div>
-                            <DiscountCloseBtn type="button" onClick={closeDiscountModal}>
+                            <DiscountCloseBtn type="button" onClick={closeEditor}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </DiscountCloseBtn>
                         </DiscountModalHeader>
                         <DiscountModalBody>
-                            <DiscountFromBox>
-                                <DiscountFromBoxLabel>Od kwoty</DiscountFromBoxLabel>
-                                <DiscountFromPrices>
-                                    <DiscountFromPrice>
-                                        <DiscountFromPriceValue>{baseNet.toFixed(2)} zł</DiscountFromPriceValue>
-                                        <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
-                                    </DiscountFromPrice>
-                                    <DiscountFromPrice>
-                                        <DiscountFromPriceValue>{baseGross.toFixed(2)} zł</DiscountFromPriceValue>
-                                        <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
-                                    </DiscountFromPrice>
-                                </DiscountFromPrices>
-                            </DiscountFromBox>
                             <div>
-                                <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
-                                <DiscountTypeRow>
-                                    {DISCOUNT_TYPES.map(({ type, label }) => (
-                                        <DiscountTypePill key={type} type="button" $selected={discountModalType === type}
-                                            onClick={() => { setDiscountModalType(type); setDiscountModalValue(''); }}>
-                                            {label}
+                                <DiscountSectionLabel>Cena dla klienta</DiscountSectionLabel>
+                                <EditorGrid>
+                                    <EditorField>
+                                        <EditorFieldLabel>Brutto</EditorFieldLabel>
+                                        <EditorPriceInput
+                                            type="text" inputMode="decimal" placeholder="0.00" autoFocus
+                                            value={displayGross}
+                                            onChange={e => handleEdGrossChange(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
+                                        />
+                                    </EditorField>
+                                    <EditorField>
+                                        <EditorFieldLabel>Netto</EditorFieldLabel>
+                                        <EditorPriceInput
+                                            type="text" inputMode="decimal" placeholder="0.00"
+                                            value={displayNet}
+                                            onChange={e => handleEdNetChange(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
+                                        />
+                                    </EditorField>
+                                    <EditorField>
+                                        <EditorFieldLabel>VAT</EditorFieldLabel>
+                                        <VatEditSelect
+                                            value={edVatRate}
+                                            onChange={e => handleEdVatChange(Number(e.target.value))}
+                                        >
+                                            {[23, 8, 5, 0, -1].map(rate => (
+                                                <option key={rate} value={rate}>{rate === -1 ? 'zw.' : `${rate}%`}</option>
+                                            ))}
+                                        </VatEditSelect>
+                                    </EditorField>
+                                </EditorGrid>
+                            </div>
+
+                            <div>
+                                <DiscountSectionLabel>Rabat od ceny cennikowej</DiscountSectionLabel>
+                                <DiscountTypeRow style={{ marginBottom: 8 }}>
+                                    {QUICK_DISCOUNTS.map(pct => (
+                                        <DiscountTypePill
+                                            key={pct}
+                                            type="button"
+                                            $selected={edMode === 'DISCOUNT' && edAdjType === 'PERCENT' && edDiscountValue === String(pct)}
+                                            onClick={() => pickQuickDiscount(pct)}
+                                        >
+                                            −{pct}%
                                         </DiscountTypePill>
                                     ))}
                                 </DiscountTypeRow>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <DiscountTypeRow>
+                                        {EDITOR_DISCOUNT_TYPES.map(({ type, label }) => (
+                                            <DiscountTypePill
+                                                key={type}
+                                                type="button"
+                                                $selected={edMode === 'DISCOUNT' && edAdjType === type}
+                                                onClick={() => { setEdMode('DISCOUNT'); setEdAdjType(type); setEdDiscountValue(''); setEdDirty(true); }}
+                                            >
+                                                {label}
+                                            </DiscountTypePill>
+                                        ))}
+                                    </DiscountTypeRow>
+                                    <DiscountValueRow style={{ flex: 1, minWidth: 140 }}>
+                                        <DiscountValueInput
+                                            type="text" inputMode="decimal"
+                                            placeholder="0"
+                                            style={{ fontSize: 15, padding: '6px 0' }}
+                                            value={edMode === 'DISCOUNT' ? edDiscountValue : ''}
+                                            onChange={e => handleEdDiscountValueChange(e.target.value)}
+                                        />
+                                        <DiscountValueSuffix>{edMode === 'DISCOUNT' && edAdjType !== 'PERCENT' ? 'zł' : '%'}</DiscountValueSuffix>
+                                    </DiscountValueRow>
+                                </div>
                             </div>
-                            <div>
-                                <DiscountSectionLabel>Wartość</DiscountSectionLabel>
-                                <DiscountValueRow>
-                                    <DiscountValueInput
-                                        type="text" inputMode="decimal" placeholder="0" autoFocus
-                                        value={discountModalValue}
-                                        onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setDiscountModalValue(e.target.value); }}
-                                    />
-                                    <DiscountValueSuffix>{discountModalType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
-                                </DiscountValueRow>
-                            </div>
+
+                            <EditorPreview>
+                                <EditorPreviewLine>
+                                    <EditorPreviewLabel>Cennik</EditorPreviewLabel>
+                                    {changed ? (
+                                        <>
+                                            <EditorPreviewOld>{formatCurrency(listGross / 100)}</EditorPreviewOld>
+                                            <span style={{ color: BRAND, fontSize: 12 }}>→</span>
+                                            <EditorPreviewNew>{formatCurrency(preview.finalGrossCents / 100)}</EditorPreviewNew>
+                                        </>
+                                    ) : (
+                                        <EditorPreviewNew>{formatCurrency(listGross / 100)}</EditorPreviewNew>
+                                    )}
+                                </EditorPreviewLine>
+                                {changed && preview.savedGross > 0 && (
+                                    <EditorSavedChip>−{formatCurrency(preview.savedGross / 100)}</EditorSavedChip>
+                                )}
+                            </EditorPreview>
+                            <PriceSub style={{ textAlign: 'left', marginTop: -8 }}>
+                                netto {formatCurrency(preview.finalNetCents / 100)} · cennikowa netto {formatCurrency(listNet / 100)}
+                            </PriceSub>
                         </DiscountModalBody>
                         <DiscountModalFooter>
                             {hasExistingDiscount && (
-                                <DiscountRemoveBtn type="button" onClick={removeServiceDiscount}>Usuń rabat</DiscountRemoveBtn>
+                                <DiscountRemoveBtn type="button" onClick={removeEditorDiscount}>Usuń rabat</DiscountRemoveBtn>
                             )}
-                            <DiscountCancelBtn type="button" onClick={closeDiscountModal}>Anuluj</DiscountCancelBtn>
-                            <DiscountApplyBtn type="button" onClick={applyServiceDiscount}
-                                disabled={!discountModalValue || parseFloat(discountModalValue.replace(',', '.')) <= 0}>
+                            <DiscountCancelBtn type="button" onClick={closeEditor} style={{ marginLeft: hasExistingDiscount ? undefined : 'auto' }}>
+                                Anuluj
+                            </DiscountCancelBtn>
+                            <DiscountApplyBtn type="button" onClick={applyEditor} disabled={applyDisabled}>
                                 Zastosuj
                             </DiscountApplyBtn>
                         </DiscountModalFooter>
@@ -2555,7 +2488,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         </BulkModalLayout>
 
                         <BulkModalFooter>
-                            <DiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>Anuluj</DiscountCancelBtn>
+                            <DiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)} style={{ marginLeft: 'auto' }}>Anuluj</DiscountCancelBtn>
                             <DiscountApplyBtn type="button" onClick={applyBulkDiscount}
                                 disabled={!hasValidValue}>
                                 Zastosuj rabat

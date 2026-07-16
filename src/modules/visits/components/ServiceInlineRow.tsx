@@ -37,77 +37,25 @@ const InlineRow = styled.tr`
     @media (max-width: 767px) {
         display: flex;
         flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px;
         padding: 14px 16px;
 
         td:nth-child(1) {
             flex: 0 0 100%;
-            padding: 0 0 12px;
+            padding: 0 0 10px;
             border-bottom: 1px dashed ${st.border};
-            margin-bottom: 12px;
         }
 
         td:nth-child(2) {
             flex: 1;
-            padding: 0 6px 0 0;
+            padding: 0;
             min-width: 0;
-        }
-        td:nth-child(2)::before {
-            content: 'Netto';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: ${st.textMuted};
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
         }
 
         td:nth-child(3) {
-            flex: 0 0 52px;
-            padding: 0 8px;
-            text-align: center;
-            border-left: 1px solid ${st.border};
-            border-right: 1px solid ${st.border};
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding-bottom: 2px;
-        }
-        td:nth-child(3)::before {
-            content: 'VAT';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: ${st.textMuted};
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
-            text-align: center;
-        }
-
-        td:nth-child(4) {
-            flex: 1;
-            padding: 0 0 0 6px;
-            min-width: 0;
-        }
-        td:nth-child(4)::before {
-            content: 'Brutto';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: ${st.textMuted};
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
-        }
-
-        td:nth-child(5) {
-            flex: 0 0 100%;
-            padding: 10px 0 0;
-            border-top: 1px dashed ${st.border};
-            margin-top: 4px;
-            display: flex;
-            justify-content: flex-end;
+            flex: 0 0 auto;
+            padding: 0;
         }
     }
 `;
@@ -190,10 +138,33 @@ const PriceHint = styled.span`
     flex-shrink: 0;
 `;
 
+const PriceGroup = styled.div`
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+const PriceField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const PriceFieldLabel = styled.span`
+    font-size: 9px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
 const VatCell = styled.span`
-    font-size: 13px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
     color: ${st.textMuted};
+    padding-bottom: 8px;
 `;
 
 const PriceInput = styled.input`
@@ -436,42 +407,42 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
                 </NameWrap>
             </Cell>
 
-            {/* Cena netto */}
-            <Cell>
-                <PriceInput
-                    type="text"
-                    inputMode="decimal"
-                    value={netStr}
-                    readOnly={priceReadOnly}
-                    placeholder="0.00"
-                    onChange={e => handleNetChange(e.target.value)}
-                    onBlur={formatNet}
-                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                />
-            </Cell>
-
-            {/* VAT */}
-            <Cell>
-                <VatCell>{row.vatRate}%</VatCell>
-            </Cell>
-
-            {/* Cena brutto */}
-            <Cell>
-                <PriceInput
-                    type="text"
-                    inputMode="decimal"
-                    value={grossStr}
-                    readOnly={priceReadOnly}
-                    placeholder="0.00"
-                    onChange={e => handleGrossChange(e.target.value)}
-                    onBlur={formatGross}
-                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                />
+            {/* Cena — netto + brutto + VAT in one right-aligned group */}
+            <Cell style={{ textAlign: 'right' }}>
+                <PriceGroup>
+                    <PriceField>
+                        <PriceFieldLabel>Netto</PriceFieldLabel>
+                        <PriceInput
+                            type="text"
+                            inputMode="decimal"
+                            value={netStr}
+                            readOnly={priceReadOnly}
+                            placeholder="0.00"
+                            onChange={e => handleNetChange(e.target.value)}
+                            onBlur={formatNet}
+                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                        />
+                    </PriceField>
+                    <PriceField>
+                        <PriceFieldLabel>Brutto</PriceFieldLabel>
+                        <PriceInput
+                            type="text"
+                            inputMode="decimal"
+                            value={grossStr}
+                            readOnly={priceReadOnly}
+                            placeholder="0.00"
+                            onChange={e => handleGrossChange(e.target.value)}
+                            onBlur={formatGross}
+                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                        />
+                    </PriceField>
+                    <VatCell>VAT {row.vatRate}%</VatCell>
+                </PriceGroup>
             </Cell>
 
             {/* Akcje */}
-            <Cell style={{ textAlign: 'right' }}>
-                <RemoveBtn onClick={onRemove}>
+            <Cell style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                <RemoveBtn onClick={onRemove} title="Usuń wiersz">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
