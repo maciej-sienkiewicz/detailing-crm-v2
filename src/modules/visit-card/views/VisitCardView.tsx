@@ -2,6 +2,7 @@
 //
 // Public, customer-facing Visit Card page (route /vc/:token — no login).
 // Mobile-first: the customer opens this from an SMS/e-mail link, usually on a phone.
+// Dark, premium look consistent with the studio-facing hero styling.
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -22,19 +23,19 @@ const formatDateTime = (iso: string): string =>
         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 
-const STATUS_CONFIG: Record<VisitCardStatus, { label: string; color: string; bg: string }> = {
-    DRAFT:            { label: 'Przyjęcie w toku',    color: '#b45309', bg: '#fef3c7' },
-    IN_PROGRESS:      { label: 'W realizacji',        color: '#047857', bg: '#d1fae5' },
-    READY_FOR_PICKUP: { label: 'Gotowy do odbioru',   color: '#0369a1', bg: '#e0f2fe' },
-    COMPLETED:        { label: 'Zakończona',          color: '#334155', bg: '#e2e8f0' },
-    REJECTED:         { label: 'Anulowana',           color: '#b91c1c', bg: '#fee2e2' },
-    ARCHIVED:         { label: 'Zakończona',          color: '#334155', bg: '#e2e8f0' },
+const STATUS_CONFIG: Record<VisitCardStatus, { label: string; color: string; bg: string; dot: string }> = {
+    DRAFT:            { label: 'Przyjęcie w toku',  color: '#fcd34d', bg: 'rgba(245, 158, 11, 0.14)', dot: '#f59e0b' },
+    IN_PROGRESS:      { label: 'W realizacji',      color: '#6ee7b7', bg: 'rgba(16, 185, 129, 0.14)', dot: '#10b981' },
+    READY_FOR_PICKUP: { label: 'Gotowy do odbioru', color: '#7dd3fc', bg: 'rgba(14, 165, 233, 0.14)', dot: '#0ea5e9' },
+    COMPLETED:        { label: 'Zakończona',        color: '#cbd5e1', bg: 'rgba(148, 163, 184, 0.14)', dot: '#94a3b8' },
+    REJECTED:         { label: 'Anulowana',         color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.14)',  dot: '#ef4444' },
+    ARCHIVED:         { label: 'Zakończona',        color: '#cbd5e1', bg: 'rgba(148, 163, 184, 0.14)', dot: '#94a3b8' },
 };
 
 const PAYMENT_CONFIG: Record<VisitCardPaymentStatus, { label: string; color: string; bg: string }> = {
-    PAID:    { label: 'Opłacona',                 color: '#047857', bg: '#d1fae5' },
-    PENDING: { label: 'Oczekuje na płatność',     color: '#b45309', bg: '#fef3c7' },
-    OVERDUE: { label: 'Płatność przeterminowana', color: '#b91c1c', bg: '#fee2e2' },
+    PAID:    { label: 'Opłacona',                 color: '#6ee7b7', bg: 'rgba(16, 185, 129, 0.14)' },
+    PENDING: { label: 'Oczekuje na płatność',     color: '#fcd34d', bg: 'rgba(245, 158, 11, 0.14)' },
+    OVERDUE: { label: 'Płatność przeterminowana', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.14)'  },
 };
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -42,8 +43,10 @@ const PAYMENT_CONFIG: Record<VisitCardPaymentStatus, { label: string; color: str
 const Page = styled.div`
     min-height: 100vh;
     min-height: 100dvh;
-    background: #f1f5f9;
-    color: #0f172a;
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(14, 165, 233, 0.13), transparent),
+        linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+    color: #e2e8f0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
 `;
@@ -61,16 +64,32 @@ const Shell = styled.div`
 /* ── Hero ── */
 
 const Hero = styled.header`
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
+    position: relative;
+    overflow: hidden;
     color: #fff;
-    padding: 28px 16px 72px;
+    padding: 30px 16px 26px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -140px;
+        right: -80px;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.22) 0%, transparent 62%);
+        pointer-events: none;
+    }
 
     @media (min-width: 640px) {
-        padding: 36px 24px 84px;
+        padding: 40px 24px 34px;
     }
 `;
 
 const HeroInner = styled.div`
+    position: relative;
+    z-index: 1;
     max-width: 720px;
     margin: 0 auto;
 `;
@@ -79,15 +98,15 @@ const CompanyRow = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 26px;
+    margin-bottom: 28px;
 `;
 
 const CompanyLogo = styled.img`
     height: 40px;
     max-width: 140px;
     object-fit: contain;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.92);
     padding: 3px 6px;
 `;
 
@@ -95,6 +114,7 @@ const CompanyName = styled.div`
     font-size: 15px;
     font-weight: 700;
     letter-spacing: 0.02em;
+    color: #f1f5f9;
 `;
 
 const Eyebrow = styled.div`
@@ -112,44 +132,53 @@ const HeroTitle = styled.h1`
     font-weight: 700;
     letter-spacing: -0.4px;
     line-height: 1.2;
+    color: #fff;
 
     @media (min-width: 640px) { font-size: 32px; }
 `;
 
 const HeroSub = styled.div`
     font-size: 14px;
-    color: rgba(226, 232, 240, 0.75);
+    color: rgba(203, 213, 225, 0.72);
+    max-width: 440px;
 `;
 
-const StatusBadge = styled.span<{ $color: string; $bg: string }>`
+const StatusBadge = styled.span<{ $color: string; $bg: string; $dot: string }>`
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 14px;
-    padding: 6px 14px;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 7px 15px;
     border-radius: 9999px;
     font-size: 13px;
     font-weight: 700;
     color: ${p => p.$color};
     background: ${p => p.$bg};
+    border: 1px solid ${p => p.$bg.replace('0.14', '0.3')};
+
+    &::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: ${p => p.$dot};
+        box-shadow: 0 0 8px ${p => p.$dot};
+    }
 `;
 
 /* ── Cards ── */
 
 const Card = styled.section`
-    background: #fff;
-    border: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     padding: 18px 16px;
     margin-top: 16px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(6px);
 
     @media (min-width: 640px) {
         padding: 22px 24px;
-    }
-
-    &:first-of-type {
-        margin-top: -48px;
     }
 `;
 
@@ -159,7 +188,7 @@ const CardTitle = styled.h2`
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
-    color: #64748b;
+    color: #7dd3fc;
 `;
 
 const InfoGrid = styled.dl`
@@ -177,7 +206,7 @@ const InfoItem = styled.div``;
 
 const InfoLabel = styled.dt`
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(148, 163, 184, 0.85);
     font-weight: 600;
     margin-bottom: 2px;
 `;
@@ -186,8 +215,21 @@ const InfoValue = styled.dd`
     margin: 0;
     font-size: 15px;
     font-weight: 600;
-    color: #0f172a;
+    color: #f1f5f9;
     overflow-wrap: anywhere;
+`;
+
+const Plate = styled.span`
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    font-family: ui-monospace, 'SF Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #f8fafc;
 `;
 
 /* ── Services ── */
@@ -201,10 +243,10 @@ const ServiceList = styled.ul`
 const ServiceRow = styled.li`
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: flex-start;
     gap: 16px;
-    padding: 11px 0;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
     &:last-child { border-bottom: none; }
 `;
@@ -212,20 +254,33 @@ const ServiceRow = styled.li`
 const ServiceName = styled.div`
     font-size: 14.5px;
     font-weight: 600;
-    color: #0f172a;
+    color: #f1f5f9;
 `;
 
 const ServiceNote = styled.div`
     font-size: 12.5px;
-    color: #64748b;
+    color: rgba(148, 163, 184, 0.9);
     margin-top: 2px;
 `;
 
-const ServicePrice = styled.div`
+const ServicePrices = styled.div`
+    text-align: right;
+    flex-shrink: 0;
+`;
+
+const ServicePriceGross = styled.div`
     font-size: 14.5px;
     font-weight: 700;
-    color: #0f172a;
+    color: #f1f5f9;
     white-space: nowrap;
+`;
+
+const ServicePriceNet = styled.div`
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(148, 163, 184, 0.9);
+    white-space: nowrap;
+    margin-top: 1px;
 `;
 
 const TotalRow = styled.div`
@@ -234,24 +289,27 @@ const TotalRow = styled.div`
     align-items: baseline;
     margin-top: 12px;
     padding-top: 14px;
-    border-top: 2px solid #0f172a;
+    border-top: 1px solid rgba(125, 211, 252, 0.35);
 `;
 
 const TotalLabel = styled.div`
     font-size: 14px;
     font-weight: 700;
+    color: #f1f5f9;
 `;
 
 const TotalHint = styled.div`
     font-size: 12px;
-    color: #64748b;
+    color: rgba(148, 163, 184, 0.9);
     font-weight: 500;
+    margin-top: 2px;
 `;
 
 const TotalValue = styled.div`
     font-size: 22px;
     font-weight: 800;
     letter-spacing: -0.3px;
+    color: #7dd3fc;
 `;
 
 /* ── Timeline ── */
@@ -273,7 +331,7 @@ const TimelineItem = styled.li<{ $done: boolean }>`
         top: 18px;
         bottom: 0;
         width: 2px;
-        background: ${p => (p.$done ? '#10b981' : '#e2e8f0')};
+        background: ${p => (p.$done ? '#10b981' : 'rgba(255, 255, 255, 0.1)')};
     }
 
     &:last-child { padding-bottom: 0; }
@@ -287,20 +345,21 @@ const TimelineItem = styled.li<{ $done: boolean }>`
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: ${p => (p.$done ? '#10b981' : '#fff')};
-        border: 2px solid ${p => (p.$done ? '#10b981' : '#cbd5e1')};
+        background: ${p => (p.$done ? '#10b981' : '#0f172a')};
+        border: 2px solid ${p => (p.$done ? '#10b981' : 'rgba(148, 163, 184, 0.4)')};
+        ${p => p.$done && 'box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);'}
     }
 `;
 
 const TimelineLabel = styled.div<{ $done: boolean }>`
     font-size: 14px;
     font-weight: 700;
-    color: ${p => (p.$done ? '#0f172a' : '#94a3b8')};
+    color: ${p => (p.$done ? '#f1f5f9' : 'rgba(148, 163, 184, 0.6)')};
 `;
 
 const TimelineDate = styled.div`
     font-size: 12.5px;
-    color: #64748b;
+    color: rgba(148, 163, 184, 0.9);
     margin-top: 1px;
 `;
 
@@ -321,16 +380,17 @@ const PhotoThumb = styled.a`
     aspect-ratio: 1;
     border-radius: 10px;
     overflow: hidden;
-    background: #f1f5f9;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 
     img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 200ms ease;
+        transition: transform 200ms ease, opacity 200ms ease;
     }
 
-    &:hover img { transform: scale(1.04); }
+    &:hover img { transform: scale(1.04); opacity: 0.9; }
 `;
 
 /* ── Documents / consents ── */
@@ -346,7 +406,7 @@ const DocRow = styled.li`
     align-items: center;
     gap: 12px;
     padding: 10px 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
     &:last-child { border-bottom: none; }
 
@@ -354,7 +414,7 @@ const DocRow = styled.li`
         width: 18px;
         height: 18px;
         flex-shrink: 0;
-        color: #0ea5e9;
+        color: #38bdf8;
     }
 `;
 
@@ -366,13 +426,13 @@ const DocInfo = styled.div`
 const DocName = styled.div`
     font-size: 14px;
     font-weight: 600;
-    color: #0f172a;
+    color: #f1f5f9;
     overflow-wrap: anywhere;
 `;
 
 const DocMeta = styled.div`
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(148, 163, 184, 0.85);
     margin-top: 1px;
 `;
 
@@ -380,14 +440,18 @@ const DocLink = styled.a`
     flex-shrink: 0;
     font-size: 13px;
     font-weight: 700;
-    color: #0284c7;
+    color: #7dd3fc;
     text-decoration: none;
-    padding: 6px 12px;
-    border: 1px solid #bae6fd;
+    padding: 6px 14px;
+    border: 1px solid rgba(14, 165, 233, 0.35);
     border-radius: 9999px;
     white-space: nowrap;
+    transition: all 160ms ease;
 
-    &:hover { background: #f0f9ff; }
+    &:hover {
+        background: rgba(14, 165, 233, 0.12);
+        border-color: rgba(14, 165, 233, 0.6);
+    }
 `;
 
 /* ── Contact ── */
@@ -404,35 +468,42 @@ const ContactRow = styled.a`
     gap: 10px;
     font-size: 14.5px;
     font-weight: 600;
-    color: #0f172a;
+    color: #e2e8f0;
     text-decoration: none;
     overflow-wrap: anywhere;
+    transition: color 160ms ease;
 
     svg {
         width: 17px;
         height: 17px;
         flex-shrink: 0;
-        color: #0ea5e9;
+        color: #38bdf8;
     }
 
-    &[href]:hover { color: #0284c7; }
+    &[href]:hover { color: #7dd3fc; }
 `;
 
 const PaymentBadge = styled.span<{ $color: string; $bg: string }>`
     display: inline-block;
-    padding: 6px 14px;
+    padding: 7px 15px;
     border-radius: 9999px;
     font-size: 13.5px;
     font-weight: 700;
     color: ${p => p.$color};
     background: ${p => p.$bg};
+    border: 1px solid ${p => p.$bg.replace('0.14', '0.3')};
 `;
 
 const Footer = styled.footer`
     margin-top: 28px;
     text-align: center;
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(100, 116, 139, 0.9);
+`;
+
+const EmptyText = styled.div`
+    font-size: 14px;
+    color: rgba(148, 163, 184, 0.9);
 `;
 
 /* ── Loading / error states ── */
@@ -449,27 +520,27 @@ const CenterState = styled.div`
     gap: 14px;
     padding: 24px;
     text-align: center;
-    background: #f1f5f9;
+    background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
 `;
 
 const Spinner = styled.div`
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    border: 3px solid #e2e8f0;
-    border-top-color: #0ea5e9;
+    border: 3px solid rgba(255, 255, 255, 0.12);
+    border-top-color: #38bdf8;
     animation: ${spin} 0.8s linear infinite;
 `;
 
 const StateTitle = styled.div`
     font-size: 17px;
     font-weight: 700;
-    color: #0f172a;
+    color: #f1f5f9;
 `;
 
 const StateText = styled.div`
     font-size: 14px;
-    color: #64748b;
+    color: rgba(148, 163, 184, 0.9);
     max-width: 340px;
 `;
 
@@ -541,7 +612,9 @@ export const VisitCardView = () => {
                         {greetingName ? `${greetingName}, tutaj` : 'Tutaj'} znajdziesz wszystkie
                         informacje o wizycie Twojego pojazdu.
                     </HeroSub>
-                    <StatusBadge $color={status.color} $bg={status.bg}>{status.label}</StatusBadge>
+                    <StatusBadge $color={status.color} $bg={status.bg} $dot={status.dot}>
+                        {status.label}
+                    </StatusBadge>
                 </HeroInner>
             </Hero>
 
@@ -578,7 +651,7 @@ export const VisitCardView = () => {
                         {card.vehicle.licensePlate && (
                             <InfoItem>
                                 <InfoLabel>Numer rejestracyjny</InfoLabel>
-                                <InfoValue>{card.vehicle.licensePlate}</InfoValue>
+                                <InfoValue><Plate>{card.vehicle.licensePlate}</Plate></InfoValue>
                             </InfoItem>
                         )}
                         {card.vehicle.yearOfProduction != null && (
@@ -631,7 +704,7 @@ export const VisitCardView = () => {
                 <Card>
                     <CardTitle>Zakres usług i wycena</CardTitle>
                     {card.services.length === 0 ? (
-                        <StateText>Zakres usług jest w trakcie ustalania.</StateText>
+                        <EmptyText>Zakres usług jest w trakcie ustalania.</EmptyText>
                     ) : (
                         <>
                             <ServiceList>
@@ -641,13 +714,16 @@ export const VisitCardView = () => {
                                             <ServiceName>{service.name}</ServiceName>
                                             {service.note && <ServiceNote>{service.note}</ServiceNote>}
                                         </div>
-                                        <ServicePrice>{formatPln(service.priceGross)}</ServicePrice>
+                                        <ServicePrices>
+                                            <ServicePriceGross>{formatPln(service.priceGross)} brutto</ServicePriceGross>
+                                            <ServicePriceNet>{formatPln(service.priceNet)} netto</ServicePriceNet>
+                                        </ServicePrices>
                                     </ServiceRow>
                                 ))}
                             </ServiceList>
                             <TotalRow>
                                 <div>
-                                    <TotalLabel>Razem (brutto)</TotalLabel>
+                                    <TotalLabel>Razem</TotalLabel>
                                     <TotalHint>netto {formatPln(card.totals.totalNet)}</TotalHint>
                                 </div>
                                 <TotalValue>{formatPln(card.totals.totalGross)}</TotalValue>
