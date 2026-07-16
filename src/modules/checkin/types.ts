@@ -239,6 +239,13 @@ export interface ReservationToVisitPayload {
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];
     appointmentColorId: string;
+    doorToDoor?: {
+        pickupCity: string;
+        pickupStreet: string;
+        deliveryCity: string;
+        deliveryStreet: string;
+        notes?: string;
+    };
 }
 
 export interface WalkInVisitPayload {
@@ -266,6 +273,13 @@ export interface WalkInVisitPayload {
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];
     appointmentColorId: string;
+    doorToDoor?: {
+        pickupCity: string;
+        pickupStreet: string;
+        deliveryCity: string;
+        deliveryStreet: string;
+        notes?: string;
+    };
 }
 
 export interface MobileUploadSession {

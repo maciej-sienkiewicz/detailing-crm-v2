@@ -252,6 +252,13 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             damagePoints: formData.damagePoints || [],
             services: transformedServices,
             appointmentColorId: formData.appointmentColorId,
+            doorToDoor: formData.doorToDoor?.enabled ? {
+                pickupCity: formData.doorToDoor.pickupAddress.city,
+                pickupStreet: formData.doorToDoor.pickupAddress.street,
+                deliveryCity: formData.doorToDoor.deliveryAddress.city,
+                deliveryStreet: formData.doorToDoor.deliveryAddress.street,
+                notes: formData.doorToDoor.notes || undefined,
+            } : undefined,
         };
 
         if (!reservationId) {
