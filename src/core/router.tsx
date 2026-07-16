@@ -13,6 +13,7 @@ import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapp
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
 import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
+import { VisitCardView } from '@/modules/visit-card';
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
@@ -188,6 +189,11 @@ export const router = createBrowserRouter([
         // Public voice intake route — no auth required, token via ?token=
         path: '/m/voice',
         element: <MobileVoiceCommandsWrapper />,
+    },
+    {
+        // Public customer Visit Card — no auth required, card token in the path
+        path: '/vc/:token',
+        element: <VisitCardView />,
     },
     {
         path: '/mobile-shortcuts',

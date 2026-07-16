@@ -5,6 +5,7 @@ import styled, { keyframes, css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { VisitCardLinkModal } from '@/modules/visit-card';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -497,6 +498,8 @@ export const VisitHeader = ({
     const [draftDate, setDraftDate] = useState('');
     const [isSavingDate, setIsSavingDate] = useState(false);
 
+    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+
     const openDateModal = () => {
         const current = visit.estimatedCompletionDate
             ? new Date(visit.estimatedCompletionDate).toISOString().slice(0, 16)
@@ -656,6 +659,15 @@ export const VisitHeader = ({
 
                 {/* Actions */}
                 <HeaderRight>
+                    <ActionButton $variant="ghost" onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok klienta">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <line x1="2" y1="9" x2="22" y2="9" />
+                            <line x1="6" y1="14" x2="12" y2="14" />
+                        </svg>
+                        Karta Wizyty
+                    </ActionButton>
+
                     <ActionButton $variant="ghost" $mobileHide onClick={onGeneratePost} title="Generuj post Instagram">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
@@ -733,6 +745,12 @@ export const VisitHeader = ({
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>
+
+            <VisitCardLinkModal
+                visitId={visit.id}
+                isOpen={isCardModalOpen}
+                onClose={() => setIsCardModalOpen(false)}
+            />
         </HeroHeader>
     );
 };
