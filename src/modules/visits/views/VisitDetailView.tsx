@@ -1068,6 +1068,8 @@ export const VisitDetailView = () => {
                         pickupAddress: data.pickupAddress,
                         deliveryAddress: data.deliveryAddress,
                         notes: data.notes || undefined,
+                    }).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
                     });
                 }}
             />
