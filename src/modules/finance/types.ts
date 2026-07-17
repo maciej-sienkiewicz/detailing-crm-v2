@@ -261,6 +261,60 @@ export interface KsefExpense {
   note:              string | null;
 }
 
+/** Strona faktury (sprzedawca / nabywca) z danymi adresowymi. */
+export interface KsefExpenseParty {
+  name:         string | null;
+  nip:          string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  countryCode:  string | null;
+}
+
+/** Szczegóły płatności dokumentu kosztowego. */
+export interface KsefExpensePayment {
+  method:      string | null;
+  methodLabel: string | null;
+  status:      ExpensePaymentStatus;
+  dueDate:     string | null;
+  bankAccount: string | null;
+}
+
+/** Pozycja faktury (wiersz FaWiersz z KSeF). */
+export interface KsefExpenseItem {
+  lineNumber:   number;
+  name:         string | null;
+  unit:         string | null;
+  quantity:     number | null;
+  unitPriceNet: number | null;
+  netValue:     number | null;
+  grossValue:   number | null;
+  vatRate:      string | null;
+}
+
+/** Pełne dane dokumentu kosztowego — podstawa wizualizacji faktury. */
+export interface KsefExpenseDetail {
+  id:                 string;
+  source:             ExpenseSource;
+  ksefNumber:         string | null;
+  documentNumber:     string | null;
+  saleDate:           string | null;
+  issueDate:          string | null;
+  invoiceType:        string | null;
+  seller:             KsefExpenseParty;
+  buyer:              KsefExpenseParty;
+  netAmount:          number | null;
+  grossAmount:        number | null;
+  vatAmount:          number | null;
+  currency:           string;
+  payment:            KsefExpensePayment;
+  items:              KsefExpenseItem[];
+  status:             ExpenseStatus;
+  isCorrection:       boolean;
+  originalKsefNumber: string | null;
+  fetchedAt:          string;
+  note:               string | null;
+}
+
 export interface KsefExpenseListResponse {
   expenses: KsefExpense[];
   total:    number;

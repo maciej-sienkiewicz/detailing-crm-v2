@@ -6,6 +6,7 @@ import type {
   KsefSyncRangeRequest,
   KsefSyncRangeResult,
   KsefExpense,
+  KsefExpenseDetail,
   KsefExpenseListResponse,
   KsefExpenseListFilters,
   CreateExpenseRequest,
@@ -57,6 +58,11 @@ export const ksefApi = {
     if (filters.dateTo)          params.append('dateTo',          filters.dateTo);
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
     const response = await apiClient.get(`${BASE}/expenses?${params}`);
+    return response.data;
+  },
+
+  getExpenseDetail: async (id: string): Promise<KsefExpenseDetail> => {
+    const response = await apiClient.get(`${BASE}/expenses/${id}`);
     return response.data;
   },
 

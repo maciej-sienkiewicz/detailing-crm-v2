@@ -10,6 +10,7 @@ import {
   useDeleteExpenseNote,
 } from '../hooks/useKsef';
 import { ExpenseNoteModal } from './ExpenseNoteModal';
+import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { formatMoneyFloat, formatDate } from '../utils/formatters';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
@@ -60,6 +61,7 @@ const Tr = styled.tr<{ $excluded?: boolean }>`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   transition: background 0.12s ease;
   animation: ${fadeIn} 0.18s ease-out;
+  cursor: pointer;
 
   &:last-child { border-bottom: none; }
 
@@ -216,7 +218,7 @@ const ActionsCell = styled.div`
   gap: 4px;
 `;
 
-const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | 'pay' | 'edit' }>`
+const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | 'pay' | 'edit' | 'preview' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -236,6 +238,7 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | '
       case 'delete':  return `&:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }`;
       case 'pay':     return `&:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }`;
       case 'edit':    return `&:hover { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }`;
+      case 'preview': return `&:hover { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }`;
     }
   }}
 
@@ -383,6 +386,15 @@ const IconCheck = () => (
   </svg>
 );
 
+const IconFileText = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+  </svg>
+);
+
 const IconChevron = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="6 9 12 15 18 9" />
@@ -402,6 +414,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   const [openPaymentId, setOpenPaymentId]   = useState<string | null>(null);
   const [dropdownPos, setDropdownPos]       = useState<{ top: number; left: number } | null>(null);
   const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
+  const [previewId, setPreviewId]           = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const excludeExpense = useExcludeExpense();
@@ -515,7 +528,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
               <Th $align="right">Kwota</Th>
               <Th>Płatność</Th>
               <Th>Źródło</Th>
-              <Th $width="88px" />
+              <Th $width="120px" />
             </tr>
           </Thead>
           <tbody>
@@ -524,7 +537,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
               const currentPaymentStatus = exp.paymentStatus;
 
               return (
-                <Tr key={exp.id} $excluded={isExcluded}>
+                <Tr key={exp.id} $excluded={isExcluded} onClick={() => setPreviewId(exp.id)}>
 
                   {/* Data sprzedaży */}
                   <Td>
@@ -617,6 +630,13 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
                   {/* Akcje */}
                   <Td onClick={(e) => e.stopPropagation()}>
                     <ActionsCell>
+                      <ActionBtn
+                        $variant="preview"
+                        onClick={() => setPreviewId(exp.id)}
+                        title="Podgląd faktury"
+                      >
+                        <IconFileText />
+                      </ActionBtn>
                       {isExcluded ? (
                         <ActionBtn
                           $variant="restore"
@@ -690,6 +710,11 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
         isOpen={noteExpense !== null}
         onClose={() => setNoteExpense(null)}
         expense={noteExpense}
+      />
+
+      <InvoicePreviewModal
+        expenseId={previewId}
+        onClose={() => setPreviewId(null)}
       />
     </>
   );

@@ -106,6 +106,17 @@ export const useKsefExpenses = (filters: KsefExpenseListFilters) => {
   };
 };
 
+/** Pełne dane dokumentu (strony, płatność, pozycje). Pobiera dopiero gdy id jest ustawione. */
+export const useKsefExpenseDetail = (id: string | null) => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [...KSEF_EXPENSES_KEY, 'detail', id],
+    queryFn:  () => ksefApi.getExpenseDetail(id!),
+    enabled:  id !== null,
+  });
+
+  return { detail: data ?? null, isLoading, isError };
+};
+
 export const useCreateExpense = () => {
   const queryClient = useQueryClient();
 
