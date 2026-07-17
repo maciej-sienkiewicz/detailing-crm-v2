@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppointmentEventData, VisitEventData, SmsSendStatus, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { PiiValue, PiiText } from '@/common/pii';
+import { VisitCardLinkModal } from '@/modules/visit-card';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -828,6 +829,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     const navigate = useNavigate();
     const isAppointment = event.type === 'APPOINTMENT';
     const [closing, setClosing] = useState(false);
+    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleClose = () => {
@@ -1077,20 +1079,31 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                 {/* Footer actions */}
                 <PopoverFooter>
                     {isAppointment ? (
-                        <FooterActions>
-                            {isCancelled ? (
-                                <>
-                                    <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
-                                    <IconActionButton $variant="danger" onClick={onDeleteAppointmentClick} title="Usuń rezerwację">USUŃ</IconActionButton>
-                                </>
-                            ) : (
-                                <>
-                                    <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
-                                    <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
-                                    <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
-                                </>
+                        <>
+                            <FooterActions>
+                                {isCancelled ? (
+                                    <>
+                                        <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
+                                        <IconActionButton $variant="danger" onClick={onDeleteAppointmentClick} title="Usuń rezerwację">USUŃ</IconActionButton>
+                                    </>
+                                ) : (
+                                    <>
+                                        <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
+                                        <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
+                                        <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                                    </>
+                                )}
+                            </FooterActions>
+                            {!isCancelled && (
+                                <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                    Karta Wizyty
+                                </SecondaryButton>
                             )}
-                        </FooterActions>
+                        </>
                     ) : (
                         <>
                             <ManageButton onClick={onManageClick}>
@@ -1111,10 +1124,24 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     Edytuj datę zakończenia
                                 </SecondaryButton>
                             )}
+                            <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                                Karta Wizyty
+                            </SecondaryButton>
                         </>
                     )}
                 </PopoverFooter>
             </PopoverContainer>
+
+            <VisitCardLinkModal
+                visitId={isAppointment ? undefined : event.id}
+                appointmentId={isAppointment ? event.id : undefined}
+                isOpen={isCardModalOpen}
+                onClose={() => setIsCardModalOpen(false)}
+            />
         </>
     );
 };

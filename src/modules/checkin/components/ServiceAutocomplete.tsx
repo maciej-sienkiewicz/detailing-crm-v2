@@ -25,9 +25,9 @@ const DropdownContainer = styled.div`
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
-    max-height: 240px;
     overflow-y: auto;
-    z-index: 2001;
+    /* Above every modal/popover layer (ModalShell: 1000, calendar popover: 1000, context menus: 1200) */
+    z-index: 3000;
 `;
 
 const SuggestionItem = styled.div`
@@ -147,20 +147,43 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         const el = inputRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom - 4;
-        if (spaceBelow < 150) {
-            setDropdownStyle({ bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width });
+        const spaceBelow = window.innerHeight - rect.bottom - 12;
+        const spaceAbove = rect.top - 12;
+        // Open in the roomier direction and never let the list run past the
+        // viewport edge — cap its height to the space actually available.
+        if (spaceBelow < 150 && spaceAbove > spaceBelow) {
+            setDropdownStyle({
+                bottom: window.innerHeight - rect.top + 4,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: Math.min(240, Math.max(120, spaceAbove)),
+            });
         } else {
-            setDropdownStyle({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+            setDropdownStyle({
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: Math.min(240, Math.max(120, spaceBelow)),
+            });
         }
     }, []);
 
     useEffect(() => {
         if (!isOpen) return;
         updatePosition();
+        // Modals/popovers animate in with a transform — track the anchor for the
+        // first moments so the list doesn't stay glued to a mid-animation position.
+        let raf = 0;
+        const start = performance.now();
+        const follow = (now: number) => {
+            updatePosition();
+            if (now - start < 400) raf = requestAnimationFrame(follow);
+        };
+        raf = requestAnimationFrame(follow);
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
         return () => {
+            cancelAnimationFrame(raf);
             window.removeEventListener('scroll', updatePosition, true);
             window.removeEventListener('resize', updatePosition);
         };

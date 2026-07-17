@@ -82,10 +82,32 @@ const DiscountGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e2e8f0;
 
     @media (min-width: 480px) {
         grid-template-columns: 1fr 1fr;
     }
+`;
+
+const ExtraToggleRow = styled.div`
+    display: flex;
+    gap: 14px;
+    margin-top: 10px;
+`;
+
+const ExtraToggle = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #2563eb;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const PreviewLine = styled.div`
@@ -222,6 +244,9 @@ const MONEY_TYPES: AdjustmentType[] = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'S
 export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsManagerProps) => {
     const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
+    /** Discount fields stay hidden until the employee explicitly opts in. */
+    const [discountOpen, setDiscountOpen] = useState(false);
+    const [noteOpen, setNoteOpen] = useState(false);
     const [adjustmentType, setAdjustmentType] = useState<AdjustmentType>('PERCENT');
     const [adjustmentInput, setAdjustmentInput] = useState('');
     const [note, setNote] = useState('');
@@ -247,6 +272,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
 
     const parsedValue = Number(adjustmentInput.replace(',', '.'));
     const hasValue = adjustmentInput.trim() !== '' && !Number.isNaN(parsedValue) && parsedValue >= 0;
+    const discountActive = discountOpen && hasValue && parsedValue > 0;
 
     /** UI value → shared PriceAdjustment semantics (percent signed, money in cents). */
     const toAdjustment = () => ({
@@ -257,11 +283,17 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
     });
 
     const preview = selectedService
-        ? applyAdjustment(selectedService.basePriceNet, selectedService.vatRate, hasValue ? toAdjustment() : { type: 'PERCENT', value: 0 })
+        ? applyAdjustment(
+            selectedService.basePriceNet,
+            selectedService.vatRate,
+            discountActive ? toAdjustment() : { type: 'PERCENT', value: 0 },
+        )
         : null;
 
     const handleSelectService = (service: Service) => {
         setSelectedService(service);
+        setDiscountOpen(false);
+        setNoteOpen(false);
         setAdjustmentType('PERCENT');
         setAdjustmentInput('');
         setNote('');
@@ -270,7 +302,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
 
     const handleAdd = async () => {
         if (!selectedService) return;
-        if (adjustmentInput.trim() !== '' && (Number.isNaN(parsedValue) || parsedValue < 0)) {
+        if (discountOpen && adjustmentInput.trim() !== '' && (Number.isNaN(parsedValue) || parsedValue < 0)) {
             setError('Wartość rabatu musi być liczbą nieujemną.');
             return;
         }
@@ -278,11 +310,10 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         setBusy(true);
         setError(null);
         try {
-            const adjustment = hasValue && parsedValue > 0 ? toAdjustment() : undefined;
             await visitCardApi.createUpsellSuggestion(target, {
                 serviceId: selectedService.id,
-                adjustment,
-                note: note.trim() || undefined,
+                adjustment: discountActive ? toAdjustment() : undefined,
+                note: noteOpen ? (note.trim() || undefined) : undefined,
             });
             setSelectedService(null);
             await reload();
@@ -323,74 +354,90 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                     <SelectedServiceHeader>
                         <SelectedServiceName>{selectedService.name}</SelectedServiceName>
                         <SelectedServicePrice>
-                            netto {formatPln(selectedService.basePriceNet)}
+                            {preview && (
+                                <>
+                                    {preview.hasDiscount && (
+                                        <PreviewOld>
+                                            {formatPln(applyAdjustment(selectedService.basePriceNet, selectedService.vatRate, { type: 'PERCENT', value: 0 }).finalGrossCents)}
+                                        </PreviewOld>
+                                    )}
+                                    {formatPln(preview.finalGrossCents)} brutto
+                                </>
+                            )}
                         </SelectedServicePrice>
                     </SelectedServiceHeader>
 
-                    <DiscountGrid>
-                        <FieldGroup>
-                            <Label>Rabat</Label>
-                            <Select
-                                value={adjustmentType}
-                                onChange={e => setAdjustmentType(e.target.value as AdjustmentType)}
-                                disabled={busy}
-                            >
-                                <option value="PERCENT">{discountLabels.percent}</option>
-                                <option value="FIXED_NET">{discountLabels.fixedNet}</option>
-                                <option value="FIXED_GROSS">{discountLabels.fixedGross}</option>
-                                <option value="SET_NET">{discountLabels.setNet}</option>
-                                <option value="SET_GROSS">{discountLabels.setGross}</option>
-                            </Select>
-                        </FieldGroup>
-                        <FieldGroup>
-                            <Label>{adjustmentType === 'PERCENT' ? 'Wartość (%)' : 'Wartość (PLN)'}</Label>
+                    {/* Discount and note are opt-in — the default panel stays minimal. */}
+                    {discountOpen && (
+                        <DiscountGrid>
+                            <FieldGroup>
+                                <Label>Rodzaj rabatu</Label>
+                                <Select
+                                    value={adjustmentType}
+                                    onChange={e => setAdjustmentType(e.target.value as AdjustmentType)}
+                                    disabled={busy}
+                                >
+                                    <option value="PERCENT">{discountLabels.percent}</option>
+                                    <option value="FIXED_NET">{discountLabels.fixedNet}</option>
+                                    <option value="FIXED_GROSS">{discountLabels.fixedGross}</option>
+                                    <option value="SET_NET">{discountLabels.setNet}</option>
+                                    <option value="SET_GROSS">{discountLabels.setGross}</option>
+                                </Select>
+                            </FieldGroup>
+                            <FieldGroup>
+                                <Label>{adjustmentType === 'PERCENT' ? 'Wartość (%)' : 'Wartość (PLN)'}</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder={adjustmentType === 'PERCENT' ? 'np. 10' : 'np. 50,00'}
+                                    value={adjustmentInput}
+                                    onChange={e => setAdjustmentInput(e.target.value)}
+                                    disabled={busy}
+                                />
+                            </FieldGroup>
+                        </DiscountGrid>
+                    )}
+
+                    {noteOpen && (
+                        <FieldGroup style={{ marginTop: 10 }}>
+                            <Label>Notatka dla klienta</Label>
                             <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder={adjustmentType === 'PERCENT' ? 'np. 10' : 'np. 50,00'}
-                                value={adjustmentInput}
-                                onChange={e => setAdjustmentInput(e.target.value)}
+                                type="text"
+                                maxLength={500}
+                                placeholder="np. polecane przy tym przebiegu"
+                                value={note}
+                                onChange={e => setNote(e.target.value)}
                                 disabled={busy}
                             />
                         </FieldGroup>
-                    </DiscountGrid>
+                    )}
 
-                    <FieldGroup style={{ marginTop: 10 }}>
-                        <Label>Notatka dla klienta (opcjonalnie)</Label>
-                        <Input
-                            type="text"
-                            maxLength={500}
-                            placeholder="np. polecane przy tym przebiegu"
-                            value={note}
-                            onChange={e => setNote(e.target.value)}
-                            disabled={busy}
-                        />
-                    </FieldGroup>
-
-                    {preview && (
+                    {discountOpen && preview?.hasDiscount && (
                         <PreviewLine>
                             Cena dla klienta:{' '}
-                            {preview.hasDiscount && (
-                                <PreviewOld>
-                                    {formatPln(applyAdjustment(selectedService.basePriceNet, selectedService.vatRate, { type: 'PERCENT', value: 0 }).finalGrossCents)}
-                                </PreviewOld>
-                            )}
                             <strong>{formatPln(preview.finalGrossCents)} brutto</strong>
                             {' '}({formatPln(preview.finalNetCents)} netto)
                         </PreviewLine>
                     )}
 
-                    {MONEY_TYPES.includes(adjustmentType) && !hasValue && (
-                        <Hint style={{ marginTop: 8, marginBottom: 0 }}>
-                            Podaj kwotę, aby zastosować ten typ rabatu.
-                        </Hint>
-                    )}
+                    <ExtraToggleRow>
+                        {!discountOpen && (
+                            <ExtraToggle onClick={() => setDiscountOpen(true)} disabled={busy}>
+                                + Dodaj rabat
+                            </ExtraToggle>
+                        )}
+                        {!noteOpen && (
+                            <ExtraToggle onClick={() => setNoteOpen(true)} disabled={busy}>
+                                + Dodaj notatkę
+                            </ExtraToggle>
+                        )}
+                    </ExtraToggleRow>
 
                     <PanelActions>
                         <PrimaryBtn
                             onClick={handleAdd}
-                            disabled={busy || (MONEY_TYPES.includes(adjustmentType) && !hasValue)}
+                            disabled={busy || (discountOpen && MONEY_TYPES.includes(adjustmentType) && !hasValue)}
                         >
                             Dodaj sugestię
                         </PrimaryBtn>

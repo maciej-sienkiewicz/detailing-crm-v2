@@ -17,7 +17,6 @@ import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
-import { VisitCardLinkModal } from '@/modules/visit-card';
 import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -225,8 +224,6 @@ export const AppointmentEditView = () => {
         isDateChanged: boolean;
     }>({ isOpen: false, pendingPayload: null, isDateChanged: false });
 
-    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-
     const invalidateAll = () => {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
@@ -412,11 +409,6 @@ export const AppointmentEditView = () => {
             <ContentWrapper>
                 <Header>
                     <Title>{'Edytuj rezerwację'}</Title>
-                    <Actions>
-                        <Button $variant="secondary" onClick={() => setIsCardModalOpen(true)}>
-                            Karta Wizyty
-                        </Button>
-                    </Actions>
                 </Header>
 
                 {recurrenceInfo && (
@@ -481,12 +473,6 @@ export const AppointmentEditView = () => {
                     isSubmitting={updateWithScopeMutation.isPending}
                 />
             )}
-
-            <VisitCardLinkModal
-                appointmentId={appointmentId!}
-                isOpen={isCardModalOpen}
-                onClose={() => setIsCardModalOpen(false)}
-            />
         </Container>
     );
 };
