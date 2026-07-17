@@ -21,13 +21,6 @@ const formatDateTime = (iso: string): string =>
         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 
-const Description = styled.p`
-    margin: 0 0 14px;
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: #64748b;
-`;
-
 const LinkRow = styled.div`
     display: flex;
     gap: 8px;
@@ -90,52 +83,72 @@ const SentBannerText = styled.div`
     strong { font-weight: 700; }
 `;
 
-/* ── Send section (channel choice) ── */
+/* ── Channel picker (shown only after clicking "Wyślij kartę klientowi") ── */
 
-const SendSection = styled.div`
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid #e2e8f0;
+const ChannelPicker = styled.div`
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
 `;
 
-const SendRow = styled.div`
+const ChannelPickerTitle = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 10px;
+`;
+
+const ChannelButtons = styled.div`
     display: flex;
-    align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 `;
 
-const SendLabel = styled.span`
-    font-size: 13px;
+const ChannelButton = styled.button`
+    flex: 1 1 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition: all 140ms ease;
+
+    &:hover:not(:disabled) {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.08);
+    }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const ChannelButtonLabel = styled.span`
+    font-size: 13.5px;
     font-weight: 600;
     color: #0f172a;
 `;
 
-const ChannelGroup = styled.div`
-    display: inline-flex;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    overflow: hidden;
-`;
-
-const ChannelOption = styled.button<{ $active: boolean }>`
-    padding: 8px 14px;
-    border: none;
-    background: ${p => (p.$active ? '#0f172a' : '#fff')};
-    color: ${p => (p.$active ? '#fff' : '#334155')};
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 140ms ease;
-
-    & + & { border-left: 1px solid #e2e8f0; }
-
-    &:hover { background: ${p => (p.$active ? '#0f172a' : '#f8fafc')}; }
-`;
-
-const ChannelSentHint = styled.span`
-    font-size: 12px;
+const ChannelButtonHint = styled.span`
+    font-size: 11.5px;
     color: #64748b;
+`;
+
+const ChannelCancel = styled.button`
+    margin-top: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
 `;
 
 const SendResult = styled.div<{ $success: boolean }>`
@@ -166,7 +179,8 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
     const [link, setLink] = useState<string | null>(null);
     const [lastEmailSentAt, setLastEmailSentAt] = useState<string | null>(null);
     const [lastSmsSentAt, setLastSmsSentAt] = useState<string | null>(null);
-    const [channel, setChannel] = useState<VisitCardSendChannel>('EMAIL');
+    /** Channel choice appears only after the employee clicks "Wyślij kartę klientowi". */
+    const [isPickingChannel, setIsPickingChannel] = useState(false);
     const [loadError, setLoadError] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isSending, setIsSending] = useState(false);
@@ -181,6 +195,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
         setLink(null);
         setLastEmailSentAt(null);
         setLastSmsSentAt(null);
+        setIsPickingChannel(false);
         setLoadError(false);
         setCopied(false);
         setSendResult(null);
@@ -218,7 +233,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleSend = async () => {
+    const handleSend = async (channel: VisitCardSendChannel) => {
         setIsSending(true);
         setSendResult(null);
         try {
@@ -229,6 +244,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
             const now = new Date().toISOString();
             if (res.emailSent) setLastEmailSentAt(now);
             if (res.smsSent) setLastSmsSentAt(now);
+            setIsPickingChannel(false);
         } catch {
             setSendResult({ success: false, message: 'Nie udało się wysłać Karty Wizyty' });
         } finally {
@@ -237,7 +253,6 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
     };
 
     const alreadySent = lastEmailSentAt || lastSmsSentAt;
-    const channelAlreadySent = channel === 'EMAIL' ? lastEmailSentAt : lastSmsSentAt;
 
     const sentSummary = [
         lastEmailSentAt && `e-mailem ${formatDateTime(lastEmailSentAt)}`,
@@ -253,12 +268,6 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
             <ModalContent>
-                <Description>
-                    Publiczna strona z informacjami o wizycie dla klienta — szczegóły rezerwacji,
-                    pojazd, zakres usług z wyceną, a w trakcie wizyty także zdjęcia i dokumenty.
-                    Link nie wymaga logowania.
-                </Description>
-
                 {loadError && <ErrorText>Nie udało się pobrać linku Karty Wizyty.</ErrorText>}
 
                 {!loadError && (
@@ -287,33 +296,31 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     </SentBanner>
                 )}
 
-                {!loadError && (
-                    <SendSection>
-                        <SendRow>
-                            <SendLabel>Wyślij do klienta:</SendLabel>
-                            <ChannelGroup>
-                                <ChannelOption
-                                    $active={channel === 'EMAIL'}
-                                    onClick={() => setChannel('EMAIL')}
-                                    disabled={isSending}
-                                >
-                                    E-mail
-                                </ChannelOption>
-                                <ChannelOption
-                                    $active={channel === 'SMS'}
-                                    onClick={() => setChannel('SMS')}
-                                    disabled={isSending}
-                                >
-                                    SMS
-                                </ChannelOption>
-                            </ChannelGroup>
-                            {channelAlreadySent && (
-                                <ChannelSentHint>
-                                    wysłano tym kanałem {formatDateTime(channelAlreadySent)}
-                                </ChannelSentHint>
-                            )}
-                        </SendRow>
-                    </SendSection>
+                {isPickingChannel && (
+                    <ChannelPicker>
+                        <ChannelPickerTitle>Jak wysłać kartę?</ChannelPickerTitle>
+                        <ChannelButtons>
+                            <ChannelButton onClick={() => handleSend('EMAIL')} disabled={isSending}>
+                                <ChannelButtonLabel>E-mail</ChannelButtonLabel>
+                                <ChannelButtonHint>
+                                    {lastEmailSentAt
+                                        ? `wysłano ${formatDateTime(lastEmailSentAt)}`
+                                        : 'link z wiadomością e-mail'}
+                                </ChannelButtonHint>
+                            </ChannelButton>
+                            <ChannelButton onClick={() => handleSend('SMS')} disabled={isSending}>
+                                <ChannelButtonLabel>SMS</ChannelButtonLabel>
+                                <ChannelButtonHint>
+                                    {lastSmsSentAt
+                                        ? `wysłano ${formatDateTime(lastSmsSentAt)}`
+                                        : 'link w wiadomości SMS'}
+                                </ChannelButtonHint>
+                            </ChannelButton>
+                        </ChannelButtons>
+                        <ChannelCancel onClick={() => setIsPickingChannel(false)} disabled={isSending}>
+                            Anuluj
+                        </ChannelCancel>
+                    </ChannelPicker>
                 )}
 
                 {sendResult && (
@@ -328,14 +335,16 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     onClick={() => link && window.open(link, '_blank', 'noopener')}
                     disabled={!link}
                 >
-                    Podgląd klienta
+                    Podgląd karty
                 </SharedButton>
-                <SharedButton $variant="primary" onClick={handleSend} disabled={!link || isSending}>
+                <SharedButton
+                    $variant="primary"
+                    onClick={() => setIsPickingChannel(true)}
+                    disabled={!link || isSending || isPickingChannel}
+                >
                     {isSending
                         ? 'Wysyłanie…'
-                        : channelAlreadySent
-                            ? `Wyślij ponownie (${channel === 'EMAIL' ? 'e-mail' : 'SMS'})`
-                            : `Wyślij ${channel === 'EMAIL' ? 'e-mailem' : 'SMS-em'}`}
+                        : alreadySent ? 'Wyślij kartę ponownie' : 'Wyślij kartę klientowi'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>
