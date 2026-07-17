@@ -20,7 +20,7 @@ export interface ServiceLineItemPayload {
 export interface AppointmentPayload {
   customer:
     | { mode: 'NEW'; newData: { firstName: string; lastName: string; phone: string; email: string } }
-    | { mode: 'UPDATE'; id: string; patch: { firstName: string; lastName: string; phone: string; email: string } }
+    | { mode: 'UPDATE'; id: string; updateData: { firstName: string; lastName: string; phone: string; email: string } }
     | { mode: 'EXISTING'; id: string };
   vehicle:
     | { mode: 'NEW'; newData: { brand: string; model: string; year?: number } }
@@ -67,7 +67,7 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
     customer = {
       mode: 'UPDATE',
       id: data.customer.id,
-      patch: {
+      updateData: {
         firstName: data.customer.firstName || '',
         lastName: data.customer.lastName || '',
         phone: data.customer.phone || '',
