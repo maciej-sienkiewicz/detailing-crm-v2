@@ -2,10 +2,10 @@
 //
 // Public, customer-facing Visit Card page (route /vc/:token — no login).
 //
-// Design language: a calm, editorial document — warm paper background,
-// serif display headings, hairline rules instead of boxed cards, a single
-// muted accent color. Reads like a well-set invoice or invitation, not a
-// dashboard. Mobile-first: customers open this from an SMS/e-mail link.
+// Design language: a functional, informational status page — neutral light
+// background, white bordered cards, compact label/value rows, one restrained
+// accent. Reads like a parcel-tracking / booking-status page, not a letter.
+// Mobile-first: customers open this from an SMS/e-mail link.
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -19,14 +19,17 @@ import type {
 } from '../types';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
-// Warm paper + ink + one muted accent. No gradients, no glow.
 
-const PAPER = '#f6f4ef';
-const INK = '#22211d';
-const INK_SOFT = '#6e6a60';
-const INK_FAINT = '#98938a';
-const RULE = '#e0dcd2';
-const ACCENT = '#41604f'; // muted forest green — used sparingly for links & emphasis
+const BG = '#f1f3f6';
+const CARD = '#ffffff';
+const BORDER = '#e4e7ec';
+const INK = '#101828';
+const MUTED = '#667085';
+const FAINT = '#98a2b3';
+const ACCENT = '#1d4ed8';        // single functional blue — links & primary action
+const ACCENT_DARK = '#1e40af';
+const OK = '#067647';            // done states
+const OK_BG = '#ecfdf3';
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
@@ -34,11 +37,11 @@ const formatPln = (grosz: number): string =>
     new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(grosz / 100);
 
 const formatDate = (iso: string): string =>
-    new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+    new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const formatDateTime = (iso: string): string =>
     new Date(iso).toLocaleString('pl-PL', {
-        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 
 const STATUS_LABEL: Record<VisitCardStatus, string> = {
@@ -62,164 +65,256 @@ const PAYMENT_LABEL: Record<VisitCardPaymentStatus, string> = {
 const Page = styled.div`
     min-height: 100vh;
     min-height: 100dvh;
-    background: ${PAPER};
+    background: ${BG};
     color: ${INK};
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
 `;
 
 const Shell = styled.div`
-    max-width: 640px;
+    max-width: 680px;
     margin: 0 auto;
-    padding: 40px 20px 72px;
+    padding: 16px 12px 48px;
 
     @media (min-width: 640px) {
-        padding: 56px 24px 96px;
+        padding: 28px 20px 64px;
     }
 `;
 
-/* ── Masthead ── */
+/* ── Cards ── */
 
-const Masthead = styled.header`
-    padding-bottom: 28px;
-    border-bottom: 1px solid ${INK};
+const Card = styled.section`
+    background: ${CARD};
+    border: 1px solid ${BORDER};
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+
+    @media (min-width: 640px) {
+        padding: 20px;
+    }
 `;
 
-const CompanyLine = styled.div`
+const CardTitle = styled.h2`
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: ${FAINT};
+`;
+
+/* ── Header card ── */
+
+const HeaderCard = styled(Card)`
+    padding-bottom: 0;
+
+    @media (min-width: 640px) { padding-bottom: 0; }
+`;
+
+const HeaderTop = styled.div`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    margin-bottom: 36px;
+    flex-wrap: wrap;
 `;
 
 const CompanyLogo = styled.img`
-    height: 32px;
-    max-width: 120px;
+    height: 28px;
+    max-width: 130px;
     object-fit: contain;
 `;
 
 const CompanyMark = styled.div`
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: ${INK_SOFT};
-`;
-
-const Overline = styled.div`
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: ${INK_FAINT};
-    margin-bottom: 10px;
-`;
-
-const DocTitle = styled.h1`
-    margin: 0 0 10px;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 30px;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.18;
+    font-size: 14px;
+    font-weight: 700;
     color: ${INK};
-
-    @media (min-width: 640px) { font-size: 36px; }
 `;
 
-const Lede = styled.p`
-    margin: 0;
-    font-size: 15px;
-    color: ${INK_SOFT};
-    max-width: 46ch;
-`;
-
-const StatusLine = styled.div`
-    display: flex;
+const StatusPill = styled.div<{ $tone: 'active' | 'done' | 'muted' }>`
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 20px;
-    font-size: 13px;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12.5px;
     font-weight: 600;
-    color: ${INK};
+    white-space: nowrap;
+    background: ${p => (p.$tone === 'done' ? OK_BG : p.$tone === 'active' ? '#eff4ff' : '#f2f4f7')};
+    color: ${p => (p.$tone === 'done' ? OK : p.$tone === 'active' ? ACCENT_DARK : MUTED)};
 
     &::before {
         content: '';
-        width: 8px;
-        height: 8px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
-        background: ${ACCENT};
+        background: currentColor;
     }
 `;
 
-/* ── Sections ── */
-
-const Section = styled.section`
-    padding: 30px 0 6px;
-    border-bottom: 1px solid ${RULE};
-
-    &:last-of-type { border-bottom: none; }
+const HeaderTitleRow = styled.div`
+    margin-top: 14px;
 `;
 
-const SectionTitle = styled.h2`
-    margin: 0 0 18px;
-    font-size: 11px;
+const PageKicker = styled.div`
+    font-size: 11.5px;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: ${INK_FAINT};
+    color: ${FAINT};
 `;
 
-const SectionBody = styled.div`
-    padding-bottom: 24px;
+const PageTitle = styled.h1`
+    margin: 2px 0 0;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: ${INK};
 `;
 
-/* ── Fact grid ── */
-
-const FactGrid = styled.dl`
+/** Key facts strip at the bottom of the header card. */
+const KeyFacts = styled.dl`
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px 32px;
-    margin: 0;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0;
+    margin: 16px -16px 0;
+    padding: 0;
+    border-top: 1px solid ${BORDER};
 
-    @media (min-width: 480px) {
-        grid-template-columns: 1fr 1fr;
-    }
+    @media (min-width: 640px) { margin: 18px -20px 0; }
 `;
 
-const Fact = styled.div``;
+const KeyFact = styled.div`
+    padding: 10px 16px;
+    border-right: 1px solid ${BORDER};
 
-const FactLabel = styled.dt`
-    font-size: 12.5px;
-    color: ${INK_SOFT};
-    margin-bottom: 1px;
+    &:last-child { border-right: none; }
+
+    @media (min-width: 640px) { padding: 12px 20px; }
 `;
 
-const FactValue = styled.dd`
-    margin: 0;
-    font-size: 15px;
-    font-weight: 500;
+const KeyFactLabel = styled.dt`
+    font-size: 11.5px;
+    color: ${FAINT};
+`;
+
+const KeyFactValue = styled.dd`
+    margin: 1px 0 0;
+    font-size: 13.5px;
+    font-weight: 600;
     color: ${INK};
     overflow-wrap: anywhere;
 `;
 
-/* ── Services (invoice-style table) ── */
+/* ── Label/value rows ── */
+
+const InfoTable = styled.dl`
+    margin: 0;
+`;
+
+const InfoRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f4f7;
+
+    &:last-child { border-bottom: none; padding-bottom: 0; }
+    &:first-child { padding-top: 0; }
+`;
+
+const InfoLabel = styled.dt`
+    flex-shrink: 0;
+    font-size: 13.5px;
+    color: ${MUTED};
+`;
+
+const InfoValue = styled.dd`
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: ${INK};
+    text-align: right;
+    overflow-wrap: anywhere;
+`;
+
+/* ── Progress steps ── */
+
+const Steps = styled.ol`
+    list-style: none;
+    margin: 0;
+    padding: 0;
+`;
+
+const Step = styled.li<{ $done: boolean }>`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+
+    &:first-child { padding-top: 0; }
+    &:last-child { padding-bottom: 0; }
+`;
+
+const StepMark = styled.span<{ $done: boolean }>`
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: ${p => (p.$done ? OK_BG : '#f2f4f7')};
+    border: 1px solid ${p => (p.$done ? '#a6f4c5' : BORDER)};
+
+    svg {
+        width: 10px;
+        height: 10px;
+        color: ${p => (p.$done ? OK : FAINT)};
+    }
+`;
+
+const StepBody = styled.div`
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+`;
+
+const StepLabel = styled.span<{ $done: boolean }>`
+    font-size: 13.5px;
+    font-weight: ${p => (p.$done ? 600 : 500)};
+    color: ${p => (p.$done ? INK : MUTED)};
+`;
+
+const StepDate = styled.span`
+    font-size: 12.5px;
+    color: ${FAINT};
+    white-space: nowrap;
+`;
+
+/* ── Services table ── */
 
 const ServiceTable = styled.div``;
 
 const ServiceHead = styled.div`
     display: grid;
     grid-template-columns: 1fr auto auto;
-    gap: 8px 20px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid ${RULE};
-    font-size: 11px;
+    gap: 8px 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid ${BORDER};
+    font-size: 11.5px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: ${INK_FAINT};
+    color: ${FAINT};
 
     span:nth-child(2), span:nth-child(3) { text-align: right; }
 
@@ -232,10 +327,10 @@ const ServiceHead = styled.div`
 const ServiceRow = styled.div`
     display: grid;
     grid-template-columns: 1fr auto auto;
-    gap: 2px 20px;
+    gap: 1px 16px;
     align-items: baseline;
-    padding: 12px 0;
-    border-bottom: 1px solid ${RULE};
+    padding: 9px 0;
+    border-bottom: 1px solid #f2f4f7;
 
     @media (max-width: 479px) {
         grid-template-columns: 1fr auto;
@@ -243,22 +338,22 @@ const ServiceRow = styled.div`
 `;
 
 const ServiceName = styled.div`
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 500;
     color: ${INK};
 `;
 
 const ServiceNote = styled.div`
     grid-column: 1;
-    font-size: 13px;
-    color: ${INK_SOFT};
+    font-size: 12.5px;
+    color: ${MUTED};
 `;
 
 const PriceNet = styled.div`
     grid-row: 1;
     grid-column: 2;
-    font-size: 14px;
-    color: ${INK_SOFT};
+    font-size: 13px;
+    color: ${MUTED};
     text-align: right;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -266,15 +361,15 @@ const PriceNet = styled.div`
     @media (max-width: 479px) {
         grid-row: 2;
         grid-column: 2;
-        font-size: 12.5px;
+        font-size: 12px;
     }
 `;
 
 const PriceGross = styled.div`
     grid-row: 1;
     grid-column: 3;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 13.5px;
+    font-weight: 600;
     color: ${INK};
     text-align: right;
     white-space: nowrap;
@@ -293,79 +388,37 @@ const MobilePriceCaption = styled.span`
 const TotalBlock = styled.div`
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    gap: 20px;
-    padding-top: 14px;
-    margin-top: 2px;
-    border-top: 2px solid ${INK};
+    align-items: center;
+    gap: 16px;
+    margin: 10px -16px -16px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-top: 1px solid ${BORDER};
+    border-radius: 0 0 11px 11px;
+
+    @media (min-width: 640px) {
+        margin: 12px -20px -20px;
+        padding: 12px 20px;
+    }
 `;
 
 const TotalLabel = styled.div`
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
+    color: ${INK};
 `;
 
 const TotalNet = styled.div`
-    font-size: 13px;
-    color: ${INK_SOFT};
-    margin-top: 2px;
+    font-size: 12px;
+    color: ${MUTED};
 `;
 
 const TotalGross = styled.div`
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 26px;
+    font-size: 18px;
+    font-weight: 700;
     color: ${INK};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-`;
-
-/* ── Timeline ── */
-
-const Timeline = styled.ol`
-    list-style: none;
-    margin: 0;
-    padding: 0;
-`;
-
-const TimelineItem = styled.li<{ $done: boolean }>`
-    position: relative;
-    padding: 0 0 20px 24px;
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: 3.5px;
-        top: 16px;
-        bottom: -2px;
-        width: 1px;
-        background: ${RULE};
-    }
-
-    &:last-child { padding-bottom: 0; }
-    &:last-child::before { display: none; }
-
-    &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 7px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: ${p => (p.$done ? ACCENT : PAPER)};
-        border: 1.5px solid ${p => (p.$done ? ACCENT : INK_FAINT)};
-    }
-`;
-
-const TimelineLabel = styled.div<{ $done: boolean }>`
-    font-size: 15px;
-    font-weight: ${p => (p.$done ? 600 : 400)};
-    color: ${p => (p.$done ? INK : INK_SOFT)};
-`;
-
-const TimelineDate = styled.div`
-    font-size: 13px;
-    color: ${INK_SOFT};
 `;
 
 /* ── Photos ── */
@@ -384,8 +437,9 @@ const PhotoThumb = styled.a`
     display: block;
     aspect-ratio: 1;
     overflow: hidden;
-    border-radius: 3px;
-    background: ${RULE};
+    border-radius: 8px;
+    background: #f2f4f7;
+    border: 1px solid ${BORDER};
 
     img {
         width: 100%;
@@ -409,11 +463,12 @@ const DocRow = styled.li`
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 20px;
-    padding: 10px 0;
-    border-bottom: 1px solid ${RULE};
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f4f7;
 
-    &:last-child { border-bottom: none; }
+    &:first-child { padding-top: 0; }
+    &:last-child { border-bottom: none; padding-bottom: 0; }
 `;
 
 const DocInfo = styled.div`
@@ -421,45 +476,42 @@ const DocInfo = styled.div`
 `;
 
 const DocName = styled.div`
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 500;
     color: ${INK};
     overflow-wrap: anywhere;
 `;
 
 const DocMeta = styled.div`
-    font-size: 13px;
-    color: ${INK_SOFT};
+    font-size: 12.5px;
+    color: ${MUTED};
 `;
 
 const TextLink = styled.a`
     flex-shrink: 0;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     color: ${ACCENT};
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
+    text-decoration: none;
     white-space: nowrap;
 
-    &:hover { color: #2e4839; }
+    &:hover { color: ${ACCENT_DARK}; text-decoration: underline; }
 `;
 
 /* ── Upsell (suggested additional services) ── */
 
 const UpsellIntro = styled.p`
-    margin: 0 0 14px;
-    font-size: 14px;
-    color: ${INK_SOFT};
-    max-width: 52ch;
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: ${MUTED};
 `;
 
 const UpsellRow = styled.label<{ $interactive: boolean }>`
     display: flex;
     align-items: baseline;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid ${RULE};
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f2f4f7;
     cursor: ${p => (p.$interactive ? 'pointer' : 'default')};
 
     &:last-of-type { border-bottom: none; }
@@ -482,20 +534,25 @@ const UpsellInfo = styled.div`
 `;
 
 const UpsellName = styled.div`
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 500;
     color: ${INK};
 `;
 
 const UpsellNote = styled.div`
-    font-size: 13px;
-    color: ${INK_SOFT};
+    font-size: 12.5px;
+    color: ${MUTED};
 `;
 
-const UpsellStateNote = styled.div`
-    font-size: 13px;
-    color: ${ACCENT};
-    font-weight: 500;
+const UpsellStateNote = styled.div<{ $done?: boolean }>`
+    display: inline-block;
+    margin-top: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: ${p => (p.$done ? OK_BG : '#f2f4f7')};
+    color: ${p => (p.$done ? OK : MUTED)};
 `;
 
 const UpsellPrice = styled.div`
@@ -506,94 +563,73 @@ const UpsellPrice = styled.div`
 `;
 
 const UpsellPriceGross = styled.div`
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 13.5px;
+    font-weight: 600;
     color: ${INK};
 `;
 
 const UpsellPriceOld = styled.div`
-    font-size: 13px;
-    color: ${INK_FAINT};
+    font-size: 12px;
+    color: ${FAINT};
     text-decoration: line-through;
 `;
 
 const UpsellActions = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    padding-top: 16px;
+    padding-top: 12px;
 `;
 
 const UpsellButton = styled.button`
-    padding: 11px 22px;
-    border: 1px solid ${INK};
-    border-radius: 2px;
-    background: ${INK};
-    color: ${PAPER};
+    width: 100%;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 8px;
+    background: ${ACCENT};
+    color: #fff;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 160ms ease;
+    transition: background 140ms ease;
 
-    &:hover:not(:disabled) { opacity: 0.85; }
-    &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
+    &:hover:not(:disabled) { background: ${ACCENT_DARK}; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media (min-width: 640px) { width: auto; }
 `;
 
 const UpsellResult = styled.p<{ $ok: boolean }>`
-    margin: 12px 0 0;
-    font-size: 14px;
-    line-height: 1.5;
-    color: ${p => (p.$ok ? ACCENT : '#8a3b2e')};
-    max-width: 52ch;
+    margin: 10px 0 0;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${p => (p.$ok ? OK : '#b42318')};
+    background: ${p => (p.$ok ? OK_BG : '#fef3f2')};
 `;
 
-/* ── Contact ── */
+/* ── Contact & footer ── */
 
 const ContactBlock = styled.address`
     font-style: normal;
 `;
 
-const ContactName = styled.div`
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 19px;
-    margin-bottom: 6px;
-`;
-
-const ContactLine = styled.div`
-    font-size: 15px;
-    color: ${INK_SOFT};
-`;
-
-const ContactLinks = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 22px;
-    margin-top: 14px;
-`;
-
 const PaymentNote = styled.p`
     margin: 0;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 13.5px;
+    font-weight: 600;
 `;
 
 const Footer = styled.footer`
-    margin-top: 40px;
-    padding-top: 16px;
-    border-top: 1px solid ${RULE};
-    font-size: 12.5px;
-    color: ${INK_FAINT};
+    margin-top: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: ${FAINT};
 `;
 
 const EmptyText = styled.p`
     margin: 0;
-    font-size: 14px;
-    color: ${INK_SOFT};
+    font-size: 13px;
+    color: ${MUTED};
 `;
 
 /* ── Loading / error states ── */
@@ -610,7 +646,7 @@ const CenterState = styled.div`
     gap: 12px;
     padding: 24px;
     text-align: center;
-    background: ${PAPER};
+    background: ${BG};
     color: ${INK};
 `;
 
@@ -618,19 +654,19 @@ const Spinner = styled.div`
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 2px solid ${RULE};
-    border-top-color: ${INK_SOFT};
+    border: 2px solid ${BORDER};
+    border-top-color: ${MUTED};
     animation: ${spin} 0.8s linear infinite;
 `;
 
 const StateTitle = styled.div`
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 22px;
+    font-size: 17px;
+    font-weight: 700;
 `;
 
 const StateText = styled.div`
-    font-size: 14px;
-    color: ${INK_SOFT};
+    font-size: 13.5px;
+    color: ${MUTED};
     max-width: 340px;
 `;
 
@@ -639,6 +675,25 @@ const StateText = styled.div`
 const UPSELL_STATE_LABEL: Record<Exclude<VisitCardUpsellSuggestion['status'], 'SUGGESTED'>, string> = {
     REQUESTED: 'Oczekuje na potwierdzenie SMS',
     CONFIRMED: 'Dodano do wizyty',
+};
+
+const CheckIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+
+const statusTone = (status: VisitCardStatus): 'active' | 'done' | 'muted' => {
+    switch (status) {
+        case 'COMPLETED':
+        case 'ARCHIVED':
+        case 'READY_FOR_PICKUP':
+            return 'done';
+        case 'REJECTED':
+            return 'muted';
+        default:
+            return 'active';
+    }
 };
 
 export const VisitCardView = () => {
@@ -711,10 +766,7 @@ export const VisitCardView = () => {
         );
     }
 
-    const greetingName = card.customer.firstName;
-    const vehicleLabel = card.vehicle
-        ? `${card.vehicle.brand} ${card.vehicle.model}`
-        : 'Twoja rezerwacja';
+    const vehicleLabel = card.vehicle ? `${card.vehicle.brand} ${card.vehicle.model}` : null;
     const { inProgress, completion, company } = card;
 
     const addressLine = [company.street, [company.postalCode, company.city].filter(Boolean).join(' ')]
@@ -728,332 +780,348 @@ export const VisitCardView = () => {
     return (
         <Page>
             <Shell>
-                <Masthead>
-                    <CompanyLine>
+                {/* ── Header: company, status, key facts ── */}
+                <HeaderCard>
+                    <HeaderTop>
                         {company.logoUrl
                             ? <CompanyLogo src={company.logoUrl} alt={company.name} />
                             : <CompanyMark>{company.name}</CompanyMark>}
-                    </CompanyLine>
-                    <Overline>Karta wizyty</Overline>
-                    <DocTitle>{vehicleLabel}</DocTitle>
-                    <Lede>
-                        {greetingName ? `${greetingName}, na` : 'Na'} tej stronie znajdziesz
-                        wszystkie informacje o wizycie Twojego pojazdu — od rezerwacji po odbiór.
-                    </Lede>
-                    <StatusLine>{STATUS_LABEL[card.status] ?? card.status}</StatusLine>
-                </Masthead>
-
-                {/* ── Rezerwacja ── */}
-                <Section>
-                    <SectionTitle>Rezerwacja</SectionTitle>
-                    <SectionBody>
-                        <FactGrid>
-                            <Fact>
-                                <FactLabel>Termin wizyty</FactLabel>
-                                <FactValue>{formatDateTime(card.reservation.scheduledDate)}</FactValue>
-                            </Fact>
-                        </FactGrid>
-                    </SectionBody>
-                </Section>
-
-                {/* ── Pojazd ── */}
-                {card.vehicle && (
-                    <Section>
-                        <SectionTitle>Pojazd</SectionTitle>
-                        <SectionBody>
-                            <FactGrid>
-                                <Fact>
-                                    <FactLabel>Marka i model</FactLabel>
-                                    <FactValue>{vehicleLabel}</FactValue>
-                                </Fact>
-                                {card.vehicle.licensePlate && (
-                                    <Fact>
-                                        <FactLabel>Numer rejestracyjny</FactLabel>
-                                        <FactValue>{card.vehicle.licensePlate}</FactValue>
-                                    </Fact>
-                                )}
-                                {card.vehicle.yearOfProduction != null && (
-                                    <Fact>
-                                        <FactLabel>Rok produkcji</FactLabel>
-                                        <FactValue>{card.vehicle.yearOfProduction}</FactValue>
-                                    </Fact>
-                                )}
-                            </FactGrid>
-                        </SectionBody>
-                    </Section>
-                )}
+                        <StatusPill $tone={statusTone(card.status)}>
+                            {STATUS_LABEL[card.status] ?? card.status}
+                        </StatusPill>
+                    </HeaderTop>
+                    <HeaderTitleRow>
+                        <PageKicker>Karta wizyty</PageKicker>
+                        <PageTitle>{vehicleLabel ?? 'Rezerwacja'}</PageTitle>
+                    </HeaderTitleRow>
+                    <KeyFacts>
+                        <KeyFact>
+                            <KeyFactLabel>Termin wizyty</KeyFactLabel>
+                            <KeyFactValue>{formatDateTime(card.reservation.scheduledDate)}</KeyFactValue>
+                        </KeyFact>
+                        {card.vehicle?.licensePlate && (
+                            <KeyFact>
+                                <KeyFactLabel>Nr rejestracyjny</KeyFactLabel>
+                                <KeyFactValue>{card.vehicle.licensePlate}</KeyFactValue>
+                            </KeyFact>
+                        )}
+                        <KeyFact>
+                            <KeyFactLabel>Wartość usług</KeyFactLabel>
+                            <KeyFactValue>{formatPln(card.totals.totalGross)} brutto</KeyFactValue>
+                        </KeyFact>
+                    </KeyFacts>
+                </HeaderCard>
 
                 {/* ── Przebieg wizyty ── */}
-                <Section>
-                    <SectionTitle>Przebieg wizyty</SectionTitle>
-                    <SectionBody>
-                        <Timeline>
-                            <TimelineItem $done={!!inProgress}>
-                                <TimelineLabel $done={!!inProgress}>Przyjęcie pojazdu</TimelineLabel>
-                                <TimelineDate>
+                <Card>
+                    <CardTitle>Przebieg wizyty</CardTitle>
+                    <Steps>
+                        <Step $done={!!inProgress}>
+                            <StepMark $done={!!inProgress}><CheckIcon /></StepMark>
+                            <StepBody>
+                                <StepLabel $done={!!inProgress}>Przyjęcie pojazdu</StepLabel>
+                                <StepDate>
                                     {inProgress
                                         ? formatDateTime(inProgress.admissionDate)
                                         : formatDateTime(card.reservation.scheduledDate)}
-                                </TimelineDate>
-                            </TimelineItem>
-                            <TimelineItem $done={!!completion?.readyForPickupDate}>
-                                <TimelineLabel $done={!!completion?.readyForPickupDate}>Prace zakończone</TimelineLabel>
-                                <TimelineDate>
+                                </StepDate>
+                            </StepBody>
+                        </Step>
+                        <Step $done={!!completion?.readyForPickupDate}>
+                            <StepMark $done={!!completion?.readyForPickupDate}><CheckIcon /></StepMark>
+                            <StepBody>
+                                <StepLabel $done={!!completion?.readyForPickupDate}>Prace zakończone</StepLabel>
+                                <StepDate>
                                     {completion?.readyForPickupDate
                                         ? formatDateTime(completion.readyForPickupDate)
                                         : card.reservation.estimatedCompletionDate
                                             ? `planowo ${formatDateTime(card.reservation.estimatedCompletionDate)}`
                                             : 'w trakcie ustalania'}
-                                </TimelineDate>
-                            </TimelineItem>
-                            <TimelineItem $done={!!completion?.pickupDate}>
-                                <TimelineLabel $done={!!completion?.pickupDate}>Odbiór pojazdu</TimelineLabel>
-                                <TimelineDate>
+                                </StepDate>
+                            </StepBody>
+                        </Step>
+                        <Step $done={!!completion?.pickupDate}>
+                            <StepMark $done={!!completion?.pickupDate}><CheckIcon /></StepMark>
+                            <StepBody>
+                                <StepLabel $done={!!completion?.pickupDate}>Odbiór pojazdu</StepLabel>
+                                <StepDate>
                                     {completion?.pickupDate ? formatDateTime(completion.pickupDate) : '—'}
-                                </TimelineDate>
-                            </TimelineItem>
-                        </Timeline>
-                    </SectionBody>
-                </Section>
+                                </StepDate>
+                            </StepBody>
+                        </Step>
+                    </Steps>
+                </Card>
+
+                {/* ── Pojazd ── */}
+                {card.vehicle && (
+                    <Card>
+                        <CardTitle>Pojazd</CardTitle>
+                        <InfoTable>
+                            <InfoRow>
+                                <InfoLabel>Marka i model</InfoLabel>
+                                <InfoValue>{vehicleLabel}</InfoValue>
+                            </InfoRow>
+                            {card.vehicle.licensePlate && (
+                                <InfoRow>
+                                    <InfoLabel>Numer rejestracyjny</InfoLabel>
+                                    <InfoValue>{card.vehicle.licensePlate}</InfoValue>
+                                </InfoRow>
+                            )}
+                            {card.vehicle.yearOfProduction != null && (
+                                <InfoRow>
+                                    <InfoLabel>Rok produkcji</InfoLabel>
+                                    <InfoValue>{card.vehicle.yearOfProduction}</InfoValue>
+                                </InfoRow>
+                            )}
+                        </InfoTable>
+                    </Card>
+                )}
 
                 {/* ── Usługi i wycena ── */}
-                <Section>
-                    <SectionTitle>Zakres usług i wycena</SectionTitle>
-                    <SectionBody>
-                        {card.services.length === 0 ? (
-                            <EmptyText>Zakres usług jest w trakcie ustalania.</EmptyText>
-                        ) : (
-                            <ServiceTable>
-                                <ServiceHead>
-                                    <span>Usługa</span>
-                                    <span>Netto</span>
-                                    <span>Brutto</span>
-                                </ServiceHead>
-                                {card.services.map((service, idx) => (
-                                    <ServiceRow key={idx}>
-                                        <ServiceName>{service.name}</ServiceName>
-                                        <PriceNet>
-                                            {formatPln(service.priceNet)}
-                                            <MobilePriceCaption> netto</MobilePriceCaption>
-                                        </PriceNet>
-                                        <PriceGross>{formatPln(service.priceGross)}</PriceGross>
-                                        {service.note && <ServiceNote>{service.note}</ServiceNote>}
-                                    </ServiceRow>
-                                ))}
-                                <TotalBlock>
-                                    <div>
-                                        <TotalLabel>Razem brutto</TotalLabel>
-                                        <TotalNet>netto {formatPln(card.totals.totalNet)}</TotalNet>
-                                    </div>
-                                    <TotalGross>{formatPln(card.totals.totalGross)}</TotalGross>
-                                </TotalBlock>
-                            </ServiceTable>
-                        )}
-                    </SectionBody>
-                </Section>
+                <Card>
+                    <CardTitle>Zakres usług i wycena</CardTitle>
+                    {card.services.length === 0 ? (
+                        <EmptyText>Zakres usług jest w trakcie ustalania.</EmptyText>
+                    ) : (
+                        <ServiceTable>
+                            <ServiceHead>
+                                <span>Usługa</span>
+                                <span>Netto</span>
+                                <span>Brutto</span>
+                            </ServiceHead>
+                            {card.services.map((service, idx) => (
+                                <ServiceRow key={idx}>
+                                    <ServiceName>{service.name}</ServiceName>
+                                    <PriceNet>
+                                        {formatPln(service.priceNet)}
+                                        <MobilePriceCaption> netto</MobilePriceCaption>
+                                    </PriceNet>
+                                    <PriceGross>{formatPln(service.priceGross)}</PriceGross>
+                                    {service.note && <ServiceNote>{service.note}</ServiceNote>}
+                                </ServiceRow>
+                            ))}
+                            <TotalBlock>
+                                <div>
+                                    <TotalLabel>Razem brutto</TotalLabel>
+                                    <TotalNet>netto {formatPln(card.totals.totalNet)}</TotalNet>
+                                </div>
+                                <TotalGross>{formatPln(card.totals.totalGross)}</TotalGross>
+                            </TotalBlock>
+                        </ServiceTable>
+                    )}
+                </Card>
 
                 {/* ── Sugerowane usługi dodatkowe (upselling) ── */}
                 {card.upsellSuggestions.length > 0 && (
-                    <Section>
-                        <SectionTitle>Polecane usługi dodatkowe</SectionTitle>
-                        <SectionBody>
-                            <UpsellIntro>
-                                Przygotowaliśmy propozycje usług dopasowane do Twojego pojazdu.
-                                Zaznacz interesujące Cię pozycje — wyślemy SMS z prośbą
-                                o potwierdzenie, zanim cokolwiek doliczymy do rezerwacji.
-                            </UpsellIntro>
+                    <Card>
+                        <CardTitle>Polecane usługi dodatkowe</CardTitle>
+                        <UpsellIntro>
+                            Zaznacz usługi, które chcesz dodać do rezerwacji — wyślemy SMS
+                            z prośbą o potwierdzenie przed doliczeniem czegokolwiek.
+                        </UpsellIntro>
 
-                            {card.upsellSuggestions.map(suggestion => {
-                                const selectable = suggestion.status === 'SUGGESTED';
-                                return (
-                                    <UpsellRow key={suggestion.id} $interactive={selectable}>
-                                        {selectable && (
-                                            <UpsellCheck
-                                                type="checkbox"
-                                                checked={selectedUpsell.has(suggestion.id)}
-                                                onChange={() => toggleUpsell(suggestion.id)}
-                                                disabled={upsellSending}
-                                            />
+                        {card.upsellSuggestions.map(suggestion => {
+                            const selectable = suggestion.status === 'SUGGESTED';
+                            return (
+                                <UpsellRow key={suggestion.id} $interactive={selectable}>
+                                    {selectable && (
+                                        <UpsellCheck
+                                            type="checkbox"
+                                            checked={selectedUpsell.has(suggestion.id)}
+                                            onChange={() => toggleUpsell(suggestion.id)}
+                                            disabled={upsellSending}
+                                        />
+                                    )}
+                                    <UpsellInfo>
+                                        <UpsellName>{suggestion.name}</UpsellName>
+                                        {suggestion.note && <UpsellNote>{suggestion.note}</UpsellNote>}
+                                        {suggestion.status !== 'SUGGESTED' && (
+                                            <UpsellStateNote $done={suggestion.status === 'CONFIRMED'}>
+                                                {UPSELL_STATE_LABEL[suggestion.status]}
+                                            </UpsellStateNote>
                                         )}
-                                        <UpsellInfo>
-                                            <UpsellName>{suggestion.name}</UpsellName>
-                                            {suggestion.note && <UpsellNote>{suggestion.note}</UpsellNote>}
-                                            {suggestion.status !== 'SUGGESTED' && (
-                                                <UpsellStateNote>
-                                                    {UPSELL_STATE_LABEL[suggestion.status]}
-                                                </UpsellStateNote>
-                                            )}
-                                        </UpsellInfo>
-                                        <UpsellPrice>
-                                            <UpsellPriceGross>{formatPln(suggestion.priceGross)}</UpsellPriceGross>
-                                            {suggestion.originalPriceGross != null && (
-                                                <UpsellPriceOld>{formatPln(suggestion.originalPriceGross)}</UpsellPriceOld>
-                                            )}
-                                        </UpsellPrice>
-                                    </UpsellRow>
-                                );
-                            })}
+                                    </UpsellInfo>
+                                    <UpsellPrice>
+                                        <UpsellPriceGross>{formatPln(suggestion.priceGross)}</UpsellPriceGross>
+                                        {suggestion.originalPriceGross != null && (
+                                            <UpsellPriceOld>{formatPln(suggestion.originalPriceGross)}</UpsellPriceOld>
+                                        )}
+                                    </UpsellPrice>
+                                </UpsellRow>
+                            );
+                        })}
 
-                            {card.upsellSuggestions.some(s => s.status === 'SUGGESTED') && (
-                                <UpsellActions>
-                                    <UpsellButton
-                                        onClick={handleRequestUpsell}
-                                        disabled={selectedUpsell.size === 0 || upsellSending}
-                                    >
-                                        {upsellSending
-                                            ? 'Wysyłanie…'
-                                            : selectedUpsell.size > 1
-                                                ? `Dodaj wybrane usługi (${selectedUpsell.size})`
-                                                : 'Dodaj wybraną usługę'}
-                                    </UpsellButton>
-                                </UpsellActions>
-                            )}
+                        {card.upsellSuggestions.some(s => s.status === 'SUGGESTED') && (
+                            <UpsellActions>
+                                <UpsellButton
+                                    onClick={handleRequestUpsell}
+                                    disabled={selectedUpsell.size === 0 || upsellSending}
+                                >
+                                    {upsellSending
+                                        ? 'Wysyłanie…'
+                                        : selectedUpsell.size > 1
+                                            ? `Dodaj wybrane usługi (${selectedUpsell.size})`
+                                            : 'Dodaj wybraną usługę'}
+                                </UpsellButton>
+                            </UpsellActions>
+                        )}
 
-                            {upsellResult && (
-                                <UpsellResult $ok={upsellResult.ok}>{upsellResult.message}</UpsellResult>
-                            )}
-                        </SectionBody>
-                    </Section>
+                        {upsellResult && (
+                            <UpsellResult $ok={upsellResult.ok}>{upsellResult.message}</UpsellResult>
+                        )}
+                    </Card>
                 )}
 
                 {/* ── Podpisane zgody (po rozpoczęciu) ── */}
                 {inProgress && inProgress.signedConsents.length > 0 && (
-                    <Section>
-                        <SectionTitle>Protokoły i dokumenty</SectionTitle>
-                        <SectionBody>
-                            <DocList>
-                                {inProgress.signedConsents.map((consent, idx) => (
-                                    <DocRow key={idx}>
-                                        <DocInfo>
-                                            <DocName>{consent.name}</DocName>
-                                            {consent.signedAt
-                                                ? <DocMeta>podpisano {formatDateTime(consent.signedAt)}</DocMeta>
-                                                : <DocMeta>do podpisu</DocMeta>
-                                            }
-                                        </DocInfo>
-                                        {consent.downloadUrl && (
-                                            <TextLink href={consent.downloadUrl} target="_blank" rel="noopener noreferrer">
-                                                Pobierz
-                                            </TextLink>
-                                        )}
-                                    </DocRow>
-                                ))}
-                            </DocList>
-                        </SectionBody>
-                    </Section>
+                    <Card>
+                        <CardTitle>Protokoły i dokumenty</CardTitle>
+                        <DocList>
+                            {inProgress.signedConsents.map((consent, idx) => (
+                                <DocRow key={idx}>
+                                    <DocInfo>
+                                        <DocName>{consent.name}</DocName>
+                                        {consent.signedAt
+                                            ? <DocMeta>podpisano {formatDateTime(consent.signedAt)}</DocMeta>
+                                            : <DocMeta>do podpisu</DocMeta>
+                                        }
+                                    </DocInfo>
+                                    {consent.downloadUrl && (
+                                        <TextLink href={consent.downloadUrl} target="_blank" rel="noopener noreferrer">
+                                            Pobierz
+                                        </TextLink>
+                                    )}
+                                </DocRow>
+                            ))}
+                        </DocList>
+                    </Card>
                 )}
 
                 {/* ── Zdjęcia i protokół szkód (po rozpoczęciu) ── */}
                 {inProgress && (inProgress.photos.length > 0 || inProgress.damageMapUrl) && (
-                    <Section>
-                        <SectionTitle>Dokumentacja zdjęciowa</SectionTitle>
-                        <SectionBody>
-                            {inProgress.photos.length > 0 && (
-                                <PhotoGrid>
-                                    {inProgress.photos.map((photo, idx) => (
-                                        <PhotoThumb
-                                            key={idx}
-                                            href={photo.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title={photo.description ?? undefined}
-                                        >
-                                            <img src={photo.url} alt={photo.description ?? `Zdjęcie ${idx + 1}`} loading="lazy" />
-                                        </PhotoThumb>
-                                    ))}
-                                </PhotoGrid>
-                            )}
-                            {inProgress.damageMapUrl && (
-                                <DocList style={{ marginTop: inProgress.photos.length > 0 ? 12 : 0 }}>
-                                    <DocRow>
-                                        <DocInfo>
-                                            <DocName>Protokół szkód</DocName>
-                                            <DocMeta>stan pojazdu odnotowany przy przyjęciu</DocMeta>
-                                        </DocInfo>
-                                        <TextLink href={inProgress.damageMapUrl} target="_blank" rel="noopener noreferrer">
-                                            Zobacz
-                                        </TextLink>
-                                    </DocRow>
-                                </DocList>
-                            )}
-                        </SectionBody>
-                    </Section>
+                    <Card>
+                        <CardTitle>Dokumentacja zdjęciowa</CardTitle>
+                        {inProgress.photos.length > 0 && (
+                            <PhotoGrid>
+                                {inProgress.photos.map((photo, idx) => (
+                                    <PhotoThumb
+                                        key={idx}
+                                        href={photo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title={photo.description ?? undefined}
+                                    >
+                                        <img src={photo.url} alt={photo.description ?? `Zdjęcie ${idx + 1}`} loading="lazy" />
+                                    </PhotoThumb>
+                                ))}
+                            </PhotoGrid>
+                        )}
+                        {inProgress.damageMapUrl && (
+                            <DocList style={{ marginTop: inProgress.photos.length > 0 ? 10 : 0 }}>
+                                <DocRow>
+                                    <DocInfo>
+                                        <DocName>Protokół szkód</DocName>
+                                        <DocMeta>stan pojazdu odnotowany przy przyjęciu</DocMeta>
+                                    </DocInfo>
+                                    <TextLink href={inProgress.damageMapUrl} target="_blank" rel="noopener noreferrer">
+                                        Zobacz
+                                    </TextLink>
+                                </DocRow>
+                            </DocList>
+                        )}
+                    </Card>
                 )}
 
                 {/* ── Dokumenty (po zakończeniu) ── */}
                 {completion && completion.documents.length > 0 && (
-                    <Section>
-                        <SectionTitle>Dodatkowe dokumenty</SectionTitle>
-                        <SectionBody>
-                            <DocList>
-                                {completion.documents.map((doc, idx) => (
-                                    <DocRow key={idx}>
-                                        <DocInfo>
-                                            <DocName>{doc.name || doc.fileName}</DocName>
-                                            <DocMeta>dodano {formatDate(doc.uploadedAt)}</DocMeta>
-                                        </DocInfo>
-                                        {doc.downloadUrl && (
-                                            <TextLink href={doc.downloadUrl} target="_blank" rel="noopener noreferrer">
-                                                Pobierz
-                                            </TextLink>
-                                        )}
-                                    </DocRow>
-                                ))}
-                            </DocList>
-                        </SectionBody>
-                    </Section>
+                    <Card>
+                        <CardTitle>Dodatkowe dokumenty</CardTitle>
+                        <DocList>
+                            {completion.documents.map((doc, idx) => (
+                                <DocRow key={idx}>
+                                    <DocInfo>
+                                        <DocName>{doc.name || doc.fileName}</DocName>
+                                        <DocMeta>dodano {formatDate(doc.uploadedAt)}</DocMeta>
+                                    </DocInfo>
+                                    {doc.downloadUrl && (
+                                        <TextLink href={doc.downloadUrl} target="_blank" rel="noopener noreferrer">
+                                            Pobierz
+                                        </TextLink>
+                                    )}
+                                </DocRow>
+                            ))}
+                        </DocList>
+                    </Card>
                 )}
 
                 {/* ── Płatność (po zakończeniu) ── */}
                 {completion?.paymentStatus && (
-                    <Section>
-                        <SectionTitle>Płatność</SectionTitle>
-                        <SectionBody>
-                            <PaymentNote>{PAYMENT_LABEL[completion.paymentStatus]}</PaymentNote>
-                        </SectionBody>
-                    </Section>
+                    <Card>
+                        <CardTitle>Płatność</CardTitle>
+                        <PaymentNote>{PAYMENT_LABEL[completion.paymentStatus]}</PaymentNote>
+                    </Card>
                 )}
 
                 {/* ── Kontakt ── */}
-                <Section>
-                    <SectionTitle>Kontakt i adres</SectionTitle>
-                    <SectionBody>
-                        <ContactBlock>
-                            <ContactName>{company.name}</ContactName>
-                            {addressLine && <ContactLine>{addressLine}</ContactLine>}
-                            <ContactLinks>
-                                {company.phone && (
-                                    <TextLink href={`tel:${company.phone.replace(/\s/g, '')}`}>
-                                        {company.phone}
-                                    </TextLink>
-                                )}
-                                {company.email && (
-                                    <TextLink href={`mailto:${company.email}`}>
-                                        {company.email}
-                                    </TextLink>
-                                )}
-                                {websiteHref && (
-                                    <TextLink href={websiteHref} target="_blank" rel="noopener noreferrer">
-                                        {company.website}
-                                    </TextLink>
-                                )}
-                                {addressLine && (
-                                    <TextLink
-                                        href={`https://maps.google.com/?q=${encodeURIComponent(`${company.name}, ${addressLine}`)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        Pokaż na mapie
-                                    </TextLink>
-                                )}
-                            </ContactLinks>
-                        </ContactBlock>
-                    </SectionBody>
-                </Section>
+                <Card>
+                    <CardTitle>Kontakt i adres</CardTitle>
+                    <ContactBlock>
+                        <InfoTable>
+                            <InfoRow>
+                                <InfoLabel>Serwis</InfoLabel>
+                                <InfoValue>{company.name}</InfoValue>
+                            </InfoRow>
+                            {addressLine && (
+                                <InfoRow>
+                                    <InfoLabel>Adres</InfoLabel>
+                                    <InfoValue>
+                                        <TextLink
+                                            href={`https://maps.google.com/?q=${encodeURIComponent(`${company.name}, ${addressLine}`)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {addressLine}
+                                        </TextLink>
+                                    </InfoValue>
+                                </InfoRow>
+                            )}
+                            {company.phone && (
+                                <InfoRow>
+                                    <InfoLabel>Telefon</InfoLabel>
+                                    <InfoValue>
+                                        <TextLink href={`tel:${company.phone.replace(/\s/g, '')}`}>
+                                            {company.phone}
+                                        </TextLink>
+                                    </InfoValue>
+                                </InfoRow>
+                            )}
+                            {company.email && (
+                                <InfoRow>
+                                    <InfoLabel>E-mail</InfoLabel>
+                                    <InfoValue>
+                                        <TextLink href={`mailto:${company.email}`}>
+                                            {company.email}
+                                        </TextLink>
+                                    </InfoValue>
+                                </InfoRow>
+                            )}
+                            {websiteHref && (
+                                <InfoRow>
+                                    <InfoLabel>Strona WWW</InfoLabel>
+                                    <InfoValue>
+                                        <TextLink href={websiteHref} target="_blank" rel="noopener noreferrer">
+                                            {company.website}
+                                        </TextLink>
+                                    </InfoValue>
+                                </InfoRow>
+                            )}
+                        </InfoTable>
+                    </ContactBlock>
+                </Card>
 
                 <Footer>
                     Karta wizyty ma charakter informacyjny.
-                    W razie pytań prosimy o kontakt bezpośrednio z {company.name || 'serwisem'}.
+                    W razie pytań prosimy o kontakt z {company.name || 'serwisem'}.
                 </Footer>
             </Shell>
         </Page>
