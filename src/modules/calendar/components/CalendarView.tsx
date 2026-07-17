@@ -203,11 +203,11 @@ const CalendarContainer = styled.div`
 
     /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
        Analogicznie do ludzika urlopowego — wstrzykiwany imperatywnie do
-       .fc-daygrid-day-frame; prawy górny róg, na lewo od ikony urlopu (ludzik: right 3px). */
+       .fc-daygrid-day-frame; prawy górny róg, pozycja right ustawiana inline w JS. */
     .fc-d2d-badge {
         position: absolute;
         top: 3px;
-        right: 38px;
+        right: 3px;
         display: inline-flex;
         align-items: center;
         gap: 2px;
@@ -1185,6 +1185,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         if (!info || info.count <= 0) {
             existing?.remove();
+            // Przesuń D2D badge z powrotem do rogu jeśli nie ma już ludzika
+            const d2dBadge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
+            if (d2dBadge) d2dBadge.style.right = '3px';
             return;
         }
 
@@ -1216,6 +1219,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         badge.setAttribute('aria-label', `Na urlopie: ${info.count}`);
         const countEl = badge.querySelector<HTMLElement>('.fc-leave-count');
         if (countEl) countEl.textContent = String(info.count);
+
+        // Przelicz pozycję D2D badge jeśli już istnieje w tej komórce
+        const d2dBadge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
+        if (d2dBadge) d2dBadge.style.right = `${badge.offsetWidth + 6}px`;
     }, []);
 
     // Po zmianie danych urlopowych odśwież badge na wszystkich zamontowanych komórkach
@@ -1277,6 +1284,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         badge.setAttribute('aria-label', `Wyjazdy Door to Door: ${info.count}`);
         const countEl = badge.querySelector<HTMLElement>('.fc-d2d-count');
         if (countEl) countEl.textContent = String(info.count);
+
+        // Jeśli jest badge urlopowy, przesuń samochodzik w lewo żeby nie nachodził
+        const leaveBadge = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
+        badge.style.right = leaveBadge ? `${leaveBadge.offsetWidth + 6}px` : '3px';
     }, []);
 
     // Po zmianie danych D2D odśwież badge na wszystkich zamontowanych komórkach
