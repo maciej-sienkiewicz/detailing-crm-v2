@@ -209,3 +209,22 @@ export interface EventCreationData {
     end: Date;
     allDay: boolean;
 }
+
+/**
+ * Pojedynczy wyjazd Door to Door w danym dniu (odbiór z rezerwacji lub dostawa z wizyty)
+ */
+export interface DoorToDoorCalendarEntry {
+    id: string;
+    direction: 'PICKUP' | 'DELIVERY';
+    vehicle: string;
+    customerLastName: string;
+}
+
+/**
+ * Dzienna pozycja kalendarza wyjazdów Door to Door (badge z ikoną samochodu)
+ */
+export interface DoorToDoorCalendarDay {
+    date: string;
+    count: number;
+    entries: DoorToDoorCalendarEntry[];
+}

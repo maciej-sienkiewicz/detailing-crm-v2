@@ -12,6 +12,7 @@ import type {
     VisitEventData,
     VisitStatus,
     AppointmentStatus,
+    DoorToDoorCalendarDay,
 } from '../types';
 
 /**
@@ -281,5 +282,13 @@ export const calendarApi = {
             ...appointments.map(transformAppointment),
             ...visits.map(transformVisit),
         ];
+    },
+
+    /** Dzienna liczba wyjazdów Door to Door w zakresie dat (dla badge'a w widoku kalendarza). */
+    getDoorToDoorCalendar: async (from: string, to: string): Promise<DoorToDoorCalendarDay[]> => {
+        const response = await apiClient.get<DoorToDoorCalendarDay[]>('/v1/calendar/door-to-door', {
+            params: { from, to },
+        });
+        return response.data;
     },
 };

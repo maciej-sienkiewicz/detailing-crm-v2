@@ -17,6 +17,7 @@ import { visitApi } from '@/modules/visits/api/visitApi';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { useDoorToDoorCalendar } from '../hooks/useDoorToDoorCalendar';
 import { useLeaveCalendar } from '@/modules/employees/hooks/useLeaves';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCalendarFilters } from '../hooks/useCalendarFilters';
@@ -31,7 +32,7 @@ import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent } from '../types';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -197,6 +198,46 @@ const CalendarContainer = styled.div`
     }
 
     .fc-day-other .fc-leave-badge {
+        opacity: 0.55;
+    }
+
+    /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
+       Analogicznie do ludzika urlopowego — wstrzykiwany imperatywnie do
+       .fc-daygrid-day-frame; lewy górny róg (prawy zajmuje ludzik). */
+    .fc-d2d-badge {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 2px 4px;
+        border-radius: 6px;
+        color: #0ea5e9;
+        z-index: 5;
+        cursor: default;
+        line-height: 1;
+        pointer-events: auto;
+        transition: background 0.15s ease;
+    }
+
+    .fc-d2d-badge:hover {
+        background: rgba(14, 165, 233, 0.1);
+    }
+
+    .fc-d2d-badge svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+    }
+
+    .fc-d2d-badge .fc-d2d-count {
+        font-size: 10px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .fc-day-other .fc-d2d-badge {
         opacity: 0.55;
     }
 
@@ -911,6 +952,12 @@ const LeaveTooltipRow = styled.div`
     }
 `;
 
+const D2DTooltipRow = styled(LeaveTooltipRow)`
+    &::before {
+        background: #0ea5e9;
+    }
+`;
+
 interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
@@ -1113,6 +1160,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         : null;
     const { leaveDayMap } = useLeaveCalendar(leaveRangeFrom, leaveRangeTo);
 
+    // Wyjazdy Door to Door per dzień — zasila ikonkę samochodu w rogu każdego dnia
+    // (ten sam zakres dat co urlopy).
+    const { d2dDayMap } = useDoorToDoorCalendar(leaveRangeFrom, leaveRangeTo);
+
     // ── Ludzik na dniach z urlopami ──────────────────────────────────────────
     // Komórki rejestrują się w dayCellDidMount/dayCellWillUnmount (przeżywa to
     // każdy re-render FullCalendara — wcześniejsze jednorazowe wstrzykiwanie do
@@ -1173,6 +1224,67 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         leaveCellsRef.current.forEach((frame, iso) => applyLeaveBadge(iso, frame));
         setLeaveTooltip(null);
     }, [leaveDayMap, applyLeaveBadge]);
+
+    // ── Samochodzik na dniach z wyjazdami Door to Door ───────────────────────
+    // Mechanika identyczna jak przy ludziku urlopowym: komórki rejestrowane w
+    // dayCellDidMount/dayCellWillUnmount, badge wstrzykiwany imperatywnie do
+    // .fc-daygrid-day-frame; hover otwiera tooltip z listą pojazdów.
+    const d2dDayMapRef = useRef(d2dDayMap);
+    const [d2dTooltip, setD2DTooltip] = useState<{
+        x: number;
+        y: number;
+        date: string;
+        entries: DoorToDoorCalendarEntry[];
+    } | null>(null);
+
+    const applyD2DBadge = useCallback((iso: string, frame: HTMLElement) => {
+        const info = d2dDayMapRef.current.get(iso);
+        const existing = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
+
+        if (!info || info.count <= 0) {
+            existing?.remove();
+            return;
+        }
+
+        let badge = existing;
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'fc-d2d-badge';
+            badge.innerHTML =
+                '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+                '<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 ' +
+                '1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 ' +
+                '1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 ' +
+                '13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 ' +
+                '1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>' +
+                '</svg><span class="fc-d2d-count"></span>';
+            badge.addEventListener('mouseenter', () => {
+                const current = d2dDayMapRef.current.get(iso);
+                if (!current) return;
+                const rect = badge!.getBoundingClientRect();
+                setD2DTooltip({
+                    x: rect.left + rect.width / 2,
+                    y: rect.bottom + 6,
+                    date: iso,
+                    entries: current.entries,
+                });
+            });
+            badge.addEventListener('mouseleave', () => {
+                setD2DTooltip(prev => (prev?.date === iso ? null : prev));
+            });
+            frame.appendChild(badge);
+        }
+        badge.setAttribute('aria-label', `Wyjazdy Door to Door: ${info.count}`);
+        const countEl = badge.querySelector<HTMLElement>('.fc-d2d-count');
+        if (countEl) countEl.textContent = String(info.count);
+    }, []);
+
+    // Po zmianie danych D2D odśwież badge na wszystkich zamontowanych komórkach
+    useEffect(() => {
+        d2dDayMapRef.current = d2dDayMap;
+        leaveCellsRef.current.forEach((frame, iso) => applyD2DBadge(iso, frame));
+        setD2DTooltip(null);
+    }, [d2dDayMap, applyD2DBadge]);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -1806,7 +1918,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Hide event time from calendar tiles
                 displayEventTime={false}
 
-                // Leave indicator (ludzik) — register month-grid day cells
+                // Leave (ludzik) + Door to Door (samochodzik) — register month-grid day cells
                 dayCellDidMount={(arg) => {
                     if (arg.view.type !== 'dayGridMonth') return;
                     const d = arg.date;
@@ -1814,6 +1926,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     const frame = arg.el.querySelector<HTMLElement>('.fc-daygrid-day-frame') ?? arg.el;
                     leaveCellsRef.current.set(iso, frame);
                     applyLeaveBadge(iso, frame);
+                    applyD2DBadge(iso, frame);
                 }}
                 dayCellWillUnmount={(arg) => {
                     if (arg.view.type !== 'dayGridMonth') return;
@@ -1935,6 +2048,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 onClose={handleModalClose}
                 onSave={handleQuickSave}
             />
+
+            {d2dTooltip && (
+                <LeaveTooltipBox style={{ left: d2dTooltip.x, top: d2dTooltip.y }}>
+                    <LeaveTooltipTitle>
+                        Door to Door · {new Date(d2dTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                            day: 'numeric', month: 'long',
+                        })}
+                    </LeaveTooltipTitle>
+                    {d2dTooltip.entries.map(e => (
+                        <D2DTooltipRow key={`${e.id}-${e.direction}`}>
+                            {e.vehicle}{e.customerLastName ? ` (${e.customerLastName})` : ''}
+                        </D2DTooltipRow>
+                    ))}
+                </LeaveTooltipBox>
+            )}
 
             {leaveTooltip && (
                 <LeaveTooltipBox style={{ left: leaveTooltip.x, top: leaveTooltip.y }}>
