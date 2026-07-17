@@ -10,9 +10,10 @@
 // offers the same adjustment types as everywhere else (percent, fixed net/gross,
 // set net/gross).
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { FieldGroup, Label, Input, Select } from '@/common/components/Form';
+import { FieldGroup, Label, Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
 import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjustment';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
@@ -109,6 +110,177 @@ const ExtraToggle = styled.button`
     &:hover { text-decoration: underline; }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
+
+/* ── Discount type dropdown (app-styled: white portal menu, not the native list) ── */
+
+const DropdownTrigger = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 140ms ease;
+
+    &:hover:not(:disabled) { border-color: #cbd5e1; }
+    &:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const DropdownCaret = styled.span<{ $open: boolean }>`
+    flex-shrink: 0;
+    border: solid #94a3b8;
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    margin-top: ${p => (p.$open ? '3px' : '-3px')};
+    transform: rotate(${p => (p.$open ? '-135deg' : '45deg')});
+    transition: transform 140ms ease;
+`;
+
+const DropdownMenu = styled.div`
+    position: fixed;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
+    overflow-y: auto;
+    z-index: 3000;
+    padding: 4px 0;
+`;
+
+const DropdownItem = styled.button<{ $selected: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border: none;
+    background: ${p => (p.$selected ? '#f0f9ff' : 'transparent')};
+    color: #0f172a;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => (p.$selected ? 600 : 500)};
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+
+    &:hover { background: ${p => (p.$selected ? '#f0f9ff' : '#f8fafc')}; }
+
+    svg {
+        flex-shrink: 0;
+        width: 13px;
+        height: 13px;
+        color: #0ea5e9;
+    }
+`;
+
+interface DiscountTypeSelectProps {
+    value: AdjustmentType;
+    options: { value: AdjustmentType; label: string }[];
+    onChange: (value: AdjustmentType) => void;
+    disabled?: boolean;
+}
+
+/** App-styled replacement for the native select — options render in a white portal menu. */
+const DiscountTypeSelect = ({ value, options, onChange, disabled }: DiscountTypeSelectProps) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    const openMenu = () => {
+        const el = triggerRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 12;
+        const spaceAbove = rect.top - 12;
+        if (spaceBelow < 180 && spaceAbove > spaceBelow) {
+            setMenuStyle({
+                bottom: window.innerHeight - rect.top + 4,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: Math.min(260, Math.max(140, spaceAbove)),
+            });
+        } else {
+            setMenuStyle({
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: Math.min(260, Math.max(140, spaceBelow)),
+            });
+        }
+        setIsOpen(true);
+    };
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            const node = event.target as Node;
+            if (!triggerRef.current?.contains(node) && !menuRef.current?.contains(node)) {
+                setIsOpen(false);
+            }
+        };
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, [isOpen]);
+
+    const selectedLabel = options.find(o => o.value === value)?.label ?? '';
+
+    return (
+        <>
+            <DropdownTrigger
+                ref={triggerRef}
+                type="button"
+                onClick={() => (isOpen ? setIsOpen(false) : openMenu())}
+                disabled={disabled}
+            >
+                <span>{selectedLabel}</span>
+                <DropdownCaret $open={isOpen} />
+            </DropdownTrigger>
+            {isOpen && createPortal(
+                <DropdownMenu ref={menuRef} style={menuStyle}>
+                    {options.map(option => (
+                        <DropdownItem
+                            key={option.value}
+                            type="button"
+                            $selected={option.value === value}
+                            onClick={() => { onChange(option.value); setIsOpen(false); }}
+                        >
+                            <span>{option.label}</span>
+                            {option.value === value && (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            )}
+                        </DropdownItem>
+                    ))}
+                </DropdownMenu>,
+                document.body,
+            )}
+        </>
+    );
+};
 
 const PreviewLine = styled.div`
     margin-top: 10px;
@@ -372,17 +544,18 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                         <DiscountGrid>
                             <FieldGroup>
                                 <Label>Rodzaj rabatu</Label>
-                                <Select
+                                <DiscountTypeSelect
                                     value={adjustmentType}
-                                    onChange={e => setAdjustmentType(e.target.value as AdjustmentType)}
+                                    onChange={setAdjustmentType}
                                     disabled={busy}
-                                >
-                                    <option value="PERCENT">{discountLabels.percent}</option>
-                                    <option value="FIXED_NET">{discountLabels.fixedNet}</option>
-                                    <option value="FIXED_GROSS">{discountLabels.fixedGross}</option>
-                                    <option value="SET_NET">{discountLabels.setNet}</option>
-                                    <option value="SET_GROSS">{discountLabels.setGross}</option>
-                                </Select>
+                                    options={[
+                                        { value: 'PERCENT', label: discountLabels.percent },
+                                        { value: 'FIXED_NET', label: discountLabels.fixedNet },
+                                        { value: 'FIXED_GROSS', label: discountLabels.fixedGross },
+                                        { value: 'SET_NET', label: discountLabels.setNet },
+                                        { value: 'SET_GROSS', label: discountLabels.setGross },
+                                    ]}
+                                />
                             </FieldGroup>
                             <FieldGroup>
                                 <Label>{adjustmentType === 'PERCENT' ? 'Wartość (%)' : 'Wartość (PLN)'}</Label>

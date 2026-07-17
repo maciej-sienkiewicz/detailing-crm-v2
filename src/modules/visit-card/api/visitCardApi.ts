@@ -7,6 +7,7 @@ import type {
     UpsellSuggestion,
     VisitCard,
     VisitCardLinkResponse,
+    VisitCardSendChannel,
     VisitCardSendResponse,
 } from '../types';
 
@@ -23,9 +24,12 @@ export const visitCardApi = {
         return response.data;
     },
 
-    /** Employee endpoint: send the card link to the customer (e-mail/SMS per studio config). */
-    sendCardLink: async (visitId: string): Promise<VisitCardSendResponse> => {
-        const response = await apiClient.post<VisitCardSendResponse>(`/visits/${visitId}/card-link/send`);
+    /** Employee endpoint: send the card link to the customer over the chosen channel. */
+    sendCardLink: async (visitId: string, channel?: VisitCardSendChannel): Promise<VisitCardSendResponse> => {
+        const response = await apiClient.post<VisitCardSendResponse>(
+            `/visits/${visitId}/card-link/send`,
+            channel ? { channel } : {},
+        );
         return response.data;
     },
 
@@ -37,9 +41,15 @@ export const visitCardApi = {
         return response.data;
     },
 
-    /** Employee endpoint: send the reservation card link to the customer. */
-    sendAppointmentCardLink: async (appointmentId: string): Promise<VisitCardSendResponse> => {
-        const response = await apiClient.post<VisitCardSendResponse>(`/appointments/${appointmentId}/card-link/send`);
+    /** Employee endpoint: send the reservation card link to the customer over the chosen channel. */
+    sendAppointmentCardLink: async (
+        appointmentId: string,
+        channel?: VisitCardSendChannel,
+    ): Promise<VisitCardSendResponse> => {
+        const response = await apiClient.post<VisitCardSendResponse>(
+            `/appointments/${appointmentId}/card-link/send`,
+            channel ? { channel } : {},
+        );
         return response.data;
     },
 

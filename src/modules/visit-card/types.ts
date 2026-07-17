@@ -131,7 +131,13 @@ export interface VisitCardLinkResponse {
     token: string;
     path: string;
     url: string;
+    /** Last successful delivery per channel — null when never sent that way. */
+    lastEmailSentAt: string | null;
+    lastSmsSentAt: string | null;
 }
+
+/** Channel the employee explicitly picks when sending the card. */
+export type VisitCardSendChannel = 'EMAIL' | 'SMS';
 
 export interface VisitCardSendResponse {
     emailSent: boolean;

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AppointmentEventData, VisitEventData, SmsSendStatus, CalendarSmsInfo } from '../types';
+import type { AppointmentEventData, VisitEventData, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { PiiValue, PiiText } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
@@ -199,18 +199,6 @@ const PopoverBody = styled.div`
 
     @media (max-height: 800px) {
         padding: 14px 18px;
-    }
-`;
-
-const Section = styled.div`
-    margin-bottom: 20px;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
-
-    @media (max-height: 800px) {
-        margin-bottom: 12px;
     }
 `;
 
@@ -516,15 +504,6 @@ const SecondaryButton = styled.button`
         font-size: 12px;
         border-radius: 10px;
     }
-`;
-
-const EmptyState = styled.div`
-    padding: 12px 14px;
-    color: #94a3b8;
-    font-size: 13px;
-    font-style: italic;
-    background: #f8fafc;
-    border-radius: 10px;
 `;
 
 /* ── Toggle switch ─────────────────────────────────────────────────────────── */
