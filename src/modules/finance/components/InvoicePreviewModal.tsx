@@ -29,6 +29,7 @@ const Paper = styled.div`
   border-radius: 14px;
   background: #fff;
   overflow: hidden;
+  flex-shrink: 0;
 `;
 
 const PaperHead = styled.div`
