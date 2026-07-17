@@ -631,7 +631,7 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
-    const { showSuccess, showWarning, showInfo } = useToast();
+    const { showSuccess, showWarning } = useToast();
     const { pendingReminder } = useSmsReminder(visitId!);
     const { config: smsConfig } = useAutomationConfig();
     const smsPreVisitDisabled = smsConfig !== null && !smsConfig.preVisit.enabled;
@@ -706,8 +706,6 @@ export const VisitDetailView = () => {
         setIsTransitionWizardOpen(false);
         setTransitionType(null);
     };
-
-    const handlePrintProtocol = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
 
     const buildGeneratePostPrefill = (): GeneratePostPrefill => {
         const { vehicle, services, status } = visit;
@@ -789,7 +787,6 @@ export const VisitDetailView = () => {
                 <VisitHeader
                     visit={visit}
                     onCompleteVisit={handleCompleteVisit}
-                    onPrintProtocol={handlePrintProtocol}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
                     onDoorToDoor={() => setIsDoorToDoorOpen(true)}
@@ -1017,6 +1014,7 @@ export const VisitDetailView = () => {
                         })()}
                         <CustomerInfoCard
                             customer={visit.customer}
+                            visitId={visit.id}
                             onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
                         />
                         <VehicleInfoCard

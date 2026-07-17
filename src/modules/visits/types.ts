@@ -147,6 +147,8 @@ export interface Visit {
     technicalNotes?: string;
     colorId: string;
     doorToDoor?: DoorToDoorInfo;
+    /** Imię i nazwisko pracownika, który przyjął pojazd (utworzył wizytę) */
+    acceptedByName?: string;
     createdAt: string;
     updatedAt: string;
 }

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import styled from 'styled-components';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { VisitCardLinkModal } from '@/modules/visit-card';
 
 const BRAND = '#0ea5e9';
 
@@ -169,68 +171,59 @@ const CompanyRow = styled.div`
     svg { flex-shrink: 0; color: ${st.textMuted}; }
 `;
 
-const StatsDivider = styled.div`
-    height: 1px;
-    background: ${st.border};
-    margin: 10px 0 12px;
-`;
-
-const StatsRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-`;
-
-const StatBlock = styled.div`
-    padding: 0;
-
-    &:first-child {
-        padding-right: 12px;
-        border-right: 1px solid ${st.border};
-    }
-
-    &:last-child {
-        padding-left: 12px;
-    }
-`;
-
-const StatEyebrow = styled.div`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 3px;
-`;
-
-const StatBigValue = styled.div`
-    font-size: 18px;
-    font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.4px;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-`;
-
-const StatMiniRow = styled.div`
+/* Dyskretna linia historii współpracy — kontekst, nie dashboard */
+const HistoryLine = styled.div`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid ${st.border};
-`;
-
-const StatMiniLabel = styled.span`
-    font-size: 11px;
+    gap: 7px;
+    margin-top: 12px;
+    font-size: 12px;
     color: ${st.textMuted};
     font-weight: 500;
+
+    svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.7; }
+
+    strong {
+        color: ${st.textSecondary};
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
 `;
 
-const StatMiniValue = styled.span`
-    font-size: 11px;
-    font-weight: 700;
+const HistoryDot = styled.span`
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: ${st.textMuted};
+    opacity: 0.5;
+    flex-shrink: 0;
+`;
+
+/* Karta Wizyty — główna akcja sekcji klienta */
+const VisitCardButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 14px;
+    padding: 9px 14px;
+    background: ${st.bgCardAlt};
     color: ${st.textSecondary};
+    border: 1px solid ${st.border};
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover {
+        background: ${st.accentBlueDim};
+        border-color: rgba(59, 130, 246, 0.3);
+        color: ${st.accentBlue};
+    }
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
 // ─── Vehicle-specific ─────────────────────────────────────────────────────────
@@ -353,13 +346,19 @@ function getInitials(firstName: string, lastName: string): string {
 
 interface CustomerInfoCardProps {
     customer: CustomerInfo;
+    visitId?: string;
     onViewDetails?: () => void;
 }
 
-export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardProps) => {
+export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerInfoCardProps) => {
     const fullName = joinPiiName(customer.firstName, customer.lastName) ?? '';
     const masked = isPiiMasked(fullName);
     const initials = masked ? '•' : getInitials(customer.firstName, customer.lastName);
+    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+
+    const visitsLabel = customer.stats.totalVisits === 1 ? 'wizyta' :
+        customer.stats.totalVisits % 10 >= 2 && customer.stats.totalVisits % 10 <= 4 && (customer.stats.totalVisits % 100 < 10 || customer.stats.totalVisits % 100 >= 20)
+            ? 'wizyty' : 'wizyt';
 
     return (
         <SidebarCard>
@@ -434,23 +433,43 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
                     )}
                 </ContactLinks>
 
-                {/* Stats */}
-                <StatsDivider />
-                <StatsRow>
-                    <StatBlock>
-                        <StatEyebrow>Przychód</StatEyebrow>
-                        <StatBigValue>
+                {/* Historia współpracy — subtelny kontekst */}
+                <HistoryLine title="Historia współpracy z klientem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span><strong>{customer.stats.totalVisits}</strong> {visitsLabel}</span>
+                    <HistoryDot />
+                    <span>
+                        łącznie{' '}
+                        <strong>
                             {formatCurrency(
                                 customer.stats.totalSpent.grossAmount / 100,
                                 customer.stats.totalSpent.currency
                             )}
-                        </StatBigValue>
-                    </StatBlock>
-                    <StatBlock>
-                        <StatEyebrow>Wizyty</StatEyebrow>
-                        <StatBigValue>{customer.stats.totalVisits}</StatBigValue>
-                    </StatBlock>
-                </StatsRow>
+                        </strong>
+                    </span>
+                </HistoryLine>
+
+                {/* Karta Wizyty — widok dla klienta */}
+                {visitId && (
+                    <>
+                        <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok dla klienta">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="2" y="4" width="20" height="16" rx="2" />
+                                <line x1="2" y1="9" x2="22" y2="9" />
+                                <line x1="6" y1="14" x2="12" y2="14" />
+                            </svg>
+                            Karta Wizyty
+                        </VisitCardButton>
+                        <VisitCardLinkModal
+                            visitId={visitId}
+                            isOpen={isCardModalOpen}
+                            onClose={() => setIsCardModalOpen(false)}
+                        />
+                    </>
+                )}
             </CustomerBody>
         </SidebarCard>
     );

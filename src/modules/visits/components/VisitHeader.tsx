@@ -1,11 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { PiiValue, joinPiiName } from '@/common/pii';
 import { useNavigate } from 'react-router-dom';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { VisitCardLinkModal } from '@/modules/visit-card';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,26 +42,12 @@ const formatDateRange = (startStr: string, endStr?: string): string => {
     }
 };
 
-// ─── Status & dot config ──────────────────────────────────────────────────────
+// ─── Status config ────────────────────────────────────────────────────────────
 
 const COMPLETE_LABEL: Partial<Record<VisitStatus, string>> = {
     IN_PROGRESS:      'Oznacz jako gotowe',
     READY_FOR_PICKUP: 'Wydaj pojazd',
 };
-
-const DOT_CONFIG: Record<VisitStatus, { color: string; glow: string; animate: boolean; label: string }> = {
-    IN_PROGRESS:      { color: '#10b981', glow: 'rgba(16,185,129,0.28)', animate: true,  label: 'W realizacji'    },
-    READY_FOR_PICKUP: { color: '#0ea5e9', glow: 'rgba(14,165,233,0.28)', animate: true,  label: 'Do odbioru'      },
-    DRAFT:            { color: '#f59e0b', glow: 'rgba(245,158,11,0.22)', animate: true,  label: 'Szkic'           },
-    COMPLETED:        { color: '#10b981', glow: 'transparent',           animate: false, label: 'Zakończona'      },
-    REJECTED:         { color: '#94a3b8', glow: 'transparent',           animate: false, label: 'Odrzucona'       },
-    ARCHIVED:         { color: '#64748b', glow: 'transparent',           animate: false, label: 'Zarchiwizowana'  },
-};
-
-const eyePulse = keyframes`
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.45; }
-`;
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -174,37 +158,6 @@ const BreadcrumbCurrent = styled.span`
     max-width: 220px;
 
     @media (max-width: 640px) { max-width: 130px; }
-`;
-
-/* ── Eyebrow ── */
-
-const EyebrowRow = styled.div`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #7dd3fc;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 10px;
-
-    @media (max-width: 640px) {
-        margin-bottom: 0;
-        margin-left: auto;
-        font-size: 10px;
-        letter-spacing: 0.06em;
-    }
-`;
-
-const PulseDot = styled.div<{ $color: string; $glow: string; $animate: boolean }>`
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: ${p => p.$color};
-    box-shadow: 0 0 0 4px ${p => p.$glow};
-    flex-shrink: 0;
-    ${p => p.$animate && css`animation: ${eyePulse} 2s ease-in-out infinite;`}
 `;
 
 /* ── Title ── */
@@ -469,7 +422,6 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
 interface VisitHeaderProps {
     visit: Visit;
     onCompleteVisit: () => void;
-    onPrintProtocol: () => void;
     onCancelVisit: () => void;
     onGeneratePost: () => void;
     onDoorToDoor?: () => void;
@@ -480,7 +432,6 @@ interface VisitHeaderProps {
 export const VisitHeader = ({
     visit,
     onCompleteVisit,
-    onPrintProtocol,
     onCancelVisit,
     onGeneratePost,
     onDoorToDoor,
@@ -497,8 +448,6 @@ export const VisitHeader = ({
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [draftDate, setDraftDate] = useState('');
     const [isSavingDate, setIsSavingDate] = useState(false);
-
-    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
     const openDateModal = () => {
         const current = visit.estimatedCompletionDate
@@ -539,9 +488,7 @@ export const VisitHeader = ({
     const cancelEditTitle = () => setIsEditingTitle(false);
 
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
-    const dotCfg = DOT_CONFIG[visit.status];
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
-    const customerName = joinPiiName(visit.customer.firstName, visit.customer.lastName) ?? '';
     const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate && `(${visit.vehicle.licensePlate})`]
         .filter(Boolean)
         .join(' ');
@@ -561,12 +508,6 @@ export const VisitHeader = ({
                         <BreadcrumbSep>›</BreadcrumbSep>
                         <BreadcrumbCurrent>{visit.visitNumber}</BreadcrumbCurrent>
                     </BreadcrumbRow>
-
-                    {/* Eyebrow */}
-                    <EyebrowRow>
-                        <PulseDot $color={dotCfg.color} $glow={dotCfg.glow} $animate={dotCfg.animate} />
-                        {dotCfg.label}
-                    </EyebrowRow>
 
                     {/* Title + vehicle inline */}
                     <TitleRow>
@@ -623,15 +564,16 @@ export const VisitHeader = ({
                         )}
                     </TitleRow>
 
-                    {/* Meta: customer · date · plate */}
+                    {/* Meta: accepted by · date · plate */}
                     <MetaRow>
-                        {customerName && (
-                            <MetaItem>
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <circle cx="12" cy="8" r="4" />
-                                    <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
+                        {visit.acceptedByName && (
+                            <MetaItem title="Pracownik, który przyjął pojazd">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="9" cy="8" r="4" />
+                                    <path d="M2 20c0-3.314 3.134-6 7-6s7 2.686 7 6" />
+                                    <polyline points="16 11 18 13 22 9" />
                                 </svg>
-                                <PiiValue value={customerName} kind="name" />
+                                Przyjął: {visit.acceptedByName}
                             </MetaItem>
                         )}
                         <MetaItem>
@@ -659,29 +601,11 @@ export const VisitHeader = ({
 
                 {/* Actions */}
                 <HeaderRight>
-                    <ActionButton $variant="ghost" onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok klienta">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="4" width="20" height="16" rx="2" />
-                            <line x1="2" y1="9" x2="22" y2="9" />
-                            <line x1="6" y1="14" x2="12" y2="14" />
-                        </svg>
-                        Karta Wizyty
-                    </ActionButton>
-
                     <ActionButton $variant="ghost" $mobileHide onClick={onGeneratePost} title="Generuj post Instagram">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
                         </svg>
                         Generuj post
-                    </ActionButton>
-
-                    <ActionButton $variant="ghost" $mobileHide onClick={onPrintProtocol} title="Drukuj protokół">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="6 9 6 2 18 2 18 9" />
-                            <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
-                            <rect x="6" y="14" width="12" height="8" />
-                        </svg>
-                        Drukuj
                     </ActionButton>
 
                     {visit.status === 'READY_FOR_PICKUP' && onDoorToDoor && (
@@ -745,12 +669,6 @@ export const VisitHeader = ({
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>
-
-            <VisitCardLinkModal
-                visitId={visit.id}
-                isOpen={isCardModalOpen}
-                onClose={() => setIsCardModalOpen(false)}
-            />
         </HeroHeader>
     );
 };
