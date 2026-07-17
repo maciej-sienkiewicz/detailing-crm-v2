@@ -210,11 +210,6 @@ const TitlePlaceholder = styled.h1`
     }
 `;
 
-const TitleMutedSep = styled.span`
-    color: #64748b;
-    font-weight: 400;
-    margin: 0 2px;
-`;
 
 const TitleEditInput = styled.input`
     background: rgba(255, 255, 255, 0.08);
@@ -259,6 +254,14 @@ const TitleIconBtn = styled.button`
 
 const PencilBtn = styled(TitleIconBtn)`
     color: rgba(148, 163, 184, 0.45);
+    width: auto;
+    height: auto;
+    padding: 3px 8px;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
     &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
 `;
 
@@ -303,17 +306,25 @@ const MetaItem = styled.span`
     svg { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
 `;
 
-const WizPlate = styled.span`
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #f1f5f9;
-    font-family: 'Courier New', 'Courier', monospace;
-    letter-spacing: 0.12em;
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
+
+/* ── Vehicle row (pod tytułem, osobna linia) ── */
+
+const VehicleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    color: rgba(148, 163, 184, 0.85);
+    font-weight: 500;
+    margin-bottom: 8px;
+    letter-spacing: 0.01em;
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
+
+    @media (max-width: 640px) {
+        flex: 0 0 100%;
+        font-size: 13px;
+    }
 `;
 
 /* ── Date edit modal ── */
@@ -509,7 +520,7 @@ export const VisitHeader = ({
                         <BreadcrumbCurrent>{visit.visitNumber}</BreadcrumbCurrent>
                     </BreadcrumbRow>
 
-                    {/* Title + vehicle inline */}
+                    {/* Title row — tylko tytuł + ikona ołówka */}
                     <TitleRow>
                         {isEditingTitle ? (
                             <>
@@ -540,31 +551,37 @@ export const VisitHeader = ({
                                 {visit.title ? (
                                     <VisitTitle>
                                         {visit.title}
-                                        {onTitleUpdate && (
-                                            <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                </svg>
-                                            </PencilBtn>
-                                        )}
-                                        {vehicleLabel && (
-                                            <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
-                                        )}
                                     </VisitTitle>
                                 ) : (
                                     <TitlePlaceholder onClick={onTitleUpdate ? startEditTitle : undefined} style={onTitleUpdate ? { cursor: 'pointer' } : undefined}>
-                                        Kliknij, że ustawić tytuł...
-                                        {vehicleLabel && (
-                                            <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
-                                        )}
+                                        Kliknij, żeby ustawić tytuł...
                                     </TitlePlaceholder>
+                                )}
+                                {onTitleUpdate && !isEditingTitle && (
+                                    <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                        Edytuj tytuł...
+                                    </PencilBtn>
                                 )}
                             </>
                         )}
                     </TitleRow>
 
-                    {/* Meta: accepted by · date · plate */}
+                    {/* Wiersz pojazdu — marka, model, nr rejestracyjny */}
+                    {vehicleLabel && (
+                        <VehicleRow>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h1l2-4h10l2 4h1a2 2 0 012 2v6a2 2 0 01-2 2h-2" />
+                                <circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
+                            </svg>
+                            {vehicleLabel}
+                        </VehicleRow>
+                    )}
+
+                    {/* Meta: accepted by · date */}
                     <MetaRow>
                         {visit.acceptedByName && (
                             <MetaItem title="Pracownik, który przyjął pojazd">
@@ -590,12 +607,10 @@ export const VisitHeader = ({
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
+                                    Edytuj datę zakończenia...
                                 </PencilBtn>
                             )}
                         </MetaItem>
-                        {visit.vehicle.licensePlate && (
-                            <WizPlate>{visit.vehicle.licensePlate}</WizPlate>
-                        )}
                     </MetaRow>
                 </HeaderLeft>
 
