@@ -203,11 +203,11 @@ const CalendarContainer = styled.div`
 
     /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
        Analogicznie do ludzika urlopowego — wstrzykiwany imperatywnie do
-       .fc-daygrid-day-frame; lewy górny róg (prawy zajmuje ludzik). */
+       .fc-daygrid-day-frame; prawy górny róg, na lewo od ikony urlopu (ludzik: right 3px). */
     .fc-d2d-badge {
         position: absolute;
         top: 3px;
-        left: 3px;
+        right: 38px;
         display: inline-flex;
         align-items: center;
         gap: 2px;
