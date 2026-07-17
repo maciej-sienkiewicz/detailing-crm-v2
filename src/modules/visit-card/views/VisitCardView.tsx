@@ -916,7 +916,7 @@ export const VisitCardView = () => {
                     <Card>
                         <CardTitle>Polecane usługi dodatkowe</CardTitle>
                         <UpsellIntro>
-                            Zaznacz usługi, które chcesz dodać do rezerwacji — wyślemy SMS
+                            Zaznacz usługi, które chcesz dodać do rezerwacji - wyślemy SMS
                             z prośbą o potwierdzenie przed doliczeniem czegokolwiek.
                         </UpsellIntro>
 
