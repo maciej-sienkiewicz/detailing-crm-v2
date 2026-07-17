@@ -122,16 +122,40 @@ const HeaderTop = styled.div`
     flex-wrap: wrap;
 `;
 
+const CompanyIdentity = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+`;
+
 const CompanyLogo = styled.img`
-    height: 28px;
+    height: 34px;
     max-width: 130px;
     object-fit: contain;
+    flex-shrink: 0;
 `;
 
 const CompanyMark = styled.div`
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: ${INK};
+`;
+
+/** Address + contact details right under the company name. */
+const CompanyContact = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: ${MUTED};
+
+    a {
+        color: ${MUTED};
+        text-decoration: none;
+        &:hover { color: ${ACCENT}; text-decoration: underline; }
+    }
 `;
 
 const StatusPill = styled.div<{ $tone: 'active' | 'done' | 'muted' }>`
@@ -240,64 +264,6 @@ const InfoValue = styled.dd`
     color: ${INK};
     text-align: right;
     overflow-wrap: anywhere;
-`;
-
-/* ── Progress steps ── */
-
-const Steps = styled.ol`
-    list-style: none;
-    margin: 0;
-    padding: 0;
-`;
-
-const Step = styled.li<{ $done: boolean }>`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 7px 0;
-
-    &:first-child { padding-top: 0; }
-    &:last-child { padding-bottom: 0; }
-`;
-
-const StepMark = styled.span<{ $done: boolean }>`
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    margin-top: 1px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: ${p => (p.$done ? OK_BG : '#f2f4f7')};
-    border: 1px solid ${p => (p.$done ? '#a6f4c5' : BORDER)};
-
-    svg {
-        width: 10px;
-        height: 10px;
-        color: ${p => (p.$done ? OK : FAINT)};
-    }
-`;
-
-const StepBody = styled.div`
-    flex: 1;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    flex-wrap: wrap;
-`;
-
-const StepLabel = styled.span<{ $done: boolean }>`
-    font-size: 13.5px;
-    font-weight: ${p => (p.$done ? 600 : 500)};
-    color: ${p => (p.$done ? INK : MUTED)};
-`;
-
-const StepDate = styled.span`
-    font-size: 12.5px;
-    color: ${FAINT};
-    white-space: nowrap;
 `;
 
 /* ── Services table ── */
@@ -607,11 +573,7 @@ const UpsellResult = styled.p<{ $ok: boolean }>`
     background: ${p => (p.$ok ? OK_BG : '#fef3f2')};
 `;
 
-/* ── Contact & footer ── */
-
-const ContactBlock = styled.address`
-    font-style: normal;
-`;
+/* ── Footer ── */
 
 const PaymentNote = styled.p`
     margin: 0;
@@ -676,12 +638,6 @@ const UPSELL_STATE_LABEL: Record<Exclude<VisitCardUpsellSuggestion['status'], 'S
     REQUESTED: 'Oczekuje na potwierdzenie SMS',
     CONFIRMED: 'Dodano do wizyty',
 };
-
-const CheckIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
 
 const statusTone = (status: VisitCardStatus): 'active' | 'done' | 'muted' => {
     switch (status) {
@@ -783,13 +739,42 @@ export const VisitCardView = () => {
                 {/* ── Header: company, status, key facts ── */}
                 <HeaderCard>
                     <HeaderTop>
-                        {company.logoUrl
-                            ? <CompanyLogo src={company.logoUrl} alt={company.name} />
-                            : <CompanyMark>{company.name}</CompanyMark>}
+                        <CompanyIdentity>
+                            {company.logoUrl && (
+                                <CompanyLogo
+                                    src={company.logoUrl}
+                                    alt={company.name}
+                                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                                />
+                            )}
+                            <CompanyMark>{company.name}</CompanyMark>
+                        </CompanyIdentity>
                         <StatusPill $tone={statusTone(card.status)}>
                             {STATUS_LABEL[card.status] ?? card.status}
                         </StatusPill>
                     </HeaderTop>
+                    <CompanyContact>
+                        {addressLine && (
+                            <a
+                                href={`https://maps.google.com/?q=${encodeURIComponent(`${company.name}, ${addressLine}`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {addressLine}
+                            </a>
+                        )}
+                        {company.phone && (
+                            <a href={`tel:${company.phone.replace(/\s/g, '')}`}>{company.phone}</a>
+                        )}
+                        {company.email && (
+                            <a href={`mailto:${company.email}`}>{company.email}</a>
+                        )}
+                        {websiteHref && (
+                            <a href={websiteHref} target="_blank" rel="noopener noreferrer">
+                                {company.website}
+                            </a>
+                        )}
+                    </CompanyContact>
                     <HeaderTitleRow>
                         <PageKicker>Karta wizyty</PageKicker>
                         <PageTitle>{vehicleLabel ?? 'Rezerwacja'}</PageTitle>
@@ -811,46 +796,6 @@ export const VisitCardView = () => {
                         </KeyFact>
                     </KeyFacts>
                 </HeaderCard>
-
-                {/* ── Przebieg wizyty ── */}
-                <Card>
-                    <CardTitle>Przebieg wizyty</CardTitle>
-                    <Steps>
-                        <Step $done={!!inProgress}>
-                            <StepMark $done={!!inProgress}><CheckIcon /></StepMark>
-                            <StepBody>
-                                <StepLabel $done={!!inProgress}>Przyjęcie pojazdu</StepLabel>
-                                <StepDate>
-                                    {inProgress
-                                        ? formatDateTime(inProgress.admissionDate)
-                                        : formatDateTime(card.reservation.scheduledDate)}
-                                </StepDate>
-                            </StepBody>
-                        </Step>
-                        <Step $done={!!completion?.readyForPickupDate}>
-                            <StepMark $done={!!completion?.readyForPickupDate}><CheckIcon /></StepMark>
-                            <StepBody>
-                                <StepLabel $done={!!completion?.readyForPickupDate}>Prace zakończone</StepLabel>
-                                <StepDate>
-                                    {completion?.readyForPickupDate
-                                        ? formatDateTime(completion.readyForPickupDate)
-                                        : card.reservation.estimatedCompletionDate
-                                            ? `planowo ${formatDateTime(card.reservation.estimatedCompletionDate)}`
-                                            : 'w trakcie ustalania'}
-                                </StepDate>
-                            </StepBody>
-                        </Step>
-                        <Step $done={!!completion?.pickupDate}>
-                            <StepMark $done={!!completion?.pickupDate}><CheckIcon /></StepMark>
-                            <StepBody>
-                                <StepLabel $done={!!completion?.pickupDate}>Odbiór pojazdu</StepLabel>
-                                <StepDate>
-                                    {completion?.pickupDate ? formatDateTime(completion.pickupDate) : '—'}
-                                </StepDate>
-                            </StepBody>
-                        </Step>
-                    </Steps>
-                </Card>
 
                 {/* ── Pojazd ── */}
                 {card.vehicle && (
@@ -1061,63 +1006,6 @@ export const VisitCardView = () => {
                         <PaymentNote>{PAYMENT_LABEL[completion.paymentStatus]}</PaymentNote>
                     </Card>
                 )}
-
-                {/* ── Kontakt ── */}
-                <Card>
-                    <CardTitle>Kontakt i adres</CardTitle>
-                    <ContactBlock>
-                        <InfoTable>
-                            <InfoRow>
-                                <InfoLabel>Serwis</InfoLabel>
-                                <InfoValue>{company.name}</InfoValue>
-                            </InfoRow>
-                            {addressLine && (
-                                <InfoRow>
-                                    <InfoLabel>Adres</InfoLabel>
-                                    <InfoValue>
-                                        <TextLink
-                                            href={`https://maps.google.com/?q=${encodeURIComponent(`${company.name}, ${addressLine}`)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            {addressLine}
-                                        </TextLink>
-                                    </InfoValue>
-                                </InfoRow>
-                            )}
-                            {company.phone && (
-                                <InfoRow>
-                                    <InfoLabel>Telefon</InfoLabel>
-                                    <InfoValue>
-                                        <TextLink href={`tel:${company.phone.replace(/\s/g, '')}`}>
-                                            {company.phone}
-                                        </TextLink>
-                                    </InfoValue>
-                                </InfoRow>
-                            )}
-                            {company.email && (
-                                <InfoRow>
-                                    <InfoLabel>E-mail</InfoLabel>
-                                    <InfoValue>
-                                        <TextLink href={`mailto:${company.email}`}>
-                                            {company.email}
-                                        </TextLink>
-                                    </InfoValue>
-                                </InfoRow>
-                            )}
-                            {websiteHref && (
-                                <InfoRow>
-                                    <InfoLabel>Strona WWW</InfoLabel>
-                                    <InfoValue>
-                                        <TextLink href={websiteHref} target="_blank" rel="noopener noreferrer">
-                                            {company.website}
-                                        </TextLink>
-                                    </InfoValue>
-                                </InfoRow>
-                            )}
-                        </InfoTable>
-                    </ContactBlock>
-                </Card>
 
                 <Footer>
                     Karta wizyty ma charakter informacyjny.
