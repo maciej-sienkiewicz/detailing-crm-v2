@@ -374,7 +374,14 @@ interface Props {
 export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => {
   const { detail, isLoading, isError } = useKsefExpenseDetail(expenseId);
 
-  const showGrossColumn = detail?.items.some((item) => item.grossValue != null) ?? false;
+  /** Wartość brutto pozycji: z API jeśli dostarczona, w przeciwnym razie wyliczona z netto × (1 + VAT%). */
+  const resolveGross = (item: { grossValue: number | null; netValue: number | null; vatRate: string | null }): number | null => {
+    if (item.grossValue != null) return item.grossValue;
+    if (item.netValue == null) return null;
+    const rate = parseFloat(item.vatRate ?? '');
+    if (isNaN(rate)) return null;
+    return item.netValue * (1 + rate / 100);
+  };
 
   return (
     <ModalShell isOpen={expenseId !== null} onClose={onClose} size="xl">
@@ -484,7 +491,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                           <ItemTh $align="right">Cena netto</ItemTh>
                           <ItemTh $align="right">VAT</ItemTh>
                           <ItemTh $align="right">Wartość netto</ItemTh>
-                          {showGrossColumn && <ItemTh $align="right">Wartość brutto</ItemTh>}
+                          <ItemTh $align="right">Wartość brutto</ItemTh>
                         </tr>
                       </thead>
                       <tbody>
@@ -497,9 +504,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                             <ItemTd $align="right"><Mono>{formatMoneyFloatCompact(item.unitPriceNet)}</Mono></ItemTd>
                             <ItemTd $align="right"><Mono>{formatVatRate(item.vatRate)}</Mono></ItemTd>
                             <ItemTd $align="right"><Mono>{formatMoneyFloatCompact(item.netValue)}</Mono></ItemTd>
-                            {showGrossColumn && (
-                              <ItemTd $align="right"><Mono>{formatMoneyFloatCompact(item.grossValue)}</Mono></ItemTd>
-                            )}
+                            <ItemTd $align="right"><Mono>{formatMoneyFloatCompact(resolveGross(item))}</Mono></ItemTd>
                           </tr>
                         ))}
                       </tbody>
