@@ -16,8 +16,9 @@ import styled from 'styled-components';
 import { FieldGroup, Label, Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
 import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjustment';
+import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
-import type { Service } from '@/modules/services/types';
+import type { Service, VatRate } from '@/modules/services/types';
 import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
 import type { UpsellSuggestion, UpsellSuggestionStatus } from '../types';
 
@@ -299,6 +300,7 @@ const PreviewOld = styled.span`
 
 const PanelActions = styled.div`
     display: flex;
+    justify-content: flex-end;
     gap: 8px;
     margin-top: 12px;
 `;
@@ -424,6 +426,8 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
     const [note, setNote] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [quickServiceOpen, setQuickServiceOpen] = useState(false);
+    const [initialServiceName, setInitialServiceName] = useState('');
 
     const reload = useCallback(async () => {
         const list = await visitCardApi.getUpsellSuggestions(target);
@@ -470,6 +474,34 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         setAdjustmentInput('');
         setNote('');
         setError(null);
+    };
+
+    const handleAddNew = (searchQuery: string) => {
+        setInitialServiceName(searchQuery);
+        setQuickServiceOpen(true);
+    };
+
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: VatRate }) => {
+        if (!service.id) {
+            setError('Aby dodać sugestię, usługa musi być zapisana w bazie. Zaznacz „Zapisz w bazie danych" w formularzu.');
+            return;
+        }
+        handleSelectService({
+            id: service.id,
+            name: service.name,
+            basePriceNet: service.basePriceNet,
+            vatRate: service.vatRate,
+            requireManualPrice: false,
+            isActive: true,
+            isPackage: false,
+            packageItems: null,
+            createdAt: '',
+            updatedAt: '',
+            createdByFirstName: '',
+            createdByLastName: '',
+            updatedBy: '',
+            replacesServiceId: null,
+        });
     };
 
     const handleAdd = async () => {
@@ -519,7 +551,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                 Gdy klient je wybierze, otrzyma SMS z prośbą o potwierdzenie odpowiedzią „TAK”.
             </Hint>
 
-            {!selectedService && <ServiceAutocomplete onSelect={handleSelectService} />}
+            {!selectedService && <ServiceAutocomplete onSelect={handleSelectService} onAddNew={handleAddNew} />}
 
             {selectedService && (
                 <SelectedServicePanel>
@@ -608,20 +640,27 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                     </ExtraToggleRow>
 
                     <PanelActions>
+                        <GhostBtn onClick={() => setSelectedService(null)} disabled={busy}>
+                            Anuluj
+                        </GhostBtn>
                         <PrimaryBtn
                             onClick={handleAdd}
                             disabled={busy || (discountOpen && MONEY_TYPES.includes(adjustmentType) && !hasValue)}
                         >
                             Dodaj sugestię
                         </PrimaryBtn>
-                        <GhostBtn onClick={() => setSelectedService(null)} disabled={busy}>
-                            Anuluj
-                        </GhostBtn>
                     </PanelActions>
                 </SelectedServicePanel>
             )}
 
             {error && <ErrorText>{error}</ErrorText>}
+
+            <QuickServiceModal
+                isOpen={quickServiceOpen}
+                onClose={() => setQuickServiceOpen(false)}
+                onServiceCreate={handleQuickServiceCreate}
+                initialServiceName={initialServiceName}
+            />
 
             {suggestions.length === 0 ? (
                 <EmptyText>Brak sugerowanych usług.</EmptyText>
