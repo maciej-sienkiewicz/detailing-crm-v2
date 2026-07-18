@@ -1211,6 +1211,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         y: number;
         date: string;
         employees: { id: string; fullName: string }[];
+        above: boolean;
     } | null>(null);
 
     const applyLeaveBadge = useCallback((iso: string, frame: HTMLElement) => {
@@ -1238,11 +1239,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 const current = leaveDayMapRef.current.get(iso);
                 if (!current) return;
                 const rect = badge!.getBoundingClientRect();
+                const TH = 160, TW = 260, M = 8;
+                const above = rect.bottom + TH + M > window.innerHeight;
+                const x = Math.max(TW / 2 + M, Math.min(rect.left + rect.width / 2, window.innerWidth - TW / 2 - M));
                 setLeaveTooltip({
-                    x: rect.left + rect.width / 2,
-                    y: rect.bottom + 6,
+                    x,
+                    y: above ? rect.top - 6 : rect.bottom + 6,
                     date: iso,
                     employees: current.employees,
+                    above,
                 });
             });
             badge.addEventListener('mouseleave', () => {
@@ -1276,6 +1281,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         y: number;
         date: string;
         entries: DoorToDoorCalendarEntry[];
+        above: boolean;
     } | null>(null);
 
     const applyD2DBadge = useCallback((iso: string, frame: HTMLElement) => {
@@ -1303,11 +1309,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 const current = d2dDayMapRef.current.get(iso);
                 if (!current) return;
                 const rect = badge!.getBoundingClientRect();
+                const TH = 160, TW = 260, M = 8;
+                const above = rect.bottom + TH + M > window.innerHeight;
+                const x = Math.max(TW / 2 + M, Math.min(rect.left + rect.width / 2, window.innerWidth - TW / 2 - M));
                 setD2DTooltip({
-                    x: rect.left + rect.width / 2,
-                    y: rect.bottom + 6,
+                    x,
+                    y: above ? rect.top - 6 : rect.bottom + 6,
                     date: iso,
                     entries: current.entries,
+                    above,
                 });
             });
             badge.addEventListener('mouseleave', () => {
@@ -2097,7 +2107,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             />
 
             {d2dTooltip && (
-                <LeaveTooltipBox style={{ left: d2dTooltip.x, top: d2dTooltip.y }}>
+                <LeaveTooltipBox style={{ left: d2dTooltip.x, top: d2dTooltip.y, transform: d2dTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
                     <LeaveTooltipTitle>
                         Door to Door · {new Date(d2dTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
                             day: 'numeric', month: 'long',
@@ -2112,7 +2122,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             )}
 
             {leaveTooltip && (
-                <LeaveTooltipBox style={{ left: leaveTooltip.x, top: leaveTooltip.y }}>
+                <LeaveTooltipBox style={{ left: leaveTooltip.x, top: leaveTooltip.y, transform: leaveTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
                     <LeaveTooltipTitle>
                         Na urlopie · {new Date(leaveTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
                             day: 'numeric', month: 'long',
