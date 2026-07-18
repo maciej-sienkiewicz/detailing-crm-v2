@@ -660,6 +660,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                 onClose={() => setQuickServiceOpen(false)}
                 onServiceCreate={handleQuickServiceCreate}
                 initialServiceName={initialServiceName}
+                contentLeft={0}
             />
 
             {suggestions.length === 0 ? (

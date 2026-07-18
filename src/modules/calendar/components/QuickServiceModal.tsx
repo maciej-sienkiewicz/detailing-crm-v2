@@ -48,6 +48,7 @@ interface QuickServiceModalProps {
     onClose: () => void;
     onServiceCreate: (service: { id?: string; name: string; basePriceNet: number; vatRate: VatRate }) => void;
     initialServiceName?: string;
+    contentLeft?: number;
 }
 
 export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
@@ -55,9 +56,10 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                                                         onClose,
                                                                         onServiceCreate,
                                                                         initialServiceName = '',
+                                                                        contentLeft: contentLeftProp,
                                                                     }) => {
     const { isCollapsed } = useSidebar();
-    const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
+    const contentLeft = contentLeftProp ?? (typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0);
     const [serviceName, setServiceName] = useState(initialServiceName);
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [vatRate, setVatRate] = useState<VatRate>(23);

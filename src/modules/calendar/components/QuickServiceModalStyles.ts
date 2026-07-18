@@ -38,7 +38,7 @@ import {
 // ─── Overlay & container ──────────────────────────────────────────────────────
 
 export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
-    z-index: 50;
+    z-index: 1100;
     left: ${p => p.$contentLeft ?? 0}px;
 `;
 
