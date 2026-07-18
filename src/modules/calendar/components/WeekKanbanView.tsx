@@ -355,11 +355,12 @@ const Card = styled.div<{
     $accentColor: string;
     $deemphasised: boolean;
     $isAllDay: boolean;
+    $isVisit: boolean;
 }>`
     position: relative;
-    background: #fff;
+    background: ${p => p.$isVisit ? p.$accentColor : '#fff'};
     border-radius: 8px;
-    border-left: 3px solid ${p => p.$accentColor};
+    border-left: 3px solid ${p => p.$isVisit ? 'rgba(0, 0, 0, 0.12)' : p.$accentColor};
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(15, 23, 42, 0.05);
     padding: 8px 10px 8px 9px;
     cursor: pointer;
@@ -371,6 +372,12 @@ const Card = styled.div<{
         border-left-width: 0;
         border-top: 3px solid ${p.$accentColor};
         background: ${p.$accentColor}14;
+    `}
+
+    ${p => p.$isVisit && css`
+        && * {
+            color: rgba(255, 255, 255, 0.9);
+        }
     `}
 
     &:hover {
@@ -487,6 +494,7 @@ const EventCard = ({ slot, onClick }: EventCardProps) => {
             $accentColor={accentColor}
             $deemphasised={deemphasised}
             $isAllDay={isAllDay}
+            $isVisit={props.type === 'VISIT' && !deemphasised}
             onClick={onClick}
             title={event.title}
         >

@@ -1999,6 +1999,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         const timeStr = (!arg.event.allDay && start)
                             ? `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
                             : '';
+                        const isDeemphasised = isCancelled || status === 'COMPLETED' || status === 'ARCHIVED' || status === 'REJECTED';
+                        const isSolidVisit = props.type === 'VISIT' && !isDeemphasised;
                         return (
                             <div style={{
                                 display: 'flex',
@@ -2006,8 +2008,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                 gap: '5px',
                                 width: '100%',
                                 padding: '3px 6px 3px 4px',
-                                background: `${color}14`,
-                                borderLeft: `3px solid ${color}`,
+                                background: isSolidVisit ? color : `${color}14`,
+                                borderLeft: `3px solid ${isSolidVisit ? 'rgba(0, 0, 0, 0.12)' : color}`,
                                 borderRadius: '5px',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
@@ -2016,7 +2018,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             }}>
                                 {timeStr && (
                                     <span style={{
-                                        color: '#64748b',
+                                        color: isSolidVisit ? 'rgba(255, 255, 255, 0.8)' : '#64748b',
                                         fontSize: '10px',
                                         fontWeight: 600,
                                         flexShrink: 0,
@@ -2029,7 +2031,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     fontSize: '11px',
-                                    color: '#0f172a',
+                                    color: isSolidVisit ? 'rgba(255, 255, 255, 0.95)' : '#0f172a',
                                     fontWeight: 500,
                                     textDecoration: isCancelled ? 'line-through' : 'none',
                                 }}>

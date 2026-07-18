@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -147,10 +147,10 @@ const fadeUp = keyframes`
     to   { opacity: 1; transform: translateY(0); }
 `;
 
-export const Card = styled.div<{ $color: string; $dimmed: boolean; $crossedOut: boolean }>`
-    background: #fff;
+export const Card = styled.div<{ $color: string; $dimmed: boolean; $crossedOut: boolean; $isVisit: boolean }>`
+    background: ${p => p.$isVisit ? p.$color : '#fff'};
     border-radius: 8px;
-    border-left: 3px solid ${p => p.$color};
+    border-left: 3px solid ${p => p.$isVisit ? 'rgba(0, 0, 0, 0.12)' : p.$color};
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(15, 23, 42, 0.05);
     padding: 10px 11px 10px 10px;
     cursor: pointer;
@@ -158,6 +158,12 @@ export const Card = styled.div<{ $color: string; $dimmed: boolean; $crossedOut: 
     text-decoration: ${p => p.$crossedOut ? 'line-through' : 'none'};
     animation: ${fadeUp} 0.16s ease both;
     transition: box-shadow 0.15s, transform 0.15s;
+
+    ${p => p.$isVisit && css`
+        && * {
+            color: rgba(255, 255, 255, 0.9);
+        }
+    `}
 
     &:hover {
         box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.08);

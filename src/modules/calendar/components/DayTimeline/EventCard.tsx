@@ -13,8 +13,9 @@ export const EventCard = ({ event, onClick }: EventCardProps) => {
     const status   = props.status as string | undefined;
     const color    = event.backgroundColor as string;
 
-    const isDimmed     = status === 'COMPLETED' || status === 'ABANDONED' || status === 'CANCELLED' || status === 'ARCHIVED';
+    const isDimmed     = status === 'COMPLETED' || status === 'ABANDONED' || status === 'CANCELLED' || status === 'ARCHIVED' || status === 'REJECTED';
     const isCrossedOut = status === 'ABANDONED' || status === 'CANCELLED';
+    const isVisit      = props.type === 'VISIT' && !isDimmed;
 
     const startTime = formatTime(event.start as string);
     const endTime   = formatTime(event.end as string | undefined);
@@ -28,7 +29,7 @@ export const EventCard = ({ event, onClick }: EventCardProps) => {
     const currency   = props.currency ?? 'PLN';
 
     return (
-        <Card $color={color} $dimmed={isDimmed} $crossedOut={isCrossedOut} onClick={onClick}>
+        <Card $color={color} $dimmed={isDimmed} $crossedOut={isCrossedOut} $isVisit={isVisit} onClick={onClick}>
             {timeLabel && <CardTime>{timeLabel}</CardTime>}
 
             <CardTitle><PiiText value={event.title} kind="name" /></CardTitle>
