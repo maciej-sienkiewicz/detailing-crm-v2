@@ -103,6 +103,13 @@ export interface AppointmentCreateRequest {
     sendConfirmationSms?: boolean;
     sendReminderSms?: boolean;
     recurrence?: RecurrenceRuleRequest;
+    doorToDoor?: {
+        pickupCity: string;
+        pickupStreet: string;
+        deliveryCity: string;
+        deliveryStreet: string;
+        notes?: string;
+    };
 }
 
 export type SmsStatus = 'PENDING' | 'SENT' | 'FAILED';

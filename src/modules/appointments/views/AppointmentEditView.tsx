@@ -11,6 +11,7 @@ import { LoadingSkeleton } from '@/modules/appointments/components/common';
 import { VerificationStep } from '@/modules/checkin/components/VerificationStep';
 import type { CheckInFormData, ServiceLineItem as CheckInServiceLineItem } from '@/modules/checkin/types';
 import type { AppointmentCreateRequest } from '@/modules/appointments/types';
+import type { DoorToDoorInfo } from '@/modules/visits/types';
 import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
@@ -168,6 +169,18 @@ export const AppointmentEditView = () => {
             },
             photos: [],
             damagePoints: [],
+            doorToDoor: appointment.doorToDoor
+                ? (() => {
+                    const d = appointment.doorToDoor;
+                    const hasData = !!(d.pickupCity || d.pickupStreet || d.deliveryCity || d.deliveryStreet);
+                    return {
+                        enabled: hasData,
+                        pickupAddress: { city: d.pickupCity || '', street: d.pickupStreet || '' },
+                        deliveryAddress: { city: d.deliveryCity || '', street: d.deliveryStreet || '' },
+                        notes: d.notes || '',
+                    } as DoorToDoorInfo;
+                })()
+                : undefined,
         } as Partial<CheckInFormData>;
     }, [appointment]);
 
@@ -212,6 +225,7 @@ export const AppointmentEditView = () => {
                 damagePoints: initialData.damagePoints || [],
                 visitStartAt: fromInstantToLocalInput(startRaw),
                 visitEndAt: fromInstantToLocalInput(endRaw),
+                doorToDoor: initialData.doorToDoor,
             };
             initialFormDataRef.current = snapshot;
             setFormData(snapshot);
@@ -344,6 +358,15 @@ export const AppointmentEditView = () => {
             },
             appointmentTitle: formData.title || undefined,
             appointmentColorId: formData.appointmentColorId,
+            doorToDoor: formData.doorToDoor?.enabled
+                ? {
+                    pickupCity: formData.doorToDoor.pickupAddress.city,
+                    pickupStreet: formData.doorToDoor.pickupAddress.street,
+                    deliveryCity: formData.doorToDoor.deliveryAddress.city,
+                    deliveryStreet: formData.doorToDoor.deliveryAddress.street,
+                    notes: formData.doorToDoor.notes || undefined,
+                }
+                : undefined,
         };
 
         if (!payload.customer || !payload.appointmentColorId || payload.services.length === 0 || !formData.visitStartAt || !formData.visitEndAt) return null;
