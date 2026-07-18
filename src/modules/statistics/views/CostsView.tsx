@@ -204,7 +204,7 @@ const BarItem = styled.div`
 
 const BarFill = styled.div<{ $h: number; $color: string }>`
     width: 100%;
-    height: ${p => p.$h}%;
+    height: ${p => p.$h}px;
     min-height: 3px;
     background: ${p => p.$color};
     border-radius: 3px 3px 0 0;
