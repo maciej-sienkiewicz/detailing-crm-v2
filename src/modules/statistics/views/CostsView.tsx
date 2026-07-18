@@ -1369,6 +1369,21 @@ const ConfirmAssignModal = ({ isOpen, onClose, onConfirm, itemCount, categoryNam
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function parseVatRate(vatRate: string | null): number | null {
+    if (!vatRate) return null;
+    const m = vatRate.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    return m ? parseFloat(m[1].replace(',', '.')) : null;
+}
+
+function effectiveGross(item: CostExpenseItem): number {
+    if (item.grossValue != null) return item.grossValue;
+    if (item.netValue != null) {
+        const rate = parseVatRate(item.vatRate);
+        return item.netValue * (1 + (rate ?? 0) / 100);
+    }
+    return 0;
+}
+
 function groupByInvoice(items: CostExpenseItem[]): CostInvoiceGroup[] {
     const map = new Map<string, CostInvoiceGroup>();
     for (const item of items) {
@@ -1387,7 +1402,7 @@ function groupByInvoice(items: CostExpenseItem[]): CostInvoiceGroup[] {
         const grp = map.get(item.invoiceId)!;
         grp.items.push(item);
         grp.itemCount++;
-        grp.totalGross += item.grossValue ?? 0;
+        grp.totalGross += effectiveGross(item);
         // If any item in invoice is unassigned, treat invoice as unassigned
         if (!item.costCategoryId) grp.costCategoryId = null;
     }
@@ -1404,7 +1419,7 @@ function groupByName(items: CostExpenseItem[]): CostNameGroup[] {
         const grp = map.get(key)!;
         grp.items.push(item);
         grp.itemCount++;
-        grp.totalGross += item.grossValue ?? 0;
+        grp.totalGross += effectiveGross(item);
         if (!item.costCategoryId) grp.costCategoryId = null;
     }
     return [...map.values()].sort((a, b) => b.totalGross - a.totalGross);
@@ -1429,7 +1444,7 @@ interface InvoicePreviewModalProps {
 const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewModalProps) => {
     const items = allItems.filter(i => i.invoiceId === invoiceId);
     const head  = items[0];
-    const totalGross = items.reduce((s, i) => s + (i.grossValue ?? 0), 0);
+    const totalGross = items.reduce((s, i) => s + effectiveGross(i), 0);
 
     return (
         <ModalShell isOpen onClose={onClose} maxWidth="720px">
@@ -1487,7 +1502,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
                                     <InvTd>{item.unitPriceNet != null ? fmtPLN(item.unitPriceNet) : '—'}</InvTd>
                                     <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '—'}</InvTd>
                                     <InvTd>{item.vatRate ?? '—'}</InvTd>
-                                    <InvTd>{item.grossValue != null ? fmtPLN(item.grossValue) : '—'}</InvTd>
+                                    <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                     <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
                                         {item.costCategoryName
                                             ? <span style={{ fontSize: '11px', fontWeight: 600, color: st.accentBlue }}>{item.costCategoryName}</span>
@@ -1746,7 +1761,7 @@ interface PeriodExpensesModalProps {
 const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodExpensesModalProps) => {
     const periodItems  = filterItemsByPeriod(allItems, period, granularity);
     const invoiceGrps  = groupByInvoice(periodItems);
-    const totalGross   = periodItems.reduce((s, i) => s + (i.grossValue ?? 0), 0);
+    const totalGross   = periodItems.reduce((s, i) => s + effectiveGross(i), 0);
     const label        = formatPeriodLabel(period, granularity);
 
     return (
@@ -1792,7 +1807,14 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
                             </div>
                         </PeriodInvHead>
                         <div style={{ overflowX: 'auto' }}>
-                            <InvTable>
+                            <InvTable style={{ tableLayout: 'fixed' }}>
+                                <colgroup>
+                                    <col />
+                                    <col style={{ width: 84 }} />
+                                    <col style={{ width: 52 }} />
+                                    <col style={{ width: 92 }} />
+                                    <col style={{ width: 124 }} />
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <InvTh style={{ textAlign: 'left' }}>Pozycja</InvTh>
@@ -1805,12 +1827,12 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
                                 <tbody>
                                     {grp.items.map(item => (
                                         <tr key={item.id}>
-                                            <InvTd style={{ textAlign: 'left', color: undefined }}>
+                                            <InvTd style={{ textAlign: 'left', color: undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {item.name ?? '—'}
                                             </InvTd>
                                             <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '—'}</InvTd>
                                             <InvTd>{item.vatRate ?? '—'}</InvTd>
-                                            <InvTd>{item.grossValue != null ? fmtPLN(item.grossValue) : '—'}</InvTd>
+                                            <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                             <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
                                                 {item.costCategoryName
                                                     ? <CatBadge>{item.costCategoryName}</CatBadge>
@@ -1869,7 +1891,7 @@ export const CostsView = () => {
 
     const { categories, isLoading: catLoading } = useCostCategories();
     const { items: allItems, isLoading: itemsLoading, isFetching: itemsFetching } = useCostExpenseItems(startDate, endDate);
-    const { breakdown, isLoading: bdLoading } = useCostBreakdown('MONTHLY', startDate, endDate);
+    const { breakdown } = useCostBreakdown('MONTHLY', startDate, endDate);
 
     const deleteMut   = useDeleteCostCategory();
     const assignMut   = useAssignCostItems();
@@ -1929,14 +1951,24 @@ export const CostsView = () => {
     const invoiceGroups = useMemo(() => groupByInvoice(visibleItems), [visibleItems]);
     const nameGroups    = useMemo(() => groupByName(visibleItems),    [visibleItems]);
 
-    // KPI totals from breakdown (or fallback from items)
-    const totalCostGross = breakdown?.overview.totals.totalCostGross
-        ?? allItems.reduce((s, i) => s + (i.grossValue ?? 0), 0);
+    // KPI totals derived from items (gross computed from net+VAT when not in DB)
+    const totalCostGross = allItems.reduce((s, i) => s + effectiveGross(i), 0);
     const totalCostNet   = allItems.reduce((s, i) => s + (i.netValue ?? 0), 0);
-    const totalItems     = breakdown?.overview.totals.itemCount ?? allItems.length;
+    const totalItems     = allItems.length;
 
-    // Chart data
-    const chartData = breakdown?.overview.data ?? [];
+    // Chart data grouped by month, derived from items so gross is always computed
+    const chartData = useMemo(() => {
+        const map = new Map<string, { period: string; itemCount: number; totalCostGross: number }>();
+        allItems.forEach(i => {
+            if (!i.saleDate) return;
+            const period = i.saleDate.slice(0, 7);
+            if (!map.has(period)) map.set(period, { period, itemCount: 0, totalCostGross: 0 });
+            const entry = map.get(period)!;
+            entry.itemCount++;
+            entry.totalCostGross += effectiveGross(i);
+        });
+        return [...map.values()].sort((a, b) => a.period.localeCompare(b.period));
+    }, [allItems]);
 
     // Category totals map from breakdown
     const catTotalsMap = useMemo(() => {
@@ -2130,11 +2162,11 @@ export const CostsView = () => {
                 {/* Cost trend chart */}
                 <ChartCard>
                     <ChartTitle>Rozkład kosztów w czasie</ChartTitle>
-                    {bdLoading && <ChartEmpty><Spinner /></ChartEmpty>}
-                    {!bdLoading && chartData.length === 0 && (
+                    {itemsFetching && <ChartEmpty><Spinner /></ChartEmpty>}
+                    {!itemsFetching && chartData.length === 0 && (
                         <ChartEmpty>Brak danych dla wybranego okresu</ChartEmpty>
                     )}
-                    {!bdLoading && chartData.length > 0 && (() => {
+                    {!itemsFetching && chartData.length > 0 && (() => {
                         const max = Math.max(...chartData.map(d => d.totalCostGross), 1);
                         return (
                             <BarsWrap>
@@ -2458,7 +2490,7 @@ export const CostsView = () => {
                                                     )}
                                                 </div>
                                                 <ItemMeta>{item.quantity ?? '—'} {item.unit ?? ''}</ItemMeta>
-                                                <ItemMeta>{item.grossValue != null ? fmtPLN(item.grossValue) : '—'}</ItemMeta>
+                                                <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
                                                 {item.costCategoryName ? (
                                                     <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
                                                 ) : (
