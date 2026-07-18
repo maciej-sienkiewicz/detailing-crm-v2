@@ -12,6 +12,7 @@ export interface SignatureRequestResponse {
     visitId: string;
     protocolId: string;
     tabletId: string | null;
+    channel?: 'TABLET' | 'SMS_LINK';
     status: string;
     failureReason?: string | null;
 }
@@ -31,6 +32,19 @@ export const tabletApi = {
         const response = await apiClient.post(
             `/v1/visits/${visitId}/protocols/${protocolId}/signature-requests`,
             { tabletId: tabletId ?? null, signerName },
+        );
+        return response.data;
+    },
+
+    /** SMS channel: backend resolves the customer's phone and sends a tokenized signing link. */
+    requestSmsSignature: async (
+        visitId: string,
+        protocolId: string,
+        signerName: string,
+    ): Promise<SignatureRequestResponse> => {
+        const response = await apiClient.post(
+            `/v1/visits/${visitId}/protocols/${protocolId}/signature-requests`,
+            { deliveryChannel: 'SMS', signerName },
         );
         return response.data;
     },

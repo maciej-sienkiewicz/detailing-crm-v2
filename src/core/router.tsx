@@ -1,5 +1,5 @@
 // src/core/router.tsx
-import { ReactNode } from 'react';
+import { ReactNode, Suspense, lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from '@/widgets/Layout';
 import { CustomerListView } from '@/modules/customers';
@@ -14,6 +14,9 @@ import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUpl
 import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
 import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
 import { VisitCardView } from '@/modules/visit-card';
+
+// Lazy — pulls in pdf.js, which must not weigh down the main bundle
+const PublicSigningView = lazy(() => import('@/modules/public-signing/views/PublicSigningView'));
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
@@ -194,6 +197,15 @@ export const router = createBrowserRouter([
         // Public customer Visit Card — no auth required, card token in the path
         path: '/vc/:token',
         element: <VisitCardView />,
+    },
+    {
+        // Public remote document signing (SMS link) — no auth, link token in the path
+        path: '/sign/:token',
+        element: (
+            <Suspense fallback={null}>
+                <PublicSigningView />
+            </Suspense>
+        ),
     },
     {
         path: '/mobile-shortcuts',

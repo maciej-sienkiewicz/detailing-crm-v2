@@ -28,6 +28,7 @@
     "axios": "^1.13.2",
     "dinero.js": "^2.0.0-alpha.14",
     "lucide-react": "^0.563.0",
+    "pdfjs-dist": "^6.1.200",
     "qrcode.react": "^4.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

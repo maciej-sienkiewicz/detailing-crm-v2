@@ -68,6 +68,13 @@ const TabletIcon = () => (
     </svg>
 );
 
+const PhoneMessageIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.5 8.5h5M9.5 11.5h3" />
+    </svg>
+);
+
 const CheckIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -76,12 +83,14 @@ const CheckIcon = () => (
 
 /* ─── Signing session state (per protocol) ──────────────────────────────────── */
 
+type SigningChannel = 'tablet' | 'sms';
+
 type SigningState =
-    | { phase: 'sending' }
-    | { phase: 'waiting'; requestId: string }
-    | { phase: 'signed'; requestId: string }
-    | { phase: 'declined'; requestId: string }
-    | { phase: 'failed'; requestId?: string; errorMessage?: string };
+    | { phase: 'sending'; channel: SigningChannel }
+    | { phase: 'waiting'; requestId: string; channel: SigningChannel }
+    | { phase: 'signed'; requestId: string; channel?: SigningChannel }
+    | { phase: 'declined'; requestId: string; channel?: SigningChannel }
+    | { phase: 'failed'; requestId?: string; errorMessage?: string; channel?: SigningChannel };
 
 const extractApiErrorMessage = (error: unknown): string | undefined => {
     const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -99,6 +108,8 @@ interface SigningRequirementModalProps {
     visitId: string | null;
     visitNumber: string;
     customerName: string;
+    /** Customer's phone number; empty/null disables the "send to phone" signing option. */
+    customerPhone?: string | null;
     protocols: ProtocolResponse[];
     onConfirm: () => void;
 }
@@ -112,6 +123,7 @@ export const SigningRequirementModal = ({
     onCancel,
     visitId,
     customerName,
+    customerPhone,
     protocols,
     onConfirm,
 }: SigningRequirementModalProps) => {
@@ -190,19 +202,37 @@ export const SigningRequirementModal = ({
         setSigningByProtocol(prev => ({ ...prev, [protocolId]: state }));
     };
 
-    const handleSendToTablet = async (protocolId: string, tabletId: string) => {
-        if (!visitId) return;
+    const canStartSigning = (protocolId: string) => {
         const phase = signingByProtocol[protocolId]?.phase;
-        if (phase === 'sending' || phase === 'waiting' || phase === 'signed') return;
+        return phase !== 'sending' && phase !== 'waiting' && phase !== 'signed';
+    };
+
+    const handleSendToTablet = async (protocolId: string, tabletId: string) => {
+        if (!visitId || !canStartSigning(protocolId)) return;
         setTabletPickerProtocolId(null);
-        setSigningState(protocolId, { phase: 'sending' });
+        setSigningState(protocolId, { phase: 'sending', channel: 'tablet' });
         try {
             const request = await tabletApi.requestTabletSignature(visitId, protocolId, customerName, tabletId);
-            setSigningState(protocolId, { phase: 'waiting', requestId: request.id });
+            setSigningState(protocolId, { phase: 'waiting', requestId: request.id, channel: 'tablet' });
         } catch (error) {
             const errorMessage = extractApiErrorMessage(error);
-            setSigningState(protocolId, { phase: 'failed', errorMessage });
+            setSigningState(protocolId, { phase: 'failed', errorMessage, channel: 'tablet' });
             showError('Coś poszło nie tak. Spróbuj jeszcze raz.', errorMessage);
+        }
+    };
+
+    const handleSendToPhone = async (protocolId: string) => {
+        if (!visitId || !customerPhone || !canStartSigning(protocolId)) return;
+        setTabletPickerProtocolId(null);
+        setSigningState(protocolId, { phase: 'sending', channel: 'sms' });
+        try {
+            const request = await tabletApi.requestSmsSignature(visitId, protocolId, customerName);
+            setSigningState(protocolId, { phase: 'waiting', requestId: request.id, channel: 'sms' });
+            showSuccess('SMS z linkiem do podpisu został wysłany do klienta');
+        } catch (error) {
+            const errorMessage = extractApiErrorMessage(error);
+            setSigningState(protocolId, { phase: 'failed', errorMessage, channel: 'sms' });
+            showError('Nie udało się wysłać SMS z linkiem do podpisu.', errorMessage);
         }
     };
 
@@ -211,6 +241,14 @@ export const SigningRequirementModal = ({
             handleSendToTablet(protocolId, tablets[0].tabletId);
         } else if (tablets.length > 1) {
             setTabletPickerProtocolId(prev => prev === protocolId ? null : protocolId);
+        }
+    };
+
+    const handleRetry = (protocolId: string) => {
+        if (signingByProtocol[protocolId]?.channel === 'sms') {
+            handleSendToPhone(protocolId);
+        } else {
+            handleTabletButtonClick(protocolId);
         }
     };
 
@@ -223,18 +261,20 @@ export const SigningRequirementModal = ({
     [signingByProtocol]);
 
     const applySignatureOutcome = (protocolId: string, requestId: string, outcome: string, errorMessage?: string | null) => {
+        // Preserve the channel so "Ponów" retries over the same one (tablet vs SMS)
+        const channel = signingByProtocol[protocolId]?.channel;
         switch (outcome) {
             case 'SIGNATURE_COMPLETED':
-                setSigningState(protocolId, { phase: 'signed', requestId });
+                setSigningState(protocolId, { phase: 'signed', requestId, channel });
                 showSuccess('Klient pomyślnie podpisał dokument');
                 break;
             case 'SIGNATURE_DECLINED':
-                setSigningState(protocolId, { phase: 'declined', requestId });
+                setSigningState(protocolId, { phase: 'declined', requestId, channel });
                 showError('Klient odrzucił dokument. Spróbuj ponownie.');
                 break;
             case 'SIGNATURE_FAILED':
             case 'SIGNATURE_EXPIRED':
-                setSigningState(protocolId, { phase: 'failed', requestId, errorMessage: errorMessage ?? undefined });
+                setSigningState(protocolId, { phase: 'failed', requestId, errorMessage: errorMessage ?? undefined, channel });
                 showError('Coś poszło nie tak. Spróbuj jeszcze raz.', errorMessage ?? undefined);
                 break;
             // SIGNATURE_REQUESTED / SIGNATURE_DISPLAYED / SIGNATURE_CANCELLED: still waiting or handled elsewhere
@@ -269,6 +309,14 @@ export const SigningRequirementModal = ({
         return 'Wybierz tablet do podpisu';
     };
 
+    const phoneButtonTitle = (protocol: ProtocolResponse): string => {
+        const phase = signingByProtocol[protocol.id]?.phase;
+        if (phase === 'signed') return 'Klient podpisał dokument';
+        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (!customerPhone) return 'Nie podano numeru klienta';
+        return 'Wyślij prośbę na telefon klienta';
+    };
+
     const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
     const canInteract = !isCreating && visitId !== null;
     const hasTablets = tablets.length > 0;
@@ -295,7 +343,9 @@ export const SigningRequirementModal = ({
                         ) : (
                             <DocumentList>
                                 {protocols.map(protocol => {
-                                    const signingPhase = signingByProtocol[protocol.id]?.phase;
+                                    const signingState = signingByProtocol[protocol.id];
+                                    const signingPhase = signingState?.phase;
+                                    const smsChannel = signingState?.channel === 'sms';
                                     const isSending = signingPhase === 'sending';
                                     const isWaiting = signingPhase === 'waiting';
                                     const isSigned = signingPhase === 'signed';
@@ -322,12 +372,36 @@ export const SigningRequirementModal = ({
                                                     <PrintIcon />
                                                 </IconButton>
 
+                                                {!needsRetry && (
+                                                    // span carries the tooltip — a disabled button swallows hover events
+                                                    <span title={phoneButtonTitle(protocol)} style={{ display: 'inline-flex' }}>
+                                                        <IconButton
+                                                            onClick={() => handleSendToPhone(protocol.id)}
+                                                            disabled={!customerPhone || isSending || isWaiting || isSigned}
+                                                            $success={isSigned}
+                                                            aria-label="Wyślij prośbę na telefon klienta"
+                                                        >
+                                                            {smsChannel && (isSending || isWaiting) ? (
+                                                                <SpinningIconWrapper>
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                    </svg>
+                                                                </SpinningIconWrapper>
+                                                            ) : isSigned ? (
+                                                                <CheckIcon />
+                                                            ) : (
+                                                                <PhoneMessageIcon />
+                                                            )}
+                                                        </IconButton>
+                                                    </span>
+                                                )}
+
                                                 <TabletPickerWrapper ref={isPickerOpen ? tabletPickerRef : undefined}>
                                                     {needsRetry ? (
                                                         <RetryButton
-                                                            onClick={() => handleTabletButtonClick(protocol.id)}
-                                                            title={tabletButtonTitle(protocol)}
-                                                            disabled={!hasTablets}
+                                                            onClick={() => handleRetry(protocol.id)}
+                                                            title={smsChannel ? phoneButtonTitle(protocol) : tabletButtonTitle(protocol)}
+                                                            disabled={smsChannel ? !customerPhone : !hasTablets}
                                                         >
                                                             Ponów
                                                         </RetryButton>
@@ -339,7 +413,7 @@ export const SigningRequirementModal = ({
                                                             $active={isPickerOpen}
                                                             $success={isSigned}
                                                         >
-                                                            {isSending || isWaiting ? (
+                                                            {!smsChannel && (isSending || isWaiting) ? (
                                                                 <SpinningIconWrapper>
                                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

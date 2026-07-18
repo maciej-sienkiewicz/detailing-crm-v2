@@ -604,6 +604,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                     visitId={signingModalState.visitId}
                     visitNumber={signingModalState.visitNumber || ''}
                     customerName={`${formData.customerData.firstName} ${formData.customerData.lastName}`}
+                    customerPhone={formData.customerData.phone || null}
                     protocols={signingModalState.protocols}
                     onConfirm={handleSigningModalConfirm}
                 />
