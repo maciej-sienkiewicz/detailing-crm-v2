@@ -32,7 +32,7 @@ import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry, DoorToDoorCalendarDay } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -1162,7 +1162,41 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     // Wyjazdy Door to Door per dzień — zasila ikonkę samochodu w rogu każdego dnia
     // (ten sam zakres dat co urlopy).
-    const { d2dDayMap } = useDoorToDoorCalendar(leaveRangeFrom, leaveRangeTo);
+    const { d2dData } = useDoorToDoorCalendar(leaveRangeFrom, leaveRangeTo);
+
+    // Mapa dat kalendarza eventId → {start, end} potrzebna do remappingu D2D.
+    // Backend umieszcza wszystkie D2D na estimatedCompletionDate (ostatni dzień);
+    // frontend koryguje: PICKUP → start wizyty, DELIVERY → end wizyty.
+    const eventDateMap = useMemo(() => {
+        const map = new Map<string, { start: string; end: string }>();
+        events.forEach(ev => {
+            map.set(ev.id, {
+                start: (ev.start as string).slice(0, 10),
+                end: ((ev.end ?? ev.start) as string).slice(0, 10),
+            });
+        });
+        return map;
+    }, [events]);
+
+    const correctedD2DMap = useMemo(() => {
+        const map = new Map<string, DoorToDoorCalendarDay>();
+        d2dData.forEach(day => {
+            day.entries.forEach(entry => {
+                const dates = eventDateMap.get(entry.id);
+                // Jeśli event nie jest w bieżącym zakresie, zostaw datę z backendu
+                const targetDate = dates
+                    ? (entry.direction === 'PICKUP' ? dates.start : dates.end)
+                    : day.date;
+                if (!map.has(targetDate)) {
+                    map.set(targetDate, { date: targetDate, count: 0, entries: [] });
+                }
+                const slot = map.get(targetDate)!;
+                slot.entries.push(entry);
+                slot.count = slot.entries.length;
+            });
+        });
+        return map;
+    }, [d2dData, eventDateMap]);
 
     // ── Ludzik na dniach z urlopami ──────────────────────────────────────────
     // Komórki rejestrują się w dayCellDidMount/dayCellWillUnmount (przeżywa to
@@ -1236,7 +1270,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // Mechanika identyczna jak przy ludziku urlopowym: komórki rejestrowane w
     // dayCellDidMount/dayCellWillUnmount, badge wstrzykiwany imperatywnie do
     // .fc-daygrid-day-frame; hover otwiera tooltip z listą pojazdów.
-    const d2dDayMapRef = useRef(d2dDayMap);
+    const d2dDayMapRef = useRef(correctedD2DMap);
     const [d2dTooltip, setD2DTooltip] = useState<{
         x: number;
         y: number;
@@ -1292,10 +1326,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     // Po zmianie danych D2D odśwież badge na wszystkich zamontowanych komórkach
     useEffect(() => {
-        d2dDayMapRef.current = d2dDayMap;
+        d2dDayMapRef.current = correctedD2DMap;
         leaveCellsRef.current.forEach((frame, iso) => applyD2DBadge(iso, frame));
         setD2DTooltip(null);
-    }, [d2dDayMap, applyD2DBadge]);
+    }, [correctedD2DMap, applyD2DBadge]);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)

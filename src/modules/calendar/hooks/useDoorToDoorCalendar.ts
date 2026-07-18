@@ -25,5 +25,5 @@ export const useDoorToDoorCalendar = (from: string | null, to: string | null) =>
         return map;
     }, [data]);
 
-    return { d2dDayMap, isLoading };
+    return { d2dDayMap, d2dData: data ?? [], isLoading };
 };
