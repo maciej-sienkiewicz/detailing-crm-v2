@@ -1,11 +1,17 @@
 // src/modules/statistics/hooks/useCostCategories.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { costsApi } from '../api/costsApi';
-import type { CreateCostCategoryRequest, UpdateCostCategoryRequest } from '../costTypes';
+import type {
+    CreateCostCategoryRequest,
+    UpdateCostCategoryRequest,
+    CreateAutoRuleRequest,
+    UpdateAutoRuleRequest,
+} from '../costTypes';
 
-export const COST_CATEGORIES_KEY = 'cost-categories';
-export const COST_ITEMS_KEY      = 'cost-expense-items';
-export const COST_BREAKDOWN_KEY  = 'cost-breakdown';
+export const COST_CATEGORIES_KEY  = 'cost-categories';
+export const COST_ITEMS_KEY       = 'cost-expense-items';
+export const COST_BREAKDOWN_KEY   = 'cost-breakdown';
+export const COST_AUTO_RULES_KEY  = 'cost-auto-rules';
 
 export const useCostCategories = () => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -82,4 +88,54 @@ export const useCostBreakdown = (granularity: string, startDate: string, endDate
         queryFn:  () => costsApi.getBreakdown(granularity, startDate, endDate),
     });
     return { breakdown: data, isLoading, isFetching, isError, refetch };
+};
+
+export const useAutoRules = () => {
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: [COST_AUTO_RULES_KEY],
+        queryFn:  () => costsApi.listAutoRules(),
+    });
+    return { rules: data ?? [], isLoading, isError, refetch };
+};
+
+export const useCreateAutoRule = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (data: CreateAutoRuleRequest) => costsApi.createAutoRule(data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: [COST_AUTO_RULES_KEY] });
+            qc.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
+            qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+        },
+    });
+};
+
+export const useUpdateAutoRule = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ ruleId, data }: { ruleId: string; data: UpdateAutoRuleRequest }) =>
+            costsApi.updateAutoRule(ruleId, data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: [COST_AUTO_RULES_KEY] }),
+    });
+};
+
+export const useDeleteAutoRule = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (ruleId: string) => costsApi.deleteAutoRule(ruleId),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: [COST_AUTO_RULES_KEY] });
+        },
+    });
+};
+
+export const useApplyAutoRules = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: () => costsApi.applyAutoRules(),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
+            qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+        },
+    });
 };

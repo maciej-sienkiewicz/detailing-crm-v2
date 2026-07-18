@@ -26,6 +26,7 @@ export interface CostExpenseItem {
     id: string;
     invoiceId: string;
     invoiceNumber: string | null;
+    sellerNip: string | null;
     sellerName: string | null;
     saleDate: string | null;
     lineNumber: number;
@@ -73,6 +74,30 @@ export interface CostBreakdown {
 }
 
 export type CostViewMode = 'INVOICE' | 'ITEM' | 'NAME';
+
+// ─── Supplier auto-rules ───────────────────────────────────────────────────────
+
+export interface SupplierAutoRule {
+    id: string;
+    sellerNip: string;
+    sellerName: string;
+    categoryId: string;
+    categoryName: string | null;
+    categoryColor: string | null;
+    createdAt: string;
+}
+
+export interface CreateAutoRuleRequest {
+    sellerNip: string;
+    sellerName: string;
+    categoryId: string;
+    applyNow: boolean;
+}
+
+export interface UpdateAutoRuleRequest {
+    sellerName: string;
+    categoryId: string;
+}
 
 /** Aggregated invoice row (mode = INVOICE) */
 export interface CostInvoiceGroup {

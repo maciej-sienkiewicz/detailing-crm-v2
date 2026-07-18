@@ -6,6 +6,9 @@ import type {
     CostBreakdown,
     CreateCostCategoryRequest,
     UpdateCostCategoryRequest,
+    SupplierAutoRule,
+    CreateAutoRuleRequest,
+    UpdateAutoRuleRequest,
 } from '../costTypes';
 
 const BASE = '/v1/cost-categories';
@@ -55,6 +58,31 @@ export const costsApi = {
         const res = await apiClient.get<CostBreakdown>(`${BASE}/breakdown`, {
             params: { granularity, startDate, endDate },
         });
+        return res.data;
+    },
+
+    // ── Auto-rules ────────────────────────────────────────────────────────────
+
+    listAutoRules: async (): Promise<SupplierAutoRule[]> => {
+        const res = await apiClient.get<{ rules: SupplierAutoRule[] }>(`${BASE}/auto-rules`);
+        return res.data.rules;
+    },
+
+    createAutoRule: async (data: CreateAutoRuleRequest): Promise<{ id: string; assignedItemCount: number }> => {
+        const res = await apiClient.post<{ id: string; assignedItemCount: number }>(`${BASE}/auto-rules`, data);
+        return res.data;
+    },
+
+    updateAutoRule: async (ruleId: string, data: UpdateAutoRuleRequest): Promise<void> => {
+        await apiClient.put(`${BASE}/auto-rules/${ruleId}`, data);
+    },
+
+    deleteAutoRule: async (ruleId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/auto-rules/${ruleId}`);
+    },
+
+    applyAutoRules: async (): Promise<{ assignedItemCount: number }> => {
+        const res = await apiClient.post<{ assignedItemCount: number }>(`${BASE}/auto-rules/apply`, {});
         return res.data;
     },
 };

@@ -2,7 +2,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
-import { ReceiptText, Package, Tag, Plus, Pencil, Trash2, X, FileText } from 'lucide-react';
+import { ReceiptText, Package, Tag, Plus, Pencil, Trash2, X, FileText, Zap, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/common/components/PageHeader';
 import {
@@ -26,6 +26,11 @@ import {
     useUnassignCostItem,
     useCostExpenseItems,
     useCostBreakdown,
+    useAutoRules,
+    useCreateAutoRule,
+    useUpdateAutoRule,
+    useDeleteAutoRule,
+    useApplyAutoRules,
     COST_ITEMS_KEY,
     COST_BREAKDOWN_KEY,
 } from '../hooks/useCostCategories';
@@ -38,6 +43,7 @@ import type {
     CostViewMode,
     CreateCostCategoryRequest,
     UpdateCostCategoryRequest,
+    SupplierAutoRule,
 } from '../costTypes';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -702,6 +708,244 @@ const PeriodInvTotal = styled.div`
     flex-shrink: 0;
 `;
 
+// ─── Auto-rules UI ────────────────────────────────────────────────────────────
+
+const RulesCard = styled.div`
+    background: #fff;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    overflow: hidden;
+`;
+
+const RulesCardHeader = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    gap: 12px;
+    transition: background ${st.transition};
+    &:hover { background: ${st.bg}; }
+`;
+
+const RulesCardTitle = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+    svg { width: 14px; height: 14px; color: ${st.accentBlue}; }
+`;
+
+const RulesCardMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+`;
+
+const RulesCount = styled.span`
+    padding: 2px 8px;
+    border-radius: ${st.radiusFull};
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    font-size: 11px;
+    font-weight: 700;
+`;
+
+const RulesBody = styled.div`
+    border-top: 1px solid ${st.border};
+`;
+
+const RuleRow = styled.div`
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 20px;
+    border-bottom: 1px solid ${st.border};
+    &:last-child { border-bottom: none; }
+    &:hover { background: ${st.bg}; }
+`;
+
+const RuleNip = styled.span`
+    font-size: 11px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    font-family: ui-monospace, monospace;
+    letter-spacing: 0.5px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: 4px;
+    padding: 2px 6px;
+    white-space: nowrap;
+`;
+
+const RuleArrow = styled.span`
+    font-size: 14px;
+    color: ${st.textMuted};
+    flex-shrink: 0;
+`;
+
+const RuleName = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 500;
+    color: ${st.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+`;
+
+const RuleCatBadge = styled.span<{ $color?: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    background: ${p => p.$color ? `${p.$color}22` : st.accentBlueDim};
+    color: ${p => p.$color ?? st.accentBlue};
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+const RuleActions = styled.div`
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+`;
+
+const RulesFooter = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid ${st.border};
+    background: ${st.bg};
+    gap: 10px;
+    flex-wrap: wrap;
+`;
+
+const RulesEmptyRow = styled.div`
+    padding: 28px 20px;
+    text-align: center;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+`;
+
+// ─── Auto-rule form modal styles ───────────────────────────────────────────────
+
+const RuleFormGrid = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+`;
+
+const RuleFormRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    @media (max-width: 500px) { grid-template-columns: 1fr; }
+`;
+
+const RuleSellerSuggestions = styled.div`
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    z-index: 10;
+    max-height: 200px;
+    overflow-y: auto;
+`;
+
+const RuleSuggestionItem = styled.button`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background ${st.transition};
+    &:hover { background: ${st.bg}; }
+`;
+
+const RuleSugNip = styled.span`
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    color: ${st.accentBlue};
+`;
+
+const RuleSugName = styled.span`
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const RuleCatSelector = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1.5px solid ${st.border};
+    border-radius: 12px;
+    padding: 4px;
+`;
+
+const RuleCatOption = styled.button<{ $selected: boolean; $color?: string }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: ${p => p.$selected ? (p.$color ? `${p.$color}18` : st.accentBlueDim) : 'transparent'};
+    cursor: pointer;
+    text-align: left;
+    transition: background ${st.transition};
+    font-size: ${st.fontSm};
+    font-weight: ${p => p.$selected ? '600' : '400'};
+    color: ${p => p.$selected ? (p.$color ?? st.accentBlue) : st.text};
+    &:hover { background: ${p => p.$color ? `${p.$color}14` : st.bg}; }
+`;
+
+const ApplyNowToggle = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px 12px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: ${st.accentBlue};
+        flex-shrink: 0;
+    }
+`;
+
 // ─── Add / action buttons ─────────────────────────────────────────────────────
 
 const AddButton = styled.button`
@@ -1257,6 +1501,211 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
     );
 };
 
+// ─── Auto-rule form modal ─────────────────────────────────────────────────────
+
+interface AutoRuleFormModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    rule?: SupplierAutoRule;
+    categories: CostCategory[];
+    sellerSuggestions: { nip: string; name: string }[];
+}
+
+const normalizeNip = (nip: string) => nip.replace(/[^0-9]/g, '');
+
+const AutoRuleFormModal = ({
+    isOpen, onClose, rule, categories, sellerSuggestions,
+}: AutoRuleFormModalProps) => {
+    const isEdit = !!rule;
+    const createMut = useCreateAutoRule();
+    const updateMut = useUpdateAutoRule();
+    const isPending = createMut.isPending || updateMut.isPending;
+
+    const [nip,       setNip]       = useState('');
+    const [name,      setName]      = useState('');
+    const [catId,     setCatId]     = useState('');
+    const [applyNow,  setApplyNow]  = useState(true);
+    const [showSugg,  setShowSugg]  = useState(false);
+    const [nipError,  setNipError]  = useState('');
+    const [catError,  setCatError]  = useState('');
+    const [lastApplied, setLastApplied] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setNip(rule?.sellerNip ?? '');
+        setName(rule?.sellerName ?? '');
+        setCatId(rule?.categoryId ?? (categories[0]?.id ?? ''));
+        setApplyNow(true);
+        setNipError('');
+        setCatError('');
+        setShowSugg(false);
+        setLastApplied(null);
+    }, [isOpen, rule, categories]);
+
+    const filteredSugg = useMemo(() => {
+        if (!nip.trim()) return sellerSuggestions.slice(0, 8);
+        const q = normalizeNip(nip);
+        return sellerSuggestions.filter(s => s.nip.includes(q) || s.name.toLowerCase().includes(nip.toLowerCase())).slice(0, 8);
+    }, [nip, sellerSuggestions]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        let valid = true;
+        const cleanNip = normalizeNip(nip);
+        if (cleanNip.length < 9) { setNipError('Podaj poprawny NIP (min. 9 cyfr)'); valid = false; }
+        if (!catId)               { setCatError('Wybierz kategorię'); valid = false; }
+        if (!valid) return;
+
+        if (isEdit && rule) {
+            await updateMut.mutateAsync({ ruleId: rule.id, data: { sellerName: name.trim() || nip, categoryId: catId } });
+            onClose();
+        } else {
+            const res = await createMut.mutateAsync({
+                sellerNip:  cleanNip,
+                sellerName: name.trim() || cleanNip,
+                categoryId: catId,
+                applyNow,
+            });
+            if (applyNow && res.assignedItemCount > 0) {
+                setLastApplied(res.assignedItemCount);
+                return;
+            }
+            onClose();
+        }
+    };
+
+    if (lastApplied !== null) {
+        return (
+            <ModalShell isOpen onClose={onClose} maxWidth="420px">
+                <ModalHeader>
+                    <ModalTitleGroup><ModalTitle>Reguła dodana</ModalTitle></ModalTitleGroup>
+                    <CloseBtn onClick={onClose} />
+                </ModalHeader>
+                <ModalContent>
+                    <div style={{ textAlign: 'center', padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Zap style={{ width: 22, height: 22, color: '#16a34a' }} />
+                        </div>
+                        <div style={{ fontSize: st.fontMd, fontWeight: 700, color: st.text }}>
+                            Przypisano {lastApplied} {lastApplied === 1 ? 'pozycję' : lastApplied < 5 ? 'pozycje' : 'pozycji'}
+                        </div>
+                        <div style={{ fontSize: st.fontSm, color: st.textMuted }}>
+                            Istniejące faktury od tego dostawcy zostały automatycznie skategoryzowane.
+                        </div>
+                    </div>
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="primary" onClick={onClose}>Zamknij</SharedButton>
+                </ModalFooter>
+            </ModalShell>
+        );
+    }
+
+    return (
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="520px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{isEdit ? 'Edytuj regułę automatyczną' : 'Nowa reguła automatycznego przypisywania'}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+            <form onSubmit={handleSubmit}>
+                <ModalContent>
+                    <RuleFormGrid>
+                        <RuleFormRow>
+                            <FieldGroup>
+                                <Label>NIP sprzedawcy</Label>
+                                <div style={{ position: 'relative' }}>
+                                    <FormInput
+                                        value={nip}
+                                        onChange={e => { setNip(e.target.value); setNipError(''); setShowSugg(true); }}
+                                        onFocus={() => setShowSugg(true)}
+                                        placeholder="np. 5270103391"
+                                        disabled={isEdit || isPending}
+                                    />
+                                    {showSugg && filteredSugg.length > 0 && !isEdit && (
+                                        <RuleSellerSuggestions>
+                                            {filteredSugg.map(s => (
+                                                <RuleSuggestionItem
+                                                    key={s.nip}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setNip(s.nip);
+                                                        setName(s.name);
+                                                        setShowSugg(false);
+                                                        setNipError('');
+                                                    }}
+                                                >
+                                                    <RuleSugNip>{s.nip}</RuleSugNip>
+                                                    <RuleSugName>{s.name}</RuleSugName>
+                                                </RuleSuggestionItem>
+                                            ))}
+                                        </RuleSellerSuggestions>
+                                    )}
+                                </div>
+                                {nipError && <FieldError>{nipError}</FieldError>}
+                            </FieldGroup>
+                            <FieldGroup>
+                                <Label>Nazwa sprzedawcy</Label>
+                                <FormInput
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    placeholder="np. PKN Orlen S.A."
+                                    disabled={isPending}
+                                />
+                            </FieldGroup>
+                        </RuleFormRow>
+
+                        <FieldGroup>
+                            <Label>Kategoria kosztów</Label>
+                            {categories.length === 0 ? (
+                                <div style={{ fontSize: st.fontSm, color: st.textMuted }}>
+                                    Brak kategorii — najpierw dodaj kategorię kosztów.
+                                </div>
+                            ) : (
+                                <RuleCatSelector>
+                                    {categories.map(cat => (
+                                        <RuleCatOption
+                                            key={cat.id}
+                                            type="button"
+                                            $selected={catId === cat.id}
+                                            $color={cat.color ?? undefined}
+                                            onClick={() => { setCatId(cat.id); setCatError(''); }}
+                                            disabled={isPending}
+                                        >
+                                            <CatDot $color={cat.color ?? '#94A3B8'} />
+                                            {cat.name}
+                                        </RuleCatOption>
+                                    ))}
+                                </RuleCatSelector>
+                            )}
+                            {catError && <FieldError>{catError}</FieldError>}
+                        </FieldGroup>
+
+                        {!isEdit && (
+                            <ApplyNowToggle>
+                                <input
+                                    type="checkbox"
+                                    checked={applyNow}
+                                    onChange={e => setApplyNow(e.target.checked)}
+                                    disabled={isPending}
+                                />
+                                Zastosuj teraz do już istniejących faktur od tego dostawcy
+                            </ApplyNowToggle>
+                        )}
+                    </RuleFormGrid>
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isPending}>Anuluj</SharedButton>
+                    <SharedButton $variant="primary" type="submit" disabled={isPending || categories.length === 0}>
+                        {isPending ? 'Zapisywanie...' : isEdit ? 'Zapisz' : 'Dodaj regułę'}
+                    </SharedButton>
+                </ModalFooter>
+            </form>
+        </ModalShell>
+    );
+};
+
 // ─── Period expenses modal ────────────────────────────────────────────────────
 
 function formatPeriodLabel(period: string, granularity: string): string {
@@ -1420,11 +1869,31 @@ export const CostsView = () => {
     const { items: allItems, isLoading: itemsLoading, isFetching: itemsFetching } = useCostExpenseItems(startDate, endDate);
     const { breakdown, isLoading: bdLoading } = useCostBreakdown('MONTHLY', startDate, endDate);
 
-    const deleteMut  = useDeleteCostCategory();
-    const assignMut  = useAssignCostItems();
+    const deleteMut   = useDeleteCostCategory();
+    const assignMut   = useAssignCostItems();
     const unassignMut = useUnassignCostItem();
 
+    // Auto-rules
+    const { rules, isLoading: rulesLoading } = useAutoRules();
+    const deleteRuleMut  = useDeleteAutoRule();
+    const applyRulesMut  = useApplyAutoRules();
+    const [rulesOpen,    setRulesOpen]    = useState(false);
+    const [ruleFormOpen, setRuleFormOpen] = useState(false);
+    const [editingRule,  setEditingRule]  = useState<SupplierAutoRule | undefined>();
+    const [applyMsg,     setApplyMsg]     = useState<string | null>(null);
+
     const catColorMap = useMemo(() => categoryColorById(categories), [categories]);
+
+    // Unique sellers from already-loaded items — used for NIP autocomplete in the rule form
+    const sellerSuggestions = useMemo(() => {
+        const seen = new Map<string, string>();
+        allItems.forEach(i => {
+            if (i.sellerNip && !seen.has(i.sellerNip)) seen.set(i.sellerNip, i.sellerName ?? i.sellerNip);
+        });
+        return [...seen.entries()]
+            .map(([nip, name]) => ({ nip, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+    }, [allItems]);
 
     // Close context menu on outside click
     useEffect(() => {
@@ -1566,6 +2035,35 @@ export const CostsView = () => {
         setPreviewInvoiceId(id);
     };
 
+    // ── Auto-rules handlers ───────────────────────────────────────────────────
+
+    const handleApplyAllRules = async () => {
+        setApplyMsg(null);
+        const res = await applyRulesMut.mutateAsync();
+        setApplyMsg(
+            res.assignedItemCount === 0
+                ? 'Brak nieprzypisanych pozycji pasujących do reguł.'
+                : `Przypisano ${res.assignedItemCount} ${res.assignedItemCount === 1 ? 'pozycję' : res.assignedItemCount < 5 ? 'pozycje' : 'pozycji'}.`
+        );
+        setTimeout(() => setApplyMsg(null), 4000);
+    };
+
+    const handleEditRule = (rule: SupplierAutoRule) => {
+        setEditingRule(rule);
+        setRuleFormOpen(true);
+    };
+
+    const handleDeleteRule = async (rule: SupplierAutoRule) => {
+        if (window.confirm(`Usuń regułę dla „${rule.sellerName}"?`)) {
+            await deleteRuleMut.mutateAsync(rule.id);
+        }
+    };
+
+    const handleCloseRuleForm = () => {
+        setRuleFormOpen(false);
+        setEditingRule(undefined);
+    };
+
     // ── Edit / delete category ────────────────────────────────────────────────
 
     const handleEditCategory = (cat: CostCategory) => {
@@ -1657,6 +2155,78 @@ export const CostsView = () => {
                         );
                     })()}
                 </ChartCard>
+            </Section>
+
+            {/* ── Auto-rules ─────────────────────────────────────────── */}
+            <Section>
+                <SectionHeading>
+                    <SectionTitle>Reguły automatyczne</SectionTitle>
+                    <SectionRule />
+                </SectionHeading>
+
+                <RulesCard>
+                    <RulesCardHeader onClick={() => setRulesOpen(o => !o)}>
+                        <RulesCardTitle>
+                            <Zap />
+                            Automatyczne przypisywanie faktur wg dostawcy
+                        </RulesCardTitle>
+                        <RulesCardMeta>
+                            {rules.length > 0 && <RulesCount>{rules.length}</RulesCount>}
+                            {rulesOpen ? <ChevronUp style={{ width: 14, height: 14, color: st.textMuted }} />
+                                       : <ChevronDown style={{ width: 14, height: 14, color: st.textMuted }} />}
+                        </RulesCardMeta>
+                    </RulesCardHeader>
+
+                    {rulesOpen && (
+                        <RulesBody>
+                            {rulesLoading && <RulesEmptyRow><Spinner /></RulesEmptyRow>}
+                            {!rulesLoading && rules.length === 0 && (
+                                <RulesEmptyRow>
+                                    Brak reguł. Dodaj pierwszą, aby faktury od danego dostawcy były przypisywane automatycznie.
+                                </RulesEmptyRow>
+                            )}
+                            {!rulesLoading && rules.map(rule => (
+                                <RuleRow key={rule.id}>
+                                    <RuleNip>{rule.sellerNip}</RuleNip>
+                                    <RuleName>{rule.sellerName}</RuleName>
+                                    <RuleArrow>→</RuleArrow>
+                                    <RuleCatBadge $color={rule.categoryColor ?? undefined}>
+                                        <CatDot $color={rule.categoryColor ?? '#94A3B8'} />
+                                        {rule.categoryName ?? rule.categoryId}
+                                    </RuleCatBadge>
+                                    <RuleActions>
+                                        <IconBtn title="Edytuj regułę" onClick={() => handleEditRule(rule)}>
+                                            <Pencil />
+                                        </IconBtn>
+                                        <IconBtn title="Usuń regułę" onClick={() => handleDeleteRule(rule)}>
+                                            <Trash2 />
+                                        </IconBtn>
+                                    </RuleActions>
+                                </RuleRow>
+                            ))}
+
+                            <RulesFooter>
+                                <AddButton onClick={() => { setEditingRule(undefined); setRuleFormOpen(true); }}>
+                                    <Plus /> Dodaj regułę
+                                </AddButton>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    {applyMsg && (
+                                        <span style={{ fontSize: st.fontSm, color: st.textMuted }}>{applyMsg}</span>
+                                    )}
+                                    <SharedButton
+                                        $variant="secondary"
+                                        onClick={handleApplyAllRules}
+                                        disabled={applyRulesMut.isPending || rules.length === 0}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                                    >
+                                        <RotateCcw style={{ width: 13, height: 13 }} />
+                                        {applyRulesMut.isPending ? 'Przypisuję...' : 'Zastosuj wszystkie reguły teraz'}
+                                    </SharedButton>
+                                </div>
+                            </RulesFooter>
+                        </RulesBody>
+                    )}
+                </RulesCard>
             </Section>
 
             {/* ── Breakdown: categories + items ──────────────────────── */}
@@ -1979,6 +2549,14 @@ export const CostsView = () => {
                     onClose={() => setPreviewInvoiceId(null)}
                 />
             )}
+
+            <AutoRuleFormModal
+                isOpen={ruleFormOpen}
+                onClose={handleCloseRuleForm}
+                rule={editingRule}
+                categories={categories}
+                sellerSuggestions={sellerSuggestions}
+            />
 
             {periodModal && (
                 <PeriodExpensesModal
