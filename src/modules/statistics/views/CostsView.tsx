@@ -1,8 +1,9 @@
 // src/modules/statistics/views/CostsView.tsx
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
-import { ReceiptText, Package, Tag, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ReceiptText, Package, Tag, Plus, Pencil, Trash2, X, FileText } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/common/components/PageHeader';
 import {
     ModalShell,
@@ -25,7 +26,10 @@ import {
     useUnassignCostItem,
     useCostExpenseItems,
     useCostBreakdown,
+    COST_ITEMS_KEY,
+    COST_BREAKDOWN_KEY,
 } from '../hooks/useCostCategories';
+import { costsApi } from '../api/costsApi';
 import type {
     CostCategory,
     CostExpenseItem,
@@ -342,7 +346,7 @@ const ItemsTable = styled.div`
 
 const ItemsHeader = styled.div`
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto;
     gap: 8px;
     padding: 8px 14px;
     background: ${st.bg};
@@ -356,7 +360,7 @@ const ItemsHeader = styled.div`
 
 const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?: boolean }>`
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
@@ -452,6 +456,169 @@ const SearchInput = styled.input`
     transition: border-color ${st.transition};
     &::placeholder { color: ${st.textMuted}; }
     &:focus { outline: none; border-color: ${st.accentBlue}; }
+`;
+
+// ─── Assignment filter bar ────────────────────────────────────────────────────
+
+const FilterBar = styled.div`
+    display: flex;
+    gap: 2px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    padding: 3px;
+    flex-shrink: 0;
+`;
+
+const FilterBtn = styled.button<{ $active: boolean }>`
+    padding: 4px 10px;
+    border: none;
+    border-radius: ${st.radiusFull};
+    font-family: inherit;
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    background: ${p => p.$active ? '#fff' : 'transparent'};
+    color: ${p => p.$active ? st.text : st.textMuted};
+    box-shadow: ${p => p.$active ? st.shadowXs : 'none'};
+    &:hover { color: ${p => p.$active ? st.text : st.textSecondary}; }
+`;
+
+// ─── Context menu ─────────────────────────────────────────────────────────────
+
+const CtxPanel = styled.div`
+    position: fixed;
+    z-index: 9100;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+    min-width: 220px;
+    max-width: 280px;
+    padding: 4px;
+    overflow: hidden;
+`;
+
+const CtxItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: 500;
+    color: ${p => p.$danger ? '#DC2626' : st.text};
+    cursor: pointer;
+    text-align: left;
+    transition: background ${st.transition};
+    &:hover { background: ${p => p.$danger ? '#FEF2F2' : st.bg}; }
+    svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.6; }
+`;
+
+const CtxDivider = styled.div`
+    height: 1px;
+    background: ${st.border};
+    margin: 4px 0;
+`;
+
+const CtxSectionLabel = styled.div`
+    padding: 4px 12px 2px;
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const CtxCatDot = styled.span<{ $color: string }>`
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${p => p.$color};
+    flex-shrink: 0;
+`;
+
+const KebabBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: ${st.radiusSm};
+    color: ${st.textMuted};
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    transition: all ${st.transition};
+    flex-shrink: 0;
+    &:hover { background: ${st.bg}; border-color: ${st.border}; color: ${st.text}; }
+`;
+
+// ─── Invoice preview modal ────────────────────────────────────────────────────
+
+const InvTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    font-size: ${st.fontSm};
+`;
+
+const InvTh = styled.th`
+    padding: 6px 10px;
+    text-align: left;
+    color: ${st.textMuted};
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid ${st.border};
+    white-space: nowrap;
+    &:not(:first-child) { text-align: right; }
+`;
+
+const InvTd = styled.td`
+    padding: 8px 10px;
+    color: ${st.text};
+    border-bottom: 1px solid ${st.border};
+    &:not(:first-child) { text-align: right; color: ${st.textMuted}; font-variant-numeric: tabular-nums; }
+    &:last-child { color: ${st.text}; font-weight: 600; }
+`;
+
+const InvMeta = styled.div`
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid ${st.border};
+`;
+
+const InvMetaField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const InvMetaLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const InvMetaValue = styled.div`
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    font-weight: 500;
 `;
 
 // ─── Add / action buttons ─────────────────────────────────────────────────────
@@ -924,7 +1091,102 @@ function categoryColorById(categories: CostCategory[]): Map<string, string> {
     return m;
 }
 
+// ─── Invoice preview modal ────────────────────────────────────────────────────
+
+interface InvoicePreviewModalProps {
+    invoiceId: string;
+    allItems: CostExpenseItem[];
+    onClose: () => void;
+}
+
+const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewModalProps) => {
+    const items = allItems.filter(i => i.invoiceId === invoiceId);
+    const head  = items[0];
+    const totalGross = items.reduce((s, i) => s + (i.grossValue ?? 0), 0);
+
+    return (
+        <ModalShell isOpen onClose={onClose} maxWidth="720px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>
+                        {head?.invoiceNumber ? `Faktura ${head.invoiceNumber}` : `Faktura (ID …${invoiceId.slice(-8)})`}
+                    </ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+            <ModalContent>
+                {head && (
+                    <InvMeta>
+                        {head.sellerName && (
+                            <InvMetaField>
+                                <InvMetaLabel>Sprzedawca</InvMetaLabel>
+                                <InvMetaValue>{head.sellerName}</InvMetaValue>
+                            </InvMetaField>
+                        )}
+                        {head.saleDate && (
+                            <InvMetaField>
+                                <InvMetaLabel>Data sprzedaży</InvMetaLabel>
+                                <InvMetaValue>{head.saleDate}</InvMetaValue>
+                            </InvMetaField>
+                        )}
+                        <InvMetaField>
+                            <InvMetaLabel>Pozycji</InvMetaLabel>
+                            <InvMetaValue>{items.length}</InvMetaValue>
+                        </InvMetaField>
+                        <InvMetaField>
+                            <InvMetaLabel>Łącznie brutto</InvMetaLabel>
+                            <InvMetaValue style={{ fontWeight: 700 }}>{fmtPLN(totalGross)}</InvMetaValue>
+                        </InvMetaField>
+                    </InvMeta>
+                )}
+                <div style={{ overflowX: 'auto' }}>
+                    <InvTable>
+                        <thead>
+                            <tr>
+                                <InvTh style={{ textAlign: 'left' }}>Pozycja</InvTh>
+                                <InvTh>Ilość</InvTh>
+                                <InvTh>Cena netto</InvTh>
+                                <InvTh>Netto</InvTh>
+                                <InvTh>VAT</InvTh>
+                                <InvTh>Brutto</InvTh>
+                                <InvTh style={{ textAlign: 'left' }}>Kategoria</InvTh>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map(item => (
+                                <tr key={item.id}>
+                                    <InvTd style={{ textAlign: 'left', color: undefined }}>{item.name ?? '—'}</InvTd>
+                                    <InvTd>{item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '—'}</InvTd>
+                                    <InvTd>{item.unitPriceNet != null ? fmtPLN(item.unitPriceNet) : '—'}</InvTd>
+                                    <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '—'}</InvTd>
+                                    <InvTd>{item.vatRate ?? '—'}</InvTd>
+                                    <InvTd>{item.grossValue != null ? fmtPLN(item.grossValue) : '—'}</InvTd>
+                                    <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
+                                        {item.costCategoryName
+                                            ? <span style={{ fontSize: '11px', fontWeight: 600, color: st.accentBlue }}>{item.costCategoryName}</span>
+                                            : <span style={{ fontSize: '11px', color: st.textMuted }}>—</span>}
+                                    </InvTd>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </InvTable>
+                </div>
+            </ModalContent>
+        </ModalShell>
+    );
+};
+
 // ─── Main view ────────────────────────────────────────────────────────────────
+
+type AssignmentFilter = 'ALL' | 'UNASSIGNED' | 'ASSIGNED';
+
+type CtxMenuState = {
+    items: CostExpenseItem[];
+    invoiceId: string | null;
+    needsConfirm: boolean;
+    x: number;
+    y: number;
+};
 
 export const CostsView = () => {
     const [startDate, setStartDate] = useState(oneYearAgo());
@@ -932,6 +1194,7 @@ export const CostsView = () => {
     const [viewMode,  setViewMode]  = useState<CostViewMode>('INVOICE');
     const [search,    setSearch]    = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('ALL');
 
     const [formModalOpen,  setFormModalOpen]  = useState(false);
     const [editingCategory, setEditingCategory] = useState<CostCategory | undefined>();
@@ -939,6 +1202,15 @@ export const CostsView = () => {
     // Pending drop state
     const [confirmOpen,  setConfirmOpen]  = useState(false);
     const [pendingDrop, setPendingDrop]   = useState<{ itemIds: string[]; categoryId: string } | null>(null);
+
+    // Context menu
+    const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
+    const ctxRef = useRef<HTMLDivElement>(null);
+
+    // Invoice preview
+    const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
+
+    const qc = useQueryClient();
 
     const { categories, isLoading: catLoading } = useCostCategories();
     const { items: allItems, isLoading: itemsLoading, isFetching: itemsFetching } = useCostExpenseItems(startDate, endDate);
@@ -950,12 +1222,24 @@ export const CostsView = () => {
 
     const catColorMap = useMemo(() => categoryColorById(categories), [categories]);
 
+    // Close context menu on outside click
+    useEffect(() => {
+        if (!ctxMenu) return;
+        const h = (e: MouseEvent) => {
+            if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setCtxMenu(null);
+        };
+        document.addEventListener('mousedown', h);
+        return () => document.removeEventListener('mousedown', h);
+    }, [ctxMenu]);
+
     // Filter items by selected category or show all
     const visibleItems = useMemo(() => {
         let list = allItems;
         if (selectedCategoryId) {
             list = list.filter(i => i.costCategoryId === selectedCategoryId);
         }
+        if (assignmentFilter === 'ASSIGNED')   list = list.filter(i => i.costCategoryId !== null);
+        if (assignmentFilter === 'UNASSIGNED') list = list.filter(i => i.costCategoryId === null);
         if (search.trim()) {
             const q = search.toLowerCase();
             list = list.filter(i =>
@@ -965,7 +1249,7 @@ export const CostsView = () => {
             );
         }
         return list;
-    }, [allItems, selectedCategoryId, search]);
+    }, [allItems, selectedCategoryId, assignmentFilter, search]);
 
     const invoiceGroups = useMemo(() => groupByInvoice(visibleItems), [visibleItems]);
     const nameGroups    = useMemo(() => groupByName(visibleItems),    [visibleItems]);
@@ -1033,6 +1317,50 @@ export const CostsView = () => {
     const pendingCategory = pendingDrop
         ? (categories.find(c => c.id === pendingDrop.categoryId)?.name ?? '')
         : '';
+
+    // ── Context menu helpers ──────────────────────────────────────────────────
+
+    const openCtx = useCallback((
+        e: React.MouseEvent<HTMLButtonElement>,
+        items: CostExpenseItem[],
+        invoiceId: string | null,
+        needsConfirm: boolean
+    ) => {
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const menuW = 230;
+        const x = Math.max(8, Math.min(rect.right - menuW, window.innerWidth - menuW - 8));
+        const y = rect.bottom + 4;
+        setCtxMenu({ items, invoiceId, needsConfirm, x, y });
+    }, []);
+
+    const handleCtxAssign = (categoryId: string) => {
+        if (!ctxMenu) return;
+        setCtxMenu(null);
+        if (ctxMenu.needsConfirm) {
+            setPendingDrop({ itemIds: ctxMenu.items.map(i => i.id), categoryId });
+            setConfirmOpen(true);
+        } else {
+            assignMut.mutate({ categoryId, itemIds: ctxMenu.items.map(i => i.id) });
+        }
+    };
+
+    const handleCtxUnassign = async () => {
+        if (!ctxMenu) return;
+        setCtxMenu(null);
+        const assigned = ctxMenu.items.filter(i => i.costCategoryId);
+        if (assigned.length === 0) return;
+        await Promise.all(assigned.map(i => costsApi.unassignItem(i.costCategoryId!, i.id)));
+        qc.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
+        qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+    };
+
+    const handleCtxPreview = () => {
+        if (!ctxMenu?.invoiceId) return;
+        const id = ctxMenu.invoiceId;
+        setCtxMenu(null);
+        setPreviewInvoiceId(id);
+    };
 
     // ── Edit / delete category ────────────────────────────────────────────────
 
@@ -1164,7 +1492,7 @@ export const CostsView = () => {
                             )}
                         </TableColumnHeader>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <ViewModeBar>
                                 <ViewModeBtn $active={viewMode === 'INVOICE'} onClick={() => setViewMode('INVOICE')}>
                                     <ReceiptText />Faktury
@@ -1176,6 +1504,11 @@ export const CostsView = () => {
                                     <Tag />Grupy nazw
                                 </ViewModeBtn>
                             </ViewModeBar>
+                            <FilterBar>
+                                <FilterBtn $active={assignmentFilter === 'ALL'} onClick={() => setAssignmentFilter('ALL')}>Wszystkie</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'UNASSIGNED'} onClick={() => setAssignmentFilter('UNASSIGNED')}>Nieprzypisane</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'ASSIGNED'} onClick={() => setAssignmentFilter('ASSIGNED')}>Przypisane</FilterBtn>
+                            </FilterBar>
                             <SearchInput
                                 type="text"
                                 placeholder="Szukaj..."
@@ -1252,6 +1585,7 @@ export const CostsView = () => {
                                         <span>Poz.</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
+                                        <span />
                                     </ItemsHeader>
                                     {invoiceGroups.length === 0 && (
                                         <TableEmpty>Brak faktur dla wybranego okresu</TableEmpty>
@@ -1263,6 +1597,7 @@ export const CostsView = () => {
                                         const catName = grp.costCategoryId
                                             ? categories.find(c => c.id === grp.costCategoryId)?.name
                                             : undefined;
+                                        const grpItems = allItems.filter(i => i.invoiceId === grp.invoiceId);
                                         return (
                                             <ItemRow
                                                 key={grp.invoiceId}
@@ -1294,6 +1629,10 @@ export const CostsView = () => {
                                                 ) : (
                                                     <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                 )}
+                                                <KebabBtn
+                                                    title="Opcje"
+                                                    onClick={e => openCtx(e, grpItems, grp.invoiceId, grpItems.length > 1)}
+                                                >⋮</KebabBtn>
                                             </ItemRow>
                                         );
                                     })}
@@ -1308,6 +1647,7 @@ export const CostsView = () => {
                                         <span>Ilość</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
+                                        <span />
                                     </ItemsHeader>
                                     {visibleItems.length === 0 && (
                                         <TableEmpty>Brak pozycji dla wybranego okresu</TableEmpty>
@@ -1337,24 +1677,15 @@ export const CostsView = () => {
                                                 </div>
                                                 <ItemMeta>{item.quantity ?? '—'} {item.unit ?? ''}</ItemMeta>
                                                 <ItemMeta>{item.grossValue != null ? fmtPLN(item.grossValue) : '—'}</ItemMeta>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                    {item.costCategoryName ? (
-                                                        <>
-                                                            <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
-                                                            <IconBtn
-                                                                title="Odepnij od kategorii"
-                                                                onClick={() => {
-                                                                    if (item.costCategoryId)
-                                                                        unassignMut.mutate({ categoryId: item.costCategoryId, itemId: item.id });
-                                                                }}
-                                                            >
-                                                                <Trash2 />
-                                                            </IconBtn>
-                                                        </>
-                                                    ) : (
-                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
-                                                    )}
-                                                </div>
+                                                {item.costCategoryName ? (
+                                                    <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
+                                                ) : (
+                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                )}
+                                                <KebabBtn
+                                                    title="Opcje"
+                                                    onClick={e => openCtx(e, [item], item.invoiceId, false)}
+                                                >⋮</KebabBtn>
                                             </ItemRow>
                                         );
                                     })}
@@ -1369,6 +1700,7 @@ export const CostsView = () => {
                                         <span>Szt.</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
+                                        <span />
                                     </ItemsHeader>
                                     {nameGroups.length === 0 && (
                                         <TableEmpty>Brak pozycji dla wybranego okresu</TableEmpty>
@@ -1380,6 +1712,7 @@ export const CostsView = () => {
                                         const catName = grp.costCategoryId
                                             ? categories.find(c => c.id === grp.costCategoryId)?.name
                                             : undefined;
+                                        const grpItems = allItems.filter(i => (i.name ?? '(brak nazwy)') === grp.name);
                                         return (
                                             <ItemRow
                                                 key={grp.name}
@@ -1399,6 +1732,10 @@ export const CostsView = () => {
                                                 ) : (
                                                     <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                 )}
+                                                <KebabBtn
+                                                    title="Opcje"
+                                                    onClick={e => openCtx(e, grpItems, null, grpItems.length > 1)}
+                                                >⋮</KebabBtn>
                                             </ItemRow>
                                         );
                                     })}
@@ -1424,6 +1761,44 @@ export const CostsView = () => {
                 categoryName={pendingCategory}
                 isPending={assignMut.isPending}
             />
+
+            {previewInvoiceId && (
+                <InvoicePreviewModal
+                    invoiceId={previewInvoiceId}
+                    allItems={allItems}
+                    onClose={() => setPreviewInvoiceId(null)}
+                />
+            )}
+
+            {/* ── Context menu ─────────────────────────────────────── */}
+            {ctxMenu && createPortal(
+                <CtxPanel ref={ctxRef} style={{ top: ctxMenu.y, left: ctxMenu.x }}>
+                    <CtxSectionLabel>Przypisz do kategorii</CtxSectionLabel>
+                    {categories.length === 0 && (
+                        <div style={{ padding: '8px 12px', fontSize: st.fontSm, color: st.textMuted }}>Brak kategorii</div>
+                    )}
+                    {categories.map(cat => (
+                        <CtxItem key={cat.id} onClick={() => handleCtxAssign(cat.id)}>
+                            <CtxCatDot $color={cat.color ?? '#94A3B8'} />
+                            {cat.name}
+                        </CtxItem>
+                    ))}
+                    {(ctxMenu.items.some(i => i.costCategoryId) || ctxMenu.invoiceId) && <CtxDivider />}
+                    {ctxMenu.items.some(i => i.costCategoryId) && (
+                        <CtxItem $danger onClick={handleCtxUnassign}>
+                            <X />
+                            {ctxMenu.items.length > 1 ? 'Usuń przypisanie wszystkich' : 'Usuń przypisanie'}
+                        </CtxItem>
+                    )}
+                    {ctxMenu.invoiceId && (
+                        <CtxItem onClick={handleCtxPreview}>
+                            <FileText />
+                            Podgląd faktury
+                        </CtxItem>
+                    )}
+                </CtxPanel>,
+                document.body
+            )}
         </ViewContainer>
     );
 };
