@@ -953,9 +953,22 @@ const LeaveTooltipRow = styled.div`
 `;
 
 const D2DTooltipRow = styled(LeaveTooltipRow)`
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+
     &::before {
         background: #0ea5e9;
+        align-self: flex-start;
+        margin-top: 5px;
     }
+`;
+
+const D2DTooltipAddress = styled.div`
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-weight: 400;
+    padding-left: 13px;
 `;
 
 interface CalendarViewProps {
@@ -2115,7 +2128,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     </LeaveTooltipTitle>
                     {d2dTooltip.entries.map(e => (
                         <D2DTooltipRow key={`${e.id}-${e.direction}`}>
-                            {e.vehicle}{e.customerLastName ? ` (${e.customerLastName})` : ''}
+                            <div>{e.vehicle}{e.customerLastName ? ` (${e.customerLastName})` : ''}</div>
+                            {e.address && <D2DTooltipAddress>{e.address}</D2DTooltipAddress>}
                         </D2DTooltipRow>
                     ))}
                 </LeaveTooltipBox>

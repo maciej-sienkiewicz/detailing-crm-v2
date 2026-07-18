@@ -218,6 +218,8 @@ export interface DoorToDoorCalendarEntry {
     direction: 'PICKUP' | 'DELIVERY';
     vehicle: string;
     customerLastName: string;
+    /** Formatted "city, street" for the relevant trip leg; null when address is empty. */
+    address: string | null;
 }
 
 /**
