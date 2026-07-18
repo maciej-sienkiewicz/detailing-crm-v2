@@ -1,7 +1,7 @@
 // src/modules/statistics/components/StatsNav.tsx
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
-import { TrendingUp, Clock } from 'lucide-react';
+import { TrendingUp, Clock, Receipt } from 'lucide-react';
 import { st } from './StatisticsTheme';
 
 const Nav = styled.nav`
@@ -51,6 +51,10 @@ export const StatsNav = () => (
         <Tab to="/statistics" end>
             <TrendingUp />
             Przychody i sprzedaż
+        </Tab>
+        <Tab to="/statistics/costs">
+            <Receipt />
+            Koszta
         </Tab>
         <Tab to="/statistics/delays">
             <Clock />
