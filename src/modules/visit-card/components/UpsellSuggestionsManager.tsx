@@ -655,13 +655,16 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
 
             {error && <ErrorText>{error}</ErrorText>}
 
-            <QuickServiceModal
-                isOpen={quickServiceOpen}
-                onClose={() => setQuickServiceOpen(false)}
-                onServiceCreate={handleQuickServiceCreate}
-                initialServiceName={initialServiceName}
-                contentLeft={0}
-            />
+            {createPortal(
+                <QuickServiceModal
+                    isOpen={quickServiceOpen}
+                    onClose={() => setQuickServiceOpen(false)}
+                    onServiceCreate={handleQuickServiceCreate}
+                    initialServiceName={initialServiceName}
+                    contentLeft={0}
+                />,
+                document.body
+            )}
 
             {suggestions.length === 0 ? (
                 <EmptyText>Brak sugerowanych usług.</EmptyText>
