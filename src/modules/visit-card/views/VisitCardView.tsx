@@ -379,6 +379,12 @@ const TotalNet = styled.div`
     color: ${MUTED};
 `;
 
+const TotalDiscount = styled.div`
+    font-size: 12px;
+    color: ${OK};
+    font-weight: 500;
+`;
+
 const TotalGross = styled.div`
     font-size: 18px;
     font-weight: 700;
@@ -534,10 +540,27 @@ const UpsellPriceGross = styled.div`
     color: ${INK};
 `;
 
+const UpsellPriceNet = styled.div`
+    font-size: 12px;
+    color: ${MUTED};
+`;
+
 const UpsellPriceOld = styled.div`
     font-size: 12px;
     color: ${FAINT};
     text-decoration: line-through;
+`;
+
+const UpsellPackageItems = styled.ul`
+    margin: 4px 0 0;
+    padding: 0 0 0 14px;
+    list-style: disc;
+    font-size: 12.5px;
+    color: ${MUTED};
+`;
+
+const UpsellPackageItem = styled.li`
+    padding: 1px 0;
 `;
 
 const UpsellActions = styled.div`
@@ -677,7 +700,13 @@ export const VisitCardView = () => {
             const result = await visitCardApi.requestUpsellServices(token, [...selectedUpsell]);
             setUpsellResult({ ok: result.smsSent, message: result.message });
             setSelectedUpsell(new Set());
-            setCard(prev => (prev ? { ...prev, upsellSuggestions: result.suggestions } : prev));
+            setCard(prev => (prev ? {
+                ...prev,
+                upsellSuggestions: prev.upsellSuggestions.map(s => {
+                    const updated = result.suggestions.find(r => r.id === s.id);
+                    return updated ? { ...s, status: updated.status } : s;
+                }),
+            } : prev));
         } catch {
             setUpsellResult({
                 ok: false,
@@ -849,6 +878,11 @@ export const VisitCardView = () => {
                                 <div>
                                     <TotalLabel>Razem brutto</TotalLabel>
                                     <TotalNet>netto {formatPln(card.totals.totalNet)}</TotalNet>
+                                    {card.totals.totalDiscountGross > 0 && (
+                                        <TotalDiscount>
+                                            udzielony rabat: -{formatPln(card.totals.totalDiscountGross)}
+                                        </TotalDiscount>
+                                    )}
                                 </div>
                                 <TotalGross>{formatPln(card.totals.totalGross)}</TotalGross>
                             </TotalBlock>
@@ -880,6 +914,13 @@ export const VisitCardView = () => {
                                     <UpsellInfo>
                                         <UpsellName>{suggestion.name}</UpsellName>
                                         {suggestion.note && <UpsellNote>{suggestion.note}</UpsellNote>}
+                                        {suggestion.isPackage && suggestion.packageItems && suggestion.packageItems.length > 0 && (
+                                            <UpsellPackageItems>
+                                                {suggestion.packageItems.map((item, i) => (
+                                                    <UpsellPackageItem key={i}>{item.name}</UpsellPackageItem>
+                                                ))}
+                                            </UpsellPackageItems>
+                                        )}
                                         {suggestion.status !== 'SUGGESTED' && (
                                             <UpsellStateNote $done={suggestion.status === 'CONFIRMED'}>
                                                 {UPSELL_STATE_LABEL[suggestion.status]}
@@ -888,6 +929,7 @@ export const VisitCardView = () => {
                                     </UpsellInfo>
                                     <UpsellPrice>
                                         <UpsellPriceGross>{formatPln(suggestion.priceGross)}</UpsellPriceGross>
+                                        <UpsellPriceNet>netto {formatPln(suggestion.priceNet)}</UpsellPriceNet>
                                         {suggestion.originalPriceGross != null && (
                                             <UpsellPriceOld>{formatPln(suggestion.originalPriceGross)}</UpsellPriceOld>
                                         )}

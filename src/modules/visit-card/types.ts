@@ -49,6 +49,8 @@ export interface VisitCardServiceLine {
 export interface VisitCardTotals {
     totalNet: number;
     totalGross: number;
+    /** Total discount applied across all service lines; 0 when no discounts were given. */
+    totalDiscountGross: number;
     currency: string;
 }
 
@@ -91,6 +93,10 @@ export interface VisitCardCompletion {
 
 export type UpsellSuggestionStatus = 'SUGGESTED' | 'REQUESTED' | 'CONFIRMED';
 
+export interface UpsellPackageItemDto {
+    name: string;
+}
+
 /** Customer-facing suggestion shown on the public card. */
 export interface VisitCardUpsellSuggestion {
     id: string;
@@ -101,6 +107,8 @@ export interface VisitCardUpsellSuggestion {
     /** Gross price before the discount; null when no discount. */
     originalPriceGross: number | null;
     status: UpsellSuggestionStatus;
+    isPackage: boolean;
+    packageItems: UpsellPackageItemDto[] | null;
 }
 
 export interface RequestUpsellResponse {
