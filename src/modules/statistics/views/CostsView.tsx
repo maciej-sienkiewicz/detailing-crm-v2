@@ -640,6 +640,7 @@ const PeriodSummaryStrip = styled.div`
     border-radius: ${st.radiusSm};
     overflow: hidden;
     margin-bottom: 20px;
+    flex-shrink: 0;
 `;
 
 const PeriodStatBlock = styled.div`
@@ -670,6 +671,7 @@ const PeriodInvSection = styled.div`
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     overflow: hidden;
+    flex-shrink: 0;
     &:last-child { margin-bottom: 0; }
 `;
 
@@ -1576,7 +1578,7 @@ const AutoRuleFormModal = ({
 
     if (lastApplied !== null) {
         return (
-            <ModalShell isOpen onClose={onClose} maxWidth="420px">
+            <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="420px">
                 <ModalHeader>
                     <ModalTitleGroup><ModalTitle>Reguła dodana</ModalTitle></ModalTitleGroup>
                     <CloseBtn onClick={onClose} />
