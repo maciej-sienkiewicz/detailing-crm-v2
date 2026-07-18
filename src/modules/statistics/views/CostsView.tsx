@@ -193,22 +193,24 @@ const BarsWrap = styled.div`
     overflow-y: hidden;
 `;
 
-const BarItem = styled.div`
+const BarItem = styled.div<{ $clickable?: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
     flex: 1;
     min-width: 28px;
+    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
 `;
 
-const BarFill = styled.div<{ $h: number; $color: string }>`
+const BarFill = styled.div<{ $h: number; $color: string; $clickable?: boolean }>`
     width: 100%;
     height: ${p => p.$h}px;
     min-height: 3px;
     background: ${p => p.$color};
     border-radius: 3px 3px 0 0;
-    transition: height 0.3s ease;
+    transition: height 0.3s ease, opacity 0.15s ease;
+    ${p => p.$clickable && css`${BarItem}:hover & { opacity: 0.7; }`}
 `;
 
 const BarLabel = styled.div`
@@ -619,6 +621,85 @@ const InvMetaValue = styled.div`
     font-size: ${st.fontSm};
     color: ${st.text};
     font-weight: 500;
+`;
+
+// ─── Period expenses modal ─────────────────────────────────────────────────────
+
+const PeriodSummaryStrip = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: ${st.border};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
+    margin-bottom: 20px;
+`;
+
+const PeriodStatBlock = styled.div`
+    background: ${st.bg};
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const PeriodStatLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const PeriodStatValue = styled.div`
+    font-size: ${st.fontMd};
+    font-weight: 700;
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+`;
+
+const PeriodInvSection = styled.div`
+    margin-bottom: 12px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
+    &:last-child { margin-bottom: 0; }
+`;
+
+const PeriodInvHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
+    gap: 16px;
+`;
+
+const PeriodInvTitle = styled.div`
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const PeriodInvMeta = styled.div`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    white-space: nowrap;
+    margin-top: 2px;
+`;
+
+const PeriodInvTotal = styled.div`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
 `;
 
 // ─── Add / action buttons ─────────────────────────────────────────────────────
@@ -1176,6 +1257,126 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
     );
 };
 
+// ─── Period expenses modal ────────────────────────────────────────────────────
+
+function formatPeriodLabel(period: string, granularity: string): string {
+    if (granularity === 'MONTHLY' && /^\d{4}-\d{2}$/.test(period)) {
+        const [year, month] = period.split('-');
+        const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const s = d.toLocaleString('pl-PL', { month: 'long', year: 'numeric' });
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    if (granularity === 'YEARLY')  return period;
+    if (granularity === 'DAILY' && /^\d{4}-\d{2}-\d{2}$/.test(period)) {
+        const d = new Date(period + 'T00:00:00');
+        return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    return period;
+}
+
+function filterItemsByPeriod(items: CostExpenseItem[], period: string, granularity: string): CostExpenseItem[] {
+    return items.filter(i => {
+        if (!i.saleDate) return false;
+        const d = i.saleDate.slice(0, 10);
+        if (granularity === 'MONTHLY') return d.slice(0, 7) === period;
+        if (granularity === 'DAILY')   return d === period;
+        if (granularity === 'YEARLY')  return d.slice(0, 4) === period;
+        return d.slice(0, 7) === period;
+    });
+}
+
+interface PeriodExpensesModalProps {
+    period: string;
+    granularity: string;
+    allItems: CostExpenseItem[];
+    onClose: () => void;
+}
+
+const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodExpensesModalProps) => {
+    const periodItems  = filterItemsByPeriod(allItems, period, granularity);
+    const invoiceGrps  = groupByInvoice(periodItems);
+    const totalGross   = periodItems.reduce((s, i) => s + (i.grossValue ?? 0), 0);
+    const label        = formatPeriodLabel(period, granularity);
+
+    return (
+        <ModalShell isOpen onClose={onClose} maxWidth="820px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Wydatki · {label}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+            <ModalContent>
+                <PeriodSummaryStrip>
+                    <PeriodStatBlock>
+                        <PeriodStatLabel>Faktury</PeriodStatLabel>
+                        <PeriodStatValue>{invoiceGrps.length}</PeriodStatValue>
+                    </PeriodStatBlock>
+                    <PeriodStatBlock>
+                        <PeriodStatLabel>Pozycje</PeriodStatLabel>
+                        <PeriodStatValue>{periodItems.length}</PeriodStatValue>
+                    </PeriodStatBlock>
+                    <PeriodStatBlock>
+                        <PeriodStatLabel>Łącznie brutto</PeriodStatLabel>
+                        <PeriodStatValue>{fmtPLN(totalGross)}</PeriodStatValue>
+                    </PeriodStatBlock>
+                </PeriodSummaryStrip>
+
+                {invoiceGrps.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: st.textMuted, padding: '32px 0', fontSize: st.fontSm }}>
+                        Brak pozycji dla tego okresu
+                    </div>
+                ) : invoiceGrps.map(grp => (
+                    <PeriodInvSection key={grp.invoiceId}>
+                        <PeriodInvHead>
+                            <div style={{ minWidth: 0 }}>
+                                <PeriodInvTitle>
+                                    {grp.invoiceNumber ? `Faktura ${grp.invoiceNumber}` : 'Brak numeru faktury'}
+                                </PeriodInvTitle>
+                                {grp.sellerName && <PeriodInvMeta>{grp.sellerName}</PeriodInvMeta>}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                                <PeriodInvTotal>{fmtPLN(grp.totalGross)}</PeriodInvTotal>
+                                {grp.saleDate && <PeriodInvMeta>{grp.saleDate.slice(0, 10)}</PeriodInvMeta>}
+                            </div>
+                        </PeriodInvHead>
+                        <div style={{ overflowX: 'auto' }}>
+                            <InvTable>
+                                <thead>
+                                    <tr>
+                                        <InvTh style={{ textAlign: 'left' }}>Pozycja</InvTh>
+                                        <InvTh>Netto</InvTh>
+                                        <InvTh>VAT</InvTh>
+                                        <InvTh>Brutto</InvTh>
+                                        <InvTh style={{ textAlign: 'left' }}>Kategoria</InvTh>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {grp.items.map(item => (
+                                        <tr key={item.id}>
+                                            <InvTd style={{ textAlign: 'left', color: undefined }}>
+                                                {item.name ?? '—'}
+                                            </InvTd>
+                                            <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '—'}</InvTd>
+                                            <InvTd>{item.vatRate ?? '—'}</InvTd>
+                                            <InvTd>{item.grossValue != null ? fmtPLN(item.grossValue) : '—'}</InvTd>
+                                            <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
+                                                {item.costCategoryName
+                                                    ? <CatBadge>{item.costCategoryName}</CatBadge>
+                                                    : <span style={{ fontSize: '11px', color: st.textMuted }}>—</span>}
+                                            </InvTd>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </InvTable>
+                        </div>
+                    </PeriodInvSection>
+                ))}
+            </ModalContent>
+        </ModalShell>
+    );
+};
+
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 type AssignmentFilter = 'ALL' | 'UNASSIGNED' | 'ASSIGNED';
@@ -1209,6 +1410,9 @@ export const CostsView = () => {
 
     // Invoice preview
     const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
+
+    // Period expenses modal (bar click)
+    const [periodModal, setPeriodModal] = useState<string | null>(null);
 
     const qc = useQueryClient();
 
@@ -1435,10 +1639,16 @@ export const CostsView = () => {
                         return (
                             <BarsWrap>
                                 {chartData.map(d => (
-                                    <BarItem key={d.period} title={`${d.period}: ${fmtPLN(d.totalCostGross)}`}>
+                                    <BarItem
+                                        key={d.period}
+                                        $clickable
+                                        title={`${formatPeriodLabel(d.period, 'MONTHLY')}: ${fmtPLN(d.totalCostGross)} · kliknij, aby zobaczyć szczegóły`}
+                                        onClick={() => setPeriodModal(d.period)}
+                                    >
                                         <BarFill
                                             $h={Math.round((d.totalCostGross / max) * 100)}
                                             $color={selectedCategoryId ? (catColorMap.get(selectedCategoryId) ?? '#EF4444') : '#EF4444'}
+                                            $clickable
                                         />
                                         <BarLabel>{d.period.slice(0, 7)}</BarLabel>
                                     </BarItem>
@@ -1767,6 +1977,15 @@ export const CostsView = () => {
                     invoiceId={previewInvoiceId}
                     allItems={allItems}
                     onClose={() => setPreviewInvoiceId(null)}
+                />
+            )}
+
+            {periodModal && (
+                <PeriodExpensesModal
+                    period={periodModal}
+                    granularity="MONTHLY"
+                    allItems={allItems}
+                    onClose={() => setPeriodModal(null)}
                 />
             )}
 
