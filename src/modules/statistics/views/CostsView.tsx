@@ -190,13 +190,16 @@ const ChartTitle = styled.div`
     margin-bottom: 16px;
 `;
 
-const BarsWrap = styled.div`
+const BarsWrap = styled.div<{ $count: number }>`
     display: flex;
     align-items: flex-end;
-    gap: 4px;
+    gap: 6px;
     height: 120px;
     overflow-x: auto;
     overflow-y: hidden;
+    /* When few bars don't stretch — center them so they don't hug the left edge */
+    justify-content: ${p => p.$count < 6 ? 'center' : 'flex-start'};
+    padding: 0 2px;
 `;
 
 const BarItem = styled.div<{ $clickable?: boolean }>`
@@ -204,8 +207,8 @@ const BarItem = styled.div<{ $clickable?: boolean }>`
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    flex: 1;
-    min-width: 28px;
+    flex: none;
+    width: 40px;
     cursor: ${p => p.$clickable ? 'pointer' : 'default'};
 `;
 
@@ -2433,7 +2436,7 @@ export const CostsView = () => {
                     {!itemsFetching && chartData.length > 0 && (() => {
                         const max = Math.max(...chartData.map(d => d.totalCostGross), 1);
                         return (
-                            <BarsWrap>
+                            <BarsWrap $count={chartData.length}>
                                 {chartData.map(d => (
                                     <BarItem
                                         key={d.period}
