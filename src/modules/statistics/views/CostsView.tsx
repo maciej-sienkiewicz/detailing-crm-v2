@@ -2,7 +2,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
-import { ReceiptText, Package, Tag, Plus, Pencil, Trash2, X, FileText, Zap, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { ReceiptText, Tag, Plus, Pencil, Trash2, X, FileText, Zap, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/common/components/PageHeader';
 import {
@@ -782,6 +782,82 @@ const KebabBtn = styled.button`
     transition: all ${st.transition};
     flex-shrink: 0;
     &:hover { background: ${st.bg}; border-color: ${st.border}; color: ${st.text}; }
+`;
+
+// ─── Invoice accordion (expandable rows) ──────────────────────────────────────
+
+const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
+    display: grid;
+    grid-template-columns: 26px auto 1fr auto auto auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid ${st.border};
+    transition: background ${st.transition};
+    cursor: ${p => p.$draggable ? 'grab' : 'default'};
+    &:last-child { border-bottom: none; }
+    &:hover { background: ${p => p.$draggable ? st.bg : 'transparent'}; }
+    &:active { cursor: ${p => p.$draggable ? 'grabbing' : 'default'}; }
+`;
+
+const InvoiceItemsHeaderGrid = styled.div`
+    display: grid;
+    grid-template-columns: 26px auto 1fr auto auto auto auto;
+    gap: 8px;
+    padding: 8px 14px;
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const ExpandBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    color: ${st.textMuted};
+    cursor: pointer;
+    transition: all ${st.transition};
+    flex-shrink: 0;
+    &:hover { background: ${st.accentBlueDim}; border-color: #93c5fd; color: ${st.accentBlue}; }
+`;
+
+const SubItemsContainer = styled.div`
+    border-bottom: 1px solid ${st.border};
+    background: #f8fafc;
+    &:last-child { border-bottom: none; }
+`;
+
+const SubItemRow = styled.div`
+    display: grid;
+    grid-template-columns: 26px auto 1fr auto auto auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 28px;
+    border-bottom: 1px solid ${st.border};
+    cursor: grab;
+    transition: background ${st.transition};
+    &:last-child { border-bottom: none; }
+    &:hover { background: #f1f5f9; }
+    &:active { cursor: grabbing; }
+`;
+
+const SubItemIndent = styled.div`
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    color: ${st.border};
+    font-size: 10px;
+    flex-shrink: 0;
 `;
 
 // ─── Invoice preview modal ────────────────────────────────────────────────────
@@ -2079,6 +2155,12 @@ export const CostsView = () => {
     const [startDate, setStartDate] = useState(oneYearAgo());
     const [endDate,   setEndDate]   = useState(today());
     const [viewMode,  setViewMode]  = useState<CostViewMode>('INVOICE');
+    const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set());
+    const toggleInvoice = (invoiceId: string) => setExpandedInvoices(prev => {
+        const next = new Set(prev);
+        if (next.has(invoiceId)) next.delete(invoiceId); else next.add(invoiceId);
+        return next;
+    });
     const [search,    setSearch]    = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('ALL');
@@ -2579,9 +2661,6 @@ export const CostsView = () => {
                                 <ViewModeBtn $active={viewMode === 'INVOICE'} onClick={() => setViewMode('INVOICE')}>
                                     <ReceiptText />Faktury
                                 </ViewModeBtn>
-                                <ViewModeBtn $active={viewMode === 'ITEM'} onClick={() => setViewMode('ITEM')}>
-                                    <Package />Pozycje
-                                </ViewModeBtn>
                                 <ViewModeBtn $active={viewMode === 'NAME'} onClick={() => setViewMode('NAME')}>
                                     <Tag />Grupy nazw
                                 </ViewModeBtn>
@@ -2661,14 +2740,15 @@ export const CostsView = () => {
 
                             {!itemsLoading && viewMode === 'INVOICE' && (
                                 <>
-                                    <ItemsHeader>
+                                    <InvoiceItemsHeaderGrid>
+                                        <span />
                                         <span />
                                         <span>Faktura / sprzedawca</span>
                                         <span>Poz.</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
                                         <span />
-                                    </ItemsHeader>
+                                    </InvoiceItemsHeaderGrid>
                                     {invoiceGroups.length === 0 && (
                                         <TableEmpty>Brak faktur dla wybranego okresu</TableEmpty>
                                     )}
@@ -2680,42 +2760,93 @@ export const CostsView = () => {
                                             ? categories.find(c => c.id === grp.costCategoryId)?.name
                                             : undefined;
                                         const grpItems = allItems.filter(i => i.invoiceId === grp.invoiceId);
+                                        const isExpanded = expandedInvoices.has(grp.invoiceId);
                                         return (
-                                            <ItemRow
-                                                key={grp.invoiceId}
-                                                $draggable
-                                                draggable
-                                                onDragStart={e => {
-                                                    e.dataTransfer.setData('text/plain', `INVOICE:${grp.invoiceId}`);
-                                                    e.dataTransfer.effectAllowed = 'move';
-                                                }}
-                                            >
-                                                <DragHandle>⠿</DragHandle>
-                                                <div style={{ minWidth: 0 }}>
-                                                    <ItemName>{grp.invoiceNumber ?? '(bez numeru)'}</ItemName>
-                                                    {grp.sellerName && (
-                                                        <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2 }}>
-                                                            {grp.sellerName}
-                                                        </div>
+                                            <div key={grp.invoiceId}>
+                                                <InvoiceRowGrid
+                                                    $draggable
+                                                    draggable
+                                                    onDragStart={e => {
+                                                        e.dataTransfer.setData('text/plain', `INVOICE:${grp.invoiceId}`);
+                                                        e.dataTransfer.effectAllowed = 'move';
+                                                    }}
+                                                >
+                                                    <ExpandBtn
+                                                        title={isExpanded ? 'Zwiń pozycje' : 'Rozwiń pozycje'}
+                                                        onClick={e => { e.stopPropagation(); toggleInvoice(grp.invoiceId); }}
+                                                    >
+                                                        {isExpanded
+                                                            ? <ChevronUp style={{ width: 12, height: 12 }} />
+                                                            : <ChevronDown style={{ width: 12, height: 12 }} />}
+                                                    </ExpandBtn>
+                                                    <DragHandle>⠿</DragHandle>
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <ItemName>{grp.invoiceNumber ?? '(bez numeru)'}</ItemName>
+                                                        {grp.sellerName && (
+                                                            <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2 }}>
+                                                                {grp.sellerName}
+                                                            </div>
+                                                        )}
+                                                        {grp.saleDate && (
+                                                            <div style={{ fontSize: st.fontXs, color: st.textMuted }}>
+                                                                {grp.saleDate}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <ItemMeta>{grp.itemCount}</ItemMeta>
+                                                    <ItemMeta>{fmtPLN(grp.totalGross)}</ItemMeta>
+                                                    {catName ? (
+                                                        <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                    ) : (
+                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                     )}
-                                                    {grp.saleDate && (
-                                                        <div style={{ fontSize: st.fontXs, color: st.textMuted }}>
-                                                            {grp.saleDate}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <ItemMeta>{grp.itemCount}</ItemMeta>
-                                                <ItemMeta>{fmtPLN(grp.totalGross)}</ItemMeta>
-                                                {catName ? (
-                                                    <CatBadge $color={catColor}>{catName}</CatBadge>
-                                                ) : (
-                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                    <KebabBtn
+                                                        title="Opcje"
+                                                        onClick={e => openCtx(e, grpItems, grp.invoiceId, grpItems.length > 1)}
+                                                    >⋮</KebabBtn>
+                                                </InvoiceRowGrid>
+
+                                                {isExpanded && grpItems.length > 0 && (
+                                                    <SubItemsContainer>
+                                                        {grpItems.map(item => {
+                                                            const itemCatColor = item.costCategoryId
+                                                                ? (catColorMap.get(item.costCategoryId) ?? undefined)
+                                                                : undefined;
+                                                            return (
+                                                                <SubItemRow
+                                                                    key={item.id}
+                                                                    draggable
+                                                                    onDragStart={e => {
+                                                                        e.dataTransfer.setData('text/plain', `ITEM:${item.id}`);
+                                                                        e.dataTransfer.effectAllowed = 'move';
+                                                                    }}
+                                                                >
+                                                                    <SubItemIndent>└</SubItemIndent>
+                                                                    <DragHandle>⠿</DragHandle>
+                                                                    <div style={{ minWidth: 0 }}>
+                                                                        <ItemName style={{ fontSize: '12px' }}>
+                                                                            {item.name ?? '(brak nazwy)'}
+                                                                        </ItemName>
+                                                                    </div>
+                                                                    <ItemMeta>
+                                                                        {item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '—'}
+                                                                    </ItemMeta>
+                                                                    <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
+                                                                    {item.costCategoryName ? (
+                                                                        <CatBadge $color={itemCatColor}>{item.costCategoryName}</CatBadge>
+                                                                    ) : (
+                                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                                    )}
+                                                                    <KebabBtn
+                                                                        title="Opcje"
+                                                                        onClick={e => openCtx(e, [item], item.invoiceId, false)}
+                                                                    >⋮</KebabBtn>
+                                                                </SubItemRow>
+                                                            );
+                                                        })}
+                                                    </SubItemsContainer>
                                                 )}
-                                                <KebabBtn
-                                                    title="Opcje"
-                                                    onClick={e => openCtx(e, grpItems, grp.invoiceId, grpItems.length > 1)}
-                                                >⋮</KebabBtn>
-                                            </ItemRow>
+                                            </div>
                                         );
                                     })}
                                 </>
