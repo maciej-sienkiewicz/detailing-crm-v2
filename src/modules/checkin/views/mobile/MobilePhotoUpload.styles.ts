@@ -485,6 +485,47 @@ export const DamageMarker = styled.div<{ $isLast: boolean; $isActive: boolean }>
     `}
 `;
 
+export const VehicleTypeSelectorRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+export const VehicleTypeLabel = styled.label`
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+export const VehicleTypeSelect = styled.select`
+    flex: 1;
+    padding: 9px 32px 9px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+        no-repeat right 10px center;
+    appearance: none;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+
+    &:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.4);
+        background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    option {
+        background: #1e293b;
+        color: #f1f5f9;
+    }
+`;
+
 export const DamageControlRow = styled.div`
     display: flex;
     gap: 10px;

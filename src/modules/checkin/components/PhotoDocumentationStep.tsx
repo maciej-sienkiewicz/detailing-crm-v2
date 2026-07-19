@@ -637,7 +637,6 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                 {showDamageSection && (
                     <SectionBody>
                         <VehicleDamageMapper
-                            imageUrl="/assets/image_627063.jpg"
                             points={formData.damagePoints || []}
                             onChange={handleDamagePointsChange}
                         />

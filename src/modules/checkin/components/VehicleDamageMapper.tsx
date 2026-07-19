@@ -5,6 +5,24 @@ import styled, { keyframes, css } from 'styled-components';
 import { Button } from '@/common/components/Button';
 import type { DamagePoint } from '../types';
 
+// ─── Vehicle types ────────────────────────────────────────────────────────────
+
+type VehicleBodyType = 'cabrio' | 'coupe' | 'hatchback' | 'kombi' | 'sedan' | 'suv' | 'van';
+
+const VEHICLE_BODY_TYPES: { value: VehicleBodyType; label: string }[] = [
+    { value: 'sedan',    label: 'Sedan'     },
+    { value: 'suv',      label: 'SUV'       },
+    { value: 'hatchback',label: 'Hatchback' },
+    { value: 'kombi',    label: 'Kombi'     },
+    { value: 'coupe',    label: 'Coupe'     },
+    { value: 'cabrio',   label: 'Kabriolet' },
+    { value: 'van',      label: 'Van'       },
+];
+
+const vehicleImageUrl = (type: VehicleBodyType) => `/assets/${type}.webp`;
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
 const pulse = keyframes`
   0% {
     transform: translate(-50%, -50%) scale(1);
@@ -22,10 +40,47 @@ const pulse = keyframes`
   }
 `;
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${props => props.theme.spacing.lg};
+`;
+
+const TypeSelectorRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+`;
+
+const TypeLabel = styled.label`
+  font-size: ${props => props.theme.fontSizes.sm};
+  font-weight: 500;
+  color: ${props => props.theme.colors.textSecondary};
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const TypeSelect = styled.select`
+  padding: 7px 32px 7px 12px;
+  border: 1.5px solid ${props => props.theme.colors.border};
+  border-radius: ${props => props.theme.radii.md};
+  font-size: ${props => props.theme.fontSizes.sm};
+  font-family: inherit;
+  font-weight: 500;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+  appearance: none;
+  color: ${props => props.theme.colors.text};
+  cursor: pointer;
+  transition: border-color ${props => props.theme.transitions.normal},
+              box-shadow ${props => props.theme.transitions.normal};
+
+  &:focus {
+    outline: none;
+    border-color: ${props => props.theme.colors.primary};
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+  }
 `;
 
 const ImageContainer = styled.div`
@@ -200,26 +255,15 @@ const EmptyState = styled.div`
   background-color: ${props => props.theme.colors.surfaceAlt};
 `;
 
-const PlaceholderImage = styled.div`
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(14, 165, 233, 0.02) 100%);
-  color: ${props => props.theme.colors.textMuted};
-  font-size: ${props => props.theme.fontSizes.sm};
-  text-align: center;
-  padding: ${props => props.theme.spacing.xl};
-`;
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface VehicleDamageMapperProps {
-  imageUrl?: string;
   points: DamagePoint[];
   onChange: (points: DamagePoint[]) => void;
 }
 
-export const VehicleDamageMapper = ({ imageUrl, points, onChange }: VehicleDamageMapperProps) => {
+export const VehicleDamageMapper = ({ points, onChange }: VehicleDamageMapperProps) => {
+  const [vehicleType, setVehicleType] = useState<VehicleBodyType>('sedan');
   const [hoveredPointId, setHoveredPointId] = useState<number | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -261,53 +305,53 @@ export const VehicleDamageMapper = ({ imageUrl, points, onChange }: VehicleDamag
     }
   };
 
-  const getPointNumber = (id: number) => {
-    return points.findIndex(p => p.id === id) + 1;
-  };
+  const getPointNumber = (id: number) => points.findIndex(p => p.id === id) + 1;
 
   return (
     <Container>
+      {/* Vehicle type selector */}
+      <TypeSelectorRow>
+        <TypeLabel htmlFor="vehicle-body-type">Typ nadwozia:</TypeLabel>
+        <TypeSelect
+          id="vehicle-body-type"
+          value={vehicleType}
+          onChange={e => setVehicleType(e.target.value as VehicleBodyType)}
+        >
+          {VEHICLE_BODY_TYPES.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </TypeSelect>
+      </TypeSelectorRow>
+
+      {/* Diagram with damage markers */}
       <ImageContainer ref={containerRef}>
-        {imageUrl ? (
-          <>
-            <VehicleImage
-              ref={imageRef}
-              src={imageUrl}
-              alt="Schemat pojazdu"
-              draggable={false}
-            />
-            <OverlayLayer onClick={handleImageClick}>
-              {points.map((point, index) => (
-                <DamageMarker
-                  key={point.id}
-                  style={{
-                    left: `${point.x}%`,
-                    top: `${point.y}%`,
-                  }}
-                  $isLast={index === points.length - 1}
-                  $isHovered={hoveredPointId === point.id}
-                  onMouseEnter={() => setHoveredPointId(point.id)}
-                  onMouseLeave={() => setHoveredPointId(null)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setHoveredPointId(point.id);
-                  }}
-                >
-                  {getPointNumber(point.id)}
-                </DamageMarker>
-              ))}
-            </OverlayLayer>
-          </>
-        ) : (
-          <PlaceholderImage>
-            <div>
-              <p style={{ margin: 0, marginBottom: '8px' }}>📷 Schemat pojazdu</p>
-              <p style={{ margin: 0, fontSize: '12px' }}>
-                Dodaj obraz samochodu (image_627063.jpg) do folderu /public/assets
-              </p>
-            </div>
-          </PlaceholderImage>
-        )}
+        <VehicleImage
+          ref={imageRef}
+          src={vehicleImageUrl(vehicleType)}
+          alt={`Schemat pojazdu — ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
+          draggable={false}
+        />
+        <OverlayLayer onClick={handleImageClick}>
+          {points.map((point, index) => (
+            <DamageMarker
+              key={point.id}
+              style={{
+                left: `${point.x}%`,
+                top: `${point.y}%`,
+              }}
+              $isLast={index === points.length - 1}
+              $isHovered={hoveredPointId === point.id}
+              onMouseEnter={() => setHoveredPointId(point.id)}
+              onMouseLeave={() => setHoveredPointId(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setHoveredPointId(point.id);
+              }}
+            >
+              {getPointNumber(point.id)}
+            </DamageMarker>
+          ))}
+        </OverlayLayer>
       </ImageContainer>
 
       <ControlsRow>

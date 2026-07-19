@@ -25,7 +25,24 @@ import {
     SectionTitle,
     SectionSubtitle,
     InfoCard,
+    VehicleTypeSelectorRow,
+    VehicleTypeLabel,
+    VehicleTypeSelect,
 } from './MobilePhotoUpload.styles';
+
+// ─── Vehicle types ─────────────────────────────────────────────────────────────
+
+type VehicleBodyType = 'cabrio' | 'coupe' | 'hatchback' | 'kombi' | 'sedan' | 'suv' | 'van';
+
+const VEHICLE_BODY_TYPES: { value: VehicleBodyType; label: string }[] = [
+    { value: 'sedan',    label: 'Sedan'     },
+    { value: 'suv',      label: 'SUV'       },
+    { value: 'hatchback',label: 'Hatchback' },
+    { value: 'kombi',    label: 'Kombi'     },
+    { value: 'coupe',    label: 'Coupe'     },
+    { value: 'cabrio',   label: 'Kabriolet' },
+    { value: 'van',      label: 'Van'       },
+];
 
 interface Props {
     logic: MobileDamageLogic;
@@ -41,6 +58,7 @@ const SAVE_LABELS: Record<string, string> = {
 export const MobileDamageSection = ({ logic }: Props) => {
     const { damagePoints, saveStatus, updatePoints } = logic;
 
+    const [vehicleType, setVehicleType] = useState<VehicleBodyType>('sedan');
     const [activePointId, setActivePointId] = useState<number | null>(null);
     const imageRef = useRef<HTMLImageElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
@@ -159,6 +177,20 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 {SAVE_LABELS[saveStatus] ?? ''}
             </SaveStatusBadge>
 
+            {/* Vehicle type selector */}
+            <VehicleTypeSelectorRow>
+                <VehicleTypeLabel htmlFor="mobile-vehicle-body-type">Typ nadwozia:</VehicleTypeLabel>
+                <VehicleTypeSelect
+                    id="mobile-vehicle-body-type"
+                    value={vehicleType}
+                    onChange={e => setVehicleType(e.target.value as VehicleBodyType)}
+                >
+                    {VEHICLE_BODY_TYPES.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </VehicleTypeSelect>
+            </VehicleTypeSelectorRow>
+
             {damagePoints.length === 0 && (
                 <InfoCard>
                     Podejdź z klientem do pojazdu i zaznacz uszkodzenia na schemacie poniżej.
@@ -170,8 +202,8 @@ export const MobileDamageSection = ({ logic }: Props) => {
             <DiagramCard>
                 <VehicleImage
                     ref={imageRef}
-                    src="/assets/image_627063.jpg"
-                    alt="Schemat pojazdu — widok z góry"
+                    src={`/assets/${vehicleType}.webp`}
+                    alt={`Schemat pojazdu — ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
                     draggable={false}
                     onContextMenu={e => e.preventDefault()}
                 />
