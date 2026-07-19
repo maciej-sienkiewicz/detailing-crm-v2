@@ -101,7 +101,7 @@ const NAV_GROUPS: NavGroup[] = [
             { id: 'templates',       label: 'Szablony SMS',          icon: <MessageIcon /> },
             { id: 'email-templates', label: 'Szablony email',        icon: <MailIcon /> },
             { id: 'documents',       label: 'Dokumenty i podpisy',   icon: <FileSignIcon /> },
-            { id: 'tablets',         label: 'Tablety',               icon: <TabletIcon /> },
+            { id: 'tablets',         label: 'Urządzenia mobilne',               icon: <TabletIcon /> },
             { id: 'visit-card',      label: 'Karta Wizyty',          icon: <CardIcon /> },
         ],
     },
