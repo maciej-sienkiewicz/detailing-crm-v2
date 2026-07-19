@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { calculateGrossFromNet, calculateNetFromGross, formatMoneyAmount, parseMoneyInput } from '../utils/priceCalculator';
 import type { VatRate } from '../types';
@@ -130,8 +130,17 @@ export const PriceInput = ({
     const [netFocused, setNetFocused] = useState(false);
     const [grossFocused, setGrossFocused] = useState(false);
 
+    // When a blur handler formats the fields itself, this flag tells the
+    // sync effect to skip its own recalculation for that run — prevents the
+    // net→gross roundtrip from overwriting an exact gross the user typed.
+    const skipSyncRef = useRef(false);
+
     useEffect(() => {
         if (!netFocused && !grossFocused) {
+            if (skipSyncRef.current) {
+                skipSyncRef.current = false;
+                return;
+            }
             const calc = calculateGrossFromNet(netAmount, vatRate);
             setNetValue(formatMoneyAmount(calc.priceNet));
             setGrossValue(formatMoneyAmount(calc.priceGross));
@@ -156,13 +165,27 @@ export const PriceInput = ({
         onChange(calc.priceNet);
     };
 
-    const handleBlur = () => {
+    // Net blur: net is authoritative → format net, derive gross from net.
+    const handleNetBlur = () => {
+        skipSyncRef.current = true;
         setNetFocused(false);
-        setGrossFocused(false);
         const currentNet = parseMoneyInput(netValue.replace(',', '.'));
-        const calc = calculateGrossFromNet(isNaN(currentNet) ? 0 : currentNet, vatRate);
+        const net = isNaN(currentNet) ? 0 : currentNet;
+        const calc = calculateGrossFromNet(net, vatRate);
         setNetValue(formatMoneyAmount(calc.priceNet));
         setGrossValue(formatMoneyAmount(calc.priceGross));
+    };
+
+    // Gross blur: gross is authoritative → preserve exact gross, derive net from gross.
+    // Without this, the net→gross roundtrip causes e.g. 201.00 → 200.99 (1-cent drift).
+    const handleGrossBlur = () => {
+        skipSyncRef.current = true;
+        setGrossFocused(false);
+        const currentGross = parseMoneyInput(grossValue.replace(',', '.'));
+        const gross = isNaN(currentGross) ? 0 : currentGross;
+        const calc = calculateNetFromGross(gross, vatRate);
+        setNetValue(formatMoneyAmount(calc.priceNet));
+        setGrossValue(formatMoneyAmount(gross));
     };
 
     const calc = calculateGrossFromNet(netAmount, vatRate);
@@ -180,7 +203,7 @@ export const PriceInput = ({
                             value={netValue}
                             onChange={(e) => handleNetChange(e.target.value)}
                             onFocus={() => { setNetFocused(true); if (parseFloat(netValue.replace(',', '.')) === 0) setNetValue(''); }}
-                            onBlur={handleBlur}
+                            onBlur={handleNetBlur}
                             placeholder="0.00"
                         />
                         <Currency>PLN</Currency>
@@ -196,7 +219,7 @@ export const PriceInput = ({
                             value={grossValue}
                             onChange={(e) => handleGrossChange(e.target.value)}
                             onFocus={() => { setGrossFocused(true); if (parseFloat(grossValue.replace(',', '.')) === 0) setGrossValue(''); }}
-                            onBlur={handleBlur}
+                            onBlur={handleGrossBlur}
                             placeholder="0.00"
                         />
                         <Currency>PLN</Currency>
