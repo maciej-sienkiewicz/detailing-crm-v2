@@ -606,7 +606,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                                         onChange={e => setSendVisitCard(e.target.checked)}
                                         disabled={isSubmitting}
                                     />
-                                    Czy wysłać Kartę Wizyty do klienta?
+                                    Wyślij SMS z linkiem do Karty Wizyty.
                                 </VisitCardCheckboxLabel>
                             )}
                             {!isFirstStep && (

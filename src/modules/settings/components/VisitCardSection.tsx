@@ -171,8 +171,7 @@ export const VisitCardSection = () => {
                             <OptionTexts>
                                 <OptionLabel>Czy domyślnie wysyłać Kartę Wizyty?</OptionLabel>
                                 <OptionHint>
-                                    Steruje domyślnym zaznaczeniem opcji „Czy wysłać Kartę Wizyty do
-                                    klienta?" przy tworzeniu rezerwacji i przyjęciu pojazdu.
+                                    Steruje domyślnym zaznaczeniem opcji „Wyślij SMS z linkiem do Karty Wizyty." przy tworzeniu rezerwacji i przyjęciu pojazdu.
                                 </OptionHint>
                             </OptionTexts>
                             <ToggleTrack

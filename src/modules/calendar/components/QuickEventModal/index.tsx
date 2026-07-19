@@ -1229,7 +1229,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         onChange={e => form.setSendVisitCard(e.target.checked)}
                                                     />
                                                     <SmsCheckText>
-                                                        Czy wysłać Kartę Wizyty do klienta?
+                                                        Wyślij SMS z linkiem do Karty Wizyty.
                                                     </SmsCheckText>
                                                 </SmsCheckItem>
                                             )}
