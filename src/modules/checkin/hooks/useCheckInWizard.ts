@@ -44,6 +44,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 other: false,
             },
             inspectionNotes: '',
+            protocolNotes: '',
             ...initialData.technicalState,
         },
         visitStartAt: initialData.visitStartAt,

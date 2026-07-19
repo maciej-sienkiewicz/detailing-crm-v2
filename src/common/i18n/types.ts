@@ -645,6 +645,8 @@ export interface TranslationKeys {
             };
             inspectionNotes: string;
             inspectionNotesPlaceholder: string;
+            protocolNotes: string;
+            protocolNotesPlaceholder: string;
         };
         photos: {
             title: string;
