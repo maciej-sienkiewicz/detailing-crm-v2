@@ -182,6 +182,7 @@ interface ServiceFormModalProps {
 export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: ServiceFormModalProps) => {
     const [name, setName] = useState('');
     const [basePriceNet, setBasePriceNet] = useState(0);
+    const [basePriceGross, setBasePriceGross] = useState(0);
     const [vatRate, setVatRate] = useState<VatRate>(23);
     const [requireManualPrice, setRequireManualPrice] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -208,11 +209,13 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
             if (service) {
                 setName(service.name);
                 setBasePriceNet(service.basePriceNet);
+                setBasePriceGross(service.basePriceGross);
                 setVatRate(service.vatRate);
                 setRequireManualPrice(service.requireManualPrice);
             } else {
                 setName('');
                 setBasePriceNet(0);
+                setBasePriceGross(0);
                 setVatRate(23);
                 setRequireManualPrice(false);
                 setSelectedProtocols([]);
@@ -257,6 +260,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                     originalServiceId: service.id,
                     name,
                     basePriceNet,
+                    basePriceGross,
                     vatRate,
                     requireManualPrice,
                 });
@@ -272,6 +276,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                 await createMutation.mutateAsync({
                     name,
                     basePriceNet,
+                    basePriceGross,
                     vatRate,
                     requireManualPrice,
                 });
@@ -374,8 +379,9 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                                 <>
                                     <PriceInput
                                         netAmount={basePriceNet}
+                                        grossAmount={basePriceGross}
                                         vatRate={vatRate}
-                                        onChange={setBasePriceNet}
+                                        onChange={(net, gross) => { setBasePriceNet(net); setBasePriceGross(gross); }}
                                         netLabel={t.services.form.priceNetLabel}
                                         grossLabel={t.services.form.priceGrossLabel}
                                         vatLabel={t.services.form.vatAmount}

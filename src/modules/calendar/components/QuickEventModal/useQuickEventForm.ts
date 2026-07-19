@@ -793,7 +793,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             return;
         }
         setSelectedServiceIds(prev => [...prev, service.id]);
-        const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
+        // Prefer the catalog's stored gross — re-deriving from net drifts by 1 gr for gross-entered prices
+        const grossPrice = service.basePriceGross != null
+            ? roundTo2(service.basePriceGross / 100)
+            : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         initPriceInputs(service.id, grossPrice, service.vatRate);
         setServiceSearch('');
@@ -815,13 +818,15 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setPendingService(null);
     };
 
-    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; basePriceGross?: number; vatRate: number }) => {
         if (service.id) {
             queryClient.invalidateQueries({ queryKey: ['services'] });
         }
         const serviceId = service.id || `temp-${Date.now()}`;
         setSelectedServiceIds(prev => [...prev, serviceId]);
-        const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
+        const grossPrice = service.basePriceGross != null
+            ? roundTo2(service.basePriceGross / 100)
+            : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
         initPriceInputs(serviceId, grossPrice, service.vatRate);
         if (!service.id) {

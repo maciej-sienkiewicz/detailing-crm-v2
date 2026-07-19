@@ -47,7 +47,7 @@ const IconX = () => (
 interface QuickServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onServiceCreate: (service: { id?: string; name: string; basePriceNet: number; vatRate: VatRate }) => void;
+    onServiceCreate: (service: { id?: string; name: string; basePriceNet: number; basePriceGross: number; vatRate: VatRate }) => void;
     initialServiceName?: string;
     contentLeft?: number;
 }
@@ -63,6 +63,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     const contentLeft = contentLeftProp ?? (typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0);
     const [serviceName, setServiceName] = useState(initialServiceName);
     const [basePriceNet, setBasePriceNet] = useState(0);
+    const [basePriceGross, setBasePriceGross] = useState(0);
     const [vatRate, setVatRate] = useState<VatRate>(23);
     const [saveToDatabase, setSaveToDatabase] = useState(false);
     const [requireManualPrice, setRequireManualPrice] = useState(false);
@@ -74,6 +75,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         if (isOpen) {
             setServiceName(initialServiceName);
             setBasePriceNet(0);
+            setBasePriceGross(0);
             setVatRate(23);
             setSaveToDatabase(false);
             setRequireManualPrice(false);
@@ -102,6 +104,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 const result = await createMutation.mutateAsync({
                     name: serviceName,
                     basePriceNet,
+                    basePriceGross,
                     vatRate,
                     requireManualPrice,
                 });
@@ -112,6 +115,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 id: createdServiceId,
                 name: serviceName,
                 basePriceNet,
+                basePriceGross,
                 vatRate,
             });
 
@@ -173,8 +177,9 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                         <FieldGroup>
                             <PriceInput
                                 netAmount={basePriceNet}
+                                grossAmount={basePriceGross}
                                 vatRate={vatRate}
-                                onChange={setBasePriceNet}
+                                onChange={(net, gross) => { setBasePriceNet(net); setBasePriceGross(gross); }}
                                 netLabel="Cena netto"
                                 grossLabel="Cena brutto"
                                 vatLabel="VAT"

@@ -70,6 +70,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                 serviceId: s.id,
                 serviceName: s.name,
                 basePriceNet: s.basePriceNet,
+                basePriceGross: s.basePriceGross,
                 vatRate: s.vatRate,
                 adjustment: { type: 'PERCENT', value: 0 },
                 note: '',
@@ -89,11 +90,15 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         const basePriceNet = manualPriceMode === 'GROSS'
             ? (s.vatRate <= 0 ? valueCents : Math.round((valueCents * 100) / (100 + s.vatRate)))
             : valueCents;
+        const basePriceGross = manualPriceMode === 'GROSS'
+            ? valueCents
+            : (s.vatRate <= 0 ? valueCents : valueCents + Math.round(valueCents * s.vatRate / 100));
         onChange([...services, {
             id: `${s.id}_${Date.now()}`,
             serviceId: s.id,
             serviceName: s.name,
             basePriceNet,
+            basePriceGross,
             vatRate: s.vatRate,
             adjustment: { type: 'PERCENT', value: 0 },
             note: '',
@@ -128,6 +133,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                         serviceId: s.id || null,
                         serviceName: s.name,
                         basePriceNet: s.basePriceNet,
+                        basePriceGross: s.basePriceGross,
                         vatRate: s.vatRate,
                         adjustment: { type: 'PERCENT', value: 0 },
                         note: '',

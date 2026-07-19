@@ -108,8 +108,11 @@ const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 interface PriceInputProps {
     netAmount: number;
+    /** Stored gross paired with netAmount. When provided it is displayed as-is instead of
+     *  being re-derived from net (net→gross rounding would drift gross-entered prices by 1 gr). */
+    grossAmount?: number;
     vatRate: VatRate;
-    onChange: (netAmount: number) => void;
+    onChange: (netAmount: number, grossAmount: number) => void;
     netLabel: string;
     grossLabel: string;
     vatLabel: string;
@@ -118,6 +121,7 @@ interface PriceInputProps {
 
 export const PriceInput = ({
     netAmount,
+    grossAmount,
     vatRate,
     onChange,
     netLabel,
@@ -143,9 +147,9 @@ export const PriceInput = ({
             }
             const calc = calculateGrossFromNet(netAmount, vatRate);
             setNetValue(formatMoneyAmount(calc.priceNet));
-            setGrossValue(formatMoneyAmount(calc.priceGross));
+            setGrossValue(formatMoneyAmount(grossAmount ?? calc.priceGross));
         }
-    }, [netAmount, vatRate, netFocused, grossFocused]);
+    }, [netAmount, grossAmount, vatRate, netFocused, grossFocused]);
 
     const handleNetChange = (value: string) => {
         if (!MAX_2_DECIMALS.test(value)) return;
@@ -153,7 +157,7 @@ export const PriceInput = ({
         const parsed = parseMoneyInput(value.replace(',', '.'));
         const calc = calculateGrossFromNet(parsed, vatRate);
         setGrossValue((calc.priceGross / 100).toFixed(2));
-        onChange(parsed);
+        onChange(parsed, calc.priceGross);
     };
 
     const handleGrossChange = (value: string) => {
@@ -162,7 +166,7 @@ export const PriceInput = ({
         const parsedGross = parseMoneyInput(value.replace(',', '.'));
         const calc = calculateNetFromGross(parsedGross, vatRate);
         setNetValue((calc.priceNet / 100).toFixed(2));
-        onChange(calc.priceNet);
+        onChange(calc.priceNet, parsedGross);
     };
 
     // Net blur: net is authoritative → format net, derive gross from net.
@@ -174,6 +178,7 @@ export const PriceInput = ({
         const calc = calculateGrossFromNet(net, vatRate);
         setNetValue(formatMoneyAmount(calc.priceNet));
         setGrossValue(formatMoneyAmount(calc.priceGross));
+        onChange(calc.priceNet, calc.priceGross);
     };
 
     // Gross blur: gross is authoritative → preserve exact gross, derive net from gross.
@@ -186,9 +191,11 @@ export const PriceInput = ({
         const calc = calculateNetFromGross(gross, vatRate);
         setNetValue(formatMoneyAmount(calc.priceNet));
         setGrossValue(formatMoneyAmount(gross));
+        onChange(calc.priceNet, gross);
     };
 
     const calc = calculateGrossFromNet(netAmount, vatRate);
+    const vatAmount = grossAmount != null ? grossAmount - netAmount : calc.vatAmount;
     const vatRateLabel = vatRate === -1 ? 'zw.' : `${vatRate}%`;
 
     return (
@@ -229,7 +236,7 @@ export const PriceInput = ({
 
             <VatInfo>
                 <VatLabel>{vatLabel} ({vatRateLabel})</VatLabel>
-                <VatAmount>{formatMoneyAmount(calc.vatAmount)} PLN</VatAmount>
+                <VatAmount>{formatMoneyAmount(vatAmount)} PLN</VatAmount>
             </VatInfo>
         </Container>
     );

@@ -17,6 +17,8 @@ export interface Service {
     id: string;
     name: string;
     basePriceNet: number;
+    /** Exact gross as entered by the user — NOT derivable from net (1-grosz rounding gaps). */
+    basePriceGross: number;
     vatRate: VatRate;
     requireManualPrice: boolean;
     isActive: boolean;
@@ -55,6 +57,8 @@ export interface ServiceListResponse {
 export interface CreateServiceRequest {
     name: string;
     basePriceNet: number;
+    /** Exact gross paired with basePriceNet, as shown to the user in the form. */
+    basePriceGross: number;
     vatRate: VatRate;
     requireManualPrice: boolean;
 }
@@ -66,6 +70,8 @@ export interface UpdateServiceRequest extends CreateServiceRequest {
 export interface CreatePackageRequest {
     name: string;
     basePriceNet: number;
+    /** Exact gross paired with basePriceNet, as shown to the user in the form. */
+    basePriceGross: number;
     vatRate: VatRate;
     requireManualPrice: boolean;
     serviceIds: string[];

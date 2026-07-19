@@ -250,7 +250,9 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                             {services.length > 0 ? (
                                 services.map((service) => {
                                     const priceNet = service.basePriceNet / 100;
-                                    const priceGross = netToGross(service.basePriceNet, service.vatRate) / 100;
+                                    // Stored gross — exact, as entered when the service was created;
+                                    // re-deriving from net can drift by 1 grosz (201.00 → 200.99).
+                                    const priceGross = (service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100;
 
                                     return (
                                         <SuggestionItem

@@ -900,7 +900,7 @@ function serviceToForm(s: Service): FormValues {
   return {
     name: s.name,
     netInput: formatDecimalInput(s.basePriceNet),
-    grossInput: formatDecimalInput(calculateGrossFromNet(s.basePriceNet, s.vatRate).priceGross),
+    grossInput: formatDecimalInput(s.basePriceGross ?? calculateGrossFromNet(s.basePriceNet, s.vatRate).priceGross),
     vatRate: s.vatRate,
     requireManualPrice: false,
   };
@@ -969,7 +969,7 @@ function packageToForm(pkg: Service): PackageFormValues {
   return {
     name: pkg.name,
     netInput: formatDecimalInput(pkg.basePriceNet),
-    grossInput: formatDecimalInput(calculateGrossFromNet(pkg.basePriceNet, pkg.vatRate).priceGross),
+    grossInput: formatDecimalInput(pkg.basePriceGross ?? calculateGrossFromNet(pkg.basePriceNet, pkg.vatRate).priceGross),
     vatRate: pkg.vatRate,
     requireManualPrice: false,
     selectedServices,
@@ -1156,12 +1156,14 @@ export const ServicesSection: React.FC = () => {
     if (Object.keys(errors).length > 0) { setPkgFormErrors(errors); return; }
 
     const basePriceNet = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.netInput);
+    const basePriceGross = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.grossInput);
     const serviceIds = pkgFormValues.selectedServices.map(s => s.id);
 
     if (pkgFormMode === 'add') {
       await createPkgMutation.mutateAsync({
         name: pkgFormValues.name.trim(),
         basePriceNet,
+        basePriceGross,
         vatRate: pkgFormValues.vatRate,
         requireManualPrice: pkgFormValues.requireManualPrice,
         serviceIds,
@@ -1171,6 +1173,7 @@ export const ServicesSection: React.FC = () => {
         originalPackageId: pkgEditTarget.id,
         name: pkgFormValues.name.trim(),
         basePriceNet,
+        basePriceGross,
         vatRate: pkgFormValues.vatRate,
         requireManualPrice: pkgFormValues.requireManualPrice,
         serviceIds,
@@ -1226,11 +1229,13 @@ export const ServicesSection: React.FC = () => {
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
     const basePriceNet = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.netInput);
+    const basePriceGross = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.grossInput);
 
     if (formMode === 'add') {
       await createMutation.mutateAsync({
         name: formValues.name.trim(),
         basePriceNet,
+        basePriceGross,
         vatRate: formValues.vatRate,
         requireManualPrice: formValues.requireManualPrice,
       });
@@ -1240,6 +1245,7 @@ export const ServicesSection: React.FC = () => {
         originalServiceId: editTarget.id,
         name: formValues.name.trim(),
         basePriceNet,
+        basePriceGross,
         vatRate: formValues.vatRate,
         requireManualPrice: formValues.requireManualPrice,
       });
@@ -1605,7 +1611,11 @@ export const ServicesSection: React.FC = () => {
         ) : (
           services.map(service => {
             const calc = !service.requireManualPrice
-              ? calculateGrossFromNet(service.basePriceNet, service.vatRate)
+              ? {
+                  ...calculateGrossFromNet(service.basePriceNet, service.vatRate),
+                  priceGross: service.basePriceGross
+                      ?? calculateGrossFromNet(service.basePriceNet, service.vatRate).priceGross,
+                }
               : null;
 
             return (
