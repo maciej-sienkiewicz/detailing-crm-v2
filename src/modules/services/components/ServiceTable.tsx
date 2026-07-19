@@ -268,7 +268,10 @@ export const ServiceTable = ({ services, onEdit, onArchive, isArchiving }: Servi
                 </TableHead>
                 <TableBody>
                     {services.map((service) => {
-                        const calc = calculateGrossFromNet(service.basePriceNet, service.vatRate);
+                        // Stored gross wins over re-derived (1-grosz rounding gaps for gross-entered prices)
+                        const derived = calculateGrossFromNet(service.basePriceNet, service.vatRate);
+                        const priceGross = service.basePriceGross ?? derived.priceGross;
+                        const calc = { priceNet: derived.priceNet, priceGross, vatAmount: priceGross - derived.priceNet };
                         const vatRateLabel = service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`;
                         const isExpanded = expandedPackages.has(service.id);
                         const items = service.packageItems;

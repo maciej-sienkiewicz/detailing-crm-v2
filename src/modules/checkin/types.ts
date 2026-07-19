@@ -53,6 +53,9 @@ export interface ServiceLineItem {
     serviceId: string | null;
     serviceName: string;
     basePriceNet: number;
+    /** Exact stored gross from the catalog / user input; carried through to the backend
+     *  so the visit's final gross matches what the user saw (no 1-grosz drift). */
+    basePriceGross?: number;
     vatRate: number;
     adjustment: PriceAdjustment;
     note?: string;

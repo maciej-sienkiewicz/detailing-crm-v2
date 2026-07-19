@@ -14,6 +14,9 @@ export interface ServiceLineItem {
     serviceId: string | null;
     serviceName: string;
     basePriceNet: number;
+    /** Exact stored gross from the catalog / user input; display and gross-side
+     *  calculations prefer it over netToGross() (1-grosz rounding gaps). */
+    basePriceGross?: number;
     vatRate: number;
     adjustment: PriceAdjustment;
     note?: string;
@@ -98,8 +101,8 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     const [bulkVatRate, setBulkVatRate] = useState<number>(23);
 
     const getServicePrice = (service: ServiceLineItem) => {
-        const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment);
-        const baseGrossCents = netToGross(service.basePriceNet, service.vatRate);
+        const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment, service.basePriceGross);
+        const baseGrossCents = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
         return {
             baseNet: service.basePriceNet / 100,
             baseGross: baseGrossCents / 100,
@@ -153,7 +156,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
         const val = parseFloat(bulkDiscountValue.replace(',', '.'));
         if (isNaN(val) || val <= 0) return;
         const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
-        const bases = services.map(s => ({ basePriceNetCents: s.basePriceNet, vatRate: s.vatRate }));
+        const bases = services.map(s => ({ basePriceNetCents: s.basePriceNet, basePriceGrossCents: s.basePriceGross, vatRate: s.vatRate }));
         const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
         onChange(services.map((s, i) => ({ ...s, adjustment: adjustments[i] })));
         setBulkDiscountOpen(false);
@@ -177,7 +180,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
 
     const bulkBaseNet = Math.round(services.reduce((sum, s) => sum + s.basePriceNet, 0)) / 100;
     const bulkBaseGross = Math.round(services.reduce((sum, s) => {
-        return sum + netToGross(s.basePriceNet, s.vatRate);
+        return sum + (s.basePriceGross ?? netToGross(s.basePriceNet, s.vatRate));
     }, 0)) / 100;
 
     return (

@@ -19,6 +19,9 @@ export interface PriceAdjustment {
 
 export interface ServicePriceBase {
     basePriceNetCents: number;
+    /** Exact stored gross paired with the net (catalog value); when present it is used
+     *  instead of netToGross(), whose rounding skips some gross values (201.00 → 200.99). */
+    basePriceGrossCents?: number;
     vatRate: number; // e.g. 23 for 23 %
 }
 
@@ -53,8 +56,13 @@ export const applyAdjustment = (
     basePriceNetCents: number,
     vatRate: number,
     adjustment: PriceAdjustment,
+    /** Exact stored base gross (catalog value). When the adjustment flows gross-side or is
+     *  a no-op, this exact gross is preserved instead of re-deriving from net — net→gross
+     *  rounding skips some gross values entirely (e.g. 201.00 → 200.99 at 23 % VAT). */
+    basePriceGrossCents?: number,
 ): { finalNetCents: number; finalGrossCents: number; hasDiscount: boolean } => {
     let finalNetCents = basePriceNetCents;
+    const baseGross = basePriceGrossCents ?? netToGross(basePriceNetCents, vatRate);
 
     switch (adjustment.type) {
         case 'PERCENT': {
@@ -68,8 +76,7 @@ export const applyAdjustment = (
             finalNetCents = basePriceNetCents - adjustment.value;
             break;
         case 'FIXED_GROSS': {
-            const baseGrossCents = netToGross(basePriceNetCents, vatRate);
-            finalNetCents = grossToNet(baseGrossCents - adjustment.value, vatRate);
+            finalNetCents = grossToNet(baseGross - adjustment.value, vatRate);
             break;
         }
         case 'SET_NET':
@@ -82,10 +89,15 @@ export const applyAdjustment = (
 
     if (finalNetCents < 0) finalNetCents = 0;
 
+    const isNoOp =
+        (adjustment.type === 'PERCENT' || adjustment.type === 'FIXED_NET' || adjustment.type === 'FIXED_GROSS')
+        && adjustment.value === 0;
+
     const finalGrossCents =
-        adjustment.type === 'SET_GROSS'
-            ? adjustment.value
-            : netToGross(finalNetCents, vatRate);
+        adjustment.type === 'SET_GROSS' ? Math.max(0, adjustment.value)
+        : adjustment.type === 'FIXED_GROSS' ? Math.max(0, baseGross - adjustment.value)
+        : isNoOp ? baseGross
+        : netToGross(finalNetCents, vatRate);
 
     return {
         finalNetCents,
@@ -144,7 +156,7 @@ export const distributeAdjustment = (
     }
 
     const getBaseGross = (s: ServicePriceBase) =>
-        netToGross(s.basePriceNetCents, s.vatRate);
+        s.basePriceGrossCents ?? netToGross(s.basePriceNetCents, s.vatRate);
 
     const usesNet = discountType === 'FIXED_NET' || discountType === 'SET_NET';
     const totals = usesNet
@@ -176,15 +188,26 @@ export const distributeAdjustment = (
  */
 export function toApiServiceLineItem<T extends {
     basePriceNet: number;
+    basePriceGross?: number;
     vatRate: number;
     adjustment: PriceAdjustment;
     requireManualPrice?: boolean;
 }>(service: T): T {
     if (!service.requireManualPrice) return service;
-    const { finalNetCents } = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment);
+    const { finalNetCents, finalGrossCents } = applyAdjustment(
+        service.basePriceNet, service.vatRate, service.adjustment, service.basePriceGross,
+    );
+    // When the manual price was entered gross-side, send SET_GROSS so the backend
+    // keeps the exact gross the user typed (SET_NET would re-derive it with 1-grosz drift).
+    const enteredGross =
+        service.basePriceGross != null &&
+        service.basePriceGross !== netToGross(service.basePriceNet, service.vatRate);
     return {
         ...service,
         basePriceNet: 0,
-        adjustment: { type: 'SET_NET', value: finalNetCents },
+        basePriceGross: undefined,
+        adjustment: enteredGross
+            ? { type: 'SET_GROSS', value: finalGrossCents }
+            : { type: 'SET_NET', value: finalNetCents },
     };
 }
