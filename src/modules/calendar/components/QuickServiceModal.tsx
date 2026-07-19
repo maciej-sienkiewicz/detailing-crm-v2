@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import { useCreateService } from '@/modules/services/hooks/useServices';
@@ -124,7 +125,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <Overlay
             $isOpen={isOpen}
             $contentLeft={contentLeft}
@@ -241,6 +242,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     </Footer>
                 </Form>
             </ModalContainer>
-        </Overlay>
+        </Overlay>,
+        document.body
     );
 };
