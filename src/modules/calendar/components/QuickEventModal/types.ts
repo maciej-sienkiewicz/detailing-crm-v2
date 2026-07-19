@@ -64,6 +64,8 @@ export interface QuickEventFormData {
     doorToDoor?: DoorToDoorInfo;
     sendConfirmationSms: boolean;
     sendReminderSms: boolean;
+    /** "Czy wysłać Kartę Wizyty do klienta?" — send the card link right after booking. */
+    sendVisitCard: boolean;
     recurrence?: RecurrenceRuleRequest | null;
 }
 

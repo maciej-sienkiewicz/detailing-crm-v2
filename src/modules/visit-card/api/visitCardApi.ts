@@ -4,11 +4,13 @@ import { apiClient } from '@/core/apiClient';
 import type {
     CreateUpsellSuggestionRequest,
     RequestUpsellResponse,
+    UpdateVisitCardSettingsPayload,
     UpsellSuggestion,
     VisitCard,
     VisitCardLinkResponse,
     VisitCardSendChannel,
     VisitCardSendResponse,
+    VisitCardSettings,
 } from '../types';
 
 export const visitCardApi = {
@@ -50,6 +52,20 @@ export const visitCardApi = {
             `/appointments/${appointmentId}/card-link/send`,
             channel ? { channel } : {},
         );
+        return response.data;
+    },
+
+    // ── Studio settings (Karta Wizyty) ──
+
+    /** Employee endpoint: current Visit Card configuration + SMS module status. */
+    getSettings: async (): Promise<VisitCardSettings> => {
+        const response = await apiClient.get<VisitCardSettings>('/v1/settings/visit-card');
+        return response.data;
+    },
+
+    /** Employee endpoint: update the Visit Card configuration (requires the SMS module). */
+    updateSettings: async (payload: UpdateVisitCardSettingsPayload): Promise<VisitCardSettings> => {
+        const response = await apiClient.put<VisitCardSettings>('/v1/settings/visit-card', payload);
         return response.data;
     },
 

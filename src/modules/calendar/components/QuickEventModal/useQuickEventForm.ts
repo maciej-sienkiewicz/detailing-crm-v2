@@ -126,6 +126,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     // ─── SMS state ─────────────────────────────────────────────────────────────
     const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
     const [sendReminderSms, setSendReminderSms] = useState(false);
+    const [sendVisitCard, setSendVisitCard] = useState(false);
 
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleRequest>({
@@ -208,6 +209,20 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     });
     const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
     const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;
+
+    const { data: visitCardSettings } = useQuery({
+        queryKey: ['visit-card-settings'],
+        queryFn: () => import('@/modules/visit-card/api/visitCardApi').then(m => m.visitCardApi.getSettings()),
+        staleTime: 60_000,
+    });
+    // Checkbox visible only when the studio uses the Visit Card AND has the SMS module
+    const visitCardEnabled = (visitCardSettings?.enabled ?? false) && (visitCardSettings?.smsModuleActive ?? false);
+    const visitCardSendByDefault = visitCardSettings?.sendByDefault ?? false;
+
+    // Settings drive the checkbox default ("Czy domyślnie wysyłać Kartę Wizyty?")
+    useEffect(() => {
+        setSendVisitCard(visitCardSendByDefault);
+    }, [visitCardSendByDefault]);
 
     // ─── Computed values ───────────────────────────────────────────────────────
     const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
@@ -521,6 +536,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 doorToDoor: doorToDoor.enabled ? doorToDoor : undefined,
                 sendConfirmationSms: bookingConfirmationEnabled && sendConfirmationSms,
                 sendReminderSms: preVisitEnabled && sendReminderSms,
+                sendVisitCard: visitCardEnabled && sendVisitCard,
                 recurrence: isRecurring ? recurrenceRule : null,
             }));
         } catch (err: any) {
@@ -929,8 +945,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         // SMS
         sendConfirmationSms, setSendConfirmationSms,
         sendReminderSms, setSendReminderSms,
+        sendVisitCard, setSendVisitCard,
         preVisitEnabled,
         bookingConfirmationEnabled,
+        visitCardEnabled,
 
         // Recurrence
         isRecurring, setIsRecurring,

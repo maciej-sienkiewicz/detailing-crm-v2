@@ -1222,6 +1222,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     )}
                                                 </SmsCheckText>
                                             </SmsCheckItem>
+                                            {form.visitCardEnabled && (
+                                                <SmsCheckItem>
+                                                    <SmsCheckbox
+                                                        checked={form.sendVisitCard}
+                                                        onChange={e => form.setSendVisitCard(e.target.checked)}
+                                                    />
+                                                    <SmsCheckText>
+                                                        Czy wysłać Kartę Wizyty do klienta?
+                                                    </SmsCheckText>
+                                                </SmsCheckItem>
+                                            )}
                                         </SmsCheckList>
                                     </LockedSection>
                                 </S.RowContent>

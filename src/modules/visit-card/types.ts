@@ -147,6 +147,21 @@ export interface VisitCardLinkResponse {
 /** Channel the employee explicitly picks when sending the card. */
 export type VisitCardSendChannel = 'EMAIL' | 'SMS';
 
+/** Studio-level Visit Card configuration (settings → Karta Wizyty). */
+export interface VisitCardSettings {
+    /** "Czy korzystać z Karty Wizyty?" — master switch. */
+    enabled: boolean;
+    /** "Czy domyślnie wysyłać Kartę Wizyty?" — default for the send checkbox. */
+    sendByDefault: boolean;
+    /** Whether the studio's subscription currently includes the SMS module. */
+    smsModuleActive: boolean;
+}
+
+export interface UpdateVisitCardSettingsPayload {
+    enabled?: boolean;
+    sendByDefault?: boolean;
+}
+
 export interface VisitCardSendResponse {
     emailSent: boolean;
     smsSent: boolean;

@@ -1,6 +1,6 @@
 // src/modules/checkin/views/CheckInWizardView.tsx
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -10,6 +10,8 @@ import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
+import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
+import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ProtocolResponse } from '../types';
@@ -281,6 +283,27 @@ const FooterActions = styled.div`
     }
 `;
 
+const VisitCardCheckboxLabel = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 8px;
+    font-size: ${st.fontSm};
+    font-weight: 500;
+    color: ${st.textSecondary};
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+`;
+
+const VisitCardCheckbox = styled.input.attrs({ type: 'checkbox' })`
+    width: 16px;
+    height: 16px;
+    accent-color: ${st.accentBlue};
+    cursor: pointer;
+    flex-shrink: 0;
+`;
+
 const BackBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -379,9 +402,26 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     } = useCheckInWizard(reservationId, initialData);
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
-    const { showSuccess } = useToast();
+    const { showSuccess, showError } = useToast();
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+    // "Czy wysłać Kartę Wizyty do klienta?" — visible only when the studio uses
+    // the Visit Card (and has the SMS module); default comes from the settings.
+    const { visitCardActive, sendByDefault: visitCardSendByDefault } = useVisitCardSettings();
+    const [sendVisitCard, setSendVisitCard] = useState(false);
+    useEffect(() => {
+        setSendVisitCard(visitCardSendByDefault);
+    }, [visitCardSendByDefault]);
+
+    const sendVisitCardAfterCreation = (visitId: string) => {
+        visitCardApi.sendCardLink(visitId)
+            .then(result => {
+                if (result.emailSent || result.smsSent) showSuccess(result.message);
+                else showError('Nie udało się wysłać Karty Wizyty', result.message);
+            })
+            .catch(() => showError('Nie udało się wysłać Karty Wizyty'));
+    };
 
     const [signingModalState, setSigningModalState] = useState<{
         isOpen: boolean;
@@ -423,6 +463,9 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
                 protocols: result.protocols || [],
             });
+            if (visitCardActive && sendVisitCard) {
+                sendVisitCardAfterCreation(result.visitId);
+            }
         } catch {
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
         }
@@ -556,6 +599,16 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
 
                         {/* Navigation */}
                         <FooterActions>
+                            {isLastStep && visitCardActive && (
+                                <VisitCardCheckboxLabel>
+                                    <VisitCardCheckbox
+                                        checked={sendVisitCard}
+                                        onChange={e => setSendVisitCard(e.target.checked)}
+                                        disabled={isSubmitting}
+                                    />
+                                    Czy wysłać Kartę Wizyty do klienta?
+                                </VisitCardCheckboxLabel>
+                            )}
                             {!isFirstStep && (
                                 <BackBtn onClick={previousStep} disabled={isSubmitting}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

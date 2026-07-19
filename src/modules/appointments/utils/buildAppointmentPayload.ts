@@ -33,6 +33,7 @@ export interface AppointmentPayload {
   appointmentColorId: string;
   sendConfirmationSms: boolean;
   sendReminderSms: boolean;
+  sendVisitCard: boolean;
   doorToDoor?: { pickupCity: string; pickupStreet: string; deliveryCity: string; deliveryStreet: string; notes?: string };
 }
 
@@ -125,6 +126,7 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
     appointmentColorId: data.colorId,
     sendConfirmationSms: data.sendConfirmationSms,
     sendReminderSms: data.sendReminderSms,
+    sendVisitCard: data.sendVisitCard,
     doorToDoor: data.doorToDoor?.enabled ? {
       pickupCity: data.doorToDoor.pickupAddress?.city ?? '',
       pickupStreet: data.doorToDoor.pickupAddress?.street ?? '',
