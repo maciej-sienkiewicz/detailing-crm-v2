@@ -112,6 +112,7 @@ export interface CheckInFormData {
         mileage: number;
         deposit: DepositItem;
         inspectionNotes: string;
+        protocolNotes: string;
     };
     note: string;
     // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
@@ -233,6 +234,7 @@ export interface ReservationToVisitPayload {
         mileage: number;
         deposit: DepositItem;
         inspectionNotes: string;
+        protocolNotes: string;
     };
     title?: string;
     photoIds: string[];
@@ -267,6 +269,7 @@ export interface WalkInVisitPayload {
         mileage: number;
         deposit: DepositItem;
         inspectionNotes: string;
+        protocolNotes: string;
     };
     title?: string;
     photoIds: string[];

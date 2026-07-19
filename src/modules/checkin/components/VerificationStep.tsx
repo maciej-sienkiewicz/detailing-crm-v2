@@ -1531,23 +1531,37 @@ export const VerificationStep = ({
                 </SectionBody>
             </SectionCard>
 
-            {/* ── 6. Notatki z oględzin ─────────────────────────────────── */}
+            {/* ── 6. Notatki ───────────────────────────────────────────── */}
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
                         <SectionNum>{showTechnicalSection ? 6 : 5}</SectionNum>
-                        <SectionLabel>
-                            {t.checkin.technical.inspectionNotes}
-                        </SectionLabel>
+                        <SectionLabel>Notatki</SectionLabel>
                     </SectionTitleRow>
                 </SectionHead>
-                <SectionBody>
-                    <TextArea
-                        value={formData.technicalState.inspectionNotes}
-                        onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: e.target.value } })}
-                        placeholder={t.checkin.technical.inspectionNotesPlaceholder}
-                        style={{ width: '100%', boxSizing: 'border-box', minHeight: '120px' }}
-                    />
+                <SectionBody style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                        <Label style={{ display: 'block', marginBottom: '6px' }}>
+                            {t.checkin.technical.inspectionNotes}
+                        </Label>
+                        <TextArea
+                            value={formData.technicalState.inspectionNotes}
+                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: e.target.value } })}
+                            placeholder={t.checkin.technical.inspectionNotesPlaceholder}
+                            style={{ width: '100%', boxSizing: 'border-box', minHeight: '100px' }}
+                        />
+                    </div>
+                    <div>
+                        <Label style={{ display: 'block', marginBottom: '6px' }}>
+                            {t.checkin.technical.protocolNotes}
+                        </Label>
+                        <TextArea
+                            value={formData.technicalState.protocolNotes}
+                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, protocolNotes: e.target.value } })}
+                            placeholder={t.checkin.technical.protocolNotesPlaceholder}
+                            style={{ width: '100%', boxSizing: 'border-box', minHeight: '100px' }}
+                        />
+                    </div>
                 </SectionBody>
             </SectionCard>
 

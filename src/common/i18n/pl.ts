@@ -552,8 +552,10 @@ export const pl: TranslationKeys = {
                 registrationDocument: 'Dowód rejestracyjny',
                 other: 'Inne',
             },
-            inspectionNotes: 'Notatki',
-            inspectionNotesPlaceholder: 'Dodatkowe informacje',
+            inspectionNotes: 'Notatki wewnętrzne',
+            inspectionNotesPlaceholder: 'Widoczne tylko w systemie — nie pojawiają się na protokole',
+            protocolNotes: 'Notatki do protokołu',
+            protocolNotesPlaceholder: 'Treść widoczna na protokole przyjęcia pojazdu',
         },
         photos: {
             title: 'Dokumentacja zdjęciowa',
