@@ -31,7 +31,8 @@ const menuSections: MenuSection[] = [
         items: [
             { path: '/vehicles', label: 'Pojazdy', icon: '▣' },
             { path: '/services', label: 'Usługi', icon: '◐' },
-            { path: '/invoices', label: 'Faktury', icon: '◫' },
+            { path: '/batch-orders', label: 'Zlecenia zbiorcze', icon: '◫' },
+            { path: '/invoices', label: 'Faktury', icon: '◈' },
             { path: '/appointment-colors', label: 'Raporty', icon: '◧' },
         ],
     },
