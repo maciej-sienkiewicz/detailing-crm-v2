@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import type { BatchOrderEntry, EntryRequest } from '../types';
 
 const Overlay = styled.div`
@@ -212,6 +213,16 @@ function displayToCents(value: string): number {
     return Math.round(parsed * 100);
 }
 
+function calculateNetFromGross(grossCents: number, vatRate: number): number {
+    if (vatRate === -1 || vatRate === 0) return grossCents;
+    return Math.round(grossCents / (1 + vatRate / 100));
+}
+
+function calculateGrossFromNet(netCents: number, vatRate: number): number {
+    if (vatRate === -1 || vatRate === 0) return netCents;
+    return Math.round(netCents * (1 + vatRate / 100));
+}
+
 const VAT_OPTIONS = [
     { label: '23%', value: 23 },
     { label: '8%', value: 8 },
@@ -235,9 +246,22 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     const [services, setServices] = useState<string[]>(
         initial?.services?.length ? initial.services : ['']
     );
-    const [netDisplay, setNetDisplay] = useState(initial ? centsToDisplay(initial.netAmountCents) : '');
-    const [grossDisplay, setGrossDisplay] = useState(initial ? centsToDisplay(initial.grossAmountCents) : '');
     const [vatRate, setVatRate] = useState(initial?.vatRate ?? 23);
+    const [netDisplay, setNetDisplay] = useState(() => {
+        if (!initial) return '';
+        if (initial.netAmountCents > 0) return centsToDisplay(initial.netAmountCents);
+        if (initial.grossAmountCents > 0) {
+            return centsToDisplay(calculateNetFromGross(initial.grossAmountCents, initial.vatRate ?? 23));
+        }
+        return '';
+    });
+    const [grossDisplay, setGrossDisplay] = useState(
+        initial ? centsToDisplay(initial.grossAmountCents) : ''
+    );
+    const [priceSource, setPriceSource] = useState<'net' | 'gross' | null>(() => {
+        if (!initial) return null;
+        return initial.grossAmountCents > 0 ? 'gross' : (initial.netAmountCents > 0 ? 'net' : null);
+    });
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -246,6 +270,39 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     function removeService(idx: number) { setServices(s => s.filter((_, i) => i !== idx)); }
     function setService(idx: number, val: string) {
         setServices(s => s.map((v, i) => i === idx ? val : v));
+    }
+
+    function handleNetChange(value: string) {
+        setNetDisplay(value);
+        setPriceSource('net');
+        if (value.trim() !== '') {
+            const netCents = displayToCents(value);
+            setGrossDisplay(centsToDisplay(calculateGrossFromNet(netCents, vatRate)));
+        }
+    }
+
+    function handleGrossChange(value: string) {
+        setGrossDisplay(value);
+        setPriceSource('gross');
+        if (value.trim() !== '') {
+            const grossCents = displayToCents(value);
+            setNetDisplay(centsToDisplay(calculateNetFromGross(grossCents, vatRate)));
+        }
+    }
+
+    function handleVatChange(newRate: number) {
+        setVatRate(newRate);
+        if (priceSource === 'gross') {
+            const grossCents = displayToCents(grossDisplay);
+            if (grossCents > 0) {
+                setNetDisplay(centsToDisplay(calculateNetFromGross(grossCents, newRate)));
+            }
+        } else if (priceSource === 'net') {
+            const netCents = displayToCents(netDisplay);
+            if (netCents > 0) {
+                setGrossDisplay(centsToDisplay(calculateGrossFromNet(netCents, newRate)));
+            }
+        }
     }
 
     async function handleSave() {
@@ -291,11 +348,20 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                 <Row>
                     <Field>
                         <Label>Marka</Label>
-                        <Input value={vehicleMake} onChange={e => setVehicleMake(e.target.value)} placeholder="np. BMW" />
+                        <BrandSelect
+                            value={vehicleMake}
+                            onChange={(brand) => { setVehicleMake(brand); setVehicleModel(''); }}
+                            placeholder="np. BMW"
+                        />
                     </Field>
                     <Field>
                         <Label>Model</Label>
-                        <Input value={vehicleModel} onChange={e => setVehicleModel(e.target.value)} placeholder="np. 3 Series" />
+                        <ModelSelect
+                            brand={vehicleMake}
+                            value={vehicleModel}
+                            onChange={setVehicleModel}
+                            placeholder="np. 3 Series"
+                        />
                     </Field>
                 </Row>
                 <Field>
@@ -330,7 +396,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                             step="0.01"
                             min="0"
                             value={netDisplay}
-                            onChange={e => setNetDisplay(e.target.value)}
+                            onChange={e => handleNetChange(e.target.value)}
                             placeholder="0.00"
                         />
                     </Field>
@@ -341,13 +407,13 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                             step="0.01"
                             min="0"
                             value={grossDisplay}
-                            onChange={e => setGrossDisplay(e.target.value)}
+                            onChange={e => handleGrossChange(e.target.value)}
                             placeholder="0.00"
                         />
                     </Field>
                     <Field>
                         <Label>Stawka VAT</Label>
-                        <Select value={vatRate} onChange={e => setVatRate(Number(e.target.value))}>
+                        <Select value={vatRate} onChange={e => handleVatChange(Number(e.target.value))}>
                             {VAT_OPTIONS.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}

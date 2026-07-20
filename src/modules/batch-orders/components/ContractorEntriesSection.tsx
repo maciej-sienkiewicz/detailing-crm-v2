@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
+import { DateRangeFilter } from './DateRangeFilter';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, EntryRequest } from '../types';
 
@@ -50,20 +51,6 @@ const FilterRow = styled.div`
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.background}88;
     flex-wrap: wrap;
-`;
-
-const DateInput = styled.input`
-    padding: 6px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.surface};
-`;
-
-const FilterLabel = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
 `;
 
 const SmallBtn = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'outline' }>`
@@ -219,6 +206,13 @@ function vatLabel(rate: number) {
     return `${rate}%`;
 }
 
+function getEffectiveNet(entry: BatchOrderEntry): number {
+    if (entry.netAmountCents !== 0) return entry.netAmountCents;
+    if (entry.grossAmountCents === 0) return 0;
+    if (entry.vatRate === -1 || entry.vatRate === 0) return entry.grossAmountCents;
+    return Math.round(entry.grossAmountCents / (1 + entry.vatRate / 100));
+}
+
 interface Props {
     contractor: BatchContractor;
     onEdit: () => void;
@@ -226,30 +220,16 @@ interface Props {
 }
 
 export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props) {
-    const [from, setFrom] = useState('');
-    const [to, setTo] = useState('');
-    const [appliedFrom, setAppliedFrom] = useState('');
-    const [appliedTo, setAppliedTo] = useState('');
+    const [filterFrom, setFilterFrom] = useState('');
+    const [filterTo, setFilterTo] = useState('');
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [editEntry, setEditEntry] = useState<BatchOrderEntry | null>(null);
     const [downloading, setDownloading] = useState(false);
 
-    const { data, isLoading, isError } = useContractorEntries(contractor.id, appliedFrom || undefined, appliedTo || undefined);
+    const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom || undefined, filterTo || undefined);
     const createEntry = useCreateEntry(contractor.id);
     const updateEntry = useUpdateEntry(contractor.id);
     const deleteEntry = useDeleteEntry(contractor.id);
-
-    function applyFilter() {
-        setAppliedFrom(from);
-        setAppliedTo(to);
-    }
-
-    function clearFilter() {
-        setFrom('');
-        setTo('');
-        setAppliedFrom('');
-        setAppliedTo('');
-    }
 
     async function handleSaveEntry(req: EntryRequest) {
         if (editEntry) {
@@ -270,8 +250,8 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             await batchOrderApi.downloadReport(
                 contractor.id,
                 contractor.name,
-                appliedFrom || undefined,
-                appliedTo || undefined
+                filterFrom || undefined,
+                filterTo || undefined
             );
         } finally {
             setDownloading(false);
@@ -280,6 +260,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
 
     const entries = data?.entries ?? [];
     const summary = data?.summary;
+    const effectiveTotalNet = entries.reduce((sum, entry) => sum + getEffectiveNet(entry), 0);
 
     return (
         <>
@@ -311,14 +292,11 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 </SectionHeader>
 
                 <FilterRow>
-                    <FilterLabel>Filtr okresu:</FilterLabel>
-                    <DateInput type="date" value={from} onChange={e => setFrom(e.target.value)} />
-                    <FilterLabel>–</FilterLabel>
-                    <DateInput type="date" value={to} onChange={e => setTo(e.target.value)} />
-                    <SmallBtn onClick={applyFilter}>Filtruj</SmallBtn>
-                    {(appliedFrom || appliedTo) && (
-                        <SmallBtn onClick={clearFilter}>Wyczyść</SmallBtn>
-                    )}
+                    <DateRangeFilter
+                        from={filterFrom}
+                        to={filterTo}
+                        onChange={(f, t) => { setFilterFrom(f); setFilterTo(t); }}
+                    />
                 </FilterRow>
 
                 {isLoading ? (
@@ -328,7 +306,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 ) : entries.length === 0 ? (
                     <EmptyRow>
                         Brak wpisów
-                        {(appliedFrom || appliedTo) ? ' dla wybranego okresu' : '. Dodaj pierwszy wpis używając przycisku powyżej.'}
+                        {(filterFrom || filterTo) ? ' dla wybranego okresu' : '. Dodaj pierwszy wpis używając przycisku powyżej.'}
                     </EmptyRow>
                 ) : (
                     <>
@@ -366,7 +344,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                             ) : '—'}
                                         </Td>
                                         <Td>
-                                            <Money>{formatMoney(entry.netAmountCents)}</Money>
+                                            <Money>{formatMoney(getEffectiveNet(entry))}</Money>
                                             <MoneyMuted>VAT {vatLabel(entry.vatRate)}</MoneyMuted>
                                         </Td>
                                         <Td>
@@ -404,7 +382,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 </SummaryItem>
                                 <SummaryItem>
                                     <SummaryLabel>Suma netto</SummaryLabel>
-                                    <SummaryValue>{formatMoney(summary.totalNetCents)}</SummaryValue>
+                                    <SummaryValue>{formatMoney(effectiveTotalNet)}</SummaryValue>
                                 </SummaryItem>
                                 <SummaryItem>
                                     <SummaryLabel>Suma brutto</SummaryLabel>
