@@ -1,5 +1,6 @@
-// src/core/router.tsx - Zaktualizuj istniejący plik
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+// src/core/router.tsx
+import { ReactNode, Suspense, lazy } from 'react';
+import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from '@/widgets/Layout';
 import { CustomerListView } from '@/modules/customers';
 import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
@@ -8,15 +9,76 @@ import { VehicleDetailView, VehicleListView } from '@/modules/vehicles';
 import { OperationListView } from '@/modules/operations';
 import { VisitDetailView } from '@/modules/visits';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
+import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
-import { LoginView, SignupView } from '@/modules/auth';
-import { ServiceListView } from "@/modules/services";
+import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
+import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
+import { VisitCardView } from '@/modules/visit-card';
+
+// Lazy — pulls in pdf.js, which must not weigh down the main bundle
+const PublicSigningView = lazy(() => import('@/modules/public-signing/views/PublicSigningView'));
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
+import { LeadListView } from "@/modules/leads";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_SETTINGS } from './permissions';
+import type { PermissionRequirement } from './permissions';
+import {DashboardView} from "@/modules/dashboard";
+import {GrowthEngineView} from "@/modules/growth-engine";
+import {FinanceView} from "@/modules/finance";
+import { StatisticsView, CategoryDetailView, DelayStatisticsView, CostsView } from "@/modules/statistics";
+import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
+import { SmsCampaignsView } from "@/modules/sms-campaigns";
+import { GalleryView } from "@/modules/gallery/views/GalleryView";
+import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
+import { SettingsView } from '@/modules/settings';
+import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
+import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
+import type { FeatureKey } from '@/modules/subscription/types';
+
+const page = (view: ReactNode, requires?: PermissionRequirement) => (
+    <ProtectedRoute>
+        {requires
+            ? <RequirePermission anyOf={requires}><Layout>{view}</Layout></RequirePermission>
+            : <Layout>{view}</Layout>}
+    </ProtectedRoute>
+);
+
+const gatedPage = (
+    view: ReactNode,
+    featureKey: FeatureKey,
+    benefits: string[],
+    requires?: PermissionRequirement,
+) => page(<ModuleGate featureKey={featureKey} benefits={benefits}>{view}</ModuleGate>, requires);
+
+const FINANCE_BENEFITS = [
+    'Dokumenty finansowe i faktury w jednym miejscu',
+    'Kontrola przychodów i kosztów studia',
+    'Obsługa kas fiskalnych i integracja z KSeF',
+];
+const STATISTICS_BENEFITS = [
+    'Raporty przychodów i rentowności usług',
+    'Statystyki kategorii i najpopularniejszych usług',
+    'Analiza opóźnień i wąskich gardeł w pracy studia',
+];
+const CAMPAIGNS_BENEFITS = [
+    'Masowe kampanie SMS i e-mail do bazy klientów',
+    'Segmentacja odbiorców i personalizacja treści',
+    'Historia i skuteczność wysyłek',
+];
+const INSTAGRAM_BENEFITS = [
+    'Śledzenie profili konkurencji na Instagramie',
+    'Analiza trendów i najpopularniejszych treści',
+    'Inspiracje do własnych publikacji',
+];
+const E_SIGNATURES_BENEFITS = [
+    'Elektroniczne podpisywanie dokumentów na tablecie',
+    'Zgody i regulaminy podpisywane bez papieru',
+    'Bezpieczne archiwum podpisanych dokumentów',
+];
 
 export const router = createBrowserRouter([
     {
@@ -28,153 +90,198 @@ export const router = createBrowserRouter([
         element: <SignupView />,
     },
     {
-        path: '/',
-        element: (
-            <ProtectedRoute>
-                <Layout><Navigate to="/customers" replace /></Layout>
-            </ProtectedRoute>
-        ),
+        path: '/forgot-password',
+        element: <ForgotPasswordView />,
     },
     {
+        path: '/reset-password',
+        element: <ResetPasswordView />,
+    },
+    {
+        path: '/',
+        element: page(<HomeRedirect />),
+    },
+    {
+        path: '/dashboard',
+        element: page(<DashboardView />),
+    },
+
+    // ── Klienci i pojazdy ────────────────────────────────────────────────
+    {
         path: '/customers',
-        element: (
-            <ProtectedRoute>
-                <Layout><CustomerListView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<CustomerListView />, 'CUSTOMERS_VIEW'),
     },
     {
         path: '/customers/:customerId',
-        element: (
-                <Layout><CustomerDetailView /></Layout>
-        ),
-    },
-    {
-        path: '/calendar',
-        element: (
-            <ProtectedRoute>
-                <Layout><CalendarPageView /></Layout>
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/appointments/create',
-        element: (
-            <ProtectedRoute>
-                <Layout><AppointmentCreateView /></Layout>
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/appointments/:appointmentId/edit',
-        element: (
-                <Layout><AppointmentEditView /></Layout>
-        ),
+        element: page(<CustomerDetailView />, 'CUSTOMERS_VIEW'),
     },
     {
         path: '/vehicles',
-        element: (
-            <ProtectedRoute>
-                <Layout><VehicleListView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<VehicleListView />, 'CUSTOMERS_VIEW'),
     },
     {
         path: '/vehicles/:vehicleId',
-        element: (
-            <ProtectedRoute>
-                <Layout><VehicleDetailView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<VehicleDetailView />, 'CUSTOMERS_VIEW'),
+    },
+
+    // ── Wizyty i kalendarz ───────────────────────────────────────────────
+    {
+        path: '/calendar',
+        element: page(<CalendarPageView />, 'VISITS_VIEW'),
     },
     {
         path: '/operations',
-        element: (
-            <ProtectedRoute>
-                <Layout><OperationListView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<OperationListView />, 'VISITS_VIEW'),
     },
     {
         path: '/visits/:visitId',
-        element: (
-            <ProtectedRoute>
-                <Layout><VisitDetailView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<VisitDetailView />, 'VISITS_VIEW'),
+    },
+    {
+        path: '/appointments/create',
+        element: page(<AppointmentCreateView />, 'VISITS_CREATE'),
+    },
+    {
+        path: '/appointments/:appointmentId/edit',
+        element: page(<AppointmentEditView />, 'VISITS_CREATE'),
+    },
+    {
+        path: '/checkin/new',
+        element: page(<WalkInCheckInWrapper />, 'VISITS_CREATE'),
     },
     {
         path: '/reservations/:reservationId/checkin',
-        element: (
-            <ProtectedRoute>
-                <Layout>
-                    <CheckInWizardWrapper />
-                </Layout>
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/checkin/mobile/:sessionId',
-        element: (
-            <ProtectedRoute>
-                <MobilePhotoUploadWrapper />
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/services',
-        element: (
-            <ProtectedRoute>
-                <Layout><ServiceListView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<CheckInWizardWrapper />, 'VISITS_CREATE'),
     },
     {
         path: '/appointment-colors',
-        element: (
-            <ProtectedRoute>
-                <Layout><AppointmentColorListView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<AppointmentColorListView />, 'VISITS_VIEW'),
     },
     {
-        path: '/consents',
-        element: (
-            <ProtectedRoute>
-                <Layout><ConsentSettingsView /></Layout>
-            </ProtectedRoute>
-        ),
+        path: '/gallery',
+        element: page(<GalleryView />, 'VISITS_VIEW'),
     },
     {
         path: '/protocols',
-        element: (
-            <ProtectedRoute>
-                <Layout><ProtocolRulesView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<ProtocolRulesView />, 'VISITS_DOCUMENTS_MANAGE'),
     },
     {
         path: '/protocols/demo',
+        element: page(<ProtocolDemoView />, 'VISITS_DOCUMENTS_MANAGE'),
+    },
+
+    // ── Mobile (public, token-based) ─────────────────────────────────────
+    {
+        path: '/m/upload',
+        element: <MobilePhotoUploadWrapper />,
+    },
+    {
+        path: '/m/voice',
+        element: <MobileVoiceCommandsWrapper />,
+    },
+    {
+        path: '/vc/:token',
+        element: <VisitCardView />,
+    },
+    {
+        path: '/sign/:token',
         element: (
-            <ProtectedRoute>
-                <Layout><ProtocolDemoView /></Layout>
-            </ProtectedRoute>
+            <Suspense fallback={null}>
+                <PublicSigningView />
+            </Suspense>
         ),
     },
+    {
+        path: '/mobile-shortcuts',
+        element: page(<MobileShortcutsView />, 'VISITS_VIEW'),
+    },
+
+    // ── Leady ────────────────────────────────────────────────────────────
+    {
+        path: '/leads',
+        element: page(<LeadListView />, 'LEADS_MANAGE'),
+    },
+
+    // ── Zlecenia zbiorcze (B2B) ──────────────────────────────────────────
     {
         path: '/batch-orders',
+        element: page(<BatchOrdersView />),
+    },
+
+    // ── Finanse ──────────────────────────────────────────────────────────
+    {
+        path: '/finance',
+        element: gatedPage(<FinanceView />, 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
+    },
+    {
+        path: '/finances',
+        element: gatedPage(<FinanceView />, 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
+    },
+
+    // ── Statystyki i raporty ─────────────────────────────────────────────
+    {
+        path: '/statistics',
+        element: gatedPage(<StatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+    },
+    {
+        path: '/statistics/costs',
+        element: gatedPage(<CostsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+    },
+    {
+        path: '/statistics/delays',
+        element: gatedPage(<DelayStatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+    },
+    {
+        path: '/statistics/categories/:categoryId',
+        element: gatedPage(<CategoryDetailView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+    },
+    {
+        path: '/reports',
+        element: gatedPage(<GrowthEngineView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+    },
+
+    // ── Komunikacja i marketing ──────────────────────────────────────────
+    {
+        path: '/sms-campaigns',
+        element: gatedPage(<SmsCampaignsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+    },
+    {
+        path: '/instagram',
+        element: gatedPage(<CompetitionMonitoringView />, 'INSTAGRAM_MONITORING', INSTAGRAM_BENEFITS, 'MARKETING_MANAGE'),
+    },
+    {
+        path: '/consents',
+        element: gatedPage(<ConsentSettingsView />, 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
+    },
+
+    // ── Zespół ───────────────────────────────────────────────────────────
+    {
+        path: '/team',
+        element: page(<EmployeeListView />, 'EMPLOYEES_MANAGE'),
+    },
+    {
+        path: '/team/:employeeId',
+        element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
+    },
+
+    // ── Ustawienia ───────────────────────────────────────────────────────
+    {
+        path: '/settings',
+        element: page(<SettingsView />, ANY_SETTINGS),
+    },
+
+    // ── Powrót z płatności Przelewy24 ────────────────────────────────────
+    {
+        path: '/payments/result',
         element: (
-            <ProtectedRoute>
-                <Layout><BatchOrdersView /></Layout>
+            <ProtectedRoute withSubscriptionGate={false}>
+                <PaymentResultPage />
             </ProtectedRoute>
         ),
     },
+
     {
         path: '*',
-        element: (
-            <ProtectedRoute>
-                <Layout><Navigate to="/customers" replace /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<HomeRedirect />),
     },
 ]);
