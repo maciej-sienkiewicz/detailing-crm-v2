@@ -75,6 +75,7 @@ const buildMenuSections = (
                 { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
                 { path: '/operations', label: 'Wizyty',    icon: CalendarCheck, requires: 'VISITS_VIEW' },
                 { path: '/calendar',   label: 'Kalendarz', icon: Calendar,      requires: 'VISITS_VIEW' },
+                { path: '/batch-orders', label: 'Zlecenia zbiorcze', icon: '◫' },
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
             ],
         },
