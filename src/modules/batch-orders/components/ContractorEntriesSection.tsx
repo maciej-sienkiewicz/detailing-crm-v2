@@ -92,7 +92,7 @@ const SmallBtn = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 
         color: #e53e3e;
         &:hover { background: #fff5f5; }
     `}
-    ${(!p.variant || p.variant === 'secondary') && `
+    ${p => (!p.variant || p.variant === 'secondary') && `
         background: transparent;
         border-color: ${p.theme.colors.border};
         color: ${p.theme.colors.textMuted};
