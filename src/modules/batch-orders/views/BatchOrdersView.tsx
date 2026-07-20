@@ -8,6 +8,7 @@ import {
 } from '../hooks/useBatchOrders';
 import { ContractorFormModal } from '../components/ContractorFormModal';
 import { ContractorEntriesSection } from '../components/ContractorEntriesSection';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import type { BatchContractor, ContractorRequest } from '../types';
 
 const ViewContainer = styled.main`
@@ -132,6 +133,7 @@ export function BatchOrdersView() {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editContractor, setEditContractor] = useState<BatchContractor | null>(null);
+    const [confirmDeleteContractor, setConfirmDeleteContractor] = useState<BatchContractor | null>(null);
 
     async function handleCreateContractor(data: ContractorRequest) {
         await createContractor.mutateAsync(data);
@@ -140,11 +142,6 @@ export function BatchOrdersView() {
     async function handleUpdateContractor(data: ContractorRequest) {
         if (!editContractor) return;
         await updateContractor.mutateAsync({ contractorId: editContractor.id, data });
-    }
-
-    async function handleDeleteContractor(contractor: BatchContractor) {
-        if (!window.confirm(`Usunąć kontrahenta "${contractor.name}"? Operacja jest nieodwracalna.`)) return;
-        await deleteContractor.mutateAsync(contractor.id);
     }
 
     return (
@@ -187,7 +184,7 @@ export function BatchOrdersView() {
                             key={contractor.id}
                             contractor={contractor}
                             onEdit={() => setEditContractor(contractor)}
-                            onDelete={() => handleDeleteContractor(contractor)}
+                            onDelete={() => setConfirmDeleteContractor(contractor)}
                         />
                     ))}
                 </ContractorsList>
@@ -207,6 +204,17 @@ export function BatchOrdersView() {
                     onClose={() => setEditContractor(null)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={confirmDeleteContractor !== null}
+                title="Usuń kontrahenta"
+                message={`Czy na pewno chcesz usunąć kontrahenta „${confirmDeleteContractor?.name}“? Operacja jest nieodwracalna i usunie wszystkie powiązane wpisy.`}
+                variant="danger"
+                confirmText="Usuń"
+                cancelText="Anuluj"
+                onConfirm={() => { if (confirmDeleteContractor) deleteContractor.mutateAsync(confirmDeleteContractor.id); }}
+                onCancel={() => setConfirmDeleteContractor(null)}
+            />
         </ViewContainer>
     );
 }

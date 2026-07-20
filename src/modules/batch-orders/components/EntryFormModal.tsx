@@ -1,36 +1,11 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
+import {
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
+    ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
 import type { BatchOrderEntry, EntryRequest } from '../types';
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
-`;
-
-const Modal = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border-radius: 12px;
-    padding: 24px;
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0 0 20px;
-    font-size: ${p => p.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-`;
 
 const Field = styled.div`
     margin-bottom: 16px;
@@ -157,13 +132,6 @@ const MoneyRow = styled.div`
     gap: 12px;
 `;
 
-const Actions = styled.div`
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 24px;
-`;
-
 const CancelBtn = styled.button`
     padding: 10px 20px;
     border: 1px solid ${p => p.theme.colors.border};
@@ -223,6 +191,10 @@ function calculateGrossFromNet(netCents: number, vatRate: number): number {
     return Math.round(netCents * (1 + vatRate / 100));
 }
 
+function isValidPriceInput(value: string): boolean {
+    return value === '' || /^\d*[.,]?\d{0,2}$/.test(value);
+}
+
 const VAT_OPTIONS = [
     { label: '23%', value: 23 },
     { label: '8%', value: 8 },
@@ -273,20 +245,20 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     }
 
     function handleNetChange(value: string) {
+        if (!isValidPriceInput(value)) return;
         setNetDisplay(value);
         setPriceSource('net');
         if (value.trim() !== '') {
-            const netCents = displayToCents(value);
-            setGrossDisplay(centsToDisplay(calculateGrossFromNet(netCents, vatRate)));
+            setGrossDisplay(centsToDisplay(calculateGrossFromNet(displayToCents(value), vatRate)));
         }
     }
 
     function handleGrossChange(value: string) {
+        if (!isValidPriceInput(value)) return;
         setGrossDisplay(value);
         setPriceSource('gross');
         if (value.trim() !== '') {
-            const grossCents = displayToCents(value);
-            setNetDisplay(centsToDisplay(calculateNetFromGross(grossCents, vatRate)));
+            setNetDisplay(centsToDisplay(calculateNetFromGross(displayToCents(value), vatRate)));
         }
     }
 
@@ -306,10 +278,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     }
 
     async function handleSave() {
-        const netCents = displayToCents(netDisplay);
-        const grossCents = displayToCents(grossDisplay);
         const filteredServices = services.filter(s => s.trim());
-
         if (!serviceDate) { setError('Data wykonania jest wymagana'); return; }
 
         setSaving(true);
@@ -321,8 +290,8 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                 vehicleModel: vehicleModel.trim() || undefined,
                 vehicleLicensePlate: vehiclePlate.trim() || undefined,
                 services: filteredServices,
-                netAmountCents: netCents,
-                grossAmountCents: grossCents,
+                netAmountCents: displayToCents(netDisplay),
+                grossAmountCents: displayToCents(grossDisplay),
                 vatRate,
                 notes: notes.trim() || undefined,
             });
@@ -335,10 +304,15 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     }
 
     return (
-        <Overlay onClick={onClose}>
-            <Modal onClick={e => e.stopPropagation()}>
-                <ModalTitle>{initial ? 'Edytuj wpis' : 'Nowy wpis'}</ModalTitle>
+        <ModalShell isOpen onClose={onClose} size="lg">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{initial ? 'Edytuj wpis' : 'Nowy wpis'}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
+            <ModalContent>
                 <Field>
                     <Label>Data wykonania usługi *</Label>
                     <Input type="date" value={serviceDate} onChange={e => setServiceDate(e.target.value)} />
@@ -392,9 +366,8 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                     <Field>
                         <Label>Netto (zł)</Label>
                         <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={netDisplay}
                             onChange={e => handleNetChange(e.target.value)}
                             placeholder="0.00"
@@ -403,9 +376,8 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                     <Field>
                         <Label>Brutto (zł)</Label>
                         <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={grossDisplay}
                             onChange={e => handleGrossChange(e.target.value)}
                             placeholder="0.00"
@@ -427,14 +399,14 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                 </Field>
 
                 {error && <ErrorMsg>{error}</ErrorMsg>}
+            </ModalContent>
 
-                <Actions>
-                    <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                    <SaveBtn onClick={handleSave} disabled={saving}>
-                        {saving ? 'Zapisywanie...' : 'Zapisz'}
-                    </SaveBtn>
-                </Actions>
-            </Modal>
-        </Overlay>
+            <ModalFooter>
+                <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
+                <SaveBtn onClick={handleSave} disabled={saving}>
+                    {saving ? 'Zapisywanie...' : 'Zapisz'}
+                </SaveBtn>
+            </ModalFooter>
+        </ModalShell>
     );
 }

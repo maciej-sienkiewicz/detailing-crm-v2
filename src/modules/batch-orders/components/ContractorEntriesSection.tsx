@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { DateRangeFilter } from './DateRangeFilter';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, EntryRequest } from '../types';
 
@@ -224,6 +225,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [filterTo, setFilterTo] = useState('');
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [editEntry, setEditEntry] = useState<BatchOrderEntry | null>(null);
+    const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
 
     const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom || undefined, filterTo || undefined);
@@ -237,11 +239,6 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         } else {
             await createEntry.mutateAsync(req);
         }
-    }
-
-    async function handleDeleteEntry(entryId: string) {
-        if (!window.confirm('Usunąć ten wpis?')) return;
-        await deleteEntry.mutateAsync(entryId);
     }
 
     async function handleDownloadReport() {
@@ -363,7 +360,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 </SmallBtn>
                                                 <SmallBtn
                                                     variant="danger"
-                                                    onClick={() => handleDeleteEntry(entry.id)}
+                                                    onClick={() => setConfirmDeleteEntryId(entry.id)}
                                                 >
                                                     Usuń
                                                 </SmallBtn>
@@ -401,6 +398,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     onClose={() => { setShowEntryForm(false); setEditEntry(null); }}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={confirmDeleteEntryId !== null}
+                title="Usuń wpis"
+                message="Czy na pewno chcesz usunąć ten wpis? Operacja jest nieodwracalna."
+                variant="danger"
+                confirmText="Usuń"
+                cancelText="Anuluj"
+                onConfirm={() => { if (confirmDeleteEntryId) deleteEntry.mutateAsync(confirmDeleteEntryId); }}
+                onCancel={() => setConfirmDeleteEntryId(null)}
+            />
         </>
     );
 }

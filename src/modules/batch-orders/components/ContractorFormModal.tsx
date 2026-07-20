@@ -1,35 +1,11 @@
-import { useState } from 'react';
+import { useState } from 'styled-components';
 import styled from 'styled-components';
+import {
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
+    ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
 import type { BatchContractor, ContractorRequest } from '../types';
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
-`;
-
-const Modal = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border-radius: 12px;
-    padding: 24px;
-    width: 100%;
-    max-width: 520px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0 0 20px;
-    font-size: ${p => p.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-`;
 
 const Field = styled.div`
     margin-bottom: 16px;
@@ -86,13 +62,6 @@ const Row = styled.div`
     gap: 12px;
 `;
 
-const Actions = styled.div`
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 24px;
-`;
-
 const CancelBtn = styled.button`
     padding: 10px 20px;
     border: 1px solid ${p => p.theme.colors.border};
@@ -125,6 +94,19 @@ const ErrorMsg = styled.p`
     margin: 4px 0 0;
 `;
 
+function formatGusAddress(addr: CompanyInfoResponse['address']): string {
+    const parts: string[] = [];
+    if (addr.street) {
+        let line = addr.street;
+        if (addr.buildingNumber) line += ' ' + addr.buildingNumber;
+        if (addr.apartmentNumber) line += '/' + addr.apartmentNumber;
+        parts.push(line);
+    }
+    const cityLine = [addr.postalCode, addr.city].filter(Boolean).join(' ');
+    if (cityLine) parts.push(cityLine);
+    return parts.join(', ');
+}
+
 interface Props {
     initial?: BatchContractor | null;
     onSave: (data: ContractorRequest) => Promise<void>;
@@ -141,6 +123,14 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+
+    function handleGusData(data: CompanyInfoResponse) {
+        if (data.name) setName(data.name);
+        if (data.email) setEmail(data.email);
+        if (data.phone) setPhone(data.phone);
+        const formatted = formatGusAddress(data.address);
+        if (formatted) setAddress(formatted);
+    }
 
     async function handleSave() {
         if (!name.trim()) { setError('Nazwa kontrahenta jest wymagana'); return; }
@@ -165,31 +155,41 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
     }
 
     return (
-        <Overlay onClick={onClose}>
-            <Modal onClick={e => e.stopPropagation()}>
-                <ModalTitle>{initial ? 'Edytuj kontrahenta' : 'Nowy kontrahent'}</ModalTitle>
+        <ModalShell isOpen onClose={onClose} size="md">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{initial ? 'Edytuj kontrahenta' : 'Nowy kontrahent'}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
+            <ModalContent>
                 <Field>
                     <Label>Nazwa kontrahenta *</Label>
                     <Input value={name} onChange={e => setName(e.target.value)} placeholder="np. Salon AUDI Warszawa" />
                     {error && !name.trim() && <ErrorMsg>{error}</ErrorMsg>}
                 </Field>
 
+                <Field>
+                    <Label>NIP</Label>
+                    <NipInputWithGus
+                        value={taxId}
+                        onChange={setTaxId}
+                        onFetch={handleGusData}
+                        placeholder="000-000-00-00"
+                    />
+                </Field>
+
                 <Row>
                     <Field>
-                        <Label>NIP</Label>
-                        <Input value={taxId} onChange={e => setTaxId(e.target.value)} placeholder="000-000-00-00" />
+                        <Label>Email</Label>
+                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@firma.pl" />
                     </Field>
                     <Field>
                         <Label>Telefon</Label>
                         <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+48 000 000 000" />
                     </Field>
                 </Row>
-
-                <Field>
-                    <Label>Email</Label>
-                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@firma.pl" />
-                </Field>
 
                 <Field>
                     <Label>Osoba kontaktowa</Label>
@@ -207,14 +207,14 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
                 </Field>
 
                 {error && name.trim() && <ErrorMsg>{error}</ErrorMsg>}
+            </ModalContent>
 
-                <Actions>
-                    <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                    <SaveBtn onClick={handleSave} disabled={saving}>
-                        {saving ? 'Zapisywanie...' : 'Zapisz'}
-                    </SaveBtn>
-                </Actions>
-            </Modal>
-        </Overlay>
+            <ModalFooter>
+                <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
+                <SaveBtn onClick={handleSave} disabled={saving}>
+                    {saving ? 'Zapisywanie...' : 'Zapisz'}
+                </SaveBtn>
+            </ModalFooter>
+        </ModalShell>
     );
 }
