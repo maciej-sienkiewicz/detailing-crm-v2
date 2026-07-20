@@ -22,7 +22,6 @@ import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { LeadListView } from "@/modules/leads";
-import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_SETTINGS } from './permissions';
 import type { PermissionRequirement } from './permissions';
@@ -289,14 +288,6 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute withSubscriptionGate={false}>
                 <PaymentResultPage />
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/batch-orders',
-        element: (
-            <ProtectedRoute>
-                <Layout><BatchOrdersView /></Layout>
             </ProtectedRoute>
         ),
     },
