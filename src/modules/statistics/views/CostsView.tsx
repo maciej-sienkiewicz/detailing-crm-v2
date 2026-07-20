@@ -567,7 +567,7 @@ const ItemsTable = styled.div`
 
 const ItemsHeader = styled.div`
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
     gap: 8px;
     padding: 8px 14px;
     background: ${st.bg};
@@ -581,7 +581,7 @@ const ItemsHeader = styled.div`
 
 const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?: boolean }>`
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
@@ -595,12 +595,6 @@ const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?
     &:active { cursor: ${p => p.$draggable ? 'grabbing' : 'default'}; }
 `;
 
-const DragHandle = styled.span`
-    color: ${st.textMuted};
-    font-size: 14px;
-    user-select: none;
-    flex-shrink: 0;
-`;
 
 const ItemName = styled.span`
     font-size: ${st.fontSm};
@@ -788,7 +782,7 @@ const KebabBtn = styled.button`
 
 const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
     display: grid;
-    grid-template-columns: 26px auto 1fr auto auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
@@ -802,7 +796,7 @@ const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
 
 const InvoiceItemsHeaderGrid = styled.div`
     display: grid;
-    grid-template-columns: 26px auto 1fr auto auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto;
     gap: 8px;
     padding: 8px 14px;
     background: ${st.bg};
@@ -839,7 +833,7 @@ const SubItemsContainer = styled.div`
 
 const SubItemRow = styled.div`
     display: grid;
-    grid-template-columns: 26px auto 1fr auto auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 7px 14px 7px 28px;
@@ -1692,8 +1686,8 @@ function groupByInvoice(items: CostExpenseItem[]): CostInvoiceGroup[] {
         grp.items.push(item);
         grp.itemCount++;
         grp.totalGross += effectiveGross(item);
-        // If any item in invoice is unassigned, treat invoice as unassigned
-        if (!item.costCategoryId) grp.costCategoryId = null;
+        // Only keep category badge when ALL items share exactly the same category
+        if (grp.costCategoryId !== item.costCategoryId) grp.costCategoryId = null;
     }
     return [...map.values()].sort((a, b) => (b.saleDate ?? '').localeCompare(a.saleDate ?? ''));
 }
@@ -1709,7 +1703,7 @@ function groupByName(items: CostExpenseItem[]): CostNameGroup[] {
         grp.items.push(item);
         grp.itemCount++;
         grp.totalGross += effectiveGross(item);
-        if (!item.costCategoryId) grp.costCategoryId = null;
+        if (grp.costCategoryId !== item.costCategoryId) grp.costCategoryId = null;
     }
     return [...map.values()].sort((a, b) => b.totalGross - a.totalGross);
 }
@@ -2742,9 +2736,7 @@ export const CostsView = () => {
                                 <>
                                     <InvoiceItemsHeaderGrid>
                                         <span />
-                                        <span />
                                         <span>Faktura / sprzedawca</span>
-                                        <span>Poz.</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
                                         <span />
@@ -2757,8 +2749,8 @@ export const CostsView = () => {
                                             ? (catColorMap.get(grp.costCategoryId) ?? undefined)
                                             : undefined;
                                         const catName = grp.costCategoryId
-                                            ? categories.find(c => c.id === grp.costCategoryId)?.name
-                                            : undefined;
+                                            ? (categories.find(c => c.id === grp.costCategoryId)?.name ?? null)
+                                            : null;
                                         const grpItems = allItems.filter(i => i.invoiceId === grp.invoiceId);
                                         const isExpanded = expandedInvoices.has(grp.invoiceId);
                                         return (
@@ -2779,11 +2771,10 @@ export const CostsView = () => {
                                                             ? <ChevronUp style={{ width: 12, height: 12 }} />
                                                             : <ChevronDown style={{ width: 12, height: 12 }} />}
                                                     </ExpandBtn>
-                                                    <DragHandle>⠿</DragHandle>
                                                     <div style={{ minWidth: 0 }}>
-                                                        <ItemName>{grp.invoiceNumber ?? '(bez numeru)'}</ItemName>
+                                                        <ItemName title={grp.invoiceNumber ?? undefined}>{grp.invoiceNumber ?? '(bez numeru)'}</ItemName>
                                                         {grp.sellerName && (
-                                                            <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2 }}>
+                                                            <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                 {grp.sellerName}
                                                             </div>
                                                         )}
@@ -2793,10 +2784,11 @@ export const CostsView = () => {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <ItemMeta>{grp.itemCount}</ItemMeta>
                                                     <ItemMeta>{fmtPLN(grp.totalGross)}</ItemMeta>
-                                                    {catName ? (
-                                                        <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                    {grp.costCategoryId ? (
+                                                        catName
+                                                            ? <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                            : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                     ) : (
                                                         <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                     )}
@@ -2822,9 +2814,8 @@ export const CostsView = () => {
                                                                     }}
                                                                 >
                                                                     <SubItemIndent>└</SubItemIndent>
-                                                                    <DragHandle>⠿</DragHandle>
                                                                     <div style={{ minWidth: 0 }}>
-                                                                        <ItemName style={{ fontSize: '12px' }}>
+                                                                        <ItemName style={{ fontSize: '12px' }} title={item.name ?? undefined}>
                                                                             {item.name ?? '(brak nazwy)'}
                                                                         </ItemName>
                                                                     </div>
@@ -2832,8 +2823,10 @@ export const CostsView = () => {
                                                                         {item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '—'}
                                                                     </ItemMeta>
                                                                     <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
-                                                                    {item.costCategoryName ? (
-                                                                        <CatBadge $color={itemCatColor}>{item.costCategoryName}</CatBadge>
+                                                                    {item.costCategoryId ? (
+                                                                        item.costCategoryName
+                                                                            ? <CatBadge $color={itemCatColor}>{item.costCategoryName}</CatBadge>
+                                                                            : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                                     ) : (
                                                                         <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                                     )}
@@ -2855,7 +2848,6 @@ export const CostsView = () => {
                             {!itemsLoading && viewMode === 'ITEM' && (
                                 <>
                                     <ItemsHeader>
-                                        <span />
                                         <span>Pozycja</span>
                                         <span>Ilość</span>
                                         <span>Brutto</span>
@@ -2879,19 +2871,20 @@ export const CostsView = () => {
                                                     e.dataTransfer.effectAllowed = 'move';
                                                 }}
                                             >
-                                                <DragHandle>⠿</DragHandle>
                                                 <div style={{ minWidth: 0 }}>
-                                                    <ItemName>{item.name ?? '(brak nazwy)'}</ItemName>
+                                                    <ItemName title={item.name ?? undefined}>{item.name ?? '(brak nazwy)'}</ItemName>
                                                     {item.sellerName && (
-                                                        <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2 }}>
+                                                        <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                             {item.sellerName} · {item.saleDate ?? ''}
                                                         </div>
                                                     )}
                                                 </div>
                                                 <ItemMeta>{item.quantity ?? '—'} {item.unit ?? ''}</ItemMeta>
                                                 <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
-                                                {item.costCategoryName ? (
-                                                    <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
+                                                {item.costCategoryId ? (
+                                                    item.costCategoryName
+                                                        ? <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
+                                                        : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                 ) : (
                                                     <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                 )}
@@ -2908,7 +2901,6 @@ export const CostsView = () => {
                             {!itemsLoading && viewMode === 'NAME' && (
                                 <>
                                     <ItemsHeader>
-                                        <span />
                                         <span>Nazwa pozycji</span>
                                         <span>Szt.</span>
                                         <span>Brutto</span>
@@ -2923,8 +2915,8 @@ export const CostsView = () => {
                                             ? (catColorMap.get(grp.costCategoryId) ?? undefined)
                                             : undefined;
                                         const catName = grp.costCategoryId
-                                            ? categories.find(c => c.id === grp.costCategoryId)?.name
-                                            : undefined;
+                                            ? (categories.find(c => c.id === grp.costCategoryId)?.name ?? null)
+                                            : null;
                                         const grpItems = allItems.filter(i => (i.name ?? '(brak nazwy)') === grp.name);
                                         return (
                                             <ItemRow
@@ -2936,12 +2928,15 @@ export const CostsView = () => {
                                                     e.dataTransfer.effectAllowed = 'move';
                                                 }}
                                             >
-                                                <DragHandle>⠿</DragHandle>
-                                                <ItemName>{grp.name}</ItemName>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <ItemName title={grp.name}>{grp.name}</ItemName>
+                                                </div>
                                                 <ItemMeta>{grp.itemCount}</ItemMeta>
                                                 <ItemMeta>{fmtPLN(grp.totalGross)}</ItemMeta>
-                                                {catName ? (
-                                                    <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                {grp.costCategoryId ? (
+                                                    catName
+                                                        ? <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                        : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                 ) : (
                                                     <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                 )}
