@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { DateRangeFilter } from './DateRangeFilter';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, EntryRequest } from '../types';
 
@@ -18,7 +18,7 @@ const SectionHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 14px 18px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.background};
     gap: 12px;
@@ -48,15 +48,15 @@ const FilterRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 20px;
+    padding: 10px 18px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.background}88;
     flex-wrap: wrap;
 `;
 
 const SmallBtn = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'outline' }>`
-    padding: 7px 14px;
-    border-radius: 7px;
+    padding: 6px 12px;
+    border-radius: 6px;
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     cursor: pointer;
@@ -94,7 +94,7 @@ const Table = styled.table`
 `;
 
 const Th = styled.th`
-    padding: 10px 16px;
+    padding: 8px 14px;
     text-align: left;
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 700;
@@ -112,7 +112,7 @@ const Tr = styled.tr`
 `;
 
 const Td = styled.td`
-    padding: 12px 16px;
+    padding: 10px 14px;
     font-size: ${p => p.theme.fontSizes.sm};
     color: ${p => p.theme.colors.text};
     vertical-align: top;
@@ -120,12 +120,25 @@ const Td = styled.td`
 
 const ServiceList = styled.ul`
     margin: 0;
-    padding: 0 0 0 16px;
-    list-style: disc;
+    padding: 0;
+    list-style: none;
     font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
 
-    li { margin-bottom: 2px; }
+    li {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 1px 0;
+    }
+`;
+
+const ServiceName = styled.span`
+    color: ${p => p.theme.colors.text};
+`;
+
+const ServicePrice = styled.span`
+    color: ${p => p.theme.colors.textMuted};
+    white-space: nowrap;
 `;
 
 const Money = styled.span`
@@ -133,17 +146,11 @@ const Money = styled.span`
     white-space: nowrap;
 `;
 
-const MoneyMuted = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
-    display: block;
-`;
-
 const SummaryBar = styled.div`
     display: flex;
     gap: 24px;
-    padding: 14px 20px;
-    background: ${p => p.theme.colors.primary}11;
+    padding: 12px 18px;
+    background: ${p => p.theme.colors.background};
     border-top: 1px solid ${p => p.theme.colors.border};
     flex-wrap: wrap;
 `;
@@ -165,7 +172,7 @@ const SummaryValue = styled.span`
 `;
 
 const EmptyRow = styled.div`
-    padding: 32px 20px;
+    padding: 28px 18px;
     text-align: center;
     color: ${p => p.theme.colors.textMuted};
     font-size: ${p => p.theme.fontSizes.sm};
@@ -205,13 +212,6 @@ function formatMoney(cents: number) {
 function vatLabel(rate: number) {
     if (rate === -1) return 'ZW';
     return `${rate}%`;
-}
-
-function getEffectiveNet(entry: BatchOrderEntry): number {
-    if (entry.netAmountCents !== 0) return entry.netAmountCents;
-    if (entry.grossAmountCents === 0) return 0;
-    if (entry.vatRate === -1 || entry.vatRate === 0) return entry.grossAmountCents;
-    return Math.round(entry.grossAmountCents / (1 + entry.vatRate / 100));
 }
 
 interface Props {
@@ -257,7 +257,6 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
 
     const entries = data?.entries ?? [];
     const summary = data?.summary;
-    const effectiveTotalNet = entries.reduce((sum, entry) => sum + getEffectiveNet(entry), 0);
 
     return (
         <>
@@ -336,18 +335,24 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                         <Td>
                                             {entry.services.length > 0 ? (
                                                 <ServiceList>
-                                                    {entry.services.map((s, i) => <li key={i}>{s}</li>)}
+                                                    {entry.services.map((s, i) => (
+                                                        <li key={i}>
+                                                            <ServiceName>{s.name}</ServiceName>
+                                                            <ServicePrice>
+                                                                {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
+                                                            </ServicePrice>
+                                                        </li>
+                                                    ))}
                                                 </ServiceList>
                                             ) : '—'}
                                         </Td>
                                         <Td>
-                                            <Money>{formatMoney(getEffectiveNet(entry))}</Money>
-                                            <MoneyMuted>VAT {vatLabel(entry.vatRate)}</MoneyMuted>
+                                            <Money>{formatMoney(entry.netAmountCents)}</Money>
                                         </Td>
                                         <Td>
                                             <Money>{formatMoney(entry.grossAmountCents)}</Money>
                                         </Td>
-                                        <Td style={{ maxWidth: 160, wordBreak: 'break-word' }}>
+                                        <Td style={{ maxWidth: 140, wordBreak: 'break-word' }}>
                                             {entry.notes || '—'}
                                         </Td>
                                         <Td>
@@ -379,7 +384,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 </SummaryItem>
                                 <SummaryItem>
                                     <SummaryLabel>Suma netto</SummaryLabel>
-                                    <SummaryValue>{formatMoney(effectiveTotalNet)}</SummaryValue>
+                                    <SummaryValue>{formatMoney(summary.totalNetCents)}</SummaryValue>
                                 </SummaryItem>
                                 <SummaryItem>
                                     <SummaryLabel>Suma brutto</SummaryLabel>

@@ -7,6 +7,7 @@ import type {
     ContractorRequest,
     EntryRequest,
     EntrySummary,
+    VehicleSuggestion,
 } from '../types';
 
 const BASE = '/batch-orders';
@@ -52,6 +53,12 @@ export const batchOrderApi = {
 
     deleteEntry: async (entryId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/entries/${entryId}`);
+    },
+
+    searchVehicles: async (q: string): Promise<VehicleSuggestion[]> => {
+        if (q.trim().length < 2) return [];
+        const response = await apiClient.get<VehicleSuggestion[]>(`${BASE}/vehicles/search`, { params: { q } });
+        return response.data;
     },
 
     downloadReport: async (contractorId: string, contractorName: string, from?: string, to?: string): Promise<void> => {

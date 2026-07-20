@@ -208,7 +208,7 @@ export function BatchOrdersView() {
             <ConfirmationModal
                 isOpen={confirmDeleteContractor !== null}
                 title="Usuń kontrahenta"
-                message={`Czy na pewno chcesz usunąć kontrahenta „${confirmDeleteContractor?.name}“? Operacja jest nieodwracalna i usunie wszystkie powiązane wpisy.`}
+                message={`Czy na pewno chcesz usunąć kontrahenta „${confirmDeleteContractor?.name}"? Operacja jest nieodwracalna i usunie wszystkie powiązane wpisy.`}
                 variant="danger"
                 confirmText="Usuń"
                 cancelText="Anuluj"

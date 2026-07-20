@@ -8,7 +8,7 @@ import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/N
 import type { BatchContractor, ContractorRequest } from '../types';
 
 const Field = styled.div`
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 `;
 
 const Label = styled.label`
@@ -16,14 +16,14 @@ const Label = styled.label`
     font-size: ${p => p.theme.fontSizes.sm};
     font-weight: 600;
     color: ${p => p.theme.colors.textMuted};
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 `;
 
 const Input = styled.input`
     width: 100%;
-    padding: 10px 12px;
+    padding: 7px 10px;
     border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: ${p => p.theme.fontSizes.sm};
     color: ${p => p.theme.colors.text};
     background: ${p => p.theme.colors.background};
@@ -38,14 +38,14 @@ const Input = styled.input`
 
 const Textarea = styled.textarea`
     width: 100%;
-    padding: 10px 12px;
+    padding: 7px 10px;
     border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: ${p => p.theme.fontSizes.sm};
     color: ${p => p.theme.colors.text};
     background: ${p => p.theme.colors.background};
     resize: vertical;
-    min-height: 80px;
+    min-height: 70px;
     box-sizing: border-box;
     font-family: inherit;
 
@@ -63,9 +63,9 @@ const Row = styled.div`
 `;
 
 const CancelBtn = styled.button`
-    padding: 10px 20px;
+    padding: 7px 16px;
     border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 8px;
+    border-radius: 6px;
     background: transparent;
     color: ${p => p.theme.colors.textMuted};
     font-size: ${p => p.theme.fontSizes.sm};
@@ -75,9 +75,9 @@ const CancelBtn = styled.button`
 `;
 
 const SaveBtn = styled.button`
-    padding: 10px 24px;
+    padding: 7px 20px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     background: ${p => p.theme.colors.primary};
     color: #fff;
     font-size: ${p => p.theme.fontSizes.sm};

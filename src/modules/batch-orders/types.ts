@@ -13,16 +13,22 @@ export interface BatchContractor {
     updatedAt: string;
 }
 
+export interface ServiceItem {
+    name: string;
+    netAmountCents: number;
+    grossAmountCents: number;
+    vatRate: number;
+}
+
 export interface BatchOrderEntry {
     id: string;
     serviceDate: string;
     vehicleMake: string | null;
     vehicleModel: string | null;
     vehicleLicensePlate: string | null;
-    services: string[];
+    services: ServiceItem[];
     netAmountCents: number;
     grossAmountCents: number;
-    vatRate: number;
     notes: string | null;
     createdAt: string;
     updatedAt: string;
@@ -54,14 +60,24 @@ export interface ContractorRequest {
     notes?: string;
 }
 
+export interface ServiceItemRequest {
+    name: string;
+    netAmountCents: number;
+    grossAmountCents: number;
+    vatRate: number;
+}
+
 export interface EntryRequest {
     serviceDate: string;
     vehicleMake?: string;
     vehicleModel?: string;
     vehicleLicensePlate?: string;
-    services: string[];
-    netAmountCents: number;
-    grossAmountCents: number;
-    vatRate: number;
+    services: ServiceItemRequest[];
     notes?: string;
+}
+
+export interface VehicleSuggestion {
+    licensePlate: string;
+    brand: string;
+    model: string;
 }
