@@ -18,7 +18,7 @@ const SectionHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 18px;
+    padding: 14px 20px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.background};
     gap: 12px;
@@ -42,167 +42,219 @@ const HeaderActions = styled.div`
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
 `;
 
 const FilterRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 18px;
+    padding: 10px 20px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.background}88;
+    background: ${p => p.theme.colors.surfaceAlt};
     flex-wrap: wrap;
 `;
 
-const SmallBtn = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'outline' }>`
-    padding: 6px 12px;
-    border-radius: 6px;
+/* ── Action buttons aligned with ServiceTable ── */
+const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' }>`
+    padding: 6px 14px;
+    border-radius: 8px;
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     cursor: pointer;
-    border: 1px solid transparent;
     white-space: nowrap;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
 
-    ${p => p.variant === 'primary' && `
+    &:hover { transform: translateY(-1px); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    ${p => p.$variant === 'primary' && `
         background: ${p.theme.colors.primary};
+        border: 1px solid ${p.theme.colors.primary};
         color: #fff;
-        &:hover { opacity: 0.9; }
+        &:hover:not(:disabled) { opacity: 0.9; }
     `}
-    ${p => p.variant === 'outline' && `
+    ${p => p.$variant === 'danger' && `
         background: transparent;
-        border-color: ${p.theme.colors.border};
-        color: ${p.theme.colors.text};
-        &:hover { background: ${p.theme.colors.background}; }
-    `}
-    ${p => p.variant === 'danger' && `
-        background: transparent;
-        border-color: #fed7d7;
-        color: #e53e3e;
-        &:hover { background: #fff5f5; }
-    `}
-    ${p => (!p.variant || p.variant === 'secondary') && `
-        background: transparent;
-        border-color: ${p.theme.colors.border};
+        border: 1px solid ${p.theme.colors.border};
         color: ${p.theme.colors.textMuted};
-        &:hover { background: ${p.theme.colors.background}; }
+        &:hover:not(:disabled) { background: ${p.theme.colors.error}; color: #fff; border-color: ${p.theme.colors.error}; }
     `}
+    ${p => (!p.$variant || p.$variant === 'outline') && `
+        background: transparent;
+        border: 1px solid ${p.theme.colors.border};
+        color: ${p.theme.colors.text};
+        &:hover:not(:disabled) { background: ${p.theme.colors.primary}; color: #fff; border-color: ${p.theme.colors.primary}; }
+    `}
+    ${p => p.$variant === 'ghost' && `
+        background: transparent;
+        border: 1px solid ${p.theme.colors.border};
+        color: ${p.theme.colors.textMuted};
+        &:hover:not(:disabled) { background: ${p.theme.colors.background}; color: ${p.theme.colors.text}; }
+    `}
+`;
+
+/* ── Table ── */
+const TableWrapper = styled.div`
+    width: 100%;
+    overflow-x: auto;
 `;
 
 const Table = styled.table`
     width: 100%;
+    min-width: 700px;
     border-collapse: collapse;
+    background: ${p => p.theme.colors.surface};
 `;
 
-const Th = styled.th`
-    padding: 8px 14px;
-    text-align: left;
+const TableHead = styled.thead`
+    background: ${p => p.theme.colors.surfaceAlt};
+    border-bottom: 2px solid ${p => p.theme.colors.border};
+`;
+
+const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
+    padding: 10px 16px;
+    text-align: ${p => p.$align ?? 'left'};
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 700;
     color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    background: ${p => p.theme.colors.background};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    letter-spacing: 0.05em;
     white-space: nowrap;
 `;
 
 const Tr = styled.tr`
-    &:hover { background: ${p => p.theme.colors.background}55; }
-    &:not(:last-child) { border-bottom: 1px solid ${p => p.theme.colors.border}66; }
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
-const Td = styled.td`
-    padding: 10px 14px;
+const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
+    padding: 12px 16px;
     font-size: ${p => p.theme.fontSizes.sm};
     color: ${p => p.theme.colors.text};
-    vertical-align: top;
+    vertical-align: middle;
+    text-align: ${p => p.$align ?? 'left'};
 `;
 
+/* ── Vehicle cell ── */
+const VehicleCell = styled.div`
+    font-weight: 600;
+    line-height: 1.4;
+    color: ${p => p.theme.colors.text};
+`;
+
+const PlateTag = styled.span`
+    display: inline-block;
+    margin-top: 4px;
+    padding: 3px 9px;
+    background: #0f172a;
+    color: #f1f5f9;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    line-height: 1.5;
+`;
+
+/* ── Services list ── */
 const ServiceList = styled.ul`
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: ${p => p.theme.fontSizes.xs};
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 
     li {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        padding: 1px 0;
+        align-items: baseline;
+        gap: 12px;
     }
 `;
 
 const ServiceName = styled.span`
+    font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.text};
+    font-weight: 500;
 `;
 
 const ServicePrice = styled.span`
+    font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.textMuted};
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 `;
 
+/* ── Money values ── */
 const Money = styled.span`
     font-weight: 600;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 `;
 
+const GrossMoney = styled(Money)`
+    font-size: ${p => p.theme.fontSizes.md};
+    color: ${p => p.theme.colors.text};
+`;
+
+/* ── Row action buttons ── */
+const RowActions = styled.div`
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    opacity: 0;
+    transition: opacity 0.15s;
+
+    ${Tr}:hover & { opacity: 1; }
+`;
+
+/* ── Summary footer ── */
 const SummaryBar = styled.div`
     display: flex;
-    gap: 24px;
-    padding: 12px 18px;
-    background: ${p => p.theme.colors.background};
-    border-top: 1px solid ${p => p.theme.colors.border};
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    background: rgba(14, 165, 233, 0.04);
+    border-top: 2px solid ${p => p.theme.colors.border};
 `;
 
 const SummaryItem = styled.div`
     display: flex;
     flex-direction: column;
+    gap: 2px;
+    padding: 14px 24px;
+    border-right: 1px solid ${p => p.theme.colors.border};
+
+    &:last-child { border-right: none; }
 `;
 
 const SummaryLabel = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
     color: ${p => p.theme.colors.textMuted};
 `;
 
 const SummaryValue = styled.span`
-    font-size: ${p => p.theme.fontSizes.md};
-    font-weight: 700;
+    font-size: ${p => p.theme.fontSizes.lg};
+    font-weight: 800;
     color: ${p => p.theme.colors.text};
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
 `;
 
+/* ── Empty / loading ── */
 const EmptyRow = styled.div`
-    padding: 28px 18px;
+    padding: 32px 20px;
     text-align: center;
     color: ${p => p.theme.colors.textMuted};
     font-size: ${p => p.theme.fontSizes.sm};
-`;
-
-const VehicleCell = styled.div`
-    font-weight: 600;
-    line-height: 1.4;
-`;
-
-const PlateTag = styled.span`
-    display: inline-block;
-    margin-top: 3px;
-    padding: 2px 7px;
-    background: ${p => p.theme.colors.background};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 4px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    font-family: monospace;
-`;
-
-const RowActions = styled.div`
-    display: flex;
-    gap: 6px;
-    opacity: 0;
-    transition: opacity 0.15s;
-
-    ${Tr}:hover & { opacity: 1; }
 `;
 
 function formatMoney(cents: number) {
@@ -272,18 +324,18 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         </ContractorMeta>
                     </div>
                     <HeaderActions>
-                        <SmallBtn variant="outline" onClick={onEdit}>Edytuj</SmallBtn>
-                        <SmallBtn variant="danger" onClick={onDelete}>Usuń</SmallBtn>
-                        <SmallBtn
-                            variant="outline"
+                        <ActionBtn $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
+                        <ActionBtn $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
+                        <ActionBtn
+                            $variant="ghost"
                             onClick={handleDownloadReport}
                             disabled={downloading}
                         >
                             {downloading ? 'Generowanie...' : '↓ Raport PDF'}
-                        </SmallBtn>
-                        <SmallBtn variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
+                        </ActionBtn>
+                        <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
                             + Dodaj wpis
-                        </SmallBtn>
+                        </ActionBtn>
                     </HeaderActions>
                 </SectionHeader>
 
@@ -301,80 +353,81 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     <EmptyRow>Błąd ładowania danych</EmptyRow>
                 ) : entries.length === 0 ? (
                     <EmptyRow>
-                        Brak wpisów
-                        {(filterFrom || filterTo) ? ' dla wybranego okresu' : '. Dodaj pierwszy wpis używając przycisku powyżej.'}
+                        Brak wpisów{(filterFrom || filterTo) ? ' dla wybranego okresu' : '. Dodaj pierwszy wpis używając przycisku powyżej.'}
                     </EmptyRow>
                 ) : (
                     <>
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Data</Th>
-                                    <Th>Pojazd</Th>
-                                    <Th>Usługi</Th>
-                                    <Th>Netto</Th>
-                                    <Th>Brutto</Th>
-                                    <Th>Uwagi</Th>
-                                    <Th></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {entries.map(entry => (
-                                    <Tr key={entry.id}>
-                                        <Td style={{ whiteSpace: 'nowrap' }}>
-                                            {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
-                                        </Td>
-                                        <Td>
-                                            <VehicleCell>
-                                                {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '—'}
-                                            </VehicleCell>
-                                            {entry.vehicleLicensePlate && (
-                                                <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
-                                            )}
-                                        </Td>
-                                        <Td>
-                                            {entry.services.length > 0 ? (
-                                                <ServiceList>
-                                                    {entry.services.map((s, i) => (
-                                                        <li key={i}>
-                                                            <ServiceName>{s.name}</ServiceName>
-                                                            <ServicePrice>
-                                                                {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
-                                                            </ServicePrice>
-                                                        </li>
-                                                    ))}
-                                                </ServiceList>
-                                            ) : '—'}
-                                        </Td>
-                                        <Td>
-                                            <Money>{formatMoney(entry.netAmountCents)}</Money>
-                                        </Td>
-                                        <Td>
-                                            <Money>{formatMoney(entry.grossAmountCents)}</Money>
-                                        </Td>
-                                        <Td style={{ maxWidth: 140, wordBreak: 'break-word' }}>
-                                            {entry.notes || '—'}
-                                        </Td>
-                                        <Td>
-                                            <RowActions>
-                                                <SmallBtn
-                                                    variant="outline"
-                                                    onClick={() => { setEditEntry(entry); setShowEntryForm(true); }}
-                                                >
-                                                    Edytuj
-                                                </SmallBtn>
-                                                <SmallBtn
-                                                    variant="danger"
-                                                    onClick={() => setConfirmDeleteEntryId(entry.id)}
-                                                >
-                                                    Usuń
-                                                </SmallBtn>
-                                            </RowActions>
-                                        </Td>
-                                    </Tr>
-                                ))}
-                            </tbody>
-                        </Table>
+                        <TableWrapper>
+                            <Table>
+                                <TableHead>
+                                    <tr>
+                                        <Th>Data</Th>
+                                        <Th>Pojazd</Th>
+                                        <Th>Usługi</Th>
+                                        <Th $align="right">Netto</Th>
+                                        <Th $align="right">Brutto</Th>
+                                        <Th>Uwagi</Th>
+                                        <Th $align="right"></Th>
+                                    </tr>
+                                </TableHead>
+                                <tbody>
+                                    {entries.map(entry => (
+                                        <Tr key={entry.id}>
+                                            <Td style={{ whiteSpace: 'nowrap' }}>
+                                                {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                            </Td>
+                                            <Td>
+                                                <VehicleCell>
+                                                    {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '—'}
+                                                </VehicleCell>
+                                                {entry.vehicleLicensePlate && (
+                                                    <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
+                                                )}
+                                            </Td>
+                                            <Td>
+                                                {entry.services.length > 0 ? (
+                                                    <ServiceList>
+                                                        {entry.services.map((s, i) => (
+                                                            <li key={i}>
+                                                                <ServiceName>{s.name}</ServiceName>
+                                                                <ServicePrice>
+                                                                    {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
+                                                                </ServicePrice>
+                                                            </li>
+                                                        ))}
+                                                    </ServiceList>
+                                                ) : '—'}
+                                            </Td>
+                                            <Td $align="right">
+                                                <Money>{formatMoney(entry.netAmountCents)}</Money>
+                                            </Td>
+                                            <Td $align="right">
+                                                <GrossMoney>{formatMoney(entry.grossAmountCents)}</GrossMoney>
+                                            </Td>
+                                            <Td style={{ maxWidth: 160, wordBreak: 'break-word', color: 'inherit' }}>
+                                                {entry.notes || <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>—</span>}
+                                            </Td>
+                                            <Td $align="right">
+                                                <RowActions>
+                                                    <ActionBtn
+                                                        $variant="outline"
+                                                        onClick={() => { setEditEntry(entry); setShowEntryForm(true); }}
+                                                    >
+                                                        Edytuj
+                                                    </ActionBtn>
+                                                    <ActionBtn
+                                                        $variant="danger"
+                                                        onClick={() => setConfirmDeleteEntryId(entry.id)}
+                                                    >
+                                                        Usuń
+                                                    </ActionBtn>
+                                                </RowActions>
+                                            </Td>
+                                        </Tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </TableWrapper>
 
                         {summary && (
                             <SummaryBar>
