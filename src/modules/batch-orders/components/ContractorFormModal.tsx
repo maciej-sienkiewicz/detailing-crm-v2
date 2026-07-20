@@ -4,95 +4,16 @@ import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
+import {
+    FormField, FormGrid, FieldLabel,
+    InputShell, BareInput, InputShellTextArea, BareTextArea,
+    FormErrorMsg, FormAlertBanner,
+} from '@/common/components/Form';
+import { SharedButton } from '@/common/styles';
 import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
 import type { BatchContractor, ContractorRequest } from '../types';
 
-const Field = styled.div`
-    margin-bottom: 10px;
-`;
-
-const Label = styled.label`
-    display: block;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    margin-bottom: 4px;
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.background};
-    box-sizing: border-box;
-
-    &:focus {
-        outline: none;
-        border-color: ${p => p.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${p => p.theme.colors.primary}22;
-    }
-`;
-
-const Textarea = styled.textarea`
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.background};
-    resize: vertical;
-    min-height: 70px;
-    box-sizing: border-box;
-    font-family: inherit;
-
-    &:focus {
-        outline: none;
-        border-color: ${p => p.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${p => p.theme.colors.primary}22;
-    }
-`;
-
-const Row = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-`;
-
-const CancelBtn = styled.button`
-    padding: 7px 16px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    background: transparent;
-    color: ${p => p.theme.colors.textMuted};
-    font-size: ${p => p.theme.fontSizes.sm};
-    cursor: pointer;
-
-    &:hover { background: ${p => p.theme.colors.background}; }
-`;
-
-const SaveBtn = styled.button`
-    padding: 7px 20px;
-    border: none;
-    border-radius: 6px;
-    background: ${p => p.theme.colors.primary};
-    color: #fff;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover { opacity: 0.9; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const ErrorMsg = styled.p`
-    color: ${p => p.theme.colors.error || '#e53e3e'};
-    font-size: ${p => p.theme.fontSizes.xs};
-    margin: 4px 0 0;
-`;
+const NipWrapper = styled(InputShell)``;
 
 function formatGusAddress(addr: CompanyInfoResponse['address']): string {
     const parts: string[] = [];
@@ -122,7 +43,8 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
     const [phone, setPhone] = useState(initial?.phone ?? '');
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
+    const [nameError, setNameError] = useState('');
+    const [apiError, setApiError] = useState('');
 
     function handleGusData(data: CompanyInfoResponse) {
         if (data.name) setName(data.name);
@@ -133,9 +55,10 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
     }
 
     async function handleSave() {
-        if (!name.trim()) { setError('Nazwa kontrahenta jest wymagana'); return; }
+        if (!name.trim()) { setNameError('Nazwa kontrahenta jest wymagana'); return; }
+        setNameError('');
+        setApiError('');
         setSaving(true);
-        setError('');
         try {
             await onSave({
                 name: name.trim(),
@@ -148,7 +71,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
             });
             onClose();
         } catch {
-            setError('Nie udało się zapisać kontrahenta. Spróbuj ponownie.');
+            setApiError('Nie udało się zapisać kontrahenta. Spróbuj ponownie.');
         } finally {
             setSaving(false);
         }
@@ -164,56 +87,100 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
             </ModalHeader>
 
             <ModalContent>
-                <Field>
-                    <Label>Nazwa kontrahenta *</Label>
-                    <Input value={name} onChange={e => setName(e.target.value)} placeholder="np. Salon AUDI Warszawa" />
-                    {error && !name.trim() && <ErrorMsg>{error}</ErrorMsg>}
-                </Field>
+                {apiError && <FormAlertBanner>{apiError}</FormAlertBanner>}
 
-                <Field>
-                    <Label>NIP</Label>
+                <FormField>
+                    <FieldLabel htmlFor="co-name">Nazwa kontrahenta *</FieldLabel>
+                    <InputShell $hasError={!!nameError}>
+                        <BareInput
+                            id="co-name"
+                            value={name}
+                            onChange={e => { setName(e.target.value); setNameError(''); }}
+                            placeholder="np. Salon AUDI Warszawa"
+                        />
+                    </InputShell>
+                    {nameError && <FormErrorMsg>{nameError}</FormErrorMsg>}
+                </FormField>
+
+                <FormField>
+                    <FieldLabel>NIP</FieldLabel>
                     <NipInputWithGus
                         value={taxId}
                         onChange={setTaxId}
                         onFetch={handleGusData}
                         placeholder="000-000-00-00"
                     />
-                </Field>
+                </FormField>
 
-                <Row>
-                    <Field>
-                        <Label>Email</Label>
-                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@firma.pl" />
-                    </Field>
-                    <Field>
-                        <Label>Telefon</Label>
-                        <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+48 000 000 000" />
-                    </Field>
-                </Row>
+                <FormGrid $columns={2}>
+                    <FormField>
+                        <FieldLabel htmlFor="co-email">Email</FieldLabel>
+                        <InputShell>
+                            <BareInput
+                                id="co-email"
+                                type="email"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                placeholder="kontakt@firma.pl"
+                            />
+                        </InputShell>
+                    </FormField>
+                    <FormField>
+                        <FieldLabel htmlFor="co-phone">Telefon</FieldLabel>
+                        <InputShell>
+                            <BareInput
+                                id="co-phone"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                placeholder="+48 000 000 000"
+                            />
+                        </InputShell>
+                    </FormField>
+                </FormGrid>
 
-                <Field>
-                    <Label>Osoba kontaktowa</Label>
-                    <Input value={contactPerson} onChange={e => setContactPerson(e.target.value)} placeholder="Jan Kowalski" />
-                </Field>
+                <FormField>
+                    <FieldLabel htmlFor="co-contact">Osoba kontaktowa</FieldLabel>
+                    <InputShell>
+                        <BareInput
+                            id="co-contact"
+                            value={contactPerson}
+                            onChange={e => setContactPerson(e.target.value)}
+                            placeholder="Jan Kowalski"
+                        />
+                    </InputShell>
+                </FormField>
 
-                <Field>
-                    <Label>Adres</Label>
-                    <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="ul. Przykładowa 1, 00-000 Warszawa" />
-                </Field>
+                <FormField>
+                    <FieldLabel htmlFor="co-address">Adres</FieldLabel>
+                    <InputShell>
+                        <BareInput
+                            id="co-address"
+                            value={address}
+                            onChange={e => setAddress(e.target.value)}
+                            placeholder="ul. Przykładowa 1, 00-000 Warszawa"
+                        />
+                    </InputShell>
+                </FormField>
 
-                <Field>
-                    <Label>Uwagi</Label>
-                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Dodatkowe informacje..." />
-                </Field>
-
-                {error && name.trim() && <ErrorMsg>{error}</ErrorMsg>}
+                <FormField>
+                    <FieldLabel htmlFor="co-notes">Uwagi</FieldLabel>
+                    <InputShellTextArea>
+                        <BareTextArea
+                            id="co-notes"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="Dodatkowe informacje..."
+                            style={{ minHeight: 72 }}
+                        />
+                    </InputShellTextArea>
+                </FormField>
             </ModalContent>
 
             <ModalFooter>
-                <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                <SaveBtn onClick={handleSave} disabled={saving}>
+                <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
+                <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
                     {saving ? 'Zapisywanie...' : 'Zapisz'}
-                </SaveBtn>
+                </SharedButton>
             </ModalFooter>
         </ModalShell>
     );

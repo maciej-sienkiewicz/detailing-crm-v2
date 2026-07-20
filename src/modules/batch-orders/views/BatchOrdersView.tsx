@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader/PageHeader';
 import {
     useContractors,
     useCreateContractor,
@@ -14,52 +15,15 @@ import type { BatchContractor, ContractorRequest } from '../types';
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: ${p => p.theme.spacing.lg};
-    padding: ${p => p.theme.spacing.lg};
+    gap: 20px;
+    padding: 24px;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: ${p => p.theme.spacing.xl};
+        padding: 32px;
     }
-`;
-
-const ViewHeader = styled.header`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 16px;
-`;
-
-const TitleSection = styled.div``;
-
-const PageTitle = styled.h1`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.xxl};
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-`;
-
-const PageSubtitle = styled.p`
-    margin: ${p => p.theme.spacing.xs} 0 0;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const AddContractorBtn = styled.button`
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background: ${p => p.theme.colors.primary};
-    color: #fff;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-
-    &:hover { opacity: 0.9; }
 `;
 
 const ContractorsList = styled.div`
@@ -146,17 +110,15 @@ export function BatchOrdersView() {
 
     return (
         <ViewContainer>
-            <ViewHeader>
-                <TitleSection>
-                    <PageTitle>Zlecenia zbiorcze</PageTitle>
-                    <PageSubtitle>
-                        Zarządzaj kontrahentami B2B i rozliczeniami miesięcznymi
-                    </PageSubtitle>
-                </TitleSection>
-                <AddContractorBtn onClick={() => setShowCreateModal(true)}>
-                    + Dodaj kontrahenta
-                </AddContractorBtn>
-            </ViewHeader>
+            <PageHeader
+                title="Zlecenia zbiorcze"
+                subtitle="Zarządzaj kontrahentami B2B i rozliczeniami miesięcznymi"
+                actions={
+                    <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)}>
+                        + Dodaj kontrahenta
+                    </PageHeaderPrimaryButton>
+                }
+            />
 
             {isLoading && <LoadingState>Ładowanie kontrahentów...</LoadingState>}
 

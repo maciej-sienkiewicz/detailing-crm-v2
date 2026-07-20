@@ -3,182 +3,148 @@ import styled from 'styled-components';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
-    ModalContent, ModalFooter, CloseBtn,
+    ModalContent, ModalFooter, ModalSectionTitle, CloseBtn,
 } from '@/common/components/ModalKit';
+import {
+    FormField, FormGrid, FieldLabel,
+    InputShell, BareInput, InputShellTextArea, BareTextArea,
+    FormErrorMsg, FormAlertBanner,
+} from '@/common/components/Form';
+import { SharedButton } from '@/common/styles';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchOrderEntry, EntryRequest, ServiceItemRequest, VehicleSuggestion } from '../types';
 
-const Field = styled.div`
-    margin-bottom: 10px;
-`;
+// ─── Service card ─────────────────────────────────────────────────────────────
 
-const Label = styled.label`
-    display: block;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    margin-bottom: 4px;
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.background};
-    box-sizing: border-box;
-
-    &:focus {
-        outline: none;
-        border-color: ${p => p.theme.colors.primary};
-        box-shadow: 0 0 0 2px ${p => p.theme.colors.primary}22;
-    }
-`;
-
-const Textarea = styled.textarea`
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.background};
-    resize: vertical;
-    min-height: 64px;
-    box-sizing: border-box;
-    font-family: inherit;
-
-    &:focus {
-        outline: none;
-        border-color: ${p => p.theme.colors.primary};
-        box-shadow: 0 0 0 2px ${p => p.theme.colors.primary}22;
-    }
-`;
-
-const Select = styled.select`
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.background};
-    box-sizing: border-box;
-
-    &:focus {
-        outline: none;
-        border-color: ${p => p.theme.colors.primary};
-    }
-`;
-
-const Row = styled.div<{ cols?: number }>`
-    display: grid;
-    grid-template-columns: repeat(${p => p.cols ?? 2}, 1fr);
+const ServiceCard = styled.div`
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
 `;
 
-const SectionTitle = styled.h3`
-    margin: 14px 0 8px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 700;
-    color: ${p => p.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-`;
-
-const ServiceCard = styled.div`
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    padding: 10px;
-    margin-bottom: 8px;
-    background: ${p => p.theme.colors.background};
-`;
-
-const ServiceNameRow = styled.div`
+const ServiceCardHeader = styled.div`
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-bottom: 8px;
 `;
 
-const ServiceNameInput = styled(Input)`
+const ServiceNameInput = styled.input`
     flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #0f172a;
+    background: white;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    &::placeholder { color: #94a3b8; }
 `;
 
 const RemoveBtn = styled.button`
-    padding: 5px 8px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
+    padding: 6px 9px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
     background: transparent;
-    color: ${p => p.theme.colors.textMuted};
+    color: #94a3b8;
     cursor: pointer;
     font-size: 13px;
     line-height: 1;
     flex-shrink: 0;
+    transition: all 150ms ease;
 
-    &:hover { background: #fff5f5; color: #e53e3e; border-color: #fed7d7; }
+    &:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
 `;
 
-const ServicePriceRow = styled.div`
+const PriceGrid = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr 100px;
+    grid-template-columns: 1fr 1fr 90px;
     gap: 8px;
 `;
 
+const PriceField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
 const PriceLabel = styled.label`
-    display: block;
     font-size: 11px;
     font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    margin-bottom: 3px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+`;
+
+const PriceInput = styled.input`
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #0f172a;
+    background: white;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    &::placeholder { color: #94a3b8; }
+`;
+
+const PriceSelect = styled.select`
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #0f172a;
+    background: white;
+    font-family: inherit;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: #0ea5e9;
+    }
 `;
 
 const AddServiceBtn = styled.button`
-    padding: 7px 12px;
-    border: 1px dashed ${p => p.theme.colors.border};
-    border-radius: 6px;
+    padding: 9px 14px;
+    border: 1.5px dashed #e2e8f0;
+    border-radius: 10px;
     background: transparent;
-    color: ${p => p.theme.colors.primary};
-    font-size: ${p => p.theme.fontSizes.sm};
+    color: #0ea5e9;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     width: 100%;
+    font-family: inherit;
+    transition: background 150ms ease, border-color 150ms ease;
 
-    &:hover { background: ${p => p.theme.colors.primary}11; }
+    &:hover { background: rgba(14, 165, 233, 0.04); border-color: #bae6fd; }
 `;
 
-const CancelBtn = styled.button`
-    padding: 8px 18px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    background: transparent;
-    color: ${p => p.theme.colors.textMuted};
-    font-size: ${p => p.theme.fontSizes.sm};
-    cursor: pointer;
-
-    &:hover { background: ${p => p.theme.colors.background}; }
-`;
-
-const SaveBtn = styled.button`
-    padding: 8px 22px;
-    border: none;
-    border-radius: 6px;
-    background: ${p => p.theme.colors.primary};
-    color: #fff;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover { opacity: 0.9; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const ErrorMsg = styled.p`
-    color: #e53e3e;
-    font-size: ${p => p.theme.fontSizes.xs};
-    margin: 4px 0 0;
-`;
+// ─── Plate autocomplete ───────────────────────────────────────────────────────
 
 const PlateWrapper = styled.div`
     position: relative;
@@ -186,13 +152,13 @@ const PlateWrapper = styled.div`
 
 const SuggestionList = styled.ul`
     position: absolute;
-    top: calc(100% + 2px);
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     list-style: none;
     margin: 0;
     padding: 4px 0;
@@ -202,15 +168,22 @@ const SuggestionList = styled.ul`
 `;
 
 const SuggestionItem = styled.li`
-    padding: 7px 10px;
+    padding: 9px 14px;
     cursor: pointer;
-    font-size: ${p => p.theme.fontSizes.sm};
+    font-size: 14px;
+    color: #0f172a;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    transition: background 100ms ease;
 
-    &:hover { background: ${p => p.theme.colors.background}; }
+    &:hover { background: #f8fafc; }
 
-    strong { font-weight: 700; }
-    span { color: ${p => p.theme.colors.textMuted}; font-size: 12px; margin-left: 6px; }
+    strong { font-weight: 700; font-family: monospace; letter-spacing: 0.04em; }
+    span { color: #64748b; font-size: 13px; }
 `;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function centsToDisplay(cents: number): string {
     return (cents / 100).toFixed(2);
@@ -249,6 +222,8 @@ function serviceToForm(svc: { name: string; netAmountCents: number; grossAmountC
         vatRate: svc.vatRate,
     };
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
     initial?: BatchOrderEntry | null;
@@ -315,26 +290,22 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
     function updateNet(idx: number, val: string) {
         const cents = displayToCents(val);
-        const svc = services[idx];
-        const vatRate = svc.vatRate;
-        let grossDisplay = svc.grossDisplay;
+        const { vatRate, grossDisplay } = services[idx];
+        let newGross = grossDisplay;
         if (vatRate >= 0 && val !== '') {
-            const grossCents = vatRate === 0 ? cents : Math.round(cents * (1 + vatRate / 100));
-            grossDisplay = centsToDisplay(grossCents);
+            newGross = centsToDisplay(vatRate === 0 ? cents : Math.round(cents * (1 + vatRate / 100)));
         }
-        updateService(idx, { netDisplay: val, grossDisplay });
+        updateService(idx, { netDisplay: val, grossDisplay: newGross });
     }
 
     function updateGross(idx: number, val: string) {
         const cents = displayToCents(val);
-        const svc = services[idx];
-        const vatRate = svc.vatRate;
-        let netDisplay = svc.netDisplay;
+        const { vatRate, netDisplay } = services[idx];
+        let newNet = netDisplay;
         if (vatRate >= 0 && val !== '') {
-            const netCents = vatRate === 0 ? cents : Math.round(cents / (1 + vatRate / 100));
-            netDisplay = centsToDisplay(netCents);
+            newNet = centsToDisplay(vatRate === 0 ? cents : Math.round(cents / (1 + vatRate / 100)));
         }
-        updateService(idx, { grossDisplay: val, netDisplay });
+        updateService(idx, { grossDisplay: val, netDisplay: newNet });
     }
 
     function addService() {
@@ -347,7 +318,6 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
     async function handleSave() {
         if (!serviceDate) { setError('Data wykonania jest wymagana'); return; }
-
         setSaving(true);
         setError('');
         try {
@@ -386,116 +356,144 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
             </ModalHeader>
 
             <ModalContent>
-                <Field>
-                    <Label>Data wykonania usługi *</Label>
-                    <Input type="date" value={serviceDate} onChange={e => setServiceDate(e.target.value)} />
-                </Field>
+                {error && <FormAlertBanner>{error}</FormAlertBanner>}
 
-                <SectionTitle>Pojazd</SectionTitle>
-                <Row>
-                    <Field>
-                        <Label>Marka</Label>
-                        <BrandSelect
-                            value={vehicleMake}
-                            onChange={(brand) => { setVehicleMake(brand); setVehicleModel(''); }}
-                            placeholder="np. BMW"
+                <FormField>
+                    <FieldLabel htmlFor="entry-date">Data wykonania *</FieldLabel>
+                    <InputShell>
+                        <BareInput
+                            id="entry-date"
+                            type="date"
+                            value={serviceDate}
+                            onChange={e => setServiceDate(e.target.value)}
                         />
-                    </Field>
-                    <Field>
-                        <Label>Model</Label>
-                        <ModelSelect
-                            brand={vehicleMake}
-                            value={vehicleModel}
-                            onChange={setVehicleModel}
-                            placeholder="np. 3 Series"
-                        />
-                    </Field>
-                </Row>
-                <Field>
-                    <Label>Tablica rejestracyjna</Label>
-                    <PlateWrapper ref={plateRef}>
-                        <Input
-                            value={vehiclePlate}
-                            onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
-                            onFocus={() => plateSuggestions.length > 0 && setShowSuggestions(true)}
-                            placeholder="np. WA12345"
-                            autoComplete="off"
-                        />
-                        {showSuggestions && (
-                            <SuggestionList>
-                                {plateSuggestions.map(s => (
-                                    <SuggestionItem key={s.licensePlate} onMouseDown={() => selectSuggestion(s)}>
-                                        <strong>{s.licensePlate}</strong>
-                                        <span>{s.brand} {s.model}</span>
-                                    </SuggestionItem>
-                                ))}
-                            </SuggestionList>
-                        )}
-                    </PlateWrapper>
-                </Field>
+                    </InputShell>
+                </FormField>
 
-                <SectionTitle>Wykonane usługi</SectionTitle>
-                {services.map((svc, idx) => (
-                    <ServiceCard key={idx}>
-                        <ServiceNameRow>
-                            <ServiceNameInput
-                                value={svc.name}
-                                onChange={e => updateService(idx, { name: e.target.value })}
-                                placeholder={`Nazwa usługi ${idx + 1}...`}
+                <div>
+                    <ModalSectionTitle>Pojazd</ModalSectionTitle>
+                    <FormGrid $columns={2}>
+                        <FormField>
+                            <FieldLabel>Marka</FieldLabel>
+                            <BrandSelect
+                                value={vehicleMake}
+                                onChange={(brand) => { setVehicleMake(brand); setVehicleModel(''); }}
+                                placeholder="np. BMW"
                             />
-                            {services.length > 1 && (
-                                <RemoveBtn type="button" onClick={() => removeService(idx)}>✕</RemoveBtn>
-                            )}
-                        </ServiceNameRow>
-                        <ServicePriceRow>
-                            <div>
-                                <PriceLabel>Netto (zł)</PriceLabel>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={svc.netDisplay}
-                                    onChange={e => updateNet(idx, e.target.value)}
-                                    placeholder="0.00"
+                        </FormField>
+                        <FormField>
+                            <FieldLabel>Model</FieldLabel>
+                            <ModelSelect
+                                brand={vehicleMake}
+                                value={vehicleModel}
+                                onChange={setVehicleModel}
+                                placeholder="np. 3 Series"
+                            />
+                        </FormField>
+                    </FormGrid>
+
+                    <FormField style={{ marginTop: 10 }}>
+                        <FieldLabel htmlFor="entry-plate">Tablica rejestracyjna</FieldLabel>
+                        <PlateWrapper ref={plateRef}>
+                            <InputShell>
+                                <BareInput
+                                    id="entry-plate"
+                                    value={vehiclePlate}
+                                    onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
+                                    onFocus={() => plateSuggestions.length > 0 && setShowSuggestions(true)}
+                                    placeholder="np. WA12345"
+                                    autoComplete="off"
                                 />
-                            </div>
-                            <div>
-                                <PriceLabel>Brutto (zł)</PriceLabel>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={svc.grossDisplay}
-                                    onChange={e => updateGross(idx, e.target.value)}
-                                    placeholder="0.00"
-                                />
-                            </div>
-                            <div>
-                                <PriceLabel>Stawka VAT</PriceLabel>
-                                <Select value={svc.vatRate} onChange={e => updateService(idx, { vatRate: Number(e.target.value) })}>
-                                    {VAT_OPTIONS.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </InputShell>
+                            {showSuggestions && (
+                                <SuggestionList>
+                                    {plateSuggestions.map(s => (
+                                        <SuggestionItem key={s.licensePlate} onMouseDown={() => selectSuggestion(s)}>
+                                            <strong>{s.licensePlate}</strong>
+                                            <span>{s.brand} {s.model}</span>
+                                        </SuggestionItem>
                                     ))}
-                                </Select>
-                            </div>
-                        </ServicePriceRow>
-                    </ServiceCard>
-                ))}
-                <AddServiceBtn type="button" onClick={addService}>+ Dodaj usługę</AddServiceBtn>
+                                </SuggestionList>
+                            )}
+                        </PlateWrapper>
+                    </FormField>
+                </div>
 
-                <Field style={{ marginTop: 10 }}>
-                    <Label>Uwagi</Label>
-                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Dodatkowe uwagi..." />
-                </Field>
+                <div>
+                    <ModalSectionTitle>Wykonane usługi</ModalSectionTitle>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {services.map((svc, idx) => (
+                            <ServiceCard key={idx}>
+                                <ServiceCardHeader>
+                                    <ServiceNameInput
+                                        value={svc.name}
+                                        onChange={e => updateService(idx, { name: e.target.value })}
+                                        placeholder={`Nazwa usługi ${idx + 1}…`}
+                                    />
+                                    {services.length > 1 && (
+                                        <RemoveBtn type="button" onClick={() => removeService(idx)}>✕</RemoveBtn>
+                                    )}
+                                </ServiceCardHeader>
+                                <PriceGrid>
+                                    <PriceField>
+                                        <PriceLabel>Netto (zł)</PriceLabel>
+                                        <PriceInput
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={svc.netDisplay}
+                                            onChange={e => updateNet(idx, e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </PriceField>
+                                    <PriceField>
+                                        <PriceLabel>Brutto (zł)</PriceLabel>
+                                        <PriceInput
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={svc.grossDisplay}
+                                            onChange={e => updateGross(idx, e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </PriceField>
+                                    <PriceField>
+                                        <PriceLabel>VAT</PriceLabel>
+                                        <PriceSelect
+                                            value={svc.vatRate}
+                                            onChange={e => updateService(idx, { vatRate: Number(e.target.value) })}
+                                        >
+                                            {VAT_OPTIONS.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </PriceSelect>
+                                    </PriceField>
+                                </PriceGrid>
+                            </ServiceCard>
+                        ))}
+                        <AddServiceBtn type="button" onClick={addService}>+ Dodaj usługę</AddServiceBtn>
+                    </div>
+                </div>
 
-                {error && <ErrorMsg>{error}</ErrorMsg>}
+                <FormField>
+                    <FieldLabel htmlFor="entry-notes">Uwagi</FieldLabel>
+                    <InputShellTextArea>
+                        <BareTextArea
+                            id="entry-notes"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="Dodatkowe uwagi…"
+                            style={{ minHeight: 64 }}
+                        />
+                    </InputShellTextArea>
+                </FormField>
             </ModalContent>
 
             <ModalFooter>
-                <CancelBtn type="button" onClick={onClose}>Anuluj</CancelBtn>
-                <SaveBtn type="button" onClick={handleSave} disabled={saving}>
+                <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
+                <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
                     {saving ? 'Zapisywanie...' : 'Zapisz'}
-                </SaveBtn>
+                </SharedButton>
             </ModalFooter>
         </ModalShell>
     );
