@@ -39,12 +39,6 @@ import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPag
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
 
-/**
- * Authenticated app page: session guard + optional permission guard + layout.
- * When `requires` is missing the page is available to every logged-in user.
- * Users lacking the permission are silently redirected to their default
- * route (no "access denied" screen) — including manual URL entry.
- */
 const page = (view: ReactNode, requires?: PermissionRequirement) => (
     <ProtectedRoute>
         {requires
@@ -53,12 +47,6 @@ const page = (view: ReactNode, requires?: PermissionRequirement) => (
     </ProtectedRoute>
 );
 
-/**
- * Module-gated page: like `page`, but the view is wrapped in a ModuleGate.
- * When the studio hasn't purchased the module, the view renders as a blurred,
- * non-interactive demonstration with an unlock overlay (Przelewy24 checkout)
- * instead of being hidden — the user sees exactly what they're missing.
- */
 const gatedPage = (
     view: ReactNode,
     featureKey: FeatureKey,
@@ -66,7 +54,6 @@ const gatedPage = (
     requires?: PermissionRequirement,
 ) => page(<ModuleGate featureKey={featureKey} benefits={benefits}>{view}</ModuleGate>, requires);
 
-// ── Copy for the module-gate overlays (what the user loses) ──────────────
 const FINANCE_BENEFITS = [
     'Dokumenty finansowe i faktury w jednym miejscu',
     'Kontrola przychodów i kosztów studia',
@@ -185,22 +172,18 @@ export const router = createBrowserRouter([
 
     // ── Mobile (public, token-based) ─────────────────────────────────────
     {
-        // Public mobile upload route — no auth required, token via ?t=
         path: '/m/upload',
         element: <MobilePhotoUploadWrapper />,
     },
     {
-        // Public voice intake route — no auth required, token via ?token=
         path: '/m/voice',
         element: <MobileVoiceCommandsWrapper />,
     },
     {
-        // Public customer Visit Card — no auth required, card token in the path
         path: '/vc/:token',
         element: <VisitCardView />,
     },
     {
-        // Public remote document signing (SMS link) — no auth, link token in the path
         path: '/sign/:token',
         element: (
             <Suspense fallback={null}>
@@ -217,6 +200,12 @@ export const router = createBrowserRouter([
     {
         path: '/leads',
         element: page(<LeadListView />, 'LEADS_MANAGE'),
+    },
+
+    // ── Zlecenia zbiorcze (B2B) ──────────────────────────────────────────
+    {
+        path: '/batch-orders',
+        element: page(<BatchOrdersView />),
     },
 
     // ── Finanse ──────────────────────────────────────────────────────────
@@ -275,28 +264,18 @@ export const router = createBrowserRouter([
         element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
     },
 
-    // ── Ustawienia (dodatkowo zakładki filtrowane wewnątrz widoku) ───────
+    // ── Ustawienia ───────────────────────────────────────────────────────
     {
         path: '/settings',
         element: page(<SettingsView />, ANY_SETTINGS),
     },
 
     // ── Powrót z płatności Przelewy24 ────────────────────────────────────
-    // Bez SubscriptionGate: strona musi działać także dla wygasłych kont,
-    // które właśnie opłaciły przedłużenie.
     {
         path: '/payments/result',
         element: (
             <ProtectedRoute withSubscriptionGate={false}>
                 <PaymentResultPage />
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/batch-orders',
-        element: (
-            <ProtectedRoute>
-                <Layout><BatchOrdersView /></Layout>
             </ProtectedRoute>
         ),
     },
