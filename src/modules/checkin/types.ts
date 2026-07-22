@@ -279,6 +279,7 @@ export interface WalkInVisitPayload {
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];
     appointmentColorId: string;
+    qrCheckinId?: string;
     doorToDoor?: {
         pickupCity: string;
         pickupStreet: string;

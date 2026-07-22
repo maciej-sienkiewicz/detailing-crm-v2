@@ -377,13 +377,14 @@ const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile
 
 interface PhotoDocumentationStepProps {
     formData: CheckInFormData;
-    reservationId: string;
+    reservationId?: string;
+    qrCheckinId?: string;
     onChange: (updates: Partial<CheckInFormData>) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
+export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, onChange }: PhotoDocumentationStepProps) => {
     const {
         photos,
         uploadPhoto,
@@ -534,7 +535,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                     {/* QR code generator — also listens for mobile damage updates */}
                     <div style={{ marginTop: 16 }}>
                         <CheckinQRGenerator
-                            appointmentId={reservationId}
+                            appointmentId={qrCheckinId}
                             onDamageUpdated={handleDamagePointsChange}
                         />
                     </div>

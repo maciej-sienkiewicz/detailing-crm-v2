@@ -16,14 +16,16 @@ export interface UseCheckinQRTokenResult {
     refresh: () => Promise<void>;
 }
 
-export function useCheckinQRToken(appointmentId: string): UseCheckinQRTokenResult {
+export function useCheckinQRToken(appointmentId: string | undefined): UseCheckinQRTokenResult {
     const [tokenData, setTokenData] = useState<QRTokenResponse | null>(null);
-    const [secondsLeft, setSecondsLeft] = useState(0);
+    const [secondsLeft, setSecondsLeft] = useState(Number.MAX_SAFE_INTEGER);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Always holds the latest fetchToken without creating a circular dep with startCountdown
+    const fetchTokenRef = useRef<() => Promise<void>>(async () => {});
 
     const clearTimers = () => {
         if (refreshTimerRef.current) {
@@ -47,11 +49,11 @@ export function useCheckinQRToken(appointmentId: string): UseCheckinQRTokenResul
         tick();
         countdownIntervalRef.current = setInterval(tick, 1000);
 
-        // Schedule auto-refresh 2 minutes before expiry
+        // Schedule auto-refresh 2 minutes before expiry — use ref to avoid stale closure
         const msLeft = new Date(expiresAt).getTime() - Date.now();
         const refreshIn = Math.max(0, msLeft - REFRESH_BEFORE_EXPIRY_MS);
         refreshTimerRef.current = setTimeout(() => {
-            fetchToken();
+            fetchTokenRef.current();
         }, refreshIn);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -71,6 +73,11 @@ export function useCheckinQRToken(appointmentId: string): UseCheckinQRTokenResul
         }
     }, [appointmentId, startCountdown]);
 
+    // Keep ref in sync so startCountdown's setTimeout always calls the current fetchToken
+    useEffect(() => {
+        fetchTokenRef.current = fetchToken;
+    }, [fetchToken]);
+
     useEffect(() => {
         fetchToken();
         return () => clearTimers();
@@ -80,7 +87,10 @@ export function useCheckinQRToken(appointmentId: string): UseCheckinQRTokenResul
         ? `${window.location.origin}/m/upload?t=${tokenData.token}`
         : null;
 
-    const isExpired = secondsLeft === 0 && tokenData !== null;
+    // Guard isLoading to avoid a flash of "Kod wygasł" between setTokenData and
+    // setSecondsLeft (initial value of secondsLeft is MAX_SAFE_INTEGER, not 0, so the
+    // race only happens when secondsLeft somehow reaches 0 before the tick fires)
+    const isExpired = secondsLeft === 0 && !isLoading && tokenData !== null;
 
     return {
         tokenData,

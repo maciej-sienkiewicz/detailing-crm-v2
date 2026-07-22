@@ -377,6 +377,7 @@ const NextBtn = styled.button<{ $disabled?: boolean }>`
 
 interface CheckInWizardViewProps {
     reservationId?: string;
+    qrSessionId?: string;
     initialData: Partial<CheckInFormData>;
     colors: AppointmentColor[];
     onComplete: (visitId: string) => void;
@@ -384,9 +385,12 @@ interface CheckInWizardViewProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CheckInWizardView = ({ reservationId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
+export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
     const { isCollapsed } = useSidebar();
     const sidebarWidth = isCollapsed ? 64 : 240;
+
+    // Effective QR checkin ID: reservation ID for booked check-ins, generated UUID for walk-ins
+    const qrCheckinId = reservationId ?? qrSessionId;
 
     const {
         currentStep,
@@ -399,7 +403,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
         submitCheckIn,
         isSubmitting,
         submitError,
-    } = useCheckInWizard(reservationId, initialData);
+    } = useCheckInWizard(reservationId, initialData, qrCheckinId);
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
     const { showSuccess, showError } = useToast();
@@ -556,6 +560,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                             <PhotoDocumentationStep
                                 formData={formData}
                                 reservationId={reservationId}
+                                qrCheckinId={qrCheckinId}
                                 onChange={updateFormData}
                             />
                         )}

@@ -7,7 +7,7 @@ import type { CheckInFormData, CheckInStep, ReservationToVisitPayload, WalkInVis
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
 
-export const useCheckInWizard = (reservationId: string | undefined, initialData: Partial<CheckInFormData>) => {
+export const useCheckInWizard = (reservationId: string | undefined, initialData: Partial<CheckInFormData>, qrCheckinId?: string) => {
     const queryClient = useQueryClient();
     const [currentStep, setCurrentStep] = useState<CheckInStep>('verification');
     const [completedSteps, setCompletedSteps] = useState<CheckInStep[]>([]);
@@ -263,7 +263,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         };
 
         if (!reservationId) {
-            const walkInPayload: WalkInVisitPayload = sharedPayload;
+            const walkInPayload: WalkInVisitPayload = { ...sharedPayload, qrCheckinId };
             return createWalkInMutation.mutateAsync(walkInPayload);
         }
 
