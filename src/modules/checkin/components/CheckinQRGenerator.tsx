@@ -284,7 +284,7 @@ interface QrPhoto {
 // ─── Component props ──────────────────────────────────────────────────────────
 
 interface CheckinQRGeneratorProps {
-    appointmentId: string;
+    appointmentId?: string;
     onDamageUpdated?: (points: DamagePoint[]) => void;
 }
 

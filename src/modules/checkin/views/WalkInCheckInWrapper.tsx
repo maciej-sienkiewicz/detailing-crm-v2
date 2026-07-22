@@ -1,4 +1,5 @@
 // src/modules/checkin/views/WalkInCheckInWrapper.tsx
+import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
@@ -59,6 +60,7 @@ interface LocationState {
 export const WalkInCheckInWrapper = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const qrSessionId = useMemo(() => crypto.randomUUID(), []);
     const state = location.state as LocationState | null;
     const prefillCustomer = state?.prefillCustomer;
     const prefillVehicle  = state?.prefillVehicle;
@@ -112,6 +114,7 @@ export const WalkInCheckInWrapper = () => {
     return (
         <CheckInWizardView
             reservationId={undefined}
+            qrSessionId={qrSessionId}
             initialData={initialData}
             colors={colors ?? []}
             onComplete={handleComplete}
