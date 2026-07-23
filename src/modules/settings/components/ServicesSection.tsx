@@ -16,9 +16,8 @@ import {
   parseMoneyInput,
 } from '@/modules/services/utils/priceCalculator';
 import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
-import { ServiceFormModal } from '@/modules/services/components/ServiceFormModal';
 
-// ─── Animations ───────────────────────────────────────────────────────────────
+// ─── Animations ───────────────────────────────────────────────────────────────────────────────
 
 const shimmer = keyframes`
   0%   { background-position: -200% 0; }
@@ -30,7 +29,7 @@ const expandDown = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
+// ─── Layout ────────────────────────────────────────────────────────────────────────────────
 
 const Container = styled.div`
   display: flex;
@@ -38,7 +37,7 @@ const Container = styled.div`
   gap: 16px;
 `;
 
-// ─── Toolbar ──────────────────────────────────────────────────────────────────
+// ─── Toolbar ──────────────────────────────────────────────────────────────────────────────
 
 const Toolbar = styled.div`
   display: flex;
@@ -128,7 +127,7 @@ const AddButton = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 `;
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
+// ─── Stats ───────────────────────────────────────────────────────────────────────────────
 
 const StatsRow = styled.div`
   display: flex;
@@ -144,7 +143,7 @@ const StatText = styled.span`
   strong { color: #0f172a; font-weight: 700; }
 `;
 
-// ─── Form panel ───────────────────────────────────────────────────────────────
+// ─── Form panel ───────────────────────────────────────────────────────────────────────────
 
 const FormPanel = styled.div`
   background: white;
@@ -388,7 +387,7 @@ const SubmitBtn = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-// ─── Service table ────────────────────────────────────────────────────────────
+// ─── Service table ──────────────────────────────────────────────────────────────────────────
 
 const ServiceList = styled.div`
   background: white;
@@ -538,7 +537,7 @@ const ActionBtn = styled.button<{ $danger?: boolean }>`
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────────────────────────────────
 
 const SkeletonBox = styled.div<{ $w?: string }>`
   height: 13px;
@@ -560,7 +559,7 @@ const SkeletonRow = styled.div`
   &:last-child { border-bottom: none; }
 `;
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// ─── Empty state ───────────────────────────────────────────────────────────────────────────
 
 const EmptyWrap = styled.div`
   display: flex;
@@ -586,7 +585,7 @@ const EmptyDesc = styled.p`
   line-height: 1.6;
 `;
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+// ─── Pagination ───────────────────────────────────────────────────────────────────────────
 
 const Pager = styled.div`
   display: flex;
@@ -629,7 +628,7 @@ const PagerBtn = styled.button<{ $active?: boolean }>`
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
-// ─── Archive dialog ───────────────────────────────────────────────────────────
+// ─── Archive dialog ─────────────────────────────────────────────────────────────────────────
 
 const Overlay = styled.div`
   position: fixed;
@@ -693,7 +692,7 @@ const DangerBtn = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-// ─── Package-specific styles ──────────────────────────────────────────────────
+// ─── Package-specific styles ────────────────────────────────────────────────────────────────
 
 const PackageBadge = styled.span`
   display: inline-flex;
@@ -833,7 +832,7 @@ const PackageInfoBox = styled.div`
   line-height: 1.55;
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────────────────
 
 const VAT_OPTIONS: { value: VatRate; label: string }[] = [
   { value: 23, label: '23%' },
@@ -871,7 +870,7 @@ function buildPageNumbers(current: number, total: number): (number | '…')[] {
   return pages;
 }
 
-// ─── Form types ───────────────────────────────────────────────────────────────
+// ─── Form types ───────────────────────────────────────────────────────────────────────────
 
 interface FormValues {
   name: string;
@@ -990,7 +989,7 @@ function validatePackageForm(v: PackageFormValues): PackageFormErrors {
   return errors;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────────────────
 
 type FormMode = 'add' | 'edit';
 
@@ -1022,7 +1021,6 @@ export const ServicesSection: React.FC = () => {
   const [updatedServiceName, setUpdatedServiceName]   = useState('');
 
   const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
-  const [editingService, setEditingService] = useState<Service | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { setDebounced(search); setPage(1); }, 350);
@@ -1068,7 +1066,7 @@ export const ServicesSection: React.FC = () => {
   const totalPages  = pagination?.totalPages ?? 1;
 
   // ── Form handlers ──
-  const anyFormOpen = formMode !== null || pkgFormMode !== null || !!editingService;
+  const anyFormOpen = formMode !== null || pkgFormMode !== null;
 
   const openAdd = () => {
     setPkgFormMode(null);
@@ -1087,9 +1085,11 @@ export const ServicesSection: React.FC = () => {
       setPkgFormErrors({});
       setPkgServiceSearch('');
     } else {
-      setFormMode(null);
       setPkgFormMode(null);
-      setEditingService(s);
+      setFormMode('edit');
+      setEditTarget(s);
+      setFormValues(serviceToForm(s));
+      setFormErrors({});
     }
   };
 
@@ -1240,6 +1240,21 @@ export const ServicesSection: React.FC = () => {
         requireManualPrice: formValues.requireManualPrice,
       });
       closeForm();
+    } else if (editTarget) {
+      const result = await updateMutation.mutateAsync({
+        originalServiceId: editTarget.id,
+        name: formValues.name.trim(),
+        basePriceNet,
+        basePriceGross,
+        vatRate: formValues.vatRate,
+        requireManualPrice: formValues.requireManualPrice,
+      });
+      closeForm();
+      if (result.affectedPackages && result.affectedPackages.length > 0) {
+        setAffectedPackages(result.affectedPackages);
+        setUpdatedServiceId(result.id);
+        setUpdatedServiceName(result.name);
+      }
     }
   };
 
@@ -1326,11 +1341,13 @@ export const ServicesSection: React.FC = () => {
         )}
       </StatsRow>
 
-      {/* ── Add service form panel ── */}
-      {formMode === 'add' && (
+      {/* ── Form panel ── */}
+      {formMode !== null && (
         <FormPanel>
           <FormHeader>
-            <FormTitle>Nowa usługa</FormTitle>
+            <FormTitle>
+              {formMode === 'add' ? 'Nowa usługa' : `Edytuj: ${editTarget?.name}`}
+            </FormTitle>
             <CloseBtn onClick={closeForm} aria-label="Zamknij">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1407,7 +1424,9 @@ export const ServicesSection: React.FC = () => {
           <FormFooter>
             <CancelBtn onClick={closeForm}>Anuluj</CancelBtn>
             <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-              {isSaving ? 'Dodawanie…' : 'Dodaj usługę'}
+              {isSaving
+                ? (formMode === 'add' ? 'Dodawanie…' : 'Zapisywanie…')
+                : (formMode === 'add' ? 'Dodaj usługę' : 'Zapisz zmiany')}
             </SubmitBtn>
           </FormFooter>
         </FormPanel>
@@ -1500,7 +1519,7 @@ export const ServicesSection: React.FC = () => {
             <div>
               <FieldLabel style={{ marginBottom: 8 }}>Usługi wchodzące w skład pakietu</FieldLabel>
               <PackageInfoBox>
-                Pakiet musi zawierać co najmniej 2 usługi. Cena pakietu jest ustawiana całościowo - składowe nie mają własnych cen w kontekście pakietu.
+                Pakiet musi zawierać co najmniej 2 usługi. Cena pakietu jest ustawiana całościowo - składowe nie mają własnych cen w kontekcie pakietu.
               </PackageInfoBox>
 
               <FormField style={{ marginTop: 10 }}>
@@ -1640,7 +1659,7 @@ export const ServicesSection: React.FC = () => {
                   {service.isActive && (
                     <>
                       <ActionBtn
-                        title="Edytuj pozycję"
+                        title="Edytuj"
                         disabled={anyFormOpen}
                         onClick={() => openEdit(service)}
                       >
@@ -1751,13 +1770,6 @@ export const ServicesSection: React.FC = () => {
           </Dialog>
         </Overlay>
       )}
-
-      {/* ── Edit service modal ── */}
-      <ServiceFormModal
-        isOpen={!!editingService}
-        service={editingService ?? undefined}
-        onClose={() => setEditingService(null)}
-      />
     </Container>
   );
 };
