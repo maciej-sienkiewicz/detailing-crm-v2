@@ -199,7 +199,9 @@ export interface DashboardTask {
   createdByUserName?: string;
   visibilityType?: 'ALL' | 'USERS' | 'ROLE';
   visibleToUserIds?: string[];
+  visibleToUserNames?: string[];
   visibleToRoleId?: string;
+  visibleToRoleName?: string;
 }
 
 export type TaskVisibilityType = 'ALL' | 'USERS' | 'ROLE';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Check, Pencil, Trash2, Plus, ClipboardList, Archive } from 'lucide-react';
+import { Check, Pencil, Trash2, Plus, ClipboardList, Archive, Users, ShieldCheck } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import { TaskModal } from './TaskModal';
 import { TaskArchiveModal } from './TaskArchiveModal';
@@ -149,6 +149,31 @@ const TaskCreator = styled.div`
   margin-top: 2px;
 `;
 
+const VisibilityBadge = styled.div<{ $type: 'USERS' | 'ROLE' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  width: fit-content;
+
+  ${p => p.$type === 'USERS' ? `
+    background: #eff6ff;
+    border: 1px solid #bae6fd;
+    color: #0284c7;
+  ` : `
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    color: #7c3aed;
+  `}
+
+  svg { width: 10px; height: 10px; flex-shrink: 0; stroke-width: 2; }
+`;
+
 const TaskActions = styled.div`
   display: flex;
   gap: 2px;
@@ -229,6 +254,19 @@ const Skeleton = styled.div<{ $w: string; $h?: string }>`
 `;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatVisibilityLabel = (task: DashboardTask): string => {
+  if (task.visibilityType === 'USERS') {
+    const names = task.visibleToUserNames ?? [];
+    if (names.length === 0) return 'Wybrane osoby';
+    if (names.length <= 2) return names.join(', ');
+    return `${names[0]} i ${names.length - 1} inne`;
+  }
+  if (task.visibilityType === 'ROLE') {
+    return task.visibleToRoleName ? `Rola: ${task.visibleToRoleName}` : 'Wybrana rola';
+  }
+  return '';
+};
 
 const formatTaskDate = (iso: string): string => {
   const d = new Date(iso);
@@ -323,6 +361,18 @@ export const TasksPanel = () => {
                       {task.createdByUserName ? `Dodał: ${task.createdByUserName}` : 'Dodano'}
                       {task.createdAt && ` · ${formatTaskDate(task.createdAt)}`}
                     </TaskCreator>
+                  )}
+                  {task.visibilityType === 'USERS' && (
+                    <VisibilityBadge $type="USERS">
+                      <Users />
+                      {formatVisibilityLabel(task)}
+                    </VisibilityBadge>
+                  )}
+                  {task.visibilityType === 'ROLE' && (
+                    <VisibilityBadge $type="ROLE">
+                      <ShieldCheck />
+                      {formatVisibilityLabel(task)}
+                    </VisibilityBadge>
                   )}
                 </TaskContent>
                 <TaskActions className="task-actions">
