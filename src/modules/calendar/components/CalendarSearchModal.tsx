@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { calendarApi } from '../api/calendarApi';
-import { PiiValue } from '@/common/pii';
+import { PiiValue, PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────

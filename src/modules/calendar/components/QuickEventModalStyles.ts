@@ -1078,6 +1078,115 @@ export const AddColorButton = styled.button`
     svg { width: 12px; height: 12px; }
 `;
 
+// "+N więcej" button shown when colors overflow the inline row
+export const MoreColorsButton = styled.button<{ $active?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+    height: 26px;
+    border-radius: 9999px;
+    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
+    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
+    color: ${p => p.$active ? '#0ea5e9' : '#64748b'};
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 150ms ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: #0ea5e9;
+        background: #f0f9ff;
+        color: #0ea5e9;
+    }
+`;
+
+// Transparent overlay to close the color panel on outside click
+export const ColorPanelOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+`;
+
+// Portal-rendered dropdown listing all colors with names
+export const ColorPanel = styled.div<{ $bottom: number; $left: number }>`
+    position: fixed;
+    bottom: ${p => p.$bottom}px;
+    left: ${p => p.$left}px;
+    z-index: 9999;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.06);
+    min-width: 210px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px;
+`;
+
+export const ColorPanelItem = styled.button<{ $selected: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.$selected ? 600 : 400};
+    color: ${p => p.$selected ? '#0284c7' : '#374151'};
+    text-align: left;
+    transition: background 100ms ease;
+
+    &:hover { background: ${p => p.$selected ? '#f0f9ff' : '#f8fafc'}; }
+`;
+
+export const ColorPanelSwatch = styled.span<{ $color: string; $selected: boolean }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: ${p => p.$color};
+    flex-shrink: 0;
+    box-shadow: ${p => p.$selected
+        ? `0 0 0 2px white, 0 0 0 3px ${p.$color}`
+        : '0 1px 2px rgba(0,0,0,0.1)'};
+    transition: box-shadow 150ms ease;
+`;
+
+export const ColorPanelSeparator = styled.div`
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 0;
+`;
+
+export const ColorPanelAddBtn = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    text-align: left;
+    transition: background 100ms ease;
+
+    &:hover { background: #f8fafc; color: #0ea5e9; }
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+`;
+
 export const FooterActions = styled.div`
     display: flex;
     align-items: center;

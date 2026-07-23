@@ -1,6 +1,6 @@
 // src/modules/calendar/components/QuickEventModal/index.tsx
 
-import React, { forwardRef, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { forwardRef, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { DateTimePicker } from '../DateTimePicker';
@@ -233,6 +233,20 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
+
+    const MAX_VISIBLE_COLORS = 5;
+    const [colorPanelOpen, setColorPanelOpen] = useState(false);
+    const [colorPanelPos, setColorPanelPos] = useState({ bottom: 0, left: 0 });
+    const moreColorsBtnRef = useRef<HTMLButtonElement>(null);
+    const hiddenColorCount = Math.max(0, form.appointmentColors.length - MAX_VISIBLE_COLORS);
+
+    const openColorPanel = () => {
+        if (moreColorsBtnRef.current) {
+            const r = moreColorsBtnRef.current.getBoundingClientRect();
+            setColorPanelPos({ bottom: window.innerHeight - r.top + 8, left: r.left });
+        }
+        setColorPanelOpen(o => !o);
+    };
 
     const { isRecurring, setIsRecurring, recurrenceRule, setRecurrenceRule } = form;
 
@@ -1245,7 +1259,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.ColorPickerSection ref={form.colorSectionRef} $hasError={!!form.errors.color}>
                                     <IconPalette />
                                     <S.ColorPickerList>
-                                        {form.appointmentColors.map((color: AppointmentColor) => (
+                                        {form.appointmentColors.slice(0, MAX_VISIBLE_COLORS).map((color: AppointmentColor) => (
                                             <S.ColorButton
                                                 key={color.id}
                                                 type="button"
@@ -1255,13 +1269,25 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 title={color.name}
                                             />
                                         ))}
-                                        <S.AddColorButton
-                                            type="button"
-                                            onClick={() => form.setIsQuickColorModalOpen(true)}
-                                            title="Dodaj nowy kolor"
-                                        >
-                                            <IconPlus />
-                                        </S.AddColorButton>
+                                        {hiddenColorCount > 0 ? (
+                                            <S.MoreColorsButton
+                                                ref={moreColorsBtnRef}
+                                                type="button"
+                                                $active={colorPanelOpen}
+                                                onClick={openColorPanel}
+                                                title="Pokaż wszystkie kolory"
+                                            >
+                                                +{hiddenColorCount}
+                                            </S.MoreColorsButton>
+                                        ) : (
+                                            <S.AddColorButton
+                                                type="button"
+                                                onClick={() => form.setIsQuickColorModalOpen(true)}
+                                                title="Dodaj nowy kolor"
+                                            >
+                                                <IconPlus />
+                                            </S.AddColorButton>
+                                        )}
                                     </S.ColorPickerList>
                                     {form.selectedColor && (
                                         <S.SelectedColorName>{form.selectedColor.name}</S.SelectedColorName>
@@ -1269,6 +1295,40 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.ColorPickerSection>
                                 {form.errors.color && <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>}
                             </S.ColorPickerWrapper>
+
+                            {colorPanelOpen && createPortal(
+                                <>
+                                    <S.ColorPanelOverlay onClick={() => setColorPanelOpen(false)} />
+                                    <S.ColorPanel $bottom={colorPanelPos.bottom} $left={colorPanelPos.left}>
+                                        {form.appointmentColors.map((color: AppointmentColor) => (
+                                            <S.ColorPanelItem
+                                                key={color.id}
+                                                type="button"
+                                                $selected={color.id === form.selectedColorId}
+                                                onClick={() => {
+                                                    form.setSelectedColorId(color.id);
+                                                    setColorPanelOpen(false);
+                                                }}
+                                            >
+                                                <S.ColorPanelSwatch $color={color.hexColor} $selected={color.id === form.selectedColorId} />
+                                                {color.name}
+                                            </S.ColorPanelItem>
+                                        ))}
+                                        <S.ColorPanelSeparator />
+                                        <S.ColorPanelAddBtn
+                                            type="button"
+                                            onClick={() => {
+                                                setColorPanelOpen(false);
+                                                form.setIsQuickColorModalOpen(true);
+                                            }}
+                                        >
+                                            <IconPlus />
+                                            Dodaj nowy kolor
+                                        </S.ColorPanelAddBtn>
+                                    </S.ColorPanel>
+                                </>,
+                                document.body
+                            )}
 
                             <S.FooterActions>
                                 <S.Button type="button" onClick={form.clearForm} $variant="ghost" title="Wyczyść wszystkie pola">
