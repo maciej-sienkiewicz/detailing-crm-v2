@@ -1,4 +1,3 @@
-// src/modules/services/components/ServiceFormModal.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
@@ -163,6 +162,13 @@ const FormInner = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.lg};
+`;
+
+const VatHint = styled.span`
+    font-size: 11px;
+    color: ${props => props.theme.colors.textMuted};
+    margin-top: 4px;
+    display: block;
 `;
 
 // Icons
@@ -345,6 +351,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                                     id="vatRate"
                                     value={vatRate}
                                     onChange={(e) => setVatRate(Number(e.target.value) as VatRate)}
+                                    disabled={!!service}
                                 >
                                     <option value={23}>{t.services.vatRates[23]}</option>
                                     <option value={8}>{t.services.vatRates[8]}</option>
@@ -352,6 +359,9 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                                     <option value={0}>{t.services.vatRates[0]}</option>
                                     <option value={-1}>{t.services.vatRates['-1']}</option>
                                 </Select>
+                                {!!service && (
+                                    <VatHint>Stawka VAT nie może być zmieniona podczas edycji usługi.</VatHint>
+                                )}
                                 {errors.vatRate && <ErrorMessage>{errors.vatRate}</ErrorMessage>}
                             </FieldGroup>
 
