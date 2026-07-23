@@ -309,10 +309,11 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                         $failed={photo.status === 'failed'}
                                         onClick={() => {
                                             if (photo.status === 'failed') {
-                                                removePhoto(point.id, photo.photoId);
+                                                removePhoto(point.id, photo.localId ?? photo.photoId);
                                                 return;
                                             }
-                                            if (photo.status === 'uploading') return;
+                                            // Drawing while the upload is still in progress is fine —
+                                            // strokes are matched to the photo via its stable localId.
                                             if (photo.thumbnailUrl) {
                                                 setAnnotating({ pointId: point.id, photo });
                                             }
@@ -354,7 +355,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                                 title="Usuń zdjęcie"
                                                 onClick={e => {
                                                     e.stopPropagation();
-                                                    removePhoto(point.id, photo.photoId);
+                                                    removePhoto(point.id, photo.localId ?? photo.photoId);
                                                 }}
                                             >
                                                 ×
@@ -377,7 +378,13 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                         onChange={e => {
                                             const files = Array.from(e.target.files ?? []);
                                             e.target.value = '';
-                                            if (files.length > 0) attachPhotos(point.id, files);
+                                            if (files.length === 0) return;
+                                            const created = attachPhotos(point.id, files);
+                                            // Open the annotation editor straight away for the captured
+                                            // photo — no extra tap needed to start drawing.
+                                            if (created.length > 0) {
+                                                setAnnotating({ pointId: point.id, photo: created[0] });
+                                            }
                                         }}
                                     />
                                 </DamageAddPhotoBtn>
@@ -399,7 +406,11 @@ export const MobileDamageSection = ({ logic }: Props) => {
                     initialStrokes={annotating.photo.strokes}
                     title={`Uszkodzenie #${getNumber(annotating.pointId)} — zaznacz na zdjęciu`}
                     onSave={strokes => {
-                        setPhotoStrokes(annotating.pointId, annotating.photo.photoId, strokes);
+                        setPhotoStrokes(
+                            annotating.pointId,
+                            annotating.photo.localId ?? annotating.photo.photoId,
+                            strokes,
+                        );
                         setAnnotating(null);
                     }}
                     onClose={() => setAnnotating(null)}

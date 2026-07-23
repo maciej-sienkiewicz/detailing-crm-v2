@@ -15,7 +15,9 @@ export interface MobileDamageLogic {
     damagePoints: DamagePoint[];
     saveStatus: SaveStatus;
     updatePoints: (points: DamagePoint[]) => void;
-    attachPhotos: (pointId: number, files: File[]) => void;
+    /** Returns the created placeholder photos (with stable localId) so the UI
+     *  can immediately open the annotation editor for the captured photo. */
+    attachPhotos: (pointId: number, files: File[]) => DamagePointPhoto[];
     removePhoto: (pointId: number, photoId: string) => void;
     setPhotoStrokes: (pointId: number, photoId: string, strokes: AnnotationStroke[]) => void;
 }
@@ -122,7 +124,9 @@ export function useMobileDamageLogic(
 
     // ─── Damage photos ────────────────────────────────────────────────────────
 
-    /** Applies `mutate` to a single photo of a single point in the current list. */
+    /** Applies `mutate` to a single photo of a single point in the current list.
+     *  Matches by photoId OR the stable localId, so callers can keep referencing
+     *  a photo while its photoId transitions from placeholder to server id. */
     const mutatePhoto = useCallback((
         points: DamagePoint[],
         pointId: number,
@@ -132,13 +136,15 @@ export function useMobileDamageLogic(
         points.map(p => {
             if (p.id !== pointId) return p;
             const photos = (p.photos ?? [])
-                .map(ph => ph.photoId === photoId ? mutate(ph) : ph)
+                .map(ph => (ph.photoId === photoId || ph.localId === photoId) ? mutate(ph) : ph)
                 .filter((ph): ph is DamagePointPhoto => ph !== null);
             return { ...p, photos };
         }),
     []);
 
-    const attachPhotos = useCallback((pointId: number, files: File[]) => {
+    const attachPhotos = useCallback((pointId: number, files: File[]): DamagePointPhoto[] => {
+        const created: DamagePointPhoto[] = [];
+
         for (const file of files) {
             if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
                 alert(`Nieobsługiwany format: ${file.type}. Używaj JPEG, PNG lub WebP.`);
@@ -153,10 +159,12 @@ export function useMobileDamageLogic(
             const previewUrl = URL.createObjectURL(file);
             const placeholder: DamagePointPhoto = {
                 photoId: localId,
+                localId,
                 strokes: [],
                 thumbnailUrl: previewUrl,
                 status: 'uploading',
             };
+            created.push(placeholder);
 
             updatePoints(pointsRef.current.map(p =>
                 p.id === pointId ? { ...p, photos: [...(p.photos ?? []), placeholder] } : p
@@ -177,6 +185,8 @@ export function useMobileDamageLogic(
                     })));
                 });
         }
+
+        return created;
     }, [token, updatePoints, mutatePhoto]);
 
     const removePhoto = useCallback((pointId: number, photoId: string) => {
