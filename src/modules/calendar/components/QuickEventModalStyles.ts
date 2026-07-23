@@ -990,13 +990,12 @@ export const BulkDiscountApplyBtn = styled.button`
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 export const Footer = styled.div`
-    padding: 16px 28px;
+    padding: 14px 24px;
     border-top: 1px solid #f1f5f9;
     background: #fafbfd;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    flex-direction: column;
+    gap: 10px;
     flex-shrink: 0;
 `;
 
@@ -1009,8 +1008,9 @@ export const ColorPickerWrapper = styled.div`
 export const ColorPickerSection = styled.div<{ $hasError?: boolean }>`
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 4px 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 6px;
     border-radius: 10px;
     border: 2px solid ${p => p.$hasError ? '#ef4444' : 'transparent'};
     background: ${p => p.$hasError ? '#fef2f2' : 'transparent'};
@@ -1020,6 +1020,7 @@ export const ColorPickerSection = styled.div<{ $hasError?: boolean }>`
         color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
         width: 16px;
         height: 16px;
+        flex-shrink: 0;
     }
 `;
 
@@ -1033,11 +1034,15 @@ export const ColorErrorMessage = styled.div`
 export const ColorPickerList = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 `;
 
 export const SelectedColorName = styled.div`
-    display: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    white-space: nowrap;
 `;
 
 export const ColorButton = styled.button<{ $color: string; $isSelected: boolean }>`
@@ -1190,6 +1195,7 @@ export const ColorPanelAddBtn = styled.button`
 export const FooterActions = styled.div`
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
 `;
 
