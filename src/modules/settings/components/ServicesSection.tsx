@@ -16,6 +16,7 @@ import {
   parseMoneyInput,
 } from '@/modules/services/utils/priceCalculator';
 import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
+import { ServiceFormModal } from '@/modules/services/components/ServiceFormModal';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -1021,6 +1022,7 @@ export const ServicesSection: React.FC = () => {
   const [updatedServiceName, setUpdatedServiceName]   = useState('');
 
   const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { setDebounced(search); setPage(1); }, 350);
@@ -1066,7 +1068,7 @@ export const ServicesSection: React.FC = () => {
   const totalPages  = pagination?.totalPages ?? 1;
 
   // ── Form handlers ──
-  const anyFormOpen = formMode !== null || pkgFormMode !== null;
+  const anyFormOpen = formMode !== null || pkgFormMode !== null || !!editingService;
 
   const openAdd = () => {
     setPkgFormMode(null);
@@ -1085,11 +1087,9 @@ export const ServicesSection: React.FC = () => {
       setPkgFormErrors({});
       setPkgServiceSearch('');
     } else {
+      setFormMode(null);
       setPkgFormMode(null);
-      setFormMode('edit');
-      setEditTarget(s);
-      setFormValues(serviceToForm(s));
-      setFormErrors({});
+      setEditingService(s);
     }
   };
 
@@ -1240,21 +1240,6 @@ export const ServicesSection: React.FC = () => {
         requireManualPrice: formValues.requireManualPrice,
       });
       closeForm();
-    } else if (editTarget) {
-      const result = await updateMutation.mutateAsync({
-        originalServiceId: editTarget.id,
-        name: formValues.name.trim(),
-        basePriceNet,
-        basePriceGross,
-        vatRate: formValues.vatRate,
-        requireManualPrice: formValues.requireManualPrice,
-      });
-      closeForm();
-      if (result.affectedPackages && result.affectedPackages.length > 0) {
-        setAffectedPackages(result.affectedPackages);
-        setUpdatedServiceId(result.id);
-        setUpdatedServiceName(result.name);
-      }
     }
   };
 
@@ -1341,13 +1326,11 @@ export const ServicesSection: React.FC = () => {
         )}
       </StatsRow>
 
-      {/* ── Form panel ── */}
-      {formMode !== null && (
+      {/* ── Add service form panel ── */}
+      {formMode === 'add' && (
         <FormPanel>
           <FormHeader>
-            <FormTitle>
-              {formMode === 'add' ? 'Nowa usługa' : `Edytuj: ${editTarget?.name}`}
-            </FormTitle>
+            <FormTitle>Nowa usługa</FormTitle>
             <CloseBtn onClick={closeForm} aria-label="Zamknij">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1424,9 +1407,7 @@ export const ServicesSection: React.FC = () => {
           <FormFooter>
             <CancelBtn onClick={closeForm}>Anuluj</CancelBtn>
             <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-              {isSaving
-                ? (formMode === 'add' ? 'Dodawanie…' : 'Zapisywanie…')
-                : (formMode === 'add' ? 'Dodaj usługę' : 'Zapisz zmiany')}
+              {isSaving ? 'Dodawanie…' : 'Dodaj usługę'}
             </SubmitBtn>
           </FormFooter>
         </FormPanel>
@@ -1659,7 +1640,7 @@ export const ServicesSection: React.FC = () => {
                   {service.isActive && (
                     <>
                       <ActionBtn
-                        title="Edytuj"
+                        title="Edytuj pozycję"
                         disabled={anyFormOpen}
                         onClick={() => openEdit(service)}
                       >
@@ -1770,6 +1751,13 @@ export const ServicesSection: React.FC = () => {
           </Dialog>
         </Overlay>
       )}
+
+      {/* ── Edit service modal ── */}
+      <ServiceFormModal
+        isOpen={!!editingService}
+        service={editingService ?? undefined}
+        onClose={() => setEditingService(null)}
+      />
     </Container>
   );
 };
