@@ -19,7 +19,7 @@
  */
 
 import { apiClient } from '@/core';
-import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload, ArchivedTask, TaskArchivePage } from '../types';
+import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload, ArchivedTask, TaskArchivePage, TaskVisibilityOptions } from '../types';
 
 const USE_MOCKS = false;
 
@@ -114,6 +114,15 @@ export const tasksApi = {
       return;
     }
     await apiClient.delete(`/v1/tasks/${id}`);
+  },
+
+  getVisibilityOptions: async (): Promise<TaskVisibilityOptions> => {
+    if (USE_MOCKS) {
+      await delay();
+      return { users: [], roles: [] };
+    }
+    const response = await apiClient.get('/v1/tasks/visibility-options');
+    return response.data;
   },
 };
 

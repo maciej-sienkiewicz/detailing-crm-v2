@@ -197,11 +197,34 @@ export interface DashboardTask {
   done: boolean;
   createdAt?: string;
   createdByUserName?: string;
+  visibilityType?: 'ALL' | 'USERS' | 'ROLE';
+  visibleToUserIds?: string[];
+  visibleToRoleId?: string;
+}
+
+export type TaskVisibilityType = 'ALL' | 'USERS' | 'ROLE';
+
+export interface TaskVisibilityUser {
+  userId: string;
+  fullName: string;
+}
+
+export interface TaskVisibilityRole {
+  roleId: string;
+  name: string;
+}
+
+export interface TaskVisibilityOptions {
+  users: TaskVisibilityUser[];
+  roles: TaskVisibilityRole[];
 }
 
 export interface CreateTaskPayload {
   title: string;
   meta?: string;
+  visibilityType?: TaskVisibilityType;
+  visibleToUserIds?: string[];
+  visibleToRoleId?: string;
 }
 
 export interface UpdateTaskPayload {

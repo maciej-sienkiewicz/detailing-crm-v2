@@ -23,6 +23,9 @@ export const useTasks = () => {
         meta: payload.meta ?? '',
         done: false,
         createdAt: new Date().toISOString(),
+        visibilityType: payload.visibilityType ?? 'ALL',
+        visibleToUserIds: payload.visibleToUserIds ?? [],
+        visibleToRoleId: payload.visibleToRoleId,
       };
       queryClient.setQueryData(TASKS_QUERY_KEY, (old: DashboardTask[] = []) => [tempTask, ...old]);
       return { previous };
