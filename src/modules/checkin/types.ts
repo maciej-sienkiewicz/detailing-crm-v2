@@ -349,6 +349,14 @@ export interface CheckinDamageUpdatedEvent {
     updatedAt: string;
 }
 
+// ─── Mobile Session Status ────────────────────────────────────────────────────
+
+export interface MobileSessionStatus {
+    sessionActive: boolean;
+    visitCreated: boolean;
+    userDone: boolean;
+}
+
 // ─── Mobile Photo Upload Response ─────────────────────────────────────────────
 
 export interface MobilePhotoUploadResponse {

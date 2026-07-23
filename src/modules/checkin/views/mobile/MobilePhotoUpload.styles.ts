@@ -658,6 +658,151 @@ export const EmptyDamageState = styled.div`
     }
 `;
 
+// ─── Done / Locked screens ────────────────────────────────────────────────────
+
+export const DoneScreen = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+    padding: 20px;
+    gap: 16px;
+`;
+
+export const DoneIcon = styled.div`
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { width: 36px; height: 36px; color: #4ade80; }
+`;
+
+export const DoneTitle = styled.h2`
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: white;
+`;
+
+export const DoneText = styled.p`
+    font-size: 15px;
+    color: rgba(255,255,255,0.6);
+    margin: 0;
+    max-width: 300px;
+    line-height: 1.6;
+`;
+
+export const DoneActions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 280px;
+    margin-top: 8px;
+`;
+
+export const LockedScreen = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+    padding: 20px;
+    gap: 16px;
+`;
+
+export const LockedIcon = styled.div`
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(251, 191, 36, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { width: 36px; height: 36px; color: #fbbf24; }
+`;
+
+export const LockedTitle = styled.h2`
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: white;
+`;
+
+export const LockedText = styled.p`
+    font-size: 15px;
+    color: rgba(255,255,255,0.6);
+    margin: 0;
+    max-width: 300px;
+    line-height: 1.6;
+`;
+
+// ─── "Gotowe" footer bar (shown in active view) ───────────────────────────────
+
+export const GotowFooter = styled.div`
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 0 4px;
+    margin-top: 16px;
+`;
+
+export const GotowBtn = styled.button`
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(22, 163, 74, 0.35);
+    transition: opacity 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    &:active { transform: scale(0.98); opacity: 0.9; }
+    &:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    svg { width: 22px; height: 22px; flex-shrink: 0; }
+`;
+
+export const CofnijBtn = styled.button`
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.8);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    &:active { background: rgba(255,255,255,0.13); }
+
+    svg { width: 18px; height: 18px; flex-shrink: 0; }
+`;
+
 export const SectionTitle = styled.h3`
     margin: 0 0 4px;
     font-size: 16px;
