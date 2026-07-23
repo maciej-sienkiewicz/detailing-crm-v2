@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Users, Shield, Globe } from 'lucide-react';
 import styled from 'styled-components';
 import {
   ModalShell,
@@ -11,7 +11,8 @@ import {
   ModalFooter,
   CloseBtn,
 } from '@/common/components/ModalKit';
-import type { DashboardTask, CreateTaskPayload } from '../types';
+import { tasksApi } from '../api/tasksApi';
+import type { DashboardTask, CreateTaskPayload, TaskVisibilityType, TaskVisibilityOptions } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -121,6 +122,83 @@ const CharCount = styled.span<{ $warn: boolean }>`
   align-self: flex-end;
 `;
 
+// ─── Visibility Styled ────────────────────────────────────────────────────────
+
+const VisibilityTabs = styled.div`
+  display: flex;
+  gap: 6px;
+  padding: 3px;
+  background: #f1f5f9;
+  border-radius: 10px;
+`;
+
+const VisibilityTab = styled.button<{ $active: boolean }>`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: ${p => p.$active ? '#fff' : 'transparent'};
+  color: ${p => p.$active ? '#0ea5e9' : '#64748b'};
+  box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};
+
+  svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  &:hover:not([data-active="true"]) { color: #374151; }
+`;
+
+const PickerList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 2px 0;
+`;
+
+const PickerItem = styled.label<{ $selected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 100ms ease;
+  background: ${p => p.$selected ? '#eff6ff' : 'transparent'};
+  border: 1.5px solid ${p => p.$selected ? '#bae6fd' : 'transparent'};
+
+  &:hover { background: ${p => p.$selected ? '#eff6ff' : '#f8fafc'}; }
+
+  input[type="checkbox"], input[type="radio"] {
+    accent-color: #0ea5e9;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 13px;
+    color: #374151;
+    font-weight: ${p => p.$selected ? 600 : 400};
+  }
+`;
+
+const PickerEmpty = styled.p`
+  font-size: 13px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 12px 0;
+  margin: 0;
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface TaskModalProps {
@@ -134,6 +212,10 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
   const [title, setTitle] = useState('');
   const [meta, setMeta] = useState('');
   const [saving, setSaving] = useState(false);
+  const [visibilityType, setVisibilityType] = useState<TaskVisibilityType>('ALL');
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
+  const [options, setOptions] = useState<TaskVisibilityOptions>({ users: [], roles: [] });
   const titleRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!editingTask;
@@ -143,16 +225,38 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
       setTitle(editingTask?.title ?? '');
       setMeta(editingTask?.meta ?? '');
       setSaving(false);
+      setVisibilityType((editingTask?.visibilityType as TaskVisibilityType) ?? 'ALL');
+      setSelectedUserIds(editingTask?.visibleToUserIds ?? []);
+      setSelectedRoleId(editingTask?.visibleToRoleId ?? '');
       setTimeout(() => titleRef.current?.focus(), 50);
     }
   }, [isOpen, editingTask]);
+
+  useEffect(() => {
+    if (isOpen) {
+      tasksApi.getVisibilityOptions().then(setOptions).catch(() => {});
+    }
+  }, [isOpen]);
+
+  const toggleUser = (userId: string) => {
+    setSelectedUserIds(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await onSave({ title: title.trim(), meta: meta.trim() || undefined });
+      const payload: CreateTaskPayload = {
+        title: title.trim(),
+        meta: meta.trim() || undefined,
+        visibilityType,
+        visibleToUserIds: visibilityType === 'USERS' ? selectedUserIds : undefined,
+        visibleToRoleId: visibilityType === 'ROLE' ? selectedRoleId || undefined : undefined,
+      };
+      await onSave(payload);
       onClose();
     } finally {
       setSaving(false);
@@ -205,6 +309,77 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
               <CharCount $warn={meta.length > 280}>{meta.length}/300</CharCount>
             )}
           </FieldGroup>
+
+          {!isEditing && (
+            <FieldGroup>
+              <Label>Widoczność zadania</Label>
+              <VisibilityTabs>
+                <VisibilityTab
+                  type="button"
+                  $active={visibilityType === 'ALL'}
+                  onClick={() => setVisibilityType('ALL')}
+                >
+                  <Globe />
+                  Wszyscy
+                </VisibilityTab>
+                <VisibilityTab
+                  type="button"
+                  $active={visibilityType === 'USERS'}
+                  onClick={() => setVisibilityType('USERS')}
+                >
+                  <Users />
+                  Osoby
+                </VisibilityTab>
+                <VisibilityTab
+                  type="button"
+                  $active={visibilityType === 'ROLE'}
+                  onClick={() => setVisibilityType('ROLE')}
+                >
+                  <Shield />
+                  Rola
+                </VisibilityTab>
+              </VisibilityTabs>
+
+              {visibilityType === 'USERS' && (
+                <PickerList>
+                  {options.users.length === 0 ? (
+                    <PickerEmpty>Brak pracowników</PickerEmpty>
+                  ) : (
+                    options.users.map(user => (
+                      <PickerItem key={user.userId} $selected={selectedUserIds.includes(user.userId)}>
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.includes(user.userId)}
+                          onChange={() => toggleUser(user.userId)}
+                        />
+                        <span>{user.fullName}</span>
+                      </PickerItem>
+                    ))
+                  )}
+                </PickerList>
+              )}
+
+              {visibilityType === 'ROLE' && (
+                <PickerList>
+                  {options.roles.length === 0 ? (
+                    <PickerEmpty>Brak ról</PickerEmpty>
+                  ) : (
+                    options.roles.map(role => (
+                      <PickerItem key={role.roleId} $selected={selectedRoleId === role.roleId}>
+                        <input
+                          type="radio"
+                          name="task-role"
+                          checked={selectedRoleId === role.roleId}
+                          onChange={() => setSelectedRoleId(role.roleId)}
+                        />
+                        <span>{role.name}</span>
+                      </PickerItem>
+                    ))
+                  )}
+                </PickerList>
+              )}
+            </FieldGroup>
+          )}
         </ModalContent>
 
         <ModalFooter>
