@@ -81,3 +81,24 @@ export interface VehicleSuggestion {
     brand: string;
     model: string;
 }
+
+export interface BatchOrderPhoto {
+    id: string;
+    fileId: string;
+    fileName: string;
+    description: string | null;
+    url: string;
+    uploadedAt: string;
+    uploadedByName: string | null;
+}
+
+export interface PhotoUploadRequest {
+    fileName: string;
+    description?: string;
+}
+
+export interface PhotoUploadResponse {
+    photoId: string;
+    uploadUrl: string;
+    fileId: string;
+}

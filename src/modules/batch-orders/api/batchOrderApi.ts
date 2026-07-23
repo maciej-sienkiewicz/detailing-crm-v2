@@ -2,11 +2,14 @@ import { apiClient } from '@/core';
 import type {
     BatchContractor,
     BatchOrderEntry,
+    BatchOrderPhoto,
     ContractorsResponse,
     ContractorEntriesResponse,
     ContractorRequest,
     EntryRequest,
     EntrySummary,
+    PhotoUploadRequest,
+    PhotoUploadResponse,
     VehicleSuggestion,
 } from '../types';
 
@@ -59,6 +62,28 @@ export const batchOrderApi = {
         if (q.trim().length < 2) return [];
         const response = await apiClient.get<VehicleSuggestion[]>(`${BASE}/vehicles/search`, { params: { q } });
         return response.data;
+    },
+
+    listEntryPhotos: async (entryId: string): Promise<BatchOrderPhoto[]> => {
+        const response = await apiClient.get<{ photos: BatchOrderPhoto[] }>(`${BASE}/entries/${entryId}/photos`);
+        return response.data.photos;
+    },
+
+    requestPhotoUploadUrl: async (entryId: string, data: PhotoUploadRequest): Promise<PhotoUploadResponse> => {
+        const response = await apiClient.post<PhotoUploadResponse>(`${BASE}/entries/${entryId}/photos/upload-url`, data);
+        return response.data;
+    },
+
+    uploadPhotoToS3: async (uploadUrl: string, file: File): Promise<void> => {
+        await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type || 'image/jpeg' },
+        });
+    },
+
+    deleteEntryPhoto: async (entryId: string, photoId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/entries/${entryId}/photos/${photoId}`);
     },
 
     downloadReport: async (contractorId: string, contractorName: string, from?: string, to?: string): Promise<void> => {

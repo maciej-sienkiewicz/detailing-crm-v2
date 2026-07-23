@@ -4,6 +4,7 @@ import type { ContractorRequest, EntryRequest } from '../types';
 
 export const CONTRACTORS_KEY = ['batch-orders', 'contractors'] as const;
 export const ENTRIES_KEY = (contractorId: string) => ['batch-orders', 'entries', contractorId] as const;
+export const ENTRY_PHOTOS_KEY = (entryId: string) => ['batch-orders', 'entry-photos', entryId] as const;
 
 export function useContractors() {
     return useQuery({
@@ -67,5 +68,21 @@ export function useDeleteEntry(contractorId: string) {
     return useMutation({
         mutationFn: (entryId: string) => batchOrderApi.deleteEntry(entryId),
         onSuccess: () => qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) }),
+    });
+}
+
+export function useEntryPhotos(entryId: string) {
+    return useQuery({
+        queryKey: ENTRY_PHOTOS_KEY(entryId),
+        queryFn: () => batchOrderApi.listEntryPhotos(entryId),
+        enabled: !!entryId,
+    });
+}
+
+export function useDeleteEntryPhoto(entryId: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (photoId: string) => batchOrderApi.deleteEntryPhoto(entryId, photoId),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ENTRY_PHOTOS_KEY(entryId) }),
     });
 }
