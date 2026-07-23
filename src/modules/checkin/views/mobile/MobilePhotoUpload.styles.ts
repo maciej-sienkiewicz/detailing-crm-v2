@@ -671,3 +671,122 @@ export const SectionSubtitle = styled.p`
     color: rgba(255,255,255,0.5);
     line-height: 1.5;
 `;
+
+// ─── Damage photos (per damage point) ─────────────────────────────────────────
+
+export const DamagePhotoRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 0 4px;
+    -webkit-overflow-scrolling: touch;
+`;
+
+export const DamagePhotoThumb = styled.button<{ $failed?: boolean }>`
+    position: relative;
+    width: 68px;
+    height: 68px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1.5px solid ${p => p.$failed ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.14)'};
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0;
+    cursor: pointer;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        ${p => p.$failed && 'opacity: 0.45;'}
+    }
+`;
+
+export const DamagePhotoThumbOverlay = styled.div`
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4, 8, 16, 0.35);
+    color: #fff;
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+`;
+
+export const DamagePhotoBadge = styled.span`
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(14, 165, 233, 0.92);
+    color: #fff;
+
+    svg {
+        width: 11px;
+        height: 11px;
+    }
+`;
+
+export const DamagePhotoRemoveBtn = styled.span`
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.9);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+`;
+
+export const DamageAddPhotoBtn = styled.label`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 68px;
+    height: 68px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 9.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    &:active {
+        background: rgba(14, 165, 233, 0.12);
+        border-color: rgba(14, 165, 233, 0.5);
+        color: #38bdf8;
+    }
+`;
+
+export const DamagePhotoHint = styled.div`
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 2px;
+`;

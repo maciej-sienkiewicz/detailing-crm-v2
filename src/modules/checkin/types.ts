@@ -35,11 +35,34 @@ export interface PriceAdjustment {
     value: number;
 }
 
+// ─── Damage photo annotations ─────────────────────────────────────────────────
+
+export interface AnnotationPoint {
+    x: number; // Percentage (0-100) of the photo width
+    y: number; // Percentage (0-100) of the photo height
+}
+
+export interface AnnotationStroke {
+    color: string; // Hex, e.g. #EF4444
+    width: number; // Percentage of the photo width (e.g. 0.8)
+    points: AnnotationPoint[];
+}
+
+export interface DamagePointPhoto {
+    photoId: string;
+    strokes: AnnotationStroke[];
+    /** Presigned or local preview URL — display only, never persisted */
+    thumbnailUrl?: string;
+    /** Client-side upload state — never persisted */
+    status?: 'uploading' | 'done' | 'failed';
+}
+
 export interface DamagePoint {
     id: number;
     x: number; // Percentage (0-100)
     y: number; // Percentage (0-100)
     note: string;
+    photos?: DamagePointPhoto[];
 }
 
 export interface PackageItemSnapshot {

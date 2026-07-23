@@ -2,8 +2,9 @@
 // Mobile-optimised vehicle damage mapper with touch support and dark theme.
 
 import { useState, useRef, useCallback } from 'react';
-import type { DamagePoint } from '../../types';
+import type { DamagePoint, DamagePointPhoto } from '../../types';
 import type { MobileDamageLogic } from './useMobileDamageLogic';
+import { DamagePhotoAnnotator, AnnotationOverlay } from '../../components/DamagePhotoAnnotator';
 import {
     SaveStatusBadge,
     DamageMapperWrap,
@@ -28,6 +29,14 @@ import {
     VehicleTypeSelectorRow,
     VehicleTypeLabel,
     VehicleTypeSelect,
+    DamagePhotoRow,
+    DamagePhotoThumb,
+    DamagePhotoThumbOverlay,
+    DamagePhotoBadge,
+    DamagePhotoRemoveBtn,
+    DamageAddPhotoBtn,
+    DamagePhotoHint,
+    HiddenInput,
 } from './MobilePhotoUpload.styles';
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
@@ -56,10 +65,12 @@ const SAVE_LABELS: Record<string, string> = {
 };
 
 export const MobileDamageSection = ({ logic }: Props) => {
-    const { damagePoints, saveStatus, updatePoints } = logic;
+    const { damagePoints, saveStatus, updatePoints, attachPhotos, removePhoto, setPhotoStrokes } = logic;
 
     const [vehicleType, setVehicleType] = useState<VehicleBodyType>('sedan');
     const [activePointId, setActivePointId] = useState<number | null>(null);
+    // Photo currently open in the annotation editor
+    const [annotating, setAnnotating] = useState<{ pointId: number; photo: DamagePointPhoto } | null>(null);
     const imageRef = useRef<HTMLImageElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -170,7 +181,8 @@ export const MobileDamageSection = ({ logic }: Props) => {
         <DamageMapperWrap>
             <SectionTitle>Mapa uszkodzeń</SectionTitle>
             <SectionSubtitle>
-                Dotknij schemat pojazdu, aby oznaczyć miejsce uszkodzenia, a następnie dodaj opis.
+                Dotknij schemat pojazdu, aby oznaczyć miejsce uszkodzenia, a następnie dodaj opis
+                i zdjęcia. Na każdym zdjęciu możesz zaznaczyć dokładne miejsce uszkodzenia.
             </SectionSubtitle>
 
             <SaveStatusBadge $status={saveStatus}>
@@ -288,10 +300,111 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                 onFocus={() => setActivePointId(point.id)}
                                 rows={2}
                             />
+
+                            {/* Photos attached to this damage point */}
+                            <DamagePhotoRow>
+                                {(point.photos ?? []).map(photo => (
+                                    <DamagePhotoThumb
+                                        key={photo.photoId}
+                                        $failed={photo.status === 'failed'}
+                                        onClick={() => {
+                                            if (photo.status === 'failed') {
+                                                removePhoto(point.id, photo.photoId);
+                                                return;
+                                            }
+                                            if (photo.status === 'uploading') return;
+                                            if (photo.thumbnailUrl) {
+                                                setAnnotating({ pointId: point.id, photo });
+                                            }
+                                        }}
+                                        title={photo.status === 'failed'
+                                            ? 'Błąd przesyłania — dotknij, aby usunąć'
+                                            : 'Dotknij, aby zaznaczyć uszkodzenie na zdjęciu'}
+                                    >
+                                        {photo.thumbnailUrl && (
+                                            <img src={photo.thumbnailUrl} alt="Zdjęcie uszkodzenia" draggable={false} />
+                                        )}
+                                        <AnnotationOverlay strokes={photo.strokes} />
+                                        {photo.status === 'uploading' && (
+                                            <DamagePhotoThumbOverlay>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+                                                </svg>
+                                            </DamagePhotoThumbOverlay>
+                                        )}
+                                        {photo.status === 'failed' && (
+                                            <DamagePhotoThumbOverlay>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                                </svg>
+                                            </DamagePhotoThumbOverlay>
+                                        )}
+                                        {photo.status !== 'uploading' && photo.status !== 'failed' && photo.strokes.length > 0 && (
+                                            <DamagePhotoBadge title="Zdjęcie z oznaczeniem">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                    <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                                                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                                                </svg>
+                                            </DamagePhotoBadge>
+                                        )}
+                                        {photo.status !== 'uploading' && (
+                                            <DamagePhotoRemoveBtn
+                                                role="button"
+                                                title="Usuń zdjęcie"
+                                                onClick={e => {
+                                                    e.stopPropagation();
+                                                    removePhoto(point.id, photo.photoId);
+                                                }}
+                                            >
+                                                ×
+                                            </DamagePhotoRemoveBtn>
+                                        )}
+                                    </DamagePhotoThumb>
+                                ))}
+
+                                <DamageAddPhotoBtn title="Dodaj zdjęcie uszkodzenia">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                        <circle cx="12" cy="13" r="4" />
+                                    </svg>
+                                    Dodaj zdjęcie
+                                    <HiddenInput
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        multiple
+                                        onChange={e => {
+                                            const files = Array.from(e.target.files ?? []);
+                                            e.target.value = '';
+                                            if (files.length > 0) attachPhotos(point.id, files);
+                                        }}
+                                    />
+                                </DamageAddPhotoBtn>
+                            </DamagePhotoRow>
+                            {(point.photos?.length ?? 0) === 0 && (
+                                <DamagePhotoHint>
+                                    Sfotografuj uszkodzenie, a potem dotknij miniaturę, aby zaznaczyć je na zdjęciu.
+                                </DamagePhotoHint>
+                            )}
                         </DamageItem>
                     ))
                 )}
             </DamageList>
+
+            {/* Photo annotation editor */}
+            {annotating && annotating.photo.thumbnailUrl && (
+                <DamagePhotoAnnotator
+                    imageUrl={annotating.photo.thumbnailUrl}
+                    initialStrokes={annotating.photo.strokes}
+                    title={`Uszkodzenie #${getNumber(annotating.pointId)} — zaznacz na zdjęciu`}
+                    onSave={strokes => {
+                        setPhotoStrokes(annotating.pointId, annotating.photo.photoId, strokes);
+                        setAnnotating(null);
+                    }}
+                    onClose={() => setAnnotating(null)}
+                />
+            )}
         </DamageMapperWrap>
     );
 };

@@ -2,16 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { checkinApi } from '../../api/checkinApi';
-import type { DamagePoint } from '../../types';
+import type { AnnotationStroke, DamagePoint, DamagePointPhoto } from '../../types';
 import type { SaveStatus } from './MobilePhotoUpload.styles';
 
 const DEBOUNCE_MS = 1_800;
 const LS_KEY = (token: string) => `mobile-damage-${token}`;
 
+const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
 export interface MobileDamageLogic {
     damagePoints: DamagePoint[];
     saveStatus: SaveStatus;
     updatePoints: (points: DamagePoint[]) => void;
+    attachPhotos: (pointId: number, files: File[]) => void;
+    removePhoto: (pointId: number, photoId: string) => void;
+    setPhotoStrokes: (pointId: number, photoId: string, strokes: AnnotationStroke[]) => void;
 }
 
 export function useMobileDamageLogic(
@@ -25,6 +31,10 @@ export function useMobileDamageLogic(
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isSavingRef = useRef(false);
     const pendingSaveRef = useRef<DamagePoint[] | null>(null);
+
+    // Always-current points — photo upload callbacks resolve after state changes
+    const pointsRef = useRef<DamagePoint[]>([]);
+    pointsRef.current = damagePoints;
 
     // ─── Load from backend (fallback: localStorage) on session start ──────────
 
@@ -43,10 +53,21 @@ export function useMobileDamageLogic(
                 // Fall through to localStorage
             }
 
-            // Offline fallback
+            // Offline fallback (drop dead blob: preview URLs and unfinished uploads)
             const stored = localStorage.getItem(LS_KEY(token));
             if (stored) {
-                try { setDamagePoints(JSON.parse(stored)); } catch { /* corrupt */ }
+                try {
+                    const parsed: DamagePoint[] = JSON.parse(stored);
+                    setDamagePoints(parsed.map(p => ({
+                        ...p,
+                        photos: (p.photos ?? [])
+                            .filter(ph => ph.status !== 'uploading' && ph.status !== 'failed')
+                            .map(ph => ({
+                                ...ph,
+                                thumbnailUrl: ph.thumbnailUrl?.startsWith('blob:') ? undefined : ph.thumbnailUrl,
+                            })),
+                    })));
+                } catch { /* corrupt */ }
             }
         };
 
@@ -99,6 +120,76 @@ export function useMobileDamageLogic(
         }, DEBOUNCE_MS);
     }, [token, isOnline, saveToBackend]);
 
+    // ─── Damage photos ────────────────────────────────────────────────────────
+
+    /** Applies `mutate` to a single photo of a single point in the current list. */
+    const mutatePhoto = useCallback((
+        points: DamagePoint[],
+        pointId: number,
+        photoId: string,
+        mutate: (photo: DamagePointPhoto) => DamagePointPhoto | null,
+    ): DamagePoint[] =>
+        points.map(p => {
+            if (p.id !== pointId) return p;
+            const photos = (p.photos ?? [])
+                .map(ph => ph.photoId === photoId ? mutate(ph) : ph)
+                .filter((ph): ph is DamagePointPhoto => ph !== null);
+            return { ...p, photos };
+        }),
+    []);
+
+    const attachPhotos = useCallback((pointId: number, files: File[]) => {
+        for (const file of files) {
+            if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+                alert(`Nieobsługiwany format: ${file.type}. Używaj JPEG, PNG lub WebP.`);
+                continue;
+            }
+            if (file.size > MAX_PHOTO_SIZE_BYTES) {
+                alert(`Plik "${file.name}" przekracza 10 MB.`);
+                continue;
+            }
+
+            const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const previewUrl = URL.createObjectURL(file);
+            const placeholder: DamagePointPhoto = {
+                photoId: localId,
+                strokes: [],
+                thumbnailUrl: previewUrl,
+                status: 'uploading',
+            };
+
+            updatePoints(pointsRef.current.map(p =>
+                p.id === pointId ? { ...p, photos: [...(p.photos ?? []), placeholder] } : p
+            ));
+
+            checkinApi.uploadMobilePhoto(file, file.name, token)
+                .then(res => {
+                    updatePoints(mutatePhoto(pointsRef.current, pointId, localId, ph => ({
+                        ...ph,
+                        photoId: res.photoId,
+                        status: 'done',
+                    })));
+                })
+                .catch(() => {
+                    updatePoints(mutatePhoto(pointsRef.current, pointId, localId, ph => ({
+                        ...ph,
+                        status: 'failed',
+                    })));
+                });
+        }
+    }, [token, updatePoints, mutatePhoto]);
+
+    const removePhoto = useCallback((pointId: number, photoId: string) => {
+        updatePoints(mutatePhoto(pointsRef.current, pointId, photoId, ph => {
+            if (ph.thumbnailUrl?.startsWith('blob:')) URL.revokeObjectURL(ph.thumbnailUrl);
+            return null;
+        }));
+    }, [updatePoints, mutatePhoto]);
+
+    const setPhotoStrokes = useCallback((pointId: number, photoId: string, strokes: AnnotationStroke[]) => {
+        updatePoints(mutatePhoto(pointsRef.current, pointId, photoId, ph => ({ ...ph, strokes })));
+    }, [updatePoints, mutatePhoto]);
+
     // ─── Sync when coming back online ─────────────────────────────────────────
 
     useEffect(() => {
@@ -114,5 +205,5 @@ export function useMobileDamageLogic(
         };
     }, []);
 
-    return { damagePoints, saveStatus, updatePoints };
+    return { damagePoints, saveStatus, updatePoints, attachPhotos, removePhoto, setPhotoStrokes };
 }
