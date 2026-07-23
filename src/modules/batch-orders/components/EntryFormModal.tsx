@@ -237,6 +237,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     const [vehicleMake, setVehicleMake] = useState(initial?.vehicleMake ?? '');
     const [vehicleModel, setVehicleModel] = useState(initial?.vehicleModel ?? '');
     const [vehiclePlate, setVehiclePlate] = useState(initial?.vehicleLicensePlate ?? '');
+    const [vehicleVin, setVehicleVin] = useState(initial?.vehicleVin ?? '');
     const [services, setServices] = useState<ServiceFormItem[]>(
         initial?.services?.length
             ? initial.services.map(serviceToForm)
@@ -248,7 +249,10 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
     const [plateSuggestions, setPlateSuggestions] = useState<VehicleSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [vinSuggestions, setVinSuggestions] = useState<VehicleSuggestion[]>([]);
+    const [showVinSuggestions, setShowVinSuggestions] = useState(false);
     const plateRef = useRef<HTMLDivElement>(null);
+    const vinRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -268,9 +272,29 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     }, [vehiclePlate]);
 
     useEffect(() => {
+        let cancelled = false;
+        const t = setTimeout(async () => {
+            if (vehicleVin.trim().length >= 3) {
+                const results = await batchOrderApi.searchVehiclesFromEntries(vehicleVin.trim());
+                if (!cancelled) {
+                    setVinSuggestions(results);
+                    setShowVinSuggestions(results.length > 0);
+                }
+            } else {
+                setVinSuggestions([]);
+                setShowVinSuggestions(false);
+            }
+        }, 250);
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [vehicleVin]);
+
+    useEffect(() => {
         function handleClick(e: MouseEvent) {
             if (plateRef.current && !plateRef.current.contains(e.target as Node)) {
                 setShowSuggestions(false);
+            }
+            if (vinRef.current && !vinRef.current.contains(e.target as Node)) {
+                setShowVinSuggestions(false);
             }
         }
         document.addEventListener('mousedown', handleClick);
@@ -279,9 +303,18 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
     function selectSuggestion(s: VehicleSuggestion) {
         setVehiclePlate(s.licensePlate);
+        if (s.vin) setVehicleVin(s.vin);
         if (!vehicleMake && s.brand) setVehicleMake(s.brand);
         if (!vehicleModel && s.model) setVehicleModel(s.model);
         setShowSuggestions(false);
+    }
+
+    function selectVinSuggestion(s: VehicleSuggestion) {
+        if (s.vin) setVehicleVin(s.vin);
+        if (s.licensePlate) setVehiclePlate(s.licensePlate);
+        if (!vehicleMake && s.brand) setVehicleMake(s.brand);
+        if (!vehicleModel && s.model) setVehicleModel(s.model);
+        setShowVinSuggestions(false);
     }
 
     function updateService(idx: number, patch: Partial<ServiceFormItem>) {
@@ -335,6 +368,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                 vehicleMake: vehicleMake.trim() || undefined,
                 vehicleModel: vehicleModel.trim() || undefined,
                 vehicleLicensePlate: vehiclePlate.trim() || undefined,
+                vehicleVin: vehicleVin.trim().toUpperCase() || undefined,
                 services: serviceItems,
                 notes: notes.trim() || undefined,
             });
@@ -392,31 +426,60 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                         </FormField>
                     </FormGrid>
 
-                    <FormField style={{ marginTop: 10 }}>
-                        <FieldLabel htmlFor="entry-plate">Tablica rejestracyjna</FieldLabel>
-                        <PlateWrapper ref={plateRef}>
-                            <InputShell>
-                                <BareInput
-                                    id="entry-plate"
-                                    value={vehiclePlate}
-                                    onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
-                                    onFocus={() => plateSuggestions.length > 0 && setShowSuggestions(true)}
-                                    placeholder="np. WA12345"
-                                    autoComplete="off"
-                                />
-                            </InputShell>
-                            {showSuggestions && (
-                                <SuggestionList>
-                                    {plateSuggestions.map(s => (
-                                        <SuggestionItem key={s.licensePlate} onMouseDown={() => selectSuggestion(s)}>
-                                            <strong>{s.licensePlate}</strong>
-                                            <span>{s.brand} {s.model}</span>
-                                        </SuggestionItem>
-                                    ))}
-                                </SuggestionList>
-                            )}
-                        </PlateWrapper>
-                    </FormField>
+                    <FormGrid $columns={2} style={{ marginTop: 10 }}>
+                        <FormField>
+                            <FieldLabel htmlFor="entry-plate">Tablica rejestracyjna</FieldLabel>
+                            <PlateWrapper ref={plateRef}>
+                                <InputShell>
+                                    <BareInput
+                                        id="entry-plate"
+                                        value={vehiclePlate}
+                                        onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
+                                        onFocus={() => plateSuggestions.length > 0 && setShowSuggestions(true)}
+                                        placeholder="np. WA12345"
+                                        autoComplete="off"
+                                    />
+                                </InputShell>
+                                {showSuggestions && (
+                                    <SuggestionList>
+                                        {plateSuggestions.map(s => (
+                                            <SuggestionItem key={s.licensePlate} onMouseDown={() => selectSuggestion(s)}>
+                                                <strong>{s.licensePlate}</strong>
+                                                <span>{s.brand} {s.model}</span>
+                                            </SuggestionItem>
+                                        ))}
+                                    </SuggestionList>
+                                )}
+                            </PlateWrapper>
+                        </FormField>
+                        <FormField>
+                            <FieldLabel htmlFor="entry-vin">VIN</FieldLabel>
+                            <PlateWrapper ref={vinRef}>
+                                <InputShell>
+                                    <BareInput
+                                        id="entry-vin"
+                                        value={vehicleVin}
+                                        onChange={e => setVehicleVin(e.target.value.toUpperCase())}
+                                        onFocus={() => vinSuggestions.length > 0 && setShowVinSuggestions(true)}
+                                        placeholder="np. WBA3A5G59DNP26082"
+                                        maxLength={17}
+                                        autoComplete="off"
+                                        style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
+                                    />
+                                </InputShell>
+                                {showVinSuggestions && (
+                                    <SuggestionList>
+                                        {vinSuggestions.map(s => (
+                                            <SuggestionItem key={s.vin ?? s.licensePlate} onMouseDown={() => selectVinSuggestion(s)}>
+                                                <strong>{s.vin}</strong>
+                                                <span>{[s.brand, s.model, s.licensePlate].filter(Boolean).join(' · ')}</span>
+                                            </SuggestionItem>
+                                        ))}
+                                    </SuggestionList>
+                                )}
+                            </PlateWrapper>
+                        </FormField>
+                    </FormGrid>
                 </div>
 
                 <div>

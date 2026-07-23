@@ -64,6 +64,12 @@ export const batchOrderApi = {
         return response.data;
     },
 
+    searchVehiclesFromEntries: async (q: string): Promise<VehicleSuggestion[]> => {
+        if (q.trim().length < 2) return [];
+        const response = await apiClient.get<VehicleSuggestion[]>(`${BASE}/vehicles/search-entry`, { params: { q } });
+        return response.data;
+    },
+
     listEntryPhotos: async (entryId: string): Promise<BatchOrderPhoto[]> => {
         const response = await apiClient.get<{ photos: BatchOrderPhoto[] }>(`${BASE}/entries/${entryId}/photos`);
         return response.data.photos;
