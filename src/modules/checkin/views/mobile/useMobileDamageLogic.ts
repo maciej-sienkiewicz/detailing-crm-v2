@@ -13,6 +13,8 @@ const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp
 
 export interface MobileDamageLogic {
     damagePoints: DamagePoint[];
+    vehicleType: string;
+    setVehicleType: (type: string) => void;
     saveStatus: SaveStatus;
     updatePoints: (points: DamagePoint[]) => void;
     /** Returns the created placeholder photos (with stable localId) so the UI
@@ -28,6 +30,7 @@ export function useMobileDamageLogic(
     sessionReady: boolean,
 ): MobileDamageLogic {
     const [damagePoints, setDamagePoints] = useState<DamagePoint[]>([]);
+    const [vehicleType, setVehicleTypeState] = useState<string>('sedan');
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,6 +40,8 @@ export function useMobileDamageLogic(
     // Always-current points — photo upload callbacks resolve after state changes
     const pointsRef = useRef<DamagePoint[]>([]);
     pointsRef.current = damagePoints;
+    const vehicleTypeRef = useRef(vehicleType);
+    vehicleTypeRef.current = vehicleType;
 
     // ─── Load from backend (fallback: localStorage) on session start ──────────
 
@@ -48,8 +53,12 @@ export function useMobileDamageLogic(
             try {
                 const res = await checkinApi.getMobileDamagePoints(token);
                 setDamagePoints(res.damagePoints);
+                if (res.vehicleType) setVehicleTypeState(res.vehicleType);
                 // Persist locally as backup
-                localStorage.setItem(LS_KEY(token), JSON.stringify(res.damagePoints));
+                localStorage.setItem(LS_KEY(token), JSON.stringify({
+                    damagePoints: res.damagePoints,
+                    vehicleType: res.vehicleType ?? undefined,
+                }));
                 return;
             } catch {
                 // Fall through to localStorage
@@ -59,7 +68,10 @@ export function useMobileDamageLogic(
             const stored = localStorage.getItem(LS_KEY(token));
             if (stored) {
                 try {
-                    const parsed: DamagePoint[] = JSON.parse(stored);
+                    const raw = JSON.parse(stored);
+                    // Backward compat: older versions stored a bare points array
+                    const parsed: DamagePoint[] = Array.isArray(raw) ? raw : (raw.damagePoints ?? []);
+                    if (!Array.isArray(raw) && raw.vehicleType) setVehicleTypeState(raw.vehicleType);
                     setDamagePoints(parsed.map(p => ({
                         ...p,
                         photos: (p.photos ?? [])
@@ -88,7 +100,7 @@ export function useMobileDamageLogic(
         setSaveStatus('saving');
 
         try {
-            await checkinApi.saveMobileDamagePoints(token, points);
+            await checkinApi.saveMobileDamagePoints(token, points, vehicleTypeRef.current);
             setSaveStatus('saved');
             // After 3s, reset to idle
             setTimeout(() => setSaveStatus(prev => prev === 'saved' ? 'idle' : prev), 3000);
@@ -109,7 +121,10 @@ export function useMobileDamageLogic(
     const updatePoints = useCallback((points: DamagePoint[]) => {
         setDamagePoints(points);
         // Always persist locally immediately
-        localStorage.setItem(LS_KEY(token), JSON.stringify(points));
+        localStorage.setItem(LS_KEY(token), JSON.stringify({
+            damagePoints: points,
+            vehicleType: vehicleTypeRef.current,
+        }));
 
         if (!isOnline) {
             setSaveStatus('offline');
@@ -121,6 +136,16 @@ export function useMobileDamageLogic(
             saveToBackend(points);
         }, DEBOUNCE_MS);
     }, [token, isOnline, saveToBackend]);
+
+    // ─── Vehicle type ─────────────────────────────────────────────────────────
+
+    /** Changing the body type re-persists the whole damage state, so the backend
+     *  always knows which schematic the coordinates refer to. */
+    const setVehicleType = useCallback((type: string) => {
+        setVehicleTypeState(type);
+        vehicleTypeRef.current = type;
+        updatePoints(pointsRef.current);
+    }, [updatePoints]);
 
     // ─── Damage photos ────────────────────────────────────────────────────────
 
@@ -215,5 +240,14 @@ export function useMobileDamageLogic(
         };
     }, []);
 
-    return { damagePoints, saveStatus, updatePoints, attachPhotos, removePhoto, setPhotoStrokes };
+    return {
+        damagePoints,
+        vehicleType,
+        setVehicleType,
+        saveStatus,
+        updatePoints,
+        attachPhotos,
+        removePhoto,
+        setPhotoStrokes,
+    };
 }

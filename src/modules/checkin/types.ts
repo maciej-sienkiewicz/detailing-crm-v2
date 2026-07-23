@@ -154,6 +154,8 @@ export interface CheckInFormData {
     visitEndAt?: string;
     photos: PhotoSlot[];
     damagePoints: DamagePoint[];
+    /** Vehicle body type the damage points were placed on (sedan, suv, ...) */
+    damageVehicleType?: string;
     services: ServiceLineItem[];
     appointmentColorId: string;
     doorToDoor?: DoorToDoorInfo;
@@ -272,6 +274,7 @@ export interface ReservationToVisitPayload {
     title?: string;
     photoIds: string[];
     damagePoints: DamagePoint[];
+    damageVehicleType?: string;
     services: ServiceLineItem[];
     appointmentColorId: string;
     doorToDoor?: {
@@ -307,6 +310,7 @@ export interface WalkInVisitPayload {
     title?: string;
     photoIds: string[];
     damagePoints: DamagePoint[];
+    damageVehicleType?: string;
     services: ServiceLineItem[];
     appointmentColorId: string;
     qrCheckinId?: string;
@@ -362,10 +366,12 @@ export interface MobileCheckinContext {
 
 export interface MobileDamagePointsRequest {
     damagePoints: DamagePoint[];
+    vehicleType?: string;
 }
 
 export interface MobileDamagePointsResponse {
     checkinId: string;
+    vehicleType?: string | null;
     damagePoints: DamagePoint[];
     savedAt: string;
 }
@@ -376,6 +382,7 @@ export interface CheckinDamageUpdatedEvent {
     type: 'CHECKIN_DAMAGE_UPDATED';
     checkinId: string;
     damagePoints: DamagePoint[];
+    vehicleType?: string | null;
     updatedAt: string;
 }
 

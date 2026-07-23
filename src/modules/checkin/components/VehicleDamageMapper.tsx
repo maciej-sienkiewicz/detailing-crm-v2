@@ -480,10 +480,25 @@ interface VehicleDamageMapperProps {
   onChange: (points: DamagePoint[]) => void;
   /** Photos from the documentation step that can be attached to damage points */
   availablePhotos?: PhotoSlot[];
+  /** Controlled body type (kept in the wizard form and sent to the backend);
+   *  falls back to internal state when not provided */
+  vehicleType?: string;
+  onVehicleTypeChange?: (type: string) => void;
 }
 
-export const VehicleDamageMapper = ({ points, onChange, availablePhotos = [] }: VehicleDamageMapperProps) => {
-  const [vehicleType, setVehicleType] = useState<VehicleBodyType>('sedan');
+export const VehicleDamageMapper = ({
+  points,
+  onChange,
+  availablePhotos = [],
+  vehicleType: vehicleTypeProp,
+  onVehicleTypeChange,
+}: VehicleDamageMapperProps) => {
+  const [vehicleTypeLocal, setVehicleTypeLocal] = useState<VehicleBodyType>('sedan');
+  const vehicleType = (vehicleTypeProp ?? vehicleTypeLocal) as VehicleBodyType;
+  const setVehicleType = (type: VehicleBodyType) => {
+    setVehicleTypeLocal(type);
+    onVehicleTypeChange?.(type);
+  };
   const [hoveredPointId, setHoveredPointId] = useState<number | null>(null);
   const [pickerPointId, setPickerPointId] = useState<number | null>(null);
   const [annotating, setAnnotating] = useState<{ pointId: number; photo: DamagePointPhoto } | null>(null);

@@ -51,6 +51,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         visitEndAt: initialData.visitEndAt,
         photos: [],
         damagePoints: initialData.damagePoints || [],
+        damageVehicleType: initialData.damageVehicleType,
         services: initialData.services || [],
         appointmentColorId: initialData.appointmentColorId || '',
         doorToDoor: initialData.doorToDoor,
@@ -251,6 +252,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.id),
             damagePoints: formData.damagePoints || [],
+            damageVehicleType: formData.damageVehicleType,
             services: transformedServices,
             appointmentColorId: formData.appointmentColorId,
             doorToDoor: formData.doorToDoor?.enabled ? {
