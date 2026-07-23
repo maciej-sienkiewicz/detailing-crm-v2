@@ -436,7 +436,9 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                             type="button"
                                             $selected={bulkVatRate === r}
                                             onClick={() => {
-                                                onChange(services.map(s => ({ ...s, vatRate: r })));
+                                                // Clear basePriceGross: it was computed at the old VAT rate
+                                                // and would otherwise override the recalculated gross display.
+                                                onChange(services.map(s => ({ ...s, vatRate: r, basePriceGross: undefined })));
                                                 setBulkVatRate(r);
                                                 setBulkVatOpen(false);
                                             }}
