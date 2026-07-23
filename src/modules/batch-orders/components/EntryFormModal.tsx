@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import { Camera } from 'lucide-react';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
@@ -183,51 +184,25 @@ const SuggestionItem = styled.li`
     span { color: #64748b; font-size: 13px; }
 `;
 
-// ─── VIN input with camera button ─────────────────────────────────────────────
+// ─── VIN camera inline button ─────────────────────────────────────────────────
 
-const VinInputRow = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
-`;
-
-const VinInputShell = styled(InputShell)`
-    flex: 1;
-`;
-
-const CameraBtn = styled.button<{ $loading?: boolean }>`
-    flex-shrink: 0;
-    width: 42px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    background: ${({ $loading }) => $loading ? '#f1f5f9' : 'white'};
-    color: ${({ $loading }) => $loading ? '#94a3b8' : '#64748b'};
-    cursor: ${({ $loading }) => $loading ? 'default' : 'pointer'};
+const CameraInlineBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 17px;
-    transition: all 150ms ease;
+    padding: 0 12px;
+    height: 100%;
+    border: none;
+    border-left: 1px solid #e2e8f0;
+    background: none;
+    color: var(--brand-primary);
+    cursor: pointer;
+    border-radius: 0 10px 10px 0;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
 
-    &:hover:not(:disabled) {
-        border-color: #0ea5e9;
-        color: #0ea5e9;
-        background: rgba(14, 165, 233, 0.05);
-    }
-
-    &:disabled { opacity: 0.5; cursor: default; }
-`;
-
-const Spinner = styled.span`
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #e2e8f0;
-    border-top-color: #0ea5e9;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-
-    @keyframes spin { to { transform: rotate(360deg); } }
+    &:hover:not(:disabled) { background: #f0f9ff; }
+    &:disabled { color: #94a3b8; cursor: not-allowed; }
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -525,29 +500,26 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                         <FormField>
                             <FieldLabel htmlFor="entry-vin">VIN</FieldLabel>
                             <AutocompleteWrapper ref={vinRef}>
-                                <VinInputRow>
-                                    <VinInputShell>
-                                        <BareInput
-                                            id="entry-vin"
-                                            value={vehicleVin}
-                                            onChange={e => setVehicleVin(e.target.value.toUpperCase())}
-                                            onFocus={() => vinSuggestions.length > 0 && setShowVinSuggestions(true)}
-                                            placeholder="np. WBA3A5G59DNP26082"
-                                            maxLength={17}
-                                            autoComplete="off"
-                                            style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
-                                        />
-                                    </VinInputShell>
-                                    <CameraBtn
+                                <InputShell>
+                                    <BareInput
+                                        id="entry-vin"
+                                        value={vehicleVin}
+                                        onChange={e => setVehicleVin(e.target.value.toUpperCase())}
+                                        onFocus={() => vinSuggestions.length > 0 && setShowVinSuggestions(true)}
+                                        placeholder="np. WBA3A5G59DNP26082"
+                                        maxLength={17}
+                                        autoComplete="off"
+                                        style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
+                                    />
+                                    <CameraInlineBtn
                                         type="button"
                                         title="Zeskanuj VIN ze zdjęcia"
-                                        $loading={vinUploading}
                                         disabled={vinUploading}
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        {vinUploading ? <Spinner /> : '📷'}
-                                    </CameraBtn>
-                                </VinInputRow>
+                                        <Camera size={15} />
+                                    </CameraInlineBtn>
+                                </InputShell>
                                 {showVinSuggestions && (
                                     <SuggestionList>
                                         {vinSuggestions.map(s => (
