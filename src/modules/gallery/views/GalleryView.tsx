@@ -211,7 +211,7 @@ const CardVehicle = styled.span`
     white-space: nowrap;
 `;
 
-const SourceBadge = styled.span<{ $source: 'VEHICLE' | 'VISIT' }>`
+const SourceBadge = styled.span<{ $source: 'VEHICLE' | 'VISIT' | 'BATCH_ORDER' }>`
     padding: 2px 7px;
     border-radius: ${p => p.theme.radii.full};
     font-size: 9px;
@@ -221,6 +221,9 @@ const SourceBadge = styled.span<{ $source: 'VEHICLE' | 'VISIT' }>`
     flex-shrink: 0;
     ${p => p.$source === 'VISIT' ? `
         background: rgba(16,185,129,0.85);
+        color: white;
+    ` : p.$source === 'BATCH_ORDER' ? `
+        background: rgba(245,158,11,0.85);
         color: white;
     ` : `
         background: rgba(14,165,233,0.85);
@@ -525,7 +528,9 @@ export const GalleryView = () => {
                                     </ZoomIcon>
                                     <CardBody>
                                         <CardTitle>
-                                            {[photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.fileName}
+                                            {photo.source === 'BATCH_ORDER'
+                                                ? ([photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.contractorName || photo.fileName)
+                                                : ([photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.fileName)}
                                         </CardTitle>
                                         {photo.tags.length > 0 && (
                                             <CardTags>
@@ -541,10 +546,12 @@ export const GalleryView = () => {
                                         )}
                                         <CardMeta>
                                             <CardVehicle>
-                                                {photo.vehicleLicensePlate ?? (photo.customerName ? <PiiValue value={photo.customerName} kind="name" /> : '')}
+                                                {photo.source === 'BATCH_ORDER'
+                                                    ? (photo.contractorName ?? photo.vehicleLicensePlate ?? '')
+                                                    : (photo.vehicleLicensePlate ?? (photo.customerName ? <PiiValue value={photo.customerName} kind="name" /> : ''))}
                                             </CardVehicle>
                                             <SourceBadge $source={photo.source}>
-                                                {photo.source === 'VISIT' ? 'Wizyta' : 'Pojazd'}
+                                                {photo.source === 'VISIT' ? 'Wizyta' : photo.source === 'BATCH_ORDER' ? 'Zbiorcze' : 'Pojazd'}
                                             </SourceBadge>
                                         </CardMeta>
                                     </CardBody>

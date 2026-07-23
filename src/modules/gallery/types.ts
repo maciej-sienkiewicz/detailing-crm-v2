@@ -1,6 +1,6 @@
 // src/modules/gallery/types.ts
 
-export type GalleryPhotoSource = 'VEHICLE' | 'VISIT';
+export type GalleryPhotoSource = 'VEHICLE' | 'VISIT' | 'BATCH_ORDER';
 
 export interface GalleryPhoto {
     id: string;
@@ -22,6 +22,8 @@ export interface GalleryPhoto {
     visitNumber?: string;
     customerId?: string;
     customerName?: string;
+    batchOrderEntryId?: string;
+    contractorName?: string;
 }
 
 export interface GalleryFilters {

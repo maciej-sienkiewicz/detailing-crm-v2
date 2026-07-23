@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { DateRangeFilter } from './DateRangeFilter';
+import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, EntryRequest } from '../types';
 
@@ -279,6 +280,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [editEntry, setEditEntry] = useState<BatchOrderEntry | null>(null);
     const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
+    const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
 
     const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom || undefined, filterTo || undefined);
     const createEntry = useCreateEntry(contractor.id);
@@ -372,58 +374,80 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 </TableHead>
                                 <tbody>
                                     {entries.map(entry => (
-                                        <Tr key={entry.id}>
-                                            <Td style={{ whiteSpace: 'nowrap' }}>
-                                                {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
-                                            </Td>
-                                            <Td>
-                                                <VehicleCell>
-                                                    {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '—'}
-                                                </VehicleCell>
-                                                {entry.vehicleLicensePlate && (
-                                                    <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
-                                                )}
-                                            </Td>
-                                            <Td>
-                                                {entry.services.length > 0 ? (
-                                                    <ServiceList>
-                                                        {entry.services.map((s, i) => (
-                                                            <li key={i}>
-                                                                <ServiceName>{s.name}</ServiceName>
-                                                                <ServicePrice>
-                                                                    {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
-                                                                </ServicePrice>
-                                                            </li>
-                                                        ))}
-                                                    </ServiceList>
-                                                ) : '—'}
-                                            </Td>
-                                            <Td $align="right">
-                                                <Money>{formatMoney(entry.netAmountCents)}</Money>
-                                            </Td>
-                                            <Td $align="right">
-                                                <GrossMoney>{formatMoney(entry.grossAmountCents)}</GrossMoney>
-                                            </Td>
-                                            <Td style={{ maxWidth: 160, wordBreak: 'break-word', color: 'inherit' }}>
-                                                {entry.notes || <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>—</span>}
-                                            </Td>
-                                            <Td $align="right">
-                                                <RowActions>
-                                                    <ActionBtn
-                                                        $variant="outline"
-                                                        onClick={() => { setEditEntry(entry); setShowEntryForm(true); }}
-                                                    >
-                                                        Edytuj
-                                                    </ActionBtn>
-                                                    <ActionBtn
-                                                        $variant="danger"
-                                                        onClick={() => setConfirmDeleteEntryId(entry.id)}
-                                                    >
-                                                        Usuń
-                                                    </ActionBtn>
-                                                </RowActions>
-                                            </Td>
-                                        </Tr>
+                                        <Fragment key={entry.id}>
+                                            <Tr>
+                                                <Td style={{ whiteSpace: 'nowrap' }}>
+                                                    {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                                </Td>
+                                                <Td>
+                                                    <VehicleCell>
+                                                        {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '—'}
+                                                    </VehicleCell>
+                                                    {entry.vehicleLicensePlate && (
+                                                        <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
+                                                    )}
+                                                </Td>
+                                                <Td>
+                                                    {entry.services.length > 0 ? (
+                                                        <ServiceList>
+                                                            {entry.services.map((s, i) => (
+                                                                <li key={i}>
+                                                                    <ServiceName>{s.name}</ServiceName>
+                                                                    <ServicePrice>
+                                                                        {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
+                                                                    </ServicePrice>
+                                                                </li>
+                                                            ))}
+                                                        </ServiceList>
+                                                    ) : '—'}
+                                                </Td>
+                                                <Td $align="right">
+                                                    <Money>{formatMoney(entry.netAmountCents)}</Money>
+                                                </Td>
+                                                <Td $align="right">
+                                                    <GrossMoney>{formatMoney(entry.grossAmountCents)}</GrossMoney>
+                                                </Td>
+                                                <Td style={{ maxWidth: 160, wordBreak: 'break-word', color: 'inherit' }}>
+                                                    {entry.notes || <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>—</span>}
+                                                </Td>
+                                                <Td $align="right">
+                                                    <RowActions>
+                                                        <ActionBtn
+                                                            $variant="ghost"
+                                                            title="Dokumentacja zdjęciowa"
+                                                            onClick={() => setExpandedPhotoEntryId(
+                                                                expandedPhotoEntryId === entry.id ? null : entry.id
+                                                            )}
+                                                            style={expandedPhotoEntryId === entry.id ? { background: 'rgba(14,165,233,0.1)', borderColor: 'rgba(14,165,233,0.4)' } : {}}
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" style={{ verticalAlign: 'middle' }}>
+                                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                                                <circle cx="12" cy="13" r="4" />
+                                                            </svg>
+                                                        </ActionBtn>
+                                                        <ActionBtn
+                                                            $variant="outline"
+                                                            onClick={() => { setEditEntry(entry); setShowEntryForm(true); }}
+                                                        >
+                                                            Edytuj
+                                                        </ActionBtn>
+                                                        <ActionBtn
+                                                            $variant="danger"
+                                                            onClick={() => setConfirmDeleteEntryId(entry.id)}
+                                                        >
+                                                            Usuń
+                                                        </ActionBtn>
+                                                    </RowActions>
+                                                </Td>
+                                            </Tr>
+                                            {expandedPhotoEntryId === entry.id && (
+                                                <tr>
+                                                    <td colSpan={7} style={{ padding: 0 }}>
+                                                        <BatchOrderPhotoSection entryId={entry.id} />
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </Table>
