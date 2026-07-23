@@ -161,6 +161,21 @@ const PlateTag = styled.span`
     line-height: 1.5;
 `;
 
+const VinTag = styled.span`
+    display: inline-block;
+    margin-top: 3px;
+    margin-left: 6px;
+    padding: 2px 7px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    line-height: 1.5;
+`;
+
 /* ── Services list ── */
 const ServiceList = styled.ul`
     margin: 0;
@@ -383,8 +398,15 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                     <VehicleCell>
                                                         {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '—'}
                                                     </VehicleCell>
-                                                    {entry.vehicleLicensePlate && (
-                                                        <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
+                                                    {(entry.vehicleLicensePlate || entry.vehicleVin) && (
+                                                        <div>
+                                                            {entry.vehicleLicensePlate && (
+                                                                <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
+                                                            )}
+                                                            {entry.vehicleVin && (
+                                                                <VinTag>VIN {entry.vehicleVin}</VinTag>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </Td>
                                                 <Td>

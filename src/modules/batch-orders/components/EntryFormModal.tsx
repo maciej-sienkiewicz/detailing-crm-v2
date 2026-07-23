@@ -144,9 +144,9 @@ const AddServiceBtn = styled.button`
     &:hover { background: rgba(14, 165, 233, 0.04); border-color: #bae6fd; }
 `;
 
-// ─── Plate autocomplete ───────────────────────────────────────────────────────
+// ─── Autocomplete ─────────────────────────────────────────────────────────────
 
-const PlateWrapper = styled.div`
+const AutocompleteWrapper = styled.div`
     position: relative;
 `;
 
@@ -181,6 +181,53 @@ const SuggestionItem = styled.li`
 
     strong { font-weight: 700; font-family: monospace; letter-spacing: 0.04em; }
     span { color: #64748b; font-size: 13px; }
+`;
+
+// ─── VIN input with camera button ─────────────────────────────────────────────
+
+const VinInputRow = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+`;
+
+const VinInputShell = styled(InputShell)`
+    flex: 1;
+`;
+
+const CameraBtn = styled.button<{ $loading?: boolean }>`
+    flex-shrink: 0;
+    width: 42px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: ${({ $loading }) => $loading ? '#f1f5f9' : 'white'};
+    color: ${({ $loading }) => $loading ? '#94a3b8' : '#64748b'};
+    cursor: ${({ $loading }) => $loading ? 'default' : 'pointer'};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    transition: all 150ms ease;
+
+    &:hover:not(:disabled) {
+        border-color: #0ea5e9;
+        color: #0ea5e9;
+        background: rgba(14, 165, 233, 0.05);
+    }
+
+    &:disabled { opacity: 0.5; cursor: default; }
+`;
+
+const Spinner = styled.span`
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #0ea5e9;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+
+    @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -254,6 +301,9 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     const plateRef = useRef<HTMLDivElement>(null);
     const vinRef = useRef<HTMLDivElement>(null);
 
+    const [vinUploading, setVinUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         let cancelled = false;
         const t = setTimeout(async () => {
@@ -311,10 +361,29 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
     function selectVinSuggestion(s: VehicleSuggestion) {
         if (s.vin) setVehicleVin(s.vin);
-        if (s.licensePlate) setVehiclePlate(s.licensePlate);
+        if (!vehiclePlate && s.licensePlate) setVehiclePlate(s.licensePlate);
         if (!vehicleMake && s.brand) setVehicleMake(s.brand);
         if (!vehicleModel && s.model) setVehicleModel(s.model);
         setShowVinSuggestions(false);
+    }
+
+    async function handleVinFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        e.target.value = '';
+        setVinUploading(true);
+        try {
+            const vin = await batchOrderApi.extractVin(file);
+            if (vin) {
+                setVehicleVin(vin);
+            } else {
+                setError('Nie udało się odczytać VIN ze zdjęcia. Spróbuj ponownie lub wpisz ręcznie.');
+            }
+        } catch {
+            setError('Błąd podczas analizy zdjęcia. Spróbuj ponownie.');
+        } finally {
+            setVinUploading(false);
+        }
     }
 
     function updateService(idx: number, patch: Partial<ServiceFormItem>) {
@@ -429,7 +498,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                     <FormGrid $columns={2} style={{ marginTop: 10 }}>
                         <FormField>
                             <FieldLabel htmlFor="entry-plate">Tablica rejestracyjna</FieldLabel>
-                            <PlateWrapper ref={plateRef}>
+                            <AutocompleteWrapper ref={plateRef}>
                                 <InputShell>
                                     <BareInput
                                         id="entry-plate"
@@ -450,23 +519,35 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                         ))}
                                     </SuggestionList>
                                 )}
-                            </PlateWrapper>
+                            </AutocompleteWrapper>
                         </FormField>
+
                         <FormField>
                             <FieldLabel htmlFor="entry-vin">VIN</FieldLabel>
-                            <PlateWrapper ref={vinRef}>
-                                <InputShell>
-                                    <BareInput
-                                        id="entry-vin"
-                                        value={vehicleVin}
-                                        onChange={e => setVehicleVin(e.target.value.toUpperCase())}
-                                        onFocus={() => vinSuggestions.length > 0 && setShowVinSuggestions(true)}
-                                        placeholder="np. WBA3A5G59DNP26082"
-                                        maxLength={17}
-                                        autoComplete="off"
-                                        style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
-                                    />
-                                </InputShell>
+                            <AutocompleteWrapper ref={vinRef}>
+                                <VinInputRow>
+                                    <VinInputShell>
+                                        <BareInput
+                                            id="entry-vin"
+                                            value={vehicleVin}
+                                            onChange={e => setVehicleVin(e.target.value.toUpperCase())}
+                                            onFocus={() => vinSuggestions.length > 0 && setShowVinSuggestions(true)}
+                                            placeholder="np. WBA3A5G59DNP26082"
+                                            maxLength={17}
+                                            autoComplete="off"
+                                            style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
+                                        />
+                                    </VinInputShell>
+                                    <CameraBtn
+                                        type="button"
+                                        title="Zeskanuj VIN ze zdjęcia"
+                                        $loading={vinUploading}
+                                        disabled={vinUploading}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        {vinUploading ? <Spinner /> : '📷'}
+                                    </CameraBtn>
+                                </VinInputRow>
                                 {showVinSuggestions && (
                                     <SuggestionList>
                                         {vinSuggestions.map(s => (
@@ -477,7 +558,15 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                         ))}
                                     </SuggestionList>
                                 )}
-                            </PlateWrapper>
+                            </AutocompleteWrapper>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                style={{ display: 'none' }}
+                                onChange={handleVinFileChange}
+                            />
                         </FormField>
                     </FormGrid>
                 </div>

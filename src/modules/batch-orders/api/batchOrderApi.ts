@@ -92,6 +92,15 @@ export const batchOrderApi = {
         await apiClient.delete(`${BASE}/entries/${entryId}/photos/${photoId}`);
     },
 
+    extractVin: async (file: File): Promise<string | null> => {
+        const formData = new FormData();
+        formData.append('image', file);
+        const response = await apiClient.post<{ vin: string | null }>(`${BASE}/vin/extract`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data.vin;
+    },
+
     downloadReport: async (contractorId: string, contractorName: string, from?: string, to?: string): Promise<void> => {
         const params = new URLSearchParams();
         if (from) params.append('from', from);
