@@ -41,9 +41,7 @@ import {
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
 
-type VehicleBodyType = 'cabrio' | 'coupe' | 'hatchback' | 'kombi' | 'sedan' | 'suv' | 'van';
-
-const VEHICLE_BODY_TYPES: { value: VehicleBodyType; label: string }[] = [
+const VEHICLE_BODY_TYPES: { value: string; label: string }[] = [
     { value: 'sedan',    label: 'Sedan'     },
     { value: 'suv',      label: 'SUV'       },
     { value: 'hatchback',label: 'Hatchback' },
@@ -65,9 +63,12 @@ const SAVE_LABELS: Record<string, string> = {
 };
 
 export const MobileDamageSection = ({ logic }: Props) => {
-    const { damagePoints, saveStatus, updatePoints, attachPhotos, removePhoto, setPhotoStrokes } = logic;
+    const {
+        damagePoints, saveStatus, updatePoints,
+        attachPhotos, removePhoto, setPhotoStrokes,
+        vehicleType, setVehicleType,
+    } = logic;
 
-    const [vehicleType, setVehicleType] = useState<VehicleBodyType>('sedan');
     const [activePointId, setActivePointId] = useState<number | null>(null);
     // Photo currently open in the annotation editor
     const [annotating, setAnnotating] = useState<{ pointId: number; photo: DamagePointPhoto } | null>(null);
@@ -195,7 +196,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 <VehicleTypeSelect
                     id="mobile-vehicle-body-type"
                     value={vehicleType}
-                    onChange={e => setVehicleType(e.target.value as VehicleBodyType)}
+                    onChange={e => setVehicleType(e.target.value)}
                 >
                     {VEHICLE_BODY_TYPES.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>

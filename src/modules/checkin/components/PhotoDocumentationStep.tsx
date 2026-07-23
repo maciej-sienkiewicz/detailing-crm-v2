@@ -434,8 +434,10 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         }
     };
 
-    const handleDamagePointsChange = (points: DamagePoint[]) => {
-        onChange({ damagePoints: points });
+    const handleDamagePointsChange = (points: DamagePoint[], vehicleType?: string | null) => {
+        onChange(vehicleType
+            ? { damagePoints: points, damageVehicleType: vehicleType }
+            : { damagePoints: points });
     };
 
     // When modal closes, persist tags locally + save to backend
@@ -641,6 +643,8 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                             points={formData.damagePoints || []}
                             onChange={handleDamagePointsChange}
                             availablePhotos={uploadedPhotos}
+                            vehicleType={formData.damageVehicleType ?? 'sedan'}
+                            onVehicleTypeChange={type => onChange({ damageVehicleType: type })}
                         />
                     </SectionBody>
                 )}

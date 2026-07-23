@@ -7,7 +7,8 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useCheckinQRToken } from '../hooks/useCheckinQRToken';
 import { useCheckinSocket } from '../hooks/useCheckinSocket';
 import { checkinApi } from '../api/checkinApi';
-import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint } from '../types';
+import { AnnotationOverlay } from './DamagePhotoAnnotator';
+import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint, AnnotationStroke } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -285,7 +286,13 @@ interface QrPhoto {
 
 interface CheckinQRGeneratorProps {
     appointmentId?: string;
-    onDamageUpdated?: (points: DamagePoint[]) => void;
+    onDamageUpdated?: (points: DamagePoint[], vehicleType?: string | null) => void;
+}
+
+/** Live annotation info per phone photo, derived from damage-updated WS events */
+interface PhotoDamageInfo {
+    strokes: AnnotationStroke[];
+    damageNumber: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -304,6 +311,9 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
 
     const [photos, setPhotos] = useState<QrPhoto[]>([]);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    // photoId → strokes + damage number, kept live from WS damage events so the
+    // drawings made on the phone appear on the desktop grid in real time
+    const [damageByPhotoId, setDamageByPhotoId] = useState<Map<string, PhotoDamageInfo>>(new Map());
 
     const onDamageUpdatedRef = useRef(onDamageUpdated);
     onDamageUpdatedRef.current = onDamageUpdated;
@@ -325,7 +335,26 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
     }, []);
 
     const handleDamageUpdated = useCallback((event: CheckinDamageUpdatedEvent) => {
-        onDamageUpdatedRef.current?.(event.damagePoints);
+        onDamageUpdatedRef.current?.(event.damagePoints, event.vehicleType);
+
+        // Index annotations by photoId for the live photo grid overlay.
+        // Also learn about photos we have not seen via photo-uploaded events
+        // (e.g. after a desktop page refresh).
+        const map = new Map<string, PhotoDamageInfo>();
+        event.damagePoints.forEach((point, index) => {
+            (point.photos ?? []).forEach(photo => {
+                map.set(photo.photoId, {
+                    strokes: photo.strokes ?? [],
+                    damageNumber: index + 1,
+                });
+                if (photo.thumbnailUrl) {
+                    setPhotos(prev => prev.some(p => p.photoId === photo.photoId)
+                        ? prev
+                        : [{ photoId: photo.photoId, fileName: `Uszkodzenie ${index + 1}`, timestamp: event.updatedAt, thumbnailUrl: photo.thumbnailUrl }, ...prev]);
+                }
+            });
+        });
+        setDamageByPhotoId(map);
     }, []);
 
     useCheckinSocket({
@@ -420,11 +449,38 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
                             {photos.map(photo => (
                                 <PhotoCard key={photo.photoId} $new={photo.isNew}>
                                     {photo.thumbnailUrl ? (
-                                        <img
-                                            src={photo.thumbnailUrl}
-                                            alt={photo.fileName}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 'inherit' }}
-                                        />
+                                        <div style={{ position: 'relative', width: '100%', height: '100%', background: damageByPhotoId.has(photo.photoId) ? '#0f172a' : undefined }}>
+                                            <img
+                                                src={photo.thumbnailUrl}
+                                                alt={photo.fileName}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    // Annotated photos use `contain` so the stroke overlay
+                                                    // (percentage coords of the full photo) lines up exactly
+                                                    objectFit: damageByPhotoId.has(photo.photoId) ? 'contain' : 'cover',
+                                                    display: 'block',
+                                                    borderRadius: 'inherit',
+                                                }}
+                                            />
+                                            {damageByPhotoId.has(photo.photoId) && (
+                                                <>
+                                                    <AnnotationOverlay strokes={damageByPhotoId.get(photo.photoId)!.strokes} />
+                                                    <span
+                                                        title={`Zdjęcie uszkodzenia nr ${damageByPhotoId.get(photo.photoId)!.damageNumber}`}
+                                                        style={{
+                                                            position: 'absolute', top: 4, left: 4, minWidth: 18, height: 18,
+                                                            padding: '0 5px', borderRadius: 9, background: '#dc2626',
+                                                            color: '#fff', fontSize: 10, fontWeight: 700,
+                                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                            pointerEvents: 'none', zIndex: 2,
+                                                        }}
+                                                    >
+                                                        {damageByPhotoId.get(photo.photoId)!.damageNumber}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
                                     ) : (
                                         <PhotoPlaceholder>
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.4">

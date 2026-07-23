@@ -301,8 +301,12 @@ export const checkinApi = {
     saveMobileDamagePoints: async (
         token: string,
         damagePoints: DamagePoint[],
+        vehicleType?: string,
     ): Promise<MobileDamagePointsResponse> => {
-        const payload: MobileDamagePointsRequest = { damagePoints: toDamagePointsPayload(damagePoints) };
+        const payload: MobileDamagePointsRequest = {
+            damagePoints: toDamagePointsPayload(damagePoints),
+            vehicleType,
+        };
         const response = await apiClient.put(
             `${MOBILE_BASE_PATH}/damage-points`,
             payload,
