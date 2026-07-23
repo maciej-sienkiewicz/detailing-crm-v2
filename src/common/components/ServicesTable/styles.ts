@@ -11,7 +11,7 @@ export const ServicesBlock = styled.div`
 
 export const ServicesTableHeader = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 60px 74px 90px;
+    grid-template-columns: 1fr 74px 60px 74px 118px;
     align-items: center;
     gap: 4px;
     padding: 7px 8px 7px 14px;
@@ -46,7 +46,7 @@ export const ServiceItem = styled.div<{ $hasDiscount?: boolean }>`
 
 export const ServiceItemRow = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 60px 74px 90px;
+    grid-template-columns: 1fr 74px 60px 74px 118px;
     align-items: center;
     gap: 4px;
     padding: 8px 8px 8px 14px;
@@ -159,6 +159,23 @@ export const DeleteButton = styled.button`
     transition: all 150ms ease;
 
     &:hover { background: #fef2f2; color: #ef4444; }
+    svg { width: 13px; height: 13px; }
+`;
+
+export const EditButton = styled.button`
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: #b0bec5;
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover { background: #ede9fe; color: #7c3aed; }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -641,4 +658,93 @@ export const VatHeaderBtn = styled.button`
     svg { width: 10px; height: 10px; }
     &:hover { color: #0ea5e9; background: #e0f2fe; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+/* ── Edit modal ── */
+
+export const EditNameInput = styled.input`
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    color: #0f172a;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: all 150ms ease;
+
+    &:focus { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,0.12); }
+    &::placeholder { color: #b0bec5; }
+`;
+
+export const EditPriceGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+`;
+
+export const EditPriceField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+`;
+
+export const EditPriceFieldLabel = styled.div`
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+`;
+
+export const EditPriceInput = styled.input`
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    color: #0f172a;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: all 150ms ease;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+
+    &:focus { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,0.12); }
+    &::placeholder { color: #b0bec5; }
+`;
+
+export const EditVatInfo = styled.p`
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: #94a3b8;
+`;
+
+export const EditErrorMsg = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: 500;
+`;
+
+export const EditSaveBtn = styled.button`
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    background: #7c3aed;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease;
+    margin-left: auto;
+
+    &:hover { background: #6d28d9; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
