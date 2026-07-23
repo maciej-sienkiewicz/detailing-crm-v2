@@ -26,6 +26,7 @@ export interface BatchOrderEntry {
     vehicleMake: string | null;
     vehicleModel: string | null;
     vehicleLicensePlate: string | null;
+    vehicleVin: string | null;
     services: ServiceItem[];
     netAmountCents: number;
     grossAmountCents: number;
@@ -72,6 +73,7 @@ export interface EntryRequest {
     vehicleMake?: string;
     vehicleModel?: string;
     vehicleLicensePlate?: string;
+    vehicleVin?: string;
     services: ServiceItemRequest[];
     notes?: string;
 }
@@ -80,6 +82,7 @@ export interface VehicleSuggestion {
     licensePlate: string;
     brand: string;
     model: string;
+    vin: string | null;
 }
 
 export interface BatchOrderPhoto {
