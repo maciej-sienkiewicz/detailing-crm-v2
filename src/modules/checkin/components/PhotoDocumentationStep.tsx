@@ -640,6 +640,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                         <VehicleDamageMapper
                             points={formData.damagePoints || []}
                             onChange={handleDamagePointsChange}
+                            availablePhotos={uploadedPhotos}
                         />
                     </SectionBody>
                 )}

@@ -19,6 +19,21 @@ import type {
 } from '../types';
 
 const USE_MOCKS = false;
+
+/**
+ * Strips client-only fields (upload status, local preview URLs) and photos
+ * that never finished uploading before sending damage points to the backend.
+ */
+const toDamagePointsPayload = (damagePoints: DamagePoint[]): DamagePoint[] =>
+    damagePoints.map(point => ({
+        id: point.id,
+        x: point.x,
+        y: point.y,
+        note: point.note,
+        photos: (point.photos ?? [])
+            .filter(ph => ph.status !== 'uploading' && ph.status !== 'failed' && !ph.photoId.startsWith('local-'))
+            .map(ph => ({ photoId: ph.photoId, strokes: ph.strokes ?? [] })),
+    }));
 const BASE_PATH = '/checkin';
 const PHOTO_SESSIONS_PATH = '/photo-sessions';
 const MOBILE_BASE_PATH = '/mobile/checkin';
@@ -126,7 +141,7 @@ export const checkinApi = {
         }
         const response = await apiClient.post(
             `${BASE_PATH}/reservation-to-visit`,
-            payload
+            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
         );
         return response.data;
     },
@@ -139,7 +154,7 @@ export const checkinApi = {
         }
         const response = await apiClient.post(
             `${BASE_PATH}/walk-in`,
-            payload
+            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
         );
         return response.data;
     },
@@ -287,7 +302,7 @@ export const checkinApi = {
         token: string,
         damagePoints: DamagePoint[],
     ): Promise<MobileDamagePointsResponse> => {
-        const payload: MobileDamagePointsRequest = { damagePoints };
+        const payload: MobileDamagePointsRequest = { damagePoints: toDamagePointsPayload(damagePoints) };
         const response = await apiClient.put(
             `${MOBILE_BASE_PATH}/damage-points`,
             payload,
