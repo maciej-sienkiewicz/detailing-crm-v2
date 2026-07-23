@@ -534,17 +534,22 @@ export const VehicleDamageMapper = ({ points, onChange, availablePhotos = [] }: 
   const photoUrl = (slot: PhotoSlot) => slot.thumbnailUrl || slot.previewUrl;
 
   const handleAttachPhoto = (pointId: number, slot: PhotoSlot) => {
+    const attached: DamagePointPhoto = {
+      photoId: slot.id,
+      strokes: [],
+      thumbnailUrl: photoUrl(slot),
+      status: 'done',
+    };
     onChange(points.map(p => {
       if (p.id !== pointId) return p;
       if ((p.photos ?? []).some(ph => ph.photoId === slot.id)) return p;
-      const attached: DamagePointPhoto = {
-        photoId: slot.id,
-        strokes: [],
-        thumbnailUrl: photoUrl(slot),
-        status: 'done',
-      };
       return { ...p, photos: [...(p.photos ?? []), attached] };
     }));
+    // Jump straight into annotation — marking the damage on the photo is the
+    // whole point of attaching it, so save the extra click.
+    if (attached.thumbnailUrl) {
+      setAnnotating({ pointId, photo: attached });
+    }
   };
 
   const handleRemovePhoto = (pointId: number, photoId: string) => {

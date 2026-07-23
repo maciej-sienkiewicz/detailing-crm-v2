@@ -406,6 +406,7 @@ const PhotoGrid = styled.div`
 `;
 
 const PhotoThumb = styled.a`
+    position: relative;
     display: block;
     aspect-ratio: 1;
     overflow: hidden;
@@ -422,6 +423,48 @@ const PhotoThumb = styled.a`
 
     &:hover img { opacity: 0.85; }
 `;
+
+const PhotoCaption = styled.span`
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 6px 4px;
+    background: linear-gradient(transparent, rgba(15, 23, 42, 0.78));
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+`;
+
+const PhotoDamageBadge = styled.span`
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    pointer-events: none;
+`;
+
+/** Extracts the damage number from descriptions like "Uszkodzenie nr 3 — rysa". */
+const damageNumberFromDescription = (description: string | null): string | null => {
+    if (!description) return null;
+    const match = description.match(/^Uszkodzenie nr (\d+)/i);
+    return match ? match[1] : null;
+};
 
 /* ── Document lists ── */
 
@@ -999,6 +1042,14 @@ export const VisitCardView = () => {
                                         title={photo.description ?? undefined}
                                     >
                                         <img src={photo.url} alt={photo.description ?? `Zdjęcie ${idx + 1}`} loading="lazy" />
+                                        {damageNumberFromDescription(photo.description) && (
+                                            <PhotoDamageBadge title={photo.description ?? undefined}>
+                                                {damageNumberFromDescription(photo.description)}
+                                            </PhotoDamageBadge>
+                                        )}
+                                        {photo.description && (
+                                            <PhotoCaption>{photo.description}</PhotoCaption>
+                                        )}
                                     </PhotoThumb>
                                 ))}
                             </PhotoGrid>
