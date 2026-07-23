@@ -6,6 +6,7 @@ import { offlinePhotoDb } from '../../services/offlinePhotoDb';
 import type { MobileCheckinContext, PendingPhoto } from '../../types';
 
 const RETRY_INTERVAL_MS = 30_000;
+const STATUS_POLL_INTERVAL_MS = 15_000;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
@@ -17,9 +18,11 @@ export interface LocalPhoto {
     error?: string;
 }
 
+export type SessionState = 'loading' | 'expired' | 'active' | 'done' | 'visit_created';
+
 export interface MobilePhotoUploadLogic {
     context: MobileCheckinContext | null;
-    sessionState: 'loading' | 'expired' | 'active';
+    sessionState: SessionState;
     isOnline: boolean;
     photos: LocalPhoto[];
     doneCount: number;
@@ -29,11 +32,13 @@ export interface MobilePhotoUploadLogic {
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleRetry: (photoId: string) => void;
     handleRemove: (photoId: string, previewUrl: string) => void;
+    handleMarkDone: () => Promise<void>;
+    handleUndoDone: () => void;
 }
 
 export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic {
     const [context, setContext] = useState<MobileCheckinContext | null>(null);
-    const [sessionState, setSessionState] = useState<'loading' | 'expired' | 'active'>('loading');
+    const [sessionState, setSessionState] = useState<SessionState>('loading');
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [photos, setPhotos] = useState<LocalPhoto[]>([]);
 
@@ -133,6 +138,41 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         if (isOnline && sessionState === 'active') syncPending();
     }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ─── Status polling: detect when desktop saves the visit ─────────────────
+
+    useEffect(() => {
+        if (sessionState !== 'active' && sessionState !== 'done') return;
+
+        const poll = async () => {
+            try {
+                const status = await checkinApi.getMobileStatus(token);
+                if (status.visitCreated) {
+                    setSessionState('visit_created');
+                }
+            } catch {
+                // network error — ignore, will retry next cycle
+            }
+        };
+
+        const timer = setInterval(poll, STATUS_POLL_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [sessionState, token]);
+
+    // ─── Gotowe / Cofnij ──────────────────────────────────────────────────────
+
+    const handleMarkDone = useCallback(async () => {
+        try {
+            await checkinApi.markMobileDone(token);
+        } catch {
+            // non-fatal: session may have just expired; still transition UI
+        }
+        setSessionState('done');
+    }, [token]);
+
+    const handleUndoDone = useCallback(() => {
+        setSessionState('active');
+    }, []);
+
     // ─── File selection ───────────────────────────────────────────────────────
 
     const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,5 +248,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         handleFileChange,
         handleRetry,
         handleRemove,
+        handleMarkDone,
+        handleUndoDone,
     };
 }

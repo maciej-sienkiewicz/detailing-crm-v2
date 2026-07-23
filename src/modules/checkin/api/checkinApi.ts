@@ -16,6 +16,7 @@ import type {
     MobileDamagePointsRequest,
     MobileDamagePointsResponse,
     DamagePoint,
+    MobileSessionStatus,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -340,5 +341,29 @@ export const checkinApi = {
         } catch {
             return null;
         }
+    },
+
+    /**
+     * Mark that the mobile user has finished reviewing and clicked "Gotowe".
+     * Requires an active (non-expired) session token.
+     */
+    markMobileDone: async (token: string): Promise<void> => {
+        await apiClient.post(
+            `${MOBILE_BASE_PATH}/done`,
+            null,
+            { headers: { 'X-Upload-Token': token } },
+        );
+    },
+
+    /**
+     * Fetch the lifecycle status of the mobile session.
+     * Safe to call even after the visit was created on desktop (token revoked).
+     */
+    getMobileStatus: async (token: string): Promise<MobileSessionStatus> => {
+        const response = await apiClient.get(
+            `${MOBILE_BASE_PATH}/status`,
+            { headers: { 'X-Upload-Token': token } },
+        );
+        return response.data;
     },
 };

@@ -16,6 +16,18 @@ import {
     ExpiredText,
     LoadingWrap,
     Spinner,
+    DoneScreen,
+    DoneIcon,
+    DoneTitle,
+    DoneText,
+    DoneActions,
+    LockedScreen,
+    LockedIcon,
+    LockedTitle,
+    LockedText,
+    GotowFooter,
+    GotowBtn,
+    CofnijBtn,
 } from './mobile/MobilePhotoUpload.styles';
 import { useMobilePhotoUploadLogic } from './mobile/useMobilePhotoUploadLogic';
 import { useMobileDamageLogic } from './mobile/useMobileDamageLogic';
@@ -74,9 +86,59 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
         );
     }
 
+    // ─── Visit already created on desktop ─────────────────────────────────────
+
+    if (photoLogic.sessionState === 'visit_created') {
+        return (
+            <MobileContainer>
+                <LockedScreen>
+                    <LockedIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </LockedIcon>
+                    <LockedTitle>Wizyta utworzona</LockedTitle>
+                    <LockedText>
+                        Wizyta została już utworzona i edycja danych nie jest możliwa.
+                    </LockedText>
+                </LockedScreen>
+            </MobileContainer>
+        );
+    }
+
+    // ─── User clicked "Gotowe" ────────────────────────────────────────────────
+
+    if (photoLogic.sessionState === 'done') {
+        return (
+            <MobileContainer>
+                <DoneScreen>
+                    <DoneIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </DoneIcon>
+                    <DoneTitle>Gotowe!</DoneTitle>
+                    <DoneText>
+                        Dane zostały przekazane. Możesz zamknąć tę stronę lub wrócić i wprowadzić zmiany.
+                    </DoneText>
+                    <DoneActions>
+                        <CofnijBtn onClick={photoLogic.handleUndoDone}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                            Cofnij i edytuj
+                        </CofnijBtn>
+                    </DoneActions>
+                </DoneScreen>
+            </MobileContainer>
+        );
+    }
+
     // ─── Active session ───────────────────────────────────────────────────────
 
-    const { context, totalCount } = photoLogic;
+    const { context, totalCount, hasPending } = photoLogic;
     const { damagePoints } = damageLogic;
 
     return (
@@ -119,6 +181,17 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
             {/* Tab content */}
             {activeTab === 'photos' && <MobilePhotoSection logic={photoLogic} />}
             {activeTab === 'damage' && <MobileDamageSection logic={damageLogic} />}
+
+            {/* Gotowe button */}
+            <GotowFooter>
+                <GotowBtn onClick={photoLogic.handleMarkDone} disabled={hasPending}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    {hasPending ? 'Przesyłanie w toku…' : 'Gotowe'}
+                </GotowBtn>
+            </GotowFooter>
         </MobileContainer>
     );
 };
