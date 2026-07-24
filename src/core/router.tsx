@@ -111,6 +111,10 @@ export const router = createBrowserRouter([
         element: <ResetPasswordView />,
     },
     {
+        path: '/confirm-password',
+        element: <ResetPasswordView mode="setup" />,
+    },
+    {
         path: '/',
         element: page(<HomeRedirect />),
     },
