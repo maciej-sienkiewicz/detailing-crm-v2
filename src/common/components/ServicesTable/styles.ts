@@ -179,23 +179,6 @@ export const DeleteButton = styled.button`
     svg { width: 13px; height: 13px; }
 `;
 
-export const EditButton = styled.button`
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: none;
-    background: transparent;
-    color: #b0bec5;
-    cursor: pointer;
-    transition: all 150ms ease;
-
-    &:hover { background: #ede9fe; color: #7c3aed; }
-    svg { width: 13px; height: 13px; }
-`;
-
 const slideDown = keyframes`
     from { max-height: 0; opacity: 0; transform: translateY(-4px); }
     to   { max-height: 160px; opacity: 1; transform: translateY(0); }
