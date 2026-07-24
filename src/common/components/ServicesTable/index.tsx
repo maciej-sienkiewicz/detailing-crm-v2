@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
+import { useUpdateService } from '@/modules/services/hooks/useServices';
+import type { VatRate } from '@/modules/services/types';
 import * as S from './styles';
 
 export interface PackageItemSnapshot {
@@ -43,12 +45,13 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'SET_GROSS', label: '=Brutto' },
 ];
 
-const IconEdit = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-);
+const centsToInput = (cents: number): string =>
+    (cents / 100).toFixed(2).replace('.', ',');
+
+const grossToNet = (grossCents: number, vatRate: number): number => {
+    if (vatRate <= 0) return grossCents;
+    return Math.round(grossCents / (1 + vatRate / 100));
+};
 
 const IconChevronDown = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -90,13 +93,15 @@ const IconCheck = () => (
     </svg>
 );
 
+const IconPencil = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+);
+
 export const ServicesTable = ({ services, onChange }: Props) => {
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
-
-    // Per-service price edit modal state
-    const [editPriceModalId, setEditPriceModalId] = useState<string | null>(null);
-    const [editPriceGross, setEditPriceGross] = useState('');
-    const [editPriceVat, setEditPriceVat] = useState<number>(23);
 
     // Per-service discount modal state
     const [discountModalId, setDiscountModalId] = useState<string | null>(null);
@@ -112,6 +117,18 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     const [bulkVatOpen, setBulkVatOpen] = useState(false);
     const [bulkVatRate, setBulkVatRate] = useState<number>(23);
 
+    // Edit service modal state
+    const [editModalServiceId, setEditModalServiceId] = useState<string | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editNetInput, setEditNetInput] = useState('');
+    const [editGrossInput, setEditGrossInput] = useState('');
+    const [editPriceNet, setEditPriceNet] = useState(0);
+    const [editPriceGross, setEditPriceGross] = useState(0);
+    const [editVatRate, setEditVatRate] = useState<number>(23);
+    const [editError, setEditError] = useState('');
+    const [editSaving, setEditSaving] = useState(false);
+    const updateServiceMutation = useUpdateService();
+
     const getServicePrice = (service: ServiceLineItem) => {
         const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment, service.basePriceGross);
         const baseGrossCents = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
@@ -122,31 +139,6 @@ export const ServicesTable = ({ services, onChange }: Props) => {
             finalGross: result.finalGrossCents / 100,
             hasDiscount: result.hasDiscount,
         };
-    };
-
-    const openEditPriceModal = (service: ServiceLineItem) => {
-        setEditPriceModalId(service.id);
-        const baseGrossCents = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
-        setEditPriceGross((baseGrossCents / 100).toFixed(2));
-        setEditPriceVat(service.vatRate);
-    };
-
-    const closeEditPriceModal = () => {
-        setEditPriceModalId(null);
-        setEditPriceGross('');
-    };
-
-    const applyEditPrice = () => {
-        if (!editPriceModalId) return;
-        const newGross = parseFloat(editPriceGross.replace(',', '.'));
-        if (isNaN(newGross) || newGross < 0) return;
-        const newGrossCents = Math.round(newGross * 100);
-        const newNetCents = Math.round(newGrossCents / (1 + editPriceVat / 100));
-        onChange(services.map(s => s.id === editPriceModalId
-            ? { ...s, basePriceNet: newNetCents, basePriceGross: newGrossCents, vatRate: editPriceVat }
-            : s
-        ));
-        closeEditPriceModal();
     };
 
     const openDiscountModal = (service: ServiceLineItem) => {
@@ -200,6 +192,93 @@ export const ServicesTable = ({ services, onChange }: Props) => {
         setBulkDiscountValue('');
     };
 
+    const openEditModal = (service: ServiceLineItem) => {
+        const gross = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
+        setEditModalServiceId(service.id);
+        setEditName(service.serviceName);
+        setEditVatRate(service.vatRate);
+        setEditPriceNet(service.basePriceNet);
+        setEditPriceGross(gross);
+        setEditNetInput(centsToInput(service.basePriceNet));
+        setEditGrossInput(centsToInput(gross));
+        setEditError('');
+        setEditSaving(false);
+    };
+
+    const handleEditNetChange = (raw: string) => {
+        if (!MAX_2_DECIMALS.test(raw)) return;
+        setEditNetInput(raw);
+        setEditError('');
+        const val = parseFloat(raw.replace(',', '.'));
+        if (!isNaN(val) && val > 0) {
+            const net = Math.round(val * 100);
+            const gross = netToGross(net, editVatRate);
+            setEditPriceNet(net);
+            setEditPriceGross(gross);
+            setEditGrossInput(centsToInput(gross));
+        } else {
+            setEditPriceNet(0);
+        }
+    };
+
+    const handleEditGrossChange = (raw: string) => {
+        if (!MAX_2_DECIMALS.test(raw)) return;
+        setEditGrossInput(raw);
+        setEditError('');
+        const val = parseFloat(raw.replace(',', '.'));
+        if (!isNaN(val) && val > 0) {
+            const gross = Math.round(val * 100);
+            const net = grossToNet(gross, editVatRate);
+            setEditPriceGross(gross);
+            setEditPriceNet(net);
+            setEditNetInput(centsToInput(net));
+        } else {
+            setEditPriceGross(0);
+        }
+    };
+
+    const saveEditService = async () => {
+        if (!editModalServiceId) return;
+        const service = services.find(s => s.id === editModalServiceId);
+        if (!service || !service.serviceId) return;
+
+        const trimmedName = editName.trim();
+        if (!trimmedName || trimmedName.length < 3) {
+            setEditError('Nazwa musi mieć co najmniej 3 znaki');
+            return;
+        }
+        if (!service.requireManualPrice && editPriceNet <= 0) {
+            setEditError('Podaj poprawną cenę');
+            return;
+        }
+
+        setEditSaving(true);
+        setEditError('');
+        try {
+            await updateServiceMutation.mutateAsync({
+                originalServiceId: service.serviceId,
+                name: trimmedName,
+                basePriceNet: service.requireManualPrice ? 0 : editPriceNet,
+                basePriceGross: service.requireManualPrice ? 0 : editPriceGross,
+                vatRate: service.vatRate as VatRate,
+                requireManualPrice: service.requireManualPrice ?? false,
+            });
+            onChange(services.map(s => s.id === editModalServiceId
+                ? {
+                    ...s,
+                    serviceName: trimmedName,
+                    basePriceNet: service.requireManualPrice ? s.basePriceNet : editPriceNet,
+                    basePriceGross: service.requireManualPrice ? s.basePriceGross : editPriceGross,
+                  }
+                : s
+            ));
+            setEditModalServiceId(null);
+        } catch {
+            setEditError('Nie udało się zapisać zmian. Spróbuj ponownie.');
+            setEditSaving(false);
+        }
+    };
+
     let totalNet = 0;
     let totalGross = 0;
     services.forEach(s => {
@@ -219,6 +298,8 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     const bulkBaseGross = Math.round(services.reduce((sum, s) => {
         return sum + (s.basePriceGross ?? netToGross(s.basePriceNet, s.vatRate));
     }, 0)) / 100;
+
+    const editService = editModalServiceId ? services.find(s => s.id === editModalServiceId) : null;
 
     return (
         <>
@@ -273,13 +354,15 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                     </S.PriceDisplay>
 
                                     <S.ServiceActions>
-                                        <S.EditButton
-                                            type="button"
-                                            onClick={() => openEditPriceModal(service)}
-                                            title="Edytuj pozycję"
-                                        >
-                                            <IconEdit />
-                                        </S.EditButton>
+                                        {service.serviceId && !service.isPackage && (
+                                            <S.EditButton
+                                                type="button"
+                                                onClick={() => openEditModal(service)}
+                                                title="Edytuj pozycję"
+                                            >
+                                                <IconPencil />
+                                            </S.EditButton>
+                                        )}
                                         <S.DiscountButton
                                             type="button"
                                             onClick={() => openDiscountModal(service)}
@@ -373,82 +456,6 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                     </S.SummaryTotals>
                 </S.SummarySection>
             </S.ServicesBlock>
-
-            {/* Per-service price edit modal */}
-            {editPriceModalId && (() => {
-                const editSvc = services.find(s => s.id === editPriceModalId);
-                if (!editSvc) return null;
-                const parsedGross = parseFloat(editPriceGross.replace(',', '.'));
-                const newGrossCents = isNaN(parsedGross) ? 0 : Math.round(parsedGross * 100);
-                const newNetCents = Math.round(newGrossCents / (1 + editPriceVat / 100));
-                return (
-                    <S.BulkDiscountOverlay onClick={closeEditPriceModal}>
-                        <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
-                            <S.BulkDiscountHeader>
-                                <div>
-                                    <S.BulkDiscountTitle>Edytuj pozycję</S.BulkDiscountTitle>
-                                    <S.DiscountModalServiceName>{editSvc.serviceName}</S.DiscountModalServiceName>
-                                </div>
-                                <S.CloseIconButton type="button" onClick={closeEditPriceModal}>
-                                    <IconX />
-                                </S.CloseIconButton>
-                            </S.BulkDiscountHeader>
-                            <S.BulkDiscountBody>
-                                <div>
-                                    <S.DiscountSectionLabel>Cena brutto</S.DiscountSectionLabel>
-                                    <S.DiscountValueRow>
-                                        <S.DiscountValueInput
-                                            type="text"
-                                            inputMode="decimal"
-                                            placeholder="0.00"
-                                            value={editPriceGross}
-                                            onChange={(e) => { if (MAX_2_DECIMALS.test(e.target.value)) setEditPriceGross(e.target.value); }}
-                                            autoFocus
-                                        />
-                                        <S.DiscountValueSuffix>zł</S.DiscountValueSuffix>
-                                    </S.DiscountValueRow>
-                                </div>
-                                <div>
-                                    <S.DiscountSectionLabel>Stawka VAT</S.DiscountSectionLabel>
-                                    <S.DiscountTypeRow>
-                                        {VAT_RATES.map(r => (
-                                            <S.DiscountTypePill
-                                                key={r}
-                                                type="button"
-                                                $selected={editPriceVat === r}
-                                                onClick={() => setEditPriceVat(r)}
-                                            >
-                                                {VAT_LABEL(r)}
-                                            </S.DiscountTypePill>
-                                        ))}
-                                    </S.DiscountTypeRow>
-                                </div>
-                                <S.DiscountFromBox>
-                                    <S.DiscountFromBoxLabel>Cena netto</S.DiscountFromBoxLabel>
-                                    <S.DiscountFromPrices>
-                                        <S.DiscountFromPrice>
-                                            <S.DiscountFromPriceValue>{(newNetCents / 100).toFixed(2)} zł</S.DiscountFromPriceValue>
-                                            <S.DiscountFromPriceLabel>wyliczona</S.DiscountFromPriceLabel>
-                                        </S.DiscountFromPrice>
-                                    </S.DiscountFromPrices>
-                                </S.DiscountFromBox>
-                            </S.BulkDiscountBody>
-                            <S.BulkDiscountFooter>
-                                <S.BulkDiscountCancelBtn type="button" onClick={closeEditPriceModal}>
-                                    Anuluj
-                                </S.BulkDiscountCancelBtn>
-                                <S.BulkDiscountApplyBtn
-                                    type="button"
-                                    onClick={applyEditPrice}
-                                    disabled={!editPriceGross || isNaN(parsedGross) || parsedGross < 0}
-                                >
-                                    Zastosuj
-                                </S.BulkDiscountApplyBtn>
-                            </S.BulkDiscountFooter>
-                        </S.BulkDiscountCard>
-                    </S.BulkDiscountOverlay>
-                );
-            })()}
 
             {/* Per-service discount modal */}
             {discountModalId && discountModalService && (
@@ -640,6 +647,81 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             >
                                 Zastosuj
                             </S.BulkDiscountApplyBtn>
+                        </S.BulkDiscountFooter>
+                    </S.BulkDiscountCard>
+                </S.BulkDiscountOverlay>
+            )}
+
+            {/* Edit service modal */}
+            {editModalServiceId && editService && (
+                <S.BulkDiscountOverlay onClick={() => { if (!editSaving) setEditModalServiceId(null); }}>
+                    <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
+                        <S.BulkDiscountHeader>
+                            <div>
+                                <S.BulkDiscountTitle>Edytuj pozycję</S.BulkDiscountTitle>
+                                <S.DiscountModalServiceName>{editService.serviceName}</S.DiscountModalServiceName>
+                            </div>
+                            <S.CloseIconButton
+                                type="button"
+                                onClick={() => { if (!editSaving) setEditModalServiceId(null); }}
+                            >
+                                <IconX />
+                            </S.CloseIconButton>
+                        </S.BulkDiscountHeader>
+                        <S.BulkDiscountBody>
+                            <div>
+                                <S.DiscountSectionLabel>Nazwa</S.DiscountSectionLabel>
+                                <S.EditNameInput
+                                    value={editName}
+                                    onChange={(e) => { setEditName(e.target.value); setEditError(''); }}
+                                    placeholder="Nazwa usługi"
+                                    autoFocus
+                                />
+                            </div>
+                            {!editService.requireManualPrice && (
+                                <div>
+                                    <S.DiscountSectionLabel>Cena</S.DiscountSectionLabel>
+                                    <S.EditPriceGrid>
+                                        <S.EditPriceField>
+                                            <S.EditPriceFieldLabel>Netto (zł)</S.EditPriceFieldLabel>
+                                            <S.EditPriceInput
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={editNetInput}
+                                                onChange={(e) => handleEditNetChange(e.target.value)}
+                                            />
+                                        </S.EditPriceField>
+                                        <S.EditPriceField>
+                                            <S.EditPriceFieldLabel>Brutto (zł)</S.EditPriceFieldLabel>
+                                            <S.EditPriceInput
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={editGrossInput}
+                                                onChange={(e) => handleEditGrossChange(e.target.value)}
+                                            />
+                                        </S.EditPriceField>
+                                    </S.EditPriceGrid>
+                                    <S.EditVatInfo>
+                                        VAT: {VAT_LABEL(editService.vatRate)} — nie można zmienić podczas edycji
+                                    </S.EditVatInfo>
+                                </div>
+                            )}
+                            {editError && <S.EditErrorMsg>{editError}</S.EditErrorMsg>}
+                        </S.BulkDiscountBody>
+                        <S.BulkDiscountFooter>
+                            <S.BulkDiscountCancelBtn
+                                type="button"
+                                onClick={() => { if (!editSaving) setEditModalServiceId(null); }}
+                            >
+                                Anuluj
+                            </S.BulkDiscountCancelBtn>
+                            <S.EditSaveBtn
+                                type="button"
+                                onClick={saveEditService}
+                                disabled={editSaving}
+                            >
+                                {editSaving ? 'Zapisywanie…' : 'Zapisz'}
+                            </S.EditSaveBtn>
                         </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>
                 </S.BulkDiscountOverlay>

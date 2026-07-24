@@ -124,7 +124,7 @@ export const EditButton = styled.button`
     cursor: pointer;
     transition: all 150ms ease;
 
-    &:hover { background: #eff6ff; color: #2563eb; }
+    &:hover { background: #ede9fe; color: #7c3aed; }
     svg { width: 13px; height: 13px; }
 `;
 
