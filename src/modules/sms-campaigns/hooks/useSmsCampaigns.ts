@@ -8,10 +8,15 @@ import {
   fetchAutomationConfig,
   updateAutomationConfig,
   fetchVehicleBrands,
+  fetchSenderNameConfig,
+  updateSenderName,
+  uploadSenderNameAuthDoc,
+  fetchSenderNameDocumentUrl,
 } from '../api/smsCampaignsApi';
 import type {
   CreateCampaignRequest,
   SmsAutomationConfig,
+  SmsSenderNameConfig,
   CampaignFilters,
 } from '../types';
 
@@ -20,6 +25,7 @@ const KEYS = {
   automation: ['sms-automation'] as const,
   brands: ['vehicle-brands'] as const,
   audience: (filters: CampaignFilters) => ['sms-audience', filters] as const,
+  senderName: ['sms-sender-name'] as const,
 };
 
 // ─── Campaigns list ───────────────────────────────────────────────────────────
@@ -105,4 +111,36 @@ export function useVehicleBrands() {
     queryFn: fetchVehicleBrands,
   });
   return { brands: data ?? [], isLoading };
+}
+
+// ─── Sender name ──────────────────────────────────────────────────────────────
+
+export function useSenderNameConfig() {
+  const { data, isLoading } = useQuery({
+    queryKey: KEYS.senderName,
+    queryFn: fetchSenderNameConfig,
+  });
+  return { config: data ?? null, isLoading };
+}
+
+export function useUpdateSenderName() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => updateSenderName(name),
+    onSuccess: (updated) => qc.setQueryData(KEYS.senderName, updated),
+  });
+}
+
+export function useUploadSenderNameAuthDoc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => uploadSenderNameAuthDoc(file),
+    onSuccess: (updated) => qc.setQueryData(KEYS.senderName, updated),
+  });
+}
+
+export function useSenderNameDocumentUrl() {
+  return useMutation({
+    mutationFn: () => fetchSenderNameDocumentUrl(),
+  });
 }

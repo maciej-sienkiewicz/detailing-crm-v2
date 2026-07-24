@@ -3,6 +3,7 @@ import type {
   CreateCampaignRequest,
   AudiencePreviewResult,
   SmsAutomationConfig,
+  SmsSenderNameConfig,
   CampaignFilters,
   VehicleBrandOption,
   AgentAudienceRequest,
@@ -361,6 +362,33 @@ export async function generateAudienceFromPrompt(
     req
   );
   return data;
+}
+
+// ─── Sender name ──────────────────────────────────────────────────────────────
+
+export async function fetchSenderNameConfig(): Promise<SmsSenderNameConfig> {
+  const { data } = await apiClient.get<SmsSenderNameConfig>('/v1/sms-campaigns/sender-name');
+  return data;
+}
+
+export async function updateSenderName(senderName: string): Promise<SmsSenderNameConfig> {
+  const { data } = await apiClient.put<SmsSenderNameConfig>('/v1/sms-campaigns/sender-name', { senderName });
+  return data;
+}
+
+export async function uploadSenderNameAuthDoc(file: File): Promise<SmsSenderNameConfig> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient.post<SmsSenderNameConfig>(
+    '/v1/sms-campaigns/sender-name/document',
+    formData,
+  );
+  return data;
+}
+
+export async function fetchSenderNameDocumentUrl(): Promise<string> {
+  const { data } = await apiClient.get<{ url: string }>('/v1/sms-campaigns/sender-name/document-url');
+  return data.url;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
