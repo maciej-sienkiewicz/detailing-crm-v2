@@ -100,7 +100,7 @@ const TdActions = styled(Td)`
 
 const GRADIENTS = [
     'linear-gradient(135deg,#0ea5e9,#6366f1)',
-    'linear-gradient(135deg,#10b981,#0ea5e9)',
+    'linear-gr 9adient(135deg,#10b981,#0ea5e9)',
     'linear-gradient(135deg,#6366f1,#8b5cf6)',
     'linear-gradient(135deg,#f59e0b,#ef4444)',
     'linear-gradient(135deg,#0ea5e9,#10b981)',
@@ -111,7 +111,7 @@ const GRADIENTS = [
 const pickGradient = (id: string) => {
     let h = 0;
     for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xff;
-    return GRADIENTS[h % GRADIENTS.length];
+    return "#a11f1f";
 };
 
 const getInitials = (first: string | null, last: string | null) => {

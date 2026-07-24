@@ -303,11 +303,25 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setServicePrices(prev => {
             const next = { ...prev };
             Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
+            // When an item carries an explicit basePriceGross, update the stored gross price.
+            // This happens when the "Edytuj pozycję" price editor is confirmed.
+            newItems.forEach(item => {
+                if (item.basePriceGross != null) {
+                    next[item.id] = item.basePriceGross / 100;
+                }
+            });
             return next;
         });
         form.setServicePriceInputs(prev => {
             const next = { ...prev };
             Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
+            newItems.forEach(item => {
+                if (item.basePriceGross != null) {
+                    const gross = item.basePriceGross / 100;
+                    const net = Math.round(gross / (1 + item.vatRate / 100) * 100) / 100;
+                    next[item.id] = { gross: gross.toFixed(2), net: net.toFixed(2) };
+                }
+            });
             return next;
         });
     }, [form]);

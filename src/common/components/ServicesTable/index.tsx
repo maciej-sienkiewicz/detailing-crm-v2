@@ -53,6 +53,13 @@ const grossToNet = (grossCents: number, vatRate: number): number => {
     return Math.round(grossCents / (1 + vatRate / 100));
 };
 
+const IconEdit = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+);
+
 const IconChevronDown = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
         <polyline points="6 9 12 15 18 9" />
@@ -103,6 +110,11 @@ const IconPencil = () => (
 export const ServicesTable = ({ services, onChange }: Props) => {
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
 
+    // Per-service price edit modal state
+    const [editPriceModalId, setEditPriceModalId] = useState<string | null>(null);
+    const [editPriceGross, setEditPriceGross] = useState('');
+    const [editPriceVat, setEditPriceVat] = useState<number>(23);
+
     // Per-service discount modal state
     const [discountModalId, setDiscountModalId] = useState<string | null>(null);
     const [discountModalType, setDiscountModalType] = useState<AdjustmentType>('PERCENT');
@@ -139,6 +151,31 @@ export const ServicesTable = ({ services, onChange }: Props) => {
             finalGross: result.finalGrossCents / 100,
             hasDiscount: result.hasDiscount,
         };
+    };
+
+    const openEditPriceModal = (service: ServiceLineItem) => {
+        setEditPriceModalId(service.id);
+        const baseGrossCents = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
+        setEditPriceGross((baseGrossCents / 100).toFixed(2));
+        setEditPriceVat(service.vatRate);
+    };
+
+    const closeEditPriceModal = () => {
+        setEditPriceModalId(null);
+        setEditPriceGross('');
+    };
+
+    const applyEditPrice = () => {
+        if (!editPriceModalId) return;
+        const newGross = parseFloat(editPriceGross.replace(',', '.'));
+        if (isNaN(newGross) || newGross < 0) return;
+        const newGrossCents = Math.round(newGross * 100);
+        const newNetCents = Math.round(newGrossCents / (1 + editPriceVat / 100));
+        onChange(services.map(s => s.id === editPriceModalId
+            ? { ...s, basePriceNet: newNetCents, basePriceGross: newGrossCents, vatRate: editPriceVat }
+            : s
+        ));
+        closeEditPriceModal();
     };
 
     const openDiscountModal = (service: ServiceLineItem) => {
@@ -354,15 +391,6 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                     </S.PriceDisplay>
 
                                     <S.ServiceActions>
-                                        {service.serviceId && !service.isPackage && (
-                                            <S.EditButton
-                                                type="button"
-                                                onClick={() => openEditModal(service)}
-                                                title="Edytuj pozycję"
-                                            >
-                                                <IconPencil />
-                                            </S.EditButton>
-                                        )}
                                         <S.DiscountButton
                                             type="button"
                                             onClick={() => openDiscountModal(service)}
@@ -456,6 +484,82 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                     </S.SummaryTotals>
                 </S.SummarySection>
             </S.ServicesBlock>
+
+            {/* Per-service price edit modal */}
+            {editPriceModalId && (() => {
+                const editSvc = services.find(s => s.id === editPriceModalId);
+                if (!editSvc) return null;
+                const parsedGross = parseFloat(editPriceGross.replace(',', '.'));
+                const newGrossCents = isNaN(parsedGross) ? 0 : Math.round(parsedGross * 100);
+                const newNetCents = Math.round(newGrossCents / (1 + editPriceVat / 100));
+                return (
+                    <S.BulkDiscountOverlay onClick={closeEditPriceModal}>
+                        <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
+                            <S.BulkDiscountHeader>
+                                <div>
+                                    <S.BulkDiscountTitle>Edytuj pozycję</S.BulkDiscountTitle>
+                                    <S.DiscountModalServiceName>{editSvc.serviceName}</S.DiscountModalServiceName>
+                                </div>
+                                <S.CloseIconButton type="button" onClick={closeEditPriceModal}>
+                                    <IconX />
+                                </S.CloseIconButton>
+                            </S.BulkDiscountHeader>
+                            <S.BulkDiscountBody>
+                                <div>
+                                    <S.DiscountSectionLabel>Cena brutto</S.DiscountSectionLabel>
+                                    <S.DiscountValueRow>
+                                        <S.DiscountValueInput
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="0.00"
+                                            value={editPriceGross}
+                                            onChange={(e) => { if (MAX_2_DECIMALS.test(e.target.value)) setEditPriceGross(e.target.value); }}
+                                            autoFocus
+                                        />
+                                        <S.DiscountValueSuffix>zł</S.DiscountValueSuffix>
+                                    </S.DiscountValueRow>
+                                </div>
+                                <div>
+                                    <S.DiscountSectionLabel>Stawka VAT</S.DiscountSectionLabel>
+                                    <S.DiscountTypeRow>
+                                        {VAT_RATES.map(r => (
+                                            <S.DiscountTypePill
+                                                key={r}
+                                                type="button"
+                                                $selected={editPriceVat === r}
+                                                onClick={() => setEditPriceVat(r)}
+                                            >
+                                                {VAT_LABEL(r)}
+                                            </S.DiscountTypePill>
+                                        ))}
+                                    </S.DiscountTypeRow>
+                                </div>
+                                <S.DiscountFromBox>
+                                    <S.DiscountFromBoxLabel>Cena netto</S.DiscountFromBoxLabel>
+                                    <S.DiscountFromPrices>
+                                        <S.DiscountFromPrice>
+                                            <S.DiscountFromPriceValue>{(newNetCents / 100).toFixed(2)} zł</S.DiscountFromPriceValue>
+                                            <S.DiscountFromPriceLabel>wyliczona</S.DiscountFromPriceLabel>
+                                        </S.DiscountFromPrice>
+                                    </S.DiscountFromPrices>
+                                </S.DiscountFromBox>
+                            </S.BulkDiscountBody>
+                            <S.BulkDiscountFooter>
+                                <S.BulkDiscountCancelBtn type="button" onClick={closeEditPriceModal}>
+                                    Anuluj
+                                </S.BulkDiscountCancelBtn>
+                                <S.BulkDiscountApplyBtn
+                                    type="button"
+                                    onClick={applyEditPrice}
+                                    disabled={!editPriceGross || isNaN(parsedGross) || parsedGross < 0}
+                                >
+                                    Zastosuj
+                                </S.BulkDiscountApplyBtn>
+                            </S.BulkDiscountFooter>
+                        </S.BulkDiscountCard>
+                    </S.BulkDiscountOverlay>
+                );
+            })()}
 
             {/* Per-service discount modal */}
             {discountModalId && discountModalService && (
