@@ -106,3 +106,10 @@ export interface CampaignRecipient {
   phone: string;
   status: 'sent' | 'pending' | 'failed';
 }
+
+export interface SmsSenderNameConfig {
+  senderName: string | null;
+  confirmed: boolean;
+  hasAuthDocument: boolean;
+  authDocumentName: string | null;
+}
