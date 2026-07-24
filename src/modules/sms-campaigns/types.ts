@@ -69,6 +69,7 @@ export interface SmsAutomationConfig {
   postVisit: SmsAutomationRule;
   bookingConfirmation: SmsAutomationRule;
   rescheduleConfirmation: SmsAutomationRule;
+  visitReadyForPickup: SmsAutomationRule;
 }
 
 // ─── Request / response shapes ────────────────────────────────────────────────

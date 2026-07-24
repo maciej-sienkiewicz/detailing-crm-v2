@@ -83,6 +83,14 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         }
     }, [isOpen, initialServiceName]);
 
+    useEffect(() => {
+        if (basePriceNet > 0) {
+            const rate = Math.max(0, vatRate);
+            setBasePriceGross(Math.round(basePriceNet * (1 + rate / 100)));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vatRate]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrors({});

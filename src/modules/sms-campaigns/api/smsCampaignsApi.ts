@@ -143,6 +143,10 @@ let mockAutomation: SmsAutomationConfig = {
     enabled: false,
     messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!',
   },
+  visitReadyForPickup: {
+    enabled: false,
+    messageTemplate: 'Drogi/a {{imie}}, Twój pojazd jest gotowy do odbioru w {{studio}}. Zapraszamy!',
+  },
 };
 
 const mockBrands: VehicleBrandOption[] = [
