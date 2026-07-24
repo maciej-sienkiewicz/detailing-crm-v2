@@ -840,6 +840,7 @@ const CONFIG_DEFAULTS: SmsAutomationConfig = {
   postVisit:              { enabled: false, offsetMinutes: 30,  messageTemplate: '' },
   bookingConfirmation:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
   rescheduleConfirmation: { enabled: false, messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
+  visitReadyForPickup:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, Twój pojazd jest gotowy do odbioru w {{studio}}. Zapraszamy!' },
 };
 
 function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationConfig {
@@ -848,6 +849,7 @@ function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationC
     postVisit:              config.postVisit              ?? CONFIG_DEFAULTS.postVisit,
     bookingConfirmation:    config.bookingConfirmation    ?? CONFIG_DEFAULTS.bookingConfirmation,
     rescheduleConfirmation: config.rescheduleConfirmation ?? CONFIG_DEFAULTS.rescheduleConfirmation,
+    visitReadyForPickup:    config.visitReadyForPickup    ?? CONFIG_DEFAULTS.visitReadyForPickup,
   };
 }
 
@@ -920,7 +922,7 @@ const RuleCard: React.FC<RuleCardProps> = ({
 
 const SkeletonList: React.FC = () => (
   <Container>
-    {[52, 46, 44, 50].map((w, i) => (
+    {[52, 46, 44, 50, 48].map((w, i) => (
       <Card key={i} $enabled={false}>
         <CardHeaderRow style={{ cursor: 'default' }}>
           <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
@@ -1103,6 +1105,31 @@ export const AutomationSettings: React.FC = () => {
           onToggleOpen={() => toggleCardOpen('rescheduleConfirmation')}
           onToggleEnabled={makeToggleEnabled('rescheduleConfirmation')}
           onChange={makeRuleUpdater('rescheduleConfirmation')}
+          showTiming={false}
+        />
+
+        <RuleCard
+          rule={localConfig.visitReadyForPickup}
+          open={openCards.has('visitReadyForPickup')}
+          title="Pojazd gotowy do odbioru"
+          description="Powiadom klienta SMS-em, gdy pojazd jest gotowy do odbioru po wykonaniu usług."
+          studioName={studioName}
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
+              <rect x="9" y="11" width="14" height="10" rx="2" ry="2"/>
+              <circle cx="12" cy="16" r="1"/>
+              <circle cx="20" cy="16" r="1"/>
+            </svg>
+          }
+          meta={
+            localConfig.visitReadyForPickup.enabled
+              ? <ImmediateBadge>Natychmiast po oznaczeniu gotowości</ImmediateBadge>
+              : <InactiveLabel>Nieaktywne</InactiveLabel>
+          }
+          onToggleOpen={() => toggleCardOpen('visitReadyForPickup')}
+          onToggleEnabled={makeToggleEnabled('visitReadyForPickup')}
+          onChange={makeRuleUpdater('visitReadyForPickup')}
           showTiming={false}
         />
       </Container>
