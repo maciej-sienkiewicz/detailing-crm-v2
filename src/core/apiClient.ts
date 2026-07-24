@@ -41,7 +41,7 @@ apiClient.interceptors.response.use(
         if (status === 401) {
             console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
             const currentPath = window.location.pathname;
-            const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/m/upload', '/m/voice'];
+            const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice'];
             // Public customer pages (/vc/:token, /sign/:token) must never bounce to /login
             const isPublicPath = publicPaths.includes(currentPath)
                 || currentPath.startsWith('/vc/')

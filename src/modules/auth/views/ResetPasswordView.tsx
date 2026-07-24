@@ -111,8 +111,14 @@ const FooterLink = styled(Link)`
 `;
 
 type TokenState = 'loading' | 'valid' | 'invalid';
+type ViewMode = 'reset' | 'setup';
 
-export const ResetPasswordView = () => {
+interface ResetPasswordViewProps {
+    mode?: ViewMode;
+}
+
+export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) => {
+    const copy = mode === 'setup' ? t.auth.confirmPassword : t.auth.resetPassword;
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token') ?? '';
 
@@ -168,7 +174,7 @@ export const ResetPasswordView = () => {
                 <Card>
                     <LogoContainer>
                         <Logo>D</Logo>
-                        <Title>{t.auth.resetPassword.title}</Title>
+                        <Title>{copy.title}</Title>
                     </LogoContainer>
                     <p style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
                         {t.common.loading}
@@ -186,16 +192,16 @@ export const ResetPasswordView = () => {
                         <Logo>D</Logo>
                     </LogoContainer>
                     <ExpiredContainer>
-                        <ExpiredTitle>{t.auth.resetPassword.expiredTitle}</ExpiredTitle>
-                        <ExpiredMessage>{t.auth.resetPassword.expiredMessage}</ExpiredMessage>
+                        <ExpiredTitle>{copy.expiredTitle}</ExpiredTitle>
+                        <ExpiredMessage>{copy.expiredMessage}</ExpiredMessage>
                         <Button
                             type="button"
                             $variant="primary"
                             $fullWidth
                             $size="lg"
-                            onClick={() => window.location.href = '/forgot-password'}
+                            onClick={() => window.location.href = mode === 'setup' ? '/login' : '/forgot-password'}
                         >
-                            {t.auth.resetPassword.expiredAction}
+                            {copy.expiredAction}
                         </Button>
                     </ExpiredContainer>
                 </Card>
@@ -208,27 +214,27 @@ export const ResetPasswordView = () => {
             <Card>
                 <LogoContainer>
                     <Logo>D</Logo>
-                    <Title>{t.auth.resetPassword.title}</Title>
-                    <Subtitle>{t.auth.resetPassword.subtitle}</Subtitle>
+                    <Title>{copy.title}</Title>
+                    <Subtitle>{copy.subtitle}</Subtitle>
                 </LogoContainer>
 
                 {apiError && <ErrorAlert message={apiError} />}
-                {success && <SuccessAlert message={t.auth.resetPassword.successMessage} />}
+                {success && <SuccessAlert message={copy.successMessage} />}
 
                 {success ? (
                     <Footer>
-                        <FooterLink to="/login">{t.auth.resetPassword.successAction}</FooterLink>
+                        <FooterLink to="/login">{copy.successAction}</FooterLink>
                     </Footer>
                 ) : (
                     <Form onSubmit={handleSubmit}>
                         <FieldGroup>
-                            <Label htmlFor="password">{t.auth.resetPassword.passwordLabel}</Label>
+                            <Label htmlFor="password">{copy.passwordLabel}</Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={(value) => setFormData({ ...formData, password: value })}
-                                placeholder={t.auth.resetPassword.passwordPlaceholder}
+                                placeholder={copy.passwordPlaceholder}
                                 hasError={!!errors.password}
                                 autoComplete="new-password"
                             />
@@ -236,13 +242,13 @@ export const ResetPasswordView = () => {
                         </FieldGroup>
 
                         <FieldGroup>
-                            <Label htmlFor="confirmPassword">{t.auth.resetPassword.confirmPasswordLabel}</Label>
+                            <Label htmlFor="confirmPassword">{copy.confirmPasswordLabel}</Label>
                             <PasswordInput
                                 id="confirmPassword"
                                 name="confirmPassword"
                                 value={formData.confirmPassword}
                                 onChange={(value) => setFormData({ ...formData, confirmPassword: value })}
-                                placeholder={t.auth.resetPassword.confirmPasswordPlaceholder}
+                                placeholder={copy.confirmPasswordPlaceholder}
                                 hasError={!!errors.confirmPassword}
                                 autoComplete="new-password"
                             />
@@ -257,8 +263,8 @@ export const ResetPasswordView = () => {
                             disabled={resetPasswordMutation.isPending}
                         >
                             {resetPasswordMutation.isPending
-                                ? t.auth.resetPassword.submitting
-                                : t.auth.resetPassword.submitButton}
+                                ? copy.submitting
+                                : copy.submitButton}
                         </Button>
                     </Form>
                 )}

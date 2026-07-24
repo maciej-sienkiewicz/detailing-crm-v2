@@ -95,6 +95,21 @@ export interface TranslationKeys {
             expiredMessage: string;
             expiredAction: string;
         };
+        confirmPassword: {
+            title: string;
+            subtitle: string;
+            passwordLabel: string;
+            passwordPlaceholder: string;
+            confirmPasswordLabel: string;
+            confirmPasswordPlaceholder: string;
+            submitButton: string;
+            submitting: string;
+            successMessage: string;
+            successAction: string;
+            expiredTitle: string;
+            expiredMessage: string;
+            expiredAction: string;
+        };
         validation: {
             emailRequired: string;
             emailInvalid: string;
