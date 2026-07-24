@@ -120,8 +120,6 @@ const BRAND_SLUG_MAP: Record<string, string> = {
     'lynk & co':         'lynk-co',
     'nio':               'nio',
     'polestar':          'polestar',
-    'pontiac':           'pontiac',
-    'ram':               'ram',
     'rivian':            'rivian',
     'scion':             'scion',
     'srt':               'srt',
