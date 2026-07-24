@@ -111,6 +111,23 @@ export const ServiceActions = styled.div`
     flex-shrink: 0;
 `;
 
+export const EditButton = styled.button`
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: #b0bec5;
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover { background: #eff6ff; color: #2563eb; }
+    svg { width: 13px; height: 13px; }
+`;
+
 export const DiscountButton = styled.button<{ $active?: boolean }>`
     width: 28px;
     height: 28px;
