@@ -9,6 +9,7 @@ import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } 
 import { useVisitComments, useVisitCommunication } from '../hooks';
 import { useUpdateServiceStatus } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
+import { StatusStepper } from '../components/StatusStepper';
 import { ClientVehicleCard } from '../components/InfoCards';
 import { TechnicalNotesCard } from '../components/TechnicalNotesCard';
 import { ServicesTable } from '../components/ServicesTable';
@@ -812,7 +813,6 @@ export const VisitDetailView = () => {
             <ContentArea>
                 <VisitHeader
                     visit={visit}
-                    currentStatus={visit.status}
                     onCompleteVisit={handleCompleteVisit}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
@@ -848,6 +848,8 @@ export const VisitDetailView = () => {
                         </D2dBanner>
                     );
                 })()}
+
+                <StatusStepper currentStatus={visit.status} />
 
                 <MainGrid>
                     <MainColumn>
