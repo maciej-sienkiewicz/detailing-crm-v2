@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, Fragment } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
@@ -112,54 +111,6 @@ const HeaderLeft = styled.div`
     }
 `;
 
-/* ── Breadcrumb ── */
-
-const BreadcrumbRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 10px;
-
-    @media (max-width: 640px) {
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-`;
-
-const BackBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(148, 163, 184, 0.7);
-    transition: color 180ms ease;
-
-    &:hover { color: rgba(241, 245, 249, 0.85); }
-    svg { width: 13px; height: 13px; }
-`;
-
-const BreadcrumbSep = styled.span`
-    color: rgba(148, 163, 184, 0.3);
-    font-size: 12px;
-`;
-
-const BreadcrumbCurrent = styled.span`
-    font-size: 12px;
-    color: rgba(148, 163, 184, 0.5);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 220px;
-
-    @media (max-width: 640px) { max-width: 130px; }
-`;
-
 /* ── Title ── */
 
 const TitleRow = styled.div`
@@ -171,7 +122,6 @@ const TitleRow = styled.div`
 
     @media (max-width: 640px) {
         flex: 0 0 100%;
-        margin-top: 10px;
         margin-bottom: 6px;
         gap: 6px;
     }
@@ -444,11 +394,29 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
 
 // ─── Mini status track (compact vertical, lives in HeaderRight) ───────────────
 
+/* Stała wysokość slotu = 3 × 26px (wiersze) + 2 × 10px (łączniki).
+   Dzięki temu header ma identyczną wysokość niezależnie od statusu. */
+const STATUS_SLOT_HEIGHT = 3 * 26 + 2 * 10;
+
+const StatusSlot = styled.div`
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    align-self: flex-end;
+    min-height: ${STATUS_SLOT_HEIGHT}px;
+
+    @media (max-width: 640px) {
+        min-height: 0;
+        align-items: flex-start;
+        align-self: flex-start;
+    }
+`;
+
 const MiniTrackWrap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0;
-    align-self: flex-end;
 
     @media (max-width: 640px) { display: none; }
 `;
@@ -499,14 +467,35 @@ const MiniVLine = styled.div`
     margin-left: 5.5px;
 `;
 
-const MiniStatusNote = styled.div`
+const SpecialStatusRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    height: 26px;
+`;
+
+const SpecialDot = styled.div<{ $tone: string }>`
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: ${p => p.$tone};
+    box-shadow: 0 0 0 4px ${p => p.$tone.replace(/[\d.]+\)$/, '0.16)')};
+`;
+
+const SpecialLabel = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.9);
+`;
+
+const SpecialHint = styled.span`
     font-size: 12px;
     font-weight: 400;
-    color: rgba(148, 163, 184, 0.5);
-    text-align: right;
     white-space: nowrap;
-
-    @media (max-width: 640px) { display: none; }
+    color: rgba(148, 163, 184, 0.5);
+    margin-top: 2px;
 `;
 
 /* Mobile: just show current step as a quiet pill */
@@ -537,20 +526,31 @@ const MINI_STEPS = [
     { status: 'COMPLETED',        label: 'Zakończona'   },
 ] as const;
 
-function MiniStepper({ currentStatus }: { currentStatus: VisitStatus }) {
-    const specialLabel =
-        currentStatus === 'DRAFT'    ? 'W przygotowaniu' :
-        currentStatus === 'REJECTED' ? 'Odrzucona'       :
-        currentStatus === 'ARCHIVED' ? 'Zarchiwizowana'  : null;
+const SPECIAL_STATUSES: Partial<Record<VisitStatus, { label: string; hint: string; tone: string }>> = {
+    DRAFT:    { label: 'W przygotowaniu', hint: 'Oczekuje na potwierdzenie', tone: 'rgba(245, 158, 11, 0.9)' },
+    REJECTED: { label: 'Odrzucona',       hint: 'Wizyta anulowana',          tone: 'rgba(148, 163, 184, 0.6)' },
+    ARCHIVED: { label: 'Zarchiwizowana',  hint: 'Przeniesiona do archiwum',  tone: 'rgba(148, 163, 184, 0.5)' },
+};
 
-    if (specialLabel) {
-        return <MiniStatusNote>{specialLabel}</MiniStatusNote>;
+function MiniStepper({ currentStatus }: { currentStatus: VisitStatus }) {
+    const special = SPECIAL_STATUSES[currentStatus];
+
+    if (special) {
+        return (
+            <StatusSlot>
+                <SpecialStatusRow>
+                    <SpecialDot $tone={special.tone} />
+                    <SpecialLabel>{special.label}</SpecialLabel>
+                </SpecialStatusRow>
+                <SpecialHint>{special.hint}</SpecialHint>
+            </StatusSlot>
+        );
     }
 
     const currentIdx = MINI_STEPS.findIndex(s => s.status === currentStatus);
 
     return (
-        <>
+        <StatusSlot>
             <MiniTrackWrap>
                 {MINI_STEPS.map((step, i) => {
                     const state = i < currentIdx ? 'done' : i === currentIdx ? 'active' : 'future';
@@ -570,7 +570,7 @@ function MiniStepper({ currentStatus }: { currentStatus: VisitStatus }) {
                 <MobileStepDot />
                 {MINI_STEPS[currentIdx]?.label}
             </MobileCurrentStep>
-        </>
+        </StatusSlot>
     );
 }
 
@@ -597,8 +597,6 @@ export const VisitHeader = ({
     onEstimatedCompletionDateUpdate,
     currentStatus,
 }: VisitHeaderProps) => {
-    const navigate = useNavigate();
-
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [draftTitle, setDraftTitle] = useState('');
     const [isSavingTitle, setIsSavingTitle] = useState(false);
@@ -656,18 +654,6 @@ export const VisitHeader = ({
         <HeroHeader>
             <HeaderContent>
                 <HeaderLeft>
-                    {/* Breadcrumb */}
-                    <BreadcrumbRow>
-                        <BackBtn onClick={() => navigate(-1)} aria-label="Wróć do listy wizyt">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <polyline points="15 18 9 12 15 6" />
-                            </svg>
-                            Wizyty
-                        </BackBtn>
-                        <BreadcrumbSep>›</BreadcrumbSep>
-                        <BreadcrumbCurrent>{visit.visitNumber}</BreadcrumbCurrent>
-                    </BreadcrumbRow>
-
                     {/* Title row — tylko tytuł + ikona ołówka */}
                     <TitleRow>
                         {isEditingTitle ? (

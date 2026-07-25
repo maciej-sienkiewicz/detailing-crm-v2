@@ -198,7 +198,6 @@ export const ServicesTable = ({ services, onChange }: Props) => {
         setEditNetInput(centsToInput(service.basePriceNet));
         setEditGrossInput(centsToInput(gross));
         setEditError('');
-        setEditSaving(false);
     };
 
     const handleEditNetChange = (raw: string) => {
