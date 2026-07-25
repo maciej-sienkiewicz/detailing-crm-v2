@@ -10,7 +10,7 @@ import { useVisitComments, useVisitCommunication } from '../hooks';
 import { useUpdateServiceStatus } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
-import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
+import { ClientVehicleCard } from '../components/InfoCards';
 import { TechnicalNotesCard } from '../components/TechnicalNotesCard';
 import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
@@ -80,6 +80,33 @@ const ContentArea = styled.div`
     @media (max-width: 767px) {
         padding: 16px 16px 88px;
     }
+`;
+
+const D2dBanner = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: rgba(14, 165, 233, 0.07);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0369a1;
+
+    svg { flex-shrink: 0; }
+
+    @media (prefers-color-scheme: dark) {
+        background: rgba(14, 165, 233, 0.1);
+        border-color: rgba(14, 165, 233, 0.25);
+        color: #38bdf8;
+    }
+`;
+
+const D2dBannerLabel = styled.span`
+    font-weight: 700;
+    margin-right: 2px;
 `;
 
 // ─── Main grid ────────────────────────────────────────────────────────────────
@@ -794,6 +821,34 @@ export const VisitDetailView = () => {
                     onEstimatedCompletionDateUpdate={updateEstimatedCompletionDate}
                 />
 
+                {visit.doorToDoor?.enabled && (() => {
+                    const d2d = visit.doorToDoor!;
+                    const hasPickup = !!(d2d.pickupAddress?.city || d2d.pickupAddress?.street);
+                    const hasDelivery = !!(d2d.deliveryAddress?.city || d2d.deliveryAddress?.street);
+                    const modeText = hasPickup && hasDelivery
+                        ? 'zarówno odbiór i dostawa'
+                        : hasPickup
+                            ? 'wyłącznie odbiór'
+                            : hasDelivery
+                                ? 'wyłącznie dostawa'
+                                : null;
+                    if (!modeText) return null;
+                    return (
+                        <D2dBanner>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="1" y="3" width="15" height="13" rx="1"/>
+                                <path d="M16 8h4l3 5v3h-7V8z"/>
+                                <circle cx="5.5" cy="18.5" r="2.5"/>
+                                <circle cx="18.5" cy="18.5" r="2.5"/>
+                            </svg>
+                            <span>
+                                <D2dBannerLabel>Door to Door</D2dBannerLabel>
+                                — {modeText}
+                            </span>
+                        </D2dBanner>
+                    );
+                })()}
+
                 <StatusStepper currentStatus={visit.status} />
 
                 <MainGrid>
@@ -1012,13 +1067,10 @@ export const VisitDetailView = () => {
                                 </>
                             );
                         })()}
-                        <CustomerInfoCard
+                        <ClientVehicleCard
                             customer={visit.customer}
-                            visitId={visit.id}
-                            onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
-                        />
-                        <VehicleInfoCard
                             vehicle={visit.vehicle}
+                            visitId={visit.id}
                             mileageAtArrival={visit.mileageAtArrival}
                             keysHandedOver={visit.keysHandedOver}
                             documentsHandedOver={visit.documentsHandedOver}
@@ -1026,7 +1078,8 @@ export const VisitDetailView = () => {
                             onMileageChange={handleMileageChange}
                             onKeysToggle={handleKeysToggle}
                             onDocumentsToggle={handleDocumentsToggle}
-                            onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
+                            onViewCustomer={() => navigate(`/customers/${visit.customer.id}`)}
+                            onViewVehicle={() => navigate(`/vehicles/${visit.vehicle.id}`)}
                         />
                         {visit.technicalNotes && (
                             <TechnicalNotesCard notes={visit.technicalNotes} />
