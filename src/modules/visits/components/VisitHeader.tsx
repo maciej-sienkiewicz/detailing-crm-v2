@@ -456,8 +456,8 @@ const MiniTrackWrap = styled.div`
 const MiniStepRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 11px;
-    height: 26px;
+    gap: 9px;
+    height: 18px;
 `;
 
 const MiniDot = styled.div<{ $state: 'done' | 'active' | 'future' }>`
@@ -466,43 +466,42 @@ const MiniDot = styled.div<{ $state: 'done' | 'active' | 'future' }>`
     transition: all 0.25s ease;
 
     ${p => p.$state === 'active' ? css`
-        width: 12px; height: 12px;
+        width: 8px; height: 8px;
         background: #38bdf8;
-        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
     ` : p.$state === 'done' ? css`
-        width: 10px; height: 10px;
-        background: rgba(52, 211, 153, 0.75);
+        width: 6px; height: 6px;
+        background: rgba(52, 211, 153, 0.7);
         margin: 1px;
     ` : css`
-        width: 10px; height: 10px;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.18);
+        width: 6px; height: 6px;
+        background: rgba(255, 255, 255, 0.16);
         margin: 1px;
     `}
 `;
 
 const MiniStepLabel = styled.span<{ $state: 'done' | 'active' | 'future' }>`
-    font-size: 13px;
+    font-size: 11px;
     white-space: nowrap;
     font-weight: ${p => p.$state === 'active' ? 600 : 400};
     color: ${p =>
-        p.$state === 'active' ? 'rgba(255,255,255,0.9)' :
-        p.$state === 'done'   ? 'rgba(52,211,153,0.65)' :
-                                'rgba(148,163,184,0.38)'
+        p.$state === 'active' ? 'rgba(255,255,255,0.85)' :
+        p.$state === 'done'   ? 'rgba(52,211,153,0.6)'   :
+                                'rgba(148,163,184,0.35)'
     };
 `;
 
 const MiniVLine = styled.div`
     width: 1px;
-    height: 10px;
-    background: rgba(255, 255, 255, 0.12);
-    margin-left: 5.5px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-left: 3.5px;
 `;
 
 const MiniStatusNote = styled.div`
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
-    color: rgba(148, 163, 184, 0.5);
+    color: rgba(148, 163, 184, 0.45);
     text-align: right;
     white-space: nowrap;
 
@@ -516,18 +515,18 @@ const MobileCurrentStep = styled.div`
     @media (max-width: 640px) {
         display: flex;
         align-items: center;
-        gap: 7px;
-        font-size: 12px;
+        gap: 6px;
+        font-size: 11px;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.45);
     }
 `;
 
 const MobileStepDot = styled.div`
-    width: 8px; height: 8px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
     flex-shrink: 0;
 `;
 
