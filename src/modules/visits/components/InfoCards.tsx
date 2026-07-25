@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
@@ -18,13 +18,38 @@ const SidebarCard = styled.div`
     box-shadow: ${st.shadowSm};
 `;
 
-const CardHeader = styled.div`
+const fadeDown = keyframes`
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
+const CardHeader = styled.div<{ $clickable?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
     border-bottom: 1px solid ${st.border};
     background: ${st.bgCard};
+    ${p => p.$clickable && css`
+        cursor: pointer;
+        user-select: none;
+        transition: background 150ms ease;
+        &:hover { background: ${st.bgCardAlt}; }
+    `}
+`;
+
+const CardChevron = styled.svg<{ $open: boolean }>`
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: ${st.textMuted};
+    transition: transform 220ms ease;
+    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
+`;
+
+const CardBody = styled.div<{ $visible: boolean }>`
+    display: ${p => p.$visible ? 'block' : 'none'};
+    animation: ${fadeDown} 0.18s ease;
 `;
 
 const CardTitleGroup = styled.div`
@@ -355,6 +380,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
     const masked = isPiiMasked(fullName);
     const initials = masked ? '•' : getInitials(customer.firstName, customer.lastName);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
 
     const visitsLabel = customer.stats.totalVisits === 1 ? 'wizyta' :
         customer.stats.totalVisits % 10 >= 2 && customer.stats.totalVisits % 10 <= 4 && (customer.stats.totalVisits % 100 < 10 || customer.stats.totalVisits % 100 >= 20)
@@ -362,7 +388,12 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
 
     return (
         <SidebarCard>
-            <CardHeader>
+            <CardHeader
+                $clickable
+                onClick={() => setIsOpen(v => !v)}
+                aria-expanded={isOpen}
+                aria-controls="customer-card-body"
+            >
                 <CardTitleGroup>
                     <CardIconWrap aria-hidden="true">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -372,18 +403,24 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                     </CardIconWrap>
                     <CardTitle>Klient</CardTitle>
                 </CardTitleGroup>
-                {onViewDetails && (
-                    <ViewBtn onClick={onViewDetails} aria-label="Otwórz profil klienta">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                        Profil
-                    </ViewBtn>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {onViewDetails && (
+                        <ViewBtn onClick={e => { e.stopPropagation(); onViewDetails(); }} aria-label="Otwórz profil klienta">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                            Profil
+                        </ViewBtn>
+                    )}
+                    <CardChevron $open={isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9" />
+                    </CardChevron>
+                </div>
             </CardHeader>
 
+            <CardBody $visible={isOpen} id="customer-card-body">
             <CustomerBody>
                 {/* Avatar + name */}
                 <CustomerRow>
@@ -471,6 +508,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                     </>
                 )}
             </CustomerBody>
+            </CardBody>
         </SidebarCard>
     );
 };
@@ -507,12 +545,17 @@ export const VehicleInfoCard = ({
 }: VehicleInfoCardProps) => {
     const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
     const mileageStr = hasMileage ? `${mileageAtArrival!.toLocaleString('pl-PL')} km` : null;
+    const [isOpen, setIsOpen] = useState(true);
 
     return (
         <SidebarCard>
-            <CardHeader>
+            <CardHeader
+                $clickable
+                onClick={() => setIsOpen(v => !v)}
+                aria-expanded={isOpen}
+                aria-controls="vehicle-card-body"
+            >
                 <CardTitleGroup>
-                    {/* Premium car silhouette SVG — canonical per design system */}
                     <CardIconWrap aria-hidden="true">
                         <svg width="18" height="10" viewBox="0 0 120 56" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 40 C 6 40, 12 38, 18 38 L 30 38 L 36 28 C 40 23, 48 19, 60 19 C 72 19, 80 22, 86 27 L 95 34 L 108 35 C 112 35, 114 37, 114 40 L 114 44 L 6 44 Z"/>
@@ -524,18 +567,24 @@ export const VehicleInfoCard = ({
                     </CardIconWrap>
                     <CardTitle>Stan przy przyjęciu</CardTitle>
                 </CardTitleGroup>
-                {onViewDetails && (
-                    <ViewBtn onClick={onViewDetails} aria-label="Otwórz kartę pojazdu">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                        Karta
-                    </ViewBtn>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {onViewDetails && (
+                        <ViewBtn onClick={e => { e.stopPropagation(); onViewDetails(); }} aria-label="Otwórz kartę pojazdu">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                            Karta
+                        </ViewBtn>
+                    )}
+                    <CardChevron $open={isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9" />
+                    </CardChevron>
+                </div>
             </CardHeader>
 
+            <CardBody $visible={isOpen} id="vehicle-card-body">
             <VehicleBody>
                 <KvRow>
                     <KvLabel>Przebieg</KvLabel>
@@ -600,6 +649,7 @@ export const VehicleInfoCard = ({
                     </HandoffBanner>
                 )}
             </VehicleBody>
+            </CardBody>
         </SidebarCard>
     );
 };
