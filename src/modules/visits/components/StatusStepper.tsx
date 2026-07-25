@@ -3,9 +3,9 @@ import type { VisitStatus } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
-const breathe = keyframes`
-    0%, 100% { opacity: 0.9; }
-    50%       { opacity: 1; }
+const pulseGlow = keyframes`
+    0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45); }
+    50%       { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0); }
 `;
 
 // ─── Container ────────────────────────────────────────────────────────────────
@@ -19,18 +19,6 @@ const StepperContainer = styled.div`
     padding: 16px 28px 18px;
     margin-bottom: 14px;
     box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 6px 20px rgba(0,0,0,0.18);
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: -70px;
-        right: -30px;
-        width: 180px;
-        height: 180px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 70%);
-        pointer-events: none;
-    }
 
     @media (max-width: 640px) {
         padding: 12px 16px 14px;
@@ -49,11 +37,11 @@ const StepsList = styled.div`
 
 const ProgressTrack = styled.div`
     position: absolute;
-    top: 15px;
+    top: 5px;
     left: 0;
     right: 0;
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.1);
     z-index: 0;
 `;
 
@@ -63,7 +51,7 @@ const ProgressFill = styled.div<{ $progress: number }>`
     left: 0;
     height: 100%;
     width: ${p => p.$progress}%;
-    background: rgba(255, 255, 255, 0.35);
+    background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
@@ -71,63 +59,49 @@ const Step = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
     position: relative;
     z-index: 1;
     flex: 1;
     max-width: 200px;
 `;
 
-const StepCircle = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
-    width: 30px;
-    height: 30px;
+const StepDot = styled.div<{ $state: 'done' | 'active' | 'future' }>`
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 0.02em;
-    transition: all 0.3s ease;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
 
-    ${props => {
-        if (props.$isCompleted) return css`
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.45);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-        `;
-        if (props.$isActive) return css`
-            background: rgba(255, 255, 255, 0.92);
-            color: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
-            animation: ${breathe} 2.4s ease-in-out infinite;
-        `;
-        return css`
-            background: rgba(255, 255, 255, 0.03);
-            color: rgba(148, 163, 184, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        `;
-    }}
+    ${p => p.$state === 'active' ? css`
+        width: 12px;
+        height: 12px;
+        background: #38bdf8;
+        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+        animation: ${pulseGlow} 2s ease-in-out infinite;
+    ` : p.$state === 'done' ? css`
+        width: 10px;
+        height: 10px;
+        background: rgba(52, 211, 153, 0.75);
+    ` : css`
+        width: 10px;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    `}
 `;
 
-const StepLabel = styled.span<{ $isActive: boolean; $isCompleted: boolean }>`
-    font-size: 11px;
-    font-weight: ${p => p.$isActive ? 600 : 400};
+const StepLabel = styled.span<{ $state: 'done' | 'active' | 'future' }>`
+    font-size: 12px;
+    font-weight: ${p => p.$state === 'active' ? 600 : 400};
     text-align: center;
     white-space: nowrap;
     letter-spacing: 0.01em;
-    transition: color 0.3s ease;
+    transition: color 0.25s ease;
 
     color: ${p =>
-        p.$isActive    ? 'rgba(255, 255, 255, 0.9)' :
-        p.$isCompleted ? 'rgba(255, 255, 255, 0.3)' :
-                         'rgba(148, 163, 184, 0.25)'
+        p.$state === 'active' ? 'rgba(255, 255, 255, 0.9)'  :
+        p.$state === 'done'   ? 'rgba(52, 211, 153, 0.65)'  :
+                                'rgba(148, 163, 184, 0.38)'
     };
-
-    @media (min-width: 768px) {
-        font-size: 12px;
-    }
 `;
 
 // ─── Special statuses ─────────────────────────────────────────────────────────
@@ -184,12 +158,6 @@ const getStepIndex = (status: VisitStatus): number => {
 
 const calculateProgress = (idx: number): number =>
     idx <= 0 ? 0 : (idx / (steps.length - 1)) * 100;
-
-const CheckSvg = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <polyline points="20 6 9 17 4 12"/>
-    </svg>
-);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -251,16 +219,13 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
                     <ProgressFill $progress={progress} />
                 </ProgressTrack>
                 {steps.map((step, index) => {
-                    const isCompleted = index < currentIndex;
-                    const isActive = index === currentIndex;
+                    const state: 'done' | 'active' | 'future' =
+                        index < currentIndex ? 'done' :
+                        index === currentIndex ? 'active' : 'future';
                     return (
                         <Step key={step.status}>
-                            <StepCircle $isActive={isActive} $isCompleted={isCompleted}>
-                                {isCompleted ? <CheckSvg /> : index + 1}
-                            </StepCircle>
-                            <StepLabel $isActive={isActive} $isCompleted={isCompleted}>
-                                {step.label}
-                            </StepLabel>
+                            <StepDot $state={state} />
+                            <StepLabel $state={state}>{step.label}</StepLabel>
                         </Step>
                     );
                 })}
