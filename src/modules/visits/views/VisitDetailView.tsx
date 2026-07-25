@@ -821,7 +821,7 @@ export const VisitDetailView = () => {
                     onEstimatedCompletionDateUpdate={updateEstimatedCompletionDate}
                 />
 
-                {visit.doorToDoor?.enabled && (() => {
+                {visit.doorToDoor && (() => {
                     const d2d = visit.doorToDoor!;
                     const hasPickup = !!(d2d.pickupAddress?.city || d2d.pickupAddress?.street);
                     const hasDelivery = !!(d2d.deliveryAddress?.city || d2d.deliveryAddress?.street);
