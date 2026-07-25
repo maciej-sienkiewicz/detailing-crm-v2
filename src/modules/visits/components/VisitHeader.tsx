@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
@@ -428,10 +428,178 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
     }}
 `;
 
+// ─── Inline stepper (dark variant, lives inside HeroHeader) ──────────────────
+
+const HeaderFooter = styled.div`
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 14px 28px 16px;
+
+    @media (max-width: 900px) { padding: 12px 20px 14px; }
+    @media (max-width: 640px) { padding: 10px 14px 14px; }
+`;
+
+const InlineStepsList = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+`;
+
+const InlineProgressLine = styled.div<{ $progress: number }>`
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 0;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: ${p => p.$progress}%;
+        background: linear-gradient(90deg, #0ea5e9 0%, #0284c7 100%);
+        transition: width 0.5s ease;
+        border-radius: 2px;
+    }
+`;
+
+const inlinePulse = keyframes`
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.55); }
+    50%       { box-shadow: 0 0 0 7px rgba(14, 165, 233, 0); }
+`;
+
+const InlineStep = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+`;
+
+const InlineCircle = styled.div<{ $state: 'done' | 'active' | 'future' }>`
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    transition: all 0.3s ease;
+
+    ${p => {
+        if (p.$state === 'done') return css`
+            background: #10B981;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+        `;
+        if (p.$state === 'active') return css`
+            background: #0ea5e9;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+            animation: ${inlinePulse} 2s infinite;
+        `;
+        return css`
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+        `;
+    }}
+`;
+
+const InlineLabel = styled.span<{ $state: 'done' | 'active' | 'future' }>`
+    font-size: 11px;
+    font-weight: ${p => p.$state === 'active' ? 700 : 500};
+    color: ${p =>
+        p.$state === 'active'  ? '#fff' :
+        p.$state === 'done'    ? 'rgba(52, 211, 153, 0.9)' :
+        'rgba(148, 163, 184, 0.55)'
+    };
+    text-align: center;
+    white-space: nowrap;
+
+    @media (max-width: 400px) { font-size: 10px; }
+`;
+
+const InlineStatusBadge = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(148, 163, 184, 0.75);
+`;
+
+const INLINE_STEPS = [
+    { status: 'IN_PROGRESS',      label: 'W realizacji' },
+    { status: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
+    { status: 'COMPLETED',        label: 'Zakończona'   },
+] as const;
+
+function InlineStepper({ currentStatus }: { currentStatus: VisitStatus }) {
+    if (currentStatus === 'DRAFT') {
+        return (
+            <InlineStatusBadge>
+                <span style={{ fontSize: 16 }}>✏️</span>
+                Wizyta w przygotowaniu — oczekuje na potwierdzenie
+            </InlineStatusBadge>
+        );
+    }
+    if (currentStatus === 'REJECTED') {
+        return (
+            <InlineStatusBadge>
+                <span style={{ fontSize: 16 }}>✕</span>
+                Wizyta odrzucona
+            </InlineStatusBadge>
+        );
+    }
+    if (currentStatus === 'ARCHIVED') {
+        return (
+            <InlineStatusBadge>
+                <span style={{ fontSize: 16 }}>📦</span>
+                Wizyta zarchiwizowana
+            </InlineStatusBadge>
+        );
+    }
+
+    const currentIdx = INLINE_STEPS.findIndex(s => s.status === currentStatus);
+    const progress = currentIdx <= 0 ? 0 : (currentIdx / (INLINE_STEPS.length - 1)) * 100;
+
+    return (
+        <InlineStepsList>
+            <InlineProgressLine $progress={progress} />
+            {INLINE_STEPS.map((step, i) => {
+                const state = i < currentIdx ? 'done' : i === currentIdx ? 'active' : 'future';
+                return (
+                    <InlineStep key={step.status}>
+                        <InlineCircle $state={state}>
+                            {state === 'done' ? (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            ) : i + 1}
+                        </InlineCircle>
+                        <InlineLabel $state={state}>{step.label}</InlineLabel>
+                    </InlineStep>
+                );
+            })}
+        </InlineStepsList>
+    );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface VisitHeaderProps {
     visit: Visit;
+    currentStatus: VisitStatus;
     onCompleteVisit: () => void;
     onCancelVisit: () => void;
     onGeneratePost: () => void;
@@ -448,6 +616,7 @@ export const VisitHeader = ({
     onDoorToDoor,
     onTitleUpdate,
     onEstimatedCompletionDateUpdate,
+    currentStatus,
 }: VisitHeaderProps) => {
     const navigate = useNavigate();
 
@@ -659,6 +828,10 @@ export const VisitHeader = ({
                     </ActionButton>
                 </HeaderRight>
             </HeaderContent>
+
+            <HeaderFooter>
+                <InlineStepper currentStatus={currentStatus} />
+            </HeaderFooter>
 
             <ModalShell isOpen={isDateModalOpen} onClose={() => setIsDateModalOpen(false)} size="sm">
                 <ModalHeader>
