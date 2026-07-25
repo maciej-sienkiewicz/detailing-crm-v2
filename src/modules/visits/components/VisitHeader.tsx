@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, Fragment } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
@@ -350,29 +350,15 @@ const DateInputField = styled.input`
 
 const HeaderRight = styled.div`
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
     flex-shrink: 0;
     padding-top: 4px;
 
     @media (max-width: 640px) {
         width: 100%;
-        align-items: flex-start;
+        flex-wrap: wrap;
         padding-top: 0;
-        gap: 8px;
-    }
-`;
-
-const ButtonRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-
-    @media (max-width: 640px) {
-        width: 100%;
         gap: 6px;
     }
 `;
@@ -442,134 +428,170 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
     }}
 `;
 
-// ─── Mini status track (compact vertical, lives in HeaderRight) ───────────────
+// ─── Inline stepper (dark variant, lives inside HeroHeader) ──────────────────
 
-const MiniTrackWrap = styled.div`
+const HeaderFooter = styled.div`
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 14px 28px 16px;
+
+    @media (max-width: 900px) { padding: 12px 20px 14px; }
+    @media (max-width: 640px) { padding: 10px 14px 14px; }
+`;
+
+const InlineStepsList = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 0;
-    align-self: flex-end;
-
-    @media (max-width: 640px) { display: none; }
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
 `;
 
-const MiniStepRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    height: 18px;
-`;
+const InlineProgressLine = styled.div<{ $progress: number }>`
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 0;
 
-const MiniDot = styled.div<{ $state: 'done' | 'active' | 'future' }>`
-    border-radius: 50%;
-    flex-shrink: 0;
-    transition: all 0.25s ease;
-
-    ${p => p.$state === 'active' ? css`
-        width: 8px; height: 8px;
-        background: #38bdf8;
-        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
-    ` : p.$state === 'done' ? css`
-        width: 6px; height: 6px;
-        background: rgba(52, 211, 153, 0.7);
-        margin: 1px;
-    ` : css`
-        width: 6px; height: 6px;
-        background: rgba(255, 255, 255, 0.16);
-        margin: 1px;
-    `}
-`;
-
-const MiniStepLabel = styled.span<{ $state: 'done' | 'active' | 'future' }>`
-    font-size: 11px;
-    white-space: nowrap;
-    font-weight: ${p => p.$state === 'active' ? 600 : 400};
-    color: ${p =>
-        p.$state === 'active' ? 'rgba(255,255,255,0.85)' :
-        p.$state === 'done'   ? 'rgba(52,211,153,0.6)'   :
-                                'rgba(148,163,184,0.35)'
-    };
-`;
-
-const MiniVLine = styled.div`
-    width: 1px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    margin-left: 3.5px;
-`;
-
-const MiniStatusNote = styled.div`
-    font-size: 11px;
-    font-weight: 400;
-    color: rgba(148, 163, 184, 0.45);
-    text-align: right;
-    white-space: nowrap;
-
-    @media (max-width: 640px) { display: none; }
-`;
-
-/* Mobile: just show current step as a quiet pill */
-const MobileCurrentStep = styled.div`
-    display: none;
-
-    @media (max-width: 640px) {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11px;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.45);
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: ${p => p.$progress}%;
+        background: linear-gradient(90deg, #0ea5e9 0%, #0284c7 100%);
+        transition: width 0.5s ease;
+        border-radius: 2px;
     }
 `;
 
-const MobileStepDot = styled.div`
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #38bdf8;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
-    flex-shrink: 0;
+const inlinePulse = keyframes`
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.55); }
+    50%       { box-shadow: 0 0 0 7px rgba(14, 165, 233, 0); }
 `;
 
-const MINI_STEPS = [
+const InlineStep = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+`;
+
+const InlineCircle = styled.div<{ $state: 'done' | 'active' | 'future' }>`
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    transition: all 0.3s ease;
+
+    ${p => {
+        if (p.$state === 'done') return css`
+            background: #10B981;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+        `;
+        if (p.$state === 'active') return css`
+            background: #0ea5e9;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+            animation: ${inlinePulse} 2s infinite;
+        `;
+        return css`
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+        `;
+    }}
+`;
+
+const InlineLabel = styled.span<{ $state: 'done' | 'active' | 'future' }>`
+    font-size: 11px;
+    font-weight: ${p => p.$state === 'active' ? 700 : 500};
+    color: ${p =>
+        p.$state === 'active'  ? '#fff' :
+        p.$state === 'done'    ? 'rgba(52, 211, 153, 0.9)' :
+        'rgba(148, 163, 184, 0.55)'
+    };
+    text-align: center;
+    white-space: nowrap;
+
+    @media (max-width: 400px) { font-size: 10px; }
+`;
+
+const InlineStatusBadge = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(148, 163, 184, 0.75);
+`;
+
+const INLINE_STEPS = [
     { status: 'IN_PROGRESS',      label: 'W realizacji' },
     { status: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
     { status: 'COMPLETED',        label: 'Zakończona'   },
 ] as const;
 
-function MiniStepper({ currentStatus }: { currentStatus: VisitStatus }) {
-    const specialLabel =
-        currentStatus === 'DRAFT'    ? 'W przygotowaniu' :
-        currentStatus === 'REJECTED' ? 'Odrzucona'       :
-        currentStatus === 'ARCHIVED' ? 'Zarchiwizowana'  : null;
-
-    if (specialLabel) {
-        return <MiniStatusNote>{specialLabel}</MiniStatusNote>;
+function InlineStepper({ currentStatus }: { currentStatus: VisitStatus }) {
+    if (currentStatus === 'DRAFT') {
+        return (
+            <InlineStatusBadge>
+                <span style={{ fontSize: 16 }}>✏️</span>
+                Wizyta w przygotowaniu — oczekuje na potwierdzenie
+            </InlineStatusBadge>
+        );
+    }
+    if (currentStatus === 'REJECTED') {
+        return (
+            <InlineStatusBadge>
+                <span style={{ fontSize: 16 }}>✕</span>
+                Wizyta odrzucona
+            </InlineStatusBadge>
+        );
+    }
+    if (currentStatus === 'ARCHIVED') {
+        return (
+            <InlineStatusBadge>
+                <span style={{ fontSize: 16 }}>📦</span>
+                Wizyta zarchiwizowana
+            </InlineStatusBadge>
+        );
     }
 
-    const currentIdx = MINI_STEPS.findIndex(s => s.status === currentStatus);
+    const currentIdx = INLINE_STEPS.findIndex(s => s.status === currentStatus);
+    const progress = currentIdx <= 0 ? 0 : (currentIdx / (INLINE_STEPS.length - 1)) * 100;
 
     return (
-        <>
-            <MiniTrackWrap>
-                {MINI_STEPS.map((step, i) => {
-                    const state = i < currentIdx ? 'done' : i === currentIdx ? 'active' : 'future';
-                    const isLast = i === MINI_STEPS.length - 1;
-                    return (
-                        <Fragment key={step.status}>
-                            <MiniStepRow>
-                                <MiniDot $state={state} />
-                                <MiniStepLabel $state={state}>{step.label}</MiniStepLabel>
-                            </MiniStepRow>
-                            {!isLast && <MiniVLine />}
-                        </Fragment>
-                    );
-                })}
-            </MiniTrackWrap>
-            <MobileCurrentStep>
-                <MobileStepDot />
-                {MINI_STEPS[currentIdx]?.label}
-            </MobileCurrentStep>
-        </>
+        <InlineStepsList>
+            <InlineProgressLine $progress={progress} />
+            {INLINE_STEPS.map((step, i) => {
+                const state = i < currentIdx ? 'done' : i === currentIdx ? 'active' : 'future';
+                return (
+                    <InlineStep key={step.status}>
+                        <InlineCircle $state={state}>
+                            {state === 'done' ? (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            ) : i + 1}
+                        </InlineCircle>
+                        <InlineLabel $state={state}>{step.label}</InlineLabel>
+                    </InlineStep>
+                );
+            })}
+        </InlineStepsList>
     );
 }
 
@@ -761,55 +783,55 @@ export const VisitHeader = ({
                     </MetaRow>
                 </HeaderLeft>
 
-                {/* Actions + mini status track */}
+                {/* Actions */}
                 <HeaderRight>
-                    <ButtonRow>
-                        <ActionButton $variant="ghost" $mobileHide onClick={onGeneratePost} title="Generuj post Instagram">
+                    <ActionButton $variant="ghost" $mobileHide onClick={onGeneratePost} title="Generuj post Instagram">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
+                        </svg>
+                        Generuj post
+                    </ActionButton>
+
+                    {onDoorToDoor && (
+                        <ActionButton $variant="ghost" $mobileHide onClick={onDoorToDoor}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
                             </svg>
-                            Generuj post
+                            Door to door
                         </ActionButton>
+                    )}
 
-                        {onDoorToDoor && (
-                            <ActionButton $variant="ghost" $mobileHide onClick={onDoorToDoor}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                    <polyline points="9 22 9 12 15 12 15 22" />
-                                </svg>
-                                Door to door
-                            </ActionButton>
-                        )}
+                    <ActionButton
+                        $variant="complete"
+                        $mobilePrimary
+                        onClick={onCompleteVisit}
+                        disabled={isTerminal}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {completeLabel}
+                    </ActionButton>
 
-                        <ActionButton
-                            $variant="complete"
-                            $mobilePrimary
-                            onClick={onCompleteVisit}
-                            disabled={isTerminal}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            {completeLabel}
-                        </ActionButton>
-
-                        <ActionButton
-                            $variant="danger"
-                            $mobileHide
-                            onClick={onCancelVisit}
-                            disabled={isTerminal}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                            Usuń wizytę
-                        </ActionButton>
-                    </ButtonRow>
-
-                    <MiniStepper currentStatus={currentStatus} />
+                    <ActionButton
+                        $variant="danger"
+                        $mobileHide
+                        onClick={onCancelVisit}
+                        disabled={isTerminal}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        Usuń wizytę
+                    </ActionButton>
                 </HeaderRight>
             </HeaderContent>
+
+            <HeaderFooter>
+                <InlineStepper currentStatus={currentStatus} />
+            </HeaderFooter>
 
             <ModalShell isOpen={isDateModalOpen} onClose={() => setIsDateModalOpen(false)} size="sm">
                 <ModalHeader>
