@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
@@ -344,47 +344,42 @@ const HandoffVal = styled.span`
 
 // ─── Combined card components ──────────────────────────────────────────────────
 
-const DropdownPanel = styled.div<{ $open: boolean }>`
-    overflow: hidden;
-    max-height: ${p => p.$open ? '120px' : '0'};
-    transition: max-height 0.2s ease;
-    border-bottom: ${p => p.$open ? `1px solid ${st.border}` : 'none'};
+const TabBar = styled.div<{ $open: boolean }>`
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid ${st.border};
     background: ${st.bgCardAlt};
+    overflow: hidden;
+    max-height: ${p => p.$open ? '60px' : '0'};
+    padding-top: ${p => p.$open ? '8px' : '0'};
+    padding-bottom: ${p => p.$open ? '8px' : '0'};
+    transition: max-height 0.2s ease, padding 0.15s ease;
 `;
 
-const DropdownItem = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 16px;
-    background: none;
-    border: none;
+const TabPill = styled.button<{ $active: boolean }>`
+    padding: 5px 12px;
+    border-radius: ${st.radiusFull};
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 13px;
-    font-weight: ${p => p.$active ? '600' : '400'};
-    color: ${p => p.$active ? st.text : st.textSecondary};
-    text-align: left;
-    transition: background ${st.transition};
+    transition: all ${st.transition};
+    white-space: nowrap;
 
-    &:hover {
-        background: ${st.bgCard};
-    }
+    ${p => p.$active ? css`
+        background: ${st.accentBlueDim};
+        color: ${st.accentBlue};
+        border: 1px solid rgba(59, 130, 246, 0.25);
+    ` : css`
+        background: transparent;
+        color: ${st.textMuted};
+        border: 1px solid ${st.border};
 
-    & + & {
-        border-top: 1px solid ${st.border};
-    }
-`;
-
-const DropdownItemCheck = styled.span<{ $visible: boolean }>`
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${st.accentBlue};
-    opacity: ${p => p.$visible ? 1 : 0};
+        &:hover {
+            border-color: ${st.borderHover};
+            color: ${st.textSecondary};
+        }
+    `}
 `;
 
 const ClickableCardHeader = styled(CardHeader)`
@@ -752,24 +747,34 @@ export const ClientVehicleCard = ({
                 </ChevronIcon>
             </ClickableCardHeader>
 
-            <DropdownPanel $open={tabsOpen}>
-                <DropdownItem $active={activeTab === 'customer'} onClick={() => handleTabSelect('customer')}>
-                    <DropdownItemCheck $visible={activeTab === 'customer'}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </DropdownItemCheck>
+            <TabBar $open={tabsOpen}>
+                <TabPill $active={activeTab === 'customer'} onClick={() => handleTabSelect('customer')}>
                     Klient
-                </DropdownItem>
-                <DropdownItem $active={activeTab === 'vehicle'} onClick={() => handleTabSelect('vehicle')}>
-                    <DropdownItemCheck $visible={activeTab === 'vehicle'}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </DropdownItemCheck>
+                </TabPill>
+                <TabPill $active={activeTab === 'vehicle'} onClick={() => handleTabSelect('vehicle')}>
                     Stan przy przyjęciu
-                </DropdownItem>
-            </DropdownPanel>
+                </TabPill>
+                {activeTab === 'customer' && onViewCustomer && (
+                    <ViewBtn onClick={(e) => { e.stopPropagation(); onViewCustomer(); }} aria-label="Otwórz profil klienta" style={{ marginLeft: 'auto' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                        Profil
+                    </ViewBtn>
+                )}
+                {activeTab === 'vehicle' && onViewVehicle && (
+                    <ViewBtn onClick={(e) => { e.stopPropagation(); onViewVehicle(); }} aria-label="Otwórz kartę pojazdu" style={{ marginLeft: 'auto' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                        Karta
+                    </ViewBtn>
+                )}
+            </TabBar>
 
             {activeTab === 'customer' ? (
                 <CustomerBody>
