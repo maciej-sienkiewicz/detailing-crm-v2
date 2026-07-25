@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
-import { useUpdateService } from '@/modules/services/hooks/useServices';
-import type { VatRate } from '@/modules/services/types';
 import * as S from './styles';
 
 export interface PackageItemSnapshot {
@@ -126,8 +124,6 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     const [editPriceGross, setEditPriceGross] = useState(0);
     const [editVatRate, setEditVatRate] = useState<number>(23);
     const [editError, setEditError] = useState('');
-    const [editSaving, setEditSaving] = useState(false);
-    const updateServiceMutation = useUpdateService();
 
     const getServicePrice = (service: ServiceLineItem) => {
         const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment, service.basePriceGross);
@@ -237,10 +233,10 @@ export const ServicesTable = ({ services, onChange }: Props) => {
         }
     };
 
-    const saveEditService = async () => {
+    const saveEditService = () => {
         if (!editModalServiceId) return;
         const service = services.find(s => s.id === editModalServiceId);
-        if (!service || !service.serviceId) return;
+        if (!service) return;
 
         const trimmedName = editName.trim();
         if (!trimmedName || trimmedName.length < 3) {
@@ -252,31 +248,16 @@ export const ServicesTable = ({ services, onChange }: Props) => {
             return;
         }
 
-        setEditSaving(true);
-        setEditError('');
-        try {
-            await updateServiceMutation.mutateAsync({
-                originalServiceId: service.serviceId,
-                name: trimmedName,
-                basePriceNet: service.requireManualPrice ? 0 : editPriceNet,
-                basePriceGross: service.requireManualPrice ? 0 : editPriceGross,
-                vatRate: service.vatRate as VatRate,
-                requireManualPrice: service.requireManualPrice ?? false,
-            });
-            onChange(services.map(s => s.id === editModalServiceId
-                ? {
-                    ...s,
-                    serviceName: trimmedName,
-                    basePriceNet: service.requireManualPrice ? s.basePriceNet : editPriceNet,
-                    basePriceGross: service.requireManualPrice ? s.basePriceGross : editPriceGross,
-                  }
-                : s
-            ));
-            setEditModalServiceId(null);
-        } catch {
-            setEditError('Nie udało się zapisać zmian. Spróbuj ponownie.');
-            setEditSaving(false);
-        }
+        onChange(services.map(s => s.id === editModalServiceId
+            ? {
+                ...s,
+                serviceName: trimmedName,
+                basePriceNet: service.requireManualPrice ? s.basePriceNet : editPriceNet,
+                basePriceGross: service.requireManualPrice ? s.basePriceGross : editPriceGross,
+              }
+            : s
+        ));
+        setEditModalServiceId(null);
     };
 
     let totalNet = 0;
@@ -654,7 +635,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
 
             {/* Edit service modal */}
             {editModalServiceId && editService && (
-                <S.BulkDiscountOverlay onClick={() => { if (!editSaving) setEditModalServiceId(null); }}>
+                <S.BulkDiscountOverlay onClick={() => setEditModalServiceId(null)}>
                     <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
                         <S.BulkDiscountHeader>
                             <div>
@@ -663,7 +644,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             </div>
                             <S.CloseIconButton
                                 type="button"
-                                onClick={() => { if (!editSaving) setEditModalServiceId(null); }}
+                                onClick={() => setEditModalServiceId(null)}
                             >
                                 <IconX />
                             </S.CloseIconButton>
@@ -711,16 +692,15 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                         <S.BulkDiscountFooter>
                             <S.BulkDiscountCancelBtn
                                 type="button"
-                                onClick={() => { if (!editSaving) setEditModalServiceId(null); }}
+                                onClick={() => setEditModalServiceId(null)}
                             >
                                 Anuluj
                             </S.BulkDiscountCancelBtn>
                             <S.EditSaveBtn
                                 type="button"
                                 onClick={saveEditService}
-                                disabled={editSaving}
                             >
-                                {editSaving ? 'Zapisywanie…' : 'Zapisz'}
+                                Zapisz
                             </S.EditSaveBtn>
                         </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>
