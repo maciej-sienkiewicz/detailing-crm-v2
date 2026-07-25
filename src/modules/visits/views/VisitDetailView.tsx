@@ -82,6 +82,32 @@ const ContentArea = styled.div`
     }
 `;
 
+const D2dBanner = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 18px;
+    margin-bottom: 14px;
+    background: rgba(14, 165, 233, 0.07);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0369a1;
+
+    svg { flex-shrink: 0; }
+`;
+
+const D2dBannerLabel = styled.span`
+    font-weight: 700;
+    margin-right: 2px;
+`;
+
+const D2dBannerAddress = styled.span`
+    color: #0284c7;
+    font-weight: 600;
+`;
+
 // ─── Main grid ────────────────────────────────────────────────────────────────
 // Flex (not grid) so col-1 expand/collapse never shifts col-2.
 
@@ -793,6 +819,40 @@ export const VisitDetailView = () => {
                     onTitleUpdate={updateTitle}
                     onEstimatedCompletionDateUpdate={updateEstimatedCompletionDate}
                 />
+
+                {visit.doorToDoor && (() => {
+                    const d2d = visit.doorToDoor!;
+                    const hasPickup = !!(d2d.pickupAddress?.city || d2d.pickupAddress?.street);
+                    const hasDelivery = !!(d2d.deliveryAddress?.city || d2d.deliveryAddress?.street);
+                    const modeText = hasPickup && hasDelivery
+                        ? 'odbiór i dostawa'
+                        : hasPickup  ? 'wyłącznie odbiór'
+                        : hasDelivery ? 'wyłącznie dostawa'
+                        : null;
+                    if (!modeText) return null;
+                    const pickupStr = hasPickup
+                        ? [d2d.pickupAddress.street, d2d.pickupAddress.city].filter(Boolean).join(', ')
+                        : '';
+                    const deliveryStr = hasDelivery
+                        ? [d2d.deliveryAddress.street, d2d.deliveryAddress.city].filter(Boolean).join(', ')
+                        : '';
+                    return (
+                        <D2dBanner>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="1" y="3" width="15" height="13" rx="1"/>
+                                <path d="M16 8h4l3 5v3h-7V8z"/>
+                                <circle cx="5.5" cy="18.5" r="2.5"/>
+                                <circle cx="18.5" cy="18.5" r="2.5"/>
+                            </svg>
+                            <span>
+                                <D2dBannerLabel>Door to Door</D2dBannerLabel>
+                                — {modeText}
+                                {pickupStr && <> · odbiór: <D2dBannerAddress>{pickupStr}</D2dBannerAddress></>}
+                                {deliveryStr && <> · dostawa: <D2dBannerAddress>{deliveryStr}</D2dBannerAddress></>}
+                            </span>
+                        </D2dBanner>
+                    );
+                })()}
 
                 <StatusStepper currentStatus={visit.status} />
 
