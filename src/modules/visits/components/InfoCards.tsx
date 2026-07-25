@@ -393,35 +393,6 @@ const ClickableCardHeader = styled(CardHeader)`
     &:hover { background: ${st.bgCardAlt}; }
 `;
 
-const HeaderActions = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-`;
-
-const OpenLinkBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover {
-        background: ${st.bgCardAlt};
-        color: ${st.text};
-    }
-
-    svg { width: 13px; height: 13px; }
-`;
-
 const ChevronIcon = styled.svg<{ $open: boolean }>`
     width: 15px;
     height: 15px;
@@ -725,6 +696,7 @@ interface ClientVehicleCardProps {
 
 export const ClientVehicleCard = ({
     customer,
+    vehicle,
     visitId,
     mileageAtArrival,
     keysHandedOver,
@@ -775,37 +747,9 @@ export const ClientVehicleCard = ({
                     </CardIconWrap>
                     <CardTitle>{activeTab === 'customer' ? 'Klient' : 'Stan przy przyjęciu'}</CardTitle>
                 </CardTitleGroup>
-                <HeaderActions>
-                    {activeTab === 'customer' && onViewCustomer && (
-                        <OpenLinkBtn
-                            onClick={(e) => { e.stopPropagation(); onViewCustomer(); }}
-                            aria-label="Otwórz profil klienta"
-                            title="Otwórz profil klienta"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                            </svg>
-                        </OpenLinkBtn>
-                    )}
-                    {activeTab === 'vehicle' && onViewVehicle && (
-                        <OpenLinkBtn
-                            onClick={(e) => { e.stopPropagation(); onViewVehicle(); }}
-                            aria-label="Otwórz kartę pojazdu"
-                            title="Otwórz kartę pojazdu"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                            </svg>
-                        </OpenLinkBtn>
-                    )}
-                    <ChevronIcon $open={tabsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <polyline points="6 9 12 15 18 9" />
-                    </ChevronIcon>
-                </HeaderActions>
+                <ChevronIcon $open={tabsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                </ChevronIcon>
             </ClickableCardHeader>
 
             <DropdownPanel $open={tabsOpen}>
