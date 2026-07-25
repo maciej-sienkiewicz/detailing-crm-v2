@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
@@ -283,9 +283,9 @@ const StatusPill = styled.span<{ $ok: boolean }>`
         color: ${st.accentGreen};
         border: 1px solid rgba(16, 185, 129, 0.2);
     ` : `
-        background: ${st.bgCardAlt};
-        color: ${st.textMuted};
-        border: 1px solid ${st.border};
+        background: ${st.accentRedDim};
+        color: ${st.accentRed};
+        border: 1px solid rgba(239, 68, 68, 0.2);
     `}
 `;
 
@@ -320,15 +320,12 @@ const HandoffRow = styled.div`
     align-items: baseline;
     gap: 8px;
     font-size: 12px;
-    min-width: 0;
-    overflow: hidden;
 `;
 
 const HandoffKey = styled.span`
     color: ${st.textMuted};
     font-weight: 600;
     min-width: 80px;
-    flex-shrink: 0;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -337,64 +334,6 @@ const HandoffKey = styled.span`
 const HandoffVal = styled.span`
     color: ${st.text};
     font-weight: 500;
-    min-width: 0;
-    word-break: break-all;
-    overflow-wrap: break-word;
-`;
-
-// ─── Combined card components ──────────────────────────────────────────────────
-
-const TabBar = styled.div<{ $open: boolean }>`
-    display: flex;
-    gap: 6px;
-    padding: 8px 12px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bgCardAlt};
-    overflow: hidden;
-    max-height: ${p => p.$open ? '60px' : '0'};
-    padding-top: ${p => p.$open ? '8px' : '0'};
-    padding-bottom: ${p => p.$open ? '8px' : '0'};
-    transition: max-height 0.2s ease, padding 0.15s ease;
-`;
-
-const TabPill = styled.button<{ $active: boolean }>`
-    padding: 5px 12px;
-    border-radius: ${st.radiusFull};
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    ${p => p.$active ? css`
-        background: ${st.accentBlueDim};
-        color: ${st.accentBlue};
-        border: 1px solid rgba(59, 130, 246, 0.25);
-    ` : css`
-        background: transparent;
-        color: ${st.textMuted};
-        border: 1px solid ${st.border};
-
-        &:hover {
-            border-color: ${st.borderHover};
-            color: ${st.textSecondary};
-        }
-    `}
-`;
-
-const ClickableCardHeader = styled(CardHeader)`
-    cursor: pointer;
-    user-select: none;
-    &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const ChevronIcon = styled.svg<{ $open: boolean }>`
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-    color: ${st.textMuted};
-    transition: transform 0.2s ease;
-    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -573,6 +512,7 @@ export const VehicleInfoCard = ({
         <SidebarCard>
             <CardHeader>
                 <CardTitleGroup>
+                    {/* Premium car silhouette SVG — canonical per design system */}
                     <CardIconWrap aria-hidden="true">
                         <svg width="18" height="10" viewBox="0 0 120 56" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 40 C 6 40, 12 38, 18 38 L 30 38 L 36 28 C 40 23, 48 19, 60 19 C 72 19, 80 22, 86 27 L 95 34 L 108 35 C 112 35, 114 37, 114 40 L 114 44 L 6 44 Z"/>
@@ -660,272 +600,6 @@ export const VehicleInfoCard = ({
                     </HandoffBanner>
                 )}
             </VehicleBody>
-        </SidebarCard>
-    );
-};
-
-// ─── ClientVehicleCard (combined) ─────────────────────────────────────────────
-
-interface ClientVehicleCardProps {
-    customer: CustomerInfo;
-    vehicle: VehicleInfo;
-    visitId?: string;
-    mileageAtArrival?: number;
-    keysHandedOver: boolean;
-    documentsHandedOver: boolean;
-    vehicleHandoff?: {
-        isHandedOffByOtherPerson: boolean;
-        contactPerson: {
-            firstName: string;
-            lastName: string;
-            phone: string;
-            email: string;
-        };
-    };
-    onViewCustomer?: () => void;
-    onViewVehicle?: () => void;
-    onMileageChange: (mileage: number) => void;
-    onKeysToggle: (checked: boolean) => void;
-    onDocumentsToggle: (checked: boolean) => void;
-}
-
-export const ClientVehicleCard = ({
-    customer,
-    vehicle,
-    visitId,
-    mileageAtArrival,
-    keysHandedOver,
-    documentsHandedOver,
-    vehicleHandoff,
-    onViewCustomer,
-    onViewVehicle,
-}: ClientVehicleCardProps) => {
-    const [activeTab, setActiveTab] = useState<'customer' | 'vehicle'>('customer');
-    const [tabsOpen, setTabsOpen] = useState(false);
-    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-
-    const fullName = joinPiiName(customer.firstName, customer.lastName) ?? '';
-    const masked = isPiiMasked(fullName);
-    const initials = masked ? '•' : getInitials(customer.firstName, customer.lastName);
-
-    const visitsLabel = customer.stats.totalVisits === 1 ? 'wizyta' :
-        customer.stats.totalVisits % 10 >= 2 && customer.stats.totalVisits % 10 <= 4 && (customer.stats.totalVisits % 100 < 10 || customer.stats.totalVisits % 100 >= 20)
-            ? 'wizyty' : 'wizyt';
-
-    const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
-    const mileageStr = hasMileage ? `${mileageAtArrival!.toLocaleString('pl-PL')} km` : null;
-
-    const handleTabSelect = (tab: 'customer' | 'vehicle') => {
-        setActiveTab(tab);
-        setTabsOpen(false);
-    };
-
-    return (
-        <SidebarCard>
-            <ClickableCardHeader onClick={() => setTabsOpen(v => !v)}>
-                <CardTitleGroup>
-                    <CardIconWrap aria-hidden="true">
-                        {activeTab === 'customer' ? (
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                                <circle cx="12" cy="8" r="4" />
-                                <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
-                            </svg>
-                        ) : (
-                            <svg width="18" height="10" viewBox="0 0 120 56" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M6 40 C 6 40, 12 38, 18 38 L 30 38 L 36 28 C 40 23, 48 19, 60 19 C 72 19, 80 22, 86 27 L 95 34 L 108 35 C 112 35, 114 37, 114 40 L 114 44 L 6 44 Z"/>
-                                <line x1="36" y1="28" x2="95" y2="34"/>
-                                <line x1="60" y1="19" x2="64" y2="34"/>
-                                <circle cx="28" cy="44" r="7" fill="currentColor" stroke="none"/>
-                                <circle cx="92" cy="44" r="7" fill="currentColor" stroke="none"/>
-                            </svg>
-                        )}
-                    </CardIconWrap>
-                    <CardTitle>{activeTab === 'customer' ? 'Klient' : 'Stan przy przyjęciu'}</CardTitle>
-                </CardTitleGroup>
-                <ChevronIcon $open={tabsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9" />
-                </ChevronIcon>
-            </ClickableCardHeader>
-
-            <TabBar $open={tabsOpen}>
-                <TabPill $active={activeTab === 'customer'} onClick={() => handleTabSelect('customer')}>
-                    Klient
-                </TabPill>
-                <TabPill $active={activeTab === 'vehicle'} onClick={() => handleTabSelect('vehicle')}>
-                    Stan przy przyjęciu
-                </TabPill>
-                {activeTab === 'customer' && onViewCustomer && (
-                    <ViewBtn onClick={(e) => { e.stopPropagation(); onViewCustomer(); }} aria-label="Otwórz profil klienta" style={{ marginLeft: 'auto' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                        Profil
-                    </ViewBtn>
-                )}
-                {activeTab === 'vehicle' && onViewVehicle && (
-                    <ViewBtn onClick={(e) => { e.stopPropagation(); onViewVehicle(); }} aria-label="Otwórz kartę pojazdu" style={{ marginLeft: 'auto' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                        Karta
-                    </ViewBtn>
-                )}
-            </TabBar>
-
-            {activeTab === 'customer' ? (
-                <CustomerBody>
-                    <CustomerRow>
-                        <CustomerAvatar aria-hidden="true">{initials || '?'}</CustomerAvatar>
-                        <div>
-                            <CustomerName><PiiValue value={fullName} kind="name" emptyFallback="Brak nazwy" /></CustomerName>
-                            {customer.companyName && (
-                                <CustomerSub>{customer.companyName}</CustomerSub>
-                            )}
-                        </div>
-                    </CustomerRow>
-
-                    <ContactLinks>
-                        {customer.phone ? (
-                            <ContactLink href={isPiiMasked(customer.phone) ? undefined : `tel:${customer.phone}`}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                                </svg>
-                                <PiiValue value={customer.phone} kind="phone" />
-                            </ContactLink>
-                        ) : (
-                            <ContactPlaceholder>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                                </svg>
-                                Brak numeru
-                            </ContactPlaceholder>
-                        )}
-
-                        {customer.email ? (
-                            <ContactLink href={isPiiMasked(customer.email) ? undefined : `mailto:${customer.email}`}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                                    <path d="M2 7l10 7 10-7" />
-                                </svg>
-                                <PiiValue value={customer.email} kind="email" />
-                            </ContactLink>
-                        ) : (
-                            <ContactPlaceholder>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                                    <path d="M2 7l10 7 10-7" />
-                                </svg>
-                                Brak adresu e-mail
-                            </ContactPlaceholder>
-                        )}
-                    </ContactLinks>
-
-                    <HistoryLine title="Historia współpracy z klientem">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        <span><strong>{customer.stats.totalVisits}</strong> {visitsLabel}</span>
-                        <HistoryDot />
-                        <span>
-                            łącznie{' '}
-                            <strong>
-                                {formatCurrency(
-                                    customer.stats.totalSpent.grossAmount / 100,
-                                    customer.stats.totalSpent.currency
-                                )}
-                            </strong>
-                        </span>
-                    </HistoryLine>
-
-                    {visitId && (
-                        <>
-                            <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok dla klienta">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                                    <line x1="2" y1="9" x2="22" y2="9" />
-                                    <line x1="6" y1="14" x2="12" y2="14" />
-                                </svg>
-                                Karta Wizyty
-                            </VisitCardButton>
-                            <VisitCardLinkModal
-                                visitId={visitId}
-                                isOpen={isCardModalOpen}
-                                onClose={() => setIsCardModalOpen(false)}
-                            />
-                        </>
-                    )}
-                </CustomerBody>
-            ) : (
-                <VehicleBody>
-                    <KvRow>
-                        <KvLabel>Przebieg</KvLabel>
-                        {mileageStr
-                            ? <KvValue style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageStr}</KvValue>
-                            : <KvMissing>Nie podano</KvMissing>
-                        }
-                    </KvRow>
-
-                    <KvRow>
-                        <KvLabel>Kluczyki</KvLabel>
-                        <StatusPill $ok={keysHandedOver}>
-                            {keysHandedOver ? (
-                                <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazano</>
-                            ) : (
-                                <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Nieprzekazano</>
-                            )}
-                        </StatusPill>
-                    </KvRow>
-
-                    <KvRow>
-                        <KvLabel>Dokumenty</KvLabel>
-                        <StatusPill $ok={documentsHandedOver}>
-                            {documentsHandedOver ? (
-                                <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazano</>
-                            ) : (
-                                <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Nieprzekazano</>
-                            )}
-                        </StatusPill>
-                    </KvRow>
-
-                    {vehicleHandoff?.isHandedOffByOtherPerson && (
-                        <HandoffBanner>
-                            <HandoffLabel>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="8" x2="12" y2="12"/>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                </svg>
-                                Przekazano przez inną osobę
-                            </HandoffLabel>
-                            <HandoffKv>
-                                <HandoffRow>
-                                    <HandoffKey>Imię</HandoffKey>
-                                    <HandoffVal>
-                                        <PiiValue value={joinPiiName(vehicleHandoff.contactPerson.firstName, vehicleHandoff.contactPerson.lastName)} kind="name" />
-                                    </HandoffVal>
-                                </HandoffRow>
-                                {vehicleHandoff.contactPerson.phone && (
-                                    <HandoffRow>
-                                        <HandoffKey>Telefon</HandoffKey>
-                                        <HandoffVal><PiiValue value={vehicleHandoff.contactPerson.phone} kind="phone" /></HandoffVal>
-                                    </HandoffRow>
-                                )}
-                                {vehicleHandoff.contactPerson.email && (
-                                    <HandoffRow>
-                                        <HandoffKey>E-mail</HandoffKey>
-                                        <HandoffVal><PiiValue value={vehicleHandoff.contactPerson.email} kind="email" /></HandoffVal>
-                                    </HandoffRow>
-                                )}
-                            </HandoffKv>
-                        </HandoffBanner>
-                    )}
-                </VehicleBody>
-            )}
         </SidebarCard>
     );
 };
