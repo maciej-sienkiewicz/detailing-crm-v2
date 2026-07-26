@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
@@ -111,54 +110,6 @@ const HeaderLeft = styled.div`
         flex-wrap: wrap;
         align-items: center;
     }
-`;
-
-/* ── Breadcrumb ── */
-
-const BreadcrumbRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 10px;
-
-    @media (max-width: 640px) {
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-`;
-
-const BackBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(148, 163, 184, 0.7);
-    transition: color 180ms ease;
-
-    &:hover { color: rgba(241, 245, 249, 0.85); }
-    svg { width: 13px; height: 13px; }
-`;
-
-const BreadcrumbSep = styled.span`
-    color: rgba(148, 163, 184, 0.3);
-    font-size: 12px;
-`;
-
-const BreadcrumbCurrent = styled.span`
-    font-size: 12px;
-    color: rgba(148, 163, 184, 0.5);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 220px;
-
-    @media (max-width: 640px) { max-width: 130px; }
 `;
 
 /* ── Title ── */
@@ -465,8 +416,6 @@ export const VisitHeader = ({
     onTitleUpdate,
     onEstimatedCompletionDateUpdate,
 }: VisitHeaderProps) => {
-    const navigate = useNavigate();
-
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [draftTitle, setDraftTitle] = useState('');
     const [isSavingTitle, setIsSavingTitle] = useState(false);
@@ -524,18 +473,6 @@ export const VisitHeader = ({
         <HeroHeader>
             <HeaderContent>
                 <HeaderLeft>
-                    {/* Breadcrumb */}
-                    <BreadcrumbRow>
-                        <BackBtn onClick={() => navigate(-1)} aria-label="Wróć do listy wizyt">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <polyline points="15 18 9 12 15 6" />
-                            </svg>
-                            Wizyty
-                        </BackBtn>
-                        <BreadcrumbSep>›</BreadcrumbSep>
-                        <BreadcrumbCurrent>{visit.visitNumber}</BreadcrumbCurrent>
-                    </BreadcrumbRow>
-
                     {/* Title row — tylko tytuł + ikona ołówka */}
                     <TitleRow>
                         {isEditingTitle ? (
