@@ -85,14 +85,14 @@ const HeaderContent = styled.div`
     gap: 24px;
     padding: 22px 28px 18px;
 
-    @media (max-width: 1024px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 16px 20px 14px;
+    @media (max-width: 900px) {
+        padding: 18px 20px 14px;
     }
 
     @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
         padding: 12px 14px 12px;
     }
 `;
@@ -104,7 +104,7 @@ const HeaderLeft = styled.div`
     min-width: 0;
     flex: 1;
 
-    @media (max-width: 1024px) {
+    @media (max-width: 640px) {
         width: 100%;
     }
 `;
@@ -316,14 +316,14 @@ const HeaderRight = styled.div`
     flex-shrink: 0;
     padding-top: 4px;
 
-    @media (max-width: 1024px) {
+    @media (max-width: 640px) {
         width: 100%;
         padding-top: 0;
         gap: 6px;
     }
 `;
 
-const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $mobileHide?: boolean; $mobilePrimary?: boolean }>`
+const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $desktopOnly?: boolean; $mobilePrimary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -342,9 +342,12 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
         cursor: not-allowed;
     }
 
-    @media (max-width: 1024px) {
-        ${p => p.$mobileHide && 'display: none;'}
-        ${p => p.$mobilePrimary && 'width: 100%; justify-content: center; padding: 11px 18px; font-size: 14px;'}
+    @media (max-width: 1200px) {
+        ${p => p.$desktopOnly && 'display: none;'}
+    }
+
+    @media (max-width: 640px) {
+        ${p => p.$mobilePrimary && 'flex: 1; justify-content: center; padding: 11px 18px; font-size: 14px;'}
     }
 
     ${p => {
@@ -388,6 +391,71 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
     }}
 `;
 
+/* ── Kebab menu ── */
+
+const KebabWrap = styled.div`
+    position: relative;
+    flex-shrink: 0;
+
+    @media (min-width: 1201px) {
+        display: none;
+    }
+`;
+
+const KebabBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    cursor: pointer;
+    transition: background 180ms ease;
+    flex-shrink: 0;
+
+    &:hover { background: rgba(255, 255, 255, 0.16); }
+    svg { width: 4px; height: 18px; }
+`;
+
+const KebabMenu = styled.div`
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 200px;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    z-index: 50;
+    overflow: hidden;
+`;
+
+const KebabItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 140ms ease;
+    color: ${p => p.$danger ? '#fca5a5' : '#e2e8f0'};
+
+    &:last-child { border-bottom: none; }
+    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface VisitHeaderProps {
@@ -413,6 +481,17 @@ export const VisitHeader = ({
     const [draftTitle, setDraftTitle] = useState('');
     const [isSavingTitle, setIsSavingTitle] = useState(false);
     const titleInputRef = useRef<HTMLInputElement>(null);
+
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!isMenuOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) setIsMenuOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isMenuOpen]);
 
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [draftDate, setDraftDate] = useState('');
@@ -562,7 +641,8 @@ export const VisitHeader = ({
 
                 {/* Actions */}
                 <HeaderRight>
-                    <ActionButton $variant="ghost" $mobileHide onClick={onGeneratePost} title="Generuj post Instagram">
+                    {/* Seconday actions — inline only on wide screens */}
+                    <ActionButton $variant="ghost" $desktopOnly onClick={onGeneratePost} title="Generuj post Instagram">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
                         </svg>
@@ -570,7 +650,7 @@ export const VisitHeader = ({
                     </ActionButton>
 
                     {onDoorToDoor && (
-                        <ActionButton $variant="ghost" $mobileHide onClick={onDoorToDoor}>
+                        <ActionButton $variant="ghost" $desktopOnly onClick={onDoorToDoor}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                                 <polyline points="9 22 9 12 15 12 15 22" />
@@ -579,30 +659,58 @@ export const VisitHeader = ({
                         </ActionButton>
                     )}
 
-                    <ActionButton
-                        $variant="complete"
-                        $mobilePrimary
-                        onClick={onCompleteVisit}
-                        disabled={isTerminal}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        {completeLabel}
-                    </ActionButton>
-
-                    <ActionButton
-                        $variant="danger"
-                        $mobileHide
-                        onClick={onCancelVisit}
-                        disabled={isTerminal}
-                    >
+                    <ActionButton $variant="danger" $desktopOnly onClick={onCancelVisit} disabled={isTerminal}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                         Usuń wizytę
                     </ActionButton>
+
+                    {/* Primary action — always visible */}
+                    <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {completeLabel}
+                    </ActionButton>
+
+                    {/* Kebab — visible at ≤ 1200px */}
+                    <KebabWrap ref={menuRef}>
+                        <KebabBtn onClick={() => setIsMenuOpen(v => !v)} title="Więcej opcji">
+                            <svg viewBox="0 0 4 18" fill="currentColor">
+                                <circle cx="2" cy="2" r="2" />
+                                <circle cx="2" cy="9" r="2" />
+                                <circle cx="2" cy="16" r="2" />
+                            </svg>
+                        </KebabBtn>
+                        {isMenuOpen && (
+                            <KebabMenu>
+                                <KebabItem onClick={() => { setIsMenuOpen(false); onGeneratePost(); }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
+                                    </svg>
+                                    Generuj post
+                                </KebabItem>
+                                {onDoorToDoor && (
+                                    <KebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                            <polyline points="9 22 9 12 15 12 15 22" />
+                                        </svg>
+                                        Door to door
+                                    </KebabItem>
+                                )}
+                                <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                    Usuń wizytę
+                                </KebabItem>
+                            </KebabMenu>
+                        )}
+                    </KebabWrap>
                 </HeaderRight>
             </HeaderContent>
 
