@@ -29,8 +29,6 @@ import {
     ViewContainer, PageContent,
     TwoColGrid, LeftRail, MainCol,
     Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn, PanelActionBtn,
-    IdentityRow, Avatar, IdentityMeta, IdentityName, IdentityId,
-    ContactList, ContactRow,
     VehicleItem, VehicleInfo, VehicleName, VehicleSub,
     SummaryStrip, SumCell, SumCellActive, KpiEyebrow, KpiValue, KpiDelta,
     ChartGrid, ChartBars, ChartBarCol, ChartBarWrap, ChartBar, ChartBarLabel,
@@ -253,19 +251,6 @@ const HeroMetaItem = styled.span`
     svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
 `;
 
-const HeroTierBadge = styled.span<{ $tier?: string }>`
-    display: inline-flex;
-    align-items: center;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 9px;
-    border-radius: 9999px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: rgba(245,158,11,0.18);
-    color: #fbbf24;
-    border: 1px solid rgba(245,158,11,0.25);
-`;
 
 const HeroRight = styled.div`
     display: flex;
@@ -441,6 +426,7 @@ export const CustomerDetailView = () => {
 
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
     const [isCommOpen,             setIsCommOpen]             = useState(false);
+    const [isConsentsOpen,         setIsConsentsOpen]         = useState(false);
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
     const [reservationMenu, setReservationMenu] = useState<{ id: string; x: number; y: number } | null>(null);
     const [visitsPage, setVisitsPage] = useState(0);
@@ -563,8 +549,17 @@ export const CustomerDetailView = () => {
                                     <HeroMetaItem>
                                         ID: {customer.id.slice(0, 8).toUpperCase()}
                                     </HeroMetaItem>
-                                    {loyaltyTier && loyaltyTier !== 'none' && (
-                                        <HeroTierBadge>{loyaltyTier}</HeroTierBadge>
+                                    {customer.homeAddress && (
+                                        <HeroMetaItem>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                                <circle cx="12" cy="10" r="3"/>
+                                            </svg>
+                                            <PiiValue value={customer.homeAddress.city} kind="text" />
+                                            {customer.homeAddress.street && (
+                                                <>, <PiiValue value={customer.homeAddress.street} kind="text" /></>
+                                            )}
+                                        </HeroMetaItem>
                                     )}
                                 </HeroMetaRow>
                             </HeroNameBlock>
@@ -640,57 +635,6 @@ export const CustomerDetailView = () => {
 
                     {/* ── LEFT RAIL ────────────────────────────────── */}
                     <LeftRail>
-
-                        {/* Identity card */}
-                        <Panel>
-                            <PanelBody>
-                                <IdentityRow>
-                                    <Avatar aria-hidden="true">{initials}</Avatar>
-                                    <IdentityMeta>
-                                        <IdentityName><PiiValue value={fullName} kind="name" /></IdentityName>
-                                        <IdentityId>ID: {customer.id.slice(0, 8).toUpperCase()}</IdentityId>
-                                    </IdentityMeta>
-                                </IdentityRow>
-
-                                <ContactList>
-                                    {customer.contact.phone && (
-                                        <ContactRow
-                                            as={isPiiMasked(customer.contact.phone) ? 'div' : undefined}
-                                            href={isPiiMasked(customer.contact.phone) ? undefined : `tel:${customer.contact.phone}`}
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
-                                            </svg>
-                                            <PiiValue value={customer.contact.phone} kind="phone" />
-                                        </ContactRow>
-                                    )}
-                                    {customer.contact.email && (
-                                        <ContactRow
-                                            as={isPiiMasked(customer.contact.email) ? 'div' : undefined}
-                                            href={isPiiMasked(customer.contact.email) ? undefined : `mailto:${customer.contact.email}`}
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                                                <path d="M2 7l10 7 10-7"/>
-                                            </svg>
-                                            <PiiValue value={customer.contact.email} kind="email" />
-                                        </ContactRow>
-                                    )}
-                                    {customer.homeAddress && (
-                                        <ContactRow as="div">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                                <circle cx="12" cy="10" r="3"/>
-                                            </svg>
-                                            <PiiValue value={customer.homeAddress.city} kind="text" />
-                                            {customer.homeAddress.street && (
-                                                <> · <PiiValue value={customer.homeAddress.street} kind="text" /></>
-                                            )}
-                                        </ContactRow>
-                                    )}
-                                </ContactList>
-                            </PanelBody>
-                        </Panel>
 
                         {/* Company */}
                         {customer.company && (
@@ -1112,7 +1056,28 @@ export const CustomerDetailView = () => {
                         </CollapsibleSection>
 
                         {/* Consents */}
-                        <CustomerConsentsSection customerId={customerId!} />
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsConsentsOpen(v => !v)}
+                                aria-expanded={isConsentsOpen}
+                                aria-controls="consents-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Zgody klienta</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isConsentsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isConsentsOpen} $flush id="consents-section">
+                                <CustomerConsentsSection customerId={customerId!} noCard />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
 
                         {/* Audit trail */}
                         <CollapsibleSection>
