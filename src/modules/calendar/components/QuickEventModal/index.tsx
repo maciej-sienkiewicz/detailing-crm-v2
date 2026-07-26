@@ -232,6 +232,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const sidebarWidth = isCollapsed ? 64 : 240;
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const customerDropdownContainerRef = useRef<HTMLDivElement>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
 
     const MAX_VISIBLE_COLORS = 5;
@@ -346,6 +348,23 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             window.removeEventListener('resize', update);
         };
     }, [form.showServiceDropdown]);
+
+    useEffect(() => {
+        if (!form.showCustomerDropdown) { setCustomerDropdownPos(null); return; }
+        const el = customerDropdownContainerRef.current;
+        if (!el) return;
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            setCustomerDropdownPos({ top: r.bottom, left: r.left, width: r.width });
+        };
+        update();
+        window.addEventListener('scroll', update, true);
+        window.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('scroll', update, true);
+            window.removeEventListener('resize', update);
+        };
+    }, [form.showCustomerDropdown]);
 
     if (!eventData && !initialData) return null;
 
@@ -643,7 +662,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.CustomerHint>
                                                 Wyszukaj istniejącego klienta lub wypełnij pola, aby dodać nowego
                                             </S.CustomerHint>
-                                            <S.DropdownContainer>
+                                            <S.DropdownContainer ref={customerDropdownContainerRef}>
                                                 <S.CustomerInputBlock
                                                     $focused={form.focusedField === 'customer'}
                                                     $hasError={!!(form.errors.customer || form.errors.customerFirstName || form.errors.customerLastName || form.errors.customerPhone || form.errors.customerEmail)}
@@ -739,8 +758,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </S.CustomerInputRow>
                                                 </S.CustomerInputBlock>
 
-                                                {form.showCustomerDropdown && (
-                                                    <S.Dropdown>
+                                                {form.showCustomerDropdown && customerDropdownPos && createPortal(
+                                                    <S.CustomerPortalDropdown style={{ top: customerDropdownPos.top, left: customerDropdownPos.left, width: customerDropdownPos.width }}>
                                                         {form.customerResults.length > 0 && (
                                                             <S.DropdownSeparator>Istniejący klienci</S.DropdownSeparator>
                                                         )}
@@ -797,7 +816,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }
                                                             </span>
                                                         </S.DropdownAddButton>
-                                                    </S.Dropdown>
+                                                    </S.CustomerPortalDropdown>,
+                                                    document.body
                                                 )}
                                             </S.DropdownContainer>
                                         </>
