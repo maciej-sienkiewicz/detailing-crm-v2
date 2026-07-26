@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, resolveBaseNet } from '@/common/utils/priceAdjustment';
@@ -1284,6 +1285,27 @@ const QUICK_DISCOUNTS = [5, 10, 15, 20];
 
 const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
+/* ─── Focus-mode overlay (shown while adding a new service row) ─── */
+
+const focusOverlayIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+
+const FocusOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(2px);
+    pointer-events: all;
+    animation: ${focusOverlayIn} 180ms ease;
+`;
+
+const FocusWrapper = styled.div<{ $active?: boolean }>`
+    ${p => p.$active && css`
+        position: relative;
+        z-index: 1051;
+    `}
+`;
+
 const DraftBar = styled.div`
     display: flex;
     align-items: center;
@@ -1393,6 +1415,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     /* ── Draft state ── */
     const [newRows, setNewRows] = useState<NewRow[]>([]);
+    const isAddingService = newRows.length > 0;
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
     const [notifyCustomer, setNotifyCustomer] = useState(true);
     const [requireConfirmation, setRequireConfirmation] = useState(false);
@@ -1806,6 +1829,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     return (
         <>
+        {isAddingService && createPortal(<FocusOverlay />, document.body)}
+        <FocusWrapper $active={isAddingService}>
         {openMenuId && (
             <div
                 style={{ position: 'fixed', inset: 0, zIndex: 99 }}
@@ -2545,6 +2570,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </ModalCard>
             </ModalOverlay>
         )}
+        </FocusWrapper>
         </>
     );
 };
