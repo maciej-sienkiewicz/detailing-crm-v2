@@ -1445,12 +1445,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         });
     }, []);
 
-    useEffect(() => {
-        if (!isAddingService) return;
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') triggerHighlight(); };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [isAddingService, triggerHighlight]);
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
     const [notifyCustomer, setNotifyCustomer] = useState(true);
     const [requireConfirmation, setRequireConfirmation] = useState(false);
@@ -1743,6 +1737,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
 
     const hasChanges = newRows.some(r => r.serviceName.trim()) || deletedIds.size > 0 || Object.keys(editedPrices).length > 0;
+    const isInEditMode = newRows.length > 0 || deletedIds.size > 0 || Object.keys(editedPrices).length > 0;
+
+    useEffect(() => {
+        if (!isInEditMode) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') triggerHighlight(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isInEditMode, triggerHighlight]);
 
     const discardDraft = () => {
         setNewRows([]);
@@ -1864,8 +1866,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     return (
         <>
-        {isAddingService && createPortal(<FocusOverlay onClick={triggerHighlight} />, document.body)}
-        <FocusWrapper $active={isAddingService}>
+        {isInEditMode && createPortal(<FocusOverlay onClick={triggerHighlight} />, document.body)}
+        <FocusWrapper $active={isInEditMode}>
         {openMenuId && (
             <div
                 style={{ position: 'fixed', inset: 0, zIndex: 99 }}
@@ -1890,7 +1892,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             </svg>
                             Dodaj usługę
                         </AddBtn>
-                        {!isAddingService && (
+                        {!isInEditMode && (
                         <ActionMenuWrapper>
                             <KebabBtn
                                 onClick={() => setOpenMenuId(openMenuId === HEADER_MENU ? null : HEADER_MENU)}
