@@ -85,14 +85,14 @@ const HeaderContent = styled.div`
     gap: 24px;
     padding: 22px 28px 18px;
 
-    @media (max-width: 900px) {
-        padding: 18px 20px 14px;
-    }
-
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+        padding: 16px 20px 14px;
+    }
+
+    @media (max-width: 640px) {
         padding: 12px 14px 12px;
     }
 `;
@@ -104,11 +104,8 @@ const HeaderLeft = styled.div`
     min-width: 0;
     flex: 1;
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         width: 100%;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
     }
 `;
 
@@ -319,9 +316,8 @@ const HeaderRight = styled.div`
     flex-shrink: 0;
     padding-top: 4px;
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         width: 100%;
-        flex-wrap: wrap;
         padding-top: 0;
         gap: 6px;
     }
@@ -346,7 +342,7 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
         cursor: not-allowed;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         ${p => p.$mobileHide && 'display: none;'}
         ${p => p.$mobilePrimary && 'width: 100%; justify-content: center; padding: 11px 18px; font-size: 14px;'}
     }
