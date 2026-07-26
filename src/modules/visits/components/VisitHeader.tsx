@@ -324,7 +324,7 @@ const HeaderRight = styled.div`
     }
 `;
 
-const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $desktopOnly?: boolean; $mobilePrimary?: boolean }>`
+const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $mobilePrimary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -341,10 +341,6 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
     &:disabled {
         opacity: 0.32;
         cursor: not-allowed;
-    }
-
-    @media (max-width: 1200px) {
-        ${p => p.$desktopOnly && 'display: none;'}
     }
 
     @media (max-width: 640px) {
@@ -397,10 +393,6 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
 const KebabWrap = styled.div`
     position: relative;
     flex-shrink: 0;
-
-    @media (min-width: 1201px) {
-        display: none;
-    }
 `;
 
 const KebabBtn = styled.button`
@@ -650,33 +642,6 @@ export const VisitHeader = ({
 
                 {/* Actions */}
                 <HeaderRight>
-                    {/* Seconday actions — inline only on wide screens */}
-                    <ActionButton $variant="ghost" $desktopOnly onClick={onGeneratePost} title="Generuj post Instagram">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
-                        </svg>
-                        Generuj post
-                    </ActionButton>
-
-                    {onDoorToDoor && (
-                        <ActionButton $variant="ghost" $desktopOnly onClick={onDoorToDoor}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                <polyline points="9 22 9 12 15 12 15 22" />
-                            </svg>
-                            Door to door
-                        </ActionButton>
-                    )}
-
-                    <ActionButton $variant="danger" $desktopOnly onClick={onCancelVisit} disabled={isTerminal}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        Usuń wizytę
-                    </ActionButton>
-
-                    {/* Primary action — always visible */}
                     <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <polyline points="20 6 9 17 4 12" />
@@ -684,7 +649,6 @@ export const VisitHeader = ({
                         {completeLabel}
                     </ActionButton>
 
-                    {/* Kebab — visible at ≤ 1200px */}
                     <KebabWrap ref={menuRef}>
                         <KebabBtn onClick={openMenu} title="Więcej opcji">
                             <svg viewBox="0 0 4 18" fill="currentColor">
