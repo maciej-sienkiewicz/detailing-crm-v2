@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
@@ -421,15 +422,13 @@ const KebabBtn = styled.button`
 `;
 
 const KebabMenu = styled.div`
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
+    position: fixed;
     min-width: 200px;
     background: #1e293b;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-    z-index: 50;
+    z-index: 9000;
     overflow: hidden;
 `;
 
@@ -483,7 +482,17 @@ export const VisitHeader = ({
     const titleInputRef = useRef<HTMLInputElement>(null);
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+
+    const openMenu = () => {
+        if (menuRef.current) {
+            const rect = menuRef.current.getBoundingClientRect();
+            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+        }
+        setIsMenuOpen(v => !v);
+    };
+
     useEffect(() => {
         if (!isMenuOpen) return;
         const handler = (e: MouseEvent) => {
@@ -677,42 +686,44 @@ export const VisitHeader = ({
 
                     {/* Kebab — visible at ≤ 1200px */}
                     <KebabWrap ref={menuRef}>
-                        <KebabBtn onClick={() => setIsMenuOpen(v => !v)} title="Więcej opcji">
+                        <KebabBtn onClick={openMenu} title="Więcej opcji">
                             <svg viewBox="0 0 4 18" fill="currentColor">
                                 <circle cx="2" cy="2" r="2" />
                                 <circle cx="2" cy="9" r="2" />
                                 <circle cx="2" cy="16" r="2" />
                             </svg>
                         </KebabBtn>
-                        {isMenuOpen && (
-                            <KebabMenu>
-                                <KebabItem onClick={() => { setIsMenuOpen(false); onGeneratePost(); }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
-                                    </svg>
-                                    Generuj post
-                                </KebabItem>
-                                {onDoorToDoor && (
-                                    <KebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                            <polyline points="9 22 9 12 15 12 15 22" />
-                                        </svg>
-                                        Door to door
-                                    </KebabItem>
-                                )}
-                                <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
-                                    Usuń wizytę
-                                </KebabItem>
-                            </KebabMenu>
-                        )}
                     </KebabWrap>
                 </HeaderRight>
             </HeaderContent>
+
+            {isMenuOpen && menuPos && createPortal(
+                <KebabMenu style={{ top: menuPos.top, right: menuPos.right }}>
+                    <KebabItem onClick={() => { setIsMenuOpen(false); onGeneratePost(); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
+                        </svg>
+                        Generuj post
+                    </KebabItem>
+                    {onDoorToDoor && (
+                        <KebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            Door to door
+                        </KebabItem>
+                    )}
+                    <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        Usuń wizytę
+                    </KebabItem>
+                </KebabMenu>,
+                document.body
+            )}
 
             <ModalShell isOpen={isDateModalOpen} onClose={() => setIsDateModalOpen(false)} size="sm">
                 <ModalHeader>
