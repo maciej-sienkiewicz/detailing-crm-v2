@@ -120,6 +120,7 @@ const TitleRow = styled.div`
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 10px;
+    min-width: 0;
 
     @media (max-width: 640px) {
         flex: 0 0 100%;
@@ -136,7 +137,7 @@ const VisitTitle = styled.h1`
     letter-spacing: -0.4px;
     line-height: 1.15;
     color: #fff;
-    white-space: nowrap;
+    word-break: break-word;
 
     @media (max-width: 900px) {
         font-size: 22px;
@@ -144,8 +145,6 @@ const VisitTitle = styled.h1`
 
     @media (max-width: 768px) {
         font-size: 18px;
-        white-space: normal;
-        word-break: break-word;
         letter-spacing: -0.2px;
     }
 `;
@@ -158,7 +157,7 @@ const TitlePlaceholder = styled.h1`
     letter-spacing: -0.2px;
     line-height: 1.15;
     color: rgba(148, 163, 184, 0.45);
-    white-space: nowrap;
+    word-break: break-word;
 
     @media (max-width: 900px) {
         font-size: 22px;
@@ -166,8 +165,6 @@ const TitlePlaceholder = styled.h1`
 
     @media (max-width: 768px) {
         font-size: 18px;
-        white-space: normal;
-        word-break: break-word;
     }
 `;
 
