@@ -53,7 +53,21 @@ const TableHeader = styled.div`
     }
 `;
 
-const TableHeaderLeft = styled.div``;
+const TableHeaderLeft = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        width: 100%;
+    }
+`;
 
 const TableTitle = styled.h3`
     margin: 0 0 2px;
@@ -589,6 +603,10 @@ const TotalBreakdown = styled.div`
     flex-direction: column;
     gap: 3px;
     align-items: flex-end;
+
+    @media (max-width: 480px) {
+        align-items: flex-start;
+    }
 `;
 
 const BreakdownItem = styled.div<{ $accent?: boolean }>`
@@ -1365,11 +1383,19 @@ const DraftBarActions = styled.div`
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+
+    @media (max-width: 560px) {
+        width: 100%;
+    }
 `;
 
 const DraftBarSmsWrap = styled.div`
     flex: 1;
     min-width: 0;
+
+    @media (max-width: 560px) {
+        width: 100%;
+    }
 `;
 
 const DiscardBtn = styled.button<{ $highlighting?: boolean }>`
@@ -1385,6 +1411,12 @@ const DiscardBtn = styled.button<{ $highlighting?: boolean }>`
     &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
     ${p => p.$highlighting && css`animation: ${discardBtnAttention} 550ms ease;`}
+
+    @media (max-width: 560px) {
+        flex: 1;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
 `;
 
 const AcceptBtn = styled.button<{ $highlighting?: boolean }>`
@@ -1407,6 +1439,12 @@ const AcceptBtn = styled.button<{ $highlighting?: boolean }>`
 
     &:disabled { opacity: 0.45; cursor: not-allowed; }
     ${p => p.$highlighting && css`animation: ${acceptBtnAttention} 550ms ease;`}
+
+    @media (max-width: 560px) {
+        flex: 1;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
 `;
 
 interface ServicesTableProps {
@@ -1884,7 +1922,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     </TableSubtitle>
                 </TableHeaderLeft>
                 {canEdit && (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <HeaderActions>
                         <AddBtn onClick={addNewRow} disabled={isSaving}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -1921,7 +1959,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             )}
                         </ActionMenuWrapper>
                         )}
-                    </div>
+                    </HeaderActions>
                 )}
             </TableHeader>
 
