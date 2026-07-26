@@ -90,7 +90,7 @@ const HeaderContent = styled.div`
         padding: 18px 20px 14px;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
@@ -103,9 +103,10 @@ const HeaderLeft = styled.div`
     flex-direction: column;
     gap: 0;
     min-width: 0;
-    width: 100%;
+    flex: 1;
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
+        width: 100%;
         flex-direction: row;
         flex-wrap: wrap;
         align-items: center;
@@ -186,7 +187,11 @@ const VisitTitle = styled.h1`
     color: #fff;
     white-space: nowrap;
 
-    @media (max-width: 640px) {
+    @media (max-width: 900px) {
+        font-size: 22px;
+    }
+
+    @media (max-width: 768px) {
         font-size: 18px;
         white-space: normal;
         word-break: break-word;
@@ -204,9 +209,14 @@ const TitlePlaceholder = styled.h1`
     color: rgba(148, 163, 184, 0.45);
     white-space: nowrap;
 
-    @media (max-width: 640px) {
+    @media (max-width: 900px) {
+        font-size: 22px;
+    }
+
+    @media (max-width: 768px) {
         font-size: 18px;
         white-space: normal;
+        word-break: break-word;
     }
 `;
 
@@ -361,7 +371,7 @@ const HeaderRight = styled.div`
     flex-shrink: 0;
     padding-top: 4px;
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         width: 100%;
         flex-wrap: wrap;
         padding-top: 0;
@@ -388,7 +398,7 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
         cursor: not-allowed;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         ${p => p.$mobileHide && 'display: none;'}
         ${p => p.$mobilePrimary && 'width: 100%; justify-content: center; padding: 11px 18px; font-size: 14px;'}
     }
