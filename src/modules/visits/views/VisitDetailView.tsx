@@ -114,7 +114,6 @@ const D2dBannerAddress = styled.span`
 const MainGrid = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
     gap: 16px;
     margin-bottom: 20px;
 
@@ -131,6 +130,7 @@ const MainGrid = styled.div`
 const MainColumn = styled.div`
     flex: 1;
     min-width: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 14px;
