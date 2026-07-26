@@ -1289,14 +1289,16 @@ const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 const focusOverlayIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
 
-const tableFocusShake = keyframes`
-    0%,  100% { transform: translateX(0); }
-    15%        { transform: translateX(-7px); }
-    30%        { transform: translateX(7px); }
-    45%        { transform: translateX(-5px); }
-    60%        { transform: translateX(5px); }
-    75%        { transform: translateX(-3px); }
-    90%        { transform: translateX(2px); }
+const discardBtnAttention = keyframes`
+    0%, 100% { transform: scale(1);    box-shadow: none; }
+    35%       { transform: scale(1.07); box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.38); }
+    65%       { transform: scale(1.03); box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2); }
+`;
+
+const acceptBtnAttention = keyframes`
+    0%, 100% { transform: scale(1);    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28); }
+    35%       { transform: scale(1.09); box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.5), 0 4px 24px rgba(14, 165, 233, 0.45); }
+    65%       { transform: scale(1.04); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3), 0 2px 14px rgba(14, 165, 233, 0.3); }
 `;
 
 const FocusOverlay = styled.div`
@@ -1307,21 +1309,15 @@ const FocusOverlay = styled.div`
     animation: ${focusOverlayIn} 180ms ease;
 `;
 
-const FocusWrapper = styled.div<{ $active?: boolean; $shaking?: boolean }>`
-    ${p => p.$active && css`
-        position: relative;
-        z-index: 1051;
-        border-radius: 12px;
-        box-shadow:
-            0 0 0 3px rgba(14, 165, 233, 0.55),
-            0 0 18px 9px rgba(14, 165, 233, 0.18),
-            0 0 52px 26px rgba(14, 165, 233, 0.05),
-            0 0 0 9999px rgba(15, 23, 42, 0.52);
-        transition: box-shadow 250ms ease;
-    `}
-    ${p => p.$shaking && css`
-        animation: ${tableFocusShake} 430ms ease;
-    `}
+const FocusWrapper = styled.div<{ $active?: boolean }>`
+    position: relative;
+    z-index: ${p => p.$active ? 1051 : 'auto'};
+    border-radius: ${p => p.$active ? '12px' : '0'};
+    box-shadow: ${p => p.$active
+        ? `0 0 0 3px rgba(14,165,233,.55), 0 0 18px 9px rgba(14,165,233,.18), 0 0 52px 26px rgba(14,165,233,.05), 0 0 0 9999px rgba(15,23,42,.52)`
+        : `0 0 0 0 rgba(14,165,233,0), 0 0 0 0 rgba(14,165,233,0), 0 0 0 0 rgba(14,165,233,0), 0 0 0 0 rgba(15,23,42,0)`
+    };
+    transition: box-shadow 350ms ease, border-radius 300ms ease;
 `;
 
 const DraftBar = styled.div`
@@ -1376,7 +1372,7 @@ const DraftBarSmsWrap = styled.div`
     min-width: 0;
 `;
 
-const DiscardBtn = styled.button`
+const DiscardBtn = styled.button<{ $highlighting?: boolean }>`
     padding: 7px 14px;
     border-radius: ${st.radiusFull};
     border: 1px solid ${st.border};
@@ -1388,9 +1384,10 @@ const DiscardBtn = styled.button`
     transition: all ${st.transition};
     &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
+    ${p => p.$highlighting && css`animation: ${discardBtnAttention} 550ms ease;`}
 `;
 
-const AcceptBtn = styled.button`
+const AcceptBtn = styled.button<{ $highlighting?: boolean }>`
     padding: 7px 16px;
     border-radius: ${st.radiusFull};
     border: none;
@@ -1409,6 +1406,7 @@ const AcceptBtn = styled.button`
     }
 
     &:disabled { opacity: 0.45; cursor: not-allowed; }
+    ${p => p.$highlighting && css`animation: ${acceptBtnAttention} 550ms ease;`}
 `;
 
 interface ServicesTableProps {
@@ -1435,24 +1433,24 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [newRows, setNewRows] = useState<NewRow[]>([]);
     const isAddingService = newRows.length > 0;
 
-    /* ── Focus-mode shake ── */
-    const [isShaking, setIsShaking] = useState(false);
-    const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const triggerShake = useCallback(() => {
-        if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
-        setIsShaking(false);
+    /* ── Focus-mode button highlight ── */
+    const [isHighlighting, setIsHighlighting] = useState(false);
+    const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const triggerHighlight = useCallback(() => {
+        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+        setIsHighlighting(false);
         requestAnimationFrame(() => {
-            setIsShaking(true);
-            shakeTimerRef.current = setTimeout(() => setIsShaking(false), 450);
+            setIsHighlighting(true);
+            highlightTimerRef.current = setTimeout(() => setIsHighlighting(false), 600);
         });
     }, []);
 
     useEffect(() => {
         if (!isAddingService) return;
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') triggerShake(); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') triggerHighlight(); };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [isAddingService, triggerShake]);
+    }, [isAddingService, triggerHighlight]);
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
     const [notifyCustomer, setNotifyCustomer] = useState(true);
     const [requireConfirmation, setRequireConfirmation] = useState(false);
@@ -1866,8 +1864,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     return (
         <>
-        {isAddingService && createPortal(<FocusOverlay onClick={triggerShake} />, document.body)}
-        <FocusWrapper $active={isAddingService} $shaking={isShaking}>
+        {isAddingService && createPortal(<FocusOverlay onClick={triggerHighlight} />, document.body)}
+        <FocusWrapper $active={isAddingService}>
         {openMenuId && (
             <div
                 style={{ position: 'fixed', inset: 0, zIndex: 99 }}
@@ -2141,10 +2139,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         </LockedSection>
                     </DraftBarSmsWrap>
                     <DraftBarActions>
-                        <DiscardBtn onClick={discardDraft} disabled={isSaving}>
+                        <DiscardBtn onClick={discardDraft} disabled={isSaving} $highlighting={isHighlighting}>
                             Odrzuć
                         </DiscardBtn>
-                        <AcceptBtn onClick={acceptDraft} disabled={isSaving}>
+                        <AcceptBtn onClick={acceptDraft} disabled={isSaving} $highlighting={isHighlighting}>
                             {isSaving ? 'Zapisywanie…' : 'Zaakceptuj'}
                         </AcceptBtn>
                     </DraftBarActions>
