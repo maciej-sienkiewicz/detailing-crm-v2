@@ -263,6 +263,11 @@ const PencilBtn = styled(TitleIconBtn)`
     letter-spacing: 0.01em;
     white-space: nowrap;
     &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
+
+    @media (max-width: 640px) {
+        padding: 5px 6px;
+        span { display: none; }
+    }
 `;
 
 const SaveBtn = styled(TitleIconBtn)`
@@ -302,6 +307,7 @@ const MetaItem = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
 
     svg { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
 `;
@@ -563,7 +569,7 @@ export const VisitHeader = ({
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                         </svg>
-                                        Edytuj tytuł...
+                                        <span>Edytuj tytuł...</span>
                                     </PencilBtn>
                                 )}
                             </>
@@ -607,7 +613,7 @@ export const VisitHeader = ({
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
-                                    Edytuj datę zakończenia...
+                                    <span>Edytuj datę...</span>
                                 </PencilBtn>
                             )}
                         </MetaItem>

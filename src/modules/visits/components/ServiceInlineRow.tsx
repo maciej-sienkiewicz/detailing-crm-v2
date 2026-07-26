@@ -38,23 +38,23 @@ const InlineRow = styled.tr`
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
-        gap: 10px;
+        gap: 0;
         padding: 14px 16px;
 
         td:nth-child(1) {
             flex: 0 0 100%;
-            padding: 0 0 10px;
+            padding: 0 0 12px;
             border-bottom: 1px dashed ${st.border};
+            margin-bottom: 12px;
         }
 
         td:nth-child(2) {
-            flex: 1;
-            padding: 0;
-            min-width: 0;
+            flex: 0 0 100%;
+            padding: 0 0 10px;
         }
 
         td:nth-child(3) {
-            flex: 0 0 auto;
+            flex: 0 0 100%;
             padding: 0;
         }
     }
@@ -144,12 +144,22 @@ const PriceGroup = styled.div`
     justify-content: flex-end;
     gap: 8px;
     flex-wrap: wrap;
+
+    @media (max-width: 767px) {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+    }
 `;
 
 const PriceField = styled.div`
     display: flex;
     flex-direction: column;
     gap: 3px;
+
+    @media (max-width: 767px) {
+        flex: 1;
+        min-width: 0;
+    }
 `;
 
 const PriceFieldLabel = styled.span`
@@ -216,7 +226,13 @@ const RemoveBtn = styled.button`
     }
     svg { width: 12px; height: 12px; }
 
-    @media (max-width: 767px) { padding: 8px 14px; font-size: 13px; min-height: 36px; }
+    @media (max-width: 767px) {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 40px;
+    }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
