@@ -642,6 +642,16 @@ export const VisitHeader = ({
 
                 {/* Actions */}
                 <HeaderRight>
+                    {onDoorToDoor && (
+                        <ActionButton $variant="ghost" onClick={onDoorToDoor}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            Door to door
+                        </ActionButton>
+                    )}
+
                     <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <polyline points="20 6 9 17 4 12" />
@@ -669,15 +679,6 @@ export const VisitHeader = ({
                         </svg>
                         Generuj post
                     </KebabItem>
-                    {onDoorToDoor && (
-                        <KebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                <polyline points="9 22 9 12 15 12 15 22" />
-                            </svg>
-                            Door to door
-                        </KebabItem>
-                    )}
                     <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="18" y1="6" x2="6" y2="18" />
