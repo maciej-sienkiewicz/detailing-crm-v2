@@ -1,6 +1,7 @@
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
@@ -26,9 +27,6 @@ import type { Vehicle, Visit, Reservation, MarketingConsent } from '../types';
 
 import {
     ViewContainer, PageContent,
-    BreadcrumbNav, BreadcrumbLink, BreadcrumbSep, BreadcrumbCurrent,
-    PageHeader, HeaderLeft, HeaderMetaRow, PageTitle, MetaText, HeaderActions,
-    TierBadge,
     TwoColGrid, LeftRail, MainCol,
     Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn, PanelActionBtn,
     IdentityRow, Avatar, IdentityMeta, IdentityName, IdentityId,
@@ -140,6 +138,227 @@ const ToggleThumb = styled.span<{ $active: boolean }>`
     transition: transform 150ms ease;
 `;
 
+// ─── Hero header ──────────────────────────────────────────────────────────────
+
+const HeroHeader = styled.header`
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
+    border-radius: 16px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 28px rgba(0,0,0,0.14);
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -100px;
+        right: -60px;
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+        border-radius: 12px;
+        margin-bottom: 14px;
+    }
+`;
+
+const HeroContent = styled.div`
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 28px 20px;
+
+    @media (max-width: 900px) {
+        padding: 18px 20px 16px;
+    }
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 16px 14px;
+    }
+`;
+
+const HeroLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: 640px) {
+        width: 100%;
+    }
+`;
+
+const HeroAvatarLg = styled.div`
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.3px;
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow: 0 4px 16px rgba(14,165,233,0.25);
+`;
+
+const HeroNameBlock = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeroName = styled.h1`
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    color: #fff;
+    word-break: break-word;
+
+    @media (max-width: 900px) { font-size: 20px; }
+    @media (max-width: 640px) { font-size: 18px; letter-spacing: -0.2px; }
+`;
+
+const HeroMetaRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 13px;
+    color: #94a3b8;
+
+    @media (max-width: 640px) { gap: 8px; font-size: 12px; }
+`;
+
+const HeroMetaItem = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
+`;
+
+const HeroTierBadge = styled.span<{ $tier?: string }>`
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 9999px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(245,158,11,0.18);
+    color: #fbbf24;
+    border: 1px solid rgba(245,158,11,0.25);
+`;
+
+const HeroRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding-top: 4px;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        padding-top: 0;
+    }
+`;
+
+const HeroPrimaryBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 180ms ease;
+    white-space: nowrap;
+    background: #0ea5e9;
+    color: #fff;
+    border: 1px solid #0ea5e9;
+    box-shadow: 0 2px 8px rgba(14,165,233,0.35);
+    svg { width: 15px; height: 15px; }
+
+    &:hover {
+        background: #0284c7;
+        box-shadow: 0 4px 14px rgba(14,165,233,0.45);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 640px) { flex: 1; justify-content: center; padding: 11px 18px; font-size: 14px; }
+`;
+
+const HeroKebabWrap = styled.div`
+    position: relative;
+    flex-shrink: 0;
+`;
+
+const HeroKebabBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    color: #f1f5f9;
+    cursor: pointer;
+    transition: background 180ms ease;
+    svg { width: 4px; height: 18px; }
+    &:hover { background: rgba(255,255,255,0.15); }
+`;
+
+const HeroKebabMenu = styled.div`
+    position: fixed;
+    min-width: 200px;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    z-index: 9000;
+    overflow: hidden;
+`;
+
+const HeroKebabItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 140ms ease;
+    color: ${p => p.$danger ? '#fca5a5' : '#e2e8f0'};
+
+    &:last-child { border-bottom: none; }
+    &:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -199,6 +418,27 @@ export const CustomerDetailView = () => {
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showDeleteBlocked, setShowDeleteBlocked] = useState(false);
+    const [isKebabOpen,  setIsKebabOpen]  = useState(false);
+    const [kebabPos,     setKebabPos]     = useState<{ top: number; right: number } | null>(null);
+    const kebabRef = useRef<HTMLDivElement>(null);
+
+    const openKebab = () => {
+        if (kebabRef.current) {
+            const rect = kebabRef.current.getBoundingClientRect();
+            setKebabPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+        }
+        setIsKebabOpen(v => !v);
+    };
+
+    useEffect(() => {
+        if (!isKebabOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setIsKebabOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isKebabOpen]);
+
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
     const [isCommOpen,             setIsCommOpen]             = useState(false);
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
@@ -295,78 +535,105 @@ export const CustomerDetailView = () => {
         <ViewContainer>
             <PageContent>
 
-                {/* ─── Breadcrumb ────────────────────────────────── */}
-                <BreadcrumbNav aria-label="Nawigacja">
-                    <BreadcrumbLink to="/customers">Klienci</BreadcrumbLink>
-                    <BreadcrumbSep>›</BreadcrumbSep>
-                    <BreadcrumbCurrent><PiiValue value={fullName} kind="name" /></BreadcrumbCurrent>
-                </BreadcrumbNav>
+                {/* ─── Hero header ───────────────────────────────── */}
+                <HeroHeader>
+                    <HeroContent>
+                        <HeroLeft>
+                            <HeroAvatarLg aria-hidden="true">{initials}</HeroAvatarLg>
+                            <HeroNameBlock>
+                                <HeroName><PiiValue value={fullName} kind="name" /></HeroName>
+                                <HeroMetaRow>
+                                    {customer.contact.phone && (
+                                        <HeroMetaItem>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
+                                            </svg>
+                                            <PiiValue value={customer.contact.phone} kind="phone" />
+                                        </HeroMetaItem>
+                                    )}
+                                    {customer.contact.email && (
+                                        <HeroMetaItem>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                                <path d="M2 7l10 7 10-7"/>
+                                            </svg>
+                                            <PiiValue value={customer.contact.email} kind="email" />
+                                        </HeroMetaItem>
+                                    )}
+                                    <HeroMetaItem>
+                                        ID: {customer.id.slice(0, 8).toUpperCase()}
+                                    </HeroMetaItem>
+                                    {loyaltyTier && loyaltyTier !== 'none' && (
+                                        <HeroTierBadge>{loyaltyTier}</HeroTierBadge>
+                                    )}
+                                </HeroMetaRow>
+                            </HeroNameBlock>
+                        </HeroLeft>
 
-                {/* ─── Page header ───────────────────────────────── */}
-                <PageHeader>
-                    <HeaderLeft>
-                    </HeaderLeft>
+                        <HeroRight>
+                            <HeroPrimaryBtn
+                                onClick={() => navigate('/checkin/new', {
+                                    state: {
+                                        prefillCustomer: {
+                                            id:        customer.id,
+                                            firstName: customer.firstName ?? '',
+                                            lastName:  customer.lastName  ?? '',
+                                            phone:     customer.contact.phone ?? '',
+                                            email:     customer.contact.email ?? '',
+                                        },
+                                    },
+                                })}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                    <line x1="12" y1="14" x2="12" y2="18"/>
+                                    <line x1="10" y1="16" x2="14" y2="16"/>
+                                </svg>
+                                Nowa wizyta
+                            </HeroPrimaryBtn>
 
-                    <HeaderActions>
-                        <SharedButton
-                            $variant="secondary"
-                            $size="sm"
-                            onClick={() => setIsEditModalOpen(true)}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <HeroKebabWrap ref={kebabRef}>
+                                <HeroKebabBtn onClick={openKebab} title="Więcej opcji">
+                                    <svg viewBox="0 0 4 18" fill="currentColor">
+                                        <circle cx="2" cy="2" r="2" />
+                                        <circle cx="2" cy="9" r="2" />
+                                        <circle cx="2" cy="16" r="2" />
+                                    </svg>
+                                </HeroKebabBtn>
+                            </HeroKebabWrap>
+                        </HeroRight>
+                    </HeroContent>
+                </HeroHeader>
+
+                {isKebabOpen && kebabPos && createPortal(
+                    <HeroKebabMenu style={{ top: kebabPos.top, right: kebabPos.right }}>
+                        <HeroKebabItem onClick={() => { setIsKebabOpen(false); setIsEditModalOpen(true); }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                             Edytuj dane
-                        </SharedButton>
-                        <SharedButton
-                            $variant="secondary"
-                            $size="sm"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        </HeroKebabItem>
+                        <HeroKebabItem onClick={() => { setIsKebabOpen(false); }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
-                            SMS
-                        </SharedButton>
-                        <SharedButton
-                            $variant="primary"
-                            $size="sm"
-                            onClick={() => navigate('/checkin/new', {
-                                state: {
-                                    prefillCustomer: {
-                                        id:        customer.id,
-                                        firstName: customer.firstName ?? '',
-                                        lastName:  customer.lastName  ?? '',
-                                        phone:     customer.contact.phone ?? '',
-                                        email:     customer.contact.email ?? '',
-                                    },
-                                },
-                            })}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                                <line x1="12" y1="14" x2="12" y2="18"/>
-                                <line x1="10" y1="16" x2="14" y2="16"/>
-                            </svg>
-                            Nowa wizyta
-                        </SharedButton>
-                        <SharedButton
-                            $variant="danger"
-                            $size="sm"
-                            onClick={() => setShowDeleteConfirm(true)}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            Wyślij SMS
+                        </HeroKebabItem>
+                        <HeroKebabItem $danger onClick={() => { setIsKebabOpen(false); setShowDeleteConfirm(true); }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6l-1 14H6L5 6"/>
                                 <path d="M9 6V4h6v2"/>
                             </svg>
                             Usuń klienta
-                        </SharedButton>
-                    </HeaderActions>
-                </PageHeader>
+                        </HeroKebabItem>
+                    </HeroKebabMenu>,
+                    document.body
+                )}
 
                 {/* ─── Two-column layout ─────────────────────────── */}
                 <TwoColGrid>
