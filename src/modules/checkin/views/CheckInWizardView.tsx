@@ -433,12 +433,16 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         visitId: string | null;
         visitNumber: string | null;
         protocols: ProtocolResponse[];
+        hasPhotos: boolean;
+        hasDamageMap: boolean;
     }>({
         isOpen: false,
         isCreating: false,
         visitId: null,
         visitNumber: null,
         protocols: [],
+        hasPhotos: false,
+        hasDamageMap: false,
     });
 
     const handleNext = () => {
@@ -456,7 +460,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
             return;
         }
 
-        setSigningModalState({ isOpen: true, isCreating: true, visitId: null, visitNumber: null, protocols: [] });
+        setSigningModalState({ isOpen: true, isCreating: true, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
 
         try {
             const result = await submitCheckIn();
@@ -466,12 +470,14 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 visitId: result.visitId,
                 visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
                 protocols: result.protocols || [],
+                hasPhotos: (formData.photos?.length ?? 0) > 0,
+                hasDamageMap: (formData.damagePoints?.length ?? 0) > 0,
             });
             if (visitCardActive && sendVisitCard) {
                 sendVisitCardAfterCreation(result.visitId);
             }
         } catch {
-            setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
+            setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
         }
     };
 
@@ -479,13 +485,13 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         if (signingModalState.visitId) {
             const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
             showSuccess(`Wizyta ${visitNumber} rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
-            setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
+            setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             onComplete(signingModalState.visitId);
         }
     };
 
     const handleSigningModalCancel = () => {
-        setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
+        setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
     };
 
     const handleSigningModalClose = () => {
@@ -665,6 +671,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     customerPhone={formData.customerData.phone || null}
                     protocols={signingModalState.protocols}
                     onConfirm={handleSigningModalConfirm}
+                    hasPhotos={signingModalState.hasPhotos}
+                    hasDamageMap={signingModalState.hasDamageMap}
                 />
             )}
         </>

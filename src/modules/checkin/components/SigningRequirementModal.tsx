@@ -112,6 +112,8 @@ interface SigningRequirementModalProps {
     customerPhone?: string | null;
     protocols: ProtocolResponse[];
     onConfirm: () => void;
+    hasPhotos?: boolean;
+    hasDamageMap?: boolean;
 }
 
 /* ─── Component ──────────────────────────────────────────────────────────────── */
@@ -126,6 +128,8 @@ export const SigningRequirementModal = ({
     customerPhone,
     protocols,
     onConfirm,
+    hasPhotos = false,
+    hasDamageMap = false,
 }: SigningRequirementModalProps) => {
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [tabletPickerProtocolId, setTabletPickerProtocolId] = useState<string | null>(null);
@@ -146,7 +150,7 @@ export const SigningRequirementModal = ({
         staleTime: 30_000,
     });
 
-    const [notifOptions, setNotifOptions] = useState<NotificationOptions>(() => defaultNotificationOptions(true, visitWelcomeEnabled));
+    const [notifOptions, setNotifOptions] = useState<NotificationOptions>(() => defaultNotificationOptions(true, visitWelcomeEnabled, hasPhotos, hasDamageMap));
 
     const cancelVisitMutation = useMutation({
         mutationFn: () => {
@@ -177,9 +181,9 @@ export const SigningRequirementModal = ({
             setPreviewProtocolId(null);
             setTabletPickerProtocolId(null);
             setSigningByProtocol({});
-            setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled));
+            setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap));
         }
-    }, [isOpen, hasProtocol, visitWelcomeEnabled]);
+    }, [isOpen, hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap]);
 
     // Close tablet picker when clicking outside
     useEffect(() => {
