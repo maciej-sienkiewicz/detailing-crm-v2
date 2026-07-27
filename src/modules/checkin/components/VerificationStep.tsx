@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
@@ -24,6 +24,8 @@ import { gusApi } from '@/modules/gus/api/gusApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { QuickColorModal } from '@/modules/calendar/components/QuickColorModal';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
+import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { useDebounce } from '@/common/hooks';
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 
@@ -302,6 +304,93 @@ const FilledBadge = styled.span`
     border-radius: ${st.radiusFull};
     font-size: 11px;
     font-weight: 600;
+`;
+
+// ─── Customer autocomplete dropdown ──────────────────────────────────────────
+
+const CustomerAutocompleteDropdown = styled.div`
+    position: fixed;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    box-shadow: ${st.shadowLg};
+    z-index: 9999;
+    overflow: hidden;
+    max-height: 280px;
+    overflow-y: auto;
+`;
+
+const CustomerDropdownItemBtn = styled.button`
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background ${st.transition};
+    gap: 2px;
+
+    & + & {
+        border-top: 1px solid ${st.border};
+    }
+
+    &:hover {
+        background: ${st.bgCardAlt};
+    }
+`;
+
+const CustomerDropdownItemName = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
+`;
+
+const CustomerDropdownItemSub = styled.span`
+    font-size: 11px;
+    color: ${st.textMuted};
+`;
+
+// ─── Vehicle suggestions panel ────────────────────────────────────────────────
+
+const VehicleSuggestionsWrap = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: ${st.accentBlueDim};
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: ${st.radiusSm};
+`;
+
+const VehicleSuggestionLabel = styled.span`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    width: 100%;
+    margin-bottom: 2px;
+`;
+
+const VehicleSuggestionChip = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border: 1.5px solid ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCard};
+    color: ${st.accentBlue};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover {
+        background: ${st.accentBlueDim};
+    }
 `;
 
 // ─── Deposit toggle items ─────────────────────────────────────────────────────
@@ -637,6 +726,36 @@ export const VerificationStep = ({
     const [isGusLoading, setIsGusLoading] = useState(false);
     const [gusError, setGusError] = useState<string | null>(null);
 
+    // ─── Customer autocomplete ─────────────────────────────────────────────────
+    const customerDropdownContainerRef = useRef<HTMLDivElement>(null);
+    const customerJustSelectedRef = useRef(false);
+    const customerBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const vehicleAutoSelectedRef = useRef(false);
+
+    const [customerAutocompleteOpen, setCustomerAutocompleteOpen] = useState(false);
+    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [selectedCustomerIdForVehicles, setSelectedCustomerIdForVehicles] = useState<string | undefined>(undefined);
+
+    const customerSearchQuery = [formData.customerData.firstName, formData.customerData.lastName]
+        .filter(s => s.trim().length > 0).join(' ').trim();
+    const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
+
+    const { data: foundCustomers = [] } = useQuery({
+        queryKey: ['appointments', 'customers', 'search', debouncedCustomerSearch],
+        queryFn: () => appointmentApi.searchCustomers(debouncedCustomerSearch),
+        enabled: debouncedCustomerSearch.length >= 2,
+        staleTime: 30_000,
+    });
+
+    const { data: customerVehicles = [] } = useQuery({
+        queryKey: ['appointments', 'customers', selectedCustomerIdForVehicles, 'vehicles'],
+        queryFn: () => appointmentApi.getCustomerVehicles(selectedCustomerIdForVehicles!),
+        enabled: !!selectedCustomerIdForVehicles,
+    });
+
+    const showCustomerAutocomplete = customerAutocompleteOpen && !customerJustSelectedRef.current
+        && debouncedCustomerSearch.length >= 2 && foundCustomers.length > 0;
+
     const handleFetchGusData = useCallback(async () => {
         const nip = formData.company?.nip?.replace(/[^0-9]/g, '') || '';
         if (nip.length !== 10) {
@@ -674,6 +793,47 @@ export const VerificationStep = ({
         console.log('[DEBUG VerificationStep] formData.homeAddress changed:', formData.homeAddress);
         console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
     }, [formData.homeAddress, formData.company]);
+
+    // Position the customer autocomplete dropdown below the name inputs block
+    useEffect(() => {
+        if (!showCustomerAutocomplete) {
+            setCustomerDropdownPos(null);
+            return;
+        }
+        const el = customerDropdownContainerRef.current;
+        if (!el) return;
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            setCustomerDropdownPos({ top: r.bottom + 4, left: r.left, width: r.width });
+        };
+        update();
+        window.addEventListener('scroll', update, true);
+        window.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('scroll', update, true);
+            window.removeEventListener('resize', update);
+        };
+    }, [showCustomerAutocomplete]);
+
+    // Auto-select vehicle when customer has exactly one vehicle
+    useEffect(() => {
+        if (!selectedCustomerIdForVehicles || vehicleAutoSelectedRef.current) return;
+        if (customerVehicles.length !== 1) return;
+        vehicleAutoSelectedRef.current = true;
+        const v = customerVehicles[0];
+        onChange({
+            vehicleData: {
+                id: v.id,
+                brand: v.brand,
+                model: v.model,
+                yearOfProduction: v.year,
+                licensePlate: v.licensePlate || undefined,
+            },
+            isNewVehicle: false,
+        });
+        setVehicleChoiceMade(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [customerVehicles, selectedCustomerIdForVehicles]);
 
     const [showCustomerChoice, setShowCustomerChoice] = useState(false);
     const [customerChoiceMade, setCustomerChoiceMade] = useState(false);
@@ -929,6 +1089,40 @@ export const VerificationStep = ({
         setCustomerChoiceMade(true);
     };
 
+    const handleCustomerInputFocus = () => {
+        if (customerJustSelectedRef.current) return;
+        setCustomerAutocompleteOpen(true);
+    };
+
+    const handleCustomerInputBlur = () => {
+        if (customerBlurTimerRef.current) clearTimeout(customerBlurTimerRef.current);
+        customerBlurTimerRef.current = setTimeout(() => {
+            setCustomerAutocompleteOpen(false);
+        }, 200);
+    };
+
+    const handleCustomerSelectFromAutocomplete = async (customer: { id: string; firstName: string | null; lastName: string | null; phone: string | null; email: string | null }) => {
+        customerJustSelectedRef.current = true;
+        setCustomerAutocompleteOpen(false);
+        setCustomerDropdownPos(null);
+        if (customerBlurTimerRef.current) {
+            clearTimeout(customerBlurTimerRef.current);
+            customerBlurTimerRef.current = null;
+        }
+        vehicleAutoSelectedRef.current = false;
+        setSelectedCustomerIdForVehicles(undefined);
+        await handleCustomerSelect({
+            id: customer.id,
+            firstName: customer.firstName || '',
+            lastName: customer.lastName || '',
+            phone: customer.phone || '',
+            email: customer.email || '',
+            isNew: false,
+        });
+        setSelectedCustomerIdForVehicles(customer.id || undefined);
+        setTimeout(() => { customerJustSelectedRef.current = false; }, 500);
+    };
+
     const handleCustomerSelect = async (customer: SelectedCustomer) => {
         console.log('[DEBUG VerificationStep] handleCustomerSelect called with:', customer);
         const baseCustomerData = {
@@ -1137,13 +1331,16 @@ export const VerificationStep = ({
                 <SectionBody>
                     {errors.customer && <ErrorMessage>{errors.customer}</ErrorMessage>}
 
+                    <div ref={customerDropdownContainerRef}>
                     <FormGrid>
                         <FieldGroup>
                             <Label>{t.checkin.verification.firstName}</Label>
                             <Input
                                 value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
                                 onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
-                                onBlur={handleCustomerFieldBlur}
+                                onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
+                                onFocus={handleCustomerInputFocus}
+                                autoComplete="off"
                             />
                             {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                         </FieldGroup>
@@ -1153,7 +1350,9 @@ export const VerificationStep = ({
                             <Input
                                 value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
                                 onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
-                                onBlur={handleCustomerFieldBlur}
+                                onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
+                                onFocus={handleCustomerInputFocus}
+                                autoComplete="off"
                             />
                             {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                         </FieldGroup>
@@ -1195,6 +1394,7 @@ export const VerificationStep = ({
                             {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                         </FieldGroup>
                     </FormGrid>
+                    </div>
 
                     {errors.contact && <ErrorMessage>{errors.contact}</ErrorMessage>}
 
@@ -1414,6 +1614,29 @@ export const VerificationStep = ({
                 </SectionHead>
                 <SectionBody>
                     {errors.vehicle && <ErrorMessage>{errors.vehicle}</ErrorMessage>}
+
+                    {selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
+                        <VehicleSuggestionsWrap>
+                            <VehicleSuggestionLabel>Pojazdy klienta — kliknij aby wybrać:</VehicleSuggestionLabel>
+                            {customerVehicles.map((v) => (
+                                <VehicleSuggestionChip
+                                    key={v.id}
+                                    type="button"
+                                    onClick={() => handleVehicleSelect({
+                                        id: v.id,
+                                        brand: v.brand,
+                                        model: v.model,
+                                        yearOfProduction: v.year,
+                                        licensePlate: v.licensePlate || undefined,
+                                        isNew: false,
+                                    })}
+                                >
+                                    {v.brand} {v.model}
+                                    {v.licensePlate && <span style={{ opacity: 0.65 }}>({v.licensePlate})</span>}
+                                </VehicleSuggestionChip>
+                            ))}
+                        </VehicleSuggestionsWrap>
+                    )}
 
                     <FormGrid $columns={3}>
                         <FieldGroup>
@@ -1664,6 +1887,30 @@ export const VerificationStep = ({
                     </SectionBody>
                 )}
             </SectionCard>
+
+            {/* ── Customer autocomplete dropdown ───────────────────────── */}
+            {showCustomerAutocomplete && customerDropdownPos && createPortal(
+                <CustomerAutocompleteDropdown
+                    style={{ top: customerDropdownPos.top, left: customerDropdownPos.left, width: customerDropdownPos.width }}
+                    onMouseDown={(e) => e.preventDefault()}
+                >
+                    {foundCustomers.map((c) => (
+                        <CustomerDropdownItemBtn
+                            key={c.id}
+                            type="button"
+                            onClick={() => handleCustomerSelectFromAutocomplete(c)}
+                        >
+                            <CustomerDropdownItemName>
+                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
+                            </CustomerDropdownItemName>
+                            {(c.phone || c.email) && (
+                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
+                            )}
+                        </CustomerDropdownItemBtn>
+                    ))}
+                </CustomerAutocompleteDropdown>,
+                document.body
+            )}
 
             {/* ── Modals ────────────────────────────────────────────────── */}
             <Modal
