@@ -4,6 +4,7 @@ import React, { forwardRef, useState, useEffect, useMemo, useCallback, useRef } 
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { DateTimePicker } from '../DateTimePicker';
 import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
@@ -14,8 +15,10 @@ import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServicesTable } from '@/common/components/ServicesTable';
-import type { ServiceLineItem } from '@/common/components/ServicesTable';
+import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
 import { netToGross } from '@/common/utils/priceAdjustment';
+import { servicesApi } from '@/modules/services/api/servicesApi';
+import type { VatRate } from '@/modules/services/types';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
@@ -228,6 +231,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     initialData,
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
+    const queryClient = useQueryClient();
     const smsFeature = useFeature('SMS_EMAIL');
     const { isCollapsed } = useSidebar();
     const sidebarWidth = isCollapsed ? 64 : 240;
@@ -332,6 +336,18 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             return next;
         });
     }, [form]);
+
+    const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData) => {
+        await servicesApi.updateService({
+            originalServiceId: serviceId,
+            name: data.name,
+            basePriceNet: data.basePriceNet,
+            basePriceGross: data.basePriceGross,
+            vatRate: data.vatRate as VatRate,
+            requireManualPrice: data.requireManualPrice,
+        });
+        queryClient.invalidateQueries({ queryKey: ['services'] });
+    }, [queryClient]);
 
     useEffect(() => {
         if (!isOpen) setAutoOpenModel(false);
@@ -1143,6 +1159,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <ServicesTable
                                             services={servicesAsLineItems}
                                             onChange={handleServicesChange}
+                                            onSaveService={handleSaveService}
                                         />
                                     )}
                                 </S.RowContent>

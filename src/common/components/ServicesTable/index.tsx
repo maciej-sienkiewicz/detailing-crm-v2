@@ -26,9 +26,18 @@ export interface ServiceLineItem {
     packageItems?: PackageItemSnapshot[] | null;
 }
 
+export interface SaveServiceData {
+    name: string;
+    basePriceNet: number;
+    basePriceGross: number;
+    vatRate: number;
+    requireManualPrice: boolean;
+}
+
 interface Props {
     services: ServiceLineItem[];
     onChange: (services: ServiceLineItem[]) => void;
+    onSaveService?: (serviceId: string, data: SaveServiceData) => Promise<void>;
 }
 
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
@@ -99,7 +108,7 @@ const IconPencil = () => (
     </svg>
 );
 
-export const ServicesTable = ({ services, onChange }: Props) => {
+export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
 
     // Per-service discount modal state
@@ -235,7 +244,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
         }
     };
 
-    const saveEditService = () => {
+    const saveEditService = async () => {
         if (!editModalServiceId) return;
         const service = services.find(s => s.id === editModalServiceId);
         if (!service) return;
@@ -248,6 +257,24 @@ export const ServicesTable = ({ services, onChange }: Props) => {
         if (!service.requireManualPrice && editPriceNet <= 0) {
             setEditError('Podaj poprawną cenę');
             return;
+        }
+
+        if (onSaveService && service.serviceId) {
+            setEditSaving(true);
+            try {
+                await onSaveService(service.serviceId, {
+                    name: trimmedName,
+                    basePriceNet: service.requireManualPrice ? service.basePriceNet : editPriceNet,
+                    basePriceGross: service.requireManualPrice ? (service.basePriceGross ?? service.basePriceNet) : editPriceGross,
+                    vatRate: editVatRate,
+                    requireManualPrice: service.requireManualPrice ?? false,
+                });
+            } catch {
+                setEditError('Nie udało się zapisać. Spróbuj ponownie.');
+                setEditSaving(false);
+                return;
+            }
+            setEditSaving(false);
         }
 
         onChange(services.map(s => s.id === editModalServiceId
@@ -701,8 +728,9 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             <S.EditSaveBtn
                                 type="button"
                                 onClick={saveEditService}
+                                disabled={editSaving}
                             >
-                                Zapisz
+                                {editSaving ? 'Zapisuję…' : 'Zapisz'}
                             </S.EditSaveBtn>
                         </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>
