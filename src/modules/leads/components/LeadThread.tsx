@@ -1,5 +1,6 @@
 // src/modules/leads/components/LeadThread.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled, { css, keyframes } from 'styled-components';
 import {
   MessageSquare,
@@ -453,7 +454,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, leadI
             <EditTextarea
               autoFocus
               value={draft}
-              onChange={e => setDraft(e.target.value)}
+              onChange={e => setDraft(capitalizeFirst(e.target.value))}
               onKeyDown={handleKeyDown}
               maxLength={5000}
             />
@@ -577,7 +578,7 @@ const CommentsTab: React.FC<CommentsTabProps> = ({ leadId, currentUserId, onSpli
         <ComposerTextarea
           placeholder="Napisz notatkę lub komentarz… (Ctrl+Enter aby wysłać)"
           value={draft}
-          onChange={e => setDraft(e.target.value)}
+          onChange={e => setDraft(capitalizeFirst(e.target.value))}
           onKeyDown={handleKeyDown}
           maxLength={5000}
           rows={1}

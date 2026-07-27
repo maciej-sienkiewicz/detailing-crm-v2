@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, TextArea } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
@@ -95,7 +96,7 @@ export const TechnicalStateStep = ({ formData, errors, onChange }: TechnicalStat
                             onChange={(e) => onChange({
                                 technicalState: {
                                     ...formData.technicalState,
-                                    inspectionNotes: e.target.value,
+                                    inspectionNotes: capitalizeFirst(e.target.value),
                                 },
                             })}
                             placeholder={t.checkin.technical.inspectionNotesPlaceholder}

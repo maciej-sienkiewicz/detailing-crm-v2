@@ -1,5 +1,6 @@
 // src/modules/leads/components/LeadForm.tsx
 import React, { useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -181,6 +182,17 @@ export const LeadForm: React.FC<LeadFormProps> = ({ isOpen, onClose, editLead })
 
   const selectedSource = watch('source');
 
+  const capReg = (field: Parameters<typeof register>[0]) => {
+    const reg = register(field);
+    return {
+      ...reg,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        e.target.value = capitalizeFirst(e.target.value);
+        return reg.onChange(e);
+      },
+    };
+  };
+
   const getContactPlaceholder = () => {
     switch (selectedSource) {
       case LeadSource.PHONE: return '+48 123 456 789';
@@ -319,7 +331,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ isOpen, onClose, editLead })
           <FormFieldGroup>
             <FormLabel>Notatka / Wymagania</FormLabel>
             <FormTextarea
-              {...register('initialMessage')}
+              {...capReg('initialMessage')}
               placeholder="Opisz wstępne wymagania klienta..."
               $hasError={!!errors.initialMessage}
               rows={3}

@@ -1,6 +1,7 @@
 // src/modules/calendar/components/QuickEventModal/index.tsx
 
 import React, { forwardRef, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { DateTimePicker } from '../DateTimePicker';
@@ -1154,7 +1155,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.Textarea
                                         placeholder="Dodaj notatki..."
                                         value={form.notes}
-                                        onChange={(e) => form.setNotes(e.target.value)}
+                                        onChange={(e) => form.setNotes(capitalizeFirst(e.target.value))}
                                         rows={3}
                                         $accentColor={form.focusedField === 'notes' ? form.accentColor : undefined}
                                         onFocus={() => form.setFocusedField('notes')}
@@ -1223,7 +1224,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     rows={2}
                                                     placeholder="Dodaj uwagi do usługi door to door..."
                                                     value={form.doorToDoor.notes}
-                                                    onChange={e => form.setDoorToDoor(d => ({ ...d, notes: e.target.value }))}
+                                                    onChange={e => form.setDoorToDoor(d => ({ ...d, notes: capitalizeFirst(e.target.value) }))}
                                                 />
                                             </D2DAddressGroup>
                                         </D2DFields>

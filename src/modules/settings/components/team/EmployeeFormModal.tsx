@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import {
     Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
@@ -127,7 +128,7 @@ export function EmployeeFormModal({
                             <FieldLabel>Imię<span>*</span></FieldLabel>
                             <FieldInput
                                 value={values.firstName}
-                                onChange={e => set('firstName', e.target.value)}
+                                onChange={e => set('firstName', capitalizeFirst(e.target.value))}
                                 $error={!!errors.firstName}
                                 autoFocus
                             />
@@ -137,7 +138,7 @@ export function EmployeeFormModal({
                             <FieldLabel>Nazwisko<span>*</span></FieldLabel>
                             <FieldInput
                                 value={values.lastName}
-                                onChange={e => set('lastName', e.target.value)}
+                                onChange={e => set('lastName', capitalizeFirst(e.target.value))}
                                 $error={!!errors.lastName}
                             />
                             {errors.lastName && <ErrorMsg>{errors.lastName}</ErrorMsg>}

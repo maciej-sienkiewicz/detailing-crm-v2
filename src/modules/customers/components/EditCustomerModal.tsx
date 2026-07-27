@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -62,6 +63,14 @@ interface EditCustomerModalProps {
     customer: Customer;
     initialTab?: TabId;
 }
+
+const capReg = (reg: { onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => any; [k: string]: any }) => ({
+    ...reg,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        e.target.value = capitalizeFirst(e.target.value);
+        return reg.onChange(e);
+    },
+});
 
 export const EditCustomerModal = ({ isOpen, onClose, customer, initialTab }: EditCustomerModalProps) => {
     const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? 'basic');
@@ -246,7 +255,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer, initialTab }: Edi
                                         <BareInput
                                             id="edit-firstName"
                                             autoComplete="new-password"
-                                            {...methods.register('firstName')}
+                                            {...capReg(methods.register('firstName'))}
                                             placeholder={t.customers.form.firstNamePlaceholder}
                                         />
                                     </InputShell>
@@ -265,7 +274,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer, initialTab }: Edi
                                         <BareInput
                                             id="edit-lastName"
                                             autoComplete="new-password"
-                                            {...methods.register('lastName')}
+                                            {...capReg(methods.register('lastName'))}
                                             placeholder={t.customers.form.lastNamePlaceholder}
                                         />
                                     </InputShell>
@@ -418,7 +427,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer, initialTab }: Edi
                                         <BareInput
                                             id="ec-company-name"
                                             autoComplete="off"
-                                            {...companyMethods.register('name')}
+                                            {...capReg(companyMethods.register('name'))}
                                             placeholder={t.customers.form.company.namePlaceholder}
                                         />
                                     </InputShell>

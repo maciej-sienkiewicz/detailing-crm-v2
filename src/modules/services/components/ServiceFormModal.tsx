@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import {
   ModalShell,
@@ -338,7 +339,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                                         id="name"
                                         type="text"
                                         value={name}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(e) => setName(capitalizeFirst(e.target.value))}
                                         placeholder={t.services.form.namePlaceholder}
                                     />
                                     {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}

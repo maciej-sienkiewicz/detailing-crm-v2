@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
@@ -654,7 +655,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                 <S.DiscountSectionLabel>Nazwa</S.DiscountSectionLabel>
                                 <S.EditNameInput
                                     value={editName}
-                                    onChange={(e) => { setEditName(e.target.value); setEditError(''); }}
+                                    onChange={(e) => { setEditName(capitalizeFirst(e.target.value)); setEditError(''); }}
                                     placeholder="Nazwa usługi"
                                     autoFocus
                                 />

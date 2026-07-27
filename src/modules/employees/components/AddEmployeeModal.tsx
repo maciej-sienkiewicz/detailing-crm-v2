@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
@@ -160,11 +161,11 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
                     <Row>
                         <Field>
                             <Label>Imię *</Label>
-                            <Input value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="Jan" />
+                            <Input value={form.firstName} onChange={e => set('firstName', capitalizeFirst(e.target.value))} placeholder="Jan" />
                         </Field>
                         <Field>
                             <Label>Nazwisko *</Label>
-                            <Input value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="Kowalski" />
+                            <Input value={form.lastName} onChange={e => set('lastName', capitalizeFirst(e.target.value))} placeholder="Kowalski" />
                         </Field>
                     </Row>
                 </div>

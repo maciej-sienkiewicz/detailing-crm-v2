@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
@@ -95,7 +96,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
                         <BareInput
                             id="co-name"
                             value={name}
-                            onChange={e => { setName(e.target.value); setNameError(''); }}
+                            onChange={e => { setName(capitalizeFirst(e.target.value)); setNameError(''); }}
                             placeholder="np. Salon AUDI Warszawa"
                         />
                     </InputShell>
@@ -168,7 +169,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
                         <BareTextArea
                             id="co-notes"
                             value={notes}
-                            onChange={e => setNotes(e.target.value)}
+                            onChange={e => setNotes(capitalizeFirst(e.target.value))}
                             placeholder="Dodatkowe informacje..."
                             style={{ minHeight: 72 }}
                         />

@@ -1,5 +1,6 @@
 // src/modules/appointments/components/CustomerModal.tsx
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { useCustomerSearch } from '../hooks/useAppointmentForm';
@@ -226,7 +227,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                             <Input
                                 value={formData.firstName}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, firstName: e.target.value })
+                                    setFormData({ ...formData, firstName: capitalizeFirst(e.target.value) })
                                 }
                                 placeholder={t.appointments.customerModal.firstNamePlaceholder}
                             />
@@ -238,7 +239,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                             <Input
                                 value={formData.lastName}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, lastName: e.target.value })
+                                    setFormData({ ...formData, lastName: capitalizeFirst(e.target.value) })
                                 }
                                 placeholder={t.appointments.customerModal.lastNamePlaceholder}
                             />

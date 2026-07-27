@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1546,7 +1547,7 @@ export const VerificationStep = ({
                         </Label>
                         <TextArea
                             value={formData.technicalState.inspectionNotes}
-                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: e.target.value } })}
+                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: capitalizeFirst(e.target.value) } })}
                             placeholder={t.checkin.technical.inspectionNotesPlaceholder}
                             style={{ width: '100%', boxSizing: 'border-box', minHeight: '100px' }}
                         />
@@ -1557,7 +1558,7 @@ export const VerificationStep = ({
                         </Label>
                         <TextArea
                             value={formData.technicalState.protocolNotes}
-                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, protocolNotes: e.target.value } })}
+                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, protocolNotes: capitalizeFirst(e.target.value) } })}
                             placeholder={t.checkin.technical.protocolNotesPlaceholder}
                             style={{ width: '100%', boxSizing: 'border-box', minHeight: '100px' }}
                         />

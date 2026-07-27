@@ -1,6 +1,7 @@
 // src/modules/customers/components/CustomerNotes.tsx
 
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { useCustomerNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/useCustomerNotes';
 import { formatDateTime } from '@/common/utils';
@@ -299,7 +300,7 @@ export const CustomerNotes = ({ customerId }: CustomerNotesProps) => {
                     <Textarea
                         autoFocus
                         value={newContent}
-                        onChange={e => setNewContent(e.target.value)}
+                        onChange={e => setNewContent(capitalizeFirst(e.target.value))}
                         placeholder="Treść notatki..."
                     />
                     <FormActions>
@@ -329,7 +330,7 @@ export const CustomerNotes = ({ customerId }: CustomerNotesProps) => {
                                     <Textarea
                                         autoFocus
                                         value={editContent}
-                                        onChange={e => setEditContent(e.target.value)}
+                                        onChange={e => setEditContent(capitalizeFirst(e.target.value))}
                                     />
                                     <FormActions>
                                         <CancelBtn onClick={() => setEditingId(null)}>Anuluj</CancelBtn>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import {
     ModalShell,
     ModalHeader,
@@ -278,7 +279,7 @@ export const CustomerDetailsModal = ({
                                 <Label>{t.customers.form.firstName}</Label>
                                 <Input
                                     value={localCustomerData.firstName}
-                                    onChange={(e) => handleCustomerDataChange('firstName', e.target.value)}
+                                    onChange={(e) => handleCustomerDataChange('firstName', capitalizeFirst(e.target.value))}
                                     placeholder={t.customers.form.firstNamePlaceholder}
                                 />
                             </FieldGroup>
@@ -287,7 +288,7 @@ export const CustomerDetailsModal = ({
                                 <Label>{t.customers.form.lastName}</Label>
                                 <Input
                                     value={localCustomerData.lastName}
-                                    onChange={(e) => handleCustomerDataChange('lastName', e.target.value)}
+                                    onChange={(e) => handleCustomerDataChange('lastName', capitalizeFirst(e.target.value))}
                                     placeholder={t.customers.form.lastNamePlaceholder}
                                 />
                             </FieldGroup>
@@ -387,7 +388,7 @@ export const CustomerDetailsModal = ({
                                         <Label>{t.customers.form.company.name}</Label>
                                         <Input
                                             value={localCompany.name}
-                                            onChange={(e) => handleCompanyChange('name', e.target.value)}
+                                            onChange={(e) => handleCompanyChange('name', capitalizeFirst(e.target.value))}
                                             placeholder={t.customers.form.company.namePlaceholder}
                                         />
                                     </FieldGroup>
