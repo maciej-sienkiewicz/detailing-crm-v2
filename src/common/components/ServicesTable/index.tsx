@@ -125,6 +125,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     const [editPriceGross, setEditPriceGross] = useState(0);
     const [editVatRate, setEditVatRate] = useState<number>(23);
     const [editError, setEditError] = useState('');
+    const [editSaving, setEditSaving] = useState(false);
 
     const getServicePrice = (service: ServiceLineItem) => {
         const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment, service.basePriceGross);
