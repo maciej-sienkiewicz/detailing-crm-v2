@@ -1343,7 +1343,7 @@ export const VerificationStep = ({
                                 onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
                                 onFocus={() => handleCustomerInputFocus(firstNameFieldRef)}
-                                autoComplete="off"
+                                autoComplete="new-password"
                             />
                             {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                         </FieldGroup>
@@ -1357,7 +1357,7 @@ export const VerificationStep = ({
                                 onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
                                 onFocus={() => handleCustomerInputFocus(lastNameFieldRef)}
-                                autoComplete="off"
+                                autoComplete="new-password"
                             />
                             {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                         </FieldGroup>
