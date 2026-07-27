@@ -420,8 +420,8 @@ export const CustomerDetailView = () => {
         const handler = (e: MouseEvent) => {
             if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setIsKebabOpen(false);
         };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
+        document.addEventListener('click', handler);
+        return () => document.removeEventListener('click', handler);
     }, [isKebabOpen]);
 
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
