@@ -298,8 +298,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setServiceBasePrices(() => {
             const next: { [id: string]: number } = {};
             newItems.forEach(item => {
-                const catalogSvc = form.services.find((s: Service) => s.id === item.id);
-                next[item.id] = catalogSvc?.basePriceNet ?? form.tempServices[item.id]?.basePriceNet ?? item.basePriceNet;
+                if (item.basePriceGross != null) {
+                    next[item.id] = item.basePriceNet;
+                } else {
+                    const catalogSvc = form.services.find((s: Service) => s.id === item.id);
+                    next[item.id] = catalogSvc?.basePriceNet ?? form.tempServices[item.id]?.basePriceNet ?? item.basePriceNet;
+                }
             });
             return next;
         });
