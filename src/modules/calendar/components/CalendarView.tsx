@@ -1928,6 +1928,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 selectMirror={true}
                 dayMaxEvents={true}
                 moreLinkText={(n) => `jeszcze ${n}`}
+                eventOrder={(a: { id: string; start: Date | null }, b: { id: string; start: Date | null }) => {
+                    // When navigating from the operations list, keep the highlighted event
+                    // in the first slot so it's never hidden behind "jeszcze N".
+                    const pid = _dashboardPendingHighlight?.id;
+                    if (pid) {
+                        if (a.id === pid) return -1;
+                        if (b.id === pid) return 1;
+                    }
+                    return (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0);
+                }}
                 weekends={true}
                 nowIndicator={true}
 
