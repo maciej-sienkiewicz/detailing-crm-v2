@@ -20,6 +20,7 @@ import { CustomerCell } from '@/common/components/CustomerCell';
 import { joinPiiName } from '@/common/pii';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
+import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -689,7 +690,7 @@ export const OperationalDataTable = ({
     const { start: startNavAnim } = useCalendarNavigation();
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+    const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
     const [contextMenu, setContextMenu] = useState<{ op: Operation; x: number; y: number; sourceRect: DOMRect } | null>(null);
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; op: Operation | null }>({
@@ -791,10 +792,9 @@ export const OperationalDataTable = ({
         e.stopPropagation();
         if (openMenuId === id) {
             setOpenMenuId(null);
-            setMenuPos(null);
+            closeDropdownPos();
         } else {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+            openDropdownPos(e);
             setOpenMenuId(id);
         }
     };
@@ -1070,7 +1070,7 @@ export const OperationalDataTable = ({
                                         )}
 
                                         {!isDeleted && openMenuId === op.id && menuPos && createPortal(
-                                            <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
+                                            <DropdownMenu ref={dropdownMenuRef} style={menuStyle}>
                                                 {isReservationCreated && (
                                                     <>
                                                         <DropdownItem onClick={() => openChangeDate(op)}>

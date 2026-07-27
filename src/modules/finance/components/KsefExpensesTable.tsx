@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { KsefExpense, ExpenseStatus } from '../types';
@@ -412,10 +413,9 @@ interface Props {
 
 export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   const [openPaymentId, setOpenPaymentId]   = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos]       = useState<{ top: number; left: number } | null>(null);
   const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
   const [previewId, setPreviewId]           = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { menuRef: dropdownRef, pos: dropdownPos, style: dropdownStyle, open: openDropdownPos } = usePortalDropdownPos();
 
   const excludeExpense = useExcludeExpense();
   const restoreExpense = useRestoreExpense();
@@ -424,6 +424,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   const deleteNote     = useDeleteExpenseNote();
 
   useEffect(() => {
+    if (!openPaymentId) return;
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpenPaymentId(null);
@@ -431,15 +432,11 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [openPaymentId, dropdownRef]);
 
   const handlePaymentClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const vw   = window.innerWidth;
-    let left   = rect.left;
-    if (left + 200 > vw - 8) left = vw - 208;
-    setDropdownPos({ top: rect.bottom + 4, left });
+    if (openPaymentId !== id) openDropdownPos(e, { align: 'left', offset: 4 });
     setOpenPaymentId(openPaymentId === id ? null : id);
   };
 
@@ -686,7 +683,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
         createPortal(
           <>
             <Backdrop onClick={() => setOpenPaymentId(null)} />
-            <Dropdown ref={dropdownRef} style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+            <Dropdown ref={dropdownRef} style={dropdownStyle}>
               <DropdownBody>
                 <DropdownItem
                   $active={expenses.find((e) => e.id === openPaymentId)?.paymentStatus === 'PAID'}

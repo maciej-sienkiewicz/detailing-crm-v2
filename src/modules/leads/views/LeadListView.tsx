@@ -1,5 +1,6 @@
 // src/modules/leads/views/LeadListView.tsx
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core';
@@ -1498,7 +1499,7 @@ export const LeadListView: React.FC = () => {
   const [deleteTarget, setDeleteTarget]     = useState<{ id: string; name: string } | null>(null);
   const [pickerLeadId, setPickerLeadId]     = useState<string | null>(null);
   const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
-  const [statusMenuPos, setStatusMenuPos]       = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const { menuRef: statusMenuRef, pos: statusMenuPos, style: statusMenuStyle, open: openStatusMenuPos } = usePortalDropdownPos();
   const [lostReasonPrompt, setLostReasonPrompt] = useState<{ leadId: string } | null>(null);
   const [lostReasonInput, setLostReasonInput]   = useState('');
 
@@ -2164,8 +2165,7 @@ export const LeadListView: React.FC = () => {
               $variant={getStatusVariant(lead)}
               onClick={e => {
                 e.stopPropagation();
-                const rect = e.currentTarget.getBoundingClientRect();
-                setStatusMenuPos({ top: rect.bottom + 4, left: rect.left });
+                if (statusMenuLeadId !== lead.id) openStatusMenuPos(e, { align: 'left', offset: 4 });
                 setStatusMenuLeadId(v => v === lead.id ? null : lead.id);
               }}
             >
@@ -2782,7 +2782,8 @@ export const LeadListView: React.FC = () => {
         if (!menuLead) return null;
         return createPortal(
           <StatusMenu
-            style={{ top: statusMenuPos.top, left: statusMenuPos.left }}
+            ref={statusMenuRef}
+            style={statusMenuStyle}
             onClick={e => e.stopPropagation()}
           >
             {([
