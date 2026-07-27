@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { CarLogoImage } from './CarLogoImage';
+import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -327,7 +328,7 @@ interface VehicleTableProps {
 
 export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTableProps) => {
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+    const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
 
     useEffect(() => {
         if (!openMenuId) return;
@@ -341,10 +342,9 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
         e.stopPropagation();
         if (openMenuId === id) {
             setOpenMenuId(null);
-            setMenuPos(null);
+            closeDropdownPos();
         } else {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+            openDropdownPos(e);
             setOpenMenuId(id);
         }
     };
@@ -448,7 +448,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                         </MenuBtn>
 
                                         {openMenuId === vehicle.id && menuPos && createPortal(
-                                            <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
+                                            <DropdownMenu ref={dropdownMenuRef} style={menuStyle}>
                                                 <DropdownItem
                                                     $danger
                                                     onClick={e => handleDelete(e, vehicle.id)}

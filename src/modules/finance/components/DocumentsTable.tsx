@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import type { FinancialDocument } from '../types';
@@ -411,11 +412,10 @@ interface Props {
 
 export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
   const [openStatusId, setOpenStatusId]         = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos]           = useState<{ top: number; left: number } | null>(null);
   const [editingNumberId, setEditingNumberId]   = useState<string | null>(null);
   const [editingNumberVal, setEditingNumberVal] = useState('');
 
-  const dropdownRef    = useRef<HTMLDivElement>(null);
+  const { menuRef: dropdownRef, pos: dropdownPos, style: dropdownStyle, open: openDropdownPos } = usePortalDropdownPos();
   const numberInputRef = useRef<HTMLInputElement>(null);
 
   const updateStatus = useUpdateDocumentStatus();
@@ -424,6 +424,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
   const updateNumber = useUpdateDocumentNumber();
 
   useEffect(() => {
+    if (!openStatusId) return;
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpenStatusId(null);
@@ -431,7 +432,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [openStatusId, dropdownRef]);
 
   useEffect(() => {
     if (editingNumberId && numberInputRef.current) {
@@ -444,11 +445,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
 
   const handleStatusClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const vw = window.innerWidth;
-    let left = rect.left;
-    if (left + 210 > vw - 8) left = vw - 218;
-    setDropdownPos({ top: rect.bottom + 4, left });
+    if (openStatusId !== id) openDropdownPos(e, { align: 'left', offset: 4 });
     setOpenStatusId(openStatusId === id ? null : id);
   };
 
@@ -694,7 +691,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
         createPortal(
           <>
             <Backdrop onClick={() => setOpenStatusId(null)} />
-            <Dropdown ref={dropdownRef} style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+            <Dropdown ref={dropdownRef} style={dropdownStyle}>
               <DropdownBody>
                 {ALL_STATUSES.map((s) => (
                   <DropdownItem

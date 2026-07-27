@@ -7,6 +7,7 @@ import type { Customer, CustomerSortField, SortDirection } from '../types';
 import { formatPhoneNumber, formatCurrency } from '../utils/customerMappers';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -218,10 +219,8 @@ const IconBtn = styled.button`
 
 // ─── Dropdown menu ────────────────────────────────────────────────────────────
 
-const DropdownMenu = styled.div<{ $top: number; $right: number }>`
+const DropdownMenu = styled.div`
     position: fixed;
-    top: ${p => p.$top}px;
-    right: ${p => p.$right}px;
     z-index: 1000;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
@@ -292,7 +291,7 @@ interface CustomerTableProps {
 export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort, onDelete }: CustomerTableProps) => {
     const navigate = useNavigate();
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+    const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
 
     useEffect(() => {
         if (!openMenuId) return;
@@ -306,10 +305,9 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
         e.stopPropagation();
         if (openMenuId === id) {
             setOpenMenuId(null);
-            setMenuPos(null);
+            closeDropdownPos();
         } else {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+            openDropdownPos(e);
             setOpenMenuId(id);
         }
     };
@@ -423,8 +421,8 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
 
                                     {openMenuId === customer.id && menuPos && createPortal(
                                         <DropdownMenu
-                                            $top={menuPos.top}
-                                            $right={menuPos.right}
+                                            ref={dropdownMenuRef}
+                                            style={menuStyle}
                                             onClick={e => e.stopPropagation()}
                                         >
                                             <DropdownItem onClick={() => { setOpenMenuId(null); navigate(`/customers/${customer.id}`); }}>
