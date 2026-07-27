@@ -18,7 +18,7 @@ import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
-import type { VatRate } from '@/modules/services/types';
+import type { VatRate, Service as CatalogService } from '@/modules/services/types';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
@@ -337,8 +337,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         });
     }, [form]);
 
-    const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData) => {
-        await servicesApi.updateService({
+    const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData): Promise<string | null> => {
+        const updatedService = await servicesApi.updateService({
             originalServiceId: serviceId,
             name: data.name,
             basePriceNet: data.basePriceNet,
@@ -346,7 +346,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             vatRate: data.vatRate as VatRate,
             requireManualPrice: data.requireManualPrice,
         });
-        queryClient.invalidateQueries({ queryKey: ['services'] });
+        // Replace old service entry with new one in cache (synchronous — no refetch flicker).
+        queryClient.setQueryData<CatalogService[]>(['services'], (old = []) =>
+            old.map(s => s.id === serviceId ? updatedService : s)
+        );
+        // Return the new ID so the caller can update its line-item references.
+        return updatedService.id !== serviceId ? updatedService.id : null;
     }, [queryClient]);
 
     useEffect(() => {

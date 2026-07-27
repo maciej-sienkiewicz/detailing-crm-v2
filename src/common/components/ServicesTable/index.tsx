@@ -37,7 +37,9 @@ export interface SaveServiceData {
 interface Props {
     services: ServiceLineItem[];
     onChange: (services: ServiceLineItem[]) => void;
-    onSaveService?: (serviceId: string, data: SaveServiceData) => Promise<void>;
+    /** Called when user confirms an edit. Returns the new catalog service ID if the
+     *  backend created a new version (immutable-update pattern), or null if unchanged. */
+    onSaveService?: (serviceId: string, data: SaveServiceData) => Promise<string | null>;
 }
 
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
@@ -259,10 +261,11 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
             return;
         }
 
+        let newServiceId: string | null = null;
         if (onSaveService && service.serviceId) {
             setEditSaving(true);
             try {
-                await onSaveService(service.serviceId, {
+                newServiceId = await onSaveService(service.serviceId, {
                     name: trimmedName,
                     basePriceNet: service.requireManualPrice ? service.basePriceNet : editPriceNet,
                     basePriceGross: service.requireManualPrice ? (service.basePriceGross ?? service.basePriceNet) : editPriceGross,
@@ -280,6 +283,8 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
         onChange(services.map(s => s.id === editModalServiceId
             ? {
                 ...s,
+                id: newServiceId ?? s.id,
+                serviceId: newServiceId ?? s.serviceId,
                 serviceName: trimmedName,
                 basePriceNet: service.requireManualPrice ? s.basePriceNet : editPriceNet,
                 basePriceGross: service.requireManualPrice ? s.basePriceGross : editPriceGross,
