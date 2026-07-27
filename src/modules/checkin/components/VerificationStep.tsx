@@ -727,7 +727,9 @@ export const VerificationStep = ({
     const [gusError, setGusError] = useState<string | null>(null);
 
     // ─── Customer autocomplete ─────────────────────────────────────────────────
-    const customerDropdownContainerRef = useRef<HTMLDivElement>(null);
+    const firstNameFieldRef = useRef<HTMLDivElement>(null);
+    const lastNameFieldRef = useRef<HTMLDivElement>(null);
+    const activeCustomerFieldRef = useRef<HTMLDivElement | null>(null);
     const customerJustSelectedRef = useRef(false);
     const customerBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const vehicleAutoSelectedRef = useRef(false);
@@ -794,13 +796,13 @@ export const VerificationStep = ({
         console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
     }, [formData.homeAddress, formData.company]);
 
-    // Position the customer autocomplete dropdown below the name inputs block
+    // Position the customer autocomplete dropdown below the focused input field
     useEffect(() => {
         if (!showCustomerAutocomplete) {
             setCustomerDropdownPos(null);
             return;
         }
-        const el = customerDropdownContainerRef.current;
+        const el = activeCustomerFieldRef.current;
         if (!el) return;
         const update = () => {
             const r = el.getBoundingClientRect();
@@ -1089,8 +1091,9 @@ export const VerificationStep = ({
         setCustomerChoiceMade(true);
     };
 
-    const handleCustomerInputFocus = () => {
+    const handleCustomerInputFocus = (fieldRef: React.RefObject<HTMLDivElement>) => {
         if (customerJustSelectedRef.current) return;
+        activeCustomerFieldRef.current = fieldRef.current;
         setCustomerAutocompleteOpen(true);
     };
 
@@ -1331,31 +1334,34 @@ export const VerificationStep = ({
                 <SectionBody>
                     {errors.customer && <ErrorMessage>{errors.customer}</ErrorMessage>}
 
-                    <div ref={customerDropdownContainerRef}>
                     <FormGrid>
+                        <div ref={firstNameFieldRef}>
                         <FieldGroup>
                             <Label>{t.checkin.verification.firstName}</Label>
                             <Input
                                 value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
                                 onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
-                                onFocus={handleCustomerInputFocus}
+                                onFocus={() => handleCustomerInputFocus(firstNameFieldRef)}
                                 autoComplete="off"
                             />
                             {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                         </FieldGroup>
+                        </div>
 
+                        <div ref={lastNameFieldRef}>
                         <FieldGroup>
                             <Label>{t.checkin.verification.lastName}</Label>
                             <Input
                                 value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
                                 onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
-                                onFocus={handleCustomerInputFocus}
+                                onFocus={() => handleCustomerInputFocus(lastNameFieldRef)}
                                 autoComplete="off"
                             />
                             {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                         </FieldGroup>
+                        </div>
 
                         <FieldGroup>
                             <Label>{t.checkin.verification.phone}</Label>
@@ -1394,7 +1400,6 @@ export const VerificationStep = ({
                             {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                         </FieldGroup>
                     </FormGrid>
-                    </div>
 
                     {errors.contact && <ErrorMessage>{errors.contact}</ErrorMessage>}
 
