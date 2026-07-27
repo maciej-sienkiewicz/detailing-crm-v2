@@ -47,13 +47,18 @@ export interface NotificationOptions {
     };
 }
 
-export const defaultNotificationOptions = (hasProtocol = true, visitWelcomeEnabled = true): NotificationOptions => ({
+export const defaultNotificationOptions = (
+    hasProtocol = true,
+    visitWelcomeEnabled = true,
+    hasPhotos = false,
+    hasDamageMap = false,
+): NotificationOptions => ({
     sendEmail: visitWelcomeEnabled,
     emailOptions: {
         attachProtocol: hasProtocol,
-        attachPhotos: false,
+        attachPhotos: hasPhotos,
         selectedPhotoIds: new Set(),
-        attachDamageMap: false,
+        attachDamageMap: hasDamageMap,
     },
 });
 
