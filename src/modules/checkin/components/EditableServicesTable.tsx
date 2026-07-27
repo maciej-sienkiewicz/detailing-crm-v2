@@ -1,17 +1,19 @@
 // src/modules/checkin/components/EditableServicesTable.tsx
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/common/components/Form';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, ModalCloseButton } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { ServicesTable } from '@/common/components/ServicesTable';
+import type { SaveServiceData } from '@/common/components/ServicesTable';
 import { ServiceAutocomplete } from './ServiceAutocomplete';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { formatCurrency } from '@/common/utils';
 import styled from 'styled-components';
 import type { ServiceLineItem } from '../types';
-import type { Service } from '@/modules/services/types';
+import type { Service, VatRate } from '@/modules/services/types';
+import { servicesApi } from '@/modules/services/api/servicesApi';
 
 const ModalFieldLabel = styled.p`
     margin: 0 0 6px;
@@ -50,13 +52,29 @@ const PriceModeBtn = styled.button<{ $active: boolean }>`
 `;
 
 export const EditableServicesTable = ({ services, onChange }: { services: ServiceLineItem[], onChange: (s: ServiceLineItem[]) => void }) => {
+    const queryClient = useQueryClient();
+
+    const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData): Promise<string | null> => {
+        const updatedService = await servicesApi.updateService({
+            originalServiceId: serviceId,
+            name: data.name,
+            basePriceNet: data.basePriceNet,
+            basePriceGross: data.basePriceGross,
+            vatRate: data.vatRate as VatRate,
+            requireManualPrice: data.requireManualPrice,
+        });
+        queryClient.setQueryData<Service[]>(['services'], (old = []) =>
+            old.map(s => s.id === serviceId ? updatedService : s)
+        );
+        return updatedService.id !== serviceId ? updatedService.id : null;
+    }, [queryClient]);
+
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
     const [isManualPriceModalOpen, setIsManualPriceModalOpen] = useState(false);
     const [pendingManualPriceService, setPendingManualPriceService] = useState<Service | null>(null);
     const [manualPriceInput, setManualPriceInput] = useState('');
     const [manualPriceMode, setManualPriceMode] = useState<'NET' | 'GROSS'>('GROSS');
-    const queryClient = useQueryClient();
 
     const handleServiceSelect = (s: Service) => {
         if (s.requireManualPrice) {
@@ -119,7 +137,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
             />
 
             <div style={{ marginTop: 12 }}>
-                <ServicesTable services={services} onChange={onChange} />
+                <ServicesTable services={services} onChange={onChange} onSaveService={handleSaveService} />
             </div>
 
             <QuickServiceModal
