@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -63,6 +64,17 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             ownerIds: [],
         },
     });
+
+    const capReg = (field: Parameters<typeof register>[0]) => {
+        const reg = register(field);
+        return {
+            ...reg,
+            onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                e.target.value = capitalizeFirst(e.target.value);
+                return reg.onChange(e);
+            },
+        };
+    };
 
     const handleFormSubmit = useCallback((data: CreateVehicleFormData) => {
         const payload: CreateVehiclePayload = {
@@ -240,7 +252,7 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                     <BareTextArea
                                         id="cv-notes"
                                         autoComplete="new-password"
-                                        {...register('technicalNotes')}
+                                        {...capReg('technicalNotes')}
                                         placeholder={t.vehicles.form.notes.placeholder}
                                     />
                                 </InputShellTextArea>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import type { CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { PhoneInputField } from '@/common/components/PhoneInputField';
 import { NipInput } from './NipInput';
 import {
@@ -27,6 +28,17 @@ export const CustomerForm = () => {
         register,
         formState: { errors },
     } = useFormContext<CreateCustomerFormData>();
+
+    const capReg = (field: Parameters<typeof register>[0]) => {
+        const reg = register(field);
+        return {
+            ...reg,
+            onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                e.target.value = capitalizeFirst(e.target.value);
+                return reg.onChange(e);
+            },
+        };
+    };
 
     return (
         <>
@@ -64,7 +76,7 @@ export const CustomerForm = () => {
                             <BareInput
                                 id="firstName"
                                 autoComplete="new-password"
-                                {...register('firstName')}
+                                {...capReg('firstName')}
                                 placeholder={t.customers.form.firstNamePlaceholder}
                             />
                         </InputShell>
@@ -79,7 +91,7 @@ export const CustomerForm = () => {
                             <BareInput
                                 id="lastName"
                                 autoComplete="new-password"
-                                {...register('lastName')}
+                                {...capReg('lastName')}
                                 placeholder={t.customers.form.lastNamePlaceholder}
                             />
                         </InputShell>
@@ -119,7 +131,7 @@ export const CustomerForm = () => {
                             <BareTextArea
                                 id="notes"
                                 autoComplete="new-password"
-                                {...register('notes')}
+                                {...capReg('notes')}
                                 placeholder={t.customers.form.notes.placeholder}
                             />
                         </InputShellTextArea>
@@ -214,7 +226,7 @@ export const CustomerForm = () => {
                             <BareInput
                                 id="company.name"
                                 autoComplete="new-password"
-                                {...register('company.name')}
+                                {...capReg('company.name')}
                                 placeholder={t.customers.form.company.namePlaceholder}
                             />
                         </InputShell>

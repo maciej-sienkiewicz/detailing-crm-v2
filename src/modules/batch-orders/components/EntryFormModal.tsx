@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { Camera } from 'lucide-react';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
@@ -551,7 +552,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                 <ServiceCardHeader>
                                     <ServiceNameInput
                                         value={svc.name}
-                                        onChange={e => updateService(idx, { name: e.target.value })}
+                                        onChange={e => updateService(idx, { name: capitalizeFirst(e.target.value) })}
                                         placeholder={`Nazwa usługi ${idx + 1}…`}
                                     />
                                     {services.length > 1 && (

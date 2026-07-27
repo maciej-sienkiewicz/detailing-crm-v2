@@ -1,6 +1,7 @@
 // src/modules/operations/components/EditReservationDetailsModal.tsx
 
 import { useEffect, useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import {
     ModalShell,
@@ -148,11 +149,11 @@ export const EditReservationDetailsModal = ({
         <Grid>
           <FormGroup>
             <Label>Imię</Label>
-            <Input value={firstName} onChange={e => setFirstName(e.target.value)} />
+            <Input value={firstName} onChange={e => setFirstName(capitalizeFirst(e.target.value))} />
           </FormGroup>
           <FormGroup>
             <Label>Nazwisko</Label>
-            <Input value={lastName} onChange={e => setLastName(e.target.value)} />
+            <Input value={lastName} onChange={e => setLastName(capitalizeFirst(e.target.value))} />
           </FormGroup>
           <FormGroup>
             <Label>Telefon</Label>
@@ -172,7 +173,7 @@ export const EditReservationDetailsModal = ({
           </FormGroup>
           <FormGroup style={{ gridColumn: '1 / -1' }}>
             <Label>Notatki</Label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcjonalne" />
+            <Textarea value={notes} onChange={e => setNotes(capitalizeFirst(e.target.value))} placeholder="Opcjonalne" />
           </FormGroup>
         </Grid>
       </ModalContent>

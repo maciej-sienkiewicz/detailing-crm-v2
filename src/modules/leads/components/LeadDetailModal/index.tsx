@@ -1,5 +1,6 @@
 // src/modules/leads/components/LeadDetailModal/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -1783,7 +1784,7 @@ const ServiceNameInput: React.FC<ServiceNameInputProps> = ({ value, onChange }) 
         ref={inputRef}
         placeholder="Nazwa usługi"
         value={search}
-        onChange={e => { setSearch(e.target.value); onChange(e.target.value, null); setOpen(true); updatePos(); }}
+        onChange={e => { const v = capitalizeFirst(e.target.value); setSearch(v); onChange(v, null); setOpen(true); updatePos(); }}
         onFocus={() => { setOpen(true); updatePos(); }}
         onBlur={() => setTimeout(() => setOpen(false), 180)}
       />

@@ -4,6 +4,7 @@
 // Handles name autocomplete (catalog lookup) + bidirectional netto/brutto entry.
 
 import { useState, useRef, useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
@@ -394,7 +395,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
                 <NameWrap>
                     <NameInput
                         value={query}
-                        onChange={e => handleQueryChange(e.target.value)}
+                        onChange={e => handleQueryChange(capitalizeFirst(e.target.value))}
                         onFocus={() => query.trim().length > 0 && setOpen(true)}
                         onBlur={handleBlur}
                         placeholder="Wyszukaj lub wpisz nazwę usługi…"

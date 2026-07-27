@@ -1,6 +1,7 @@
 // src/modules/vehicles/components/VehicleNotes.tsx
 
 import { useState } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { useVehicleNotes, useCreateVehicleNote, useUpdateVehicleNote, useDeleteVehicleNote } from '../hooks/useVehicleNotes';
 import { formatDateTime } from '@/common/utils';
@@ -300,7 +301,7 @@ export const VehicleNotes = ({ vehicleId }: VehicleNotesProps) => {
                     <Textarea
                         autoFocus
                         value={newContent}
-                        onChange={e => setNewContent(e.target.value)}
+                        onChange={e => setNewContent(capitalizeFirst(e.target.value))}
                         placeholder="Treść notatki..."
                     />
                     <FormActions>
@@ -330,7 +331,7 @@ export const VehicleNotes = ({ vehicleId }: VehicleNotesProps) => {
                                     <Textarea
                                         autoFocus
                                         value={editContent}
-                                        onChange={e => setEditContent(e.target.value)}
+                                        onChange={e => setEditContent(capitalizeFirst(e.target.value))}
                                     />
                                     <FormActions>
                                         <CancelBtn onClick={() => setEditingId(null)}>

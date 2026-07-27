@@ -1,6 +1,7 @@
 // src/modules/calendar/components/QuickCustomerModal.tsx
 
 import React, { useState, useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCreateCustomer } from '@/modules/customers';
 import type { Customer, CreateCustomerPayload } from '@/modules/customers';
@@ -180,7 +181,7 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
                             <Input
                                 type="text"
                                 value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
+                                onChange={(e) => setFirstName(capitalizeFirst(e.target.value))}
                                 placeholder="np. Jan"
                                 $hasError={!!errors.firstName}
                                 autoFocus
@@ -195,7 +196,7 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
                             <Input
                                 type="text"
                                 value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
+                                onChange={(e) => setLastName(capitalizeFirst(e.target.value))}
                                 placeholder="np. Kowalski"
                                 $hasError={!!errors.lastName}
                             />

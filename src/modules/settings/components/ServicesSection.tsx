@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled, { keyframes } from 'styled-components';
 import {
   useServices,
@@ -1362,7 +1363,7 @@ export const ServicesSection: React.FC = () => {
               <FieldInput
                 placeholder="np. Mycie ręczne premium"
                 value={formValues.name}
-                onChange={e => setField('name', e.target.value)}
+                onChange={e => setField('name', capitalizeFirst(e.target.value))}
                 $error={!!formErrors.name}
                 autoFocus
               />

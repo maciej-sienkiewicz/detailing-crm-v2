@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { createPortal } from 'react-dom';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
@@ -160,7 +161,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                             <Input
                                 type="text"
                                 value={serviceName}
-                                onChange={(e) => setServiceName(e.target.value)}
+                                onChange={(e) => setServiceName(capitalizeFirst(e.target.value))}
                                 placeholder="np. Mycie i odkurzanie"
                                 $hasError={!!errors.name}
                                 autoFocus
