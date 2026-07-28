@@ -24,7 +24,7 @@ import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { LeadListView } from "@/modules/leads";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_SETTINGS } from './permissions';
+import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_SETTINGS, ANY_DASHBOARD } from './permissions';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
@@ -119,8 +119,11 @@ export const router = createBrowserRouter([
         element: page(<HomeRedirect />),
     },
     {
+        // Dashboard requires at least one permission beyond the bare calendar
+        // view. Users with only VISITS_VIEW are redirected to /calendar
+        // (their getDefaultRoute). Studio owners (null permissions) always pass.
         path: '/dashboard',
-        element: page(<DashboardView />),
+        element: page(<DashboardView />, ANY_DASHBOARD),
     },
 
     // ── Klienci i pojazdy ────────────────────────────────────────────────

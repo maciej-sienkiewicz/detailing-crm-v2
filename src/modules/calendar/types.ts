@@ -75,18 +75,22 @@ export interface VisitEventData extends CalendarEventData {
 }
 
 /**
- * Raw appointment response from API
+ * Raw appointment response from API.
+ *
+ * customer fields and price totals are optional: when the caller lacks
+ * CUSTOMERS_VIEW or VISITS_SERVICE_PRICES_VIEW respectively, the backend
+ * omits those fields entirely from the response.
  */
 export interface AppointmentResponse {
     id: string;
     appointmentTitle?: string | null;
     customerId?: string;
     vehicleId?: string | null;
-    customer: {
-        firstName: string;
-        lastName: string;
-        phone: string;
-        email: string;
+    customer?: {
+        firstName?: string;
+        lastName?: string;
+        phone?: string;
+        email?: string;
     };
     vehicle?: {
         brand: string;
@@ -114,16 +118,19 @@ export interface AppointmentResponse {
         hexColor: string;
     };
     status: string;
-    totalNet: number;
-    totalGross: number;
-    totalVat: number;
+    totalNet?: number;
+    totalGross?: number;
+    totalVat?: number;
     note?: string;
     smsInfo?: CalendarSmsInfo;
     recurrenceInfo?: { seriesId: string; recurrenceIndex: number; totalInSeries: number; isDetached: boolean } | null;
 }
 
 /**
- * Raw visit response from API
+ * Raw visit response from API.
+ *
+ * Same contract as AppointmentResponse: customer and price fields are absent
+ * when the caller lacks the corresponding permissions.
  */
 export interface VisitResponse {
     id: string;
@@ -134,10 +141,10 @@ export interface VisitResponse {
     estimatedCompletionDate: string;
     customerId?: string;
     vehicleId?: string;
-    customer: {
-        firstName: string;
-        lastName: string;
-        phone: string;
+    customer?: {
+        firstName?: string;
+        lastName?: string;
+        phone?: string;
         companyName?: string | null;
     };
     vehicle: {
@@ -151,8 +158,8 @@ export interface VisitResponse {
         name: string;
         hexColor: string;
     } | null;
-    totalNet: number;
-    totalGross: number;
+    totalNet?: number;
+    totalGross?: number;
     currency: string;
     technicalNotes?: string;
     description?: string | null;
