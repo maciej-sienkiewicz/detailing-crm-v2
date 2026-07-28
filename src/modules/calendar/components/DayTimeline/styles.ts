@@ -56,6 +56,8 @@ export const StatValue = styled.span<{ $accent?: boolean }>`
 
 export const BoardScroll = styled.div`
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-x: auto;
     overflow-y: hidden;
     min-height: 0;
@@ -69,9 +71,9 @@ export const BoardScroll = styled.div`
 export const Board = styled.div`
     display: grid;
     grid-template-columns: repeat(4, minmax(160px, 1fr));
-    height: 100%;
-    min-width: 640px;
+    flex: 1;
     min-height: 0;
+    min-width: 640px;
     align-items: stretch;
 `;
 
