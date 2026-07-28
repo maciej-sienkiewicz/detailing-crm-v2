@@ -69,6 +69,11 @@ const Overlay = styled.div<{ $closing: boolean }>`
         : css`${overlayIn}  ${ENTER_MS}ms ease forwards`};
 
     @media (max-width: 768px) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(20px, env(safe-area-inset-top, 20px)) 20px max(20px, env(safe-area-inset-bottom, 20px));
+        box-sizing: border-box;
         background: rgba(15, 23, 42, 0.45);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
@@ -105,13 +110,13 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
     }
 
     @media (max-width: 768px) {
-        position: fixed !important;
-        left: 50% !important;
-        top: 50% !important;
-        width: calc(100vw - 40px) !important;
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
         max-width: 420px;
-        max-height: 72vh;
-        max-height: 72dvh;
+        max-height: 76vh;
+        max-height: 76dvh;
         border-radius: 22px;
         box-shadow:
             0 8px 20px rgba(0, 0, 0, 0.08),
@@ -120,8 +125,8 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
         border: 1px solid rgba(255, 255, 255, 0.95);
         transform-origin: center center;
         animation: ${p => p.$closing
-            ? css`${mobileOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
-            : css`${mobileIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`};
+            ? css`${popoverOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
+            : css`${popoverIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`};
     }
 `;
 
