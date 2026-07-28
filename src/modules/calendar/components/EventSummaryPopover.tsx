@@ -1084,14 +1084,24 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <FooterActions>
                                 {isCancelled ? (
                                     <>
-                                        <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
-                                        <IconActionButton $variant="danger" onClick={onDeleteAppointmentClick} title="Usuń rezerwację">USUŃ</IconActionButton>
+                                        {can('VISITS_CHANGE_STATUS') && (
+                                            <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
+                                        )}
+                                        {can('VISITS_DELETE') && (
+                                            <IconActionButton $variant="danger" onClick={onDeleteAppointmentClick} title="Usuń rezerwację">USUŃ</IconActionButton>
+                                        )}
                                     </>
                                 ) : (
                                     <>
-                                        <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
-                                        <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
-                                        <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                                        {can('VISITS_CREATE') && (
+                                            <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
+                                        )}
+                                        {can('VISITS_CREATE') && (
+                                            <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
+                                        )}
+                                        {can('VISITS_CHANGE_STATUS') && (
+                                            <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                                        )}
                                     </>
                                 )}
                             </FooterActions>
