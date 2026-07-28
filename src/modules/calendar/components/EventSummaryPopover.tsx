@@ -44,14 +44,14 @@ const popoverOut = keyframes`
     }
 `;
 
-const sheetIn = keyframes`
-    from { opacity: 0; transform: translateY(32px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+const mobileIn = keyframes`
+    from { opacity: 0; transform: translate(-50%, calc(-50% + 20px)) scale(0.95); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 `;
 
-const sheetOut = keyframes`
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to   { opacity: 0; transform: translateY(24px) scale(0.98); }
+const mobileOut = keyframes`
+    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    to   { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.97); }
 `;
 
 const ENTER_MS = 240;
@@ -69,9 +69,9 @@ const Overlay = styled.div<{ $closing: boolean }>`
         : css`${overlayIn}  ${ENTER_MS}ms ease forwards`};
 
     @media (max-width: 768px) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
     }
 `;
 
@@ -105,17 +105,23 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
     }
 
     @media (max-width: 768px) {
-        position: relative !important;
-        left: auto !important;
-        top: auto !important;
-        width: calc(100vw - 48px) !important;
-        max-height: 70vh;
-        max-height: 70dvh;
-        border-radius: 16px;
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        width: calc(100vw - 40px) !important;
+        max-width: 420px;
+        max-height: 72vh;
+        max-height: 72dvh;
+        border-radius: 22px;
+        box-shadow:
+            0 8px 20px rgba(0, 0, 0, 0.08),
+            0 24px 48px rgba(0, 0, 0, 0.14),
+            0 48px 80px rgba(0, 0, 0, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.95);
         transform-origin: center center;
         animation: ${p => p.$closing
-            ? css`${sheetOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
-            : css`${sheetIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`};
+            ? css`${mobileOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
+            : css`${mobileIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`};
     }
 `;
 
