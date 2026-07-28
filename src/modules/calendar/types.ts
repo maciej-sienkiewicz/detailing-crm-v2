@@ -23,7 +23,7 @@ export interface CalendarSmsInfo {
 
 export type CalendarEventType = 'APPOINTMENT' | 'VISIT';
 
-export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
+export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'agendaList';
 
 export type VisitStatus = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
