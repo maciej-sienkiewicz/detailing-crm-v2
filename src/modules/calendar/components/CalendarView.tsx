@@ -1035,7 +1035,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
     const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
-    const [agendaListActive, setAgendaListActive] = useState(false);
+    const [agendaListActive, setAgendaListActive] = useState(() => window.innerWidth < 768);
 
     const deselectedCount =
         (3 - selectedAppointmentStatuses.length) +
