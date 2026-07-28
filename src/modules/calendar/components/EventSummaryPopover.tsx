@@ -99,15 +99,13 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
     }
 
     @media (max-width: 768px) {
-        left: 8px !important;
-        right: 8px !important;
-        top: 8px !important;
+        left: 16px !important;
+        right: 16px !important;
+        top: 8vh !important;
         width: auto !important;
-        height: calc(100dvh - 16px);
-        height: calc(100vh - 16px);
-        max-height: calc(100dvh - 16px);
-        max-height: calc(100vh - 16px);
-        border-radius: 20px;
+        max-height: 80vh;
+        max-height: 80dvh;
+        border-radius: 16px;
         transform-origin: top center;
         animation: ${p => p.$closing
             ? css`${sheetOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
