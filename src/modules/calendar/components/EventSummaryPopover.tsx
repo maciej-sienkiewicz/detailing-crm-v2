@@ -44,6 +44,16 @@ const popoverOut = keyframes`
     }
 `;
 
+const sheetIn = keyframes`
+    from { opacity: 0; transform: translateY(32px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const sheetOut = keyframes`
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(24px) scale(0.98); }
+`;
+
 const ENTER_MS = 240;
 const EXIT_MS  = 160;
 
@@ -83,20 +93,25 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
         ? css`${popoverOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
         : css`${popoverIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1) forwards`};
 
-    @media (max-height: 800px) {
+    @media (max-height: 800px) and (min-width: 769px) {
         width: 340px;
         border-radius: 14px;
     }
 
-    @media (max-width: 480px) {
-        left: 12px !important;
-        right: 12px !important;
+    @media (max-width: 768px) {
+        left: 8px !important;
+        right: 8px !important;
+        top: 8px !important;
         width: auto !important;
-        top: 12px !important;
-        max-height: calc(100dvh - 24px);
-        max-height: calc(100vh - 24px);
-        border-radius: 16px;
+        height: calc(100dvh - 16px);
+        height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+        max-height: calc(100vh - 16px);
+        border-radius: 20px;
         transform-origin: top center;
+        animation: ${p => p.$closing
+            ? css`${sheetOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
+            : css`${sheetIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`};
     }
 `;
 
@@ -1012,8 +1027,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </div>
                     </InfoColumns>
 
-                    {/* SMS — tylko dla rezerwacji, nie dla anulowanych/porzuconych */}
-                    {isAppointment && !isCancelled && (
+                    {/* SMS — tylko dla rezerwacji, nie dla anulowanych/porzuconych i tylko z uprawnieniem COMMUNICATION_SEND */}
+                    {isAppointment && !isCancelled && can('COMMUNICATION_SEND') && (
                         <AppointmentSmsRow appointmentId={event.id} />
                     )}
 
