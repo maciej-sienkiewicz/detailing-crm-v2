@@ -32,6 +32,7 @@ import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
+import { AgendaListView } from './AgendaListView';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry, DoorToDoorCalendarDay } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
@@ -1032,6 +1033,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
     const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
+    const [agendaListActive, setAgendaListActive] = useState(false);
 
     const deselectedCount =
         (3 - selectedAppointmentStatuses.length) +
@@ -1054,8 +1056,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [isCollapsed]);
 
     const handleMobileViewChange = useCallback((view: CalendarViewType) => {
-        calendarRef.current?.getApi().changeView(view);
-    }, []);
+        if (view === 'agendaList') {
+            // Keep FullCalendar in dayGridMonth for data fetching; show custom list overlay.
+            if (currentView !== 'dayGridMonth') {
+                calendarRef.current?.getApi().changeView('dayGridMonth');
+            }
+            setAgendaListActive(true);
+        } else {
+            setAgendaListActive(false);
+            calendarRef.current?.getApi().changeView(view);
+        }
+    }, [currentView]);
 
     const handleMobileAddClick = useCallback(() => {
         const now = new Date();
@@ -1701,11 +1712,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     {([
                         { view: 'timeGridDay',  label: 'Dzień'   },
                         { view: 'dayGridMonth', label: 'Miesiąc' },
-                        { view: 'timeGridWeek', label: 'Tydzień' },
+                        { view: 'agendaList',   label: 'Lista'   },
                     ] as { view: CalendarViewType; label: string }[]).map(({ view, label }) => (
                         <MobileViewTab
                             key={view}
-                            $active={currentView === view}
+                            $active={view === 'agendaList' ? agendaListActive : (!agendaListActive && currentView === view)}
                             onClick={() => handleMobileViewChange(view)}
                         >
                             {label}
@@ -1842,6 +1853,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
             <CalendarWrapper>
 
+                {/* ── Agenda list view – mobile "Lista" tab ── */}
+                {agendaListActive && dateRange && (
+                    <AgendaListView
+                        events={events}
+                        rangeStart={dateRange.start}
+                        rangeEnd={dateRange.end}
+                        focusDate={dateRange.start}
+                        onEventClick={(eventData, position) => {
+                            setPopoverEvent(eventData);
+                            setPopoverPosition(position);
+                            setPopoverOpen(true);
+                        }}
+                    />
+                )}
+
                 {/* ── Kanban week view – replaces FullCalendar's timeGridWeek ── */}
                 {currentView === 'timeGridWeek' && dateRange && (
                     <WeekKanbanView
@@ -1898,7 +1924,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 {/* FullCalendar – always mounted so its API & state machine stay active.
                     Hidden when custom views are active (height:0 keeps JS running).
                     opacity transition gives a smooth fade during search navigation. */}
-                <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay'
+                <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
                     : {
                         height: '100%',
