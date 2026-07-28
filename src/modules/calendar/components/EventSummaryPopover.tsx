@@ -44,16 +44,6 @@ const popoverOut = keyframes`
     }
 `;
 
-const mobileIn = keyframes`
-    from { opacity: 0; transform: translate(-50%, calc(-50% + 20px)) scale(0.95); }
-    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-`;
-
-const mobileOut = keyframes`
-    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    to   { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.97); }
-`;
-
 const ENTER_MS = 240;
 const EXIT_MS  = 160;
 
@@ -72,11 +62,11 @@ const Overlay = styled.div<{ $closing: boolean }>`
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: max(20px, env(safe-area-inset-top, 20px)) 20px max(20px, env(safe-area-inset-bottom, 20px));
+        padding: max(24px, env(safe-area-inset-top, 24px)) 20px max(24px, env(safe-area-inset-bottom, 24px));
         box-sizing: border-box;
-        background: rgba(15, 23, 42, 0.45);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 `;
 
@@ -104,25 +94,25 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
         ? css`${popoverOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
         : css`${popoverIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1) forwards`};
 
-    @media (max-height: 800px) and (min-width: 769px) {
+    @media (max-height: 800px) {
         width: 340px;
         border-radius: 14px;
     }
 
     @media (max-width: 768px) {
+        /* Flex child of Overlay — centering handled by parent */
         position: relative !important;
         left: auto !important;
         top: auto !important;
         width: 100% !important;
-        max-width: 420px;
-        max-height: 76vh;
+        max-width: 400px;
         max-height: 76dvh;
-        border-radius: 22px;
+        border-radius: 20px;
         box-shadow:
-            0 8px 20px rgba(0, 0, 0, 0.08),
-            0 24px 48px rgba(0, 0, 0, 0.14),
-            0 48px 80px rgba(0, 0, 0, 0.10);
-        border: 1px solid rgba(255, 255, 255, 0.95);
+            0 8px 20px rgba(0, 0, 0, 0.10),
+            0 24px 48px rgba(0, 0, 0, 0.16),
+            0 40px 70px rgba(0, 0, 0, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.9);
         transform-origin: center center;
         animation: ${p => p.$closing
             ? css`${popoverOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
@@ -908,8 +898,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 
     return (
         <>
-            <Overlay $closing={closing} onClick={handleClose} />
-            <PopoverContainer $x={position.x} $y={position.y} $closing={closing}>
+            <Overlay $closing={closing} onClick={handleClose}>
+            <PopoverContainer $x={position.x} $y={position.y} $closing={closing} onClick={e => e.stopPropagation()}>
                 <PopoverHeader $color={event.colorHex || '#3b82f6'}>
                     <HeaderCloseButton type="button" onClick={handleClose} title="Zamknij (Esc)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1178,6 +1168,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                     )}
                 </PopoverFooter>
             </PopoverContainer>
+            </Overlay>
 
             <VisitCardLinkModal
                 visitId={isAppointment ? undefined : event.id}
