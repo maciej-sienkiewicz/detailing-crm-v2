@@ -1017,20 +1017,25 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         <AppointmentSmsRow appointmentId={event.id} />
                     )}
 
-                    {/* Usługi - tylko dla rezerwacji z przypisanymi usługami */}
-                    {isAppointment && (event as AppointmentEventData).serviceNames?.length > 0 && (
-                        <div style={{ marginBottom: '20px' }}>
-                            <SectionTitle>Usługi</SectionTitle>
-                            <ServicesList>
-                                {(event as AppointmentEventData).serviceNames.map((service, index) => (
-                                    <ServiceItem key={index}>
-                                        <ServiceBullet />
-                                        {service}
-                                    </ServiceItem>
-                                ))}
-                            </ServicesList>
-                        </div>
-                    )}
+                    {/* Usługi - dla rezerwacji i wizyt z przypisanymi usługami */}
+                    {(() => {
+                        const names = isAppointment
+                            ? (event as AppointmentEventData).serviceNames
+                            : (event as VisitEventData).serviceNames;
+                        return names?.length > 0 ? (
+                            <div style={{ marginBottom: '20px' }}>
+                                <SectionTitle>Usługi</SectionTitle>
+                                <ServicesList>
+                                    {names.map((service, index) => (
+                                        <ServiceItem key={index}>
+                                            <ServiceBullet />
+                                            {service}
+                                        </ServiceItem>
+                                    ))}
+                                </ServicesList>
+                            </div>
+                        ) : null;
+                    })()}
 
                     {/* Status - dla wizyt */}
                     {!isAppointment && (
