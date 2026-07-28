@@ -33,6 +33,7 @@ import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
+import { usePermissions } from '@/core/permissions';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry, DoorToDoorCalendarDay } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
@@ -1011,6 +1012,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { showSuccess, showError } = useToast();
     const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
 
+    const { can } = usePermissions();
     const { phase: navPhase, card: navCard, start: startNavAnim, reportTargetRect } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
@@ -1753,9 +1755,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             <MobileFilterBadge>{deselectedCount}</MobileFilterBadge>
                         )}
                     </MobileFilterPill>
-                    <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
-                        +
-                    </MobileAddBtn>
+                    {can('VISITS_CREATE') && (
+                        <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
+                            +
+                        </MobileAddBtn>
+                    )}
                 </MobileActions>
             </MobileHeader>
 
@@ -1818,23 +1822,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             ))}
                         </ViewSwitchGroup>
 
-                        <NewEventBtn onClick={handleMobileAddClick}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            Nowa rezerwacja
-                        </NewEventBtn>
+                        {can('VISITS_CREATE') && (
+                            <>
+                                <NewEventBtn onClick={handleMobileAddClick}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    Nowa rezerwacja
+                                </NewEventBtn>
 
-                        <NewEventBtn onClick={() => navigate('/checkin/new')}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            Nowa wizyta
-                        </NewEventBtn>
+                                <NewEventBtn onClick={() => navigate('/checkin/new')}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    Nowa wizyta
+                                </NewEventBtn>
+                            </>
+                        )}
                     </PageHeaderRight>
                 </DesktopPageHeader>
 
