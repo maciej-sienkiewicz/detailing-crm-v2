@@ -67,6 +67,12 @@ const Overlay = styled.div<{ $closing: boolean }>`
     animation: ${p => p.$closing
         ? css`${overlayOut} ${EXIT_MS}ms ease forwards`
         : css`${overlayIn}  ${ENTER_MS}ms ease forwards`};
+
+    @media (max-width: 768px) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 `;
 
 const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean }>`
@@ -99,14 +105,14 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
     }
 
     @media (max-width: 768px) {
-        left: 16px !important;
-        right: 16px !important;
-        top: 8vh !important;
-        width: auto !important;
-        max-height: 80vh;
-        max-height: 80dvh;
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: calc(100vw - 48px) !important;
+        max-height: 70vh;
+        max-height: 70dvh;
         border-radius: 16px;
-        transform-origin: top center;
+        transform-origin: center center;
         animation: ${p => p.$closing
             ? css`${sheetOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
             : css`${sheetIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`};
