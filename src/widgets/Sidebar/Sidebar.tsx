@@ -5,7 +5,6 @@ import {
     CalendarCheck,
     Users,
     Car,
-    Images,
     BarChart3,
     TrendingUp,
     MessageSquare,
@@ -20,8 +19,6 @@ import {
     LogOut,
     Search,
     Inbox,
-    Smartphone,
-    Layers,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -29,7 +26,6 @@ import { useAuth } from '@/core/context/AuthContext';
 import { usePermissions, ANY_FINANCE, ANY_SETTINGS } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
-import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
 import { useLeadSocket } from '@/modules/leads/hooks/useLeadSocket';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
@@ -52,11 +48,6 @@ import {
     UserName,
     UserRole,
     UserLogoutButton,
-    SmsCreditsWidget,
-    SmsCreditsIcon,
-    SmsCreditsInfo,
-    SmsCreditsLabel,
-    SmsCreditsValue,
 } from './SidebarStyles';
 
 // Each menu entry may declare a permission requirement (single code or ANY-OF
@@ -76,7 +67,6 @@ const buildMenuSections = (
                 { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
                 { path: '/operations', label: 'Wizyty',    icon: CalendarCheck, requires: 'VISITS_VIEW' },
                 { path: '/calendar',   label: 'Kalendarz', icon: Calendar,      requires: 'VISITS_VIEW' },
-                { path: '/batch-orders', label: 'Zlecenia zbiorcze', icon: Layers },
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
             ],
         },
@@ -92,7 +82,6 @@ const buildMenuSections = (
             items: [
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
-                { path: '/gallery',    label: 'Galeria',    icon: Images,     requires: 'VISITS_VIEW' },
                 { path: '/settings',   label: 'Ustawienia', icon: Settings, requires: ANY_SETTINGS },
             ],
         },
@@ -102,12 +91,6 @@ const buildMenuSections = (
                 { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
                 { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' },
                 { path: '/google-reviews', label: 'Google Reviews', icon: Search, requires: 'MARKETING_MANAGE' },
-            ],
-        },
-        {
-            title: 'Mobilne',
-            items: [
-                { path: '/mobile-shortcuts', label: 'Skróty mobilne', icon: Smartphone, requires: 'VISITS_VIEW' },
             ],
         },
     ];
@@ -142,9 +125,6 @@ export const Sidebar = () => {
     const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
     const { user, setAuthenticated } = useAuth();
     const navigate = useNavigate();
-
-    const isDetailer = user?.role?.toLowerCase() === 'detailer';
-    const { data: creditBalance } = useSmsCreditBalance({ enabled: !isDetailer });
 
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
@@ -206,27 +186,6 @@ export const Sidebar = () => {
                     </HeaderActions>
                 </SidebarHeader>
 
-                {!isDetailer && creditBalance !== undefined && (
-                    <SmsCreditsWidget
-                        $isCollapsed={isCollapsed}
-                        onClick={() => { navigate('/settings?tab=credits'); closeMobileMenu(); }}
-                        title="Przejdź do ustawień kredytów SMS"
-                    >
-                        <SmsCreditsIcon>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                        </SmsCreditsIcon>
-                        <SmsCreditsInfo $isCollapsed={isCollapsed}>
-                            <SmsCreditsLabel>Kredyty SMS</SmsCreditsLabel>
-                            <SmsCreditsValue $isEmpty={creditBalance.availableCredits === 0}>
-                                {creditBalance.availableCredits === 0
-                                    ? 'Brak kredytów'
-                                    : creditBalance.availableCredits.toLocaleString('pl-PL')}
-                            </SmsCreditsValue>
-                        </SmsCreditsInfo>
-                    </SmsCreditsWidget>
-                )}
 
                 <SidebarMenu
                     sections={menuSections}
