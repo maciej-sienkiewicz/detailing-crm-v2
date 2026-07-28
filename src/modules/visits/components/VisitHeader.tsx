@@ -4,6 +4,7 @@ import styled, { css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { usePermissions } from '@/core/permissions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -536,6 +537,7 @@ export const VisitHeader = ({
 
     const cancelEditTitle = () => setIsEditingTitle(false);
 
+    const { can } = usePermissions();
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
     const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate && `(${visit.vehicle.licensePlate})`]
@@ -652,12 +654,14 @@ export const VisitHeader = ({
                         </ActionButton>
                     )}
 
-                    <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        {completeLabel}
-                    </ActionButton>
+                    {can('VISITS_CHANGE_STATUS') && (
+                        <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            {completeLabel}
+                        </ActionButton>
+                    )}
 
                     <KebabWrap ref={menuRef}>
                         <KebabBtn onClick={openMenu} title="Więcej opcji">
@@ -679,13 +683,15 @@ export const VisitHeader = ({
                         </svg>
                         Generuj post
                     </KebabItem>
-                    <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        Usuń wizytę
-                    </KebabItem>
+                    {can('VISITS_DELETE') && (
+                        <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                            Usuń wizytę
+                        </KebabItem>
+                    )}
                 </KebabMenu>,
                 document.body
             )}
