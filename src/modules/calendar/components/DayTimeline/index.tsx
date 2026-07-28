@@ -3,7 +3,7 @@ import { CalendarToolbar } from '../shared/CalendarToolbar';
 import { StatsStrip } from './StatsStrip';
 import { EventCard } from './EventCard';
 import {
-    Root, Board, KanbanCol, ColHeader, ColDot, ColTitle, ColCount,
+    Root, Board, BoardScroll, KanbanCol, ColHeader, ColDot, ColTitle, ColCount,
     CardList, EmptyCol,
 } from './styles';
 import { computeDayStats } from './layout';
@@ -117,39 +117,41 @@ export const DayTimelineView = ({
 
             <StatsStrip stats={stats} />
 
-            <Board>
-                {COLUMNS.map(col => {
-                    const colEvents = byCol.get(col.id) ?? [];
-                    return (
-                        <KanbanCol key={col.id}>
-                            <ColHeader $color={col.color}>
-                                <ColDot $color={col.color} />
-                                <ColTitle>{col.label}</ColTitle>
-                                <ColCount $color={col.color} $active={colEvents.length > 0}>
-                                    {colEvents.length}
-                                </ColCount>
-                            </ColHeader>
+            <BoardScroll>
+                <Board>
+                    {COLUMNS.map(col => {
+                        const colEvents = byCol.get(col.id) ?? [];
+                        return (
+                            <KanbanCol key={col.id}>
+                                <ColHeader $color={col.color}>
+                                    <ColDot $color={col.color} />
+                                    <ColTitle>{col.label}</ColTitle>
+                                    <ColCount $color={col.color} $active={colEvents.length > 0}>
+                                        {colEvents.length}
+                                    </ColCount>
+                                </ColHeader>
 
-                            <CardList>
-                                {colEvents.length === 0 ? (
-                                    <EmptyCol>—</EmptyCol>
-                                ) : (
-                                    colEvents.map(ev => (
-                                        <EventCard
-                                            key={ev.id}
-                                            event={ev}
-                                            onClick={(e) => {
-                                                const props = ev.extendedProps as AppointmentEventData | VisitEventData;
-                                                handleCardClick(e, props);
-                                            }}
-                                        />
-                                    ))
-                                )}
-                            </CardList>
-                        </KanbanCol>
-                    );
-                })}
-            </Board>
+                                <CardList>
+                                    {colEvents.length === 0 ? (
+                                        <EmptyCol>—</EmptyCol>
+                                    ) : (
+                                        colEvents.map(ev => (
+                                            <EventCard
+                                                key={ev.id}
+                                                event={ev}
+                                                onClick={(e) => {
+                                                    const props = ev.extendedProps as AppointmentEventData | VisitEventData;
+                                                    handleCardClick(e, props);
+                                                }}
+                                            />
+                                        ))
+                                    )}
+                                </CardList>
+                            </KanbanCol>
+                        );
+                    })}
+                </Board>
+            </BoardScroll>
         </Root>
     );
 };

@@ -54,13 +54,25 @@ export const StatValue = styled.span<{ $accent?: boolean }>`
 
 // ─── Kanban board ─────────────────────────────────────────────────────────────
 
-export const Board = styled.div`
+export const BoardScroll = styled.div`
     flex: 1;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     min-height: 0;
-    height: 0;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar { height: 6px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.12); border-radius: 3px; }
+`;
+
+export const Board = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    height: 100%;
+    min-width: 640px;
+    min-height: 0;
+    align-items: stretch;
 `;
 
 export const KanbanCol = styled.div`

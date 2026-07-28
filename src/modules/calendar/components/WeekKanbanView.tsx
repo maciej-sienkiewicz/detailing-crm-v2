@@ -261,9 +261,9 @@ const BoardScroll = styled.div`
 
 const Board = styled.div`
     display: grid;
-    grid-template-columns: repeat(7, minmax(168px, 1fr));
+    grid-template-columns: repeat(7, minmax(148px, 1fr));
     height: 100%;
-    min-width: 1176px;
+    min-width: 1036px;
     min-height: 0;
     align-items: stretch;
 `;

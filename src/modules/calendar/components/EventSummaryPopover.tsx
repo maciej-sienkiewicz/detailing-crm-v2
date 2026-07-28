@@ -88,10 +88,14 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
     }
 
     @media (max-width: 480px) {
-        width: calc(100vw - 24px);
         left: 12px !important;
-        max-height: 80vh;
-        border-radius: 14px;
+        right: 12px !important;
+        width: auto !important;
+        top: 12px !important;
+        max-height: calc(100dvh - 24px);
+        max-height: calc(100vh - 24px);
+        border-radius: 16px;
+        transform-origin: top center;
     }
 `;
 
