@@ -121,6 +121,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         ? (joinPiiName(visit.customer.firstName, visit.customer.lastName) ?? '')
         : '';
     const vehicleInfo = `${visit.vehicle.brand} ${visit.vehicle.model}`;
+    const serviceNames = (visit.services ?? []).map(s => s.serviceName);
     const status = visit.status;
 
     const statusColors: Record<VisitEventData['status'], string> = {
@@ -150,6 +151,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         visitNumber: visit.visitNumber,
         status,
         licensePlate: visit.vehicle.licensePlate,
+        serviceNames,
         colorHex,
         colorId: visit.appointmentColor?.id,
         totalPrice: visit.totalGross ?? undefined,

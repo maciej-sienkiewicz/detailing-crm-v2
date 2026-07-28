@@ -71,6 +71,7 @@ export interface VisitEventData extends CalendarEventData {
     visitNumber: string;
     status: VisitStatus;
     licensePlate: string;
+    serviceNames: string[];
     technicalNotes?: string;
 }
 
@@ -158,6 +159,7 @@ export interface VisitResponse {
         name: string;
         hexColor: string;
     } | null;
+    services?: Array<{ serviceName: string }>;
     totalNet?: number;
     totalGross?: number;
     currency: string;
