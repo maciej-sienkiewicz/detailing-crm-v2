@@ -1060,9 +1060,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const handleMobileViewChange = useCallback((view: CalendarViewType) => {
         if (view === 'agendaList') {
             // Keep FullCalendar in dayGridMonth for data fetching; show custom list overlay.
+            // Always navigate to today so the list starts at the current date.
             if (currentView !== 'dayGridMonth') {
                 calendarRef.current?.getApi().changeView('dayGridMonth');
             }
+            calendarRef.current?.getApi().today();
             setAgendaListActive(true);
         } else {
             setAgendaListActive(false);
@@ -1867,7 +1869,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         events={events}
                         rangeStart={dateRange.start}
                         rangeEnd={dateRange.end}
-                        focusDate={dateRange.start}
+                        focusDate={new Date().toISOString()}
                         onEventClick={(eventData, position) => {
                             setPopoverEvent(eventData);
                             setPopoverPosition(position);
