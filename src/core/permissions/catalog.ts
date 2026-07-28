@@ -68,3 +68,24 @@ export const ANY_SETTINGS: PermissionCode[] = [
     'VISITS_DOCUMENTS_MANAGE',
     'SERVICES_VIEW',
 ];
+
+/**
+ * ANY-OF shorthand: the Dashboard. The dashboard shows cross-module statistics
+ * and quick-actions that are only meaningful when the user has access to at
+ * least one area beyond the bare calendar view. A user whose sole permission
+ * is VISITS_VIEW is redirected to /calendar instead (their default route).
+ * Studio owners (null permissions) always pass this check.
+ */
+export const ANY_DASHBOARD: PermissionCode[] = [
+    'CUSTOMERS_VIEW',
+    'FINANCE_INVOICES',
+    'FINANCE_MANAGE_CASH_REGISTER',
+    'FINANCE_VIEW_REPORTS',
+    'STATISTICS_VIEW',
+    'EMPLOYEES_MANAGE',
+    'EMPLOYEES_PAYROLL',
+    'MARKETING_MANAGE',
+    'LEADS_MANAGE',
+    'TASKS_VIEW',
+    'COMMUNICATION_SEND',
+];

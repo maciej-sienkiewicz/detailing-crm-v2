@@ -52,7 +52,10 @@ const isVisitOverdue = (status: VisitResponse['status'], estimatedCompletionDate
 // ---------------------------------------------------------------------------
 
 const transformAppointment = (appointment: AppointmentResponse): CalendarEvent => {
-    const customerName = joinPiiName(appointment.customer.firstName, appointment.customer.lastName) ?? '';
+    // customer object is absent when the caller lacks CUSTOMERS_VIEW
+    const customerName = appointment.customer
+        ? (joinPiiName(appointment.customer.firstName, appointment.customer.lastName) ?? '')
+        : '';
     const vehicleInfo = appointment.vehicle
         ? `${appointment.vehicle.brand} ${appointment.vehicle.model}`
         : 'Brak pojazdu';
@@ -62,7 +65,11 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
     const colorHex = isCancelled ? '#111827' : (appointment.appointmentColor?.hexColor || '#94a3b8');
     const textColor = getContrastingTextColor(colorHex);
 
-    const eventTitle = appointment.appointmentTitle || `${customerName} | ${vehicleInfo}`;
+    // Build title without customer name when PII is not available so the
+    // calendar tile never shows a blank " | BMW X5" label.
+    const eventTitle = appointment.appointmentTitle ||
+        [customerName, vehicleInfo].filter(Boolean).join(' | ') ||
+        vehicleInfo;
 
     const eventData: AppointmentEventData = {
         id: appointment.id,
@@ -70,7 +77,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         title: eventTitle,
         customerId: appointment.customerId,
         customerName,
-        customerPhone: appointment.customer.phone,
+        customerPhone: appointment.customer?.phone,
         vehicleId: appointment.vehicleId ?? undefined,
         vehicleInfo,
         colorHex,
@@ -78,8 +85,11 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         appointmentTitle: appointment.appointmentTitle || undefined,
         serviceNames,
         isAllDay: appointment.schedule.isAllDay,
-        totalPrice: appointment.totalGross || undefined,
-        totalNet: appointment.totalNet || undefined,
+        // totalGross / totalNet are absent from the API response when the
+        // caller lacks VISITS_SERVICE_PRICES_VIEW; coerce to undefined so
+        // the existing `!== undefined` guards in the UI work correctly.
+        totalPrice: appointment.totalGross ?? undefined,
+        totalNet: appointment.totalNet ?? undefined,
         currency: 'PLN',
         status: appointment.status,
         note: appointment.note,
@@ -107,7 +117,9 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
 };
 
 const transformVisit = (visit: VisitResponse): CalendarEvent => {
-    const customerName = joinPiiName(visit.customer.firstName, visit.customer.lastName) ?? '';
+    const customerName = visit.customer
+        ? (joinPiiName(visit.customer.firstName, visit.customer.lastName) ?? '')
+        : '';
     const vehicleInfo = `${visit.vehicle.brand} ${visit.vehicle.model}`;
     const status = visit.status;
 
@@ -123,7 +135,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     const textColor = getContrastingTextColor(colorHex);
     const overdue = isVisitOverdue(status, visit.estimatedCompletionDate);
 
-    const visitTitle = visit.title || `${visit.visitNumber} | ${customerName}`;
+    const visitTitle = visit.title ||
+        [visit.visitNumber, customerName].filter(Boolean).join(' | ');
 
     const eventData: VisitEventData = {
         id: visit.id,
@@ -131,7 +144,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         title: visitTitle,
         customerId: visit.customerId,
         customerName,
-        customerPhone: visit.customer.phone,
+        customerPhone: visit.customer?.phone,
         vehicleId: visit.vehicleId,
         vehicleInfo,
         visitNumber: visit.visitNumber,
@@ -139,8 +152,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         licensePlate: visit.vehicle.licensePlate,
         colorHex,
         colorId: visit.appointmentColor?.id,
-        totalPrice: visit.totalGross,
-        totalNet: visit.totalNet,
+        totalPrice: visit.totalGross ?? undefined,
+        totalNet: visit.totalNet ?? undefined,
         currency: 'PLN',
         technicalNotes: visit.technicalNotes,
     };
@@ -212,8 +225,6 @@ const fetchUnified = async (
     if (visitStatuses.length > 0) {
         params.visitStatuses = visitStatuses.join(',');
     }
-    // Proposed API param: filter by appointmentColor IDs (comma-separated).
-    // Backend should return only events whose appointmentColor.id is in this list.
     if (colorIds.length > 0) {
         params.colorIds = colorIds.join(',');
     }

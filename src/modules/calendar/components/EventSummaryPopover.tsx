@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppointmentEventData, VisitEventData, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
-import { PiiValue, PiiText } from '@/common/pii';
+import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -202,9 +202,9 @@ const PopoverBody = styled.div`
     }
 `;
 
-const InfoColumns = styled.div`
+const InfoColumns = styled.div<{ $singleColumn?: boolean }>`
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: ${p => p.$singleColumn ? '1fr' : '1fr 1fr'};
     gap: 16px;
     margin-bottom: 20px;
 
@@ -811,6 +811,11 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Personal-data access is determined by the X-Pii-Access response header
+    // the backend sets on every authenticated response. When false the server
+    // omits the customer object entirely, so there is nothing to display or blur.
+    const piiGranted = usePiiAccess();
+
     const handleClose = () => {
         if (closing) return;
         setClosing(true);
@@ -920,47 +925,52 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </StatusBlock>
                     )}
 
-                    <InfoColumns>
-                        {/* Klient */}
-                        <div>
-                            <SectionTitle>Klient</SectionTitle>
-                            {event.customerId ? (
-                                <InfoRowLink onClick={() => { handleClose(); setTimeout(() => navigate(`/customers/${event.customerId}`), EXIT_MS); }}>
-                                    <InfoIcon>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                                            <circle cx="12" cy="7" r="4" />
-                                        </svg>
-                                    </InfoIcon>
-                                    <InfoValueText><PiiValue value={event.customerName} kind="name" /></InfoValueText>
-                                    <NavArrow className="nav-arrow">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </NavArrow>
-                                </InfoRowLink>
-                            ) : (
-                                <InfoRow>
-                                    <InfoIcon>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                                            <circle cx="12" cy="7" r="4" />
-                                        </svg>
-                                    </InfoIcon>
-                                    <InfoValue><PiiValue value={event.customerName} kind="name" /></InfoValue>
-                                </InfoRow>
-                            )}
-                            {event.customerPhone && (
-                                <InfoRow>
-                                    <InfoIcon>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                                        </svg>
-                                    </InfoIcon>
-                                    <InfoValue><PiiValue value={event.customerPhone} kind="phone" /></InfoValue>
-                                </InfoRow>
-                            )}
-                        </div>
+                    {/* Klient + Pojazd — single column when PII is not accessible */}
+                    <InfoColumns $singleColumn={!piiGranted}>
+                        {/* Klient — hidden entirely when the caller lacks CUSTOMERS_VIEW.
+                            The server omits the customer object in that case, so there
+                            is no blurred placeholder — the section simply does not render. */}
+                        {piiGranted && (
+                            <div>
+                                <SectionTitle>Klient</SectionTitle>
+                                {event.customerId ? (
+                                    <InfoRowLink onClick={() => { handleClose(); setTimeout(() => navigate(`/customers/${event.customerId}`), EXIT_MS); }}>
+                                        <InfoIcon>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg>
+                                        </InfoIcon>
+                                        <InfoValueText><PiiValue value={event.customerName} kind="name" /></InfoValueText>
+                                        <NavArrow className="nav-arrow">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </NavArrow>
+                                    </InfoRowLink>
+                                ) : (
+                                    <InfoRow>
+                                        <InfoIcon>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg>
+                                        </InfoIcon>
+                                        <InfoValue><PiiValue value={event.customerName} kind="name" /></InfoValue>
+                                    </InfoRow>
+                                )}
+                                {event.customerPhone && (
+                                    <InfoRow>
+                                        <InfoIcon>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                                            </svg>
+                                        </InfoIcon>
+                                        <InfoValue><PiiValue value={event.customerPhone} kind="phone" /></InfoValue>
+                                    </InfoRow>
+                                )}
+                            </div>
+                        )}
 
                         {/* Pojazd */}
                         <div>
@@ -1040,7 +1050,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </NotesContainer>
                     )}
 
-                    {/* Ceny */}
+                    {/* Ceny — absent from the response when VISITS_SERVICE_PRICES_VIEW
+                        is not granted, so totalPrice / totalNet are undefined here */}
                     {(event.totalPrice !== undefined || event.totalNet !== undefined) && (
                         <PricesContainer>
                             <div>
