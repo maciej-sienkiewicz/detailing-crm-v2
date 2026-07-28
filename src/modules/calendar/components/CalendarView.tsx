@@ -527,29 +527,35 @@ const CalendarContainer = styled.div`
     /* ===================== RESPONSIVE ===================== */
     @media (max-width: 768px) {
         .fc-col-header-cell {
-            padding: 8px 4px;
+            padding: 6px 2px;
             font-size: 10px;
+            letter-spacing: 0.5px;
         }
 
         .fc-daygrid-day-number {
-            font-size: 12px;
-            width: 24px;
-            height: 24px;
+            font-size: 11px;
+            width: 22px;
+            height: 22px;
+            margin: 1px 0 2px 1px;
         }
 
         .fc-day-today .fc-daygrid-day-number {
-            width: 24px;
-            height: 24px;
-            font-size: 12px;
+            width: 22px;
+            height: 22px;
+            font-size: 11px;
+        }
+
+        .fc-daygrid-day-top {
+            padding: 2px 0 0;
         }
 
         .fc-event {
-            padding: 1px 4px;
-            margin: 1px;
+            padding: 0 2px;
+            margin: 1px 1px 0;
         }
 
         .fc-event-title {
-            font-size: 11px;
+            font-size: 10px;
         }
 
         .fc-timegrid-slot {
@@ -559,12 +565,21 @@ const CalendarContainer = styled.div`
         .fc-timegrid-slot-label {
             font-size: 9px;
         }
+
+        .fc-daygrid-body {
+            width: 100% !important;
+        }
+
+        .fc-scrollgrid-sync-table {
+            width: 100% !important;
+        }
     }
 
     @media (max-width: 480px) {
         .fc-col-header-cell {
-            padding: 6px 2px;
+            padding: 4px 1px;
             font-size: 9px;
+            letter-spacing: 0;
         }
 
         .fc-timegrid-slot {
@@ -572,7 +587,14 @@ const CalendarContainer = styled.div`
         }
 
         .fc-daygrid-more-link {
-            font-size: 10px;
+            font-size: 9px;
+            padding: 0 1px;
+        }
+
+        /* On very narrow phones, show only first letter of day name */
+        .fc-col-header-cell-cushion {
+            overflow: hidden;
+            white-space: nowrap;
         }
     }
 `;
@@ -616,37 +638,36 @@ const MobileHeader = styled.div`
     @media (max-width: 768px) {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 10px 12px;
+        gap: 6px;
+        padding: 8px 12px;
         background: #fff;
-        border-bottom: 1px solid #dadce0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        flex-shrink: 0;
     }
 `;
 
 const MobileViewSwitcher = styled.div`
     display: flex;
-    background: #f1f3f4;
-    border-radius: 4px;
+    background: #f1f5f9;
+    border-radius: 8px;
     padding: 2px;
     gap: 1px;
 `;
 
 const MobileViewTab = styled.button<{ $active: boolean }>`
     flex: 1;
-    padding: 7px 0;
+    padding: 6px 0;
     border: none;
-    border-radius: 3px;
+    border-radius: 6px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: ${p => p.$active ? 600 : 500};
     cursor: pointer;
-    transition: background 0.1s ease;
+    transition: background 0.1s ease, color 0.1s ease;
     background: ${p => p.$active ? '#fff' : 'transparent'};
-    color: ${p => p.$active ? '#1a73e8' : '#5f6368'};
-    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'};
+    color: ${p => p.$active ? '#0f172a' : '#64748b'};
+    box-shadow: ${p => p.$active ? '0 1px 2px rgba(15,23,42,0.08)' : 'none'};
 
-    &:active {
-        opacity: 0.8;
-    }
+    &:active { opacity: 0.8; }
 `;
 
 const MobileNav = styled.div`
@@ -659,17 +680,17 @@ const MobileNavBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
-    border: 1px solid #dadce0;
-    border-radius: 50%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
     background: #fff;
-    color: #3c4043;
+    color: #475569;
     cursor: pointer;
     transition: background 0.1s ease;
 
-    &:active { background: #f1f3f4; }
+    &:active { background: #f1f5f9; }
 
     svg { width: 14px; height: 14px; }
 `;
@@ -677,9 +698,9 @@ const MobileNavBtn = styled.button`
 const MobileNavTitle = styled.div`
     flex: 1;
     text-align: center;
-    font-size: 15px;
-    font-weight: 400;
-    color: #3c4043;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -697,16 +718,16 @@ const MobileFilterPill = styled.button<{ $active: boolean }>`
     align-items: center;
     gap: 6px;
     padding: 7px 12px;
-    background: ${p => p.$active ? '#e8f0fe' : '#fff'};
-    color: ${p => p.$active ? '#1a73e8' : '#3c4043'};
-    border: 1px solid #dadce0;
-    border-radius: 4px;
+    background: ${p => p.$active ? 'rgba(99, 102, 241, 0.08)' : '#fff'};
+    color: ${p => p.$active ? '#6366f1' : '#475569'};
+    border: 1px solid ${p => p.$active ? 'rgba(99, 102, 241, 0.3)' : '#e2e8f0'};
+    border-radius: 8px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.1s ease;
 
-    &:hover { background: #f1f3f4; }
+    &:active { background: #f1f5f9; }
 
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
@@ -718,10 +739,10 @@ const MobileFilterBadge = styled.span`
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
-    background: #1a73e8;
+    background: #6366f1;
     border-radius: 8px;
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 700;
     color: #fff;
 `;
 
@@ -729,21 +750,21 @@ const MobileAddBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     flex-shrink: 0;
-    border: 1px solid #dadce0;
+    border: none;
     border-radius: 50%;
-    background: #fff;
-    color: #3c4043;
+    background: #0ea5e9;
+    color: #fff;
     font-size: 20px;
     font-weight: 300;
     line-height: 1;
     cursor: pointer;
-    transition: background 0.1s ease;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
+    transition: background 0.15s ease;
 
-    &:hover { background: #f1f3f4; }
-    &:active { background: #e8f0fe; }
+    &:active { background: #0284c7; }
 `;
 
 /* ===================== DESKTOP PAGE HEADER ===================== */
