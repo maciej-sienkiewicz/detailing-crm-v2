@@ -8,6 +8,7 @@ import type { AppointmentEventData, VisitEventData, CalendarSmsInfo } from '../t
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
+import { usePermissions } from '@/core/permissions';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -819,6 +820,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     // the backend sets on every authenticated response. When false the server
     // omits the customer object entirely, so there is nothing to display or blur.
     const piiGranted = usePiiAccess();
+    const { can } = usePermissions();
 
     const handleClose = () => {
         if (closing) return;
@@ -884,7 +886,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </HeaderCloseButton>
-                    {(isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick) && (
+                    {can('VISITS_DELETE') && (isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick) && (
                         <HeaderDeleteButton
                             type="button"
                             onClick={isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick}
@@ -1088,7 +1090,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     </>
                                 )}
                             </FooterActions>
-                            {!isCancelled && (
+                            {!isCancelled && can('VISITS_DOCUMENTS_MANAGE') && (
                                 <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -1106,7 +1108,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </svg>
                                 Przejdź do wizyty
                             </ManageButton>
-                            {onEditEndDateClick && (
+                            {onEditEndDateClick && can('VISITS_CHANGE_STATUS') && (
                                 <SecondaryButton onClick={onEditEndDateClick} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -1118,13 +1120,15 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     Edytuj datę zakończenia
                                 </SecondaryButton>
                             )}
-                            <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                                    <line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                                Karta Wizyty
-                            </SecondaryButton>
+                            {can('VISITS_DOCUMENTS_MANAGE') && (
+                                <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                    Karta Wizyty
+                                </SecondaryButton>
+                            )}
                         </>
                     )}
                 </PopoverFooter>

@@ -5,6 +5,7 @@ import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { VisitCardLinkModal } from '@/modules/visit-card';
+import { usePermissions } from '@/core/permissions';
 
 const BRAND = '#0ea5e9';
 
@@ -381,6 +382,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
     const initials = masked ? '•' : getInitials(customer.firstName, customer.lastName);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
     const [isOpen, setIsOpen] = useState(true);
+    const { can } = usePermissions();
 
     const visitsLabel = customer.stats.totalVisits === 1 ? 'wizyta' :
         customer.stats.totalVisits % 10 >= 2 && customer.stats.totalVisits % 10 <= 4 && (customer.stats.totalVisits % 100 < 10 || customer.stats.totalVisits % 100 >= 20)
@@ -404,7 +406,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                     <CardTitle>Klient</CardTitle>
                 </CardTitleGroup>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {onViewDetails && (
+                    {onViewDetails && can('CUSTOMERS_VIEW') && (
                         <ViewBtn onClick={e => { e.stopPropagation(); onViewDetails(); }} aria-label="Otwórz profil klienta">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
@@ -477,20 +479,24 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                         <polyline points="12 6 12 12 16 14" />
                     </svg>
                     <span><strong>{customer.stats.totalVisits}</strong> {visitsLabel}</span>
-                    <HistoryDot />
-                    <span>
-                        łącznie{' '}
-                        <strong>
-                            {formatCurrency(
-                                customer.stats.totalSpent.grossAmount / 100,
-                                customer.stats.totalSpent.currency
-                            )}
-                        </strong>
-                    </span>
+                    {can('VISITS_SERVICE_PRICES_VIEW') && (
+                        <>
+                            <HistoryDot />
+                            <span>
+                                łącznie{' '}
+                                <strong>
+                                    {formatCurrency(
+                                        customer.stats.totalSpent.grossAmount / 100,
+                                        customer.stats.totalSpent.currency
+                                    )}
+                                </strong>
+                            </span>
+                        </>
+                    )}
                 </HistoryLine>
 
                 {/* Karta Wizyty — widok dla klienta */}
-                {visitId && (
+                {visitId && can('VISITS_DOCUMENTS_MANAGE') && (
                     <>
                         <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok dla klienta">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
