@@ -1144,7 +1144,7 @@ export const VisitDetailView = () => {
                 />
             )}
 
-            <DoorToDoorModal
+            {can('VISITS_CREATE') && <DoorToDoorModal
                 isOpen={isDoorToDoorOpen}
                 initialData={visit.doorToDoor}
                 onClose={() => setIsDoorToDoorOpen(false)}
@@ -1157,7 +1157,7 @@ export const VisitDetailView = () => {
                         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
                     });
                 }}
-            />
+            />}
 
             {isGeneratePostOpen && (
                 <GeneratePostModal
