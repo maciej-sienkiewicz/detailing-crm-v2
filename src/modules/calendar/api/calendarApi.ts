@@ -95,6 +95,8 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         note: appointment.note,
         smsInfo: appointment.smsInfo,
         recurrenceInfo: appointment.recurrenceInfo ?? null,
+        startTime: appointment.schedule.startDateTime,
+        endTime: appointment.schedule.endDateTime,
     };
 
     return {
@@ -158,6 +160,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         totalNet: visit.totalNet ?? undefined,
         currency: 'PLN',
         technicalNotes: visit.technicalNotes,
+        startTime: visit.scheduledDate,
+        endTime: visit.estimatedCompletionDate,
     };
 
     return {

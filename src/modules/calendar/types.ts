@@ -47,6 +47,8 @@ export interface CalendarEventData {
     currency?: string;
     colorHex: string;
     colorId?: string;
+    startTime: string;  // ISO 8601
+    endTime: string;    // ISO 8601
 }
 
 /**
