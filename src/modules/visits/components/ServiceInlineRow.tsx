@@ -3,13 +3,15 @@
 // A single "new service" row rendered inline inside the ServicesTable.
 // Handles name autocomplete (catalog lookup) + bidirectional netto/brutto entry.
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { formatCurrency } from '@/common/utils';
 import { netPlnToGrossPln, grossPlnToNetPln } from '@/common/utils/priceAdjustment';
+import type { AdjustmentType } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { Service } from '@/modules/services/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -27,6 +29,7 @@ export interface NewRow {
     basePriceNet: number;   // in cents (grosz)
     vatRate: number;
     requireManualPrice: boolean;
+    adjustment: { type: AdjustmentType; value: number };
 }
 
 /* ─── Styled components ───────────────────────────────────────────────────── */
@@ -96,10 +99,7 @@ const NameInput = styled.input`
 `;
 
 const Dropdown = styled.ul`
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
     min-width: 240px;
     margin: 0;
     padding: 0;
@@ -108,7 +108,7 @@ const Dropdown = styled.ul`
     border: 1px solid ${st.border};
     border-radius: 10px;
     box-shadow: ${st.shadowLg};
-    z-index: 300;
+    z-index: 9999;
     overflow: hidden;
     max-height: 220px;
     overflow-y: auto;
@@ -205,7 +205,7 @@ const PriceInput = styled.input`
     @media (max-width: 767px) { width: 100%; }
 `;
 
-const RemoveBtn = styled.button`
+const ActionBtnBase = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -220,19 +220,49 @@ const RemoveBtn = styled.button`
     transition: background 150ms, border-color 150ms, color 150ms;
     white-space: nowrap;
 
+    svg { width: 12px; height: 12px; }
+
+    @media (max-width: 767px) {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 40px;
+    }
+`;
+
+const RemoveBtn = styled(ActionBtnBase)`
     &:hover {
         background: ${st.bg};
         border-color: ${st.borderHover};
         color: ${st.textSecondary};
     }
-    svg { width: 12px; height: 12px; }
+`;
+
+const EditBtn = styled(ActionBtnBase)`
+    &:hover {
+        background: rgba(14,165,233,0.07);
+        border-color: rgba(14,165,233,0.35);
+        color: #0284c7;
+    }
+`;
+
+const DiscountBtn = styled(ActionBtnBase)`
+    &:hover {
+        background: rgba(16,185,129,0.07);
+        border-color: rgba(16,185,129,0.35);
+        color: #059669;
+    }
+`;
+
+const ActionBtns = styled.div`
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
 
     @media (max-width: 767px) {
-        width: 100%;
-        justify-content: center;
-        padding: 10px 14px;
-        font-size: 13px;
-        min-height: 40px;
+        flex-direction: column;
+        gap: 6px;
     }
 `;
 
@@ -255,13 +285,36 @@ interface Props {
     onUpdate: (partial: Partial<NewRow>) => void;
     onRemove: () => void;
     onAddCustom: (name: string) => void;
+    onEdit?: () => void;
+    onDiscount?: () => void;
 }
 
-export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props) => {
+export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit, onDiscount }: Props) => {
     const [query, setQuery] = useState(row.serviceName);
     const [open, setOpen] = useState(false);
     const debouncedQuery = useDebounce(query, 250);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const nameWrapRef = useRef<HTMLDivElement>(null);
+    const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    const updateDropPos = useCallback(() => {
+        if (nameWrapRef.current) {
+            const r = nameWrapRef.current.getBoundingClientRect();
+            setDropPos({ top: r.bottom + 4, left: r.left, width: r.width });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (open) {
+            updateDropPos();
+            window.addEventListener('scroll', updateDropPos, true);
+            window.addEventListener('resize', updateDropPos);
+            return () => {
+                window.removeEventListener('scroll', updateDropPos, true);
+                window.removeEventListener('resize', updateDropPos);
+            };
+        }
+    }, [open, updateDropPos]);
 
     // Local display strings — typed freely, never re-derived from parent on
     // every keystroke. Parent basePriceNet is updated immediately on each valid
@@ -388,11 +441,13 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     // Price fields are editable unless it's a catalog service with a fixed price
     const priceReadOnly = row.serviceId !== null && !row.requireManualPrice;
 
+    const hasDiscount = row.adjustment.value !== 0;
+
     return (
         <InlineRow>
             {/* Usługa */}
             <Cell>
-                <NameWrap>
+                <NameWrap ref={nameWrapRef}>
                     <NameInput
                         value={query}
                         onChange={e => handleQueryChange(capitalizeFirst(e.target.value))}
@@ -401,8 +456,11 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
                         placeholder="Wyszukaj lub wpisz nazwę usługi…"
                         autoFocus
                     />
-                    {open && (suggestions.length > 0 || query.trim()) && (
-                        <Dropdown onMouseDown={handleMouseDown}>
+                    {open && (suggestions.length > 0 || query.trim()) && dropPos && createPortal(
+                        <Dropdown
+                            style={{ top: dropPos.top, left: dropPos.left, width: dropPos.width }}
+                            onMouseDown={handleMouseDown}
+                        >
                             {suggestions.map(svc => (
                                 <DropItem key={svc.id} onClick={() => handleSelect(svc)}>
                                     <span>{svc.name}</span>
@@ -419,7 +477,8 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
                                     + Dodaj „{query.trim()}" jako niestandardową
                                 </DropItem>
                             )}
-                        </Dropdown>
+                        </Dropdown>,
+                        document.body
                     )}
                 </NameWrap>
             </Cell>
@@ -459,13 +518,38 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
 
             {/* Akcje */}
             <Cell style={{ textAlign: 'right', verticalAlign: 'middle' }}>
-                <RemoveBtn onClick={onRemove} title="Usuń wiersz">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                    Usuń
-                </RemoveBtn>
+                <ActionBtns>
+                    {onEdit && (
+                        <EditBtn onClick={onEdit} title="Edytuj pozycję">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Edytuj
+                        </EditBtn>
+                    )}
+                    {onDiscount && (
+                        <DiscountBtn
+                            onClick={onDiscount}
+                            title={hasDiscount ? 'Edytuj rabat' : 'Dodaj rabat'}
+                            style={hasDiscount ? { borderColor: 'rgba(16,185,129,0.4)', color: '#059669', background: 'rgba(16,185,129,0.07)' } : undefined}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <circle cx="9" cy="9" r="2" />
+                                <circle cx="15" cy="15" r="2" />
+                                <line x1="6" y1="18" x2="18" y2="6" />
+                            </svg>
+                            {hasDiscount ? 'Rabat ✓' : 'Rabatuj'}
+                        </DiscountBtn>
+                    )}
+                    <RemoveBtn onClick={onRemove} title="Usuń wiersz">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        Usuń
+                    </RemoveBtn>
+                </ActionBtns>
             </Cell>
         </InlineRow>
     );
