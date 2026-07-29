@@ -17,6 +17,10 @@ export const ServicesTableHeader = styled.div`
     padding: 7px 8px 7px 14px;
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
+
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 export const ServicesHeaderCell = styled.span`
@@ -50,6 +54,30 @@ export const ServiceItemRow = styled.div`
     align-items: center;
     gap: 4px;
     padding: 8px 8px 8px 14px;
+
+    @media (max-width: 639px) {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 4px 8px;
+        padding: 10px 12px;
+
+        /* net price – hide on mobile */
+        & > :nth-child(2) { display: none; }
+        /* VAT cell – hide on mobile */
+        & > :nth-child(3) { display: none; }
+        /* gross price – top-right */
+        & > :nth-child(4) {
+            grid-column: 2;
+            grid-row: 1;
+            align-self: center;
+        }
+        /* actions – bottom-right */
+        & > :nth-child(5) {
+            grid-column: 2;
+            grid-row: 2;
+            justify-self: end;
+        }
+    }
 `;
 
 export const ServiceNameWrap = styled.div`
@@ -57,6 +85,13 @@ export const ServiceNameWrap = styled.div`
     flex-direction: column;
     min-width: 0;
     padding-right: 4px;
+
+    @media (max-width: 639px) {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        align-self: center;
+        padding-right: 0;
+    }
 `;
 
 export const ServiceName = styled.span`
@@ -323,6 +358,12 @@ export const SummarySection = styled.div`
     padding: 10px 14px;
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
+
+    @media (max-width: 639px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
 `;
 
 export const BulkDiscountTrigger = styled.button`
@@ -350,6 +391,11 @@ export const SummaryTotals = styled.div`
     display: flex;
     align-items: center;
     gap: 0;
+
+    @media (max-width: 639px) {
+        justify-content: flex-end;
+        width: 100%;
+    }
 `;
 
 export const SummaryItem = styled.div`

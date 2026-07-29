@@ -190,10 +190,15 @@ const StickyFooter = styled.footer<{ $sidebarWidth: number }>`
 const FooterInner = styled.div`
     max-width: 1100px;
     margin: 0 auto;
-    padding: 16px 24px;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+
+    @media (min-width: 640px) {
+        padding: 14px 24px;
+        gap: 10px;
+    }
 
     @media (min-width: 768px) {
         padding: 16px 40px;
@@ -276,6 +281,7 @@ const FooterActions = styled.div`
     align-items: center;
     flex-shrink: 0;
     margin-left: auto;
+    flex-wrap: wrap;
 
     @media (max-width: 767px) {
         margin-left: 0;
@@ -292,8 +298,13 @@ const VisitCardCheckboxLabel = styled.label`
     font-weight: 500;
     color: ${st.textSecondary};
     cursor: pointer;
-    white-space: nowrap;
     user-select: none;
+
+    @media (max-width: 767px) {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 2px;
+    }
 `;
 
 const VisitCardCheckbox = styled.input.attrs({ type: 'checkbox' })`

@@ -65,6 +65,10 @@ const SectionTitleRow = styled.div`
     gap: 8px;
     min-width: 0;
     flex: 1;
+
+    @media (max-width: 639px) {
+        flex-basis: 100%;
+    }
 `;
 
 const SectionNum = styled.span`
@@ -109,6 +113,13 @@ const StatusPill = styled.span`
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+
+    @media (max-width: 479px) {
+        max-width: 140px;
+    }
 `;
 
 const SectionActions = styled.div`
@@ -117,6 +128,10 @@ const SectionActions = styled.div`
     gap: 6px;
     flex-shrink: 0;
     flex-wrap: wrap;
+
+    @media (max-width: 639px) {
+        width: 100%;
+    }
 `;
 
 const ActionBtn = styled.button<{ $primary?: boolean }>`
@@ -143,6 +158,12 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
     &:disabled {
         opacity: 0.38;
         cursor: not-allowed;
+    }
+
+    @media (max-width: 639px) {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 13px;
     }
 `;
 
