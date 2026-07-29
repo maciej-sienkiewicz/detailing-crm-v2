@@ -63,6 +63,13 @@ const ArchiveButton = styled.button`
   }
 
   svg { width: 13px; height: 13px; stroke-width: 2; }
+
+  @media (max-width: 639px) {
+    font-size: 0;
+    padding: 7px 9px;
+    gap: 0;
+    svg { width: 15px; height: 15px; }
+  }
 `;
 
 const AddButton = styled.button`
