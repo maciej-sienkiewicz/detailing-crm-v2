@@ -27,6 +27,12 @@ export { overlayFadeIn, modalScaleIn };
 export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
     z-index: 50;
     left: ${p => p.$contentLeft ?? 0}px;
+
+    @media (max-width: 639px) {
+        left: 0;
+        padding: 0;
+        align-items: flex-start;
+    }
 `;
 
 // Wrapper łączący główny modal + panel boczny cykliczności
@@ -37,6 +43,17 @@ export const ModalWithPanel = styled.div`
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+
+    @media (max-width: 639px) {
+        flex-direction: column;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow-y: auto;
+    }
 `;
 
 export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
@@ -50,6 +67,16 @@ export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
     &:first-child {
         border-radius: 16px 0 0 16px;
     }
+
+    @media (max-width: 639px) {
+        width: 100%;
+        max-width: 100%;
+        max-height: none;
+        border-radius: 0 !important;
+        flex-shrink: 1;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
 `;
 
 // ─── Header ───────────────────────────────────────────────────────────────────
@@ -61,6 +88,10 @@ export const Header = styled.div`
     align-items: flex-start;
     gap: 12px;
     flex-shrink: 0;
+
+    @media (max-width: 639px) {
+        padding: 16px 16px 12px 18px;
+    }
 `;
 
 export const HeaderContent = styled.div`
@@ -91,6 +122,10 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
         border-bottom-color: ${p =>
             p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
     }
+
+    @media (max-width: 639px) {
+        font-size: 18px;
+    }
 `;
 
 // ─── Scrollable body ──────────────────────────────────────────────────────────
@@ -111,6 +146,10 @@ export const ScrollableContent = styled.div`
         border-radius: 2px;
     }
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+    @media (max-width: 639px) {
+        padding: 4px 16px 20px;
+    }
 `;
 
 // ─── Row layout ───────────────────────────────────────────────────────────────
@@ -1012,6 +1051,10 @@ export const Footer = styled.div`
     flex-direction: column;
     gap: 10px;
     flex-shrink: 0;
+
+    @media (max-width: 639px) {
+        padding: 12px 16px;
+    }
 `;
 
 export const ColorPickerWrapper = styled.div`
@@ -1212,6 +1255,12 @@ export const FooterActions = styled.div`
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+
+    @media (max-width: 639px) {
+        flex-wrap: wrap;
+
+        > * { flex: 1; justify-content: center; }
+    }
 `;
 
 export const Button = styled(SharedButton)<{ $variant?: 'primary' | 'secondary' | 'ghost' }>``;
