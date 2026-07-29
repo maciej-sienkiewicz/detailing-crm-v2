@@ -96,6 +96,35 @@ const TabBar = styled.div`
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+
+  @media (max-width: 639px) {
+    display: none;
+  }
+`;
+
+const TabSelect = styled.select`
+  display: none;
+
+  @media (max-width: 639px) {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    color: ${(p) => p.theme.colors.text};
+    background: ${(p) => p.theme.colors.surface};
+    border: none;
+    border-bottom: 1px solid ${(p) => p.theme.colors.border};
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
 `;
 
 const TabItem = styled.button<{ $active: boolean }>`
@@ -557,7 +586,11 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
   const handleToggle = () => {
     if (!open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 8, right: Math.max(0, window.innerWidth - rect.right) });
+      const vw = window.innerWidth;
+      const PANEL_W = 240;
+      const MARGIN = 8;
+      const right = Math.min(Math.max(MARGIN, vw - rect.right), vw - PANEL_W - MARGIN);
+      setPanelPos({ top: rect.bottom + 8, right });
       setPendingFrom(customFrom);
       setPendingTo(customTo);
     }
@@ -1203,6 +1236,12 @@ export const FinanceView: React.FC = () => {
               Podsumowanie płatności
             </TabItem>
           </TabBar>
+          <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
+            <option value="income">Dokumenty przychodowe</option>
+            <option value="expenses">Dokumenty kosztowe</option>
+            <option value="cash">Kasa</option>
+            <option value="payment-summary">Podsumowanie płatności</option>
+          </TabSelect>
 
           {activeTab === 'income' && (
             <IncomeTabContent activeDateRange={activeDateRange} />
