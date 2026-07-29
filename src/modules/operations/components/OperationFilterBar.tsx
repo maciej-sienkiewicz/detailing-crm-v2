@@ -33,12 +33,22 @@ const TopRow = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-wrap: nowrap;
     }
+
+    @media (max-width: 639px) {
+        gap: 8px;
+        padding: 12px 14px;
+    }
 `;
 
 const SearchWrapper = styled.div`
     position: relative;
     flex: 1;
     min-width: 220px;
+
+    @media (max-width: 639px) {
+        flex-basis: 100%;
+        min-width: 0;
+    }
 `;
 
 const SearchIconEl = styled.svg`
@@ -79,6 +89,11 @@ const DateWrap = styled.div`
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+
+    @media (max-width: 639px) {
+        flex: 1;
+        min-width: 0;
+    }
 `;
 
 const DateLabel = styled.label`
@@ -86,6 +101,10 @@ const DateLabel = styled.label`
     font-weight: 500;
     color: ${st.textSecondary};
     white-space: nowrap;
+
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 const DateInput = styled.input`
@@ -103,6 +122,12 @@ const DateInput = styled.input`
         border-color: ${st.accentBlue};
         background: #fff;
         box-shadow: ${st.shadowBlue};
+    }
+
+    @media (max-width: 639px) {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
     }
 `;
 
@@ -143,6 +168,56 @@ const FiltersRow = styled.div`
     &::-webkit-scrollbar {
         display: none;
     }
+
+    @media (max-width: 639px) {
+        display: none;
+    }
+`;
+
+const MobileSelectRow = styled.div`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: flex;
+        flex-basis: 100%;
+        position: relative;
+        align-items: center;
+    }
+`;
+
+const MobileSelect = styled.select`
+    width: 100%;
+    padding: 9px 36px 9px 14px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: ${st.bgCardAlt};
+    border: 1.5px solid ${st.border};
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${st.text};
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.4;
+    transition: all ${st.transition};
+
+    &:focus {
+        outline: none;
+        border-color: ${st.accentBlue};
+        background: #fff;
+        box-shadow: ${st.shadowBlue};
+    }
+`;
+
+const MobileSelectChevron = styled.div`
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: ${st.textMuted};
+    display: flex;
+    align-items: center;
 `;
 
 const Chip = styled.button<{ $active: boolean; $color: string }>`
@@ -300,6 +375,26 @@ export const OperationFilterBar = ({
                         onChange={e => onSearchChange(e.target.value)}
                     />
                 </SearchWrapper>
+
+                <MobileSelectRow>
+                    <MobileSelect
+                        value={selectedFilter ?? 'ALL'}
+                        onChange={e => {
+                            const val = e.target.value;
+                            onFilterChange(val === 'ALL' ? undefined : val as FilterStatus);
+                        }}
+                    >
+                        <option value="ALL">Wszystkie statusy</option>
+                        {FILTERS.map(f => (
+                            <option key={f.value} value={f.value}>{f.label}</option>
+                        ))}
+                    </MobileSelect>
+                    <MobileSelectChevron>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </MobileSelectChevron>
+                </MobileSelectRow>
 
                 <DateWrap>
                     <DateLabel htmlFor="op-date-filter">Data:</DateLabel>
