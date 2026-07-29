@@ -94,6 +94,19 @@ export interface CreateDocumentRequest {
   customerLastName?:   string | null;
 }
 
+export interface UpdateDocumentRequest {
+  documentType:        string;
+  paymentMethod:       string;
+  totalNet:            number;
+  totalVat:            number;
+  totalGross:          number;
+  issueDate:           string;
+  dueDate?:            string | null;
+  description?:        string | null;
+  counterpartyName?:   string | null;
+  counterpartyNip?:    string | null;
+}
+
 export interface UpdateDocumentNumberRequest {
   documentNumber: string;
 }

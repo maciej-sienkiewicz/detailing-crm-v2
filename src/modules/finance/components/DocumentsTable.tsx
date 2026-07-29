@@ -306,7 +306,7 @@ const EmDash = styled.span`
   font-size: 13px;
 `;
 
-const ActionBtn = styled.button<{ $variant: 'delete' | 'restore' }>`
+const ActionBtn = styled.button<{ $variant: 'delete' | 'restore' | 'edit' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -322,6 +322,8 @@ const ActionBtn = styled.button<{ $variant: 'delete' | 'restore' }>`
   ${(p) =>
     p.$variant === 'delete'
       ? `&:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }`
+      : p.$variant === 'edit'
+      ? `&:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }`
       : `&:hover { background: #dcfce7; color: #16a34a; border-color: #86efac; }`}
 
   svg { width: 14px; height: 14px; }
@@ -448,11 +450,12 @@ const STATUS_LABELS: Record<DocumentStatus, string> = {
 interface Props {
   documents: FinancialDocument[];
   isLoading?: boolean;
+  onEdit?: (doc: FinancialDocument) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
+export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onEdit }) => {
   const [openStatusId, setOpenStatusId]         = useState<string | null>(null);
   const [editingNumberId, setEditingNumberId]   = useState<string | null>(null);
   const [editingNumberVal, setEditingNumberVal] = useState('');
@@ -710,15 +713,26 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
                   </Td>
 
                   {/* Akcje */}
-                  <Td onClick={(e) => e.stopPropagation()}>
+                  <Td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     {isDeleted ? (
                       <ActionBtn $variant="restore" onClick={(e) => handleRestore(doc.id, e)} title="Przywróć dokument">
                         <IconRestore />
                       </ActionBtn>
                     ) : (
-                      <ActionBtn $variant="delete" onClick={(e) => handleDelete(doc.id, e)} title="Usuń dokument">
-                        <IconTrash />
-                      </ActionBtn>
+                      <>
+                        {doc.source === 'MANUAL' && onEdit && (
+                          <ActionBtn
+                            $variant="edit"
+                            onClick={(e) => { e.stopPropagation(); onEdit(doc); }}
+                            title="Edytuj dokument"
+                          >
+                            <IconPencil />
+                          </ActionBtn>
+                        )}
+                        <ActionBtn $variant="delete" onClick={(e) => handleDelete(doc.id, e)} title="Usuń dokument">
+                          <IconTrash />
+                        </ActionBtn>
+                      </>
                     )}
                   </Td>
 

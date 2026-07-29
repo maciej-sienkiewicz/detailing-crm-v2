@@ -1,6 +1,7 @@
 export { FinanceSummaryCards }     from './FinanceSummaryCards';
 export { DocumentsTable }          from './DocumentsTable';
 export { CreateDocumentModal }     from './CreateDocumentModal';
+export { EditDocumentModal }       from './EditDocumentModal';
 export { CashRegisterPanel }       from './CashRegisterPanel';
 export { PaymentSummaryTab }       from './PaymentSummaryTab';
 export { KsefExpensesTable }       from './KsefExpensesTable';

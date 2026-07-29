@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import type { FinanceTab } from '../types';
+import type { FinanceTab, FinancialDocument } from '../types';
 import { DocumentStatus } from '../types';
 import type { ExpenseSource, ExpensePaymentStatus } from '../types';
 import { useFinanceDocuments } from '../hooks/useFinance';
@@ -10,6 +10,7 @@ import {
   FinanceSummaryCards,
   DocumentsTable,
   CreateDocumentModal,
+  EditDocumentModal,
   CashRegisterPanel,
   PaymentSummaryTab,
   KsefExpensesTable,
@@ -933,9 +934,10 @@ interface IncomeFilters {
 
 interface IncomeTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
+  onEdit: (doc: FinancialDocument) => void;
 }
 
-const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange }) => {
+const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, onEdit }) => {
   const [filters, setFilters] = useState<IncomeFilters>({
     status: '', documentType: '', page: 1,
   });
@@ -1010,7 +1012,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange }) 
           <button onClick={() => refetch()}>Spróbuj ponownie</button>
         </InlineError>
       ) : (
-        <DocumentsTable documents={documents} isLoading={isLoading} />
+        <DocumentsTable documents={documents} isLoading={isLoading} onEdit={onEdit} />
       )}
 
       {totalPages > 1 && (
@@ -1165,6 +1167,7 @@ export const FinanceView: React.FC = () => {
   const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<FinancialDocument | null>(null);
   const [datePreset, setDatePreset]       = useState<DatePreset>('all');
   const [customFrom, setCustomFrom]       = useState('');
   const [customTo, setCustomTo]           = useState('');
@@ -1175,6 +1178,8 @@ export const FinanceView: React.FC = () => {
 
   const openIncomeModal  = useCallback(() => setIncomeModalOpen(true),  []);
   const closeIncomeModal = useCallback(() => setIncomeModalOpen(false), []);
+  const handleEditDocument = useCallback((doc: FinancialDocument) => setEditingDocument(doc), []);
+  const closeEditModal     = useCallback(() => setEditingDocument(null), []);
   const openExpenseModal  = useCallback(() => setExpenseModalOpen(true),  []);
   const closeExpenseModal = useCallback(() => setExpenseModalOpen(false), []);
 
@@ -1244,7 +1249,7 @@ export const FinanceView: React.FC = () => {
           </TabSelect>
 
           {activeTab === 'income' && (
-            <IncomeTabContent activeDateRange={activeDateRange} />
+            <IncomeTabContent activeDateRange={activeDateRange} onEdit={handleEditDocument} />
           )}
           {activeTab === 'expenses' && (
             <ExpensesTabContent activeDateRange={activeDateRange} onAddExpense={openExpenseModal} />
@@ -1256,6 +1261,7 @@ export const FinanceView: React.FC = () => {
 
       <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
       <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
+      <EditDocumentModal   document={editingDocument}  onClose={closeEditModal} />
     </ViewContainer>
   );
 };

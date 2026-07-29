@@ -3,6 +3,7 @@ import { financeApi } from '../api/financeApi';
 import type {
   DocumentListFilters,
   CreateDocumentRequest,
+  UpdateDocumentRequest,
   PaymentMethodReportParams,
   CashAdjustRequest,
 } from '../types';
@@ -46,6 +47,20 @@ export const useCreateDocument = () => {
 
   return useMutation({
     mutationFn: (data: CreateDocumentRequest) => financeApi.createDocument(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FINANCE_DOCS_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_CASH_KEY });
+    },
+  });
+};
+
+export const useUpdateDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateDocumentRequest }) =>
+      financeApi.updateDocument(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FINANCE_DOCS_KEY });
       queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });

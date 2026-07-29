@@ -3,6 +3,7 @@ import type {
   FinancialDocument,
   FinancialDocumentListResponse,
   CreateDocumentRequest,
+  UpdateDocumentRequest,
   DocumentListFilters,
   CashRegister,
   CashHistoryResponse,
@@ -40,6 +41,11 @@ export const financeApi = {
 
   createDocument: async (data: CreateDocumentRequest): Promise<FinancialDocument> => {
     const response = await apiClient.post(`${BASE}/documents`, data);
+    return response.data;
+  },
+
+  updateDocument: async (id: string, data: UpdateDocumentRequest): Promise<FinancialDocument> => {
+    const response = await apiClient.put(`${BASE}/documents/${id}`, data);
     return response.data;
   },
 
