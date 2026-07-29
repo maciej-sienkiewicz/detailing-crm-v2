@@ -17,6 +17,7 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     flex: 1;
     min-width: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     position: relative;
     ${hexBackdrop}
 
@@ -27,7 +28,8 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         margin-left: 0;
-        padding-top: 76px;
+        /* Clear the mobile hamburger button; add safe-area-inset-top for notched devices */
+        padding-top: max(76px, calc(62px + env(safe-area-inset-top, 0px)));
     }
 `;
 

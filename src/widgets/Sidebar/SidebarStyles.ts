@@ -42,7 +42,10 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
     position: fixed;
     left: 0;
     top: 0;
+    /* 100dvh adjusts dynamically when mobile browser chrome (address bar, bottom bar) shows/hides.
+       100vh fallback for browsers that don't support dvh yet. */
     height: 100vh;
+    height: 100dvh;
     background-color: ${S.bg};
     z-index: 100;
     display: flex;
@@ -75,6 +78,11 @@ export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         padding: ${p => p.$isCollapsed ? '18px 14px' : '20px 16px 18px'};
         justify-content: ${p => p.$isCollapsed ? 'center' : 'space-between'};
+    }
+
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        /* Push header content below the status bar / notch on iOS */
+        padding-top: max(20px, env(safe-area-inset-top, 20px));
     }
 `;
 
@@ -433,6 +441,8 @@ export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: bo
 
 export const UserProfile = styled.div<{ $isCollapsed: boolean }>`
     padding: 12px;
+    /* On devices with home indicator (iPhone X+), push content above it */
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     border-top: 1px solid ${S.border};
     flex-shrink: 0;
     display: flex;
@@ -442,6 +452,7 @@ export const UserProfile = styled.div<{ $isCollapsed: boolean }>`
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
+        padding-bottom: 12px;
     }
 `;
 
@@ -552,8 +563,9 @@ export const ExpandButton = styled.button`
 
 export const MobileMenuButton = styled.button`
     position: fixed;
-    top: 14px;
-    left: 14px;
+    /* Account for notch / status bar on iOS devices */
+    top: max(14px, env(safe-area-inset-top, 14px));
+    left: max(14px, env(safe-area-inset-left, 14px));
     width: 42px;
     height: 42px;
     padding: 0;
@@ -568,6 +580,7 @@ export const MobileMenuButton = styled.button`
     z-index: 998;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     transition: all 150ms ease;
+    -webkit-tap-highlight-color: transparent;
 
     svg { width: 18px; height: 18px; }
 
