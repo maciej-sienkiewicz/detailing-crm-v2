@@ -33,6 +33,13 @@ const PanelHeader = styled.div`
   padding: 20px 24px;
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   background: ${(p) => p.theme.colors.surfaceAlt};
+
+  @media (max-width: 639px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
 `;
 
 const HeaderLeft = styled.div`
@@ -59,6 +66,10 @@ const PanelBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+
+  @media (max-width: 639px) {
+    padding: 16px;
+  }
 `;
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -94,6 +105,10 @@ const FormRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+
+  @media (max-width: 639px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Label = styled.label`

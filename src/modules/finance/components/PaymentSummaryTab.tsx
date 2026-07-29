@@ -334,6 +334,11 @@ const TableCard = styled.div`
   border-radius: ${p => p.theme.radii.xl};
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+
+  @media (max-width: 639px) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 `;
 
 const TableHead = styled.div`
@@ -341,6 +346,10 @@ const TableHead = styled.div`
   grid-template-columns: 1fr repeat(3, 1fr);
   background: ${st.bg};
   border-bottom: 1px solid ${p => p.theme.colors.border};
+
+  @media (max-width: 639px) {
+    min-width: 480px;
+  }
 `;
 
 const Th = styled.div`
@@ -374,12 +383,20 @@ const TableRow = styled.div<{ $even?: boolean }>`
   border-bottom: 1px solid #f1f5f9;
   background: ${p => p.$even ? p.theme.colors.surfaceAlt : '#fff'};
   &:last-child { border-bottom: none; }
+
+  @media (max-width: 639px) {
+    min-width: 480px;
+  }
 `;
 
 const TotalRow = styled(TableRow)`
   background: #f8fafc;
   border-top: 1px solid ${p => p.theme.colors.border};
   border-bottom: none;
+
+  @media (max-width: 639px) {
+    min-width: 480px;
+  }
 `;
 
 const Td = styled.div`
