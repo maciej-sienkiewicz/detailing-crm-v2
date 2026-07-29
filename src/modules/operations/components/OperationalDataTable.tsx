@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { usePermissions } from '@/core/permissions';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
@@ -732,6 +733,7 @@ export const OperationalDataTable = ({
     deleted,
 }: OperationalDataTableProps) => {
     const navigate = useNavigate();
+    const { can } = usePermissions();
 
     const { start: startNavAnim } = useCalendarNavigation();
 
@@ -906,7 +908,7 @@ export const OperationalDataTable = ({
                         <HeaderCell>Pojazd</HeaderCell>
                         <HeaderCell>Klient</HeaderCell>
                         <HeaderCell>Data przyjazdu</HeaderCell>
-                        <HeaderCell>Wartość</HeaderCell>
+                        <HeaderCell>{can('VISITS_SERVICE_PRICES_VIEW') ? 'Wartość' : ''}</HeaderCell>
                         <HeaderCell />
                     </HeaderRow>
 
@@ -1066,6 +1068,7 @@ export const OperationalDataTable = ({
                                                 )}
                                                 <VehicleSubInfo>
                                                     {op.vehicle.brand && <span>{op.vehicle.brand}</span>}
+                                                    {op.vehicle.brand && op.vehicle.model && ' '}
                                                     {op.vehicle.model && <span>{op.vehicle.model}</span>}
                                                 </VehicleSubInfo>
                                             </VehicleNavBlock>
@@ -1091,12 +1094,16 @@ export const OperationalDataTable = ({
 
                                     {/* Amount */}
                                     <AmountCellWrap>
-                                        <GrossAmt>
-                                            {formatCurrency(op.financials.grossAmount, op.financials.currency)}
-                                        </GrossAmt>
-                                        <NetAmt>
-                                            netto {formatCurrency(op.financials.netAmount, op.financials.currency)}
-                                        </NetAmt>
+                                        {can('VISITS_SERVICE_PRICES_VIEW') && (
+                                            <>
+                                                <GrossAmt>
+                                                    {formatCurrency(op.financials.grossAmount, op.financials.currency)}
+                                                </GrossAmt>
+                                                <NetAmt>
+                                                    netto {formatCurrency(op.financials.netAmount, op.financials.currency)}
+                                                </NetAmt>
+                                            </>
+                                        )}
                                     </AmountCellWrap>
 
                                     {/* Actions */}
