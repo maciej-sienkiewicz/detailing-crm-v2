@@ -40,6 +40,8 @@ export const PERMISSIONS = {
     // Usługi (cennik)
     SERVICES_VIEW: 'SERVICES_VIEW',
     SERVICES_MANAGE: 'SERVICES_MANAGE',
+    // Zlecenia zbiorcze
+    BATCH_ORDERS: 'BATCH_ORDERS',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;
