@@ -23,6 +23,10 @@ const ViewContainer = styled.main`
     margin: 0 auto;
     width: 100%;
 
+    @media (max-width: 639px) {
+        padding: ${props => props.theme.spacing.md};
+    }
+
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.xl};
     }

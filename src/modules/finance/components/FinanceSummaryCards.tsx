@@ -47,6 +47,10 @@ const CardsGrid = styled.div`
   gap: ${p => p.theme.spacing.md};
   margin-top: ${p => p.theme.spacing.md};
 
+  @media (max-width: 639px) {
+    gap: ${p => p.theme.spacing.sm};
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, 1fr);
   }
