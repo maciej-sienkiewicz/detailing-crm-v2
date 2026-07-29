@@ -65,7 +65,7 @@ const Outer = styled.div`
 const ListWrap = styled.div`
     min-width: 700px;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         min-width: 0;
     }
 `;
@@ -78,7 +78,7 @@ const HeaderRow = styled.div`
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         display: none;
     }
 `;
@@ -114,7 +114,7 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOp
         border-bottom: none;
     }
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         grid-template-columns: 1fr auto;
         grid-template-rows: auto auto auto;
         gap: 0 10px;
@@ -171,7 +171,7 @@ const VehicleName = styled.div`
     line-height: 1.4;
     word-break: break-word;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         word-break: normal;
         white-space: nowrap;
         overflow: hidden;
@@ -360,7 +360,7 @@ const VehicleSubInfo = styled.div`
     line-height: 1.5;
     transition: color 0.15s ease;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         flex-wrap: nowrap;
         overflow: hidden;
         white-space: nowrap;
@@ -402,7 +402,7 @@ const GrossAmt = styled.div`
     letter-spacing: -0.3px;
     white-space: nowrap;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         font-size: 13px;
     }
 `;
@@ -412,7 +412,7 @@ const NetAmt = styled.div`
     color: ${st.textMuted};
     white-space: nowrap;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         display: none;
     }
 `;

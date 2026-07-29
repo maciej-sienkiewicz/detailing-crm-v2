@@ -34,7 +34,8 @@ const TopRow = styled.div`
         flex-wrap: nowrap;
     }
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
+        flex-wrap: wrap;
         gap: 8px;
         padding: 12px 14px;
     }
@@ -45,7 +46,7 @@ const SearchWrapper = styled.div`
     flex: 1;
     min-width: 220px;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         flex-basis: 100%;
         min-width: 0;
     }
@@ -90,7 +91,7 @@ const DateWrap = styled.div`
     gap: 6px;
     flex-shrink: 0;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         flex: 1;
         min-width: 0;
     }
@@ -102,7 +103,7 @@ const DateLabel = styled.label`
     color: ${st.textSecondary};
     white-space: nowrap;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         display: none;
     }
 `;
@@ -124,7 +125,7 @@ const DateInput = styled.input`
         box-shadow: ${st.shadowBlue};
     }
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         flex: 1;
         min-width: 0;
         width: 100%;
@@ -169,7 +170,7 @@ const FiltersRow = styled.div`
         display: none;
     }
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         display: none;
     }
 `;
@@ -177,7 +178,7 @@ const FiltersRow = styled.div`
 const MobileSelectRow = styled.div`
     display: none;
 
-    @media (max-width: 639px) {
+    @media (max-width: 900px) {
         display: flex;
         flex-basis: 100%;
         position: relative;
