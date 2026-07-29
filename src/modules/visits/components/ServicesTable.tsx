@@ -1480,6 +1480,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [quickServicePrefill, setQuickServicePrefill] = useState('');
     const [quickServiceDraftId, setQuickServiceDraftId] = useState<string | null>(null);
 
+    /* ── Draft discount modal ── */
+    const [draftDiscountId, setDraftDiscountId] = useState<string | null>(null);
+    const [draftDiscountType, setDraftDiscountType] = useState<AdjustmentType>('PERCENT');
+    const [draftDiscountValue, setDraftDiscountValue] = useState('');
+
     const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: AdjustmentType; value: number } }>>({}); // id → price override
 
     /* ── Unified price editor ── */
@@ -1725,6 +1730,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             basePriceNet: 0,
             vatRate: 23,
             requireManualPrice: false,
+            adjustment: { type: 'FIXED_NET', value: 0 },
         }]);
     };
 
@@ -1764,6 +1770,40 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setQuickServiceDraftId(null);
     };
 
+    const openDraftDiscount = (draftId: string) => {
+        const row = newRows.find(r => r.draftId === draftId);
+        if (!row) return;
+        const adj = row.adjustment;
+        const isDiscount = (adj.type === 'PERCENT' || adj.type === 'FIXED_NET' || adj.type === 'FIXED_GROSS') && adj.value !== 0;
+        setDraftDiscountId(draftId);
+        setDraftDiscountType(isDiscount ? adj.type as AdjustmentType : 'PERCENT');
+        setDraftDiscountValue(isDiscount
+            ? (adj.type === 'PERCENT' ? String(Math.abs(adj.value)) : String(adj.value / 100))
+            : '');
+    };
+
+    const closeDraftDiscount = () => {
+        setDraftDiscountId(null);
+        setDraftDiscountValue('');
+    };
+
+    const applyDraftDiscount = () => {
+        if (!draftDiscountId) return;
+        const parsedVal = parseFloat(draftDiscountValue.replace(',', '.'));
+        if (isNaN(parsedVal) || parsedVal <= 0) return;
+        const storeVal = draftDiscountType === 'PERCENT'
+            ? -Math.abs(parsedVal)
+            : Math.round(parsedVal * 100);
+        updateRow(draftDiscountId, { adjustment: { type: draftDiscountType, value: storeVal } });
+        closeDraftDiscount();
+    };
+
+    const removeDraftDiscount = () => {
+        if (!draftDiscountId) return;
+        updateRow(draftDiscountId, { adjustment: { type: 'FIXED_NET', value: 0 } });
+        closeDraftDiscount();
+    };
+
     const hasChanges = newRows.some(r => r.serviceName.trim()) || deletedIds.size > 0 || Object.keys(editedPrices).length > 0;
     const isInEditMode = newRows.length > 0 || deletedIds.size > 0 || Object.keys(editedPrices).length > 0;
 
@@ -1790,6 +1830,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setDeletedIds(new Set());
         setEditedPrices({});
         closeEditor();
+        closeDraftDiscount();
     };
 
     const acceptDraft = () => {
@@ -1803,7 +1844,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 serviceName: r.serviceName,
                 basePriceNet: r.basePriceNet,
                 vatRate: r.vatRate,
-                adjustment: { type: 'FIXED_NET', value: 0 },
+                adjustment: r.adjustment,
                 note: '',
             })),
             updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, vatRate, adjustment }]) => ({
@@ -1873,11 +1914,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         });
 
         newRows.filter(r => r.serviceName.trim()).forEach(r => {
-            const gross = r.vatRate <= 0 ? r.basePriceNet : Math.round(r.basePriceNet * (1 + r.vatRate / 100));
-            totalFinalNet += r.basePriceNet;
-            totalFinalGross += gross;
-            totalVat += Math.max(gross - r.basePriceNet, 0);
-            totalOriginalGross += gross;
+            const baseGross = r.vatRate <= 0 ? r.basePriceNet : Math.round(r.basePriceNet * (1 + r.vatRate / 100));
+            const { finalNetCents, finalGrossCents } = applyAdjustment(r.basePriceNet, r.vatRate, r.adjustment);
+            totalFinalNet += finalNetCents;
+            totalFinalGross += finalGrossCents;
+            totalVat += Math.max(finalGrossCents - finalNetCents, 0);
+            totalOriginalGross += baseGross;
         });
 
         const totalDiscountGross = Math.max(totalOriginalGross - totalFinalGross, 0);
@@ -2131,6 +2173,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             onUpdate={partial => updateRow(row.draftId, partial)}
                             onRemove={() => removeRow(row.draftId)}
                             onAddCustom={name => handleAddCustom(row.draftId, name)}
+                            onEdit={() => handleAddCustom(row.draftId, row.serviceName)}
+                            onDiscount={() => openDraftDiscount(row.draftId)}
                         />
                     ))}
                 </Tbody>
@@ -2198,6 +2242,74 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 initialServiceName={quickServicePrefill}
             />
         </div>
+
+        {/* ─── Draft row discount modal ─── */}
+        {draftDiscountId && (() => {
+            const draftRow = newRows.find(r => r.draftId === draftDiscountId);
+            if (!draftRow) return null;
+            const parsedVal = parseFloat(draftDiscountValue.replace(',', '.'));
+            const applyDisabled = !draftDiscountValue || isNaN(parsedVal) || parsedVal <= 0;
+            const hasExisting = draftRow.adjustment.value !== 0;
+            return (
+                <DiscountModalOverlay onClick={closeDraftDiscount}>
+                    <DiscountModalCard onClick={e => e.stopPropagation()}>
+                        <DiscountModalHeader>
+                            <div>
+                                <DiscountModalTitle>Rabat dla usługi</DiscountModalTitle>
+                                <DiscountModalSubtitle>{draftRow.serviceName || 'Nowa usługa'}</DiscountModalSubtitle>
+                            </div>
+                            <DiscountCloseBtn type="button" onClick={closeDraftDiscount}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </DiscountCloseBtn>
+                        </DiscountModalHeader>
+                        <DiscountModalBody>
+                            <div>
+                                <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
+                                <DiscountTypeRow>
+                                    {EDITOR_DISCOUNT_TYPES.map(({ type, label }) => (
+                                        <DiscountTypePill
+                                            key={type}
+                                            type="button"
+                                            $selected={draftDiscountType === type}
+                                            onClick={() => { setDraftDiscountType(type); setDraftDiscountValue(''); }}
+                                        >
+                                            {label}
+                                        </DiscountTypePill>
+                                    ))}
+                                </DiscountTypeRow>
+                            </div>
+                            <div>
+                                <DiscountSectionLabel>Wartość</DiscountSectionLabel>
+                                <DiscountValueRow>
+                                    <DiscountValueInput
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0"
+                                        value={draftDiscountValue}
+                                        onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setDraftDiscountValue(e.target.value); }}
+                                        autoFocus
+                                    />
+                                    <DiscountValueSuffix>
+                                        {draftDiscountType === 'PERCENT' ? '%' : 'zł'}
+                                    </DiscountValueSuffix>
+                                </DiscountValueRow>
+                            </div>
+                        </DiscountModalBody>
+                        <DiscountModalFooter>
+                            {hasExisting && (
+                                <DiscountRemoveBtn type="button" onClick={removeDraftDiscount}>Usuń rabat</DiscountRemoveBtn>
+                            )}
+                            <DiscountCancelBtn type="button" onClick={closeDraftDiscount} style={{ marginLeft: hasExisting ? undefined : 'auto' }}>
+                                Anuluj
+                            </DiscountCancelBtn>
+                            <DiscountApplyBtn type="button" onClick={applyDraftDiscount} disabled={applyDisabled}>
+                                Zastosuj
+                            </DiscountApplyBtn>
+                        </DiscountModalFooter>
+                    </DiscountModalCard>
+                </DiscountModalOverlay>
+            );
+        })()}
 
         {/* ─── Unified price editor ─── */}
         {editorService && (() => {
