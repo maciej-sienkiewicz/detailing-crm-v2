@@ -143,6 +143,11 @@ const PopoverHeader = styled.div<{ $color: string }>`
     @media (max-height: 800px) {
         padding: 14px 18px 22px;
     }
+
+    @media (max-width: 639px) {
+        padding: 16px 20px 20px;
+        overflow: visible;
+    }
 `;
 
 const HeaderCloseButton = styled.button`
@@ -236,6 +241,17 @@ const EventTime = styled.div`
         height: 13px;
         opacity: 0.85;
         flex-shrink: 0;
+    }
+
+    @media (max-width: 639px) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        max-width: 100%;
+        font-size: 12px;
+        padding: 4px 8px;
+        word-break: break-word;
+        overflow-wrap: break-word;
     }
 `;
 
