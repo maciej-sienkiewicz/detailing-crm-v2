@@ -2235,20 +2235,20 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 <DiscountSectionLabel>Cena dla klienta</DiscountSectionLabel>
                                 <EditorGrid>
                                     <EditorField>
-                                        <EditorFieldLabel>Brutto</EditorFieldLabel>
-                                        <EditorPriceInput
-                                            type="text" inputMode="decimal" placeholder="0.00" autoFocus
-                                            value={displayGross}
-                                            onChange={e => handleEdGrossChange(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
-                                        />
-                                    </EditorField>
-                                    <EditorField>
                                         <EditorFieldLabel>Netto</EditorFieldLabel>
                                         <EditorPriceInput
                                             type="text" inputMode="decimal" placeholder="0.00"
                                             value={displayNet}
                                             onChange={e => handleEdNetChange(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
+                                        />
+                                    </EditorField>
+                                    <EditorField>
+                                        <EditorFieldLabel>Brutto</EditorFieldLabel>
+                                        <EditorPriceInput
+                                            type="text" inputMode="decimal" placeholder="0.00" autoFocus
+                                            value={displayGross}
+                                            onChange={e => handleEdGrossChange(e.target.value)}
                                             onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
                                         />
                                     </EditorField>
