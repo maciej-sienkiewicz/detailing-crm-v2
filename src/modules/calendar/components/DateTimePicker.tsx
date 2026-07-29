@@ -319,12 +319,17 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         }
     }, [value]);
 
-    // Position dropdown below trigger
+    // Position dropdown below trigger, clamped to viewport
     const updatePosition = useCallback(() => {
-        if (triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+        if (!triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
+        let left = rect.left;
+        if (dropdownRef.current) {
+            const dropW = dropdownRef.current.offsetWidth;
+            const maxLeft = window.innerWidth - dropW - 8;
+            if (left > maxLeft) left = Math.max(8, maxLeft);
         }
+        setDropdownPos({ top: rect.bottom + 4, left });
     }, []);
 
     useEffect(() => {
