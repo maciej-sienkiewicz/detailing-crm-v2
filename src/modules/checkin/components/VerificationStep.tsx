@@ -59,7 +59,7 @@ const SectionHead = styled.div`
     }
 `;
 
-const SectionTitleRow = styled.div`
+const SectionTitleRow = styled.div<{ $keepInline?: boolean }>`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -67,7 +67,7 @@ const SectionTitleRow = styled.div`
     flex: 1;
 
     @media (max-width: 639px) {
-        flex-basis: 100%;
+        flex-basis: ${p => p.$keepInline ? 'auto' : '100%'};
     }
 `;
 
@@ -1818,7 +1818,7 @@ export const VerificationStep = ({
             {/* ── 7. Door to Door ───────────────────────────────────────── */}
             <SectionCard>
                 <SectionHead>
-                    <SectionTitleRow>
+                    <SectionTitleRow $keepInline>
                         <SectionNum>{showTechnicalSection ? 7 : 6}</SectionNum>
                         <SectionLabel>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

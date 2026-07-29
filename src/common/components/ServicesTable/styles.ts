@@ -393,8 +393,10 @@ export const SummaryTotals = styled.div`
     gap: 0;
 
     @media (max-width: 639px) {
-        justify-content: flex-end;
+        flex-direction: column;
+        align-items: stretch;
         width: 100%;
+        gap: 0;
     }
 `;
 
@@ -407,6 +409,17 @@ export const SummaryItem = styled.div`
 
     &:last-child { border-right: none; padding-right: 0; }
     &:first-child { padding-left: 0; }
+
+    @media (max-width: 639px) {
+        padding: 5px 0;
+        border-right: none;
+        border-bottom: 1px solid #f1f5f9;
+        justify-content: space-between;
+        align-items: center;
+
+        &:last-child { border-bottom: none; }
+        &:first-child { padding-left: 0; }
+    }
 `;
 
 export const SummaryLabel = styled.span`
