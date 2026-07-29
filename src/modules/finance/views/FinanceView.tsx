@@ -553,7 +553,7 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
   const handleToggle = () => {
     if (!open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+      setPanelPos({ top: rect.bottom + 8, right: Math.max(0, window.innerWidth - rect.right) });
       setPendingFrom(customFrom);
       setPendingTo(customTo);
     }

@@ -22,6 +22,7 @@ const HeroCard = styled.div`
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  overflow: hidden;
 
   &::before {
     content: '';
