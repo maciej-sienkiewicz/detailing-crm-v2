@@ -45,6 +45,10 @@ const PanelHead = styled.div`
   justify-content: space-between;
   padding: 18px 22px 14px;
   border-bottom: 1px solid #f1f5f9;
+
+  @media (max-width: 639px) {
+    padding: 14px 16px 12px;
+  }
 `;
 
 const PanelTitle = styled.h3`
@@ -85,6 +89,21 @@ const VisitRow = styled.div`
   &:last-child { border-bottom: none; }
   &:hover { background: #f8fafc; }
   &:hover [data-pencil] { opacity: 1; }
+
+  @media (max-width: 639px) {
+    grid-template-columns: 48px 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 3px 10px;
+    padding: 11px 14px;
+
+    /* CalChip — spans both rows */
+    & > :nth-child(1) { grid-column: 1; grid-row: 1 / 3; align-self: center; }
+    /* info div — row 1 col 2 (auto-placed) */
+    /* StatusBadge — row 2 col 2, left-aligned */
+    & > :nth-child(3) { grid-column: 2; grid-row: 2; justify-self: start; align-self: center; }
+    /* VisitPriceWrapper — col 3, spans both rows */
+    & > :nth-child(4) { grid-column: 3; grid-row: 1 / 3; align-self: center; }
+  }
 `;
 
 const CalChipWrap = styled.div<{ $today: boolean }>`
@@ -233,6 +252,8 @@ const VisitMeta = styled.div`
   align-items: center;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
   svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
 `;
 
@@ -271,6 +292,10 @@ const VisitPrice = styled.div`
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.3px;
   white-space: nowrap;
+
+  @media (max-width: 639px) {
+    font-size: 13px;
+  }
 `;
 
 const VisitPriceNetto = styled.div`
