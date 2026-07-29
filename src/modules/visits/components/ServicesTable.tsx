@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, resolveBaseNet } from '@/common/utils/priceAdjustment';
@@ -1305,8 +1304,6 @@ const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 /* ─── Focus-mode overlay (shown while adding a new service row) ─── */
 
-const focusOverlayIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
-
 const discardBtnAttention = keyframes`
     0%, 100% { transform: scale(1);    box-shadow: none; }
     35%       { transform: scale(1.07); box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.38); }
@@ -1317,14 +1314,6 @@ const acceptBtnAttention = keyframes`
     0%, 100% { transform: scale(1);    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28); }
     35%       { transform: scale(1.09); box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.5), 0 4px 24px rgba(14, 165, 233, 0.45); }
     65%       { transform: scale(1.04); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3), 0 2px 14px rgba(14, 165, 233, 0.3); }
-`;
-
-const FocusOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    z-index: 1050;
-    pointer-events: all;
-    animation: ${focusOverlayIn} 180ms ease;
 `;
 
 const FocusWrapper = styled.div<{ $active?: boolean }>`
@@ -1474,6 +1463,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     /* ── Focus-mode button highlight ── */
     const [isHighlighting, setIsHighlighting] = useState(false);
     const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerHighlight = useCallback(() => {
         if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
         setIsHighlighting(false);
@@ -1784,6 +1774,17 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         return () => window.removeEventListener('keydown', onKey);
     }, [isInEditMode, triggerHighlight]);
 
+    useEffect(() => {
+        if (!isInEditMode) return;
+        const onDocClick = (e: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+                triggerHighlight();
+            }
+        };
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, [isInEditMode, triggerHighlight]);
+
     const discardDraft = () => {
         setNewRows([]);
         setDeletedIds(new Set());
@@ -1904,8 +1905,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     return (
         <>
-        {isInEditMode && createPortal(<FocusOverlay onClick={triggerHighlight} />, document.body)}
-        <FocusWrapper $active={isInEditMode}>
+        <FocusWrapper $active={isInEditMode} ref={wrapperRef}>
         {openMenuId && (
             <div
                 style={{ position: 'fixed', inset: 0, zIndex: 99 }}
