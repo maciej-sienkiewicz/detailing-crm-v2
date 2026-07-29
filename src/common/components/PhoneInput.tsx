@@ -31,6 +31,7 @@ const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
 
 const PhoneNumberInput = styled.input<{ $hasError?: boolean }>`
     flex: 1;
+    min-width: 0;
     padding: 12px 14px;
     border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
