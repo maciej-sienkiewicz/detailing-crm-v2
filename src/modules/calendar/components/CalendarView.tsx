@@ -148,8 +148,8 @@ const CalendarContainer = styled.div`
     }
 
     .fc-daygrid-day-top {
-        justify-content: center;
-        padding: 4px 0 0;
+        justify-content: flex-start;
+        padding: 4px 0 0 4px;
     }
 
     /* Other month days */
@@ -1199,8 +1199,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // .fc-daygrid-day-frame (patrz efekt niżej), bo dayCellContent trzymałby go
     // w kontenerze .fc-daygrid-day-number i zachodziłby na numer dnia.
     // dateRange.end jest ekskluzywne (FullCalendar), backend przyjmuje zakres domknięty.
-    const leaveRangeFrom = dateRange ? dateRange.start.slice(0, 10) : null;
-    const leaveRangeTo = dateRange
+    const canViewLeaves = can('EMPLOYEES_MANAGE');
+    const leaveRangeFrom = canViewLeaves && dateRange ? dateRange.start.slice(0, 10) : null;
+    const leaveRangeTo = canViewLeaves && dateRange
         ? (() => {
             const end = new Date(dateRange.end);
             end.setDate(end.getDate() - 1);
