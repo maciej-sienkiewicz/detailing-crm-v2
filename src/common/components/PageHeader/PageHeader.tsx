@@ -79,6 +79,10 @@ const HeroActions = styled.div`
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+
+  @media (max-width: 639px) {
+    width: 100%;
+  }
 `;
 
 // ─── Primary action button — matches Dashboard "Nowa wizyta" style ────────────

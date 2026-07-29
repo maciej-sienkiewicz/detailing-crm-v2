@@ -361,6 +361,11 @@ const HdrBtns = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+
+    @media (max-width: 639px) {
+        flex-wrap: wrap;
+        width: 100%;
+    }
 `;
 
 const HdrPickerWrap = styled.div`
@@ -558,7 +563,7 @@ const StatsDatePicker = ({
     const handleToggle = () => {
         if (!open && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
-            setPanelPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+            setPanelPos({ top: rect.bottom + 8, right: Math.max(0, window.innerWidth - rect.right) });
             setPendingFrom(startDate);
             setPendingTo(endDate);
         }

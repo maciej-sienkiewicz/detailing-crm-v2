@@ -1260,6 +1260,11 @@ const HdrBtns = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+
+    @media (max-width: 639px) {
+        flex-wrap: wrap;
+        width: 100%;
+    }
 `;
 
 const HdrPickerTrigger = styled.button<{ $active: boolean }>`
@@ -1411,7 +1416,7 @@ const DatePicker = ({
     const handleToggle = () => {
         if (!open && trigRef.current) {
             const r = trigRef.current.getBoundingClientRect();
-            setPanelPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+            setPanelPos({ top: r.bottom + 8, right: Math.max(0, window.innerWidth - r.right) });
             setPFrom(startDate); setPTo(endDate);
         }
         setOpen(p => !p);

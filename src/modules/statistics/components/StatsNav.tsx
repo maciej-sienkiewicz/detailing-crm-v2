@@ -12,6 +12,10 @@ const Nav = styled.nav`
     border-radius: 9999px;
     padding: 4px;
     width: fit-content;
+
+    @media (max-width: 639px) {
+        padding: 3px;
+    }
 `;
 
 const Tab = styled(NavLink)`
@@ -32,6 +36,13 @@ const Tab = styled(NavLink)`
         width: 15px;
         height: 15px;
         flex-shrink: 0;
+    }
+
+    @media (max-width: 639px) {
+        font-size: 0;
+        gap: 0;
+        padding: 8px 10px;
+        svg { width: 16px; height: 16px; }
     }
 
     &:hover {

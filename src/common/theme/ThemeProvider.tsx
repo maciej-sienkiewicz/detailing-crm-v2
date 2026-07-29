@@ -20,6 +20,7 @@ const GlobalStyles = createGlobalStyle`
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 
   body {
@@ -28,6 +29,7 @@ const GlobalStyles = createGlobalStyle`
     color: ${props => props.theme.colors.text};
     line-height: 1.5;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   #root {
