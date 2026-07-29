@@ -23,6 +23,7 @@ import { GeneratePostModal } from '@/modules/competition-monitoring/components/G
 import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { DocumentType, ServiceStatus } from '../types';
 import { useToast } from '@/common/components/Toast';
+import { usePermissions } from '@/core/permissions';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
@@ -546,6 +547,17 @@ const ScheduleSmsNoPhone = styled.p`
     line-height: 1.4;
 `;
 
+// ─── Visibility helpers ───────────────────────────────────────────────────────
+
+const MobileOnlyWrap = styled.div`
+    margin-top: 14px;
+    @media (min-width: 768px) { display: none; }
+`;
+
+const DesktopOnlyWrap = styled.div`
+    @media (max-width: 767px) { display: none; }
+`;
+
 // ─── Mobile tab navigation ────────────────────────────────────────────────────
 
 type MobileTab = 'services' | 'info' | 'docs' | 'communication' | 'history';
@@ -661,6 +673,8 @@ export const VisitDetailView = () => {
     const { pendingReminder } = useSmsReminder(visitId!);
     const { config: smsConfig } = useAutomationConfig();
     const smsPreVisitDisabled = smsConfig !== null && !smsConfig.preVisit.enabled;
+
+    const { can } = usePermissions();
 
     const queryClient = useQueryClient();
     const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
@@ -865,10 +879,17 @@ export const VisitDetailView = () => {
                                 visitId={visitId!}
                                 highlightPending={highlightPendingServices}
                             />
+                            <MobileOnlyWrap>
+                                <VisitComments
+                                    visitId={visitId!}
+                                    comments={comments}
+                                    isLoading={isLoadingComments}
+                                />
+                            </MobileOnlyWrap>
                         </MobileTabPanel>
 
                         {/* Komunikacja ──────────────────────────────────── */}
-                        <MobileTabPanel $visible={mobileTab === 'communication'}>
+                        {can('COMMUNICATION_SEND') && <MobileTabPanel $visible={mobileTab === 'communication'}>
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsCommunicationOpen(v => !v)}
@@ -901,7 +922,7 @@ export const VisitDetailView = () => {
                                 />
                             </SectionBody>
                         </Section>
-                        </MobileTabPanel>
+                        </MobileTabPanel>}
 
                         {/* Dokumentacja ─────────────────────────────────── */}
                         <MobileTabPanel $visible={mobileTab === 'docs'}>
@@ -985,7 +1006,7 @@ export const VisitDetailView = () => {
                         </MobileTabPanel>
 
                         {/* Historia zmian ───────────────────────────────── */}
-                        <MobileTabPanel $visible={mobileTab === 'history'}>
+                        {can('VISITS_CREATE') && <MobileTabPanel $visible={mobileTab === 'history'}>
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsAuditOpen(v => !v)}
@@ -1009,7 +1030,7 @@ export const VisitDetailView = () => {
                                 <AuditTimeline module="VISIT" entityId={visitId!} />
                             </SectionBody>
                         </Section>
-                        </MobileTabPanel>
+                        </MobileTabPanel>}
                     </MainColumn>
 
                     <Sidebar $mobileVisible={mobileTab === 'info'}>
@@ -1072,30 +1093,36 @@ export const VisitDetailView = () => {
                                 </>
                             );
                         })()}
-                        <CustomerInfoCard
-                            customer={visit.customer}
-                            visitId={visit.id}
-                            onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
-                        />
-                        <VehicleInfoCard
-                            vehicle={visit.vehicle}
-                            mileageAtArrival={visit.mileageAtArrival}
-                            keysHandedOver={visit.keysHandedOver}
-                            documentsHandedOver={visit.documentsHandedOver}
-                            vehicleHandoff={visit.vehicleHandoff}
-                            onMileageChange={handleMileageChange}
-                            onKeysToggle={handleKeysToggle}
-                            onDocumentsToggle={handleDocumentsToggle}
-                            onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
-                        />
-                        {visit.technicalNotes && (
-                            <TechnicalNotesCard notes={visit.technicalNotes} />
+                        {can('CUSTOMERS_VIEW') && (
+                            <>
+                                <CustomerInfoCard
+                                    customer={visit.customer}
+                                    visitId={visit.id}
+                                    onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
+                                />
+                                <VehicleInfoCard
+                                    vehicle={visit.vehicle}
+                                    mileageAtArrival={visit.mileageAtArrival}
+                                    keysHandedOver={visit.keysHandedOver}
+                                    documentsHandedOver={visit.documentsHandedOver}
+                                    vehicleHandoff={visit.vehicleHandoff}
+                                    onMileageChange={handleMileageChange}
+                                    onKeysToggle={handleKeysToggle}
+                                    onDocumentsToggle={handleDocumentsToggle}
+                                    onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
+                                />
+                                {visit.technicalNotes && (
+                                    <TechnicalNotesCard notes={visit.technicalNotes} />
+                                )}
+                            </>
                         )}
-                        <VisitComments
-                            visitId={visitId!}
-                            comments={comments}
-                            isLoading={isLoadingComments}
-                        />
+                        <DesktopOnlyWrap>
+                            <VisitComments
+                                visitId={visitId!}
+                                comments={comments}
+                                isLoading={isLoadingComments}
+                            />
+                        </DesktopOnlyWrap>
                     </Sidebar>
                 </MainGrid>
             </ContentArea>
@@ -1169,6 +1196,7 @@ export const VisitDetailView = () => {
                     <MobileNavLabel>Usługi</MobileNavLabel>
                 </MobileNavBtn>
 
+                {can('CUSTOMERS_VIEW') && (
                 <MobileNavBtn $active={mobileTab === 'info'} onClick={() => handleMobileTabChange('info')} aria-label="Klient">
                     <MobileNavIconWrap $active={mobileTab === 'info'}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -1178,6 +1206,7 @@ export const VisitDetailView = () => {
                     </MobileNavIconWrap>
                     <MobileNavLabel>Klient</MobileNavLabel>
                 </MobileNavBtn>
+                )}
 
                 <MobileNavBtn $active={mobileTab === 'docs'} onClick={() => handleMobileTabChange('docs')} aria-label="Zdjęcia i dokumenty">
                     <MobileNavIconWrap $active={mobileTab === 'docs'}>
@@ -1191,6 +1220,7 @@ export const VisitDetailView = () => {
                     <MobileNavLabel>Zdjęcia</MobileNavLabel>
                 </MobileNavBtn>
 
+                {can('COMMUNICATION_SEND') && (
                 <MobileNavBtn $active={mobileTab === 'communication'} onClick={() => handleMobileTabChange('communication')} aria-label="Komunikacja">
                     <MobileNavIconWrap $active={mobileTab === 'communication'}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -1199,7 +1229,9 @@ export const VisitDetailView = () => {
                     </MobileNavIconWrap>
                     <MobileNavLabel>Komunikacja</MobileNavLabel>
                 </MobileNavBtn>
+                )}
 
+                {can('VISITS_CREATE') && (
                 <MobileNavBtn $active={mobileTab === 'history'} onClick={() => handleMobileTabChange('history')} aria-label="Historia zmian">
                     <MobileNavIconWrap $active={mobileTab === 'history'}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -1209,6 +1241,7 @@ export const VisitDetailView = () => {
                     </MobileNavIconWrap>
                     <MobileNavLabel>Historia</MobileNavLabel>
                 </MobileNavBtn>
+                )}
             </MobileBottomNav>,
             document.body
         )}

@@ -581,11 +581,11 @@ export const VisitHeader = ({
                                         {visit.title}
                                     </VisitTitle>
                                 ) : (
-                                    <TitlePlaceholder onClick={onTitleUpdate ? startEditTitle : undefined} style={onTitleUpdate ? { cursor: 'pointer' } : undefined}>
+                                    <TitlePlaceholder onClick={onTitleUpdate && can('VISITS_CREATE') ? startEditTitle : undefined} style={onTitleUpdate && can('VISITS_CREATE') ? { cursor: 'pointer' } : undefined}>
                                         Kliknij, żeby ustawić tytuł...
                                     </TitlePlaceholder>
                                 )}
-                                {onTitleUpdate && !isEditingTitle && (
+                                {onTitleUpdate && !isEditingTitle && can('VISITS_CREATE') && (
                                     <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -629,7 +629,7 @@ export const VisitHeader = ({
                                 <line x1="3" y1="10" x2="21" y2="10" />
                             </svg>
                             {formatDateRange(visit.scheduledDate, visit.estimatedCompletionDate)}
-                            {onEstimatedCompletionDateUpdate && (
+                            {onEstimatedCompletionDateUpdate && can('VISITS_CREATE') && (
                                 <PencilBtn onClick={openDateModal} title="Edytuj datę zakończenia">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
