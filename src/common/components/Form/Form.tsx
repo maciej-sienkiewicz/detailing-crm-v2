@@ -22,6 +22,7 @@ export const FormField = styled.div<{ $fullWidth?: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
 
     ${props => props.$fullWidth && `
         @media (min-width: ${props.theme.breakpoints.md}) {
@@ -130,6 +131,9 @@ export const BareTextArea = styled.textarea`
 
 /** @deprecated Use InputShell + BareInput */
 export const Input = styled.input<{ $hasError?: boolean }>`
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding: 9px 12px;
     border: 1px solid ${props => (props.$hasError ? props.theme.colors.error : props.theme.colors.border)};
     border-radius: ${props => props.theme.radii.md};
@@ -158,6 +162,9 @@ export const Input = styled.input<{ $hasError?: boolean }>`
 
 /** @deprecated Use InputShell + native <select> */
 export const Select = styled.select`
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding: 9px 12px;
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
