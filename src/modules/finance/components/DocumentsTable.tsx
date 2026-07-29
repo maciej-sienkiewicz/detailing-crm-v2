@@ -36,10 +36,20 @@ const Table = styled.table`
   width: 100%;
   min-width: 860px;
   border-collapse: collapse;
+
+  @media (max-width: 639px) {
+    display: block;
+    min-width: 0;
+    tbody { display: block; }
+  }
 `;
 
 const Thead = styled.thead`
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+
+  @media (max-width: 639px) {
+    display: none;
+  }
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
@@ -80,6 +90,30 @@ const Tr = styled.tr<{ $deleted?: boolean }>`
       .doc-edit-btn { opacity: 1; }
     }
   `}
+
+  @media (max-width: 639px) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid ${(p) => p.theme.colors.border};
+    border-left: none;
+
+    /* Row 1: Typ dok. (col 2) | Akcje (col 7) */
+    > :nth-child(2) { grid-column: 1; grid-row: 1; }
+    > :nth-child(7) { grid-column: 2; grid-row: 1; align-self: center; }
+
+    /* Row 2: Data (col 1) | Kwota (col 5) */
+    > :nth-child(1) { grid-column: 1; grid-row: 2; padding-top: 8px; }
+    > :nth-child(5) { grid-column: 2; grid-row: 2; padding-top: 8px; text-align: right; }
+
+    /* Row 3: Klient (col 4) | Płatność (col 6) */
+    > :nth-child(4) { grid-column: 1; grid-row: 3; padding-top: 5px; }
+    > :nth-child(6) { grid-column: 2; grid-row: 3; padding-top: 5px; text-align: right; }
+
+    /* Row 4: Numer dok. (col 3) full width */
+    > :nth-child(3) { grid-column: 1 / 3; grid-row: 4; padding-top: 5px; }
+  }
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
@@ -91,6 +125,14 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
 
   &:first-child { padding-left: 20px; }
   &:last-child  { padding-right: 20px; }
+
+  @media (max-width: 639px) {
+    display: block;
+    padding: 0;
+    text-align: left;
+    &:first-child { padding-left: 0; }
+    &:last-child  { padding-right: 0; }
+  }
 `;
 
 const CellPrimary = styled.span`

@@ -214,6 +214,13 @@ const HistoryTable = styled.table`
   width: 100%;
   min-width: 560px;
   border-collapse: collapse;
+
+  @media (max-width: 639px) {
+    display: block;
+    min-width: 0;
+    thead { display: none; }
+    tbody { display: block; }
+  }
 `;
 
 const HTh = styled.th<{ $align?: string }>`
@@ -235,6 +242,24 @@ const HTr = styled.tr`
 
   &:last-child { border-bottom: none; }
   &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
+
+  @media (max-width: 639px) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 8px;
+    padding: 12px 14px;
+
+    /* Row 1: Typ badge (col 2) | Kwota chip (col 3) */
+    > :nth-child(2) { grid-column: 1; grid-row: 1; }
+    > :nth-child(3) { grid-column: 2; grid-row: 1; align-self: center; text-align: right; }
+
+    /* Row 2: Data (col 1) | Saldo po (col 4) */
+    > :nth-child(1) { grid-column: 1; grid-row: 2; padding-top: 6px; }
+    > :nth-child(4) { grid-column: 2; grid-row: 2; padding-top: 6px; text-align: right; }
+
+    /* Row 3: Komentarz (col 5) full width */
+    > :nth-child(5) { grid-column: 1 / 3; grid-row: 3; padding-top: 4px; }
+  }
 `;
 
 const HTd = styled.td<{ $align?: string; $mono?: boolean }>`
@@ -244,6 +269,12 @@ const HTd = styled.td<{ $align?: string; $mono?: boolean }>`
   text-align: ${(p) => p.$align || 'left'};
   vertical-align: middle;
   ${(p) => p.$mono && `font-feature-settings: 'tnum';`}
+
+  @media (max-width: 639px) {
+    display: block;
+    padding: 0;
+    text-align: left;
+  }
 `;
 
 const AmountChip = styled.span<{ $positive: boolean }>`

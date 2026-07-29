@@ -112,6 +112,11 @@ const TabItem = styled.button<{ $active: boolean }>`
     color: ${(p) => (p.$active ? st.accentBlue : st.text)};
     background: ${(p) => (p.$active ? 'transparent' : st.bg)};
   }
+
+  @media (max-width: 639px) {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
 `;
 
 // ─── Small inline add button (filters strip) ──────────────────────────────────
@@ -473,6 +478,10 @@ const FinHdrActions = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+
+  @media (max-width: 639px) {
+    flex-wrap: wrap;
+  }
 `;
 
 const HdrPickerWrap = styled.div`
