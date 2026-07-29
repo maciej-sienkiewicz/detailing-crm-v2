@@ -64,6 +64,10 @@ const Outer = styled.div`
 
 const ListWrap = styled.div`
     min-width: 700px;
+
+    @media (max-width: 639px) {
+        min-width: 0;
+    }
 `;
 
 const HeaderRow = styled.div`
@@ -73,6 +77,10 @@ const HeaderRow = styled.div`
     padding: 10px 20px;
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
+
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 const HeaderCell = styled.span`
@@ -104,6 +112,21 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOp
 
     &:last-child {
         border-bottom: none;
+    }
+
+    @media (max-width: 639px) {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto auto;
+        gap: 0 10px;
+        padding: 12px 14px 12px 17px;
+        align-items: start;
+
+        > :nth-child(1) { grid-column: 1; grid-row: 1; min-width: 0; }
+        > :nth-child(2) { grid-column: 1; grid-row: 2; padding-top: 8px; margin-top: 8px; border-top: 1px solid ${st.border}; }
+        > :nth-child(3) { grid-column: 1; grid-row: 3; padding-top: 5px; }
+        > :nth-child(4) { grid-column: 2; grid-row: 2; padding-top: 8px; margin-top: 8px; border-top: 1px solid ${st.border}; text-align: right; }
+        > :nth-child(5) { grid-column: 2; grid-row: 3; padding-top: 5px; text-align: right; }
+        > :nth-child(6) { grid-column: 2; grid-row: 1; align-self: start; justify-self: end; }
     }
 `;
 
@@ -147,6 +170,13 @@ const VehicleName = styled.div`
     color: ${st.text};
     line-height: 1.4;
     word-break: break-word;
+
+    @media (max-width: 639px) {
+        word-break: normal;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 `;
 
 const PlaceholderText = styled.div`
@@ -329,6 +359,14 @@ const VehicleSubInfo = styled.div`
     color: ${st.text};
     line-height: 1.5;
     transition: color 0.15s ease;
+
+    @media (max-width: 639px) {
+        flex-wrap: nowrap;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        display: block;
+    }
 `;
 
 // Date cell
@@ -363,12 +401,20 @@ const GrossAmt = styled.div`
     color: ${st.text};
     letter-spacing: -0.3px;
     white-space: nowrap;
+
+    @media (max-width: 639px) {
+        font-size: 13px;
+    }
 `;
 
 const NetAmt = styled.div`
     font-size: 11px;
     color: ${st.textMuted};
     white-space: nowrap;
+
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 // Actions cell
