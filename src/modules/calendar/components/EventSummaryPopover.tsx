@@ -217,6 +217,28 @@ const EventType = styled.div`
     margin-bottom: 6px;
 `;
 
+const EventTime = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 8px;
+    padding: 5px 10px;
+    position: relative;
+    z-index: 1;
+
+    svg {
+        width: 13px;
+        height: 13px;
+        opacity: 0.85;
+        flex-shrink: 0;
+    }
+`;
+
 const PopoverBody = styled.div`
     padding: 22px 24px;
     overflow-y: auto;
@@ -896,6 +918,25 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         return 'Administrator zgodził się na anulowanie rezerwacji.';
     };
 
+    const formatEventTime = (startIso: string, endIso: string, isAllDay?: boolean): string => {
+        const start = new Date(startIso);
+        const end = new Date(endIso);
+        const fmtDate = (d: Date) => d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const fmtTime = (d: Date) => d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        const sameDay = start.toDateString() === end.toDateString();
+
+        if (isAllDay) {
+            return sameDay ? fmtDate(start) : `${fmtDate(start)} – ${fmtDate(end)}`;
+        }
+        if (sameDay) {
+            return `${fmtDate(start)}, ${fmtTime(start)} – ${fmtTime(end)}`;
+        }
+        return `${fmtDate(start)}, ${fmtTime(start)} – ${fmtDate(end)}, ${fmtTime(end)}`;
+    };
+
+    const isAllDay = isAppointment ? (event as AppointmentEventData).isAllDay : false;
+    const eventTimeLabel = formatEventTime(event.startTime, event.endTime, isAllDay);
+
     return (
         <>
             <Overlay $closing={closing} onClick={handleClose}>
@@ -922,6 +963,13 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                     )}
                     <EventType>{isAppointment ? 'Rezerwacja' : 'Wizyta'}</EventType>
                     <EventTitle><PiiText value={event.title} kind="name" /></EventTitle>
+                    <EventTime>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {eventTimeLabel}
+                    </EventTime>
                 </PopoverHeader>
 
                 <PopoverBody>
