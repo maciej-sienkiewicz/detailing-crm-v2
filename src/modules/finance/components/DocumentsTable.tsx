@@ -101,7 +101,7 @@ const Tr = styled.tr<{ $deleted?: boolean }>`
 
     /* Row 1: Typ dok. (col 2) | Akcje (col 7) */
     > :nth-child(2) { grid-column: 1; grid-row: 1; }
-    > :nth-child(7) { grid-column: 2; grid-row: 1; align-self: center; }
+    > :nth-child(7) { grid-column: 2; grid-row: 1; align-self: center; justify-self: end; }
 
     /* Row 2: Data (col 1) | Kwota (col 5) */
     > :nth-child(1) { grid-column: 1; grid-row: 2; padding-top: 8px; }
