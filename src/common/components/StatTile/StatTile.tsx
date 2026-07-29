@@ -48,6 +48,12 @@ const TileCard = styled.div<{
   padding: ${p => p.$compact ? '14px 16px' : '20px 20px 18px'};
   box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
+  min-width: 0;
+
+  @media (max-width: 639px) {
+    overflow: hidden;
+    padding: ${p => p.$compact ? '12px' : '16px'};
+  }
 
   ${p => p.$clickable && css`
     cursor: pointer;
@@ -109,6 +115,14 @@ const TileValue = styled.div<{ $compact: boolean }>`
   margin-bottom: ${p => p.$compact ? '5px' : '4px'};
   font-variant-numeric: tabular-nums;
   letter-spacing: ${p => p.$compact ? '-0.5px' : '-1px'};
+
+  @media (max-width: 639px) {
+    font-size: ${p => p.$compact ? '16px' : '20px'};
+    letter-spacing: -0.3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const TileLabel = styled.div<{ $compact: boolean }>`

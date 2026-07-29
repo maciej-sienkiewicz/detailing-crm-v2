@@ -28,6 +28,10 @@ const ViewContainer = styled.main`
     background: ${st.bg};
     ${hexBackdrop}
 
+    @media (max-width: 639px) {
+        padding: 16px;
+    }
+
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 32px;
     }

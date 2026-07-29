@@ -70,6 +70,7 @@ const ViewContainer = styled.main`
     max-width: 1800px;
     margin: 0 auto;
     width: 100%;
+    @media (max-width: 639px) { padding: ${p => p.theme.spacing.md}; }
     @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;

@@ -71,6 +71,10 @@ const ViewContainer = styled.main`
   width: 100%;
   animation: ${fadeUp} 300ms ease both;
 
+  @media (max-width: 639px) {
+    padding: ${p => p.theme.spacing.md};
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${p => p.theme.spacing.xl};
   }
