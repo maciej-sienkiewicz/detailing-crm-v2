@@ -22,6 +22,10 @@ const PanelHead = styled.div`
   justify-content: space-between;
   padding: 18px 22px 14px;
   border-bottom: 1px solid #f1f5f9;
+
+  @media (max-width: 639px) {
+    padding: 14px 16px 12px;
+  }
 `;
 
 const PanelTitle = styled.h3`
@@ -98,6 +102,10 @@ const TaskItem = styled.div`
 
   &:hover { background: #f8fafc; }
   &:hover .task-actions { opacity: 1; }
+
+  @media (max-width: 639px) {
+    padding: 10px 14px;
+  }
 `;
 
 const Checkbox = styled.button<{ $done: boolean }>`
@@ -180,6 +188,10 @@ const TaskActions = styled.div`
   opacity: 0;
   transition: opacity 140ms ease;
   flex-shrink: 0;
+
+  @media (max-width: 639px) {
+    opacity: 1;
+  }
 `;
 
 const ActionBtn = styled.button<{ $danger?: boolean }>`
@@ -237,6 +249,10 @@ const SkeletonItem = styled.div`
   gap: 12px;
   padding: 10px 22px;
   align-items: center;
+
+  @media (max-width: 639px) {
+    padding: 10px 14px;
+  }
 `;
 
 const Skeleton = styled.div<{ $w: string; $h?: string }>`
