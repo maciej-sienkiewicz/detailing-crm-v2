@@ -663,6 +663,7 @@ export const VisitHeader = ({
                         </ActionButton>
                     )}
 
+                    {can('VISITS_CREATE') && (
                     <KebabWrap ref={menuRef}>
                         <KebabBtn onClick={openMenu} title="Więcej opcji">
                             <svg viewBox="0 0 4 18" fill="currentColor">
@@ -672,10 +673,11 @@ export const VisitHeader = ({
                             </svg>
                         </KebabBtn>
                     </KebabWrap>
+                    )}
                 </HeaderRight>
             </HeaderContent>
 
-            {isMenuOpen && menuPos && createPortal(
+            {can('VISITS_CREATE') && isMenuOpen && menuPos && createPortal(
                 <KebabMenu style={{ top: menuPos.top, right: menuPos.right }}>
                     <KebabItem onClick={() => { setIsMenuOpen(false); onGeneratePost(); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
