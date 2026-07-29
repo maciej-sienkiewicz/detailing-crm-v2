@@ -355,6 +355,8 @@ export const SummarySection = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 8px;
     padding: 10px 14px;
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
