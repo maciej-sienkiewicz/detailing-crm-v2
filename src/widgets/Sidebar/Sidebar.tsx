@@ -19,6 +19,7 @@ import {
     LogOut,
     Search,
     Inbox,
+    Layers,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -64,9 +65,10 @@ const buildMenuSections = (
         {
             title: 'Główne',
             items: [
-                { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
-                { path: '/operations', label: 'Wizyty',    icon: CalendarCheck, requires: 'VISITS_VIEW' },
-                { path: '/calendar',   label: 'Kalendarz', icon: Calendar,      requires: 'VISITS_VIEW' },
+                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard },
+                { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW' },
+                { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
+                { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers },
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
             ],
         },
