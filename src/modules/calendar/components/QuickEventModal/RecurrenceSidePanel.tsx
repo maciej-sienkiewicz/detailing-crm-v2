@@ -11,6 +11,13 @@ export const SidePanelWrapper = styled.div<{ $visible: boolean }>`
     overflow: hidden;
     transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+
+    @media (max-width: 639px) {
+        width: 100%;
+        max-height: ${p => p.$visible ? '400px' : '0'};
+        transition: max-height 280ms cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+    }
 `;
 
 export const SidePanelInner = styled.div`
@@ -27,6 +34,14 @@ export const SidePanelInner = styled.div`
     &::-webkit-scrollbar { width: 3px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+    @media (max-width: 639px) {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+        min-height: auto;
+        padding: 16px;
+    }
 `;
 
 // ─── Internal styles ──────────────────────────────────────────────────────────
