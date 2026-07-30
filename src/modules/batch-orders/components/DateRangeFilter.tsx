@@ -7,22 +7,35 @@ interface Props {
     onChange: (from: string, to: string) => void;
 }
 
-type ActivePreset = 'week' | 'month' | 'quarter' | 'custom' | null;
+type ActivePreset = 'current' | 'previous' | 'pick-month' | 'custom';
 
-const PRESETS = [
-    { key: 'week' as const, label: 'Ostatni tydzień', days: 7 },
-    { key: 'month' as const, label: 'Ostatni miesiąc', days: 30 },
-    { key: 'quarter' as const, label: 'Ostatni kwartał', days: 90 },
+const MONTHS_PL = [
+    'Styčeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
 ];
 
-function todayStr(): string {
-    return new Date().toISOString().split('T')[0];
+export function currentMonthRange(): { from: string; to: string } {
+    const now = new Date();
+    return monthRange(now.getFullYear(), now.getMonth());
 }
 
-function daysAgoStr(n: number): string {
-    const d = new Date();
-    d.setDate(d.getDate() - n);
-    return d.toISOString().split('T')[0];
+function monthRange(year: number, month: number): { from: string; to: string } {
+    const from = new Date(year, month, 1);
+    const to = new Date(year, month + 1, 0);
+    const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { from: fmt(from), to: fmt(to) };
+}
+
+function generateMonthOptions() {
+    const now = new Date();
+    const options: { value: string; label: string; year: number; month: number }[] = [];
+    for (let i = 0; i < 24; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        options.push({ value, label: `${MONTHS_PL[d.getMonth()]} ${d.getFullYear()}`, year: d.getFullYear(), month: d.getMonth() });
+    }
+    return options;
 }
 
 const Wrapper = styled.div`
@@ -57,6 +70,17 @@ const Chip = styled.button<{ $active?: boolean }>`
     }
 `;
 
+const MonthSelect = styled.select`
+    padding: 5px 10px;
+    border: 1px solid ${p => p.theme.colors.primary};
+    border-radius: 6px;
+    font-size: ${p => p.theme.fontSizes.xs};
+    color: ${p => p.theme.colors.text};
+    background: ${p => p.theme.colors.surface};
+    cursor: pointer;
+    outline: none;
+`;
+
 const DateInput = styled.input`
     padding: 5px 10px;
     border: 1px solid ${p => p.theme.colors.border};
@@ -84,65 +108,76 @@ const ApplyBtn = styled.button`
     &:hover { opacity: 0.9; }
 `;
 
-const ClearBtn = styled.button`
-    padding: 5px 10px;
-    border-radius: 6px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: transparent;
-    color: ${p => p.theme.colors.textMuted};
-
-    &:hover { background: ${p => p.theme.colors.background}; }
-`;
-
-export function DateRangeFilter({ from, to, onChange }: Props) {
-    const [activePreset, setActivePreset] = useState<ActivePreset>(null);
+export function DateRangeFilter({ onChange }: Props) {
+    const [activePreset, setActivePreset] = useState<ActivePreset>('current');
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
 
-    function selectPreset(preset: typeof PRESETS[number]) {
-        const f = daysAgoStr(preset.days);
-        const t = todayStr();
-        setActivePreset(preset.key);
-        onChange(f, t);
+    const monthOptions = generateMonthOptions();
+
+    function selectCurrent() {
+        const r = currentMonthRange();
+        setActivePreset('current');
+        onChange(r.from, r.to);
     }
 
-    function toggleCustom() {
-        if (activePreset === 'custom') {
-            setActivePreset(null);
-            setCustomFrom('');
-            setCustomTo('');
-            onChange('', '');
-        } else {
-            setActivePreset('custom');
-        }
+    function selectPrevious() {
+        const now = new Date();
+        const r = monthRange(now.getFullYear(), now.getMonth() - 1);
+        setActivePreset('previous');
+        onChange(r.from, r.to);
     }
 
-    function applyCustom() {
-        onChange(customFrom, customTo);
+    function handlePickMonthChip() {
+        setActivePreset('pick-month');
+        const [y, m] = selectedMonth.split('-').map(Number);
+        const r = monthRange(y, m - 1);
+        onChange(r.from, r.to);
     }
 
-    function clear() {
-        setActivePreset(null);
-        setCustomFrom('');
-        setCustomTo('');
-        onChange('', '');
+    function handleMonthSelect(value: string) {
+        setSelectedMonth(value);
+        const [y, m] = value.split('-').map(Number);
+        const r = monthRange(y, m - 1);
+        onChange(r.from, r.to);
     }
 
-    const hasFilter = from !== '' || to !== '';
+    function handleCustomApply() {
+        if (customFrom && customTo) onChange(customFrom, customTo);
+    }
 
     return (
         <Wrapper>
-            <FilterLabel>Filtr okresu:</FilterLabel>
-            {PRESETS.map(p => (
-                <Chip key={p.key} $active={activePreset === p.key} onClick={() => selectPreset(p)}>
-                    {p.label}
-                </Chip>
-            ))}
-            <Chip $active={activePreset === 'custom'} onClick={toggleCustom}>
-                Niestandardowy zakres
+            <FilterLabel>Okres:</FilterLabel>
+
+            <Chip $active={activePreset === 'current'} onClick={selectCurrent}>
+                Bieżący miesiąc
+            </Chip>
+
+            <Chip $active={activePreset === 'previous'} onClick={selectPrevious}>
+                Poprzedni miesiąc
+            </Chip>
+
+            <Chip $active={activePreset === 'pick-month'} onClick={handlePickMonthChip}>
+                Wybierz miesiąc
+            </Chip>
+            {activePreset === 'pick-month' && (
+                <MonthSelect
+                    value={selectedMonth}
+                    onChange={e => handleMonthSelect(e.target.value)}
+                >
+                    {monthOptions.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                </MonthSelect>
+            )}
+
+            <Chip $active={activePreset === 'custom'} onClick={() => setActivePreset('custom')}>
+                Wybierz zakres
             </Chip>
             {activePreset === 'custom' && (
                 <>
@@ -157,10 +192,9 @@ export function DateRangeFilter({ from, to, onChange }: Props) {
                         value={customTo}
                         onChange={e => setCustomTo(e.target.value)}
                     />
-                    <ApplyBtn onClick={applyCustom}>Zastosuj</ApplyBtn>
+                    <ApplyBtn onClick={handleCustomApply}>Zastosuj</ApplyBtn>
                 </>
             )}
-            {hasFilter && <ClearBtn onClick={clear}>✕ Wyczyść</ClearBtn>}
         </Wrapper>
     );
 }

@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
-import { DateRangeFilter } from './DateRangeFilter';
+import { DateRangeFilter, currentMonthRange } from './DateRangeFilter';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, EntryRequest } from '../types';
@@ -289,8 +289,9 @@ interface Props {
 }
 
 export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props) {
-    const [filterFrom, setFilterFrom] = useState('');
-    const [filterTo, setFilterTo] = useState('');
+    const initial = currentMonthRange();
+    const [filterFrom, setFilterFrom] = useState(initial.from);
+    const [filterTo, setFilterTo] = useState(initial.to);
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [editEntry, setEditEntry] = useState<BatchOrderEntry | null>(null);
     const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<string | null>(null);
