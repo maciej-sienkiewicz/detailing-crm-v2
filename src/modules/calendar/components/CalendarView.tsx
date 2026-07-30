@@ -1013,7 +1013,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
 
     const { can } = usePermissions();
-    const { phase: navPhase, card: navCard, start: startNavAnim, reportTargetRect } = useCalendarNavigation();
+    const { phase: navPhase, card: navCard, start: startNavAnim, reportTargetRect, finish: finishNavAnim } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
     // Maps event id → DOM element; populated via eventDidMount/eventWillUnmount.
@@ -1119,20 +1119,40 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         if (navPhase !== 'centered') return;
         if (!_searchPendingHighlight) return;
 
-        const el = eventElMapRef.current.get(_searchPendingHighlight.id);
-        if (!el) return;
-
         const id = _searchPendingHighlight.id;
+        const fallbackDate = _dashboardPendingHighlight?.date ?? null;
+        const el = eventElMapRef.current.get(id);
+
+        if (el) {
+            _searchPendingHighlight = null;
+            _dashboardPendingHighlight = null;
+            requestAnimationFrame(() => {
+                const rect = el.getBoundingClientRect();
+                setHighlightedEventId(id);
+                reportTargetRect(rect);
+                setTimeout(() => setHighlightedEventId(null), 7200);
+            });
+            return;
+        }
+
+        // Event hidden in "+N more" overflow — fall back to the day cell so
+        // the card still flies to the correct date instead of hanging.
         _searchPendingHighlight = null;
         _dashboardPendingHighlight = null;
 
-        requestAnimationFrame(() => {
-            const rect = el.getBoundingClientRect();
-            setHighlightedEventId(id);
-            reportTargetRect(rect);
-            setTimeout(() => setHighlightedEventId(null), 7200);
-        });
-    }, [navPhase, reportTargetRect]);
+        const dayCell = fallbackDate
+            ? (document.querySelector(`.fc-daygrid-day[data-date="${fallbackDate}"]`) as HTMLElement | null)
+            : null;
+
+        if (dayCell) {
+            requestAnimationFrame(() => {
+                const rect = dayCell.getBoundingClientRect();
+                reportTargetRect(rect);
+            });
+        } else {
+            finishNavAnim();
+        }
+    }, [navPhase, reportTargetRect, finishNavAnim]);
 
     // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
     // clips FullCalendar's absolutely-positioned popover. Watch for it being

@@ -63,6 +63,7 @@ export const CalendarNavigationProvider = ({ children }: { children: React.React
   };
 
   const reportTargetRect = (rect: DOMRect) => {
+    clearTimers();
     setTargetRect(rect);
     setPhase('to-cell');
     schedule(() => setPhase('done'), 600);
