@@ -70,6 +70,7 @@ export interface SmsAutomationConfig {
   bookingConfirmation: SmsAutomationRule;
   rescheduleConfirmation: SmsAutomationRule;
   visitReadyForPickup: SmsAutomationRule;
+  visitCardLink: SmsAutomationRule;
 }
 
 // ─── Request / response shapes ────────────────────────────────────────────────

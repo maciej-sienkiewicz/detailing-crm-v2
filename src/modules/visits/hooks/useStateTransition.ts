@@ -84,7 +84,7 @@ export const useStateTransitionWizard = (
     const { mutate: complete, isPending: isCompleting } = useMutation({
         mutationFn: () => stateTransitionApi.complete(visitId, {
             signatureObtained: true,
-            payment: wizardData.payment!,
+            payment: wizardData.payment ?? { method: 'OTHER' as PaymentMethod, invoiceType: 'other' as InvoiceType, amount: 0 },
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({

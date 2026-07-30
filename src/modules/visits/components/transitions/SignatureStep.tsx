@@ -133,14 +133,34 @@ const ChecklistItem = styled.li`
     }
 `;
 
+const FreeVisitInfoBox = styled(InfoBox)`
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #3b82f6;
+`;
+
+const FreeVisitInfoText = styled(InfoText)`
+    color: #1e40af;
+`;
+
 interface SignatureStepProps {
     onConfirm: () => void;
     isDoorToDoor?: boolean;
+    isFreeVisit?: boolean;
 }
 
-export const SignatureStep = ({ onConfirm, isDoorToDoor = false }: SignatureStepProps) => {
+export const SignatureStep = ({ onConfirm, isDoorToDoor = false, isFreeVisit = false }: SignatureStepProps) => {
     return (
         <Container>
+
+            {isFreeVisit && (
+                <FreeVisitInfoBox>
+                    <InfoIcon>ℹ️</InfoIcon>
+                    <FreeVisitInfoText>
+                        <strong>Wizyta bezpłatna</strong> — łączna wartość usług wynosi 0 zł.
+                        Dokument finansowy nie zostanie wygenerowany.
+                    </FreeVisitInfoText>
+                </FreeVisitInfoBox>
+            )}
 
             <SignatureArea>
                 <SignatureIcon>✍️</SignatureIcon>
