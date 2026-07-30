@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry, useCloseMonth } from '../hooks/useBatchOrders';
@@ -237,13 +238,7 @@ const NoteText = styled.span`
     color: ${p => p.theme.colors.textMuted};
 `;
 
-/* ── Three-dots menu ── */
-const MenuWrapper = styled.div`
-    position: relative;
-    display: flex;
-    justify-content: flex-end;
-`;
-
+/* ── Three-dots trigger ── */
 const DotsBtn = styled.button<{ $open?: boolean }>`
     width: 28px;
     height: 28px;
@@ -255,14 +250,12 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1;
     opacity: ${p => p.$open ? 1 : 0};
-    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, color 120ms ease;
 
-    ${Tr}:hover & {
-        opacity: 1;
-    }
+    ${Tr}:hover & { opacity: 1; }
 
     &:hover {
         background: ${p => p.theme.colors.surfaceAlt};
@@ -271,18 +264,16 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
     }
 `;
 
+/* ── Portal dropdown ── */
 const DropdownMenu = styled.div`
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
+    position: fixed;
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: 8px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
-    z-index: 200;
-    min-width: 168px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+    z-index: 9999;
+    min-width: 172px;
     padding: 4px;
-    overflow: hidden;
 `;
 
 const MenuItem = styled.button<{ $danger?: boolean }>`
@@ -362,6 +353,8 @@ function vatLabel(rate: number) {
     return `${rate}%`;
 }
 
+interface MenuPosition { top: number; right: number; }
+
 interface Props {
     contractor: BatchContractor;
     onEdit: () => void;
@@ -379,10 +372,11 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
     const [showCloseMonth, setShowCloseMonth] = useState(false);
     const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
+    const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
 
     useEffect(() => {
         if (!openMenuEntryId) return;
-        function close() { setOpenMenuEntryId(null); }
+        function close() { setOpenMenuEntryId(null); setMenuPosition(null); }
         document.addEventListener('click', close);
         return () => document.removeEventListener('click', close);
     }, [openMenuEntryId]);
@@ -392,6 +386,21 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const updateEntry = useUpdateEntry(contractor.id);
     const deleteEntry = useDeleteEntry(contractor.id);
     const closeMonth = useCloseMonth(contractor.id);
+
+    function openMenu(e: React.MouseEvent<HTMLButtonElement>, entryId: string) {
+        e.stopPropagation();
+        if (openMenuEntryId === entryId) {
+            setOpenMenuEntryId(null);
+            setMenuPosition(null);
+            return;
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMenuPosition({
+            top: rect.bottom + 4,
+            right: window.innerWidth - rect.right,
+        });
+        setOpenMenuEntryId(entryId);
+    }
 
     async function handleSaveEntry(req: EntryRequest) {
         if (editEntry) {
@@ -422,6 +431,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
 
     const entries = data?.entries ?? [];
     const summary = data?.summary;
+    const openEntry = entries.find(e => e.id === openMenuEntryId) ?? null;
 
     return (
         <>
@@ -530,67 +540,13 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                     </NoteText>
                                                 </Td>
                                                 <Td style={{ width: 40, paddingLeft: 4 }}>
-                                                    <MenuWrapper>
-                                                        <DotsBtn
-                                                            $open={openMenuEntryId === entry.id}
-                                                            onClick={e => {
-                                                                e.stopPropagation();
-                                                                setOpenMenuEntryId(
-                                                                    openMenuEntryId === entry.id ? null : entry.id
-                                                                );
-                                                            }}
-                                                            title="Opcje"
-                                                        >
-                                                            ⋮
-                                                        </DotsBtn>
-                                                        {openMenuEntryId === entry.id && (
-                                                            <DropdownMenu onClick={e => e.stopPropagation()}>
-                                                                <MenuItem
-                                                                    onClick={() => {
-                                                                        setExpandedPhotoEntryId(
-                                                                            expandedPhotoEntryId === entry.id ? null : entry.id
-                                                                        );
-                                                                        setOpenMenuEntryId(null);
-                                                                    }}
-                                                                >
-                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                                                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                                                                        <circle cx="12" cy="13" r="4" />
-                                                                    </svg>
-                                                                    Dokumentacja zdjęciowa
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    onClick={() => {
-                                                                        setEditEntry(entry);
-                                                                        setShowEntryForm(true);
-                                                                        setOpenMenuEntryId(null);
-                                                                    }}
-                                                                >
-                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                                    </svg>
-                                                                    Edytuj wpis
-                                                                </MenuItem>
-                                                                <MenuDivider />
-                                                                <MenuItem
-                                                                    $danger
-                                                                    onClick={() => {
-                                                                        setConfirmDeleteEntryId(entry.id);
-                                                                        setOpenMenuEntryId(null);
-                                                                    }}
-                                                                >
-                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                                                                        <polyline points="3 6 5 6 21 6" />
-                                                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                                                        <path d="M10 11v6M14 11v6" />
-                                                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                                                                    </svg>
-                                                                    Usuń wpis
-                                                                </MenuItem>
-                                                            </DropdownMenu>
-                                                        )}
-                                                    </MenuWrapper>
+                                                    <DotsBtn
+                                                        $open={openMenuEntryId === entry.id}
+                                                        onClick={e => openMenu(e, entry.id)}
+                                                        title="Opcje"
+                                                    >
+                                                        ⋮
+                                                    </DotsBtn>
                                                 </Td>
                                             </Tr>
                                             {expandedPhotoEntryId === entry.id && (
@@ -625,6 +581,59 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     </>
                 )}
             </Section>
+
+            {/* Portal dropdown — renders into document.body, escapes all overflow:hidden parents */}
+            {openEntry && menuPosition && createPortal(
+                <DropdownMenu
+                    style={{ top: menuPosition.top, right: menuPosition.right }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <MenuItem
+                        onClick={() => {
+                            setExpandedPhotoEntryId(
+                                expandedPhotoEntryId === openEntry.id ? null : openEntry.id
+                            );
+                            setOpenMenuEntryId(null);
+                        }}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        Dokumentacja zdjęciowa
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            setEditEntry(openEntry);
+                            setShowEntryForm(true);
+                            setOpenMenuEntryId(null);
+                        }}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Edytuj wpis
+                    </MenuItem>
+                    <MenuDivider />
+                    <MenuItem
+                        $danger
+                        onClick={() => {
+                            setConfirmDeleteEntryId(openEntry.id);
+                            setOpenMenuEntryId(null);
+                        }}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                        Usuń wpis
+                    </MenuItem>
+                </DropdownMenu>,
+                document.body
+            )}
 
             {showEntryForm && (
                 <EntryFormModal
