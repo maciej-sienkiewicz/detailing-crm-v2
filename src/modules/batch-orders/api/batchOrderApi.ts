@@ -3,6 +3,8 @@ import type {
     BatchContractor,
     BatchOrderEntry,
     BatchOrderPhoto,
+    CloseMonthRequest,
+    CloseMonthResult,
     ContractorsResponse,
     ContractorEntriesResponse,
     ContractorRequest,
@@ -115,5 +117,10 @@ export const batchOrderApi = {
         link.download = `zestawienie-${contractorName.replace(/\s+/g, '-')}.pdf`;
         link.click();
         window.URL.revokeObjectURL(url);
+    },
+
+    closeMonth: async (contractorId: string, request: CloseMonthRequest): Promise<CloseMonthResult> => {
+        const response = await apiClient.post<CloseMonthResult>(`${BASE}/contractors/${contractorId}/close-month`, request);
+        return response.data;
     },
 };

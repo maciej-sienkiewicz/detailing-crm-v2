@@ -1,12 +1,13 @@
 import { Fragment, useState } from 'react';
 import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry } from '../hooks/useBatchOrders';
+import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry, useCloseMonth } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { DateRangeFilter, currentMonthRange } from './DateRangeFilter';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
+import { CloseMonthModal } from './CloseMonthModal';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { BatchContractor, BatchOrderEntry, EntryRequest } from '../types';
+import type { BatchContractor, BatchOrderEntry, CloseMonthRequest, EntryRequest } from '../types';
 
 const Section = styled.div`
     background: ${p => p.theme.colors.surface};
@@ -57,7 +58,7 @@ const FilterRow = styled.div`
 `;
 
 /* ── Action buttons aligned with ServiceTable ── */
-const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' }>`
+const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success' }>`
     padding: 6px 14px;
     border-radius: 8px;
     font-size: ${p => p.theme.fontSizes.xs};
@@ -93,6 +94,12 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
         color: ${p.theme.colors.textMuted};
         &:hover:not(:disabled) { background: ${p.theme.colors.background}; color: ${p.theme.colors.text}; }
     `}
+    ${p => p.$variant === 'success' && `
+        background: transparent;
+        border: 1px solid #22c55e;
+        color: #16a34a;
+        &:hover:not(:disabled) { background: #22c55e; color: #fff; }
+    `}
 `;
 
 /* ── Table ── */
@@ -124,12 +131,13 @@ const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
     white-space: nowrap;
 `;
 
-const Tr = styled.tr`
+const Tr = styled.tr<{ $closed?: boolean }>`
     border-bottom: 1px solid ${p => p.theme.colors.border};
     transition: background ${p => p.theme.transitions.fast};
+    background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.06)' : 'transparent'};
 
     &:last-child { border-bottom: none; }
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+    &:hover { background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.10)' : p.theme.colors.surfaceHover}; }
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
@@ -297,11 +305,13 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
+    const [showCloseMonth, setShowCloseMonth] = useState(false);
 
     const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom || undefined, filterTo || undefined);
     const createEntry = useCreateEntry(contractor.id);
     const updateEntry = useUpdateEntry(contractor.id);
     const deleteEntry = useDeleteEntry(contractor.id);
+    const closeMonth = useCloseMonth(contractor.id);
 
     async function handleSaveEntry(req: EntryRequest) {
         if (editEntry) {
@@ -323,6 +333,11 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         } finally {
             setDownloading(false);
         }
+    }
+
+    async function handleCloseMonth(request: CloseMonthRequest) {
+        await closeMonth.mutateAsync(request);
+        setShowCloseMonth(false);
     }
 
     const entries = data?.entries ?? [];
@@ -350,6 +365,12 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             disabled={downloading}
                         >
                             {downloading ? 'Generowanie...' : '↓ Raport PDF'}
+                        </ActionBtn>
+                        <ActionBtn
+                            $variant="success"
+                            onClick={() => setShowCloseMonth(true)}
+                        >
+                            Zamknij miesiąc
                         </ActionBtn>
                         <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
                             + Dodaj wpis
@@ -391,7 +412,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 <tbody>
                                     {entries.map(entry => (
                                         <Fragment key={entry.id}>
-                                            <Tr>
+                                            <Tr $closed={entry.isClosed}>
                                                 <Td style={{ whiteSpace: 'nowrap' }}>
                                                     {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
                                                 </Td>
@@ -514,6 +535,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 onConfirm={() => { if (confirmDeleteEntryId) deleteEntry.mutateAsync(confirmDeleteEntryId); }}
                 onCancel={() => setConfirmDeleteEntryId(null)}
             />
+
+            {showCloseMonth && (
+                <CloseMonthModal
+                    contractor={contractor}
+                    from={filterFrom}
+                    to={filterTo}
+                    onConfirm={handleCloseMonth}
+                    onClose={() => setShowCloseMonth(false)}
+                    isLoading={closeMonth.isPending}
+                />
+            )}
         </>
     );
 }

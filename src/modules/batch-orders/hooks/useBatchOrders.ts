@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { ContractorRequest, EntryRequest } from '../types';
+import type { CloseMonthRequest, ContractorRequest, EntryRequest } from '../types';
 
 export const CONTRACTORS_KEY = ['batch-orders', 'contractors'] as const;
 export const ENTRIES_KEY = (contractorId: string) => ['batch-orders', 'entries', contractorId] as const;
@@ -84,5 +84,13 @@ export function useDeleteEntryPhoto(entryId: string) {
     return useMutation({
         mutationFn: (photoId: string) => batchOrderApi.deleteEntryPhoto(entryId, photoId),
         onSuccess: () => qc.invalidateQueries({ queryKey: ENTRY_PHOTOS_KEY(entryId) }),
+    });
+}
+
+export function useCloseMonth(contractorId: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (request: CloseMonthRequest) => batchOrderApi.closeMonth(contractorId, request),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) }),
     });
 }

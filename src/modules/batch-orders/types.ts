@@ -31,6 +31,7 @@ export interface BatchOrderEntry {
     netAmountCents: number;
     grossAmountCents: number;
     notes: string | null;
+    isClosed: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -104,4 +105,18 @@ export interface PhotoUploadResponse {
     photoId: string;
     uploadUrl: string;
     fileId: string;
+}
+
+export interface CloseMonthRequest {
+    from: string;
+    to: string;
+    addToFinances: boolean;
+    sendEmail: boolean;
+    emailOverride?: string;
+}
+
+export interface CloseMonthResult {
+    closedEntryCount: number;
+    financeEntryCreated: boolean;
+    emailSent: boolean;
 }
