@@ -135,22 +135,6 @@ export const ReadyToCompletedWizard = ({
     const customerComments = comments.filter(c => c.type === 'FOR_CUSTOMER' && !c.isDeleted);
     const skipBriefing = customerComments.length === 0;
 
-    // Skip step 1 (ClientBriefingStep) when there are no FOR_CUSTOMER comments
-    useEffect(() => {
-        if (isOpen && currentStep === 1 && skipBriefing) {
-            handleNext();
-        }
-    }, [isOpen, skipBriefing, currentStep]);
-
-    const isFreeVisit = calculatedTotals.grossAmount === 0;
-
-    // Effective last step: skip Payment (step 3) when visit total is zero
-    const effectiveTotalSteps = totalSteps - (isFreeVisit ? 1 : 0);
-
-    // Adjust progress display: skip counts for hidden steps
-    const displayStep = skipBriefing ? currentStep - 1 : currentStep;
-    const displayTotalSteps = effectiveTotalSteps - (skipBriefing ? 1 : 0);
-
     const { calculateServicePrice } = useServicePricing();
 
     const calculatedTotals = (() => {
@@ -170,6 +154,22 @@ export const ReadyToCompletedWizard = ({
         });
         return { netAmount: totalFinalNet, grossAmount: totalFinalGross };
     })();
+
+    const isFreeVisit = calculatedTotals.grossAmount === 0;
+
+    // Effective last step: skip Payment (step 3) when visit total is zero
+    const effectiveTotalSteps = totalSteps - (isFreeVisit ? 1 : 0);
+
+    // Adjust progress display: skip counts for hidden steps
+    const displayStep = skipBriefing ? currentStep - 1 : currentStep;
+    const displayTotalSteps = effectiveTotalSteps - (skipBriefing ? 1 : 0);
+
+    // Skip step 1 (ClientBriefingStep) when there are no FOR_CUSTOMER comments
+    useEffect(() => {
+        if (isOpen && currentStep === 1 && skipBriefing) {
+            handleNext();
+        }
+    }, [isOpen, skipBriefing, currentStep]);
 
     const handlePaymentComplete = (payment: any) => {
         // Only update wizard data with payment details
