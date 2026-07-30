@@ -7,9 +7,11 @@ export interface EmailNotificationRule {
 export interface EmailAutomationConfig {
   visitWelcome: EmailNotificationRule;
   visitReadyForPickup: EmailNotificationRule;
+  batchOrderClose: EmailNotificationRule;
 }
 
 export interface UpdateEmailAutomationConfigRequest {
   visitWelcome: EmailNotificationRule;
   visitReadyForPickup: EmailNotificationRule;
+  batchOrderClose: EmailNotificationRule;
 }

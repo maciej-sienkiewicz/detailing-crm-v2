@@ -91,7 +91,7 @@ export function useDeleteEntryPhoto(entryId: string) {
 export function useCloseMonth(contractorId: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (request: CloseMonthRequest) => batchOrderApi.closeMonth(contractorId, request),
+        mutationFn: (data: CloseMonthRequest) => batchOrderApi.closeMonth(contractorId, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
             qc.invalidateQueries({ queryKey: CLOSE_HISTORY_KEY(contractorId) });

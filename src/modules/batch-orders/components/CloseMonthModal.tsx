@@ -1,355 +1,289 @@
 import { useState } from 'react';
-import styled from 'styled-components';
-import type { BatchContractor, CloseMode, CloseMonthRequest } from '../types';
+import { createPortal } from 'react-dom';
+import styled, { keyframes } from 'styled-components';
+import type { CloseMode } from '../types';
+
+const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+const slideUp = keyframes`from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)); } to { opacity: 1; transform: translate(-50%, -50%); }`;
 
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.45);
+    animation: ${fadeIn} 180ms ease;
 `;
 
 const Modal = styled.div`
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    z-index: 2001;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    max-width: calc(100vw - 32px);
     background: ${p => p.theme.colors.surface};
     border-radius: 16px;
-    padding: 28px;
-    width: 100%;
-    max-width: 480px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.08),
+        0 24px 64px rgba(0,0,0,0.2),
+        0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+    animation: ${slideUp} 220ms cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
-const Title = styled.h2`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.lg};
+const ModalHead = styled.div`
+    padding: 20px 24px 0;
+`;
+
+const ModalTitle = styled.h2`
+    margin: 0 0 4px;
+    font-size: 17px;
     font-weight: 700;
     color: ${p => p.theme.colors.text};
+    letter-spacing: -0.3px;
 `;
 
-const Subtitle = styled.p`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.sm};
+const ModalSubtitle = styled.p`
+    margin: 0 0 20px;
+    font-size: 13px;
     color: ${p => p.theme.colors.textMuted};
     line-height: 1.5;
 `;
 
-const WarningBox = styled.div`
-    border: 1px solid #f59e0b;
-    border-radius: 10px;
-    padding: 14px 16px;
-    background: rgba(245, 158, 11, 0.06);
+const Divider = styled.div`
+    height: 1px;
+    background: ${p => p.theme.colors.border};
+    margin: 0 24px;
+`;
+
+const Body = styled.div`
+    padding: 20px 24px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 `;
 
-const WarningTitle = styled.p`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    color: #b45309;
-`;
-
-const ModeOptions = styled.div`
+const FieldGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 `;
 
-const ModeOption = styled.label<{ $active?: boolean }>`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.05)' : 'transparent'};
-    cursor: pointer;
-    transition: border-color 150ms ease, background 150ms ease;
-
-    &:hover {
-        border-color: ${p => p.theme.colors.primary};
-    }
-`;
-
-const ModeRadio = styled.input`
-    margin-top: 2px;
-    accent-color: ${p => p.theme.colors.primary};
-    flex-shrink: 0;
-`;
-
-const ModeLabel = styled.span`
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-    display: block;
-    line-height: 1.4;
-`;
-
-const ModeDesc = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
-    display: block;
-    margin-top: 2px;
-    line-height: 1.4;
-`;
-
-const OptionBlock = styled.div<{ $active?: boolean }>`
-    border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-    border-radius: 10px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.04)' : 'transparent'};
-    transition: border-color 150ms ease, background 150ms ease;
-    cursor: pointer;
-
-    &:hover {
-        border-color: ${p => p.theme.colors.primary};
-    }
-`;
-
-const CheckRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-`;
-
-const Checkbox = styled.input`
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: ${p => p.theme.colors.primary};
-    flex-shrink: 0;
-`;
-
-const CheckLabel = styled.span`
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-    user-select: none;
-`;
-
-const CheckDescription = styled.p`
-    margin: 0 0 0 26px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
-    line-height: 1.5;
-`;
-
-const EmailField = styled.div`
-    margin-left: 26px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const EmailLabel = styled.label`
-    font-size: ${p => p.theme.fontSizes.xs};
+const Label = styled.label`
+    font-size: 12px;
     font-weight: 600;
     color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
 `;
 
-const EmailInput = styled.input`
-    padding: 8px 12px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 8px;
-    font-size: ${p => p.theme.fontSizes.sm};
+const DateRow = styled.div`
+    display: flex;
+    gap: 10px;
+`;
+
+const Input = styled.input`
+    flex: 1;
+    height: 38px;
+    padding: 0 12px;
+    border: 1.5px solid ${p => p.theme.colors.border};
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    background: ${p => p.theme.colors.surface};
     color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.background};
     outline: none;
-    transition: border-color 150ms ease;
+    transition: border-color 150ms, box-shadow 150ms;
 
     &:focus {
         border-color: ${p => p.theme.colors.primary};
-    }
-
-    &::placeholder {
-        color: ${p => p.theme.colors.textMuted};
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.15);
     }
 `;
 
-const Actions = styled.div`
+const EmailInput = styled(Input)`
+    width: 100%;
+    box-sizing: border-box;
+    flex: none;
+`;
+
+const ModeGroup = styled.div`
     display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    padding-top: 4px;
-    border-top: 1px solid ${p => p.theme.colors.border};
+    gap: 8px;
 `;
 
-const Btn = styled.button<{ $variant?: 'primary' | 'outline' }>`
-    padding: 8px 20px;
-    border-radius: 8px;
-    font-size: ${p => p.theme.fontSizes.sm};
+const ModeOption = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1.5px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
+    background: ${p => p.$active ? 'rgba(14,165,233,0.06)' : p.theme.colors.surface};
+    color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textMuted};
+    font-size: 13px;
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
-    transition: opacity 150ms ease, background 150ms ease;
+    text-align: left;
+    transition: all 150ms;
 
+    &:hover:not(:disabled) {
+        border-color: ${p => p.theme.colors.primary};
+        color: ${p => p.theme.colors.primary};
+    }
+`;
+
+const ModeLabel = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+`;
+
+const ModeDesc = styled.div`
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.8;
+    line-height: 1.4;
+`;
+
+const EmailHint = styled.p`
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
+const Footer = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px 20px;
+`;
+
+const CancelBtn = styled.button`
+    padding: 9px 18px;
+    border-radius: 9999px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 150ms;
+
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.text}; }
+`;
+
+const ConfirmBtn = styled.button`
+    padding: 9px 22px;
+    border-radius: 9999px;
+    border: none;
+    background: ${p => p.theme.colors.primary};
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 150ms;
+
+    &:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    ${p => p.$variant === 'primary' && `
-        background: ${p.theme.colors.primary};
-        border: 1px solid ${p.theme.colors.primary};
-        color: #fff;
-        &:hover:not(:disabled) { opacity: 0.9; }
-    `}
-    ${p => (!p.$variant || p.$variant === 'outline') && `
-        background: transparent;
-        border: 1px solid ${p.theme.colors.border};
-        color: ${p.theme.colors.text};
-        &:hover:not(:disabled) { background: ${p.theme.colors.surfaceAlt}; }
-    `}
 `;
 
 interface Props {
-    contractor: BatchContractor;
-    from: string;
-    to: string;
-    hasPartialClose: boolean;
-    onConfirm: (request: CloseMonthRequest) => Promise<void>;
+    contractorName: string;
     onClose: () => void;
-    isLoading?: boolean;
+    onConfirm: (from: string, to: string, mode: CloseMode, emailTo?: string) => Promise<void>;
 }
 
-export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfirm, onClose, isLoading }: Props) {
-    const [mode, setMode] = useState<CloseMode>(hasPartialClose ? 'NEW_ONLY' : 'ALL');
-    const [addToFinances, setAddToFinances] = useState(false);
-    const [sendEmail, setSendEmail] = useState(false);
-    const [email, setEmail] = useState(contractor.email ?? '');
+export function CloseMonthModal({ contractorName, onClose, onConfirm }: Props) {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const periodLabel = `${new Date(from).toLocaleDateString('pl-PL')} – ${new Date(to).toLocaleDateString('pl-PL')}`;
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+    const [from, setFrom] = useState(fmt(firstDay));
+    const [to, setTo] = useState(fmt(lastDay));
+    const [mode, setMode] = useState<CloseMode>('NEW_ONLY');
+    const [emailTo, setEmailTo] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     async function handleConfirm() {
-        await onConfirm({
-            from,
-            to,
-            addToFinances,
-            sendEmail,
-            emailOverride: sendEmail && email ? email : undefined,
-            mode,
-        });
+        if (!from || !to) { setError('Wybierz zakres dat.'); return; }
+        setLoading(true);
+        setError('');
+        try {
+            await onConfirm(from, to, mode, emailTo.trim() || undefined);
+            onClose();
+        } catch (e: any) {
+            setError(e?.response?.data?.message ?? 'Wystąpił błąd. Spróbuj ponownie.');
+        } finally {
+            setLoading(false);
+        }
     }
 
-    return (
-        <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <Modal>
-                <div>
-                    <Title>Zamknij miesiąc</Title>
-                    <Subtitle style={{ marginTop: 6 }}>
-                        {contractor.name} · {periodLabel}
-                    </Subtitle>
-                </div>
+    return createPortal(
+        <>
+            <Overlay onClick={onClose} />
+            <Modal onClick={e => e.stopPropagation()}>
+                <ModalHead>
+                    <ModalTitle>Zamknij okres</ModalTitle>
+                    <ModalSubtitle>
+                        Zestawienie dla: <strong>{contractorName}</strong>
+                    </ModalSubtitle>
+                </ModalHead>
 
-                {hasPartialClose && (
-                    <WarningBox>
-                        <WarningTitle>
-                            Część pozycji została zamknięta we wcześniejszym raporcie.
-                        </WarningTitle>
-                        <ModeOptions>
-                            <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
-                                <ModeRadio
-                                    type="radio"
-                                    name="close-mode"
-                                    checked={mode === 'ALL'}
-                                    onChange={() => setMode('ALL')}
-                                    onClick={e => e.stopPropagation()}
-                                />
-                                <div>
-                                    <ModeLabel>Wszystkie pozycje</ModeLabel>
-                                    <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już zamkniętymi.</ModeDesc>
-                                </div>
-                            </ModeOption>
+                <Divider />
+
+                <Body>
+                    <FieldGroup>
+                        <Label>Zakres dat</Label>
+                        <DateRow>
+                            <Input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+                            <Input type="date" value={to} onChange={e => setTo(e.target.value)} />
+                        </DateRow>
+                    </FieldGroup>
+
+                    <FieldGroup>
+                        <Label>Tryb zamknięcia</Label>
+                        <ModeGroup>
                             <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
-                                <ModeRadio
-                                    type="radio"
-                                    name="close-mode"
-                                    checked={mode === 'NEW_ONLY'}
-                                    onChange={() => setMode('NEW_ONLY')}
-                                    onClick={e => e.stopPropagation()}
-                                />
-                                <div>
-                                    <ModeLabel>Tylko nowo dodane</ModeLabel>
-                                    <ModeDesc>Zamyka wyłącznie wpisy, które nie były jeszcze ujęte w żadnym raporcie.</ModeDesc>
-                                </div>
+                                <ModeLabel>Tylko nowe</ModeLabel>
+                                <ModeDesc>Zamknij wpisy, które nie były jeszcze zamknięte</ModeDesc>
                             </ModeOption>
-                        </ModeOptions>
-                    </WarningBox>
-                )}
+                            <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
+                                <ModeLabel>Wszystkie</ModeLabel>
+                                <ModeDesc>Zamknij wszystkie wpisy w wybranym okresie</ModeDesc>
+                            </ModeOption>
+                        </ModeGroup>
+                    </FieldGroup>
 
-                <OptionBlock
-                    $active={addToFinances}
-                    onClick={() => setAddToFinances(v => !v)}
-                >
-                    <CheckRow>
-                        <Checkbox
-                            type="checkbox"
-                            checked={addToFinances}
-                            onChange={e => { e.stopPropagation(); setAddToFinances(e.target.checked); }}
-                            onClick={e => e.stopPropagation()}
+                    <FieldGroup>
+                        <Label>Email (opcjonalnie)</Label>
+                        <EmailInput
+                            type="email"
+                            placeholder="kontrahent@firma.pl"
+                            value={emailTo}
+                            onChange={e => setEmailTo(e.target.value)}
                         />
-                        <CheckLabel>Dodaj wpis do finansów</CheckLabel>
-                    </CheckRow>
-                    <CheckDescription>
-                        Tworzy dokument finansowy z sumą brutto za wybrany okres (przelew, przychód).
-                    </CheckDescription>
-                </OptionBlock>
+                        <EmailHint>Zestawienie PDF zostanie wysłane na podany adres.</EmailHint>
+                    </FieldGroup>
 
-                <OptionBlock
-                    $active={sendEmail}
-                    onClick={() => setSendEmail(v => !v)}
-                >
-                    <CheckRow>
-                        <Checkbox
-                            type="checkbox"
-                            checked={sendEmail}
-                            onChange={e => { e.stopPropagation(); setSendEmail(e.target.checked); }}
-                            onClick={e => e.stopPropagation()}
-                        />
-                        <CheckLabel>Wyślij podsumowanie mailem</CheckLabel>
-                    </CheckRow>
-                    <CheckDescription>
-                        Wysyła zestawienie za wybrany okres na adres e-mail kontrahenta.
-                    </CheckDescription>
-                    {sendEmail && (
-                        <EmailField onClick={e => e.stopPropagation()}>
-                            <EmailLabel htmlFor="close-month-email">Adres e-mail</EmailLabel>
-                            <EmailInput
-                                id="close-month-email"
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                placeholder="email@firma.pl"
-                                autoFocus
-                            />
-                            {!contractor.email && email && (
-                                <span style={{ fontSize: 11, color: '#22c55e', marginTop: 2 }}>
-                                    Adres zostanie zapisany do karty kontrahenta.
-                                </span>
-                            )}
-                        </EmailField>
+                    {error && (
+                        <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 500 }}>{error}</div>
                     )}
-                </OptionBlock>
+                </Body>
 
-                <Actions>
-                    <Btn $variant="outline" onClick={onClose} disabled={isLoading}>Anuluj</Btn>
-                    <Btn
-                        $variant="primary"
-                        onClick={handleConfirm}
-                        disabled={isLoading || (sendEmail && !email.trim())}
-                    >
-                        {isLoading ? 'Zamykanie...' : 'Zamknij miesiąc'}
-                    </Btn>
-                </Actions>
+                <Footer>
+                    <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
+                    <ConfirmBtn onClick={handleConfirm} disabled={loading}>
+                        {loading ? 'Zamykanie…' : 'Zamknij okres'}
+                    </ConfirmBtn>
+                </Footer>
             </Modal>
-        </Overlay>
+        </>,
+        document.body,
     );
 }

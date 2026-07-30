@@ -1,443 +1,296 @@
 import { useState } from 'react';
-import styled from 'styled-components';
+import { createPortal } from 'react-dom';
+import styled, { keyframes } from 'styled-components';
 import { useCloseHistory } from '../hooks/useBatchOrders';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { BatchContractor, CloseHistoryRecord } from '../types';
+import type { CloseHistoryRecord } from '../types';
 
-/* ── Shell ── */
+const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+const slideUp = keyframes`from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)); } to { opacity: 1; transform: translate(-50%, -50%); }`;
+
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
+    z-index: 2000;
     background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
+    animation: ${fadeIn} 180ms ease;
 `;
 
 const Modal = styled.div`
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    z-index: 2001;
+    transform: translate(-50%, -50%);
+    width: 560px;
+    max-width: calc(100vw - 32px);
+    max-height: 80vh;
     background: ${p => p.theme.colors.surface};
     border-radius: 16px;
-    width: 100%;
-    max-width: 560px;
-    max-height: 82vh;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.08),
+        0 24px 64px rgba(0,0,0,0.2),
+        0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.07);
-    overflow: hidden;
+    animation: ${slideUp} 220ms cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
-/* ── Header ── */
-const Header = styled.div`
-    padding: 20px 24px 18px;
+const ModalHead = styled.div`
+    padding: 20px 24px 16px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     flex-shrink: 0;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
 `;
 
-const Title = styled.h2`
-    margin: 0;
-    font-size: 15px;
+const ModalTitle = styled.h2`
+    margin: 0 0 2px;
+    font-size: 17px;
     font-weight: 700;
     color: ${p => p.theme.colors.text};
     letter-spacing: -0.3px;
 `;
 
-const Subtitle = styled.p`
-    margin: 3px 0 0;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const CloseBtn = styled.button`
-    flex-shrink: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: transparent;
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
-    font-size: 18px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 120ms ease, color 120ms ease, transform 180ms ease;
-
-    &:hover {
-        background: ${p => p.theme.colors.surfaceAlt};
-        color: ${p => p.theme.colors.text};
-        transform: translateY(-1px);
-    }
-`;
-
-/* ── Body ── */
-const Body = styled.div`
-    overflow-y: auto;
-    flex: 1;
-`;
-
-/* ── Empty state ── */
-const EmptyState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 52px 24px;
-    gap: 6px;
-    text-align: center;
-`;
-
-const EmptyIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: ${p => p.theme.colors.surfaceAlt};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 6px;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const EmptyTitle = styled.p`
+const ModalSubtitle = styled.p`
     margin: 0;
     font-size: 13px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-`;
-
-const EmptyDesc = styled.p`
-    margin: 0;
-    font-size: 12px;
     color: ${p => p.theme.colors.textMuted};
 `;
 
-/* ── Row ── */
-const Row = styled.div`
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 20px;
-    align-items: start;
-    padding: 16px 24px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    transition: background 120ms ease;
-
-    &:last-child {
-        border-bottom: none;
-    }
-
-    &:hover {
-        background: ${p => p.theme.colors.surfaceHover};
-    }
-`;
-
-const RowLeft = styled.div`
+const ScrollBody = styled.div`
+    overflow-y: auto;
+    flex: 1;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-`;
-
-const DateLine = styled.div`
-    display: flex;
-    align-items: center;
     gap: 8px;
 `;
 
-const StatusDot = styled.span<{ $ok?: boolean; $warn?: boolean }>`
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: ${
-        p => p.$ok ? '#22c55e'
-           : p.$warn ? '#ef4444'
-           : p.theme.colors.border
-    };
+const Empty = styled.div`
+    padding: 40px 24px;
+    text-align: center;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 14px;
 `;
 
-const DateText = styled.span`
-    font-size: 13px;
+const HistoryRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    transition: background 150ms;
+
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
+`;
+
+const RowLeft = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const Period = styled.div`
+    font-size: 14px;
     font-weight: 700;
     color: ${p => p.theme.colors.text};
     letter-spacing: -0.2px;
 `;
 
-const PeriodEyebrow = styled.div`
-    padding-left: 15px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const MetaLine = styled.div`
-    padding-left: 15px;
+const RowMeta = styled.div`
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 2px 0;
+    gap: 8px;
     margin-top: 3px;
+    flex-wrap: wrap;
 `;
 
-const MetaChip = styled.span<{ $ok?: boolean; $warn?: boolean }>`
-    font-size: 11px;
-    font-weight: 500;
-    color: ${
-        p => p.$ok ? '#16a34a'
-           : p.$warn ? '#dc2626'
-           : p.theme.colors.textMuted
-    };
+const MetaChip = styled.span<{ $color?: string }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-
-    &::before {
-        content: '';
-        display: inline-block;
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        background: ${
-            p => p.$ok ? '#22c55e'
-               : p.$warn ? '#ef4444'
-               : p.theme.colors.border
-        };
-    }
-`;
-
-const MetaSep = styled.span`
-    padding: 0 7px;
     font-size: 11px;
-    color: ${p => p.theme.colors.border};
-    user-select: none;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: ${p => p.$color ?? 'rgba(148,163,184,0.12)'};
+    color: ${p => p.$color ? '#fff' : p.theme.colors.textMuted};
 `;
 
-const AuthorLine = styled.div`
-    padding-left: 15px;
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
-    margin-top: 2px;
-`;
-
-/* ── Right column ── */
-const RowRight = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    flex-shrink: 0;
-    padding-top: 1px;
-`;
-
-const Amounts = styled.div`
-    text-align: right;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-`;
-
-const GrossAmount = styled.span`
-    font-size: 14px;
-    font-weight: 700;
+const Amount = styled.div`
+    font-size: 15px;
+    font-weight: 800;
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.4px;
     white-space: nowrap;
 `;
 
-const NetAmount = styled.span`
+const AmountSub = styled.div`
     font-size: 11px;
     color: ${p => p.theme.colors.textMuted};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    text-align: right;
+    margin-top: 1px;
 `;
 
-const DownloadBtn = styled.button<{ $loading?: boolean }>`
-    display: inline-flex;
+const DownloadBtn = styled.button`
+    display: flex;
     align-items: center;
     gap: 5px;
-    padding: 5px 12px;
+    padding: 7px 13px;
     border-radius: 9999px;
     border: 1px solid ${p => p.theme.colors.border};
     background: transparent;
-    font-size: 11px;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 12px;
     font-weight: 600;
-    color: ${p => p.theme.colors.text};
-    cursor: ${p => p.$loading ? 'not-allowed' : 'pointer'};
-    opacity: ${p => p.$loading ? 0.55 : 1};
+    font-family: inherit;
+    cursor: pointer;
     white-space: nowrap;
-    transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 180ms ease;
+    transition: all 150ms;
+    flex-shrink: 0;
 
     &:hover:not(:disabled) {
-        background: ${p => p.theme.colors.primary};
         border-color: ${p => p.theme.colors.primary};
-        color: #fff;
+        color: ${p => p.theme.colors.primary};
+        background: rgba(14,165,233,0.05);
         transform: translateY(-1px);
     }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-/* ── Helpers ── */
+const Footer = styled.div`
+    padding: 14px 24px;
+    border-top: 1px solid ${p => p.theme.colors.border};
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+`;
+
+const CloseBtn = styled.button`
+    padding: 9px 22px;
+    border-radius: 9999px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 150ms;
+
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.text}; }
+`;
+
+const LoadingRow = styled.div`
+    padding: 32px 24px;
+    text-align: center;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 13px;
+`;
+
 function formatMoney(cents: number) {
     return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
 }
 
-function formatDateTime(iso: string) {
-    return new Date(iso).toLocaleString('pl-PL', {
-        day: '2-digit', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-    });
+function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function formatDate(iso: string | null) {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('pl-PL', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-    });
+function formatClosedAt(iso: string) {
+    return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-type RowStatus = 'ok' | 'warn' | 'neutral';
-
-function rowStatus(r: CloseHistoryRecord): RowStatus {
-    if (r.emailRequested && !r.emailSent) return 'warn';
-    if (r.emailSent || r.financeEntryCreated) return 'ok';
-    return 'neutral';
-}
-
-function entryCountLabel(n: number) {
-    if (n === 1) return '1 wpis';
-    if (n < 5) return `${n} wpisy`;
-    return `${n} wpisów`;
-}
-
-/* ── HistoryRow ── */
-function HistoryRow({ record, contractorName }: { record: CloseHistoryRecord; contractorName: string }) {
-    const [loading, setLoading] = useState(false);
+function HistoryItem({ record, contractorName }: { record: CloseHistoryRecord; contractorName: string }) {
+    const [downloading, setDownloading] = useState(false);
 
     async function handleDownload() {
-        if (loading) return;
-        setLoading(true);
+        setDownloading(true);
         try {
             await batchOrderApi.downloadHistorySnapshot(record.id, contractorName);
         } finally {
-            setLoading(false);
+            setDownloading(false);
         }
     }
 
-    const status = rowStatus(record);
-    const isOk = status === 'ok';
-    const isWarn = status === 'warn';
-
-    const period =
-        record.periodFrom && record.periodTo
-            ? `${formatDate(record.periodFrom)}–${formatDate(record.periodTo)}`
-            : null;
-
-    const modeLabel = record.mode === 'NEW_ONLY' ? 'Tylko nowe' : 'Wszystkie wpisy';
+    const isNewOnly = record.mode === 'NEW_ONLY';
 
     return (
-        <Row>
+        <HistoryRow>
             <RowLeft>
-                <DateLine>
-                    <StatusDot $ok={isOk} $warn={isWarn} />
-                    <DateText>{formatDateTime(record.closedAt)}</DateText>
-                </DateLine>
-
-                {period && (
-                    <PeriodEyebrow>Okres &middot; {period}</PeriodEyebrow>
-                )}
-
-                <MetaLine>
-                    {record.financeEntryCreated
-                        ? <MetaChip $ok>Finanse</MetaChip>
-                        : <MetaChip>Bez finansów</MetaChip>
-                    }
-                    <MetaSep>·</MetaSep>
-                    {record.emailRequested
-                        ? record.emailSent
-                            ? <MetaChip $ok>Mail wysłany</MetaChip>
-                            : <MetaChip $warn>Mail nie wysłany</MetaChip>
-                        : <MetaChip>Bez maila</MetaChip>
-                    }
-                    <MetaSep>·</MetaSep>
-                    <MetaChip>{entryCountLabel(record.entryCount)}</MetaChip>
-                    <MetaSep>·</MetaSep>
-                    <MetaChip>{modeLabel}</MetaChip>
-                </MetaLine>
-
-                {record.closedByUserName && (
-                    <AuthorLine>Wygenerował/a: {record.closedByUserName}</AuthorLine>
-                )}
+                <Period>{formatDate(record.fromDate)} – {formatDate(record.toDate)}</Period>
+                <RowMeta>
+                    <MetaChip>{record.entryCount} {record.entryCount === 1 ? 'wpis' : record.entryCount < 5 ? 'wpisy' : 'wpisów'}</MetaChip>
+                    <MetaChip $color={isNewOnly ? '#0ea5e9' : '#64748b'}>
+                        {isNewOnly ? 'Tylko nowe' : 'Wszystkie'}
+                    </MetaChip>
+                    {record.emailSent && (
+                        <MetaChip $color="#22c55e">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Email wysłany
+                        </MetaChip>
+                    )}
+                    <span style={{ fontSize: 11, color: 'var(--color-text-muted, #94a3b8)' }}>
+                        {formatClosedAt(record.closedAt)}
+                    </span>
+                </RowMeta>
             </RowLeft>
 
-            <RowRight>
-                <Amounts>
-                    <GrossAmount>{formatMoney(record.totalGrossCents)}</GrossAmount>
-                    <NetAmount>netto {formatMoney(record.totalNetCents)}</NetAmount>
-                </Amounts>
-                <DownloadBtn $loading={loading} onClick={handleDownload} disabled={loading}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="11" height="11">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    {loading ? 'Pobieranie…' : 'Pobierz PDF'}
-                </DownloadBtn>
-            </RowRight>
-        </Row>
+            <div style={{ textAlign: 'right' }}>
+                <Amount>{formatMoney(record.totalGrossCents)}</Amount>
+                <AmountSub>netto {formatMoney(record.totalNetCents)}</AmountSub>
+            </div>
+
+            <DownloadBtn onClick={handleDownload} disabled={downloading}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                PDF
+            </DownloadBtn>
+        </HistoryRow>
     );
 }
 
-/* ── Main export ── */
 interface Props {
-    contractor: BatchContractor;
+    contractorId: string;
+    contractorName: string;
     onClose: () => void;
 }
 
-export function CloseHistoryModal({ contractor, onClose }: Props) {
-    const { data: records, isLoading } = useCloseHistory(contractor.id);
+export function CloseHistoryModal({ contractorId, contractorName, onClose }: Props) {
+    const { data: history, isLoading } = useCloseHistory(contractorId);
 
-    return (
-        <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <Modal>
-                <Header>
-                    <div>
-                        <Title>Historia zamknięć</Title>
-                        <Subtitle>{contractor.name}</Subtitle>
-                    </div>
-                    <CloseBtn onClick={onClose} title="Zamknij">×</CloseBtn>
-                </Header>
+    return createPortal(
+        <>
+            <Overlay onClick={onClose} />
+            <Modal onClick={e => e.stopPropagation()}>
+                <ModalHead>
+                    <ModalTitle>Historia zamknięć</ModalTitle>
+                    <ModalSubtitle>{contractorName}</ModalSubtitle>
+                </ModalHead>
 
-                <Body>
+                <ScrollBody>
                     {isLoading ? (
-                        <EmptyState>
-                            <EmptyDesc>Ładowanie…</EmptyDesc>
-                        </EmptyState>
-                    ) : !records || records.length === 0 ? (
-                        <EmptyState>
-                            <EmptyIcon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="18" height="18">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                            </EmptyIcon>
-                            <EmptyTitle>Brak historii</EmptyTitle>
-                            <EmptyDesc>Ten kontrahent nie ma jeszcze żadnych zamknięć.</EmptyDesc>
-                        </EmptyState>
+                        <LoadingRow>Ładowanie historii…</LoadingRow>
+                    ) : !history || history.length === 0 ? (
+                        <Empty>Brak historii zamknięć dla tego kontrahenta.</Empty>
                     ) : (
-                        records.map(r => (
-                            <HistoryRow key={r.id} record={r} contractorName={contractor.name} />
+                        history.map(record => (
+                            <HistoryItem key={record.id} record={record} contractorName={contractorName} />
                         ))
                     )}
-                </Body>
+                </ScrollBody>
+
+                <Footer>
+                    <CloseBtn onClick={onClose}>Zamknij</CloseBtn>
+                </Footer>
             </Modal>
-        </Overlay>
+        </>,
+        document.body,
     );
 }

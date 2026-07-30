@@ -1,15 +1,14 @@
-import { Fragment, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Fragment, useState } from 'react';
 import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry, useCloseMonth } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
-import { DateRangeFilter, currentMonthRange } from './DateRangeFilter';
+import { DateRangeFilter } from './DateRangeFilter';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { CloseMonthModal } from './CloseMonthModal';
 import { CloseHistoryModal } from './CloseHistoryModal';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { BatchContractor, BatchOrderEntry, CloseMonthRequest, EntryRequest } from '../types';
+import type { BatchContractor, BatchOrderEntry, CloseMode, EntryRequest } from '../types';
 
 const Section = styled.div`
     background: ${p => p.theme.colors.surface};
@@ -22,7 +21,7 @@ const SectionHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 18px;
+    padding: 14px 20px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.background};
     gap: 12px;
@@ -44,7 +43,7 @@ const ContractorMeta = styled.div`
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
     align-items: center;
 `;
@@ -53,28 +52,30 @@ const FilterRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 18px;
+    padding: 10px 20px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surfaceAlt};
     flex-wrap: wrap;
 `;
 
-const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success' }>`
-    padding: 5px 12px;
-    border-radius: 7px;
+/* ── Action buttons aligned with ServiceTable ── */
+const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' }>`
+    padding: 6px 14px;
+    border-radius: 8px;
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
 
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover { transform: translateY(-1px); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
     ${p => p.$variant === 'primary' && `
         background: ${p.theme.colors.primary};
         border: 1px solid ${p.theme.colors.primary};
         color: #fff;
-        &:hover:not(:disabled) { opacity: 0.88; }
+        &:hover:not(:disabled) { opacity: 0.9; }
     `}
     ${p => p.$variant === 'danger' && `
         background: transparent;
@@ -94,12 +95,6 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
         color: ${p.theme.colors.textMuted};
         &:hover:not(:disabled) { background: ${p.theme.colors.background}; color: ${p.theme.colors.text}; }
     `}
-    ${p => p.$variant === 'success' && `
-        background: transparent;
-        border: 1px solid #22c55e;
-        color: #16a34a;
-        &:hover:not(:disabled) { background: #22c55e; color: #fff; }
-    `}
 `;
 
 /* ── Table ── */
@@ -110,39 +105,38 @@ const TableWrapper = styled.div`
 
 const Table = styled.table`
     width: 100%;
-    min-width: 680px;
+    min-width: 700px;
     border-collapse: collapse;
     background: ${p => p.theme.colors.surface};
 `;
 
 const TableHead = styled.thead`
     background: ${p => p.theme.colors.surfaceAlt};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    border-bottom: 2px solid ${p => p.theme.colors.border};
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
-    padding: 8px 12px;
+    padding: 10px 16px;
     text-align: ${p => p.$align ?? 'left'};
-    font-size: 10px;
+    font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 700;
     color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     white-space: nowrap;
 `;
 
-const Tr = styled.tr<{ $closed?: boolean }>`
+const Tr = styled.tr`
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    transition: background 120ms ease;
-    background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.05)' : 'transparent'};
+    transition: background ${p => p.theme.transitions.fast};
 
     &:last-child { border-bottom: none; }
-    &:hover { background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.09)' : p.theme.colors.surfaceHover}; }
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
-    padding: 8px 12px;
-    font-size: ${p => p.theme.fontSizes.xs};
+    padding: 12px 16px;
+    font-size: ${p => p.theme.fontSizes.sm};
     color: ${p => p.theme.colors.text};
     vertical-align: middle;
     text-align: ${p => p.$align ?? 'left'};
@@ -150,7 +144,6 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
 
 /* ── Vehicle cell ── */
 const VehicleCell = styled.div`
-    font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     line-height: 1.4;
     color: ${p => p.theme.colors.text};
@@ -158,31 +151,31 @@ const VehicleCell = styled.div`
 
 const PlateTag = styled.span`
     display: inline-block;
-    margin-top: 3px;
-    padding: 2px 7px;
-    background: #1e293b;
-    color: #e2e8f0;
-    border-radius: 5px;
-    font-size: 10px;
+    margin-top: 4px;
+    padding: 3px 9px;
+    background: #0f172a;
+    color: #f1f5f9;
+    border-radius: 6px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.08em;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     line-height: 1.5;
 `;
 
 const VinTag = styled.span`
     display: inline-block;
-    margin-top: 2px;
-    margin-left: 5px;
-    padding: 1px 6px;
-    background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.textMuted};
-    border-radius: 4px;
-    font-size: 9px;
+    margin-top: 3px;
+    margin-left: 6px;
+    padding: 2px 7px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 5px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-    line-height: 1.6;
+    line-height: 1.5;
 `;
 
 /* ── Services list ── */
@@ -192,13 +185,13 @@ const ServiceList = styled.ul`
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 
     li {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
-        gap: 10px;
+        gap: 12px;
     }
 `;
 
@@ -209,7 +202,7 @@ const ServiceName = styled.span`
 `;
 
 const ServicePrice = styled.span`
-    font-size: 10px;
+    font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.textMuted};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -220,103 +213,39 @@ const Money = styled.span`
     font-weight: 600;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    font-size: ${p => p.theme.fontSizes.xs};
 `;
 
 const GrossMoney = styled(Money)`
-    font-size: ${p => p.theme.fontSizes.sm};
+    font-size: ${p => p.theme.fontSizes.md};
     color: ${p => p.theme.colors.text};
 `;
 
-/* ── Notes cell ── */
-const NoteText = styled.span`
-    display: block;
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-/* ── Three-dots trigger ── */
-const DotsBtn = styled.button<{ $open?: boolean }>`
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid ${p => p.$open ? p.theme.colors.border : 'transparent'};
-    background: ${p => p.$open ? p.theme.colors.surfaceAlt : 'transparent'};
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
+/* ── Row action buttons ── */
+const RowActions = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    line-height: 1;
-    opacity: ${p => p.$open ? 1 : 0};
-    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, color 120ms ease;
+    gap: 6px;
+    justify-content: flex-end;
+    opacity: 0;
+    transition: opacity 0.15s;
 
     ${Tr}:hover & { opacity: 1; }
-
-    &:hover {
-        background: ${p => p.theme.colors.surfaceAlt};
-        border-color: ${p => p.theme.colors.border};
-        color: ${p => p.theme.colors.text};
-    }
-`;
-
-/* ── Portal dropdown ── */
-const DropdownMenu = styled.div`
-    position: fixed;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
-    z-index: 9999;
-    min-width: 172px;
-    padding: 4px;
-`;
-
-const MenuItem = styled.button<{ $danger?: boolean }>`
-    width: 100%;
-    padding: 7px 10px;
-    text-align: left;
-    background: transparent;
-    border: none;
-    border-radius: 5px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 500;
-    cursor: pointer;
-    color: ${p => p.$danger ? p.theme.colors.error : p.theme.colors.text};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 100ms ease;
-
-    &:hover {
-        background: ${p => p.$danger ? 'rgba(239,68,68,0.08)' : p.theme.colors.surfaceAlt};
-    }
-`;
-
-const MenuDivider = styled.div`
-    height: 1px;
-    background: ${p => p.theme.colors.border};
-    margin: 3px 0;
 `;
 
 /* ── Summary footer ── */
 const SummaryBar = styled.div`
     display: flex;
     align-items: center;
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-top: 1px solid ${p => p.theme.colors.border};
+    gap: 0;
+    padding: 0;
+    background: rgba(14, 165, 233, 0.04);
+    border-top: 2px solid ${p => p.theme.colors.border};
 `;
 
 const SummaryItem = styled.div`
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 10px 18px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 24px;
     border-right: 1px solid ${p => p.theme.colors.border};
 
     &:last-child { border-right: none; }
@@ -324,25 +253,40 @@ const SummaryItem = styled.div`
 
 const SummaryLabel = styled.span`
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     color: ${p => p.theme.colors.textMuted};
 `;
 
 const SummaryValue = styled.span`
-    font-size: ${p => p.theme.fontSizes.md};
-    font-weight: 700;
+    font-size: ${p => p.theme.fontSizes.lg};
+    font-weight: 800;
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
 `;
 
 /* ── Empty / loading ── */
 const EmptyRow = styled.div`
-    padding: 28px 20px;
+    padding: 32px 20px;
     text-align: center;
     color: ${p => p.theme.colors.textMuted};
     font-size: ${p => p.theme.fontSizes.sm};
+`;
+
+const ClosedBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(34,197,94,0.1);
+    color: #16a34a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 `;
 
 function formatMoney(cents: number) {
@@ -354,8 +298,6 @@ function vatLabel(rate: number) {
     return `${rate}%`;
 }
 
-interface MenuPosition { top: number; right: number; }
-
 interface Props {
     contractor: BatchContractor;
     onEdit: () => void;
@@ -363,46 +305,21 @@ interface Props {
 }
 
 export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props) {
-    const initial = currentMonthRange();
-    const [filterFrom, setFilterFrom] = useState(initial.from);
-    const [filterTo, setFilterTo] = useState(initial.to);
+    const [filterFrom, setFilterFrom] = useState('');
+    const [filterTo, setFilterTo] = useState('');
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [editEntry, setEditEntry] = useState<BatchOrderEntry | null>(null);
     const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
     const [showCloseMonth, setShowCloseMonth] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
-    const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
-    const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
-
-    useEffect(() => {
-        if (!openMenuEntryId) return;
-        function close() { setOpenMenuEntryId(null); setMenuPosition(null); }
-        document.addEventListener('click', close);
-        return () => document.removeEventListener('click', close);
-    }, [openMenuEntryId]);
+    const [showCloseHistory, setShowCloseHistory] = useState(false);
 
     const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom || undefined, filterTo || undefined);
     const createEntry = useCreateEntry(contractor.id);
     const updateEntry = useUpdateEntry(contractor.id);
     const deleteEntry = useDeleteEntry(contractor.id);
     const closeMonth = useCloseMonth(contractor.id);
-
-    function openMenu(e: React.MouseEvent<HTMLButtonElement>, entryId: string) {
-        e.stopPropagation();
-        if (openMenuEntryId === entryId) {
-            setOpenMenuEntryId(null);
-            setMenuPosition(null);
-            return;
-        }
-        const rect = e.currentTarget.getBoundingClientRect();
-        setMenuPosition({
-            top: rect.bottom + 4,
-            right: window.innerWidth - rect.right,
-        });
-        setOpenMenuEntryId(entryId);
-    }
 
     async function handleSaveEntry(req: EntryRequest) {
         if (editEntry) {
@@ -426,15 +343,12 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         }
     }
 
-    async function handleCloseMonth(request: CloseMonthRequest) {
-        await closeMonth.mutateAsync(request);
-        setShowCloseMonth(false);
+    async function handleCloseMonth(from: string, to: string, mode: CloseMode, emailTo?: string) {
+        await closeMonth.mutateAsync({ from, to, mode, emailTo });
     }
 
     const entries = data?.entries ?? [];
     const summary = data?.summary;
-    const openEntry = entries.find(e => e.id === openMenuEntryId) ?? null;
-    const hasPartialClose = entries.some(e => e.isClosed);
 
     return (
         <>
@@ -452,18 +366,18 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     <HeaderActions>
                         <ActionBtn $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
                         <ActionBtn $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
-                        <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
-                            {downloading ? 'Generowanie...' : '↓ PDF'}
-                        </ActionBtn>
-                        <ActionBtn $variant="ghost" onClick={() => setShowHistory(true)} title="Historia zamknięć">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12 6 12 12 16 14" />
-                            </svg>
+                        <ActionBtn $variant="ghost" onClick={() => setShowCloseHistory(true)}>
                             Historia
                         </ActionBtn>
-                        <ActionBtn $variant="success" onClick={() => setShowCloseMonth(true)}>
-                            Zamknij miesiąc
+                        <ActionBtn
+                            $variant="ghost"
+                            onClick={handleDownloadReport}
+                            disabled={downloading}
+                        >
+                            {downloading ? 'Generowanie...' : '↓ Raport PDF'}
+                        </ActionBtn>
+                        <ActionBtn $variant="outline" onClick={() => setShowCloseMonth(true)}>
+                            Zamknij okres
                         </ActionBtn>
                         <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
                             + Dodaj wpis
@@ -499,15 +413,20 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                         <Th $align="right">Netto</Th>
                                         <Th $align="right">Brutto</Th>
                                         <Th>Uwagi</Th>
-                                        <Th style={{ width: 40 }}></Th>
+                                        <Th $align="right"></Th>
                                     </tr>
                                 </TableHead>
                                 <tbody>
                                     {entries.map(entry => (
                                         <Fragment key={entry.id}>
-                                            <Tr $closed={entry.isClosed}>
+                                            <Tr>
                                                 <Td style={{ whiteSpace: 'nowrap' }}>
                                                     {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                                    {entry.isClosed && (
+                                                        <div style={{ marginTop: 4 }}>
+                                                            <ClosedBadge>Zamknięty</ClosedBadge>
+                                                        </div>
+                                                    )}
                                                 </Td>
                                                 <Td>
                                                     <VehicleCell>
@@ -544,19 +463,37 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 <Td $align="right">
                                                     <GrossMoney>{formatMoney(entry.grossAmountCents)}</GrossMoney>
                                                 </Td>
-                                                <Td>
-                                                    <NoteText title={entry.notes ?? undefined}>
-                                                        {entry.notes || '—'}
-                                                    </NoteText>
+                                                <Td style={{ maxWidth: 160, wordBreak: 'break-word', color: 'inherit' }}>
+                                                    {entry.notes || <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>—</span>}
                                                 </Td>
-                                                <Td style={{ width: 40, paddingLeft: 4 }}>
-                                                    <DotsBtn
-                                                        $open={openMenuEntryId === entry.id}
-                                                        onClick={e => openMenu(e, entry.id)}
-                                                        title="Opcje"
-                                                    >
-                                                        ⋮
-                                                    </DotsBtn>
+                                                <Td $align="right">
+                                                    <RowActions>
+                                                        <ActionBtn
+                                                            $variant="ghost"
+                                                            title="Dokumentacja zdjęciowa"
+                                                            onClick={() => setExpandedPhotoEntryId(
+                                                                expandedPhotoEntryId === entry.id ? null : entry.id
+                                                            )}
+                                                            style={expandedPhotoEntryId === entry.id ? { background: 'rgba(14,165,233,0.1)', borderColor: 'rgba(14,165,233,0.4)' } : {}}
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" style={{ verticalAlign: 'middle' }}>
+                                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                                                <circle cx="12" cy="13" r="4" />
+                                                            </svg>
+                                                        </ActionBtn>
+                                                        <ActionBtn
+                                                            $variant="outline"
+                                                            onClick={() => { setEditEntry(entry); setShowEntryForm(true); }}
+                                                        >
+                                                            Edytuj
+                                                        </ActionBtn>
+                                                        <ActionBtn
+                                                            $variant="danger"
+                                                            onClick={() => setConfirmDeleteEntryId(entry.id)}
+                                                        >
+                                                            Usuń
+                                                        </ActionBtn>
+                                                    </RowActions>
                                                 </Td>
                                             </Tr>
                                             {expandedPhotoEntryId === entry.id && (
@@ -575,15 +512,15 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         {summary && (
                             <SummaryBar>
                                 <SummaryItem>
-                                    <SummaryLabel>Wpisów</SummaryLabel>
+                                    <SummaryLabel>Liczba wpisów</SummaryLabel>
                                     <SummaryValue>{summary.entryCount}</SummaryValue>
                                 </SummaryItem>
                                 <SummaryItem>
-                                    <SummaryLabel>Netto</SummaryLabel>
+                                    <SummaryLabel>Suma netto</SummaryLabel>
                                     <SummaryValue>{formatMoney(summary.totalNetCents)}</SummaryValue>
                                 </SummaryItem>
                                 <SummaryItem>
-                                    <SummaryLabel>Brutto</SummaryLabel>
+                                    <SummaryLabel>Suma brutto</SummaryLabel>
                                     <SummaryValue>{formatMoney(summary.totalGrossCents)}</SummaryValue>
                                 </SummaryItem>
                             </SummaryBar>
@@ -591,59 +528,6 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     </>
                 )}
             </Section>
-
-            {/* Portal dropdown — renders into document.body, escapes all overflow:hidden parents */}
-            {openEntry && menuPosition && createPortal(
-                <DropdownMenu
-                    style={{ top: menuPosition.top, right: menuPosition.right }}
-                    onClick={e => e.stopPropagation()}
-                >
-                    <MenuItem
-                        onClick={() => {
-                            setExpandedPhotoEntryId(
-                                expandedPhotoEntryId === openEntry.id ? null : openEntry.id
-                            );
-                            setOpenMenuEntryId(null);
-                        }}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                            <circle cx="12" cy="13" r="4" />
-                        </svg>
-                        Dokumentacja zdjęciowa
-                    </MenuItem>
-                    <MenuItem
-                        onClick={() => {
-                            setEditEntry(openEntry);
-                            setShowEntryForm(true);
-                            setOpenMenuEntryId(null);
-                        }}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        Edytuj wpis
-                    </MenuItem>
-                    <MenuDivider />
-                    <MenuItem
-                        $danger
-                        onClick={() => {
-                            setConfirmDeleteEntryId(openEntry.id);
-                            setOpenMenuEntryId(null);
-                        }}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                            <path d="M10 11v6M14 11v6" />
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                        Usuń wpis
-                    </MenuItem>
-                </DropdownMenu>,
-                document.body
-            )}
 
             {showEntryForm && (
                 <EntryFormModal
@@ -666,20 +550,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
 
             {showCloseMonth && (
                 <CloseMonthModal
-                    contractor={contractor}
-                    from={filterFrom}
-                    to={filterTo}
-                    hasPartialClose={hasPartialClose}
-                    onConfirm={handleCloseMonth}
+                    contractorName={contractor.name}
                     onClose={() => setShowCloseMonth(false)}
-                    isLoading={closeMonth.isPending}
+                    onConfirm={handleCloseMonth}
                 />
             )}
 
-            {showHistory && (
+            {showCloseHistory && (
                 <CloseHistoryModal
-                    contractor={contractor}
-                    onClose={() => setShowHistory(false)}
+                    contractorId={contractor.id}
+                    contractorName={contractor.name}
+                    onClose={() => setShowCloseHistory(false)}
                 />
             )}
         </>
