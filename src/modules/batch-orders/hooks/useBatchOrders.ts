@@ -5,6 +5,7 @@ import type { CloseMonthRequest, ContractorRequest, EntryRequest } from '../type
 export const CONTRACTORS_KEY = ['batch-orders', 'contractors'] as const;
 export const ENTRIES_KEY = (contractorId: string) => ['batch-orders', 'entries', contractorId] as const;
 export const ENTRY_PHOTOS_KEY = (entryId: string) => ['batch-orders', 'entry-photos', entryId] as const;
+export const CLOSE_HISTORY_KEY = (contractorId: string) => ['batch-orders', 'close-history', contractorId] as const;
 
 export function useContractors() {
     return useQuery({
@@ -91,6 +92,17 @@ export function useCloseMonth(contractorId: string) {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (request: CloseMonthRequest) => batchOrderApi.closeMonth(contractorId, request),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
+            qc.invalidateQueries({ queryKey: CLOSE_HISTORY_KEY(contractorId) });
+        },
+    });
+}
+
+export function useCloseHistory(contractorId: string) {
+    return useQuery({
+        queryKey: CLOSE_HISTORY_KEY(contractorId),
+        queryFn: () => batchOrderApi.getCloseHistory(contractorId),
+        enabled: !!contractorId,
     });
 }

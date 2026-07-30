@@ -107,16 +107,36 @@ export interface PhotoUploadResponse {
     fileId: string;
 }
 
+export type CloseMode = 'ALL' | 'NEW_ONLY';
+
 export interface CloseMonthRequest {
     from: string;
     to: string;
     addToFinances: boolean;
     sendEmail: boolean;
     emailOverride?: string;
+    mode: CloseMode;
 }
 
 export interface CloseMonthResult {
     closedEntryCount: number;
     financeEntryCreated: boolean;
     emailSent: boolean;
+    historyId: string;
+}
+
+export interface CloseHistoryRecord {
+    id: string;
+    closedAt: string;
+    periodFrom: string | null;
+    periodTo: string | null;
+    entryCount: number;
+    totalNetCents: number;
+    totalGrossCents: number;
+    mode: CloseMode;
+    financeEntryCreated: boolean;
+    emailRequested: boolean;
+    emailSent: boolean;
+    emailRecipient: string | null;
+    closedByUserName: string | null;
 }

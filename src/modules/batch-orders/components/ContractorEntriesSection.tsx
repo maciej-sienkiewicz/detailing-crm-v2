@@ -7,6 +7,7 @@ import { EntryFormModal } from './EntryFormModal';
 import { DateRangeFilter, currentMonthRange } from './DateRangeFilter';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { CloseMonthModal } from './CloseMonthModal';
+import { CloseHistoryModal } from './CloseHistoryModal';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, CloseMonthRequest, EntryRequest } from '../types';
 
@@ -371,6 +372,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [downloading, setDownloading] = useState(false);
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
     const [showCloseMonth, setShowCloseMonth] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
 
@@ -432,6 +434,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const entries = data?.entries ?? [];
     const summary = data?.summary;
     const openEntry = entries.find(e => e.id === openMenuEntryId) ?? null;
+    const hasPartialClose = entries.some(e => e.isClosed);
 
     return (
         <>
@@ -451,6 +454,13 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         <ActionBtn $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
                         <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
                             {downloading ? 'Generowanie...' : '↓ PDF'}
+                        </ActionBtn>
+                        <ActionBtn $variant="ghost" onClick={() => setShowHistory(true)} title="Historia zamknięć">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            Historia
                         </ActionBtn>
                         <ActionBtn $variant="success" onClick={() => setShowCloseMonth(true)}>
                             Zamknij miesiąc
@@ -659,9 +669,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     contractor={contractor}
                     from={filterFrom}
                     to={filterTo}
+                    hasPartialClose={hasPartialClose}
                     onConfirm={handleCloseMonth}
                     onClose={() => setShowCloseMonth(false)}
                     isLoading={closeMonth.isPending}
+                />
+            )}
+
+            {showHistory && (
+                <CloseHistoryModal
+                    contractor={contractor}
+                    onClose={() => setShowHistory(false)}
                 />
             )}
         </>

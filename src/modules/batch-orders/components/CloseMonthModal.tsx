@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import type { BatchContractor, CloseMonthRequest } from '../types';
+import type { BatchContractor, CloseMode, CloseMonthRequest } from '../types';
 
 const Overlay = styled.div`
     position: fixed;
@@ -37,6 +37,67 @@ const Subtitle = styled.p`
     font-size: ${p => p.theme.fontSizes.sm};
     color: ${p => p.theme.colors.textMuted};
     line-height: 1.5;
+`;
+
+const WarningBox = styled.div`
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: rgba(245, 158, 11, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const WarningTitle = styled.p`
+    margin: 0;
+    font-size: ${p => p.theme.fontSizes.sm};
+    font-weight: 600;
+    color: #b45309;
+`;
+
+const ModeOptions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const ModeOption = styled.label<{ $active?: boolean }>`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
+    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.05)' : 'transparent'};
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease;
+
+    &:hover {
+        border-color: ${p => p.theme.colors.primary};
+    }
+`;
+
+const ModeRadio = styled.input`
+    margin-top: 2px;
+    accent-color: ${p => p.theme.colors.primary};
+    flex-shrink: 0;
+`;
+
+const ModeLabel = styled.span`
+    font-size: ${p => p.theme.fontSizes.sm};
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
+    display: block;
+    line-height: 1.4;
+`;
+
+const ModeDesc = styled.span`
+    font-size: ${p => p.theme.fontSizes.xs};
+    color: ${p => p.theme.colors.textMuted};
+    display: block;
+    margin-top: 2px;
+    line-height: 1.4;
 `;
 
 const OptionBlock = styled.div<{ $active?: boolean }>`
@@ -153,12 +214,14 @@ interface Props {
     contractor: BatchContractor;
     from: string;
     to: string;
+    hasPartialClose: boolean;
     onConfirm: (request: CloseMonthRequest) => Promise<void>;
     onClose: () => void;
     isLoading?: boolean;
 }
 
-export function CloseMonthModal({ contractor, from, to, onConfirm, onClose, isLoading }: Props) {
+export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfirm, onClose, isLoading }: Props) {
+    const [mode, setMode] = useState<CloseMode>(hasPartialClose ? 'NEW_ONLY' : 'ALL');
     const [addToFinances, setAddToFinances] = useState(false);
     const [sendEmail, setSendEmail] = useState(false);
     const [email, setEmail] = useState(contractor.email ?? '');
@@ -172,6 +235,7 @@ export function CloseMonthModal({ contractor, from, to, onConfirm, onClose, isLo
             addToFinances,
             sendEmail,
             emailOverride: sendEmail && email ? email : undefined,
+            mode,
         });
     }
 
@@ -184,6 +248,42 @@ export function CloseMonthModal({ contractor, from, to, onConfirm, onClose, isLo
                         {contractor.name} · {periodLabel}
                     </Subtitle>
                 </div>
+
+                {hasPartialClose && (
+                    <WarningBox>
+                        <WarningTitle>
+                            Część pozycji została zamknięta we wcześniejszym raporcie.
+                        </WarningTitle>
+                        <ModeOptions>
+                            <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
+                                <ModeRadio
+                                    type="radio"
+                                    name="close-mode"
+                                    checked={mode === 'ALL'}
+                                    onChange={() => setMode('ALL')}
+                                    onClick={e => e.stopPropagation()}
+                                />
+                                <div>
+                                    <ModeLabel>Wszystkie pozycje</ModeLabel>
+                                    <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już zamkniętymi.</ModeDesc>
+                                </div>
+                            </ModeOption>
+                            <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
+                                <ModeRadio
+                                    type="radio"
+                                    name="close-mode"
+                                    checked={mode === 'NEW_ONLY'}
+                                    onChange={() => setMode('NEW_ONLY')}
+                                    onClick={e => e.stopPropagation()}
+                                />
+                                <div>
+                                    <ModeLabel>Tylko nowo dodane</ModeLabel>
+                                    <ModeDesc>Zamyka wyłącznie wpisy, które nie były jeszcze ujęte w żadnym raporcie.</ModeDesc>
+                                </div>
+                            </ModeOption>
+                        </ModeOptions>
+                    </WarningBox>
+                )}
 
                 <OptionBlock
                     $active={addToFinances}

@@ -3,6 +3,7 @@ import type {
     BatchContractor,
     BatchOrderEntry,
     BatchOrderPhoto,
+    CloseHistoryRecord,
     CloseMonthRequest,
     CloseMonthResult,
     ContractorsResponse,
@@ -122,5 +123,24 @@ export const batchOrderApi = {
     closeMonth: async (contractorId: string, request: CloseMonthRequest): Promise<CloseMonthResult> => {
         const response = await apiClient.post<CloseMonthResult>(`${BASE}/contractors/${contractorId}/close-month`, request);
         return response.data;
+    },
+
+    getCloseHistory: async (contractorId: string): Promise<CloseHistoryRecord[]> => {
+        const response = await apiClient.get<{ records: CloseHistoryRecord[] }>(
+            `${BASE}/contractors/${contractorId}/close-history`
+        );
+        return response.data.records;
+    },
+
+    downloadHistorySnapshot: async (historyId: string, contractorName: string): Promise<void> => {
+        const response = await apiClient.get(`${BASE}/close-history/${historyId}/snapshot`, {
+            responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `zamkniecie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
     },
 };
