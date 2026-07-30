@@ -1200,7 +1200,8 @@ function resolveTemplate(tpl: string, studioName: string): string {
     .replace(/\{\{nazwisko\}\}/g, 'Kowalski')
     .replace(/\{\{data\}\}/g, '15.06.2026')
     .replace(/\{\{godzina\}\}/g, '14:30')
-    .replace(/\{\{studio\}\}/g, studioName);
+    .replace(/\{\{studio\}\}/g, studioName)
+    .replace(/\{\{link\}\}/g, 'https://example.com/vc/token123');
 }
 
 const VARS: { key: string; label: string }[] = [
@@ -1209,6 +1210,7 @@ const VARS: { key: string; label: string }[] = [
   { key: '{{data}}',     label: 'data'     },
   { key: '{{godzina}}',  label: 'godzina'  },
   { key: '{{studio}}',   label: 'studio'   },
+  { key: '{{link}}',     label: 'link'     },
 ];
 
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
@@ -1349,6 +1351,7 @@ const CONFIG_DEFAULTS: SmsAutomationConfig = {
   bookingConfirmation:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
   rescheduleConfirmation: { enabled: false, messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
   visitReadyForPickup:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, Twój pojazd jest gotowy do odbioru w {{studio}}. Zapraszamy!' },
+  visitCardLink:          { enabled: false, messageTemplate: '{{studio}}: Karta Twojej wizyty jest dostępna tutaj: {{link}}' },
 };
 
 function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationConfig {
@@ -1358,6 +1361,7 @@ function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationC
     bookingConfirmation:    config.bookingConfirmation    ?? CONFIG_DEFAULTS.bookingConfirmation,
     rescheduleConfirmation: config.rescheduleConfirmation ?? CONFIG_DEFAULTS.rescheduleConfirmation,
     visitReadyForPickup:    config.visitReadyForPickup    ?? CONFIG_DEFAULTS.visitReadyForPickup,
+    visitCardLink:          config.visitCardLink          ?? CONFIG_DEFAULTS.visitCardLink,
   };
 }
 
@@ -1640,6 +1644,29 @@ export const AutomationSettings: React.FC = () => {
           onToggleOpen={() => toggleCardOpen('visitReadyForPickup')}
           onToggleEnabled={makeToggleEnabled('visitReadyForPickup')}
           onChange={makeRuleUpdater('visitReadyForPickup')}
+          showTiming={false}
+        />
+
+        <RuleCard
+          rule={localConfig.visitCardLink}
+          open={openCards.has('visitCardLink')}
+          title="SMS z linkiem do Karty Wizyty"
+          description="Wyślij klientowi SMS z linkiem do Karty Wizyty po jej udostępnieniu. Użyj zmiennej {{link}}, aby wstawić adres karty."
+          studioName={studioName}
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          }
+          meta={
+            localConfig.visitCardLink.enabled
+              ? <ImmediateBadge>Przy wysyłce Karty Wizyty</ImmediateBadge>
+              : <InactiveLabel>Nieaktywne</InactiveLabel>
+          }
+          onToggleOpen={() => toggleCardOpen('visitCardLink')}
+          onToggleEnabled={makeToggleEnabled('visitCardLink')}
+          onChange={makeRuleUpdater('visitCardLink')}
           showTiming={false}
         />
       </Container>

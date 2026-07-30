@@ -142,9 +142,14 @@ export const ReadyToCompletedWizard = ({
         }
     }, [isOpen, skipBriefing, currentStep]);
 
-    // Adjust progress display: when step 1 is skipped, show 2 steps instead of 3
+    const isFreeVisit = calculatedTotals.grossAmount === 0;
+
+    // Effective last step: skip Payment (step 3) when visit total is zero
+    const effectiveTotalSteps = totalSteps - (isFreeVisit ? 1 : 0);
+
+    // Adjust progress display: skip counts for hidden steps
     const displayStep = skipBriefing ? currentStep - 1 : currentStep;
-    const displayTotalSteps = skipBriefing ? totalSteps - 1 : totalSteps;
+    const displayTotalSteps = effectiveTotalSteps - (skipBriefing ? 1 : 0);
 
     const { calculateServicePrice } = useServicePricing();
 
@@ -236,7 +241,7 @@ export const ReadyToCompletedWizard = ({
                     />
                 );
             case 2:
-                return <SignatureStep onConfirm={handleNext} isDoorToDoor={!!visit.doorToDoor?.enabled} />;
+                return <SignatureStep onConfirm={isFreeVisit ? handleFinish : handleNext} isDoorToDoor={!!visit.doorToDoor?.enabled} isFreeVisit={isFreeVisit} />;
             case 3:
                 return (
                     <PaymentStep
@@ -264,8 +269,8 @@ export const ReadyToCompletedWizard = ({
             currentStep={displayStep}
             totalSteps={displayTotalSteps}
             onBack={currentStep > (skipBriefing ? 2 : 1) ? handleBack : undefined}
-            onNext={currentStep < totalSteps ? handleNext : undefined}
-            onFinish={currentStep === totalSteps ? handleFinish : undefined}
+            onNext={currentStep < effectiveTotalSteps ? handleNext : undefined}
+            onFinish={currentStep === effectiveTotalSteps ? handleFinish : undefined}
             nextLabel={currentStep === 2 ? 'Podpisano' : 'Kontynuuj'}
             finishLabel="Zatwierdź i wydaj pojazd"
             isProcessing={isProcessing}
