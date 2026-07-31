@@ -14,6 +14,12 @@ let mockConfig: EmailAutomationConfig = {
     bodyTemplate:
       'Drogi/a {{imie}},\n\nInformujemy, że Twój pojazd jest już gotowy do odbioru w {{studio}}.\n\nDo zobaczenia!\n\nZespół {{studio}}',
   },
+  batchOrderClose: {
+    enabled: false,
+    subjectTemplate: 'Zestawienie zbiorcze – {{kontrahent}} – {{okres}}',
+    bodyTemplate:
+      'Dzień dobry,\n\nw załączniku przesyłamy zestawienie zbiorcze za okres {{okres}}.\n\nLiczba wpisów: {{liczba_wpisow}}\nKwota brutto: {{kwota_brutto}}\n\nPozdrawiamy,\nZespół {{studio}}',
+  },
 };
 
 const USE_MOCKS = false;
