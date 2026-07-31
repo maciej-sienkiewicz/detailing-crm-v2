@@ -36,37 +36,6 @@ export interface BatchOrderEntry {
     updatedAt: string;
 }
 
-export type CloseMode = 'ALL' | 'NEW_ONLY';
-
-export interface CloseMonthRequest {
-    from: string;
-    to: string;
-    mode: CloseMode;
-    emailTo?: string;
-}
-
-export interface CloseMonthResult {
-    historyId: string;
-    entryCount: number;
-    totalNetCents: number;
-    totalGrossCents: number;
-    emailSent: boolean;
-}
-
-export interface CloseHistoryRecord {
-    id: string;
-    contractorId: string;
-    fromDate: string;
-    toDate: string;
-    mode: string;
-    entryCount: number;
-    totalNetCents: number;
-    totalGrossCents: number;
-    emailSent: boolean;
-    emailTo: string | null;
-    closedAt: string;
-}
-
 export interface EntrySummary {
     totalNetCents: number;
     totalGrossCents: number;
@@ -138,3 +107,36 @@ export interface PhotoUploadResponse {
     fileId: string;
 }
 
+export type CloseMode = 'ALL' | 'NEW_ONLY';
+
+export interface CloseMonthRequest {
+    from: string;
+    to: string;
+    addToFinances: boolean;
+    sendEmail: boolean;
+    emailOverride?: string;
+    mode: CloseMode;
+}
+
+export interface CloseMonthResult {
+    closedEntryCount: number;
+    financeEntryCreated: boolean;
+    emailSent: boolean;
+    historyId: string;
+}
+
+export interface CloseHistoryRecord {
+    id: string;
+    closedAt: string;
+    periodFrom: string | null;
+    periodTo: string | null;
+    entryCount: number;
+    totalNetCents: number;
+    totalGrossCents: number;
+    mode: CloseMode;
+    financeEntryCreated: boolean;
+    emailRequested: boolean;
+    emailSent: boolean;
+    emailRecipient: string | null;
+    closedByUserName: string | null;
+}

@@ -565,7 +565,7 @@ const EyeIcon = () => (
 
 // ─── Variables & template resolution ─────────────────────────────────────────
 
-const VISIT_VARS: { key: string; label: string }[] = [
+const VARS: { key: string; label: string }[] = [
   { key: '{{imie}}',     label: 'imię'     },
   { key: '{{nazwisko}}', label: 'nazwisko' },
   { key: '{{data}}',     label: 'data'     },
@@ -573,27 +573,13 @@ const VISIT_VARS: { key: string; label: string }[] = [
   { key: '{{studio}}',   label: 'studio'   },
 ];
 
-const BATCH_VARS: { key: string; label: string }[] = [
-  { key: '{{kontrahent}}',   label: 'kontrahent'   },
-  { key: '{{okres}}',        label: 'okres'        },
-  { key: '{{kwota_brutto}}', label: 'kwota brutto' },
-  { key: '{{liczba_wpisow}}', label: 'liczba wpisów' },
-  { key: '{{studio}}',       label: 'studio'       },
-];
-
-const VARS = VISIT_VARS;
-
 function resolveTemplate(tpl: string, studioName: string): string {
   return tpl
     .replace(/\{\{imie\}\}/g, 'Jan')
     .replace(/\{\{nazwisko\}\}/g, 'Kowalski')
     .replace(/\{\{data\}\}/g, '15.06.2026')
     .replace(/\{\{godzina\}\}/g, '14:30')
-    .replace(/\{\{studio\}\}/g, studioName)
-    .replace(/\{\{kontrahent\}\}/g, 'FleetPro Sp. z o.o.')
-    .replace(/\{\{okres\}\}/g, '01.06.2026 – 30.06.2026')
-    .replace(/\{\{kwota_brutto\}\}/g, '3 450,00 zł')
-    .replace(/\{\{liczba_wpisow\}\}/g, '12');
+    .replace(/\{\{studio\}\}/g, studioName);
 }
 
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
@@ -601,11 +587,10 @@ function resolveTemplate(tpl: string, studioName: string): string {
 interface RuleEditorProps {
   rule:       EmailNotificationRule;
   studioName: string;
-  vars?:      { key: string; label: string }[];
   onChange:   (rule: EmailNotificationRule) => void;
 }
 
-const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, vars = VARS, onChange }) => {
+const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) => {
   const [showPreview, setShowPreview] = useState(false);
 
   const insertIntoSubject = (key: string) =>
@@ -623,7 +608,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, vars = VARS, 
         <SectionLabel>Temat wiadomości</SectionLabel>
         <ChipsRow>
           <ChipsLead>Wstaw:</ChipsLead>
-          {vars.map(({ key, label }) => (
+          {VARS.map(({ key, label }) => (
             <VarChip key={key} type="button" title={key} onClick={() => insertIntoSubject(key)}>
               {label}
             </VarChip>
@@ -641,7 +626,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, vars = VARS, 
         <SectionLabel>Treść wiadomości</SectionLabel>
         <ChipsRow>
           <ChipsLead>Wstaw:</ChipsLead>
-          {vars.map(({ key, label }) => (
+          {VARS.map(({ key, label }) => (
             <VarChip key={key} type="button" title={key} onClick={() => insertIntoBody(key)}>
               {label}
             </VarChip>
@@ -701,19 +686,12 @@ const CONFIG_DEFAULTS: EmailAutomationConfig = {
     bodyTemplate:
       'Drogi/a {{imie}},\n\nInformujemy, że Twój pojazd jest już gotowy do odbioru w {{studio}}.\n\nDo zobaczenia!\n\nZespół {{studio}}',
   },
-  batchOrderClose: {
-    enabled: false,
-    subjectTemplate: 'Zestawienie zbiorcze – {{kontrahent}} – {{okres}}',
-    bodyTemplate:
-      'Dzień dobry,\n\nw załączniku przesyłamy zestawienie zbiorcze za okres {{okres}}.\n\nLiczba wpisów: {{liczba_wpisow}}\nKwota brutto: {{kwota_brutto}}\n\nPozdrawiamy,\nZespół {{studio}}',
-  },
 };
 
 function mergeWithDefaults(config: Partial<EmailAutomationConfig>): EmailAutomationConfig {
   return {
     visitWelcome:        config.visitWelcome        ?? CONFIG_DEFAULTS.visitWelcome,
     visitReadyForPickup: config.visitReadyForPickup ?? CONFIG_DEFAULTS.visitReadyForPickup,
-    batchOrderClose:     config.batchOrderClose     ?? CONFIG_DEFAULTS.batchOrderClose,
   };
 }
 
@@ -727,14 +705,13 @@ interface EmailRuleCardProps {
   icon:            React.ReactNode;
   meta:            React.ReactNode;
   studioName:      string;
-  vars?:           { key: string; label: string }[];
   onToggleOpen:    () => void;
   onToggleEnabled: (e: React.MouseEvent) => void;
   onChange:        (rule: EmailNotificationRule) => void;
 }
 
 const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
-  rule, open, title, description, icon, meta, studioName, vars,
+  rule, open, title, description, icon, meta, studioName,
   onToggleOpen, onToggleEnabled, onChange,
 }) => (
   <Card $enabled={rule.enabled}>
@@ -767,7 +744,7 @@ const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
               Reguła jest wyłączona — możesz edytować szablon, ale emaile nie będą wysyłane.
             </DisabledHint>
           )}
-          <RuleEditor rule={rule} studioName={studioName} vars={vars} onChange={onChange} />
+          <RuleEditor rule={rule} studioName={studioName} onChange={onChange} />
         </CardBody>
       </>
     )}
@@ -778,7 +755,7 @@ const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
 
 const SkeletonList: React.FC = () => (
   <Container>
-    {[48, 44, 52].map((w, i) => (
+    {[48, 44].map((w, i) => (
       <Card key={i} $enabled={false}>
         <CardHeaderRow style={{ cursor: 'default' }}>
           <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
@@ -906,32 +883,6 @@ export const EmailAutomationSettings: React.FC = () => {
           onToggleOpen={() => toggleCardOpen('visitReadyForPickup')}
           onToggleEnabled={makeToggleEnabled('visitReadyForPickup')}
           onChange={makeRuleUpdater('visitReadyForPickup')}
-        />
-
-        <EmailRuleCard
-          rule={localConfig.batchOrderClose}
-          open={openCards.has('batchOrderClose')}
-          title="Zestawienie zbiorcze dla kontrahenta"
-          description="Automatyczna wysyłka PDF z zestawieniem do kontrahenta przy zamknięciu okresu z modułu Zlecenia zbiorcze."
-          studioName={studioName}
-          vars={BATCH_VARS}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-          }
-          meta={
-            localConfig.batchOrderClose.enabled
-              ? <ImmediateBadge>Przy zamknięciu okresu</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('batchOrderClose')}
-          onToggleEnabled={makeToggleEnabled('batchOrderClose')}
-          onChange={makeRuleUpdater('batchOrderClose')}
         />
       </Container>
 
