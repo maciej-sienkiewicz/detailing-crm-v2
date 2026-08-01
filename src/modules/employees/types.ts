@@ -43,12 +43,14 @@ export interface EmployeeAccountInfo {
 
 export interface EmployeeDetail {
     id: string;
+    userId: string | null;
     firstName: string;
     lastName: string;
     fullName: string;
     phone: string | null;
     email: string | null;
     account: EmployeeAccountInfo | null;
+    hasSignature: boolean;
     createdAt: string;
     updatedAt: string;
     // Pola planowane na kolejne iteracje modułu kadrowego — backend jeszcze ich nie zwraca
