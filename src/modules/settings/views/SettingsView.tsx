@@ -304,7 +304,6 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, PermissionRequirement | 'O
     templates: 'COMMUNICATION_SEND',
     'email-templates': 'COMMUNICATION_SEND',
     reminders: 'COMMUNICATION_SEND',
-    documents: 'VISITS_DOCUMENTS_MANAGE',
     tablets: 'VISITS_DOCUMENTS_MANAGE',
     // Billing is the owner's domain — no permission code exists for it.
     plan: 'OWNER_ONLY',

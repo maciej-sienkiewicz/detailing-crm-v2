@@ -49,6 +49,15 @@ export const employeeApi = {
         return res.data;
     },
 
+    getMyEmployee: async (): Promise<EmployeeDetail | null> => {
+        try {
+            const res = await apiClient.get<EmployeeDetail>(`${BASE}/me`);
+            return res.data;
+        } catch {
+            return null;
+        }
+    },
+
     createEmployee: async (payload: CreateEmployeePayload): Promise<EmployeeDetail> => {
         const res = await apiClient.post<EmployeeDetail>(BASE, payload);
         return res.data;
