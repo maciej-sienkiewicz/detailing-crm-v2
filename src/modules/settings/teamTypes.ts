@@ -14,6 +14,7 @@ export interface TeamEmployeeListItem {
     email: string | null;
     phone: string | null;
     hasAccount: boolean;
+    hasSignature: boolean;
 }
 
 export interface TeamPagination {

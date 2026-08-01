@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import styled from 'styled-components';
+import { useEmployees } from '../hooks/useTeam';
+import { SignatureConfigCard } from '@/modules/employees/components/SignatureConfigCard';
+import type { TeamEmployeeListItem } from '../teamTypes';
 import {
     useProtocolTemplates,
     useProtocolRules,
@@ -725,6 +728,228 @@ function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) 
     );
 }
 
+// ─── Employee Signatures Section ──────────────────────────────────────────────
+
+const SigPanel = styled(Panel)`
+    border-top: 3px solid #0ea5e9;
+`;
+
+const SigPanelHead = styled(PanelHead)`
+    background: linear-gradient(135deg, rgba(14,165,233,0.04) 0%, transparent 100%);
+`;
+
+const SigIconWrap = styled.div`
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: rgba(14,165,233,0.12);
+    color: #0284c7;
+    svg { width: 15px; height: 15px; }
+`;
+
+const SigBadge = styled.span<{ $ok: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 600;
+    background: ${p => p.$ok ? 'rgba(16,185,129,0.1)' : 'rgba(148,163,184,0.1)'};
+    color: ${p => p.$ok ? '#059669' : '#94a3b8'};
+`;
+
+const SigDot = styled.span<{ $ok: boolean }>`
+    width: 5px; height: 5px; border-radius: 50%;
+    background: ${p => p.$ok ? '#10b981' : '#94a3b8'};
+`;
+
+const AvatarCircle = styled.div`
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: rgba(14,165,233,0.1);
+    color: #0284c7;
+    font-size: 14px; font-weight: 700;
+`;
+
+const ConfigureBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #0284c7;
+    background: transparent;
+    border: 1px solid #0ea5e9;
+    border-radius: 9px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 180ms;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover { background: rgba(14,165,233,0.06); }
+    svg { width: 12px; height: 12px; }
+`;
+
+const SigModalOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+`;
+
+const SigModalInner = styled.div`
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+`;
+
+const SigModalHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 14px 14px 0 0;
+    border-bottom: 1px solid #f1f5f9;
+`;
+
+const SigModalTitle = styled.div`
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+const SigModalSub = styled.div`
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 1px;
+`;
+
+const SigModalClose = styled.button`
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent; border-radius: 6px;
+    cursor: pointer; color: #94a3b8;
+    transition: all 150ms;
+    flex-shrink: 0;
+    &:hover { background: #f1f5f9; color: #334155; }
+    svg { width: 14px; height: 14px; }
+`;
+
+const PenIconSm = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>
+);
+
+const XIconSm = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
+
+interface SigModalProps {
+    employee: TeamEmployeeListItem;
+    onClose: () => void;
+    onChanged: () => void;
+}
+
+function EmployeeSignatureModal({ employee, onClose, onChanged }: SigModalProps) {
+    return (
+        <SigModalOverlay onClick={onClose}>
+            <SigModalInner onClick={e => e.stopPropagation()}>
+                <SigModalHeader>
+                    <div>
+                        <SigModalTitle>Podpis pracownika</SigModalTitle>
+                        <SigModalSub>{employee.fullName}</SigModalSub>
+                    </div>
+                    <SigModalClose onClick={onClose} title="Zamknij"><XIconSm /></SigModalClose>
+                </SigModalHeader>
+                <SignatureConfigCard
+                    employeeId={employee.id}
+                    hasSignature={employee.hasSignature}
+                    onChanged={onChanged}
+                />
+            </SigModalInner>
+        </SigModalOverlay>
+    );
+}
+
+function EmployeeSignaturesSection() {
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const { items, isLoading, refetch } = useEmployees({ search: '', page: 1, limit: 200 });
+
+    const selectedEmployee = items.find(e => e.id === selectedId) ?? null;
+
+    const handleChanged = useCallback(() => {
+        refetch();
+    }, [refetch]);
+
+    return (
+        <>
+            <SigPanel>
+                <SigPanelHead>
+                    <PanelTitle>
+                        <SigIconWrap><PenIconSm /></SigIconWrap>
+                        Podpisy pracowników
+                        <Count>{items.length}</Count>
+                    </PanelTitle>
+                </SigPanelHead>
+
+                {isLoading ? (
+                    <Spinner />
+                ) : items.length === 0 ? (
+                    <EmptyBox>
+                        <EmptyTitle>Brak pracowników</EmptyTitle>
+                        <EmptyDesc>Dodaj pracowników w zakładce Zespół, aby skonfigurować ich podpisy.</EmptyDesc>
+                    </EmptyBox>
+                ) : (
+                    <RuleList>
+                        {items.map(emp => (
+                            <RuleItem key={emp.id}>
+                                <AvatarCircle>{emp.fullName.charAt(0).toUpperCase()}</AvatarCircle>
+                                <RuleInfo>
+                                    <RuleName>{emp.fullName}</RuleName>
+                                    <RuleMeta>
+                                        <SigBadge $ok={emp.hasSignature}>
+                                            <SigDot $ok={emp.hasSignature} />
+                                            {emp.hasSignature ? 'Podpis skonfigurowany' : 'Brak podpisu'}
+                                        </SigBadge>
+                                    </RuleMeta>
+                                </RuleInfo>
+                                <RuleActions>
+                                    <ConfigureBtn onClick={() => setSelectedId(emp.id)}>
+                                        <PenIconSm />
+                                        Konfiguruj
+                                    </ConfigureBtn>
+                                </RuleActions>
+                            </RuleItem>
+                        ))}
+                    </RuleList>
+                )}
+            </SigPanel>
+
+            {selectedEmployee && (
+                <EmployeeSignatureModal
+                    employee={selectedEmployee}
+                    onClose={() => setSelectedId(null)}
+                    onChanged={handleChanged}
+                />
+            )}
+        </>
+    );
+}
+
 // ─── DocumentsSection ─────────────────────────────────────────────────────────
 
 export function DocumentsSection() {
@@ -783,6 +1008,8 @@ export function DocumentsSection() {
                         onAdd={() => setConsentModalOpen(true)}
                         onRefresh={handleRefresh}
                     />
+
+                    <EmployeeSignaturesSection />
                 </>
             )}
 
