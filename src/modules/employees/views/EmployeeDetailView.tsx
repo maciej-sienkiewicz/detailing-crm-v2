@@ -8,7 +8,6 @@ import { useEmployee } from '../hooks/useEmployees';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import { AccountManagementCard } from '../components/AccountManagementCard';
 import { LeavesTab } from '../components/LeavesTab';
-import { SignatureConfigCard } from '../components/SignatureConfigCard';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
@@ -64,12 +63,6 @@ const ContentGrid = styled.div`
     @media (max-width: 960px) {
         grid-template-columns: 1fr;
     }
-`;
-
-const LeftCol = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
 `;
 
 // ─── Sidebar (informacje) ────────────────────────────────────────────────────
@@ -292,52 +285,44 @@ export const EmployeeDetailView = () => {
             />
 
             <ContentGrid>
-                <LeftCol>
-                    <SideCard>
-                        <SideSection>
-                            <SideSectionTitle>Kontakt</SideSectionTitle>
-                            <InfoRow>
-                                <InfoIcon><MailIcon /></InfoIcon>
-                                <InfoText>
-                                    <InfoLabel>Email</InfoLabel>
-                                    <InfoValue $muted={!employee.email}>{employee.email ?? 'Nie podano'}</InfoValue>
-                                </InfoText>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoIcon><PhoneIcon /></InfoIcon>
-                                <InfoText>
-                                    <InfoLabel>Telefon</InfoLabel>
-                                    <InfoValue $muted={!employee.phone}>{employee.phone ?? 'Nie podano'}</InfoValue>
-                                </InfoText>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoIcon><ClockIcon /></InfoIcon>
-                                <InfoText>
-                                    <InfoLabel>W systemie od</InfoLabel>
-                                    <InfoValue>
-                                        {new Date(employee.createdAt).toLocaleDateString('pl-PL', {
-                                            day: 'numeric', month: 'long', year: 'numeric',
-                                        })}
-                                    </InfoValue>
-                                </InfoText>
-                            </InfoRow>
-                        </SideSection>
+                <SideCard>
+                    <SideSection>
+                        <SideSectionTitle>Kontakt</SideSectionTitle>
+                        <InfoRow>
+                            <InfoIcon><MailIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>Email</InfoLabel>
+                                <InfoValue $muted={!employee.email}>{employee.email ?? 'Nie podano'}</InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                        <InfoRow>
+                            <InfoIcon><PhoneIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>Telefon</InfoLabel>
+                                <InfoValue $muted={!employee.phone}>{employee.phone ?? 'Nie podano'}</InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                        <InfoRow>
+                            <InfoIcon><ClockIcon /></InfoIcon>
+                            <InfoText>
+                                <InfoLabel>W systemie od</InfoLabel>
+                                <InfoValue>
+                                    {new Date(employee.createdAt).toLocaleDateString('pl-PL', {
+                                        day: 'numeric', month: 'long', year: 'numeric',
+                                    })}
+                                </InfoValue>
+                            </InfoText>
+                        </InfoRow>
+                    </SideSection>
 
-                        <SideDivider />
+                    <SideDivider />
 
-                        <AccountManagementCard
-                            employee={employee}
-                            onChanged={() => refetch()}
-                            onEmployeeDeleted={() => navigate('/team')}
-                        />
-                    </SideCard>
-
-                    <SignatureConfigCard
-                        employeeId={employeeId}
-                        hasSignature={employee.hasSignature ?? false}
+                    <AccountManagementCard
+                        employee={employee}
                         onChanged={() => refetch()}
+                        onEmployeeDeleted={() => navigate('/team')}
                     />
-                </LeftCol>
+                </SideCard>
 
                 <MainCol>
                     <LeavesTab employeeId={employeeId} />
