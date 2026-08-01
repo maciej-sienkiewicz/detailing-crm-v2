@@ -30,12 +30,14 @@ export interface TeamEmployeeListResponse {
 
 export interface TeamEmployeeDetail {
     id: string;
+    userId: string | null;
     firstName: string;
     lastName: string;
     fullName: string;
     account: TeamEmployeeAccount | null;
     phone: string | null;
     email: string | null;
+    hasSignature: boolean;
     createdAt: string;
     updatedAt: string;
 }

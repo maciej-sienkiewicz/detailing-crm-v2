@@ -63,6 +63,21 @@ export const employeeApi = {
         await apiClient.post(`${BASE}/${employeeId}/terminate`, payload);
     },
 
+    // ─── Signature ───────────────────────────────────────────────────────────
+
+    saveSignature: async (employeeId: string, signatureImageBase64: string): Promise<void> => {
+        await apiClient.put(`${BASE}/${employeeId}/signature`, { signatureImageBase64 });
+    },
+
+    deleteSignature: async (employeeId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}/signature`);
+    },
+
+    getSignatureUrl: async (employeeId: string): Promise<string> => {
+        const res = await apiClient.get<{ url: string }>(`${BASE}/${employeeId}/signature-url`);
+        return res.data.url;
+    },
+
     // ─── Contracts ───────────────────────────────────────────────────────────
 
     listContracts: async (employeeId: string): Promise<EmploymentContract[]> => {
