@@ -157,7 +157,55 @@ const PadLabel = styled.p`
     color: ${st.text};
 `;
 
+const LinkSentBanner = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(14, 165, 233, 0.06);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    border-radius: 10px;
+`;
+
+const LinkSentIcon = styled.div`
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    svg { width: 16px; height: 16px; }
+`;
+
+const LinkSentBody = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const LinkSentTitle = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0c4a6e;
+`;
+
+const LinkSentDesc = styled.div`
+    font-size: 12px;
+    color: #0369a1;
+    line-height: 1.5;
+`;
+
 // ─── Icons ───────────────────────────────────────────────────────────────────
+
+const SmartphoneIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+        <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+);
 
 const PenIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -191,6 +239,7 @@ export interface SignatureConfigCardProps {
     initialPreviewUrl?: string | null;
     onSave: (base64: string) => Promise<void>;
     onDelete: () => Promise<void>;
+    onSendLink?: () => Promise<void>;
     onChanged: () => void;
 }
 
@@ -199,6 +248,7 @@ export function SignatureConfigCard({
     initialPreviewUrl,
     onSave,
     onDelete,
+    onSendLink,
     onChanged,
 }: SignatureConfigCardProps) {
     const { showSuccess, showError } = useToast();
@@ -207,12 +257,26 @@ export function SignatureConfigCard({
     const [mode, setMode] = useState<'view' | 'draw'>('view');
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isSendingLink, setIsSendingLink] = useState(false);
+    const [linkSentAt, setLinkSentAt] = useState<Date | null>(null);
     const [hasStrokes, setHasStrokes] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreviewUrl ?? null);
 
     useEffect(() => {
         setPreviewUrl(initialPreviewUrl ?? null);
     }, [initialPreviewUrl]);
+
+    useEffect(() => {
+        if (!linkSentAt) return;
+        const id = setInterval(() => {
+            onChanged();
+        }, 5000);
+        const timeout = setTimeout(() => {
+            clearInterval(id);
+            setLinkSentAt(null);
+        }, 5 * 60 * 1000);
+        return () => { clearInterval(id); clearTimeout(timeout); };
+    }, [linkSentAt, onChanged]);
 
     const handleSave = async () => {
         const base64 = padRef.current?.toPngBase64();
@@ -245,6 +309,20 @@ export function SignatureConfigCard({
             showError('Błąd', 'Nie udało się usunąć podpisu.');
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleSendLink = async () => {
+        if (!onSendLink) return;
+        setIsSendingLink(true);
+        try {
+            await onSendLink();
+            setLinkSentAt(new Date());
+            showSuccess('Link wysłany', 'Otwórz SMS na telefonie i narysuj podpis.');
+        } catch {
+            showError('Błąd', 'Nie udało się wysłać SMS. Sprawdź czy masz przypisany numer telefonu.');
+        } finally {
+            setIsSendingLink(false);
         }
     };
 
@@ -289,11 +367,34 @@ export function SignatureConfigCard({
                             </SignaturePreview>
                         )}
 
+                        {linkSentAt && (
+                            <LinkSentBanner>
+                                <LinkSentIcon><SmartphoneIcon /></LinkSentIcon>
+                                <LinkSentBody>
+                                    <LinkSentTitle>Link wysłany — oczekiwanie na podpis</LinkSentTitle>
+                                    <LinkSentDesc>
+                                        Otwórz SMS na swoim telefonie, narysuj podpis i wróć do tej strony.
+                                        Strona odświeży się automatycznie.
+                                    </LinkSentDesc>
+                                </LinkSentBody>
+                            </LinkSentBanner>
+                        )}
+
                         <ButtonRow>
                             <Btn $variant="primary" onClick={() => setMode('draw')}>
                                 <PenIcon />
                                 {hasSignature ? 'Zmień podpis' : 'Dodaj podpis'}
                             </Btn>
+                            {onSendLink && (
+                                <Btn
+                                    $variant="ghost"
+                                    onClick={handleSendLink}
+                                    disabled={isSendingLink}
+                                >
+                                    <SmartphoneIcon />
+                                    {isSendingLink ? 'Wysyłanie…' : 'Wyślij link na telefon'}
+                                </Btn>
+                            )}
                             {hasSignature && (
                                 <Btn
                                     $variant="danger"
