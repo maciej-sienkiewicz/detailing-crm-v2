@@ -30,7 +30,7 @@ export function MySignatureSection() {
             initialPreviewUrl={data?.url ?? null}
             onSave={(base64) => profileApi.saveSignature(base64)}
             onDelete={() => profileApi.deleteSignature()}
-            onSendLink={() => profileApi.sendSignatureLink().then(() => {})}
+            onSendLink={(phoneNumber) => profileApi.sendSignatureLink(phoneNumber).then(() => {})}
             onChanged={() => refetch()}
         />
     );

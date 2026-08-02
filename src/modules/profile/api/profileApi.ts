@@ -25,8 +25,8 @@ export const profileApi = {
         await apiClient.delete(`${BASE}/signature`);
     },
 
-    sendSignatureLink: async (): Promise<SendLinkResult> => {
-        const res = await apiClient.post<SendLinkResult>(`${BASE}/signature/send-link`);
+    sendSignatureLink: async (phoneNumber: string): Promise<SendLinkResult> => {
+        const res = await apiClient.post<SendLinkResult>(`${BASE}/signature/send-link`, { phoneNumber });
         return res.data;
     },
 };
