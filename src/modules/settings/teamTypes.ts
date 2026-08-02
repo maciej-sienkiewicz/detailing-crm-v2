@@ -14,7 +14,6 @@ export interface TeamEmployeeListItem {
     email: string | null;
     phone: string | null;
     hasAccount: boolean;
-    hasSignature: boolean;
 }
 
 export interface TeamPagination {
@@ -38,7 +37,6 @@ export interface TeamEmployeeDetail {
     account: TeamEmployeeAccount | null;
     phone: string | null;
     email: string | null;
-    hasSignature: boolean;
     createdAt: string;
     updatedAt: string;
 }

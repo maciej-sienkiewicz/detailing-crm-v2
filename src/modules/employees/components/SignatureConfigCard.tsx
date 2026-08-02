@@ -2,7 +2,6 @@ import { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { SignaturePad, type SignaturePadHandle } from '@/modules/public-signing/components/SignaturePad';
-import { employeeApi } from '../api/employeeApi';
 import { useToast } from '@/common/components/Toast';
 
 // ─── Styled ──────────────────────────────────────────────────────────────────
@@ -187,13 +186,21 @@ const XIcon = () => (
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-interface SignatureConfigCardProps {
-    employeeId: string;
+export interface SignatureConfigCardProps {
     hasSignature: boolean;
+    initialPreviewUrl?: string | null;
+    onSave: (base64: string) => Promise<void>;
+    onDelete: () => Promise<void>;
     onChanged: () => void;
 }
 
-export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: SignatureConfigCardProps) {
+export function SignatureConfigCard({
+    hasSignature,
+    initialPreviewUrl,
+    onSave,
+    onDelete,
+    onChanged,
+}: SignatureConfigCardProps) {
     const { showSuccess, showError } = useToast();
     const padRef = useRef<SignaturePadHandle>(null);
 
@@ -201,18 +208,11 @@ export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: Sig
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [hasStrokes, setHasStrokes] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreviewUrl ?? null);
 
     useEffect(() => {
-        if (hasSignature && mode === 'view') {
-            setPreviewLoading(true);
-            employeeApi.getSignatureUrl(employeeId)
-                .then(url => setPreviewUrl(url))
-                .catch(() => setPreviewUrl(null))
-                .finally(() => setPreviewLoading(false));
-        }
-    }, [employeeId, hasSignature, mode]);
+        setPreviewUrl(initialPreviewUrl ?? null);
+    }, [initialPreviewUrl]);
 
     const handleSave = async () => {
         const base64 = padRef.current?.toPngBase64();
@@ -222,8 +222,8 @@ export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: Sig
         }
         setIsSaving(true);
         try {
-            await employeeApi.saveSignature(employeeId, base64);
-            showSuccess('Podpis zapisany', 'Podpis pracownika został zaktualizowany.');
+            await onSave(base64);
+            showSuccess('Podpis zapisany', 'Twój podpis został zaktualizowany.');
             setMode('view');
             padRef.current?.clear();
             onChanged();
@@ -237,7 +237,7 @@ export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: Sig
     const handleDelete = async () => {
         setIsDeleting(true);
         try {
-            await employeeApi.deleteSignature(employeeId);
+            await onDelete();
             showSuccess('Podpis usunięty');
             setPreviewUrl(null);
             onChanged();
@@ -259,7 +259,7 @@ export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: Sig
             <Header>
                 <Title>
                     <TitleIcon><PenIcon /></TitleIcon>
-                    Podpis pracownika
+                    Twój podpis
                 </Title>
                 <StatusBadge $hasSignature={hasSignature}>
                     <Dot $color={hasSignature ? '#10b981' : '#94a3b8'} />
@@ -269,7 +269,7 @@ export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: Sig
 
             <Body>
                 <Description>
-                    Podpis pracownika nakładany jest na protokoły generowane podczas wizyty.
+                    Podpis nakładany jest na protokoły generowane podczas przyjęcia pojazdu.
                     Narysuj podpis palcem lub rysikiem na poniższym polu.
                 </Description>
 
@@ -277,12 +277,10 @@ export function SignatureConfigCard({ employeeId, hasSignature, onChanged }: Sig
                     <>
                         {hasSignature && (
                             <SignaturePreview>
-                                {previewLoading ? (
-                                    <Description>Ładowanie…</Description>
-                                ) : previewUrl ? (
+                                {previewUrl ? (
                                     <SignatureImage
                                         src={previewUrl}
-                                        alt="Podgląd podpisu pracownika"
+                                        alt="Podgląd podpisu"
                                         onError={() => setPreviewUrl(null)}
                                     />
                                 ) : (
