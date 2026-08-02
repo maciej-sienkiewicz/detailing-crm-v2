@@ -50,7 +50,6 @@ export interface EmployeeDetail {
     phone: string | null;
     email: string | null;
     account: EmployeeAccountInfo | null;
-    hasSignature: boolean;
     createdAt: string;
     updatedAt: string;
     // Pola planowane na kolejne iteracje modułu kadrowego — backend jeszcze ich nie zwraca
