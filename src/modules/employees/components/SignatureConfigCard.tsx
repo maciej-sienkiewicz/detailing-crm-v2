@@ -157,6 +157,69 @@ const PadLabel = styled.p`
     color: ${st.text};
 `;
 
+// ─── Modal ───────────────────────────────────────────────────────────────────
+
+const Overlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+`;
+
+const ModalCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: 14px;
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+`;
+
+const ModalTitle = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: ${st.text};
+`;
+
+const ModalDesc = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: ${st.textMuted};
+    line-height: 1.5;
+`;
+
+const ModalInput = styled.input`
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid ${st.border};
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: ${st.text};
+    background: ${st.bgCardAlt};
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 150ms;
+    &:focus { border-color: #0ea5e9; }
+`;
+
+const ModalBtnRow = styled.div`
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const LinkSentBanner = styled.div`
     display: flex;
     align-items: flex-start;
@@ -239,7 +302,7 @@ export interface SignatureConfigCardProps {
     initialPreviewUrl?: string | null;
     onSave: (base64: string) => Promise<void>;
     onDelete: () => Promise<void>;
-    onSendLink?: () => Promise<void>;
+    onSendLink?: (phoneNumber: string) => Promise<void>;
     onChanged: () => void;
 }
 
@@ -261,6 +324,8 @@ export function SignatureConfigCard({
     const [linkSentAt, setLinkSentAt] = useState<Date | null>(null);
     const [hasStrokes, setHasStrokes] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreviewUrl ?? null);
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState('');
 
     useEffect(() => {
         setPreviewUrl(initialPreviewUrl ?? null);
@@ -312,15 +377,23 @@ export function SignatureConfigCard({
         }
     };
 
+    const handleOpenPhoneModal = () => {
+        setPhoneNumber('');
+        setShowPhoneModal(true);
+    };
+
     const handleSendLink = async () => {
         if (!onSendLink) return;
+        const trimmed = phoneNumber.trim();
+        if (!trimmed) return;
         setIsSendingLink(true);
         try {
-            await onSendLink();
+            await onSendLink(trimmed);
+            setShowPhoneModal(false);
             setLinkSentAt(new Date());
             showSuccess('Link wysłany', 'Otwórz SMS na telefonie i narysuj podpis.');
         } catch {
-            showError('Błąd', 'Nie udało się wysłać SMS. Sprawdź czy masz przypisany numer telefonu.');
+            showError('Błąd', 'Nie udało się wysłać SMS. Sprawdź poprawność numeru telefonu.');
         } finally {
             setIsSendingLink(false);
         }
@@ -388,11 +461,10 @@ export function SignatureConfigCard({
                             {onSendLink && (
                                 <Btn
                                     $variant="ghost"
-                                    onClick={handleSendLink}
-                                    disabled={isSendingLink}
+                                    onClick={handleOpenPhoneModal}
                                 >
                                     <SmartphoneIcon />
-                                    {isSendingLink ? 'Wysyłanie…' : 'Wyślij link na telefon'}
+                                    Wyślij link na telefon
                                 </Btn>
                             )}
                             {hasSignature && (
@@ -430,6 +502,44 @@ export function SignatureConfigCard({
                     </PadSection>
                 )}
             </Body>
+
+            {showPhoneModal && (
+                <Overlay onClick={() => !isSendingLink && setShowPhoneModal(false)}>
+                    <ModalCard onClick={(e) => e.stopPropagation()}>
+                        <div>
+                            <ModalTitle>Wyślij link na telefon</ModalTitle>
+                            <ModalDesc style={{ marginTop: 6 }}>
+                                Podaj numer telefonu, na który zostanie wysłany SMS z linkiem do rysowania podpisu.
+                            </ModalDesc>
+                        </div>
+                        <ModalInput
+                            type="tel"
+                            placeholder="np. 600 100 200"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendLink()}
+                            autoFocus
+                            disabled={isSendingLink}
+                        />
+                        <ModalBtnRow>
+                            <Btn
+                                $variant="ghost"
+                                onClick={() => setShowPhoneModal(false)}
+                                disabled={isSendingLink}
+                            >
+                                Anuluj
+                            </Btn>
+                            <Btn
+                                $variant="primary"
+                                onClick={handleSendLink}
+                                disabled={isSendingLink || !phoneNumber.trim()}
+                            >
+                                {isSendingLink ? 'Wysyłanie…' : 'Wyślij SMS'}
+                            </Btn>
+                        </ModalBtnRow>
+                    </ModalCard>
+                </Overlay>
+            )}
         </Card>
     );
 }
