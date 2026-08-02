@@ -5,6 +5,10 @@ export interface SignatureStatus {
     url: string | null;
 }
 
+export interface SendLinkResult {
+    expiresAt: string;
+}
+
 const BASE = '/v1/profile';
 
 export const profileApi = {
@@ -19,5 +23,10 @@ export const profileApi = {
 
     deleteSignature: async (): Promise<void> => {
         await apiClient.delete(`${BASE}/signature`);
+    },
+
+    sendSignatureLink: async (): Promise<SendLinkResult> => {
+        const res = await apiClient.post<SendLinkResult>(`${BASE}/signature/send-link`);
+        return res.data;
     },
 };

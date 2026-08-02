@@ -35,6 +35,7 @@ import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { SettingsView } from '@/modules/settings';
+import { PhoneSignatureView } from '@/modules/profile/views/PhoneSignatureView';
 import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
@@ -214,6 +215,11 @@ export const router = createBrowserRouter([
                 <PublicSigningView />
             </Suspense>
         ),
+    },
+    {
+        // Personal signature drawing on the user's own phone — no auth, link token in the path
+        path: '/m/sig/:token',
+        element: <PhoneSignatureView />,
     },
     {
         path: '/mobile-shortcuts',
