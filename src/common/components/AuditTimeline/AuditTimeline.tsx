@@ -139,6 +139,11 @@ const AuditHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
+
+    @media (max-width: 640px) { padding: 14px 16px; }
 `;
 
 const HeaderLeft = styled.div``;
@@ -226,6 +231,12 @@ const CardTop = styled.div`
     justify-content: space-between;
     gap: 12px;
     padding: 10px 14px;
+    min-width: 0;
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        gap: 4px;
+    }
 `;
 
 const CardLeft = styled.div`
@@ -251,11 +262,22 @@ const EntityName = styled.div`
     font-size: ${st.fontSm};
     font-weight: 600;
     color: ${st.text};
+    overflow-wrap: anywhere;
 `;
 
 const CardRight = styled.div`
     flex-shrink: 0;
     text-align: right;
+    min-width: 0;
+
+    /* Stacked layout below 480px — meta reads left-to-right like the rest. */
+    @media (max-width: 480px) {
+        text-align: left;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 8px;
+    }
 `;
 
 const EntryDate = styled.time`
@@ -296,10 +318,19 @@ const ChangeTable = styled.div`
 
 const ChangeRow = styled.div`
     display: grid;
-    grid-template-columns: minmax(90px, auto) 1fr 14px 1fr;
+    grid-template-columns: minmax(90px, auto) minmax(0, 1fr) 14px minmax(0, 1fr);
     align-items: center;
     gap: 6px;
     font-size: ${st.fontXs};
+
+    /* Four columns inside a phone-width card leaves ~60px per value. Stack the
+       label above the old → new pair instead. */
+    @media (max-width: 560px) {
+        grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr);
+        row-gap: 2px;
+
+        > *:first-child { grid-column: 1 / -1; }
+    }
 `;
 
 const FieldName = styled.span`
@@ -359,10 +390,13 @@ const PaginationBar = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 14px 24px;
     border-top: 1px solid ${st.border};
     background: ${st.bg};
+
+    @media (max-width: 640px) { padding: 12px 14px; gap: 6px; }
 `;
 
 const PageBtn = styled.button<{ $active?: boolean }>`

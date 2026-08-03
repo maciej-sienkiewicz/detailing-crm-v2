@@ -13,6 +13,7 @@ const pulseGlow = keyframes`
 const StepperContainer = styled.div`
     position: relative;
     overflow: hidden;
+    min-width: 0;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 14px;
@@ -63,7 +64,10 @@ const Step = styled.div`
     position: relative;
     z-index: 1;
     flex: 1;
+    min-width: 0;
     max-width: 200px;
+
+    @media (max-width: 640px) { gap: 8px; }
 `;
 
 const StepDot = styled.div<{ $state: 'done' | 'active' | 'future' }>`
@@ -96,6 +100,17 @@ const StepLabel = styled.span<{ $state: 'done' | 'active' | 'future' }>`
     white-space: nowrap;
     letter-spacing: 0.01em;
     transition: color 0.25s ease;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* Three Polish labels across a 320px screen: shrink instead of colliding. */
+    @media (max-width: 400px) {
+        font-size: 11px;
+        letter-spacing: -0.1px;
+    }
+
+    @media (max-width: 340px) { font-size: 10px; }
 
     color: ${p =>
         p.$state === 'active' ? 'rgba(255, 255, 255, 0.9)'  :
@@ -110,6 +125,11 @@ const SpecialRow = styled.div`
     display: flex;
     align-items: center;
     gap: 14px;
+    min-width: 0;
+
+    > div { min-width: 0; }
+
+    @media (max-width: 640px) { gap: 10px; }
 `;
 
 const SpecialIconWrap = styled.div<{ $color: string; $bg: string }>`

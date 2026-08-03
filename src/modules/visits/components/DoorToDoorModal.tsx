@@ -57,11 +57,11 @@ const TextArea = styled.textarea`
 
 const TwoCol = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 10px;
 
     @media (max-width: 480px) {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 `;
 
@@ -94,8 +94,10 @@ const Divider = styled.hr`
 const ReadonlyRow = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 9px 11px;
+    min-width: 0;
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
@@ -115,6 +117,8 @@ const ReadonlyLabel = styled.span`
 const ReadonlyValue = styled.span`
     color: #0f172a;
     font-weight: 500;
+    min-width: 0;
+    overflow-wrap: anywhere;
 `;
 
 // ─── Confirm phase ────────────────────────────────────────────────────────────
@@ -151,6 +155,7 @@ const CardValue = styled.div`
     font-size: 14px;
     font-weight: 600;
     color: #0f172a;
+    overflow-wrap: anywhere;
 `;
 
 const NavButton = styled.button`

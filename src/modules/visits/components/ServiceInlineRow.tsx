@@ -100,7 +100,8 @@ const NameInput = styled.input`
 
 const Dropdown = styled.ul`
     position: fixed;
-    min-width: 240px;
+    min-width: min(240px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -110,14 +111,16 @@ const Dropdown = styled.ul`
     box-shadow: ${st.shadowLg};
     z-index: 9999;
     overflow: hidden;
-    max-height: 220px;
+    max-height: min(220px, 40dvh);
     overflow-y: auto;
+    overscroll-behavior: contain;
 `;
 
 const DropItem = styled.li<{ $custom?: boolean }>`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     padding: 9px 12px;
     font-size: 13px;
     cursor: pointer;
@@ -126,9 +129,16 @@ const DropItem = styled.li<{ $custom?: boolean }>`
     font-weight: ${p => p.$custom ? 600 : 400};
     background: transparent;
     transition: background 150ms;
+    overflow-wrap: anywhere;
 
     &:last-child { border-bottom: none; }
     &:hover { background: ${st.bg}; }
+
+    @media (hover: none) and (pointer: coarse) {
+        /* Comfortable tap target — these are picked with a thumb. */
+        padding: 12px;
+        min-height: 46px;
+    }
 `;
 
 const PriceHint = styled.span`
@@ -295,25 +305,41 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     const debouncedQuery = useDebounce(query, 250);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameWrapRef = useRef<HTMLDivElement>(null);
+    const nameInputRef = useRef<HTMLInputElement>(null);
     const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
+    // The draft row is appended at the bottom of a long table; on a phone the
+    // autofocused field would otherwise open behind the keyboard.
+    useEffect(() => {
+        nameInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, []);
+
     const updateDropPos = useCallback(() => {
-        if (nameWrapRef.current) {
-            const r = nameWrapRef.current.getBoundingClientRect();
-            setDropPos({ top: r.bottom + 4, left: r.left, width: r.width });
-        }
+        if (!nameWrapRef.current) return;
+        const r = nameWrapRef.current.getBoundingClientRect();
+        // Keep the panel inside the viewport even when the field sits near the
+        // right edge (narrow phones, landscape with safe-area insets).
+        const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+        const width = Math.min(r.width, viewportWidth - 24);
+        const left = Math.max(12, Math.min(r.left, viewportWidth - width - 12));
+        setDropPos({ top: r.bottom + 4, left, width });
     }, []);
 
     useEffect(() => {
-        if (open) {
-            updateDropPos();
-            window.addEventListener('scroll', updateDropPos, true);
-            window.addEventListener('resize', updateDropPos);
-            return () => {
-                window.removeEventListener('scroll', updateDropPos, true);
-                window.removeEventListener('resize', updateDropPos);
-            };
-        }
+        if (!open) return;
+        updateDropPos();
+        window.addEventListener('scroll', updateDropPos, true);
+        window.addEventListener('resize', updateDropPos);
+        // The on-screen keyboard moves the visual viewport without ever firing a
+        // window resize on iOS — without this the panel detaches from the field.
+        window.visualViewport?.addEventListener('resize', updateDropPos);
+        window.visualViewport?.addEventListener('scroll', updateDropPos);
+        return () => {
+            window.removeEventListener('scroll', updateDropPos, true);
+            window.removeEventListener('resize', updateDropPos);
+            window.visualViewport?.removeEventListener('resize', updateDropPos);
+            window.visualViewport?.removeEventListener('scroll', updateDropPos);
+        };
     }, [open, updateDropPos]);
 
     // Local display strings — typed freely, never re-derived from parent on
@@ -449,6 +475,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
             <Cell>
                 <NameWrap ref={nameWrapRef}>
                     <NameInput
+                        ref={nameInputRef}
                         value={query}
                         onChange={e => handleQueryChange(capitalizeFirst(e.target.value))}
                         onFocus={() => query.trim().length > 0 && setOpen(true)}

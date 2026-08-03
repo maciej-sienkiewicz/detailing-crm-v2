@@ -19,6 +19,7 @@ const InputArea = styled.div<{ $focused: boolean }>`
     flex-wrap: wrap;
     align-items: center;
     gap: 5px;
+    min-width: 0;
     min-height: 40px;
     padding: 6px 10px;
     border: 1.5px solid ${p => p.$focused ? st.accentBlue : st.border};
@@ -31,7 +32,10 @@ const InputArea = styled.div<{ $focused: boolean }>`
 
 const TextInput = styled.input`
     flex: 1;
-    min-width: 100px;
+    /* min-width was a hard 100px: with a couple of chips already on the row it
+       pushed the field past the container edge on a phone. */
+    min-width: min(100px, 100%);
+    max-width: 100%;
     border: none;
     outline: none;
     background: transparent;
@@ -57,13 +61,15 @@ const Dropdown = styled.ul`
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     box-shadow: ${st.shadowLg};
-    max-height: 200px;
+    max-height: min(200px, 40dvh);
     overflow-y: auto;
+    overscroll-behavior: contain;
 `;
 
 const DropdownItem = styled.li<{ $highlighted: boolean }>`
     padding: 7px 10px;
     border-radius: 6px;
+    overflow-wrap: anywhere;
     font-size: ${st.fontSm};
     color: ${st.textSecondary};
     cursor: pointer;

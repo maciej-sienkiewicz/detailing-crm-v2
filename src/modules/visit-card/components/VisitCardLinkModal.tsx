@@ -24,6 +24,14 @@ const formatDateTime = (iso: string): string =>
 const LinkRow = styled.div`
     display: flex;
     gap: 8px;
+    min-width: 0;
+
+    /* The URL is long; on a phone the field gets the whole row and "Kopiuj"
+       drops underneath as a full-width target. */
+    @media (max-width: 480px) {
+        flex-wrap: wrap;
+        > * { flex-basis: 100%; }
+    }
 `;
 
 const LinkInput = styled.input`
@@ -36,6 +44,7 @@ const LinkInput = styled.input`
     color: #0f172a;
     background: #f8fafc;
     font-family: ui-monospace, monospace;
+    text-overflow: ellipsis;
 `;
 
 const CopyBtn = styled.button<{ $copied: boolean }>`
@@ -99,7 +108,7 @@ const ChannelButtons = styled.div`
 `;
 
 const ChannelButton = styled.button`
-    flex: 1 1 160px;
+    flex: 1 1 min(160px, 100%);
     display: flex;
     flex-direction: column;
     align-items: flex-start;

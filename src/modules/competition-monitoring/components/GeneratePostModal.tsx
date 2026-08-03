@@ -35,14 +35,30 @@ const fadeSlide = keyframes`
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
+  /* dvh + safe areas: with plain viewport units the modal is centred inside the
+     address-bar-less viewport and its footer ends up under browser chrome. */
+  height: 100vh;
+  height: 100dvh;
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(6px);
   animation: ${overlayIn} 200ms ease;
+
+  @media (max-width: 640px) {
+    padding:
+      max(12px, env(safe-area-inset-top, 0px))
+      max(12px, env(safe-area-inset-right, 0px))
+      max(12px, env(safe-area-inset-bottom, 0px))
+      max(12px, env(safe-area-inset-left, 0px));
+  }
 `;
 
 const Modal = styled.div`
@@ -50,7 +66,8 @@ const Modal = styled.div`
   border-radius: 20px;
   width: 100%;
   max-width: 660px;
-  max-height: 90vh;
+  max-height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -135,9 +152,13 @@ const CloseBtn = styled.button`
 
 const ModalBody = styled.div`
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 24px;
   flex: 1;
+  min-height: 0;
   scroll-behavior: smooth;
+
+  @media (max-width: 640px) { padding: 16px; }
 `;
 
 // ─── Footer ────────────────────────────────────────────────────────────────────
@@ -148,20 +169,36 @@ const ModalFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   flex-shrink: 0;
   background: #FAFBFC;
+
+  @media (max-width: 640px) {
+    padding: 12px 16px;
+    gap: 8px;
+  }
 `;
 
 const FooterLeft = styled.div`
   font-size: 12px;
   color: #94A3B8;
+
+  /* The status caption is the first thing to go when space runs out. */
+  @media (max-width: 520px) { display: none; }
 `;
 
 const FooterRight = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    width: 100%;
+
+    > button { flex: 1; min-width: 0; justify-content: center; }
+  }
 `;
 
 // ─── Form sections ─────────────────────────────────────────────────────────────
@@ -248,8 +285,12 @@ const HintText = styled.p`
 
 const ToneGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
+
+  @media (max-width: 420px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 const ToneCard = styled.button<{ $active: boolean }>`
@@ -311,7 +352,7 @@ const ToneDesc = styled.span`
 
 const SegmentedWrap = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
   background: #F1F5F9;
   border-radius: 10px;

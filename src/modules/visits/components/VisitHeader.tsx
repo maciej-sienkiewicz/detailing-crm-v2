@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
@@ -86,14 +86,16 @@ const HeaderContent = styled.div`
     justify-content: space-between;
     gap: 24px;
     padding: 22px 28px 18px;
+    min-width: 0;
 
     @media (max-width: 900px) {
+        gap: 16px;
         padding: 18px 20px 14px;
     }
 
     @media (max-width: 640px) {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
         gap: 10px;
         padding: 12px 14px 12px;
     }
@@ -189,7 +191,14 @@ const TitleEditInput = styled.input`
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
     }
 
-    @media (max-width: 640px) { width: 100%; font-size: 17px; }
+    /* Doubled selector so the global touch-device 16px floor cannot shrink the
+       hero title field below its intended display size. */
+    && { font-size: 22px; }
+
+    @media (max-width: 640px) {
+        width: 100%;
+        && { font-size: 17px; }
+    }
 `;
 
 const TitleIconBtn = styled.button`
@@ -248,8 +257,10 @@ const MetaRow = styled.div`
     align-items: center;
     flex-wrap: wrap;
     gap: 18px;
+    min-width: 0;
     font-size: 13px;
     color: #94a3b8;
+    overflow-wrap: anywhere;
 
     @media (max-width: 640px) {
         flex: 0 0 100%;
@@ -275,7 +286,10 @@ const MetaItem = styled.span`
 const VehicleRow = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 7px;
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-size: 14px;
     color: rgba(148, 163, 184, 0.85);
     font-weight: 500;
@@ -318,10 +332,19 @@ const HeaderRight = styled.div`
     flex-shrink: 0;
     padding-top: 4px;
 
+    /* 900–640px: the hero is still a row, but three pill buttons plus a kebab no
+       longer fit next to the title — let them wrap under each other. */
+    @media (max-width: 900px) {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
     @media (max-width: 640px) {
         width: 100%;
         padding-top: 0;
         gap: 6px;
+        flex-wrap: wrap;
+        row-gap: 8px;
     }
 `;
 
@@ -345,7 +368,15 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
     }
 
     @media (max-width: 640px) {
-        ${p => p.$mobilePrimary && 'flex: 1; justify-content: center; padding: 11px 18px; font-size: 14px;'}
+        min-width: 0;
+        padding: 9px 14px;
+        ${p => p.$mobilePrimary && 'flex: 1 1 auto; justify-content: center; padding: 11px 16px; font-size: 14px; min-height: 44px;'}
+    }
+
+    /* Under ~420px "Door to door" + "Oznacz jako gotowe" + kebab cannot share a
+       row without clipping a label, so the primary action claims its own line. */
+    @media (max-width: 420px) {
+        ${p => p.$mobilePrimary && 'flex: 1 0 100%; order: 2;'}
     }
 
     ${p => {
@@ -417,6 +448,7 @@ const KebabBtn = styled.button`
 const KebabMenu = styled.div`
     position: fixed;
     min-width: 200px;
+    max-width: calc(100vw - 16px);
     background: #1e293b;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
@@ -478,11 +510,19 @@ export const VisitHeader = ({
     const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
+    const syncMenuPos = useCallback(() => {
+        if (!menuRef.current) return;
+        const rect = menuRef.current.getBoundingClientRect();
+        const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+        setMenuPos({
+            top: rect.bottom + 6,
+            // Never let the 200px panel hang off the left edge on a narrow phone.
+            right: Math.max(8, viewportWidth - rect.right),
+        });
+    }, []);
+
     const openMenu = () => {
-        if (menuRef.current) {
-            const rect = menuRef.current.getBoundingClientRect();
-            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-        }
+        syncMenuPos();
         setIsMenuOpen(v => !v);
     };
 
@@ -492,8 +532,18 @@ export const VisitHeader = ({
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) setIsMenuOpen(false);
         };
         document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [isMenuOpen]);
+        // A fixed panel anchored once would drift away from its button the moment
+        // the page scrolls or the phone is rotated.
+        window.addEventListener('scroll', syncMenuPos, true);
+        window.addEventListener('resize', syncMenuPos);
+        window.addEventListener('orientationchange', syncMenuPos);
+        return () => {
+            document.removeEventListener('mousedown', handler);
+            window.removeEventListener('scroll', syncMenuPos, true);
+            window.removeEventListener('resize', syncMenuPos);
+            window.removeEventListener('orientationchange', syncMenuPos);
+        };
+    }, [isMenuOpen, syncMenuPos]);
 
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [draftDate, setDraftDate] = useState('');

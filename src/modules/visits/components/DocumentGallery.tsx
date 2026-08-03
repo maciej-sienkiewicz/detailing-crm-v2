@@ -24,6 +24,11 @@ const FilterBar = styled.div`
     padding: 12px ${props => props.theme.spacing.lg};
     border-bottom: 1px solid ${props => props.theme.colors.border};
     background: ${st.bg};
+
+    @media (max-width: 640px) {
+        padding: 10px 14px;
+        gap: 6px;
+    }
 `;
 
 const FilterLabel = styled.span`
@@ -60,6 +65,10 @@ const AllFilterBtn = styled.button<{ $active: boolean }>`
 
 const GalleryContent = styled.div`
     padding: ${props => props.theme.spacing.lg};
+
+    @media (max-width: 640px) {
+        padding: 14px;
+    }
 `;
 
 const SectionTitle = styled.h4`
@@ -69,6 +78,7 @@ const SectionTitle = styled.h4`
     color: ${props => props.theme.colors.text};
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 `;
 
@@ -85,8 +95,19 @@ const CountBadge = styled.span`
 
 const PhotoGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    /* min() keeps the track from demanding 200px on a 320px-wide phone, which
+       is what pushed the grid past the viewport edge. */
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
     gap: ${props => props.theme.spacing.md};
+
+    @media (max-width: 480px) {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 360px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 // ─── Photo card ───────────────────────────────────────────────────────────────
@@ -141,6 +162,17 @@ const PhotoOverlay = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+    gap: 6px;
+    min-width: 0;
+
+    /* Two-up grid on a phone leaves ~140px per tile — the caption and the three
+       icon buttons cannot share a line there, so the buttons get their own. */
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding: 6px;
+    }
 `;
 
 const PhotoInfo = styled.div`
@@ -165,6 +197,10 @@ const PhotoActions = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.xs};
     flex-shrink: 0;
+
+    @media (max-width: 480px) {
+        justify-content: flex-end;
+    }
 `;
 
 const IconButton = styled.button`
@@ -248,11 +284,20 @@ const DocumentList = styled.div`
     gap: ${props => props.theme.spacing.sm};
 `;
 
+/**
+ * Desktop: icon · info · actions on one line.
+ * Phone:   icon + info on the first line, actions on their own full-width line.
+ * Small phone: actions stack vertically, each a full-width 44px tap target.
+ *
+ * `min-width: 0` on every flex level is what actually stops a long file name
+ * from forcing the card wider than the viewport.
+ */
 const DocumentCard = styled.div`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.md};
     padding: ${props => props.theme.spacing.md};
+    min-width: 0;
     background: ${props => props.theme.colors.surfaceAlt};
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
@@ -261,6 +306,13 @@ const DocumentCard = styled.div`
     &:hover {
         border-color: var(--brand-primary);
         box-shadow: ${props => props.theme.shadows.md};
+    }
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px;
     }
 `;
 
@@ -274,6 +326,12 @@ const DocumentIcon = styled.div`
     justify-content: center;
     font-size: 24px;
     flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        width: 38px;
+        height: 38px;
+        font-size: 19px;
+    }
 `;
 
 const DocumentInfo = styled.div`
@@ -288,17 +346,40 @@ const DocumentName = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    /* On a phone the name gets a whole line — wrap it instead of hiding half. */
+    @media (max-width: 640px) {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.35;
+    }
 `;
 
 const DocumentMeta = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
+    overflow-wrap: anywhere;
+
+    @media (max-width: 640px) {
+        line-height: 1.45;
+        margin-top: 2px;
+    }
 `;
 
 const DocumentActions = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.sm};
     flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        flex-basis: 100%;
+        gap: 6px;
+    }
+
+    @media (max-width: 420px) {
+        flex-direction: column;
+        align-items: stretch;
+    }
 `;
 
 const ActionButton = styled.button`
@@ -314,6 +395,7 @@ const ActionButton = styled.button`
     display: flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
 
     &:hover {
         border-color: var(--brand-primary);
@@ -323,6 +405,21 @@ const ActionButton = styled.button`
     svg {
         width: 14px;
         height: 14px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+        flex: 1;
+        min-width: 0;
+        justify-content: center;
+        min-height: 38px;
+        font-size: ${props => props.theme.fontSizes.sm};
+    }
+
+    @media (max-width: 420px) {
+        flex: none;
+        width: 100%;
+        min-height: 44px;
     }
 `;
 
@@ -336,14 +433,23 @@ const DeleteButton = styled(ActionButton)`
 
 const EmptyState = styled.div`
     text-align: center;
-    padding: ${props => props.theme.spacing.xxl};
+    padding: ${props => props.theme.spacing.xxl} ${props => props.theme.spacing.md};
     color: ${props => props.theme.colors.textMuted};
+    overflow-wrap: anywhere;
+
+    @media (max-width: 640px) {
+        padding: ${props => props.theme.spacing.xl} ${props => props.theme.spacing.sm};
+    }
 `;
 
 const SectionDivider = styled.div`
     height: 1px;
     background: ${props => props.theme.colors.border};
     margin: ${props => props.theme.spacing.xl} 0;
+
+    @media (max-width: 640px) {
+        margin: ${props => props.theme.spacing.lg} 0;
+    }
 `;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

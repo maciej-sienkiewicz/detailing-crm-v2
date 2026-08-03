@@ -63,14 +63,18 @@ const SelectedServiceHeader = styled.div`
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 10px;
+    min-width: 0;
 `;
 
 const SelectedServiceName = styled.div`
     font-size: 13.5px;
     font-weight: 600;
     color: #0f172a;
+    min-width: 0;
+    overflow-wrap: anywhere;
 `;
 
 const SelectedServicePrice = styled.div`
@@ -82,14 +86,14 @@ const SelectedServicePrice = styled.div`
 
 const DiscountGrid = styled.div`
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px dashed #e2e8f0;
 
     @media (min-width: 480px) {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 `;
 
@@ -153,6 +157,8 @@ const DropdownCaret = styled.span<{ $open: boolean }>`
 
 const DropdownMenu = styled.div`
     position: fixed;
+    max-width: calc(100vw - 16px);
+    overscroll-behavior: contain;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -301,8 +307,13 @@ const PreviewOld = styled.span`
 const PanelActions = styled.div`
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 12px;
+
+    @media (max-width: 480px) {
+        > button { flex: 1; min-width: 0; }
+    }
 `;
 
 const PrimaryBtn = styled.button`
@@ -343,24 +354,36 @@ const Row = styled.li`
     justify-content: space-between;
     gap: 10px;
     padding: 9px 0;
+    min-width: 0;
     border-bottom: 1px solid #f1f5f9;
 
     &:last-child { border-bottom: none; }
+
+    /* Name, price and "Usuń" cannot share a phone-width line inside a modal. */
+    @media (max-width: 480px) {
+        flex-wrap: wrap;
+        row-gap: 6px;
+
+        > *:first-child { flex: 0 0 100%; }
+    }
 `;
 
 const RowInfo = styled.div`
     min-width: 0;
+    flex: 1;
 `;
 
 const RowName = styled.div`
     font-size: 13.5px;
     font-weight: 600;
     color: #0f172a;
+    overflow-wrap: anywhere;
 `;
 
 const RowMeta = styled.div`
     font-size: 12px;
     color: #64748b;
+    overflow-wrap: anywhere;
 `;
 
 const RowPrice = styled.div`

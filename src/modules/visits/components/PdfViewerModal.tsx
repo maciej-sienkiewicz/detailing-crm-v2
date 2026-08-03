@@ -31,6 +31,17 @@ const HeaderActions = styled.div`
     margin-left: auto;
 `;
 
+/* File names are long and unbreakable; keep them to one ellipsised line so the
+   header never grows taller than the actions beside it. */
+const FileName = styled(ModalTitle)`
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (max-width: 640px) { font-size: 14px; }
+`;
+
 const DownloadBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -51,16 +62,30 @@ const DownloadBtn = styled.button`
         background: ${st.accentBlueDim};
     }
 
-    svg { width: 14px; height: 14px; }
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* Icon-only below 480px — the label plus the close button do not fit next
+       to a file name on a phone. */
+    @media (max-width: 480px) {
+        padding: 8px;
+        span { display: none; }
+    }
 `;
 
 const PdfFrame = styled.iframe`
     flex: 1;
     width: 100%;
-    min-height: min(calc(90vh - 60px), 800px);
+    /* dvh, and floored well below the shell height so the frame asks for space
+       it can actually get — a vh-based minimum used to push the header out of
+       a phone-sized modal. */
+    min-height: min(calc(90dvh - 60px), 800px);
     border: none;
     background: #525659;
     display: block;
+
+    @media (max-width: 640px) {
+        min-height: 0;
+    }
 `;
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
@@ -84,16 +109,16 @@ export const PdfViewerModal = ({ fileUrl, fileName, isOpen, onClose, onDownload 
                     </svg>
                 </FileIcon>
                 <ModalTitleGroup>
-                    <ModalTitle title={fileName}>{fileName}</ModalTitle>
+                    <FileName title={fileName}>{fileName}</FileName>
                 </ModalTitleGroup>
                 <HeaderActions>
-                    <DownloadBtn onClick={onDownload}>
+                    <DownloadBtn onClick={onDownload} title="Pobierz" aria-label="Pobierz">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
                             <line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
-                        Pobierz
+                        <span>Pobierz</span>
                     </DownloadBtn>
                     <CloseBtn onClick={onClose} />
                 </HeaderActions>
