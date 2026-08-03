@@ -51,6 +51,7 @@ export interface Role {
     name: string;
     description: string | null;
     permissions: RolePermission[];
+    trackWorkTime: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -59,6 +60,7 @@ export interface CreateRoleRequest {
     name: string;
     description?: string | null;
     permissions: string[]; // permission codes
+    trackWorkTime: boolean;
 }
 
 export type UpdateRoleRequest = CreateRoleRequest;

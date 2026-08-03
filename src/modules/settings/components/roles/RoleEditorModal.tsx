@@ -8,6 +8,60 @@ import {
 } from '../rbacShared.styles';
 import type { PermissionTreeNode, PermissionModuleTree, Role, CreateRoleRequest } from '../../rbacTypes';
 
+// ─── Toggle switch ───────────────────────────────────────────────────────────────
+const ToggleRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+`;
+
+const ToggleLabel = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const ToggleName = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const ToggleDesc = styled.span`
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.4;
+`;
+
+const ToggleSwitch = styled.div<{ $on: boolean }>`
+    position: relative;
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background: ${p => (p.$on ? '#0284c7' : '#cbd5e1')};
+    transition: background 200ms;
+    flex-shrink: 0;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: ${p => (p.$on ? '21px' : '3px')};
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        transition: left 200ms;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+`;
+
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 const PermsHeader = styled.div`
     display: flex;
@@ -218,6 +272,7 @@ export function RoleEditorModal({
     const [selected, setSelected] = useState<Set<string>>(
         () => new Set((role?.permissions ?? []).map(p => p.code)),
     );
+    const [trackWorkTime, setTrackWorkTime] = useState(role?.trackWorkTime ?? false);
     const [nameError, setNameError] = useState<string | null>(null);
 
     const index = useMemo(() => buildTreeIndex(catalog), [catalog]);
@@ -274,6 +329,7 @@ export function RoleEditorModal({
             name: name.trim(),
             description: description.trim() === '' ? null : description.trim(),
             permissions: allCodes.filter(c => selected.has(c)),
+            trackWorkTime,
         });
     };
 
@@ -346,6 +402,14 @@ export function RoleEditorModal({
                             onChange={e => setDescription(e.target.value)}
                         />
                     </FormField>
+
+                    <ToggleRow onClick={() => setTrackWorkTime(v => !v)}>
+                        <ToggleLabel>
+                            <ToggleName>Śledź czas pracy</ToggleName>
+                            <ToggleDesc>Użytkownicy z tą rolą widzą moduł „Czas pracy" i mogą rejestrować godziny</ToggleDesc>
+                        </ToggleLabel>
+                        <ToggleSwitch $on={trackWorkTime} />
+                    </ToggleRow>
 
                     <PermsHeader>
                         <FieldLabel>Uprawnienia</FieldLabel>
