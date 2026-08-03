@@ -18,12 +18,17 @@ const StepperContainer = styled.div`
     }
 `;
 
-const StepWrapper = styled.div`
+const StepWrapper = styled.button<{ $clickable: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
     flex: 1;
     position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: ${(p) => (p.$clickable ? 'pointer' : 'default')};
 
     &:not(:last-child)::after {
         content: '';
@@ -42,6 +47,7 @@ const StepWrapper = styled.div`
 `;
 
 const StepCircle = styled.div<{ $active: boolean; $completed: boolean }>`
+    user-select: none;
     width: 40px;
     height: 40px;
     border-radius: ${props => props.theme.radii.full};
@@ -122,17 +128,24 @@ interface StepperProps {
     steps: Step[];
     currentStepId: string;
     completedSteps: string[];
+    onStepClick?: (stepId: string) => void;
 }
 
-export const Stepper = ({ steps, currentStepId, completedSteps }: StepperProps) => {
+export const Stepper = ({ steps, currentStepId, completedSteps, onStepClick }: StepperProps) => {
     return (
         <StepperContainer>
             {steps.map((step, index) => {
                 const isActive = step.id === currentStepId;
                 const isCompleted = completedSteps.includes(step.id);
+                const clickable = !!(onStepClick && (isCompleted || isActive));
 
                 return (
-                    <StepWrapper key={step.id}>
+                    <StepWrapper
+                        key={step.id}
+                        type="button"
+                        $clickable={clickable}
+                        onClick={clickable ? () => onStepClick!(step.id) : undefined}
+                    >
                         <StepCircle $active={isActive} $completed={isCompleted}>
                             {isCompleted ? <CheckIcon /> : index + 1}
                         </StepCircle>
