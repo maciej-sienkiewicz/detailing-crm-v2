@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
 import { servicesApi } from '@/modules/services/api/servicesApi';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import type { AudienceCriteria, CustomerTypeFilter } from '../types';
 
 // ─── Chipy filtrów w ludzkim języku (jedna reprezentacja w całym module) ──────
@@ -142,8 +143,9 @@ const Select = styled.select`
   }
 `;
 
-const TextInput = styled(NumInput)`
-  width: 160px;
+const SelectWrap = styled.div`
+  width: 180px;
+  flex-shrink: 0;
 `;
 
 const RemovableChip = styled(Chip)`
@@ -192,6 +194,11 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
   const { services } = useServiceCatalog();
   const [brandDraft, setBrandDraft] = useState('');
   const [modelDraft, setModelDraft] = useState('');
+
+  const handleBrandChange = (brand: string) => {
+    setBrandDraft(brand);
+    setModelDraft('');
+  };
 
   const set = (patch: Partial<AudienceCriteria>) => onChange({ ...value, ...patch });
   const toggle = (id: SectionId) => setOpen(open === id ? null : id);
@@ -332,8 +339,12 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
           <SectionBody>
             <FieldRow>
               <FieldLabel>Marka / model</FieldLabel>
-              <TextInput placeholder="np. BMW" value={brandDraft} onChange={(e) => setBrandDraft(e.target.value)} />
-              <TextInput placeholder="model (opcjonalnie)" value={modelDraft} onChange={(e) => setModelDraft(e.target.value)} />
+              <SelectWrap>
+                <BrandSelect value={brandDraft} onChange={handleBrandChange} placeholder="Wybierz markę" />
+              </SelectWrap>
+              <SelectWrap>
+                <ModelSelect brand={brandDraft} value={modelDraft} onChange={setModelDraft} placeholder="Model (opcjonalnie)" />
+              </SelectWrap>
               <AddBtn type="button" onClick={() => {
                 if (!brandDraft.trim()) return;
                 set({

@@ -51,6 +51,15 @@ const Label = styled.label`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
+const TokenLabel = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: ${(p) => p.theme.colors.textMuted};
+  margin-bottom: 2px;
+`;
+
 const TextArea = styled.textarea`
   min-height: 120px;
   padding: 12px 14px;
@@ -90,6 +99,16 @@ const CounterRow = styled.div<{ $warn: boolean }>`
   font-variant-numeric: tabular-nums;
 `;
 
+const TokenSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border-radius: 10px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+`;
+
 const TokenRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -98,17 +117,21 @@ const TokenRow = styled.div`
 
 const Token = styled.button`
   border: 1px solid ${(p) => p.theme.colors.border};
-  background: #ffffff;
+  background: ${(p) => p.theme.colors.surface};
   cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 9999px;
+  padding: 3px 9px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  font-family: inherit;
-  color: ${(p) => p.theme.colors.textSecondary};
+  font-family: monospace;
+  color: #0ea5e9;
   transition: all 150ms ease;
+  white-space: nowrap;
 
-  &:hover { border-color: #0ea5e9; color: #0369a1; background: #e0f2fe; }
+  &:hover {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.4);
+  }
 `;
 
 const TestRow = styled.div`
@@ -209,13 +232,16 @@ export function MessageEditor({ value, onChange }: Props) {
         ))}
       </ChannelRow>
 
-      <TokenRow>
-        {PLACEHOLDERS.map((p) => (
-          <Token key={p.token} type="button" title={p.label} onClick={() => insertToken(p.token)}>
-            {p.label}
-          </Token>
-        ))}
-      </TokenRow>
+      <TokenSection>
+        <TokenLabel>Zmienne — kliknij, żeby wstawić w miejsce kursora</TokenLabel>
+        <TokenRow>
+          {PLACEHOLDERS.map((p) => (
+            <Token key={p.token} type="button" title={p.label} onClick={() => insertToken(p.token)}>
+              {p.token}
+            </Token>
+          ))}
+        </TokenRow>
+      </TokenSection>
 
       {showSms && (
         <Field>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { Gem, Gift, Moon, Repeat, Settings2, Car } from 'lucide-react';
+import { Gem, Gift, Moon, Repeat, Car, Send } from 'lucide-react';
 import { Stepper } from '@/common/components/Stepper/Stepper';
 import {
   useActivateCampaign,
@@ -40,16 +40,42 @@ const TwoCols = styled.div`
   @media (max-width: 1023px) { grid-template-columns: 1fr; }
 `;
 
-const ScenarioGroups = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+const KindGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 700px;
+
+  @media (max-width: 767px) { grid-template-columns: 1fr; }
 `;
 
-const ScenarioGrid = styled.div`
+const KindCard = styled.button`
+  text-align: left;
+  background: #ffffff;
+  border: 2px solid ${(p) => p.theme.colors.border};
+  border-radius: 16px;
+  padding: 24px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 180ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  &:hover {
+    border-color: #0ea5e9;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  svg { width: 24px; height: 24px; stroke-width: 1.75; color: #0ea5e9; margin-bottom: 12px; display: block; }
+  h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; color: ${(p) => p.theme.colors.text}; }
+  p  { margin: 0; font-size: 13px; color: ${(p) => p.theme.colors.textMuted}; line-height: 1.5; }
+`;
+
+const PresetGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+  max-width: 600px;
 
   @media (max-width: 767px) { grid-template-columns: 1fr; }
 `;
@@ -67,15 +93,30 @@ const ScenarioCard = styled.button<{ $selected: boolean }>`
 
   &:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
 
-  svg { width: 18px; height: 18px; stroke-width: 1.75; color: #0ea5e9; margin-bottom: 8px; }
+  svg { width: 16px; height: 16px; stroke-width: 1.75; color: #0ea5e9; margin-bottom: 8px; display: block; }
   h3 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: ${(p) => p.theme.colors.text}; }
   p  { margin: 0; font-size: 12.5px; color: ${(p) => p.theme.colors.textMuted}; line-height: 1.4; }
 `;
 
 const GroupIntro = styled.p`
-  margin: 4px 0 12px;
+  margin: 4px 0 16px;
   font-size: 13px;
   color: ${(p) => p.theme.colors.textSecondary};
+`;
+
+const SkipLink = styled.button`
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  color: ${(p) => p.theme.colors.textSecondary};
+  padding: 0;
+  margin-top: 14px;
+  text-decoration: underline;
+  text-decoration-color: ${(p) => p.theme.colors.border};
+
+  &:hover { color: ${(p) => p.theme.colors.text}; }
 `;
 
 const NavRow = styled.div`
@@ -183,14 +224,12 @@ const RecapList = styled.dl`
 
 // ─── Ikony scenariuszy ────────────────────────────────────────────────────────
 
-const SCENARIO_ICONS: Record<ScenarioId, React.ElementType> = {
+const SCENARIO_ICONS: Partial<Record<ScenarioId, React.ElementType>> = {
   HOLIDAY: Gift,
   REACTIVATION: Moon,
   VEHICLE_OWNERS: Car,
   VIP: Gem,
-  CUSTOM_ONE_TIME: Settings2,
   SERVICE_FOLLOW_UP: Repeat,
-  CUSTOM_AUTOMATIC: Settings2,
 };
 
 // ─── Widok ────────────────────────────────────────────────────────────────────
@@ -220,6 +259,7 @@ export function CampaignWizardView() {
   const { services, serviceNames } = useServiceCatalog();
 
   const [step, setStep] = useState<StepId>(isEdit ? 'audience' : 'scenario');
+  const [kindPhase, setKindPhase] = useState<'kind' | 'preset'>('kind');
   const [scenarioId, setScenarioId] = useState<ScenarioId | null>(null);
   const [name, setName] = useState('');
   const [kind, setKind] = useState<CampaignKind>('ONE_TIME');
@@ -255,7 +295,10 @@ export function CampaignWizardView() {
     const fromUrl = searchParams.get('scenario') as ScenarioId | null;
     if (fromUrl && !isEdit) {
       const s = SCENARIOS.find((x) => x.id === fromUrl);
-      if (s) applyScenario(s);
+      if (s) {
+        applyScenario(s);
+        setKindPhase('preset');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -345,44 +388,65 @@ export function CampaignWizardView() {
 
       {/* ── Krok 1: Scenariusz ── */}
       {step === 'scenario' && (
-        <ScenarioGroups>
-          <div>
-            <Eyebrow>Jednorazowe</Eyebrow>
-            <GroupIntro>{KIND_DESCRIPTIONS.ONE_TIME}</GroupIntro>
-            <ScenarioGrid>
-              {SCENARIOS.filter((s) => s.kind === 'ONE_TIME').map((s) => {
-                const Icon = SCENARIO_ICONS[s.id];
-                return (
-                  <ScenarioCard key={s.id} $selected={scenarioId === s.id} onClick={() => applyScenario(s)}>
-                    <Icon />
-                    <h3>{s.title}</h3>
-                    <p>{s.description}</p>
-                  </ScenarioCard>
-                );
-              })}
-            </ScenarioGrid>
-          </div>
-          <div>
-            <Eyebrow>Automatyczne</Eyebrow>
-            <GroupIntro>{KIND_DESCRIPTIONS.AUTOMATIC}</GroupIntro>
-            <ScenarioGrid>
-              {SCENARIOS.filter((s) => s.kind === 'AUTOMATIC').map((s) => {
-                const Icon = SCENARIO_ICONS[s.id];
-                return (
-                  <ScenarioCard key={s.id} $selected={scenarioId === s.id} onClick={() => applyScenario(s)}>
-                    <Icon />
-                    <h3>{s.title}</h3>
-                    <p>{s.description}</p>
-                  </ScenarioCard>
-                );
-              })}
-            </ScenarioGrid>
-          </div>
-          <NavRow>
-            <span />
-            <PrimaryBtn disabled={!scenarioId} onClick={() => setStep('audience')}>Dalej</PrimaryBtn>
-          </NavRow>
-        </ScenarioGroups>
+        <>
+          {kindPhase === 'kind' && (
+            <div>
+              <GroupIntro>Wybierz rodzaj kampanii, żeby zacząć.</GroupIntro>
+              <KindGrid>
+                <KindCard type="button" onClick={() => { setKind('ONE_TIME'); setScheduleMode('NOW'); setKindPhase('preset'); }}>
+                  <Send />
+                  <h3>Jednorazowa wysyłka</h3>
+                  <p>Wyślij raz — teraz lub w wybranym terminie — do wybranej grupy klientów. Idealna do promocji, życzeń i ogłoszeń.</p>
+                </KindCard>
+                <KindCard type="button" onClick={() => { setKind('AUTOMATIC'); setScheduleMode('ACTIVATE'); setKindPhase('preset'); }}>
+                  <Repeat />
+                  <h3>Kampania automatyczna</h3>
+                  <p>Działa stale: wysyła wiadomość do każdego klienta, gdy spełni warunek — np. 180 dni od wykonanej usługi.</p>
+                </KindCard>
+              </KindGrid>
+            </div>
+          )}
+
+          {kindPhase === 'preset' && (
+            <div>
+              <GhostBtn type="button" style={{ marginBottom: 20 }} onClick={() => { setKindPhase('kind'); setScenarioId(null); }}>
+                ← Wróć
+              </GhostBtn>
+              <Eyebrow>
+                {kind === 'ONE_TIME' ? 'Wybierz szablon lub zacznij od zera' : 'Wybierz szablon'}
+              </Eyebrow>
+              <GroupIntro>
+                {kind === 'ONE_TIME'
+                  ? 'Szablony wypełniają treść i ustawiają filtry odbiorców. Możesz je zmienić w kolejnych krokach.'
+                  : 'Szablon konfiguruje warunek wysyłki i treść wiadomości.'}
+              </GroupIntro>
+              <PresetGrid>
+                {SCENARIOS
+                  .filter((s) => s.kind === kind && s.id !== 'CUSTOM_ONE_TIME' && s.id !== 'CUSTOM_AUTOMATIC')
+                  .map((s) => {
+                    const Icon = SCENARIO_ICONS[s.id] ?? Send;
+                    return (
+                      <ScenarioCard
+                        key={s.id}
+                        $selected={scenarioId === s.id}
+                        type="button"
+                        onClick={() => { applyScenario(s); setStep('audience'); }}
+                      >
+                        <Icon />
+                        <h3>{s.title}</h3>
+                        <p>{s.description}</p>
+                      </ScenarioCard>
+                    );
+                  })}
+              </PresetGrid>
+              <div>
+                <SkipLink type="button" onClick={() => { setScenarioId(null); setStep('audience'); }}>
+                  Pomiń — zacznij od pustego formularza
+                </SkipLink>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Krok 2: Odbiorcy ── */}
