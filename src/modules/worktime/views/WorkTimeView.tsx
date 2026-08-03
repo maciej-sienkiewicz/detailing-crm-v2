@@ -114,6 +114,20 @@ const STATUS_BG: Record<PeriodStatus, string> = {
     RETURNED: '#fef2f2',
 };
 
+const STATUS_BG_DARK: Record<PeriodStatus, string> = {
+    DRAFT: '#1e293b',
+    SUBMITTED: '#1c1407',
+    APPROVED: '#052e16',
+    RETURNED: '#1f0a0a',
+};
+
+const STATUS_COLOR_DARK: Record<PeriodStatus, string> = {
+    DRAFT: '#94a3b8',
+    SUBMITTED: '#fbbf24',
+    APPROVED: '#4ade80',
+    RETURNED: '#f87171',
+};
+
 // ─── WorkTimeView ─────────────────────────────────────────────────────────────
 
 export function WorkTimeView() {
@@ -254,9 +268,18 @@ export function WorkTimeView() {
                         (sum, e) => sum + Math.max(0, e.minutes - 480), 0
                     );
                     return (
-                        <SummaryCard $bg={STATUS_BG[detail.status as PeriodStatus]}>
-                            <StatusBadge $color={STATUS_COLOR[detail.status as PeriodStatus]}>
-                                <StatusDot $color={STATUS_COLOR[detail.status as PeriodStatus]} />
+                        <SummaryCard
+                            $bg={STATUS_BG[detail.status as PeriodStatus]}
+                            $darkBg={STATUS_BG_DARK[detail.status as PeriodStatus]}
+                        >
+                            <StatusBadge
+                                $color={STATUS_COLOR[detail.status as PeriodStatus]}
+                                $darkColor={STATUS_COLOR_DARK[detail.status as PeriodStatus]}
+                            >
+                                <StatusDot
+                                    $color={STATUS_COLOR[detail.status as PeriodStatus]}
+                                    $darkColor={STATUS_COLOR_DARK[detail.status as PeriodStatus]}
+                                />
                                 {STATUS_LABELS[detail.status as PeriodStatus]}
                             </StatusBadge>
                             <SummaryRow>
@@ -557,7 +580,7 @@ const NavBtn = styled.button`
     }
 `;
 
-const SummaryCard = styled.div<{ $bg?: string }>`
+const SummaryCard = styled.div<{ $bg?: string; $darkBg?: string }>`
     margin: 12px 16px;
     padding: 16px;
     background: ${p => p.$bg ?? '#f1f5f9'};
@@ -569,23 +592,35 @@ const SummaryCard = styled.div<{ $bg?: string }>`
     @media (min-width: 640px) {
         margin: 0 0 12px;
     }
+
+    @media (prefers-color-scheme: dark) {
+        background: ${p => p.$darkBg ?? '#1e293b'};
+    }
 `;
 
-const StatusBadge = styled.div<{ $color: string }>`
+const StatusBadge = styled.div<{ $color: string; $darkColor?: string }>`
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 13px;
     font-weight: 600;
     color: ${p => p.$color};
+
+    @media (prefers-color-scheme: dark) {
+        color: ${p => p.$darkColor ?? p.$color};
+    }
 `;
 
-const StatusDot = styled.span<{ $color: string }>`
+const StatusDot = styled.span<{ $color: string; $darkColor?: string }>`
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: ${p => p.$color};
     flex-shrink: 0;
+
+    @media (prefers-color-scheme: dark) {
+        background: ${p => p.$darkColor ?? p.$color};
+    }
 `;
 
 const SummaryRow = styled.div`
@@ -618,12 +653,20 @@ const SummaryLabel = styled.span`
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+
+    @media (prefers-color-scheme: dark) {
+        color: #94a3b8;
+    }
 `;
 
 const SummaryDivider = styled.div`
     width: 1px;
     height: 40px;
     background: #e2e8f0;
+
+    @media (prefers-color-scheme: dark) {
+        background: #334155;
+    }
 `;
 
 const ReturnNote = styled.div`
@@ -634,6 +677,12 @@ const ReturnNote = styled.div`
     border-radius: 8px;
     padding: 10px 12px;
     line-height: 1.5;
+
+    @media (prefers-color-scheme: dark) {
+        color: #fca5a5;
+        background: #2d0a0a;
+        border-color: #7f1d1d;
+    }
 `;
 
 const QuickActions = styled.div`
