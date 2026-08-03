@@ -45,6 +45,7 @@ const KindGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   max-width: 700px;
+  margin: 0 auto;
 
   @media (max-width: 767px) { grid-template-columns: 1fr; }
 `;
@@ -165,6 +166,43 @@ const FormSelect = styled.select`
     border-color: #0ea5e9;
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
   }
+`;
+
+const HintText = styled.p`
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: ${(p) => p.theme.colors.textMuted};
+  line-height: 1.5;
+`;
+
+const AfterDaysRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+`;
+
+const AfterDaysInput = styled.input`
+  width: 90px;
+  padding: 10px 14px;
+  border: 1.5px solid ${(p) => p.theme.colors.border};
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #ffffff;
+  color: ${(p) => p.theme.colors.text};
+  text-align: center;
+
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+  }
+`;
+
+const AfterDaysUnit = styled.span`
+  font-size: 14px;
+  color: ${(p) => p.theme.colors.textSecondary};
 `;
 
 const ScheduleNote = styled.p`
@@ -328,12 +366,12 @@ export function CampaignWizardView() {
             <KindCard type="button" onClick={() => pickKind('ONE_TIME')}>
               <Send />
               <h3>Jednorazowa wysyłka</h3>
-              <p>Wyślij raz — teraz lub w wybranym terminie — do wybranej grupy klientów. Idealna do promocji, życzeń i ogłoszeń.</p>
+              <p>Wyślij raz, teraz lub w wybranym terminie, do wybranej grupy klientów. Idealna do promocji, życzeń i ogłoszeń.</p>
             </KindCard>
             <KindCard type="button" onClick={() => pickKind('AUTOMATIC')}>
               <Repeat />
               <h3>Kampania automatyczna</h3>
-              <p>Działa stale: wysyła wiadomość do każdego klienta, gdy spełni warunek — np. 180 dni od wykonanej usługi.</p>
+              <p>Działa stale: wysyła wiadomość do każdego klienta, gdy spełni warunek, np. 180 dni od wykonanej usługi.</p>
             </KindCard>
           </KindGrid>
         </div>
@@ -358,18 +396,25 @@ export function CampaignWizardView() {
                     onChange={(ids) => setTrigger({ ...trigger, serviceIds: ids })}
                   />
                 </div>
+                {trigger.serviceIds.length > 1 && (
+                  <HintText>Warunek spełnia dowolna z wybranych usług (logika LUB).</HintText>
+                )}
               </FormField>
               <FormField>
                 <FormLabel>Wyślij po</FormLabel>
-                <FormSelect
-                  value={String(trigger.afterDays)}
-                  onChange={(e) => setTrigger({ ...trigger, afterDays: Number(e.target.value) })}
-                >
-                  <option value="30">30 dniach</option>
-                  <option value="90">90 dniach</option>
-                  <option value="180">180 dniach</option>
-                  <option value="365">roku</option>
-                </FormSelect>
+                <AfterDaysRow>
+                  <AfterDaysInput
+                    type="number"
+                    min={1}
+                    max={3650}
+                    value={trigger.afterDays}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      if (!isNaN(v) && v > 0) setTrigger({ ...trigger, afterDays: v });
+                    }}
+                  />
+                  <AfterDaysUnit>dniach od wykonania usługi</AfterDaysUnit>
+                </AfterDaysRow>
               </FormField>
               <FormField>
                 <FormLabel>Pomiń, jeśli klient był w międzyczasie</FormLabel>
