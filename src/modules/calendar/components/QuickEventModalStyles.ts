@@ -103,7 +103,9 @@ export const CloseButton = styled(ModalCloseButton)``;
 
 export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
     width: 100%;
-    font-size: 22px;
+    /* Doubled selector keeps the global touch-device 16px floor from shrinking
+       this deliberately oversized title field. */
+    && { font-size: 22px; }
     font-weight: 700;
     color: #0f172a;
     background: transparent;
@@ -124,7 +126,7 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
     }
 
     @media (max-width: 639px) {
-        font-size: 18px;
+        && { font-size: 18px; }
     }
 `;
 

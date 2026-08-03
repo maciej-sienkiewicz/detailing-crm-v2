@@ -31,6 +31,7 @@ import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useAutomationConfig } from '@/modules/sms-campaigns/hooks';
+import { useVirtualKeyboard } from '@/common/hooks';
 
 // ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
 const BRAND = '#0ea5e9';
@@ -62,6 +63,12 @@ const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    /* clip, not hidden: keeps sticky table headers working while guaranteeing
+       the view can never widen the page. */
+    overflow-x: clip;
     background: ${st.bg};
     ${hexBackdrop}
     animation: ${fadeIn} 0.3s ease both;
@@ -73,30 +80,45 @@ const ContentArea = styled.div`
     max-width: 1280px;
     margin: 0 auto;
     width: 100%;
+    min-width: 0;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 24px 32px 48px;
     }
 
     @media (max-width: 767px) {
-        padding: 16px 16px 88px;
+        /* Bottom clearance = nav height + home-indicator inset, so the last card
+           is never parked under the tab bar. */
+        padding: 14px max(12px, env(safe-area-inset-left, 0px))
+                 calc(84px + env(safe-area-inset-bottom, 0px))
+                 max(12px, env(safe-area-inset-right, 0px));
     }
 `;
 
 const D2dBanner = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     padding: 11px 18px;
     margin-bottom: 14px;
+    min-width: 0;
     background: rgba(14, 165, 233, 0.07);
     border: 1px solid rgba(14, 165, 233, 0.2);
     border-radius: 12px;
     font-size: 13px;
     font-weight: 500;
+    line-height: 1.5;
     color: #0369a1;
+    /* Addresses are user data and can be long single tokens. */
+    overflow-wrap: anywhere;
 
-    svg { flex-shrink: 0; }
+    svg { flex-shrink: 0; margin-top: 2px; }
+
+    @media (max-width: 640px) {
+        gap: 9px;
+        padding: 10px 12px;
+        font-size: 12.5px;
+    }
 `;
 
 const D2dBannerLabel = styled.span`
@@ -131,6 +153,7 @@ const MainGrid = styled.div`
 const MainColumn = styled.div`
     flex: 1;
     min-width: 0;
+    max-width: 100%;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -139,6 +162,8 @@ const MainColumn = styled.div`
 
 const Sidebar = styled.aside<{ $mobileVisible?: boolean }>`
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -172,6 +197,7 @@ const SectionHeader = styled.button`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     padding: 14px 20px;
     background: ${st.bgCard};
     border: none;
@@ -181,12 +207,21 @@ const SectionHeader = styled.button`
     text-align: left;
 
     &:hover { background: ${st.bg}; }
+
+    @media (max-width: 640px) {
+        padding: 13px 14px;
+        min-height: 48px;
+    }
 `;
 
 const SectionHeaderLeft = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
+    min-width: 0;
+
+    @media (max-width: 640px) { gap: 8px; }
 `;
 
 const SectionIconWrap = styled.div<{ $gradient?: string }>`
@@ -238,7 +273,12 @@ const ChevronIcon = styled.svg<{ $open: boolean }>`
 const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
     display: ${props => props.$visible ? 'block' : 'none'};
     padding: ${props => props.$flush ? '0' : '20px'};
+    min-width: 0;
     animation: ${fadeUp} 0.2s ease;
+
+    @media (max-width: 640px) {
+        padding: ${props => props.$flush ? '0' : '14px'};
+    }
 `;
 
 const SmsDisabledNotice = styled.div`
@@ -267,20 +307,36 @@ const DocsSectionHeader = styled.div`
     width: 100%;
     display: flex;
     align-items: center;
+    min-width: 0;
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
     cursor: pointer;
     transition: background ${st.transition};
     &:hover { background: ${st.bgCardAlt}; }
+
+    /* Title + counters + "Dodaj plik" do not fit one phone line. Below 640px the
+       header becomes two rows: identity on top, upload action underneath. */
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+        padding: 12px 14px;
+        row-gap: 10px;
+    }
 `;
 
 const DocsHeaderMain = styled.div`
     flex: 1;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 14px 20px;
     min-width: 0;
+
+    @media (max-width: 640px) {
+        flex-basis: 100%;
+        padding: 0;
+        gap: 8px;
+    }
 `;
 
 const DocsHeaderStats = styled.div`
@@ -309,6 +365,12 @@ const DocsHeaderRight = styled.div`
     gap: 10px;
     padding-right: 16px;
     flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        flex-basis: 100%;
+        padding-right: 0;
+        justify-content: space-between;
+    }
 `;
 
 const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
@@ -336,6 +398,13 @@ const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
     }
 
     svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    @media (max-width: 640px) {
+        flex: 1;
+        justify-content: center;
+        padding: 9px 14px;
+        min-height: 40px;
+    }
 `;
 
 const HiddenFileInput = styled.input`
@@ -568,7 +637,7 @@ const MobileTabPanel = styled.div<{ $visible: boolean }>`
     }
 `;
 
-const MobileBottomNav = styled.nav`
+const MobileBottomNav = styled.nav<{ $hidden?: boolean }>`
     display: flex;
     position: fixed;
     bottom: 0;
@@ -577,8 +646,22 @@ const MobileBottomNav = styled.nav`
     z-index: 1000;
     background: #ffffff;
     border-top: 1px solid #e2e8f0;
-    padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+    padding:
+        6px
+        max(4px, env(safe-area-inset-right, 0px))
+        calc(8px + env(safe-area-inset-bottom, 0px))
+        max(4px, env(safe-area-inset-left, 0px));
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+    transition: transform 180ms ease, opacity 180ms ease;
+
+    /* While the on-screen keyboard is up, iOS keeps this pinned to the layout
+       viewport — which is now behind the keyboard — so it visibly unsticks and
+       floats over the form. Slide it away instead; it comes back on blur. */
+    ${p => p.$hidden && `
+        transform: translateY(110%);
+        opacity: 0;
+        pointer-events: none;
+    `}
 
     /* hidden on desktop */
     @media (min-width: 768px) {
@@ -588,6 +671,7 @@ const MobileBottomNav = styled.nav`
 
 const MobileNavBtn = styled.button<{ $active: boolean }>`
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -609,12 +693,15 @@ const MobileNavIconWrap = styled.span<{ $active: boolean }>`
     align-items: center;
     justify-content: center;
     width: 48px;
+    max-width: 100%;
     height: 30px;
     border-radius: 15px;
     background: ${p => p.$active ? 'rgba(14, 165, 233, 0.12)' : 'transparent'};
     transition: background 0.2s ease;
 
     svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    @media (max-width: 360px) { width: 40px; }
 `;
 
 const MobileNavLabel = styled.span`
@@ -625,8 +712,11 @@ const MobileNavLabel = styled.span`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 56px;
+    max-width: 100%;
+    width: 56px;
     text-align: center;
+
+    @media (max-width: 360px) { width: 100%; font-size: 9px; }
 `;
 
 // ─── View ─────────────────────────────────────────────────────────────────────
@@ -675,6 +765,7 @@ export const VisitDetailView = () => {
     const smsPreVisitDisabled = smsConfig !== null && !smsConfig.preVisit.enabled;
 
     const { can } = usePermissions();
+    const isKeyboardOpen = useVirtualKeyboard();
 
     const queryClient = useQueryClient();
     const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
@@ -1184,7 +1275,11 @@ export const VisitDetailView = () => {
         </ViewContainer>
 
         {createPortal(
-            <MobileBottomNav aria-label="Nawigacja sekcji wizyty">
+            <MobileBottomNav
+                aria-label="Nawigacja sekcji wizyty"
+                $hidden={isKeyboardOpen}
+                aria-hidden={isKeyboardOpen || undefined}
+            >
                 <MobileNavBtn $active={mobileTab === 'services'} onClick={() => handleMobileTabChange('services')} aria-label="Usługi">
                     <MobileNavIconWrap $active={mobileTab === 'services'}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

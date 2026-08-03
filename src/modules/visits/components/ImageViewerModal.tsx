@@ -8,16 +8,19 @@ import styled from 'styled-components';
 
 const ModalOverlay = styled.div`
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
+    height: 100vh;
+    height: 100dvh;
     background-color: rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    padding: ${props => props.theme.spacing.lg};
+    padding:
+        max(24px, env(safe-area-inset-top, 0px))
+        max(24px, env(safe-area-inset-right, 0px))
+        max(24px, env(safe-area-inset-bottom, 0px))
+        max(24px, env(safe-area-inset-left, 0px));
     animation: fadeIn 0.2s ease;
 
     @keyframes fadeIn {
@@ -28,12 +31,22 @@ const ModalOverlay = styled.div`
             opacity: 1;
         }
     }
+
+    /* Nav arrows are pinned inside the frame, so the frame needs room for them. */
+    @media (max-width: 640px) {
+        padding:
+            max(56px, env(safe-area-inset-top, 0px))
+            max(12px, env(safe-area-inset-right, 0px))
+            max(12px, env(safe-area-inset-bottom, 0px))
+            max(12px, env(safe-area-inset-left, 0px));
+    }
 `;
 
 const ModalContent = styled.div`
     position: relative;
-    max-width: 90vw;
-    max-height: 90vh;
+    max-width: 100%;
+    max-height: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease;
@@ -55,14 +68,18 @@ const ImageContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 0;
+    min-width: 0;
     background-color: #000;
     border-radius: ${props => props.theme.radii.lg};
     overflow: hidden;
 `;
 
 const Image = styled.img`
-    max-width: 90vw;
-    max-height: 85vh;
+    /* Sized by the padded overlay rather than raw viewport units, so the image
+       is never tucked under browser chrome or a notch. */
+    max-width: 100%;
+    max-height: 100%;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -80,11 +97,21 @@ const ImageInfo = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
+    min-width: 0;
+
+    @media (max-width: 480px) {
+        padding: 10px 12px;
+    }
 `;
 
 const ImageName = styled.div`
     font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 500;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const CloseButton = styled.button`
@@ -93,6 +120,13 @@ const CloseButton = styled.button`
     right: ${props => props.theme.spacing.md};
     width: 40px;
     height: 40px;
+    flex-shrink: 0;
+
+    /* Lifted clear of the image on a phone, where the frame fills the width. */
+    @media (max-width: 640px) {
+        top: -46px;
+        right: 0;
+    }
     border: none;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.9);
@@ -148,6 +182,7 @@ const NavigationButton = styled.button<{ $direction: 'prev' | 'next' }>`
     transform: translateY(-50%);
     width: 48px;
     height: 48px;
+    flex-shrink: 0;
     border: none;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.9);
@@ -175,6 +210,14 @@ const NavigationButton = styled.button<{ $direction: 'prev' | 'next' }>`
     svg {
         width: 24px;
         height: 24px;
+    }
+
+    @media (max-width: 640px) {
+        width: 40px;
+        height: 40px;
+        ${props => props.$direction === 'prev' ? 'left: 8px;' : 'right: 8px;'}
+
+        svg { width: 20px; height: 20px; }
     }
 `;
 

@@ -16,6 +16,17 @@ const WizardHeader = styled.div`
     display: flex;
     flex-direction: column;
     gap: 12px;
+
+    @media (max-width: 640px) {
+        padding: 16px 18px 12px;
+        gap: 10px;
+    }
+
+    @media (max-height: 480px) {
+        padding-top: 12px;
+        padding-bottom: 10px;
+        gap: 8px;
+    }
 `;
 
 const HeaderTop = styled.div`
@@ -51,6 +62,9 @@ const WizardTitle = styled.h2`
     color: #0f172a;
     letter-spacing: -0.2px;
     line-height: 1.2;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 400px) { font-size: 16px; }
 `;
 
 const WizardSubtitle = styled.p`
@@ -110,13 +124,35 @@ const StepLabel = styled.span`
     white-space: nowrap;
 `;
 
-// ─── Left-aligned back button wrapper ────────────────────────────────────────
+// ─── Footer ──────────────────────────────────────────────────────────────────
+//
+// Wizard labels are long ("Wymaga poprawek" + "Zatwierdź jakość", "Zatwierdź i
+// wydaj pojazd"). Side by side they overrun a phone-width footer, so below
+// 560px the footer becomes a stack with the primary action on top — reachable
+// with the thumb, and never clipped.
+
+const WizardFooter = styled(ModalFooter)`
+    @media (max-width: 560px) {
+        flex-direction: column-reverse;
+        align-items: stretch;
+
+        > button { width: 100%; }
+    }
+`;
 
 const FooterLeft = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
     flex: 1;
+    min-width: 0;
+
+    @media (max-width: 560px) {
+        flex: none;
+        width: 100%;
+
+        > button { flex: 1; min-width: 0; }
+    }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -195,7 +231,7 @@ export const WizardLayout = ({
                 {children}
             </ModalContent>
 
-            <ModalFooter>
+            <WizardFooter>
                 <FooterLeft>
                     {onBack && (
                         <SharedButton $variant="secondary" type="button" onClick={onBack} disabled={isProcessing}>
@@ -218,7 +254,7 @@ export const WizardLayout = ({
                         {isProcessing ? 'Przetwarzanie…' : isLast ? finishLabel : nextLabel}
                     </SharedButton>
                 )}
-            </ModalFooter>
+            </WizardFooter>
         </ModalShell>
     );
 };

@@ -29,6 +29,8 @@ const TableContainer = styled.div`
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
     box-shadow: ${st.shadowSm};
 
     @media (max-width: 640px) {
@@ -250,20 +252,48 @@ const ContextMenuItem = styled.button<{ $variant?: 'danger' }>`
 
 /* ─── Confirm modal ─── */
 
-const ModalOverlay = styled.div`
+/**
+ * Shared geometry for every dialog this file owns.
+ *
+ * `100dvh` (not `inset: 0`) so the box is sized against the viewport that is
+ * actually visible on a phone — with `inset: 0` alone the bottom of a centred
+ * dialog sits under Safari's address bar and its buttons become unreachable.
+ * z-index sits above the visit view's mobile tab bar (1000), which is portalled
+ * to <body> after #root and would otherwise paint over these overlays.
+ */
+const dialogOverlay = css`
     position: fixed;
     inset: 0;
-    background: ${st.bgOverlay};
+    height: 100vh;
+    height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    padding:
+        max(16px, env(safe-area-inset-top, 0px))
+        max(16px, env(safe-area-inset-right, 0px))
+        max(16px, env(safe-area-inset-bottom, 0px))
+        max(16px, env(safe-area-inset-left, 0px));
+    z-index: 9999;
+
+    @media (max-height: 480px) {
+        padding-top: max(8px, env(safe-area-inset-top, 0px));
+        padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    }
+`;
+
+const ModalOverlay = styled.div`
+    ${dialogOverlay}
+    background: ${st.bgOverlay};
     backdrop-filter: blur(2px);
 `;
 
 const ModalCard = styled.div`
     width: 100%;
     max-width: 440px;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: 16px;
@@ -271,15 +301,16 @@ const ModalCard = styled.div`
     overflow: hidden;
 
     @media (max-width: 480px) {
-        margin: 16px;
-        max-width: calc(100% - 32px);
-        border-radius: 12px;
+        border-radius: 14px;
     }
 `;
 
 const ModalHeader = styled.div`
     padding: 20px 24px;
     border-bottom: 1px solid ${st.border};
+    flex-shrink: 0;
+
+    @media (max-width: 480px) { padding: 16px 18px; }
 `;
 
 const ModalTitle = styled.h4`
@@ -294,15 +325,28 @@ const ModalBody = styled.div`
     color: ${st.textSecondary};
     font-size: ${st.fontSm};
     line-height: 1.6;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 480px) { padding: 16px 18px; }
 `;
 
 const ModalFooter = styled.div`
     padding: 14px 20px;
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
     background: ${st.bg};
     border-top: 1px solid ${st.border};
+    flex-shrink: 0;
+
+    @media (max-width: 480px) {
+        padding: 12px 14px;
+        > button { flex: 1; min-width: 0; white-space: normal; }
+    }
 `;
 
 const SecondaryBtn = styled.button`
@@ -368,6 +412,7 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
     @media (max-width: 767px) {
         display: flex;
         align-items: flex-start;
+        flex-wrap: wrap;
         gap: 10px;
         padding: 14px 16px;
 
@@ -383,6 +428,7 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
             flex: 0 0 auto;
             padding: 0;
             text-align: right;
+            min-width: 0;
         }
 
         /* Akcje */
@@ -391,6 +437,17 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
             padding: 0;
         }
     }
+
+    /* Below ~480px the name and the "netto … · VAT …" line cannot share a row
+       without one of them being squeezed to a few characters. Give the name the
+       full width and let price + kebab settle underneath, right-aligned. */
+    @media (max-width: 480px) {
+        padding: 12px 14px;
+        row-gap: 8px;
+
+        td:nth-child(1) { flex: 0 0 100%; }
+        td:nth-child(2) { flex: 1; }
+    }
 `;
 
 const Td = styled.td`
@@ -398,6 +455,7 @@ const Td = styled.td`
     font-size: ${st.fontSm};
     color: ${st.text};
     vertical-align: top;
+    min-width: 0;
 
     @media (max-width: 767px) { padding: 0; }
 `;
@@ -420,11 +478,15 @@ const NameLine = styled.div`
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+    min-width: 0;
 `;
 
 const ServiceName = styled.span`
     font-weight: 600;
     color: ${st.text};
+    min-width: 0;
+    /* Service names are free text and regularly contain long unbroken tokens. */
+    overflow-wrap: anywhere;
 `;
 
 const ServiceNote = styled.div`
@@ -432,6 +494,7 @@ const ServiceNote = styled.div`
     color: ${st.textMuted};
     font-style: italic;
     margin-top: 2px;
+    overflow-wrap: anywhere;
 `;
 
 const PackageSubTr = styled.tr<{ $last?: boolean }>`
@@ -619,18 +682,17 @@ const BreakdownItem = styled.div<{ $accent?: boolean }>`
 /* ─── Discount / editor modal shared styles ─── */
 
 const DiscountModalOverlay = styled.div`
-    position: fixed;
-    inset: 0;
+    ${dialogOverlay}
     background: ${st.bgOverlay};
     backdrop-filter: blur(2px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
 `;
 
 const DiscountModalCard = styled.div`
-    width: min(440px, calc(100vw - 32px));
+    width: 100%;
+    max-width: 440px;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusLg};
@@ -645,6 +707,10 @@ const DiscountModalHeader = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    flex-shrink: 0;
+    min-width: 0;
+
+    @media (max-width: 480px) { padding: 15px 16px 12px; }
 `;
 
 const DiscountModalTitle = styled.h4`
@@ -662,7 +728,8 @@ const DiscountModalSubtitle = styled.p`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 320px;
+    /* Was a hard 320px — on a 360px phone that alone overflowed the card. */
+    max-width: 100%;
 `;
 
 const DiscountModalBody = styled.div`
@@ -670,6 +737,11 @@ const DiscountModalBody = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
+
+    @media (max-width: 480px) { padding: 15px 16px; gap: 14px; }
 `;
 
 const DiscountModalFooter = styled.div`
@@ -680,6 +752,12 @@ const DiscountModalFooter = styled.div`
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
+    flex-shrink: 0;
+
+    @media (max-width: 480px) {
+        padding: 12px 14px;
+        > button { flex: 1 1 auto; min-width: 0; white-space: normal; }
+    }
 `;
 
 const DiscountFromBox = styled.div`
@@ -785,12 +863,15 @@ const DiscountValueRow = styled.div`
     }
 `;
 
-const DiscountValueInput = styled.input`
+const DiscountValueInput = styled.input<{ $compact?: boolean }>`
     flex: 1;
     width: 100%;
     min-width: 0;
-    padding: 9px 0;
-    font-size: 20px;
+    padding: ${p => p.$compact ? '6px 0' : '9px 0'};
+    /* Doubled selector so the global touch-device 16px floor does not shrink
+       this deliberately oversized amount field. Never goes below 16px, or iOS
+       zooms the page on focus and never zooms back. */
+    && { font-size: ${p => p.$compact ? '16px' : '20px'}; }
     font-weight: 700;
     text-align: left;
     background: transparent;
@@ -884,6 +965,13 @@ const EditorGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 84px;
     gap: 10px;
+
+    /* Netto / brutto stay paired; the VAT chip drops to its own row rather than
+       squeezing both price fields into ~70px. */
+    @media (max-width: 400px) {
+        grid-template-columns: 1fr 1fr;
+        > *:last-child { grid-column: 1 / -1; }
+    }
 `;
 
 const EditorField = styled.div`
@@ -977,7 +1065,8 @@ const EditorSavedChip = styled.span`
 /* ─── Bulk-discount "wide" modal with live preview ─── */
 
 const BulkModalCard = styled.div`
-    width: min(940px, calc(100vw - 32px));
+    width: 100%;
+    max-width: 940px;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusLg};
@@ -985,7 +1074,7 @@ const BulkModalCard = styled.div`
     box-shadow: ${st.shadowLg};
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 48px);
+    max-height: 100%;
 `;
 
 const BulkModalHeader = styled.div`
@@ -994,18 +1083,23 @@ const BulkModalHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
     flex-shrink: 0;
+
+    @media (max-width: 480px) { padding: 15px 16px 12px; }
 `;
 
 const BulkModalLayout = styled.div`
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
     min-height: 0;
     flex: 1;
 
-    @media (max-width: 640px) {
-        grid-template-columns: 1fr;
+    @media (max-width: 768px) {
+        grid-template-columns: minmax(0, 1fr);
         overflow-y: auto;
+        overscroll-behavior: contain;
     }
 `;
 
@@ -1014,19 +1108,23 @@ const BulkControlsPanel = styled.div`
     display: flex;
     flex-direction: column;
     gap: 18px;
+    min-width: 0;
     border-right: 1px solid ${st.border};
     overflow-y: auto;
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         border-right: none;
         border-bottom: 1px solid ${st.border};
         overflow-y: visible;
     }
+
+    @media (max-width: 480px) { padding: 16px; gap: 14px; }
 `;
 
 const BulkPreviewPanel = styled.div`
     display: flex;
     flex-direction: column;
+    min-width: 0;
     background: ${st.bg};
     overflow: hidden;
 `;
@@ -1281,6 +1379,11 @@ const BulkModalFooter = styled.div`
     flex-wrap: wrap;
     gap: 8px;
     flex-shrink: 0;
+
+    @media (max-width: 480px) {
+        padding: 12px 14px;
+        > button { flex: 1 1 auto; min-width: 0; white-space: normal; }
+    }
 `;
 
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
@@ -2402,9 +2505,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </DiscountTypeRow>
                                     <DiscountValueRow style={{ flex: 1, minWidth: 140 }}>
                                         <DiscountValueInput
+                                            $compact
                                             type="text" inputMode="decimal"
                                             placeholder="0"
-                                            style={{ fontSize: 15, padding: '6px 0' }}
                                             value={edMode === 'DISCOUNT' ? edDiscountValue : ''}
                                             onChange={e => handleEdDiscountValueChange(e.target.value)}
                                         />

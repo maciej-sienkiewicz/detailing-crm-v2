@@ -33,7 +33,10 @@ const TimelineItem = styled.li<{ $last?: boolean }>`
     display: flex;
     gap: 14px;
     position: relative;
+    min-width: 0;
     padding-bottom: ${p => p.$last ? '0' : '16px'};
+
+    @media (max-width: 480px) { gap: 10px; }
 
     &::before {
         content: ${p => p.$last ? 'none' : '""'};
@@ -82,6 +85,7 @@ const ChannelDot = styled.div<{ $channel: 'EMAIL' | 'SMS'; $failed?: boolean }>`
 
 const EntryCard = styled.button`
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -104,7 +108,14 @@ const EntryCard = styled.button`
 
     &:active { transform: translateY(0); }
 
-    @media (max-width: 480px) { flex-direction: column; gap: 8px; }
+    @media (max-width: 480px) {
+        flex-direction: column;
+        /* stretch, not flex-start: in a column the cross axis is horizontal, and
+           flex-start lets the children size to max-content — which is how a long
+           recipient address used to drag the card past the screen edge. */
+        align-items: stretch;
+        gap: 8px;
+    }
 `;
 
 const EntryMain = styled.div`
@@ -112,6 +123,7 @@ const EntryMain = styled.div`
     flex-direction: column;
     gap: 3px;
     min-width: 0;
+    max-width: 100%;
 `;
 
 const EntryLabel = styled.span`
@@ -121,6 +133,7 @@ const EntryLabel = styled.span`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
 `;
 
 const EntryMeta = styled.span`
@@ -131,6 +144,9 @@ const EntryMeta = styled.span`
     gap: 5px;
     flex-wrap: wrap;
     row-gap: 2px;
+    min-width: 0;
+    /* Recipient is an e-mail address — one long unbreakable token. */
+    overflow-wrap: anywhere;
 `;
 
 const EntryRight = styled.div`

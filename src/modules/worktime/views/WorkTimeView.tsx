@@ -922,7 +922,9 @@ const SheetLabel = styled.label`
 const TimeInput = styled.input<{ $error: boolean }>`
     width: 100%;
     padding: 16px;
-    font-size: 28px;
+    /* Doubled selector keeps the global touch-device 16px floor from shrinking
+       this deliberately oversized time field. */
+    && { font-size: 28px; }
     font-weight: 700;
     text-align: center;
     border: 2px solid ${p => p.$error ? '#ef4444' : '#e2e8f0'};

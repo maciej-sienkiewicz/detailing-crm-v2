@@ -33,21 +33,40 @@ const IconWrap = styled.div`
 const Body = styled.div`
     padding: 20px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    @media (max-width: 640px) { padding: 16px; gap: 14px; }
 `;
 
 const FooterLeft = styled.div`
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
+
+    @media (max-width: 560px) {
+        flex: none;
+        width: 100%;
+
+        > button { flex: 1; }
+    }
 `;
 
 const FooterRight = styled.div`
     display: flex;
     gap: 8px;
+    min-width: 0;
+
+    @media (max-width: 560px) {
+        width: 100%;
+
+        > button { flex: 1; min-width: 0; }
+    }
 `;
 
 const CustomerRow = styled.div`

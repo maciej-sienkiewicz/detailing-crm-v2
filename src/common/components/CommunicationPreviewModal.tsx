@@ -27,14 +27,30 @@ const fadeIn = keyframes`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
+    /* dvh so the sheet is measured against the space actually on screen — with
+       plain viewport units its footer hides under mobile browser chrome. */
+    height: 100vh;
+    height: 100dvh;
     background: rgba(15, 23, 42, 0.5);
     backdrop-filter: blur(3px);
     z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding:
+        max(24px, env(safe-area-inset-top, 0px))
+        max(24px, env(safe-area-inset-right, 0px))
+        max(24px, env(safe-area-inset-bottom, 0px))
+        max(24px, env(safe-area-inset-left, 0px));
     animation: ${fadeIn} 0.15s ease;
+
+    @media (max-width: 640px) {
+        padding:
+            max(12px, env(safe-area-inset-top, 0px))
+            max(12px, env(safe-area-inset-right, 0px))
+            max(12px, env(safe-area-inset-bottom, 0px))
+            max(12px, env(safe-area-inset-left, 0px));
+    }
 `;
 
 const ModalSheet = styled.div`
@@ -43,7 +59,8 @@ const ModalSheet = styled.div`
     box-shadow: ${st.shadowLg};
     width: 100%;
     max-width: 600px;
-    max-height: 85vh;
+    max-height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -58,8 +75,12 @@ const ModalHeader = styled.div`
     justify-content: space-between;
     gap: 16px;
     padding: 20px 24px;
+    min-width: 0;
     border-bottom: 1px solid ${st.border};
     background: ${st.bg};
+    flex-shrink: 0;
+
+    @media (max-width: 640px) { padding: 15px 16px; gap: 10px; }
 `;
 
 const ModalHeaderLeft = styled.div`
@@ -140,8 +161,12 @@ const ModalMeta = styled.div`
     flex-wrap: wrap;
     gap: 6px 16px;
     padding: 12px 24px;
+    min-width: 0;
     background: ${st.bgCardAlt};
     border-bottom: 1px solid ${st.border};
+    flex-shrink: 0;
+
+    @media (max-width: 640px) { padding: 10px 16px; gap: 5px 12px; }
 `;
 
 const MetaItem = styled.div`
@@ -150,6 +175,9 @@ const MetaItem = styled.div`
     gap: 5px;
     font-size: 12px;
     color: ${st.textSecondary};
+    min-width: 0;
+    /* Recipient addresses and message ids are unbreakable tokens. */
+    overflow-wrap: anywhere;
 `;
 
 const MetaLabel = styled.span`
@@ -221,8 +249,13 @@ const ErrorBannerDetail = styled.p`
 
 const ModalBody = styled.div`
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 16px 24px 24px;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 640px) { padding: 14px 16px 18px; }
 `;
 
 const SubjectLine = styled.div`

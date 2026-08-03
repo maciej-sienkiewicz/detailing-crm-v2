@@ -189,7 +189,7 @@ const CommentsList = styled.div`
 
 const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
     display: grid;
-    grid-template-columns: 32px 1fr;
+    grid-template-columns: 32px minmax(0, 1fr);
     gap: 12px;
     padding: 14px 16px 14px 20px;
     border-bottom: 1px solid ${st.border};
@@ -301,6 +301,7 @@ const EditedHint = styled.div`
 const ActionRow = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 2px;
     margin-top: 6px;
 `;
@@ -387,10 +388,10 @@ const RevMeta = styled.div`
 
 const RevDiff = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 5px;
 
-    @media (max-width: 400px) { grid-template-columns: 1fr; }
+    @media (max-width: 400px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
 const DiffCell = styled.div<{ $old: boolean }>`
@@ -398,6 +399,7 @@ const DiffCell = styled.div<{ $old: boolean }>`
     border-radius: ${st.radiusSm};
     font-size: ${st.fontXs};
     line-height: 1.4;
+    overflow-wrap: anywhere;
     background: ${p => p.$old ? st.accentRedDim : st.accentGreenDim};
     color: ${p => p.$old ? st.accentRed : st.accentGreen};
 `;

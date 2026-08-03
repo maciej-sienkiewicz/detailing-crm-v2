@@ -319,7 +319,7 @@ export const PhoneInput = styled.input`
     background: ${c.surface};
     border: 1.5px solid ${c.border};
     border-radius: 14px;
-    font-size: 20px;
+    && { font-size: 20px; }
     font-weight: 400;
     color: ${c.text};
     outline: none;
@@ -446,7 +446,7 @@ export const TranscriptTextarea = styled.textarea`
     background: ${c.surface};
     border: 1.5px solid ${c.border};
     border-radius: 16px;
-    font-size: 17px;
+    && { font-size: 17px; }
     font-weight: 400;
     color: ${c.text};
     font-family: inherit;

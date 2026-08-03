@@ -28,9 +28,13 @@ const CardHeader = styled.div<{ $clickable?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
     padding: 12px 16px;
     border-bottom: 1px solid ${st.border};
     background: ${st.bgCard};
+
+    @media (max-width: 640px) { min-height: 46px; }
     ${p => p.$clickable && css`
         cursor: pointer;
         user-select: none;
@@ -57,6 +61,7 @@ const CardTitleGroup = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 `;
 
 const CardIconWrap = styled.div`
@@ -112,6 +117,10 @@ const CustomerRow = styled.div`
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
+    min-width: 0;
+
+    /* The name/company block is the only flexible child — let it shrink. */
+    > div:last-child { min-width: 0; }
 `;
 
 const CustomerAvatar = styled.div`
@@ -135,6 +144,7 @@ const CustomerName = styled.div`
     color: ${st.text};
     letter-spacing: -0.2px;
     line-height: 1.3;
+    overflow-wrap: anywhere;
 `;
 
 const CustomerSub = styled.div`
@@ -142,6 +152,7 @@ const CustomerSub = styled.div`
     color: ${st.textMuted};
     margin-top: 2px;
     font-weight: 500;
+    overflow-wrap: anywhere;
 `;
 
 const ContactLinks = styled.div`
@@ -201,6 +212,7 @@ const CompanyRow = styled.div`
 const HistoryLine = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 7px;
     margin-top: 12px;
     font-size: 12px;
@@ -260,7 +272,7 @@ const VehicleBody = styled.div`
 
 const KvRow = styled.div`
     display: grid;
-    grid-template-columns: 108px 1fr;
+    grid-template-columns: 108px minmax(0, 1fr);
     gap: 8px;
     padding: 9px 16px;
     border-bottom: 1px dashed #f1f5f9;
@@ -269,7 +281,7 @@ const KvRow = styled.div`
 
     &:last-child { border-bottom: none; }
 
-    @media (max-width: 400px) { grid-template-columns: 84px 1fr; }
+    @media (max-width: 400px) { grid-template-columns: 84px minmax(0, 1fr); }
 `;
 
 const KvLabel = styled.span`
@@ -346,12 +358,13 @@ const HandoffRow = styled.div`
     align-items: baseline;
     gap: 8px;
     font-size: 12px;
+    min-width: 0;
 `;
 
 const HandoffKey = styled.span`
     color: ${st.textMuted};
     font-weight: 600;
-    min-width: 80px;
+    flex: 0 0 80px;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -360,6 +373,8 @@ const HandoffKey = styled.span`
 const HandoffVal = styled.span`
     color: ${st.text};
     font-weight: 500;
+    min-width: 0;
+    overflow-wrap: anywhere;
 `;
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

@@ -40,6 +40,12 @@ import {
 export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
     z-index: 1100;
     left: ${p => p.$contentLeft ?? 0}px;
+
+    /* The sidebar is only docked from md up. Below that the offset (64/240px)
+       has nothing to clear and would shove the dialog off the right edge. */
+    @media (max-width: 767px) {
+        left: 0;
+    }
 `;
 
 export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
