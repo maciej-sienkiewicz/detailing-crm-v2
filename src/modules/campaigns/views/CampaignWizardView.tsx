@@ -18,6 +18,7 @@ import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilte
 import { AudienceEstimatePanel } from '../components/AudienceEstimatePanel';
 import { MessageEditor, type MessageContent } from '../components/MessageEditor';
 import { Eyebrow, Page, SectionCard } from '../components/shared';
+import { InfoTooltip } from '@/common/components/InfoTooltip';
 import { smsMeta } from '../utils/sms';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -394,19 +395,27 @@ export function CampaignWizardView() {
             <SectionCard style={{ marginBottom: 16 }}>
               <Eyebrow>Warunek wysyłki</Eyebrow>
               <FormField>
-                <FormLabel>Po usłudze</FormLabel>
+                <FormLabel>
+                  Po usłudze
+                  <InfoTooltip text="Kampania uruchomi się dla klientów, u których ta usługa była wykonana X dni temu. Przy kilku usługach wystarczy, że klient miał choćby jedną z nich (logika LUB)." />
+                </FormLabel>
                 <div style={{ maxWidth: 420 }}>
                   <ServiceMultiSelect
                     selectedIds={trigger.serviceIds}
                     onChange={(ids) => setTrigger({ ...trigger, serviceIds: ids })}
                   />
                 </div>
-                {trigger.serviceIds.length > 1 && (
-                  <HintText>Warunek spełnia dowolna z wybranych usług (logika LUB).</HintText>
-                )}
+                <HintText>
+                  {trigger.serviceIds.length > 1
+                    ? 'Wystarczy, że klient miał wykonaną dowolną z wybranych usług (logika LUB).'
+                    : 'Możesz wybrać kilka usług — warunek spełni każda z nich (logika LUB).'}
+                </HintText>
               </FormField>
               <FormField>
-                <FormLabel>Wyślij po</FormLabel>
+                <FormLabel>
+                  Wyślij po
+                  <InfoTooltip text="Liczba dni od wykonania usługi. System sprawdza codziennie i wysyła w dniu, w którym wizyta jest stara o dokładnie tyle dni." />
+                </FormLabel>
                 <AfterDaysRow>
                   <AfterDaysInput
                     type="number"
@@ -422,7 +431,10 @@ export function CampaignWizardView() {
                 </AfterDaysRow>
               </FormField>
               <FormField>
-                <FormLabel>Pomiń, jeśli klient był w międzyczasie</FormLabel>
+                <FormLabel>
+                  Pomiń, jeśli klient był w międzyczasie
+                  <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane — chroni przed wysyłaniem do klientów, którzy sami wrócili." />
+                </FormLabel>
                 <FormSelect
                   value={trigger.onlyIfNoVisitSince ? 'yes' : 'no'}
                   onChange={(e) => setTrigger({ ...trigger, onlyIfNoVisitSince: e.target.value === 'yes' })}

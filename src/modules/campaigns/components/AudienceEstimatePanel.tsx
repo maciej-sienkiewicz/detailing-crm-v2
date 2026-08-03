@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { InfoTooltip } from '@/common/components/InfoTooltip';
 import type { AudienceCriteria, AudienceEstimate } from '../types';
 
 const Panel = styled.div`
@@ -29,6 +30,13 @@ const BigLabel = styled.div`
   letter-spacing: 0.08em;
   color: ${(p) => p.theme.colors.textMuted};
   margin: 6px 0 14px;
+  display: flex;
+  align-items: center;
+`;
+
+const BreakdownLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
 `;
 
 const Breakdown = styled.ul`
@@ -119,15 +127,56 @@ export function AudienceEstimatePanel({ estimate, isEstimating, audience, onChan
   return (
     <Panel>
       <BigNumber $dim={isEstimating}>{e ? e.eligible : '—'}</BigNumber>
-      <BigLabel>Odbiorców dostanie wiadomość</BigLabel>
+      <BigLabel>
+        Odbiorców dostanie wiadomość
+        <InfoTooltip text="Finalna liczba klientów po odjęciu wszystkich wykluczeń systemowych (brak zgody, brak kontaktu, STOP, limit częstości)." />
+      </BigLabel>
 
       {e && (
         <Breakdown>
-          <li><span>Pasuje do filtrów</span><strong>{e.matched}</strong></li>
-          {e.noConsent > 0 && <li><span>Brak zgody marketingowej</span><strong>−{e.noConsent}</strong></li>}
-          {e.noAddress > 0 && <li><span>Brak numeru / adresu</span><strong>−{e.noAddress}</strong></li>}
-          {e.optedOut > 0 && <li><span>Zrezygnowali (STOP)</span><strong>−{e.optedOut}</strong></li>}
-          {e.frequencyCapped > 0 && <li><span>Limit wysyłek</span><strong>−{e.frequencyCapped}</strong></li>}
+          <li>
+            <BreakdownLabel>
+              Pasuje do filtrów
+              <InfoTooltip text="Łączna liczba klientów spełniających ustawione kryteria odbiorców — przed zastosowaniem wykluczeń systemowych." />
+            </BreakdownLabel>
+            <strong>{e.matched}</strong>
+          </li>
+          {e.noConsent > 0 && (
+            <li>
+              <BreakdownLabel>
+                Brak zgody marketingowej
+                <InfoTooltip text="Klient nie wyraził zgody na komunikację marketingową tym kanałem (SMS lub e-mail). Zgody konfiguruje się w Ustawieniach → Zgody." />
+              </BreakdownLabel>
+              <strong>−{e.noConsent}</strong>
+            </li>
+          )}
+          {e.noAddress > 0 && (
+            <li>
+              <BreakdownLabel>
+                Brak numeru / adresu
+                <InfoTooltip text="Dla wysyłki SMS: brak numeru telefonu w profilu klienta. Dla e-mail: brak adresu e-mail." />
+              </BreakdownLabel>
+              <strong>−{e.noAddress}</strong>
+            </li>
+          )}
+          {e.optedOut > 0 && (
+            <li>
+              <BreakdownLabel>
+                Wypisani (STOP)
+                <InfoTooltip text="Klient odpowiedział STOP na poprzednią kampanię lub został ręcznie wypisany z listy. Tych klientów nigdy nie obejmują żadne kampanie." />
+              </BreakdownLabel>
+              <strong>−{e.optedOut}</strong>
+            </li>
+          )}
+          {e.frequencyCapped > 0 && (
+            <li>
+              <BreakdownLabel>
+                Niedawno kontaktowani
+                <InfoTooltip text="Klient otrzymał wiadomość kampanijną w ciągu ustawionego limitu dni. Chroni przed zbyt częstym spamowaniem. Minimalny odstęp między kampaniami ustawiasz w Ustawieniach → Wysyłka." />
+              </BreakdownLabel>
+              <strong>−{e.frequencyCapped}</strong>
+            </li>
+          )}
         </Breakdown>
       )}
 
