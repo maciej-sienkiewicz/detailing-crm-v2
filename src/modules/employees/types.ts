@@ -230,6 +230,8 @@ export interface TeamPeriodSummary {
     totalMinutes: number;
     totalHours: string;
     entryCount: number;
+    overtimeMinutes: number;
+    overtimeHours: string;
     returnNote: string | null;
 }
 

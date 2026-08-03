@@ -10,6 +10,11 @@ import {
 } from '../hooks/useWorkTime';
 import type { WorkTimePeriodStatus } from '../types';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 6;
+const STANDARD_DAY_MINUTES = 480;
+
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<WorkTimePeriodStatus, string> = {
@@ -19,11 +24,18 @@ const STATUS_LABEL: Record<WorkTimePeriodStatus, string> = {
     RETURNED: 'Zwrócona',
 };
 
-const STATUS_COLOR: Record<WorkTimePeriodStatus, { bg: string; text: string }> = {
-    DRAFT:     { bg: '#1e293b', text: '#94a3b8' },
-    SUBMITTED: { bg: '#1e3a5f', text: '#60a5fa' },
-    APPROVED:  { bg: '#14532d', text: '#4ade80' },
-    RETURNED:  { bg: '#450a0a', text: '#f87171' },
+const STATUS_BG: Record<WorkTimePeriodStatus, string> = {
+    DRAFT:     st.bgCardAlt,
+    SUBMITTED: st.accentBlueDim,
+    APPROVED:  st.accentGreenDim,
+    RETURNED:  st.accentRedDim,
+};
+
+const STATUS_FG: Record<WorkTimePeriodStatus, string> = {
+    DRAFT:     st.textMuted,
+    SUBMITTED: st.accentBlue,
+    APPROVED:  st.accentGreen,
+    RETURNED:  st.accentRed,
 };
 
 const fmtDate = (iso: string) =>
@@ -66,7 +78,7 @@ const CardTitle = styled.h3`
 const PeriodRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     padding: 13px 20px;
     border-bottom: 1px solid ${st.bgCardAlt};
     transition: background ${st.transition};
@@ -108,6 +120,23 @@ const PeriodMeta = styled.span`
     color: ${st.textMuted};
 `;
 
+const Chips = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+`;
+
+const Chip = styled.span<{ $amber?: boolean }>`
+    padding: 3px 10px;
+    border-radius: ${st.radiusFull};
+    background: ${({ $amber }) => $amber ? 'rgba(245,158,11,0.12)' : st.bgCardAlt};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${({ $amber }) => $amber ? '#D97706' : st.textSecondary};
+    white-space: nowrap;
+`;
+
 const StatusBadge = styled.span<{ $status: WorkTimePeriodStatus }>`
     padding: 3px 10px;
     border-radius: ${st.radiusFull};
@@ -115,19 +144,8 @@ const StatusBadge = styled.span<{ $status: WorkTimePeriodStatus }>`
     font-weight: 700;
     white-space: nowrap;
     flex-shrink: 0;
-    background: ${({ $status }) => STATUS_COLOR[$status].bg};
-    color: ${({ $status }) => STATUS_COLOR[$status].text};
-`;
-
-const HoursChip = styled.span`
-    padding: 3px 10px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCardAlt};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textSecondary};
-    white-space: nowrap;
-    flex-shrink: 0;
+    background: ${({ $status }) => STATUS_BG[$status]};
+    color: ${({ $status }) => STATUS_FG[$status]};
 `;
 
 const Actions = styled.div`
@@ -152,12 +170,12 @@ const IconBtn = styled.button<{ $variant?: 'approve' | 'return' | 'ghost' }>`
     svg { width: 14px; height: 14px; }
 
     ${({ $variant }) => $variant === 'approve' && `
-        color: #4ade80;
-        &:hover { background: #14532d; border-color: #166534; }
+        color: ${st.accentGreen};
+        &:hover { background: ${st.accentGreenDim}; border-color: ${st.accentGreen}; }
     `}
     ${({ $variant }) => $variant === 'return' && `
-        color: #f87171;
-        &:hover { background: #450a0a; border-color: #7f1d1d; }
+        color: ${st.accentRed};
+        &:hover { background: ${st.accentRedDim}; border-color: ${st.accentRed}; }
     `}
     ${({ $variant }) => (!$variant || $variant === 'ghost') && `
         color: ${st.textMuted};
@@ -178,19 +196,14 @@ const DetailPanel = styled.div`
     gap: 8px;
 `;
 
-const DetailHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-`;
-
 const DetailTitle = styled.span`
     font-size: ${st.fontXs};
     font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
 `;
 
 const EntryRow = styled.div`
@@ -214,7 +227,16 @@ const EntryHours = styled.span`
     font-size: ${st.fontSm};
     font-weight: 700;
     color: ${st.accentBlue};
-    min-width: 60px;
+    min-width: 52px;
+`;
+
+const EntryOvertime = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: #D97706;
+    background: rgba(245,158,11,0.12);
+    padding: 2px 8px;
+    border-radius: ${st.radiusFull};
 `;
 
 const EntryNote = styled.span`
@@ -227,14 +249,55 @@ const EntryNote = styled.span`
 `;
 
 const ReturnNoteBox = styled.div`
-    margin-top: 4px;
     padding: 10px 14px;
-    background: #450a0a33;
-    border: 1px solid #7f1d1d;
+    background: ${st.accentRedDim};
+    border: 1px solid ${st.accentRed};
     border-radius: ${st.radiusSm};
     font-size: ${st.fontXs};
-    color: #f87171;
+    color: ${st.accentRed};
 `;
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+
+const PaginationBar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-top: 1px solid ${st.border};
+`;
+
+const PageInfo = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    font-weight: 500;
+`;
+
+const PageBtns = styled.div`
+    display: flex;
+    gap: 6px;
+`;
+
+const PageBtn = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: none;
+    color: ${st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    svg { width: 14px; height: 14px; }
+
+    &:hover:not(:disabled) { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; color: ${st.text}; }
+    &:disabled { opacity: 0.35; cursor: default; }
+`;
+
+// ─── Misc ─────────────────────────────────────────────────────────────────────
 
 const Spinner = styled.div`
     width: 24px;
@@ -351,7 +414,7 @@ const GhostBtn = styled.button`
 
 const DangerBtn = styled.button`
     padding: 8px 18px;
-    background: #b91c1c;
+    background: ${st.accentRed};
     border: none;
     border-radius: ${st.radiusFull};
     font-size: ${st.fontSm};
@@ -359,7 +422,7 @@ const DangerBtn = styled.button`
     color: #fff;
     cursor: pointer;
     transition: background ${st.transition};
-    &:hover { background: #991b1b; }
+    &:hover { background: #DC2626; }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
@@ -397,6 +460,14 @@ const SearchIcon = () => (
 const ChevronUpIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="18 15 12 9 6 15" />
+    </svg>
+);
+
+const ChevronIcon = ({ dir }: { dir: 'left' | 'right' }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {dir === 'left'
+            ? <polyline points="15 18 9 12 15 6" />
+            : <polyline points="9 18 15 12 9 6" />}
     </svg>
 );
 
@@ -456,10 +527,14 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
     const approveMutation = useApproveTeamPeriod(userId);
     const returnMutation = useReturnTeamPeriod(userId);
 
+    const [page, setPage] = useState(0);
     const [expandedPeriod, setExpandedPeriod] = useState<string | null>(null);
     const [returningPeriod, setReturningPeriod] = useState<{ period: string; label: string } | null>(null);
 
     const { detail, isLoading: isDetailLoading } = useTeamWorkTimePeriod(userId, expandedPeriod);
+
+    const totalPages = Math.ceil(periods.length / PAGE_SIZE);
+    const pagePeriods = periods.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
     const toggleExpand = (period: string) => {
         setExpandedPeriod(prev => (prev === period ? null : period));
@@ -470,7 +545,7 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
             await approveMutation.mutateAsync(period);
             showSuccess(`Karta za ${label} zatwierdzona`);
         } catch {
-            // error handled by mutation
+            // handled by mutation
         }
     };
 
@@ -481,7 +556,7 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
             showSuccess(`Karta za ${returningPeriod.label} zwrócona`);
             setReturningPeriod(null);
         } catch {
-            // error handled by mutation
+            // handled by mutation
         }
     };
 
@@ -504,7 +579,7 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
                     </EmptyState>
                 )}
 
-                {!isLoading && periods.map(p => (
+                {!isLoading && pagePeriods.map(p => (
                     <div key={p.period}>
                         <PeriodRow>
                             <PeriodIconBox>
@@ -515,12 +590,16 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
                                 <PeriodLabel>{p.label}</PeriodLabel>
                                 <PeriodMeta>
                                     {p.entryCount} {p.entryCount === 1 ? 'dzień' : 'dni'}
-                                    {p.returnNote ? ' · Notatka zwrotu poniżej' : ''}
                                 </PeriodMeta>
                             </PeriodInfo>
 
-                            <HoursChip>{p.totalHours} h</HoursChip>
-                            <StatusBadge $status={p.status}>{STATUS_LABEL[p.status]}</StatusBadge>
+                            <Chips>
+                                <Chip>{p.totalHours} h</Chip>
+                                {p.overtimeMinutes > 0 && (
+                                    <Chip $amber>+{p.overtimeHours} h OT</Chip>
+                                )}
+                                <StatusBadge $status={p.status}>{STATUS_LABEL[p.status]}</StatusBadge>
+                            </Chips>
 
                             <Actions>
                                 {p.status === 'SUBMITTED' && (
@@ -554,11 +633,7 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
 
                         {expandedPeriod === p.period && (
                             <DetailPanel>
-                                <DetailHeader>
-                                    <DetailTitle>Dni robocze · {p.label}</DetailTitle>
-                                </DetailHeader>
-
-                                {isDetailLoading && <Spinner />}
+                                <DetailTitle>Dni robocze · {p.label}</DetailTitle>
 
                                 {p.returnNote && (
                                     <ReturnNoteBox>
@@ -566,23 +641,49 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
                                     </ReturnNoteBox>
                                 )}
 
+                                {isDetailLoading && <Spinner />}
+
                                 {!isDetailLoading && detail && detail.entries.length === 0 && (
                                     <p style={{ margin: 0, fontSize: st.fontXs, color: st.textMuted, textAlign: 'center', padding: '12px 0' }}>
                                         Brak wpisów w tym miesiącu.
                                     </p>
                                 )}
 
-                                {!isDetailLoading && detail?.entries.map(e => (
-                                    <EntryRow key={e.date}>
-                                        <EntryDate>{fmtDate(e.date)}</EntryDate>
-                                        <EntryHours>{e.hours} h</EntryHours>
-                                        {e.note && <EntryNote>{e.note}</EntryNote>}
-                                    </EntryRow>
-                                ))}
+                                {!isDetailLoading && detail?.entries.map(e => {
+                                    const overtime = Math.max(0, e.minutes - STANDARD_DAY_MINUTES);
+                                    return (
+                                        <EntryRow key={e.date}>
+                                            <EntryDate>{fmtDate(e.date)}</EntryDate>
+                                            <EntryHours>{e.hours} h</EntryHours>
+                                            {overtime > 0 && (
+                                                <EntryOvertime>
+                                                    +{Math.floor(overtime / 60)}:{String(overtime % 60).padStart(2, '0')} OT
+                                                </EntryOvertime>
+                                            )}
+                                            {e.note && <EntryNote>{e.note}</EntryNote>}
+                                        </EntryRow>
+                                    );
+                                })}
                             </DetailPanel>
                         )}
                     </div>
                 ))}
+
+                {totalPages > 1 && (
+                    <PaginationBar>
+                        <PageInfo>
+                            Strona {page + 1} z {totalPages} · {periods.length} miesięcy
+                        </PageInfo>
+                        <PageBtns>
+                            <PageBtn onClick={() => setPage(p => p - 1)} disabled={page === 0} aria-label="Poprzednia strona">
+                                <ChevronIcon dir="left" />
+                            </PageBtn>
+                            <PageBtn onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1} aria-label="Następna strona">
+                                <ChevronIcon dir="right" />
+                            </PageBtn>
+                        </PageBtns>
+                    </PaginationBar>
+                )}
             </Card>
 
             {returningPeriod && (

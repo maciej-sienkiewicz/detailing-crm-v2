@@ -291,8 +291,8 @@ export function WorkTimeView() {
                     <QuickActions>
                         <QuickBtn
                             onClick={handleStandardToday}
-                            disabled={standardToday.isPending}
-                            title="Dodaj 8h na dzisiaj"
+                            disabled={standardToday.isPending || period !== currentPeriod()}
+                            title={period !== currentPeriod() ? 'Dostępne tylko dla bieżącego miesiąca' : 'Dodaj 8h na dzisiaj'}
                         >
                             <ClockIcon />
                             Standardowa dniówka
