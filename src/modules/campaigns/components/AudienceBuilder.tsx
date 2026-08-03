@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
 import type { AudienceCriteria, CustomerTypeFilter } from '../types';
 
 // ─── Chipy filtrów w ludzkim języku (jedna reprezentacja w całym module) ──────
@@ -191,7 +192,6 @@ const num = (v: string): number | null => (v === '' ? null : Number(v));
 
 export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
   const [open, setOpen] = useState<SectionId | null>(null);
-  const { services } = useServiceCatalog();
   const [brandDraft, setBrandDraft] = useState('');
   const [modelDraft, setModelDraft] = useState('');
 
@@ -277,26 +277,13 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
           <SectionBody>
             <FieldRow>
               <FieldLabel>Korzystał z usługi</FieldLabel>
-              <Select value="" onChange={(e) => {
-                const id = e.target.value;
-                if (id && !value.servicesUsedAnyOf.includes(id)) {
-                  set({ servicesUsedAnyOf: [...value.servicesUsedAnyOf, id] });
-                }
-              }}>
-                <option value="">Wybierz…</option>
-                {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </Select>
+              <SelectWrap style={{ width: 260 }}>
+                <ServiceMultiSelect
+                  selectedIds={value.servicesUsedAnyOf}
+                  onChange={(ids) => set({ servicesUsedAnyOf: ids })}
+                />
+              </SelectWrap>
             </FieldRow>
-            {value.servicesUsedAnyOf.length > 0 && (
-              <ChipRow>
-                {value.servicesUsedAnyOf.map((id) => (
-                  <RemovableChip key={id}
-                    onClick={() => set({ servicesUsedAnyOf: value.servicesUsedAnyOf.filter((x) => x !== id) })}>
-                    {services.find((s) => s.id === id)?.name ?? 'usługa'}
-                  </RemovableChip>
-                ))}
-              </ChipRow>
-            )}
             <FieldRow>
               <FieldLabel>Ostatnie wykonanie ponad</FieldLabel>
               <NumInput type="number" min={1} placeholder="np. 180" value={value.serviceLastUsedOlderThanDays ?? ''}
@@ -305,26 +292,13 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             </FieldRow>
             <FieldRow>
               <FieldLabel>Nigdy nie korzystał z</FieldLabel>
-              <Select value="" onChange={(e) => {
-                const id = e.target.value;
-                if (id && !value.servicesUsedNoneOf.includes(id)) {
-                  set({ servicesUsedNoneOf: [...value.servicesUsedNoneOf, id] });
-                }
-              }}>
-                <option value="">Wybierz…</option>
-                {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </Select>
+              <SelectWrap style={{ width: 260 }}>
+                <ServiceMultiSelect
+                  selectedIds={value.servicesUsedNoneOf}
+                  onChange={(ids) => set({ servicesUsedNoneOf: ids })}
+                />
+              </SelectWrap>
             </FieldRow>
-            {value.servicesUsedNoneOf.length > 0 && (
-              <ChipRow>
-                {value.servicesUsedNoneOf.map((id) => (
-                  <RemovableChip key={id}
-                    onClick={() => set({ servicesUsedNoneOf: value.servicesUsedNoneOf.filter((x) => x !== id) })}>
-                    {services.find((s) => s.id === id)?.name ?? 'usługa'}
-                  </RemovableChip>
-                ))}
-              </ChipRow>
-            )}
           </SectionBody>
         )}
       </Section>

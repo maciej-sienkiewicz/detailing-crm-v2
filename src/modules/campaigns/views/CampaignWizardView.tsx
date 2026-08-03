@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { Gem, Gift, Moon, Repeat, Car, Send } from 'lucide-react';
+import { Repeat, Send } from 'lucide-react';
 import { Stepper } from '@/common/components/Stepper/Stepper';
 import {
   useActivateCampaign,
@@ -11,10 +11,10 @@ import {
   useScheduleCampaign,
   useUpdateCampaign,
 } from '../hooks/useCampaigns';
-import { KIND_DESCRIPTIONS, SCENARIOS } from '../constants';
 import { emptyAudience } from '../types';
-import type { AudienceCriteria, CampaignChannel, CampaignKind, Scenario, ScenarioId, TriggerConfig } from '../types';
+import type { AudienceCriteria, CampaignChannel, CampaignKind, TriggerConfig } from '../types';
 import { AudienceBuilder, audienceChips, Chip, ChipRow, useServiceCatalog } from '../components/AudienceBuilder';
+import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
 import { AudienceEstimatePanel } from '../components/AudienceEstimatePanel';
 import { MessageEditor, type MessageContent } from '../components/MessageEditor';
 import { Eyebrow, Page, SectionCard } from '../components/shared';
@@ -71,52 +71,10 @@ const KindCard = styled.button`
   p  { margin: 0; font-size: 13px; color: ${(p) => p.theme.colors.textMuted}; line-height: 1.5; }
 `;
 
-const PresetGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  max-width: 600px;
-
-  @media (max-width: 767px) { grid-template-columns: 1fr; }
-`;
-
-const ScenarioCard = styled.button<{ $selected: boolean }>`
-  text-align: left;
-  background: #ffffff;
-  border: 1.5px solid ${(p) => (p.$selected ? '#0ea5e9' : p.theme.colors.border)};
-  border-radius: 14px;
-  padding: 16px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 180ms ease;
-  box-shadow: ${(p) => (p.$selected ? '0 0 0 3px rgba(14,165,233,0.18)' : 'none')};
-
-  &:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
-
-  svg { width: 16px; height: 16px; stroke-width: 1.75; color: #0ea5e9; margin-bottom: 8px; display: block; }
-  h3 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: ${(p) => p.theme.colors.text}; }
-  p  { margin: 0; font-size: 12.5px; color: ${(p) => p.theme.colors.textMuted}; line-height: 1.4; }
-`;
-
 const GroupIntro = styled.p`
   margin: 4px 0 16px;
   font-size: 13px;
   color: ${(p) => p.theme.colors.textSecondary};
-`;
-
-const SkipLink = styled.button`
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-  color: ${(p) => p.theme.colors.textSecondary};
-  padding: 0;
-  margin-top: 14px;
-  text-decoration: underline;
-  text-decoration-color: ${(p) => p.theme.colors.border};
-
-  &:hover { color: ${(p) => p.theme.colors.text}; }
 `;
 
 const NavRow = styled.div`
@@ -143,9 +101,9 @@ const PrimaryBtn = styled.button`
 `;
 
 const GhostBtn = styled.button`
-  background: transparent;
-  color: ${(p) => p.theme.colors.textSecondary};
-  border: 1px solid ${(p) => p.theme.colors.border};
+  background: #ffffff;
+  color: ${(p) => p.theme.colors.text};
+  border: 1.5px solid ${(p) => p.theme.colors.border};
   cursor: pointer;
   padding: 10px 24px;
   border-radius: 9999px;
@@ -153,8 +111,10 @@ const GhostBtn = styled.button`
   font-weight: 600;
   font-family: inherit;
   transition: all 180ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
-  &:hover { background: ${(p) => p.theme.colors.surfaceAlt}; }
+  &:hover { border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+  &:disabled { opacity: 0.5; cursor: default; }
 `;
 
 const FormField = styled.div`
@@ -179,6 +139,10 @@ const FormInput = styled.input`
   font-size: 14px;
   font-family: inherit;
   max-width: 420px;
+  background: #ffffff;
+  color: ${(p) => p.theme.colors.text};
+
+  &::placeholder { color: #94a3b8; }
 
   &:focus {
     outline: none;
@@ -222,22 +186,12 @@ const RecapList = styled.dl`
   dd { margin: 0; font-weight: 600; color: ${(p) => p.theme.colors.text}; font-variant-numeric: tabular-nums; }
 `;
 
-// ─── Ikony scenariuszy ────────────────────────────────────────────────────────
-
-const SCENARIO_ICONS: Partial<Record<ScenarioId, React.ElementType>> = {
-  HOLIDAY: Gift,
-  REACTIVATION: Moon,
-  VEHICLE_OWNERS: Car,
-  VIP: Gem,
-  SERVICE_FOLLOW_UP: Repeat,
-};
-
 // ─── Widok ────────────────────────────────────────────────────────────────────
 
 type StepId = 'scenario' | 'audience' | 'content' | 'summary';
 
 const STEPS: { id: StepId; label: string }[] = [
-  { id: 'scenario', label: 'Scenariusz' },
+  { id: 'scenario', label: 'Rodzaj' },
   { id: 'audience', label: 'Odbiorcy' },
   { id: 'content', label: 'Treść' },
   { id: 'summary', label: 'Podsumowanie' },
@@ -248,7 +202,6 @@ type ScheduleMode = 'NOW' | 'AT' | 'ACTIVATE';
 export function CampaignWizardView() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
   const isEdit = !!editId;
 
   const { campaign: existing } = useCampaign(editId);
@@ -256,11 +209,9 @@ export function CampaignWizardView() {
   const updateCampaign = useUpdateCampaign();
   const scheduleCampaign = useScheduleCampaign();
   const activateCampaign = useActivateCampaign();
-  const { services, serviceNames } = useServiceCatalog();
+  const { serviceNames } = useServiceCatalog();
 
   const [step, setStep] = useState<StepId>(isEdit ? 'audience' : 'scenario');
-  const [kindPhase, setKindPhase] = useState<'kind' | 'preset'>('kind');
-  const [scenarioId, setScenarioId] = useState<ScenarioId | null>(null);
   const [name, setName] = useState('');
   const [kind, setKind] = useState<CampaignKind>('ONE_TIME');
   const [audience, setAudience] = useState<AudienceCriteria>(emptyAudience());
@@ -290,27 +241,10 @@ export function CampaignWizardView() {
     }
   }, [existing, isEdit]);
 
-  // Prefill ze scenariusza w URL (karty na pustym stanie listy)
-  useEffect(() => {
-    const fromUrl = searchParams.get('scenario') as ScenarioId | null;
-    if (fromUrl && !isEdit) {
-      const s = SCENARIOS.find((x) => x.id === fromUrl);
-      if (s) {
-        applyScenario(s);
-        setKindPhase('preset');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const applyScenario = (s: Scenario) => {
-    setScenarioId(s.id);
-    setKind(s.kind);
-    setName(s.title);
-    setAudience({ ...emptyAudience(), ...s.prefillAudience });
-    if (s.prefillSms) setContent((c) => ({ ...c, smsTemplate: s.prefillSms! }));
-    if (s.prefillTrigger) setTrigger((t) => ({ ...t, ...s.prefillTrigger }));
-    setScheduleMode(s.kind === 'AUTOMATIC' ? 'ACTIVATE' : 'NOW');
+  const pickKind = (k: CampaignKind) => {
+    setKind(k);
+    setScheduleMode(k === 'AUTOMATIC' ? 'ACTIVATE' : 'NOW');
+    setStep('audience');
   };
 
   const estimateChannel = content.channel === 'EMAIL' ? 'EMAIL' : 'SMS';
@@ -386,67 +320,23 @@ export function CampaignWizardView() {
 
       <Stepper steps={visibleSteps} currentStepId={step} completedSteps={completedSteps} />
 
-      {/* ── Krok 1: Scenariusz ── */}
+      {/* ── Krok 1: Rodzaj kampanii ── */}
       {step === 'scenario' && (
-        <>
-          {kindPhase === 'kind' && (
-            <div>
-              <GroupIntro>Wybierz rodzaj kampanii, żeby zacząć.</GroupIntro>
-              <KindGrid>
-                <KindCard type="button" onClick={() => { setKind('ONE_TIME'); setScheduleMode('NOW'); setKindPhase('preset'); }}>
-                  <Send />
-                  <h3>Jednorazowa wysyłka</h3>
-                  <p>Wyślij raz — teraz lub w wybranym terminie — do wybranej grupy klientów. Idealna do promocji, życzeń i ogłoszeń.</p>
-                </KindCard>
-                <KindCard type="button" onClick={() => { setKind('AUTOMATIC'); setScheduleMode('ACTIVATE'); setKindPhase('preset'); }}>
-                  <Repeat />
-                  <h3>Kampania automatyczna</h3>
-                  <p>Działa stale: wysyła wiadomość do każdego klienta, gdy spełni warunek — np. 180 dni od wykonanej usługi.</p>
-                </KindCard>
-              </KindGrid>
-            </div>
-          )}
-
-          {kindPhase === 'preset' && (
-            <div>
-              <GhostBtn type="button" style={{ marginBottom: 20 }} onClick={() => { setKindPhase('kind'); setScenarioId(null); }}>
-                ← Wróć
-              </GhostBtn>
-              <Eyebrow>
-                {kind === 'ONE_TIME' ? 'Wybierz szablon lub zacznij od zera' : 'Wybierz szablon'}
-              </Eyebrow>
-              <GroupIntro>
-                {kind === 'ONE_TIME'
-                  ? 'Szablony wypełniają treść i ustawiają filtry odbiorców. Możesz je zmienić w kolejnych krokach.'
-                  : 'Szablon konfiguruje warunek wysyłki i treść wiadomości.'}
-              </GroupIntro>
-              <PresetGrid>
-                {SCENARIOS
-                  .filter((s) => s.kind === kind && s.id !== 'CUSTOM_ONE_TIME' && s.id !== 'CUSTOM_AUTOMATIC')
-                  .map((s) => {
-                    const Icon = SCENARIO_ICONS[s.id] ?? Send;
-                    return (
-                      <ScenarioCard
-                        key={s.id}
-                        $selected={scenarioId === s.id}
-                        type="button"
-                        onClick={() => { applyScenario(s); setStep('audience'); }}
-                      >
-                        <Icon />
-                        <h3>{s.title}</h3>
-                        <p>{s.description}</p>
-                      </ScenarioCard>
-                    );
-                  })}
-              </PresetGrid>
-              <div>
-                <SkipLink type="button" onClick={() => { setScenarioId(null); setStep('audience'); }}>
-                  Pomiń — zacznij od pustego formularza
-                </SkipLink>
-              </div>
-            </div>
-          )}
-        </>
+        <div>
+          <GroupIntro>Wybierz rodzaj kampanii, żeby zacząć.</GroupIntro>
+          <KindGrid>
+            <KindCard type="button" onClick={() => pickKind('ONE_TIME')}>
+              <Send />
+              <h3>Jednorazowa wysyłka</h3>
+              <p>Wyślij raz — teraz lub w wybranym terminie — do wybranej grupy klientów. Idealna do promocji, życzeń i ogłoszeń.</p>
+            </KindCard>
+            <KindCard type="button" onClick={() => pickKind('AUTOMATIC')}>
+              <Repeat />
+              <h3>Kampania automatyczna</h3>
+              <p>Działa stale: wysyła wiadomość do każdego klienta, gdy spełni warunek — np. 180 dni od wykonanej usługi.</p>
+            </KindCard>
+          </KindGrid>
+        </div>
       )}
 
       {/* ── Krok 2: Odbiorcy ── */}
@@ -462,31 +352,12 @@ export function CampaignWizardView() {
               <Eyebrow>Warunek wysyłki</Eyebrow>
               <FormField>
                 <FormLabel>Po usłudze</FormLabel>
-                <FormSelect
-                  value=""
-                  onChange={(e) => {
-                    const sid = e.target.value;
-                    if (sid && !trigger.serviceIds.includes(sid)) {
-                      setTrigger({ ...trigger, serviceIds: [...trigger.serviceIds, sid] });
-                    }
-                  }}
-                >
-                  <option value="">Dodaj usługę…</option>
-                  {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </FormSelect>
-                {trigger.serviceIds.length > 0 && (
-                  <ChipRow>
-                    {trigger.serviceIds.map((sid) => (
-                      <Chip
-                        key={sid}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setTrigger({ ...trigger, serviceIds: trigger.serviceIds.filter((x) => x !== sid) })}
-                      >
-                        {serviceNames.get(sid) ?? 'usługa'} ×
-                      </Chip>
-                    ))}
-                  </ChipRow>
-                )}
+                <div style={{ maxWidth: 420 }}>
+                  <ServiceMultiSelect
+                    selectedIds={trigger.serviceIds}
+                    onChange={(ids) => setTrigger({ ...trigger, serviceIds: ids })}
+                  />
+                </div>
               </FormField>
               <FormField>
                 <FormLabel>Wyślij po</FormLabel>

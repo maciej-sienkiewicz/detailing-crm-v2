@@ -1,4 +1,4 @@
-import type { CampaignStatus, RecipientStatus, Scenario } from './types';
+import type { CampaignStatus, RecipientStatus } from './types';
 
 // ─── Słownik statusów (język rozdziela światy: jednorazowe "zaplanowane/wysłane",
 //     automatyczne "działa/wstrzymana" — patrz docs/campaigns-module-views.md §2) ──
@@ -65,66 +65,6 @@ export const PLACEHOLDERS: { token: string; label: string }[] = [
   { token: '{{ostatnia_usluga}}', label: 'Ostatnia usługa' },
   { token: '{{data_ostatniej_wizyty}}', label: 'Data ostatniej wizyty' },
   { token: '{{dni_od_wizyty}}', label: 'Dni od wizyty' },
-];
-
-// ─── Scenariusze kreatora ─────────────────────────────────────────────────────
-
-export const SCENARIOS: Scenario[] = [
-  {
-    id: 'HOLIDAY',
-    kind: 'ONE_TIME',
-    title: 'Świąteczna / okazjonalna',
-    description: 'Życzenia albo oferta specjalna dla wszystkich klientów ze zgodą.',
-    prefillSms:
-      'Wesołych Świąt, {{imie}}! Dziękujemy, że jesteś z nami. Zespół {{studio}}',
-  },
-  {
-    id: 'REACTIVATION',
-    kind: 'ONE_TIME',
-    title: 'Reaktywacja',
-    description: 'Do klientów, których nie było ponad pół roku.',
-    prefillAudience: { lastVisitOlderThanDays: 180 },
-    prefillSms:
-      'Cześć {{imie}}! Minęło już {{dni_od_wizyty}} dni od Twojej wizyty w {{studio}}. Zajrzyj do nas — Twoje auto na pewno się ucieszy.',
-  },
-  {
-    id: 'VEHICLE_OWNERS',
-    kind: 'ONE_TIME',
-    title: 'Właściciele wybranych aut',
-    description: 'Oferta dopasowana do marki lub modelu pojazdu.',
-    prefillSms:
-      'Dzień dobry {{imie}}! Mamy ofertę przygotowaną dla właścicieli {{marka}}. Szczegóły: {{studio}}.',
-  },
-  {
-    id: 'VIP',
-    kind: 'ONE_TIME',
-    title: 'Klienci VIP',
-    description: 'Najwierniejsi klienci — po liczbie wizyt i wydatkach.',
-    prefillAudience: { visitCountMin: 3, revenueTotalGrossMin: 500_000 },
-    prefillSms:
-      '{{imie}}, dziękujemy za zaufanie! Jako stały klient {{studio}} masz u nas specjalne warunki. Zapraszamy.',
-  },
-  {
-    id: 'CUSTOM_ONE_TIME',
-    kind: 'ONE_TIME',
-    title: 'Własna jednorazowa',
-    description: 'Zacznij od zera i ustaw wszystko samodzielnie.',
-  },
-  {
-    id: 'SERVICE_FOLLOW_UP',
-    kind: 'AUTOMATIC',
-    title: 'Przypomnienie po usłudze',
-    description: 'Stały automat: wiadomość po wybranym czasie od wykonania usługi.',
-    prefillTrigger: { afterDays: 180, sendTime: '10:00', onlyIfNoVisitSince: true },
-    prefillSms:
-      'Cześć {{imie}}! Minęło {{dni_od_wizyty}} dni od usługi {{ostatnia_usluga}} w {{studio}}. Czas na odświeżenie? Zapraszamy.',
-  },
-  {
-    id: 'CUSTOM_AUTOMATIC',
-    kind: 'AUTOMATIC',
-    title: 'Własna automatyczna',
-    description: 'Własny warunek wysyłki i własna treść.',
-  },
 ];
 
 // ─── Kolory kafli KPI (semantyka design systemu) ──────────────────────────────

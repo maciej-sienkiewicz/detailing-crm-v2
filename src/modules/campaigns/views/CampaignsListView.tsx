@@ -5,7 +5,7 @@ import { CalendarClock, Coins, MailCheck, Play, Plus } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
 import { StatTile } from '@/common/components/StatTile';
 import { useCampaignStats, useCampaignsList } from '../hooks/useCampaigns';
-import { CHANNEL_LABELS, SCENARIOS, TILE_STYLES } from '../constants';
+import { CHANNEL_LABELS, TILE_STYLES } from '../constants';
 import { CampaignKindBadge, CampaignStatusBadge, MutedText, Page, TileGrid } from '../components/shared';
 import type { Campaign, CampaignStatus } from '../types';
 
@@ -114,34 +114,6 @@ const EmptyHero = styled.div`
   p  { margin: 0 0 20px; font-size: 14px; color: #94a3b8; max-width: 480px; }
 `;
 
-const ScenarioRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 24px;
-
-  @media (max-width: 767px) { grid-template-columns: 1fr; }
-`;
-
-const ScenarioCard = styled.button`
-  text-align: left;
-  background: #ffffff;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 14px;
-  padding: 18px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-
-  h3 { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: ${(p) => p.theme.colors.text}; }
-  p  { margin: 0; font-size: 13px; color: ${(p) => p.theme.colors.textMuted}; }
-`;
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null): string {
@@ -226,28 +198,16 @@ export function CampaignsListView() {
       </TileGrid>
 
       {!isLoading && campaigns.length === 0 ? (
-        <>
-          <EmptyHero>
-            <h2>Wyślij pierwszą kampanię</h2>
-            <p>
-              Przypomnij klientom o sobie — świątecznie, po wykonanej usłudze albo wtedy,
-              gdy dawno ich nie było.
-            </p>
-            <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>
-              <Plus /> Utwórz kampanię
-            </PageHeaderPrimaryButton>
-          </EmptyHero>
-          <ScenarioRow>
-            {SCENARIOS.filter((s) => ['HOLIDAY', 'SERVICE_FOLLOW_UP', 'REACTIVATION'].includes(s.id)).map(
-              (s) => (
-                <ScenarioCard key={s.id} onClick={() => navigate(`/campaigns/new?scenario=${s.id}`)}>
-                  <h3>{s.title}</h3>
-                  <p>{s.description}</p>
-                </ScenarioCard>
-              )
-            )}
-          </ScenarioRow>
-        </>
+        <EmptyHero>
+          <h2>Wyślij pierwszą kampanię</h2>
+          <p>
+            Przypomnij klientom o sobie — świątecznie, po wykonanej usłudze albo wtedy,
+            gdy dawno ich nie było.
+          </p>
+          <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>
+            <Plus /> Utwórz kampanię
+          </PageHeaderPrimaryButton>
+        </EmptyHero>
       ) : (
         <>
           <FilterRow>
