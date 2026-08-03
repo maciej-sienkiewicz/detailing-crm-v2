@@ -59,7 +59,7 @@ const FilterRow = styled.div`
     flex-wrap: wrap;
 `;
 
-const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success' }>`
+const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success'; $mobileHide?: boolean }>`
     padding: 5px 12px;
     border-radius: 7px;
     font-size: ${p => p.theme.fontSizes.xs};
@@ -72,6 +72,10 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
     @media (hover: none) and (pointer: coarse) {
         min-height: 40px;
         padding: 8px 14px;
+    }
+
+    @media (max-width: 639px) {
+        display: ${p => p.$mobileHide ? 'none' : undefined};
     }
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -106,6 +110,41 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
         color: #16a34a;
         &:hover:not(:disabled) { background: #22c55e; color: #fff; }
     `}
+`;
+
+/* ── Mobile overflow menu ── */
+
+const MoreActionsTrigger = styled.button<{ $active?: boolean }>`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        min-height: 40px;
+        border-radius: 7px;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
+        background: ${p => p.$active ? p.theme.colors.primary + '18' : 'transparent'};
+        color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textMuted};
+        transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    }
+`;
+
+const MobileSecondaryPanel = styled.div<{ $open: boolean }>`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: ${p => p.$open ? 'flex' : 'none'};
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 18px;
+        border-bottom: 1px solid ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surfaceAlt};
+    }
 `;
 
 /* ── Table ── */
@@ -392,6 +431,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [showHistory, setShowHistory] = useState(false);
     const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+    const [showMoreActions, setShowMoreActions] = useState(false);
 
     useEffect(() => {
         if (!openMenuEntryId) return;
@@ -468,12 +508,12 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         </ContractorMeta>
                     </div>
                     <HeaderActions>
-                        <ActionBtn $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
-                        <ActionBtn $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
-                        <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
+                        <ActionBtn $mobileHide $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
+                        <ActionBtn $mobileHide $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
+                        <ActionBtn $mobileHide $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
                             {downloading ? 'Generowanie...' : '↓ PDF'}
                         </ActionBtn>
-                        <ActionBtn $variant="ghost" onClick={() => setShowHistory(true)} title="Historia zamknięć">
+                        <ActionBtn $mobileHide $variant="ghost" onClick={() => setShowHistory(true)} title="Historia zamknięć">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
@@ -486,8 +526,30 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
                             + Dodaj wpis
                         </ActionBtn>
+                        <MoreActionsTrigger
+                            $active={showMoreActions}
+                            onClick={() => setShowMoreActions(v => !v)}
+                            title={showMoreActions ? 'Ukryj opcje' : 'Więcej opcji'}
+                        >
+                            {showMoreActions ? '✕' : '⋯'}
+                        </MoreActionsTrigger>
                     </HeaderActions>
                 </SectionHeader>
+
+                <MobileSecondaryPanel $open={showMoreActions}>
+                    <ActionBtn $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
+                    <ActionBtn $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
+                    <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
+                        {downloading ? 'Generowanie...' : '↓ PDF'}
+                    </ActionBtn>
+                    <ActionBtn $variant="ghost" onClick={() => setShowHistory(true)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        Historia
+                    </ActionBtn>
+                </MobileSecondaryPanel>
 
                 <FilterRow>
                     <DateRangeFilter
