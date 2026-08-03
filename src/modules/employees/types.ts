@@ -4,8 +4,6 @@ export type BonusStatus = 'PENDING' | 'INCLUDED_IN_PAYROLL';
 export type ComponentType = 'FIXED' | 'PERCENTAGE_OF_REVENUE' | 'HOURLY' | 'BONUS';
 export type CalculationBase = 'GROSS_REVENUE' | 'NET_REVENUE' | 'HOURS_WORKED';
 export type PaymentFrequency = 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' | 'ONE_TIME';
-export type WorkTimeEntryType = 'REGULAR' | 'OVERTIME_150' | 'OVERTIME_200' | 'HOLIDAY_WORK' | 'NIGHT_WORK';
-export type WorkTimeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type LeaveType = 'ANNUAL' | 'SICK' | 'UNPAID' | 'SPECIAL' | 'PARENTAL' | 'CARE';
 export type PayrollStatus = 'DRAFT' | 'CONFIRMED' | 'PAID';
 export type EmploymentMode = 'SALARY' | 'HOURLY';
@@ -221,41 +219,29 @@ export interface SetCompensationPayload {
     components: CompensationComponentPayload[];
 }
 
-// ─── Work Time ────────────────────────────────────────────────────────────────
+// ─── Work Time (team / manager view) ─────────────────────────────────────────
 
-export type TimesheetStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED';
+export type WorkTimePeriodStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED';
 
-export type BenefitType = 'OVERTIME_150' | 'OVERTIME_200' | 'NIGHT_WORK' | 'HOLIDAY_WORK' | 'ON_CALL';
-
-export interface WorkTimePeriodSummary {
+export interface TeamPeriodSummary {
     period: string;
-    totalHours: number;
-    status: TimesheetStatus;
+    label: string;
+    status: WorkTimePeriodStatus;
+    totalMinutes: number;
+    totalHours: string;
+    entryCount: number;
+    returnNote: string | null;
 }
 
-export interface WorkTimeEntry {
-    id: string;
+export interface TeamPeriodEntry {
     date: string;
-    effectiveHours: number;
-    entryType: WorkTimeEntryType;
-    status: WorkTimeStatus;
-    notes: string | null;
+    minutes: number;
+    hours: string;
+    note: string | null;
 }
 
-export interface SavePeriodRegularEntry {
-    date: string;
-    hours: number;
-}
-
-export interface SavePeriodBenefitEntry {
-    date: string;
-    benefitType: BenefitType;
-    hours: number;
-}
-
-export interface SavePeriodPayload {
-    regular: SavePeriodRegularEntry[];
-    benefits: SavePeriodBenefitEntry[];
+export interface TeamPeriodDetail extends TeamPeriodSummary {
+    entries: TeamPeriodEntry[];
 }
 
 // ─── Leaves ───────────────────────────────────────────────────────────────────

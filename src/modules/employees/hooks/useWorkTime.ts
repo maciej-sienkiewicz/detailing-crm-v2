@@ -1,54 +1,39 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeeApi } from '../api/employeeApi';
-import type { SavePeriodPayload } from '../types';
 
-const workTimeKey = (employeeId: string) => ['employees', 'worktime', employeeId];
+const teamKey = (userId: string) => ['worktime', 'team', userId];
 
-export const useWorkTime = (employeeId: string, from?: string, to?: string) => {
+export const useTeamWorkTimePeriods = (userId: string | null | undefined) => {
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: [...workTimeKey(employeeId), { from, to }],
-        queryFn: () => employeeApi.listWorkTime(employeeId, from, to),
-        enabled: !!employeeId,
+        queryKey: teamKey(userId ?? ''),
+        queryFn: () => employeeApi.getTeamWorkTimePeriods(userId!),
+        enabled: !!userId,
     });
-    return { entries: data ?? [], isLoading, isError, refetch };
+    return { periods: data ?? [], isLoading, isError, refetch };
 };
 
-export const useWorkTimePeriods = (employeeId: string) => {
-    const { data, isLoading, isError } = useQuery({
-        queryKey: [...workTimeKey(employeeId), 'periods'],
-        queryFn: () => employeeApi.getWorkTimePeriods(employeeId),
-        enabled: !!employeeId,
+export const useTeamWorkTimePeriod = (userId: string | null | undefined, period: string | null) => {
+    const { data, isLoading } = useQuery({
+        queryKey: [...teamKey(userId ?? ''), period],
+        queryFn: () => employeeApi.getTeamWorkTimePeriod(userId!, period!),
+        enabled: !!userId && !!period,
     });
-    return { periods: data ?? [], isLoading, isError };
+    return { detail: data ?? null, isLoading };
 };
 
-export const useDeleteWorkTimeEntry = (employeeId: string) => {
+export const useApproveTeamPeriod = (userId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (entryId: string) => employeeApi.deleteWorkTimeEntry(employeeId, entryId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: workTimeKey(employeeId) });
-        },
+        mutationFn: (period: string) => employeeApi.approveTeamPeriod(userId, period),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: teamKey(userId) }),
     });
 };
 
-export const useSavePeriodWorkTime = (employeeId: string) => {
+export const useReturnTeamPeriod = (userId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ period, payload }: { period: string; payload: SavePeriodPayload }) =>
-            employeeApi.savePeriodWorkTime(employeeId, period, payload),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: workTimeKey(employeeId) });
-        },
-    });
-};
-
-export const useSubmitPeriodForBilling = (employeeId: string) => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (period: string) => employeeApi.submitPeriodForBilling(employeeId, period),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: workTimeKey(employeeId) });
-        },
+        mutationFn: ({ period, note }: { period: string; note?: string }) =>
+            employeeApi.returnTeamPeriod(userId, period, note),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: teamKey(userId) }),
     });
 };
