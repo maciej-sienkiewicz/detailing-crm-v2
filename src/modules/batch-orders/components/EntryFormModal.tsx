@@ -53,6 +53,10 @@ const ServiceNameInput = styled.input`
     }
 
     &::placeholder { color: #94a3b8; }
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 44px;
+    }
 `;
 
 const RemoveBtn = styled.button`
@@ -74,6 +78,13 @@ const PriceGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 90px;
     gap: 8px;
+
+    @media (max-width: 360px) {
+        grid-template-columns: 1fr 1fr;
+
+        /* VAT select spans full width on very small screens */
+        > :last-child { grid-column: 1 / -1; }
+    }
 `;
 
 const PriceField = styled.div`
@@ -109,6 +120,10 @@ const PriceInput = styled.input`
     }
 
     &::placeholder { color: #94a3b8; }
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 44px;
+    }
 `;
 
 const PriceSelect = styled.select`
@@ -127,6 +142,10 @@ const PriceSelect = styled.select`
     &:focus {
         outline: none;
         border-color: #0ea5e9;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 44px;
     }
 `;
 
@@ -165,7 +184,7 @@ const SuggestionList = styled.ul`
     margin: 0;
     padding: 4px 0;
     z-index: 200;
-    max-height: 200px;
+    max-height: min(200px, 35dvh);
     overflow-y: auto;
 `;
 
@@ -177,12 +196,18 @@ const SuggestionItem = styled.li`
     display: flex;
     align-items: baseline;
     gap: 8px;
+    min-height: 40px;
     transition: background 100ms ease;
 
     &:hover { background: #f8fafc; }
 
     strong { font-weight: 700; font-family: monospace; letter-spacing: 0.04em; }
-    span { color: #64748b; font-size: 13px; }
+    span { color: #64748b; font-size: 13px; overflow-wrap: anywhere; min-width: 0; }
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 48px;
+        align-items: center;
+    }
 `;
 
 // ─── VIN camera inline button ─────────────────────────────────────────────────

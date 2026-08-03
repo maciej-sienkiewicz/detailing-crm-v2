@@ -79,6 +79,11 @@ const MonthSelect = styled.select`
     background: ${p => p.theme.colors.surface};
     cursor: pointer;
     outline: none;
+    min-height: 32px;
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 40px;
+    }
 `;
 
 const DateInput = styled.input`
@@ -88,6 +93,11 @@ const DateInput = styled.input`
     font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.text};
     background: ${p => p.theme.colors.surface};
+    min-height: 32px;
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 40px;
+    }
 `;
 
 const Dash = styled.span`

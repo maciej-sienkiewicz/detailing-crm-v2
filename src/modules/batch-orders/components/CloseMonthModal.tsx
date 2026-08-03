@@ -5,24 +5,61 @@ import type { BatchContractor, CloseMode, CloseMonthRequest } from '../types';
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
+    height: 100vh;
+    height: 100dvh;
     background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 16px;
+    padding:
+        max(16px, env(safe-area-inset-top, 0px))
+        max(16px, env(safe-area-inset-right, 0px))
+        max(16px, env(safe-area-inset-bottom, 0px))
+        max(16px, env(safe-area-inset-left, 0px));
+
+    @media (max-height: 480px) {
+        padding-top: max(8px, env(safe-area-inset-top, 0px));
+        padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    }
 `;
 
 const Modal = styled.div`
     background: ${p => p.theme.colors.surface};
     border-radius: 16px;
-    padding: 28px;
     width: 100%;
     max-width: 480px;
+    max-height: 100%;
+    min-height: 0;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+
+    @media (max-width: 640px) {
+        border-radius: 14px;
+    }
+`;
+
+const ModalBody = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
     gap: 20px;
+    min-height: 0;
+
+    @media (max-width: 640px) {
+        padding: 20px;
+    }
+
+    @media (max-height: 480px) {
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
 `;
 
 const Title = styled.h2`
@@ -168,6 +205,8 @@ const EmailInput = styled.input`
     background: ${p => p.theme.colors.background};
     outline: none;
     transition: border-color 150ms ease;
+    width: 100%;
+    box-sizing: border-box;
 
     &:focus {
         border-color: ${p => p.theme.colors.primary};
@@ -176,14 +215,30 @@ const EmailInput = styled.input`
     &::placeholder {
         color: ${p => p.theme.colors.textMuted};
     }
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 44px;
+    }
 `;
 
 const Actions = styled.div`
     display: flex;
     gap: 10px;
     justify-content: flex-end;
-    padding-top: 4px;
+    padding: 16px 28px;
     border-top: 1px solid ${p => p.theme.colors.border};
+    flex-shrink: 0;
+    flex-wrap: wrap;
+
+    @media (max-width: 400px) {
+        flex-direction: column-reverse;
+
+        > button { width: 100%; }
+    }
+
+    @media (max-width: 640px) {
+        padding: 12px 20px;
+    }
 `;
 
 const Btn = styled.button<{ $variant?: 'primary' | 'outline' }>`
@@ -242,102 +297,104 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
     return (
         <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
             <Modal>
-                <div>
-                    <Title>Zamknij miesiąc</Title>
-                    <Subtitle style={{ marginTop: 6 }}>
-                        {contractor.name} · {periodLabel}
-                    </Subtitle>
-                </div>
+                <ModalBody>
+                    <div>
+                        <Title>Zamknij miesiąc</Title>
+                        <Subtitle style={{ marginTop: 6 }}>
+                            {contractor.name} · {periodLabel}
+                        </Subtitle>
+                    </div>
 
-                {hasPartialClose && (
-                    <WarningBox>
-                        <WarningTitle>
-                            Część pozycji została zamknięta we wcześniejszym raporcie.
-                        </WarningTitle>
-                        <ModeOptions>
-                            <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
-                                <ModeRadio
-                                    type="radio"
-                                    name="close-mode"
-                                    checked={mode === 'ALL'}
-                                    onChange={() => setMode('ALL')}
-                                    onClick={e => e.stopPropagation()}
-                                />
-                                <div>
-                                    <ModeLabel>Wszystkie pozycje</ModeLabel>
-                                    <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już zamkniętymi.</ModeDesc>
-                                </div>
-                            </ModeOption>
-                            <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
-                                <ModeRadio
-                                    type="radio"
-                                    name="close-mode"
-                                    checked={mode === 'NEW_ONLY'}
-                                    onChange={() => setMode('NEW_ONLY')}
-                                    onClick={e => e.stopPropagation()}
-                                />
-                                <div>
-                                    <ModeLabel>Tylko nowo dodane</ModeLabel>
-                                    <ModeDesc>Zamyka wyłącznie wpisy, które nie były jeszcze ujęte w żadnym raporcie.</ModeDesc>
-                                </div>
-                            </ModeOption>
-                        </ModeOptions>
-                    </WarningBox>
-                )}
-
-                <OptionBlock
-                    $active={addToFinances}
-                    onClick={() => setAddToFinances(v => !v)}
-                >
-                    <CheckRow>
-                        <Checkbox
-                            type="checkbox"
-                            checked={addToFinances}
-                            onChange={e => { e.stopPropagation(); setAddToFinances(e.target.checked); }}
-                            onClick={e => e.stopPropagation()}
-                        />
-                        <CheckLabel>Dodaj wpis do finansów</CheckLabel>
-                    </CheckRow>
-                    <CheckDescription>
-                        Tworzy dokument finansowy z sumą brutto za wybrany okres (przelew, przychód).
-                    </CheckDescription>
-                </OptionBlock>
-
-                <OptionBlock
-                    $active={sendEmail}
-                    onClick={() => setSendEmail(v => !v)}
-                >
-                    <CheckRow>
-                        <Checkbox
-                            type="checkbox"
-                            checked={sendEmail}
-                            onChange={e => { e.stopPropagation(); setSendEmail(e.target.checked); }}
-                            onClick={e => e.stopPropagation()}
-                        />
-                        <CheckLabel>Wyślij podsumowanie mailem</CheckLabel>
-                    </CheckRow>
-                    <CheckDescription>
-                        Wysyła zestawienie za wybrany okres na adres e-mail kontrahenta.
-                    </CheckDescription>
-                    {sendEmail && (
-                        <EmailField onClick={e => e.stopPropagation()}>
-                            <EmailLabel htmlFor="close-month-email">Adres e-mail</EmailLabel>
-                            <EmailInput
-                                id="close-month-email"
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                placeholder="email@firma.pl"
-                                autoFocus
-                            />
-                            {!contractor.email && email && (
-                                <span style={{ fontSize: 11, color: '#22c55e', marginTop: 2 }}>
-                                    Adres zostanie zapisany do karty kontrahenta.
-                                </span>
-                            )}
-                        </EmailField>
+                    {hasPartialClose && (
+                        <WarningBox>
+                            <WarningTitle>
+                                Część pozycji została zamknięta we wcześniejszym raporcie.
+                            </WarningTitle>
+                            <ModeOptions>
+                                <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
+                                    <ModeRadio
+                                        type="radio"
+                                        name="close-mode"
+                                        checked={mode === 'ALL'}
+                                        onChange={() => setMode('ALL')}
+                                        onClick={e => e.stopPropagation()}
+                                    />
+                                    <div>
+                                        <ModeLabel>Wszystkie pozycje</ModeLabel>
+                                        <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już zamkniętymi.</ModeDesc>
+                                    </div>
+                                </ModeOption>
+                                <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
+                                    <ModeRadio
+                                        type="radio"
+                                        name="close-mode"
+                                        checked={mode === 'NEW_ONLY'}
+                                        onChange={() => setMode('NEW_ONLY')}
+                                        onClick={e => e.stopPropagation()}
+                                    />
+                                    <div>
+                                        <ModeLabel>Tylko nowo dodane</ModeLabel>
+                                        <ModeDesc>Zamyka wyłącznie wpisy, które nie były jeszcze ujęte w żadnym raporcie.</ModeDesc>
+                                    </div>
+                                </ModeOption>
+                            </ModeOptions>
+                        </WarningBox>
                     )}
-                </OptionBlock>
+
+                    <OptionBlock
+                        $active={addToFinances}
+                        onClick={() => setAddToFinances(v => !v)}
+                    >
+                        <CheckRow>
+                            <Checkbox
+                                type="checkbox"
+                                checked={addToFinances}
+                                onChange={e => { e.stopPropagation(); setAddToFinances(e.target.checked); }}
+                                onClick={e => e.stopPropagation()}
+                            />
+                            <CheckLabel>Dodaj wpis do finansów</CheckLabel>
+                        </CheckRow>
+                        <CheckDescription>
+                            Tworzy dokument finansowy z sumą brutto za wybrany okres (przelew, przychód).
+                        </CheckDescription>
+                    </OptionBlock>
+
+                    <OptionBlock
+                        $active={sendEmail}
+                        onClick={() => setSendEmail(v => !v)}
+                    >
+                        <CheckRow>
+                            <Checkbox
+                                type="checkbox"
+                                checked={sendEmail}
+                                onChange={e => { e.stopPropagation(); setSendEmail(e.target.checked); }}
+                                onClick={e => e.stopPropagation()}
+                            />
+                            <CheckLabel>Wyślij podsumowanie mailem</CheckLabel>
+                        </CheckRow>
+                        <CheckDescription>
+                            Wysyła zestawienie za wybrany okres na adres e-mail kontrahenta.
+                        </CheckDescription>
+                        {sendEmail && (
+                            <EmailField onClick={e => e.stopPropagation()}>
+                                <EmailLabel htmlFor="close-month-email">Adres e-mail</EmailLabel>
+                                <EmailInput
+                                    id="close-month-email"
+                                    type="email"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    placeholder="email@firma.pl"
+                                    autoFocus
+                                />
+                                {!contractor.email && email && (
+                                    <span style={{ fontSize: 11, color: '#22c55e', marginTop: 2 }}>
+                                        Adres zostanie zapisany do karty kontrahenta.
+                                    </span>
+                                )}
+                            </EmailField>
+                        )}
+                    </OptionBlock>
+                </ModalBody>
 
                 <Actions>
                     <Btn $variant="outline" onClick={onClose} disabled={isLoading}>Anuluj</Btn>

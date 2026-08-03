@@ -67,6 +67,12 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
     cursor: pointer;
     white-space: nowrap;
     transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+    min-height: 32px;
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 40px;
+        padding: 8px 14px;
+    }
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -255,6 +261,8 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
     line-height: 1;
     opacity: ${p => p.$open ? 1 : 0};
     transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, color 120ms ease;
+    /* Expand tap target without changing visual size */
+    position: relative;
 
     ${Tr}:hover & { opacity: 1; }
 
@@ -262,6 +270,13 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
         background: ${p => p.theme.colors.surfaceAlt};
         border-color: ${p => p.theme.colors.border};
         color: ${p => p.theme.colors.text};
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        /* Always visible on touch; tap target 44px via padding */
+        opacity: 1;
+        width: 44px;
+        height: 44px;
     }
 `;
 
@@ -274,6 +289,7 @@ const DropdownMenu = styled.div`
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
     z-index: 9999;
     min-width: 172px;
+    max-width: calc(100vw - 16px);
     padding: 4px;
 `;
 
@@ -308,6 +324,7 @@ const MenuDivider = styled.div`
 const SummaryBar = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     background: ${p => p.theme.colors.surfaceAlt};
     border-top: 1px solid ${p => p.theme.colors.border};
 `;
@@ -397,9 +414,10 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             return;
         }
         const rect = e.currentTarget.getBoundingClientRect();
+        const vpWidth = window.visualViewport?.width ?? window.innerWidth;
         setMenuPosition({
             top: rect.bottom + 4,
-            right: window.innerWidth - rect.right,
+            right: Math.max(8, vpWidth - rect.right),
         });
         setOpenMenuEntryId(entryId);
     }
