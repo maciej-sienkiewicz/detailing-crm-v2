@@ -42,10 +42,11 @@ apiClient.interceptors.response.use(
             console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
             const currentPath = window.location.pathname;
             const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice'];
-            // Public customer pages (/vc/:token, /sign/:token) must never bounce to /login
+            // Public token-based pages must never bounce to /login
             const isPublicPath = publicPaths.includes(currentPath)
                 || currentPath.startsWith('/vc/')
-                || currentPath.startsWith('/sign/');
+                || currentPath.startsWith('/sign/')
+                || currentPath.startsWith('/m/sig/');
 
             if (!isPublicPath) {
                 console.warn('[apiClient] Przekierowanie na /login');
