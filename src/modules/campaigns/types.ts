@@ -154,19 +154,3 @@ export interface TestSendRequest {
   emailSubject?: string;
   emailBody?: string;
 }
-
-// ─── Scenariusze kreatora (prefill) ───────────────────────────────────────────
-
-export type ScenarioId =
-  | 'HOLIDAY' | 'REACTIVATION' | 'VEHICLE_OWNERS' | 'VIP' | 'CUSTOM_ONE_TIME'
-  | 'SERVICE_FOLLOW_UP' | 'CUSTOM_AUTOMATIC';
-
-export interface Scenario {
-  id: ScenarioId;
-  kind: CampaignKind;
-  title: string;
-  description: string;
-  prefillAudience?: Partial<AudienceCriteria>;
-  prefillSms?: string;
-  prefillTrigger?: Partial<TriggerConfig>;
-}
