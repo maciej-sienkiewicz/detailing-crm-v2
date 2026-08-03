@@ -10,9 +10,10 @@ import { StatTile } from '@/common/components/StatTile';
 import {
   useArchiveCampaign, useCampaign, useCampaignRecipients, useCancelCampaign,
   useDeleteCampaign, useDuplicateCampaign, usePauseCampaign, useRetryAllFailed,
-  useRetryRecipient, useStopCampaign,
+  useRetryRecipient, useStopCampaign, useActivateCampaign, useAudienceEstimate,
 } from '../hooks/useCampaigns';
-import { useActivateCampaign } from '../hooks/useCampaigns';
+import { emptyAudience } from '../types';
+import type { AudienceCriteria, RecipientChannel } from '../types';
 import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, TILE_STYLES } from '../constants';
 import { CampaignKindBadge, CampaignStatusBadge, Eyebrow, MutedText, Page, SectionCard } from '../components/shared';
 import { audienceChips, Chip, ChipRow, useServiceCatalog } from '../components/AudienceBuilder';
@@ -247,6 +248,14 @@ export function CampaignDetailsView() {
   const retryRecipient = useRetryRecipient(id ?? '');
   const retryAllFailed = useRetryAllFailed(id ?? '');
 
+  // Estimate loaded only when campaign is in projection state (not yet sending).
+  // We fall back to emptyAudience() before the campaign object arrives so the hook
+  // can be called unconditionally (React rules of hooks).
+  const projectionAudience: AudienceCriteria = campaign?.audience ?? emptyAudience();
+  const projectionChannel: RecipientChannel =
+    campaign?.channel === 'EMAIL' ? 'EMAIL' : 'SMS';
+  const { estimate } = useAudienceEstimate(projectionAudience, projectionChannel);
+
   const [search, setSearch] = useState('');
   const [confirmAction, setConfirmAction] = useState<null | 'stop' | 'cancel' | 'delete'>(null);
 
@@ -394,6 +403,34 @@ export function CampaignDetailsView() {
                 ))}
               </tbody>
             </RecipientsTable>
+          </>
+        ) : isProjection && estimate ? (
+          <>
+            <RecipientsTable>
+              <thead>
+                <tr><th>Odbiorca</th><th>{projectionChannel === 'SMS' ? 'Telefon' : 'E-mail'}</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {estimate.sample.map((s) => (
+                  <tr key={s.customerId}>
+                    <td>{[s.firstName, s.lastName].filter(Boolean).join(' ') || 'Klient'}</td>
+                    <td>{(projectionChannel === 'SMS' ? s.phone : s.email) ?? '—'}</td>
+                    <td>
+                      <MutedText>
+                        {s.eligibility === 'ELIGIBLE' ? 'Otrzyma' :
+                         s.eligibility === 'NO_CONSENT' ? 'Brak zgody' :
+                         s.eligibility === 'NO_ADDRESS' ? 'Brak numeru' :
+                         s.eligibility === 'OPTED_OUT' ? 'Zrezygnował' :
+                         s.eligibility === 'FREQUENCY_CAP' ? 'Limit wysyłek' : s.eligibility}
+                      </MutedText>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </RecipientsTable>
+            <MutedText style={{ marginTop: 10 }}>
+              Podgląd na podstawie aktualnych danych. Ostateczna lista zostanie wyliczona w dniu wysyłki.
+            </MutedText>
           </>
         ) : (
           <MutedText>Lista odbiorców powstanie w momencie wysyłki.</MutedText>

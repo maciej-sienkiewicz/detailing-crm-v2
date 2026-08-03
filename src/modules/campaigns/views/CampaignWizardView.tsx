@@ -356,7 +356,12 @@ export function CampaignWizardView() {
         </GhostBtn>
       </WizardHeader>
 
-      <Stepper steps={visibleSteps} currentStepId={step} completedSteps={completedSteps} />
+      <Stepper
+        steps={visibleSteps}
+        currentStepId={step}
+        completedSteps={completedSteps}
+        onStepClick={(id) => setStep(id as StepId)}
+      />
 
       {/* ── Krok 1: Rodzaj kampanii ── */}
       {step === 'scenario' && (
