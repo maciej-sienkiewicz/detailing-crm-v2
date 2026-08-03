@@ -3,6 +3,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
     usePeriodDetail,
     useFillMonth,
@@ -121,6 +122,7 @@ export function WorkTimeView() {
     const { showSuccess, showError } = useToast();
 
     const [period, setPeriod] = useState(currentPeriod);
+    const [showFillConfirm, setShowFillConfirm] = useState(false);
     const [editDay, setEditDay] = useState<{ date: string; dateObj: Date } | null>(null);
     const [editValue, setEditValue] = useState('');
     const [editError, setEditError] = useState<string | null>(null);
@@ -192,6 +194,7 @@ export function WorkTimeView() {
     };
 
     const handleFillMonth = () => {
+        setShowFillConfirm(false);
         fillMonth.mutate(undefined, {
             onSuccess: () => showSuccess('Uzupełniono dni robocze (8h)'),
             onError: () => showError('Nie udało się uzupełnić miesiąca'),
@@ -295,7 +298,7 @@ export function WorkTimeView() {
                             Standardowa dniówka
                         </QuickBtn>
                         <QuickBtn
-                            onClick={handleFillMonth}
+                            onClick={() => setShowFillConfirm(true)}
                             disabled={fillMonth.isPending}
                             title="Uzupełnij każdy pn–pt w miesiącu po 8h (tylko puste dni)"
                         >
@@ -354,6 +357,16 @@ export function WorkTimeView() {
                     </SubmitBtn>
                 </StickySubmitBar>
             )}
+
+            <ConfirmationModal
+                isOpen={showFillConfirm}
+                title="Uzupełnić miesiąc?"
+                message={`Wszystkie puste dni robocze (pn–pt) w ${periodLabel(period)} zostaną uzupełnione po 8 godzin. Dni z wpisem pozostaną bez zmian.`}
+                variant="info"
+                confirmText="Uzupełnij"
+                onConfirm={handleFillMonth}
+                onCancel={() => setShowFillConfirm(false)}
+            />
 
             {/* Edit bottom sheet */}
             {editDay && (
