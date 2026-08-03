@@ -246,30 +246,42 @@ export function WorkTimeView() {
                         <SkeletonLine $w="60%" />
                         <SkeletonLine $w="40%" />
                     </SummaryCard>
-                ) : detail ? (
-                    <SummaryCard $bg={STATUS_BG[detail.status as PeriodStatus]}>
-                        <StatusBadge $color={STATUS_COLOR[detail.status as PeriodStatus]}>
-                            <StatusDot $color={STATUS_COLOR[detail.status as PeriodStatus]} />
-                            {STATUS_LABELS[detail.status as PeriodStatus]}
-                        </StatusBadge>
-                        <SummaryRow>
-                            <SummaryItem>
-                                <SummaryValue>{detail.totalHours}</SummaryValue>
-                                <SummaryLabel>łącznie</SummaryLabel>
-                            </SummaryItem>
-                            <SummaryDivider />
-                            <SummaryItem>
-                                <SummaryValue>{detail.entryCount}</SummaryValue>
-                                <SummaryLabel>{detail.entryCount === 1 ? 'dzień' : 'dni'}</SummaryLabel>
-                            </SummaryItem>
-                        </SummaryRow>
-                        {detail.returnNote && (
-                            <ReturnNote>
-                                <strong>Uwaga przełożonego:</strong> {detail.returnNote}
-                            </ReturnNote>
-                        )}
-                    </SummaryCard>
-                ) : null}
+                ) : detail ? (() => {
+                    const overtimeMinutes = detail.entries.reduce(
+                        (sum, e) => sum + Math.max(0, e.minutes - 480), 0
+                    );
+                    return (
+                        <SummaryCard $bg={STATUS_BG[detail.status as PeriodStatus]}>
+                            <StatusBadge $color={STATUS_COLOR[detail.status as PeriodStatus]}>
+                                <StatusDot $color={STATUS_COLOR[detail.status as PeriodStatus]} />
+                                {STATUS_LABELS[detail.status as PeriodStatus]}
+                            </StatusBadge>
+                            <SummaryRow>
+                                <SummaryItem>
+                                    <SummaryValue>{detail.totalHours}</SummaryValue>
+                                    <SummaryLabel>łącznie</SummaryLabel>
+                                </SummaryItem>
+                                <SummaryDivider />
+                                <SummaryItem>
+                                    <SummaryValue>{detail.entryCount}</SummaryValue>
+                                    <SummaryLabel>{detail.entryCount === 1 ? 'dzień' : 'dni'}</SummaryLabel>
+                                </SummaryItem>
+                                <SummaryDivider />
+                                <SummaryItem>
+                                    <SummaryValue $overtime={overtimeMinutes > 0}>
+                                        {minutesToDisplay(overtimeMinutes)}
+                                    </SummaryValue>
+                                    <SummaryLabel>nadgodziny</SummaryLabel>
+                                </SummaryItem>
+                            </SummaryRow>
+                            {detail.returnNote && (
+                                <ReturnNote>
+                                    <strong>Uwaga przełożonego:</strong> {detail.returnNote}
+                                </ReturnNote>
+                            )}
+                        </SummaryCard>
+                    );
+                })() : null}
 
                 {/* Quick actions */}
                 {!isApproved && !isSubmitted && (
@@ -576,14 +588,14 @@ const SummaryItem = styled.div`
     flex: 1;
 `;
 
-const SummaryValue = styled.span`
+const SummaryValue = styled.span<{ $overtime?: boolean }>`
     font-size: 28px;
     font-weight: 800;
-    color: #0f172a;
+    color: ${p => p.$overtime ? '#d97706' : '#0f172a'};
     letter-spacing: -0.5px;
 
     @media (prefers-color-scheme: dark) {
-        color: #f1f5f9;
+        color: ${p => p.$overtime ? '#f59e0b' : '#f1f5f9'};
     }
 `;
 
