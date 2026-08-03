@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
@@ -62,7 +62,6 @@ function parseTimeInput(raw: string): number | null {
     const s = raw.trim().replace(',', '.');
     if (!s) return null;
 
-    // "8:30" or "8h30"
     const colonMatch = s.match(/^(\d{1,2})[:\s](\d{1,2})$/);
     if (colonMatch) {
         const h = parseInt(colonMatch[1], 10);
@@ -72,7 +71,6 @@ function parseTimeInput(raw: string): number | null {
         return total > 1440 ? null : total;
     }
 
-    // plain number "8" or "8.5"
     const numMatch = s.match(/^(\d+)([.,](\d+))?$/);
     if (numMatch) {
         const whole = parseInt(numMatch[1], 10);
@@ -126,12 +124,15 @@ export function WorkTimeView() {
     const [editDay, setEditDay] = useState<{ date: string; dateObj: Date } | null>(null);
     const [editValue, setEditValue] = useState('');
     const [editError, setEditError] = useState<string | null>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Saved scroll position before the sheet opened – restored on close
+    const savedScrollY = useRef(0);
 
     // Guard: redirect if user doesn't have time tracking
-    useEffect(() => {
-        if (user && !user.trackWorkTime) navigate('/dashboard', { replace: true });
-    }, [user, navigate]);
+    if (user && !user.trackWorkTime) {
+        navigate('/dashboard', { replace: true });
+        return null;
+    }
 
     const { data: detail, isLoading } = usePeriodDetail(period);
     const fillMonth = useFillMonth(period);
@@ -152,24 +153,27 @@ export function WorkTimeView() {
 
     const openEdit = (d: Date) => {
         if (isApproved) return;
+        savedScrollY.current = window.scrollY;
         const dateStr = toDateStr(d);
         const existing = entryMap.get(dateStr);
         setEditDay({ date: dateStr, dateObj: d });
         setEditValue(existing ? minutesToDisplay(existing.minutes) : '');
         setEditError(null);
-        setTimeout(() => inputRef.current?.focus(), 80);
     };
 
     const closeEdit = () => {
         setEditDay(null);
         setEditValue('');
         setEditError(null);
+        // Restore scroll after keyboard dismisses
+        setTimeout(() => {
+            window.scrollTo({ top: savedScrollY.current, behavior: 'instant' });
+        }, 150);
     };
 
     const handleSave = () => {
         if (!editDay) return;
         if (!editValue.trim()) {
-            // empty = delete
             deleteEntry.mutate(editDay.date, {
                 onSuccess: () => { showSuccess('Wpis usunięty'); closeEdit(); },
                 onError: () => showError('Nie udało się usunąć wpisu'),
@@ -212,7 +216,7 @@ export function WorkTimeView() {
 
     return (
         <Page>
-            <Container>
+            <Container $hasSubmit={canSubmit}>
                 {/* Header */}
                 <PageHeader>
                     <PageTitle>Czas pracy</PageTitle>
@@ -275,7 +279,7 @@ export function WorkTimeView() {
                             disabled={standardToday.isPending}
                             title="Dodaj 8h na dzisiaj"
                         >
-                            <BtnIcon>⚡</BtnIcon>
+                            <ClockIcon />
                             Standardowa dniówka
                         </QuickBtn>
                         <QuickBtn
@@ -283,7 +287,7 @@ export function WorkTimeView() {
                             disabled={fillMonth.isPending}
                             title="Uzupełnij każdy pn–pt w miesiącu po 8h (tylko puste dni)"
                         >
-                            <BtnIcon>📅</BtnIcon>
+                            <CalendarIcon />
                             Uzupełnij miesiąc
                         </QuickBtn>
                     </QuickActions>
@@ -304,9 +308,9 @@ export function WorkTimeView() {
                                     $weekend={weekend}
                                     $today={isToday}
                                     $approved={isApproved}
-                                    onClick={() => !weekend && openEdit(d)}
-                                    tabIndex={weekend || isApproved ? -1 : 0}
-                                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && !weekend && openEdit(d)}
+                                    onClick={() => openEdit(d)}
+                                    tabIndex={isApproved ? -1 : 0}
+                                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && openEdit(d)}
                                     aria-label={`${DAYS_FULL[d.getDay()]} ${formatDate(d)}: ${entry ? entry.hours : 'brak wpisu'}`}
                                 >
                                     <DayLeft>
@@ -314,32 +318,30 @@ export function WorkTimeView() {
                                         <DayDate $today={isToday}>{formatDate(d)}</DayDate>
                                     </DayLeft>
                                     <DayRight>
-                                        {weekend ? (
-                                            <WeekendLabel>—</WeekendLabel>
-                                        ) : entry ? (
+                                        {entry ? (
                                             <HoursChip $filled>{entry.hours}</HoursChip>
                                         ) : (
                                             <HoursChip $filled={false}>—</HoursChip>
                                         )}
-                                        {!weekend && !isApproved && <ChevronIcon dir="right" small />}
+                                        {!isApproved && <ChevronIcon dir="right" small />}
                                     </DayRight>
                                 </DayRow>
                             );
                         })}
                 </DayList>
-
-                {/* Submit button */}
-                {canSubmit && (
-                    <SubmitArea>
-                        <SubmitBtn
-                            onClick={handleSubmit}
-                            disabled={submitPeriod.isPending}
-                        >
-                            {submitPeriod.isPending ? 'Składanie…' : 'Złóż kartę do zatwierdzenia'}
-                        </SubmitBtn>
-                    </SubmitArea>
-                )}
             </Container>
+
+            {/* Sticky submit bar — always visible at bottom when applicable */}
+            {canSubmit && (
+                <StickySubmitBar>
+                    <SubmitBtn
+                        onClick={handleSubmit}
+                        disabled={submitPeriod.isPending}
+                    >
+                        {submitPeriod.isPending ? 'Składanie…' : 'Złóż kartę do zatwierdzenia'}
+                    </SubmitBtn>
+                </StickySubmitBar>
+            )}
 
             {/* Edit bottom sheet */}
             {editDay && (
@@ -352,13 +354,14 @@ export function WorkTimeView() {
                         <SheetBody>
                             <SheetLabel>Czas pracy (np. 8, 8:30, 3:50)</SheetLabel>
                             <TimeInput
-                                ref={inputRef}
+                                autoFocus
                                 type="text"
                                 inputMode="decimal"
                                 placeholder="0:00"
                                 value={editValue}
                                 onChange={e => { setEditValue(e.target.value); setEditError(null); }}
                                 onKeyDown={e => e.key === 'Enter' && handleSave()}
+                                onFocus={e => e.target.select()}
                                 $error={!!editError}
                                 autoComplete="off"
                             />
@@ -396,7 +399,7 @@ function DayRowSkeleton() {
     );
 }
 
-// ─── SVG chevron ─────────────────────────────────────────────────────────────
+// ─── SVG icons ────────────────────────────────────────────────────────────────
 function ChevronIcon({ dir, small }: { dir: 'left' | 'right'; small?: boolean }) {
     const size = small ? 14 : 20;
     return (
@@ -404,6 +407,26 @@ function ChevronIcon({ dir, small }: { dir: 'left' | 'right'; small?: boolean })
             {dir === 'left'
                 ? <polyline points="15 18 9 12 15 6" />
                 : <polyline points="9 18 15 12 9 6" />}
+        </svg>
+    );
+}
+
+function ClockIcon() {
+    return (
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+        </svg>
+    );
+}
+
+function CalendarIcon() {
+    return (
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
     );
 }
@@ -419,13 +442,13 @@ const Page = styled.div`
     }
 `;
 
-const Container = styled.div`
+const Container = styled.div<{ $hasSubmit: boolean }>`
     max-width: 640px;
     margin: 0 auto;
-    padding: 0 0 100px;
+    padding: 0 0 ${p => p.$hasSubmit ? '100px' : '40px'};
 
     @media (min-width: 640px) {
-        padding: 24px 24px 100px;
+        padding: 24px 24px ${p => p.$hasSubmit ? '100px' : '40px'};
     }
 `;
 
@@ -632,11 +655,6 @@ const QuickBtn = styled.button`
     }
 `;
 
-const BtnIcon = styled.span`
-    font-size: 15px;
-    line-height: 1;
-`;
-
 const DayList = styled.div`
     display: flex;
     flex-direction: column;
@@ -662,7 +680,7 @@ const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $approved: boole
     justify-content: space-between;
     padding: 13px 16px;
     border-bottom: 1px solid #f1f5f9;
-    cursor: ${p => (p.$weekend || p.$approved) ? 'default' : 'pointer'};
+    cursor: ${p => p.$approved ? 'default' : 'pointer'};
     background: ${p => p.$today ? '#f0f9ff' : p.$weekend ? '#fafafa' : 'transparent'};
     transition: background 120ms;
 
@@ -670,7 +688,7 @@ const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $approved: boole
         border-bottom: none;
     }
 
-    ${p => !p.$weekend && !p.$approved && css`
+    ${p => !p.$approved && css`
         &:hover {
             background: #f8fafc;
         }
@@ -733,16 +751,19 @@ const HoursChip = styled.span<{ $filled: boolean }>`
     }
 `;
 
-const WeekendLabel = styled.span`
-    font-size: 13px;
-    color: #cbd5e1;
-`;
+const StickySubmitBar = styled.div`
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px max(env(safe-area-inset-bottom, 0px), 16px);
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    z-index: 50;
 
-const SubmitArea = styled.div`
-    padding: 20px 16px 0;
-
-    @media (min-width: 640px) {
-        padding: 20px 0 0;
+    @media (prefers-color-scheme: dark) {
+        background: #0f172a;
+        border-color: #334155;
     }
 `;
 
@@ -784,7 +805,7 @@ const BottomSheet = styled.div`
     margin: 0 auto;
     background: white;
     border-radius: 20px 20px 0 0;
-    padding: 12px 20px 32px;
+    padding: 12px 20px max(env(safe-area-inset-bottom, 0px), 32px);
     animation: ${slideUp} 220ms cubic-bezier(0.32, 0.72, 0, 1);
 
     @media (prefers-color-scheme: dark) {
