@@ -194,14 +194,14 @@ const fmt = (iso: string | null | undefined) =>
       })
     : null;
 
-function metricTiles(c: Campaign) {
+function metricTiles(c: Campaign, estimate?: { eligible: number; estimatedCredits: number | null }) {
   switch (c.status) {
     case 'SCHEDULED':
       return [
-        { style: TILE_STYLES.sent, icon: Users, value: c.recipientsTotal || '—', label: 'Prognozowani odbiorcy' },
+        { style: TILE_STYLES.sent, icon: Users, value: estimate?.eligible ?? c.recipientsTotal ?? '—', label: 'Prognozowani odbiorcy' },
         { style: TILE_STYLES.scheduled, icon: CalendarClock, value: c.scheduledAt ? fmt(c.scheduledAt)! : 'natychmiast', label: 'Termin wysyłki' },
         { style: TILE_STYLES.credits, icon: Radio, value: CHANNEL_LABELS[c.channel], label: 'Kanał' },
-        { style: TILE_STYLES.credits, icon: Coins, value: c.creditsSpent || '—', label: 'Koszt (kredyty)' },
+        { style: TILE_STYLES.credits, icon: Coins, value: estimate?.estimatedCredits ?? '—', label: 'Szacowany koszt (kredyty)' },
       ];
     case 'SENDING':
       return [
@@ -254,7 +254,11 @@ export function CampaignDetailsView() {
   const projectionAudience: AudienceCriteria = campaign?.audience ?? emptyAudience();
   const projectionChannel: RecipientChannel =
     campaign?.channel === 'EMAIL' ? 'EMAIL' : 'SMS';
-  const { estimate } = useAudienceEstimate(projectionAudience, projectionChannel);
+  const { estimate } = useAudienceEstimate(
+    projectionAudience,
+    projectionChannel,
+    campaign?.smsTemplate ?? undefined,
+  );
 
   const [search, setSearch] = useState('');
   const [confirmAction, setConfirmAction] = useState<null | 'stop' | 'cancel' | 'delete'>(null);
@@ -323,7 +327,7 @@ export function CampaignDetailsView() {
       </HeaderRow>
 
       <Grid>
-        {metricTiles(c).map((t, i) => (
+        {metricTiles(c, isProjection ? estimate : undefined).map((t, i) => (
           <StatTile key={i} {...t.style} icon={t.icon} value={t.value} label={t.label} compact />
         ))}
       </Grid>
@@ -418,10 +422,10 @@ export function CampaignDetailsView() {
                     <td>
                       <MutedText>
                         {s.eligibility === 'ELIGIBLE' ? 'Otrzyma' :
-                         s.eligibility === 'NO_CONSENT' ? 'Brak zgody' :
-                         s.eligibility === 'NO_ADDRESS' ? 'Brak numeru' :
-                         s.eligibility === 'OPTED_OUT' ? 'Zrezygnował' :
-                         s.eligibility === 'FREQUENCY_CAP' ? 'Limit wysyłek' : s.eligibility}
+                         s.eligibility === 'NO_CONSENT' ? 'Brak zgody marketingowej' :
+                         s.eligibility === 'NO_ADDRESS' ? 'Brak numeru / adresu' :
+                         s.eligibility === 'OPTED_OUT' ? 'Wypisany (STOP)' :
+                         s.eligibility === 'FREQUENCY_CAP' ? 'Niedawno kontaktowany' : s.eligibility}
                       </MutedText>
                     </td>
                   </tr>
