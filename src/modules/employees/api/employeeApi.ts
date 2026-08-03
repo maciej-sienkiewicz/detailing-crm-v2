@@ -13,9 +13,8 @@ import type {
     CreateAmendmentPayload,
     CompensationConfig,
     SetCompensationPayload,
-    WorkTimeEntry,
-    WorkTimePeriodSummary,
-    SavePeriodPayload,
+    TeamPeriodSummary,
+    TeamPeriodDetail,
     EmployeeLeave,
     AddLeavePayload,
     LeaveCalendarDay,
@@ -115,36 +114,24 @@ export const employeeApi = {
         return res.data;
     },
 
-    // ─── Work Time ────────────────────────────────────────────────────────────
+    // ─── Work Time (team / manager view) ─────────────────────────────────────
 
-    listWorkTime: async (employeeId: string, from?: string, to?: string): Promise<WorkTimeEntry[]> => {
-        const params = new URLSearchParams();
-        if (from) params.append('from', from);
-        if (to) params.append('to', to);
-        const query = params.toString();
-        const res = await apiClient.get<WorkTimeEntry[]>(`${BASE}/${employeeId}/worktime${query ? `?${query}` : ''}`);
+    getTeamWorkTimePeriods: async (userId: string): Promise<TeamPeriodSummary[]> => {
+        const res = await apiClient.get<TeamPeriodSummary[]>(`/v1/worktime/team/${userId}/periods`);
         return res.data;
     },
 
-    getWorkTimePeriods: async (employeeId: string): Promise<WorkTimePeriodSummary[]> => {
-        const res = await apiClient.get<WorkTimePeriodSummary[]>(`${BASE}/${employeeId}/worktime/periods`);
+    getTeamWorkTimePeriod: async (userId: string, period: string): Promise<TeamPeriodDetail> => {
+        const res = await apiClient.get<TeamPeriodDetail>(`/v1/worktime/team/${userId}/periods/${period}`);
         return res.data;
     },
 
-    deleteWorkTimeEntry: async (employeeId: string, entryId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/${employeeId}/worktime/${entryId}`);
+    approveTeamPeriod: async (userId: string, period: string): Promise<void> => {
+        await apiClient.post(`/v1/worktime/team/${userId}/periods/${period}/approve`);
     },
 
-    savePeriodWorkTime: async (
-        employeeId: string,
-        period: string,
-        payload: SavePeriodPayload,
-    ): Promise<void> => {
-        await apiClient.put(`${BASE}/${employeeId}/worktime/periods/${period}`, payload);
-    },
-
-    submitPeriodForBilling: async (employeeId: string, period: string): Promise<void> => {
-        await apiClient.post(`${BASE}/${employeeId}/worktime/periods/${period}/submit`);
+    returnTeamPeriod: async (userId: string, period: string, note?: string): Promise<void> => {
+        await apiClient.post(`/v1/worktime/team/${userId}/periods/${period}/return`, { note: note ?? null });
     },
 
     // ─── Leaves ───────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { useEmployee } from '../hooks/useEmployees';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import { AccountManagementCard } from '../components/AccountManagementCard';
 import { LeavesTab } from '../components/LeavesTab';
+import { EmployeeWorkTimeSection } from '../components/EmployeeWorkTimeSection';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
@@ -326,6 +327,9 @@ export const EmployeeDetailView = () => {
 
                 <MainCol>
                     <LeavesTab employeeId={employeeId} />
+                    {employee.userId && (
+                        <EmployeeWorkTimeSection userId={employee.userId} />
+                    )}
                 </MainCol>
             </ContentGrid>
 
