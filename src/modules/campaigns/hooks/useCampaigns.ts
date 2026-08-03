@@ -123,6 +123,30 @@ export function useCampaignSettings() {
   return { settings: data, isLoading, save: mutation.mutateAsync, isSaving: mutation.isPending };
 }
 
+export function useRetryRecipient(campaignId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (recipientId: string) => api.retryRecipient(campaignId, recipientId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.recipients(campaignId) });
+      qc.invalidateQueries({ queryKey: KEYS.one(campaignId) });
+      qc.invalidateQueries({ queryKey: KEYS.list });
+    },
+  });
+}
+
+export function useRetryAllFailed(campaignId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.retryAllFailed(campaignId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.recipients(campaignId) });
+      qc.invalidateQueries({ queryKey: KEYS.one(campaignId) });
+      qc.invalidateQueries({ queryKey: KEYS.list });
+    },
+  });
+}
+
 export function useTestSend() {
   return useMutation({ mutationFn: api.testSend });
 }

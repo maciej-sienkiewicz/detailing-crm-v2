@@ -97,6 +97,18 @@ export async function testSend(payload: TestSendRequest): Promise<{ success: boo
   return data;
 }
 
+export async function retryRecipient(campaignId: string, recipientId: string): Promise<CampaignRecipient> {
+  const { data } = await apiClient.post<CampaignRecipient>(
+    `${BASE}/${campaignId}/recipients/${recipientId}/retry`
+  );
+  return data;
+}
+
+export async function retryAllFailed(campaignId: string): Promise<{ retried: number }> {
+  const { data } = await apiClient.post<{ retried: number }>(`${BASE}/${campaignId}/retry-failed`);
+  return data;
+}
+
 export async function fetchSettings(): Promise<CampaignSettings> {
   const { data } = await apiClient.get<CampaignSettings>(`${BASE}/settings`);
   return data;
