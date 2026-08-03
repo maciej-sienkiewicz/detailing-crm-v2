@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
 const Wrap = styled.span`
@@ -33,11 +34,9 @@ const Icon = styled.span`
   }
 `;
 
-const Popup = styled.div<{ $x: number; $y: number; $visible: boolean }>`
+// Rendered via portal into document.body — lives outside any transformed ancestor.
+const PopupBox = styled.div`
   position: fixed;
-  left: ${(p) => p.$x}px;
-  bottom: ${(p) => p.$y}px;
-  transform: translateX(-50%);
   background: #1e293b;
   color: #f1f5f9;
   font-size: 12px;
@@ -49,8 +48,6 @@ const Popup = styled.div<{ $x: number; $y: number; $visible: boolean }>`
   width: 240px;
   pointer-events: none;
   z-index: 9999;
-  opacity: ${(p) => (p.$visible ? 1 : 0)};
-  transition: opacity 120ms ease;
   text-align: left;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 
@@ -65,30 +62,45 @@ const Popup = styled.div<{ $x: number; $y: number; $visible: boolean }>`
   }
 `;
 
+const POPUP_WIDTH = 240;
+const GAP = 8;
+
 interface InfoTooltipProps {
   text: string;
 }
 
 export function InfoTooltip({ text }: InfoTooltipProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [pos, setPos] = useState({ x: 0, y: 0, visible: false });
+  const [rect, setRect] = useState<DOMRect | null>(null);
 
   const show = () => {
-    const rect = ref.current?.getBoundingClientRect();
-    if (rect) {
-      setPos({
-        x: rect.left + rect.width / 2,
-        y: window.innerHeight - rect.top + 8,
-        visible: true,
-      });
-    }
+    setRect(ref.current?.getBoundingClientRect() ?? null);
   };
-  const hide = () => setPos((p) => ({ ...p, visible: false }));
+  const hide = () => setRect(null);
+
+  // Clamp horizontally so the popup never bleeds off screen.
+  const cx = rect ? rect.left + rect.width / 2 : 0;
+  const clampedLeft = Math.max(
+    POPUP_WIDTH / 2 + 8,
+    Math.min(window.innerWidth - POPUP_WIDTH / 2 - 8, cx),
+  );
 
   return (
     <Wrap ref={ref} onMouseEnter={show} onMouseLeave={hide}>
       <Icon>i</Icon>
-      <Popup $x={pos.x} $y={pos.y} $visible={pos.visible}>{text}</Popup>
+      {rect &&
+        createPortal(
+          <PopupBox
+            style={{
+              left: clampedLeft,
+              top: rect.top - GAP,
+              transform: 'translateX(-50%) translateY(-100%)',
+            }}
+          >
+            {text}
+          </PopupBox>,
+          document.body,
+        )}
     </Wrap>
   );
 }
