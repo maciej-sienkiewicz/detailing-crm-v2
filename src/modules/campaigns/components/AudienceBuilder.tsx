@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
+import { InfoTooltip } from '@/common/components/InfoTooltip';
 import type { AudienceCriteria, CustomerTypeFilter } from '../types';
 
 // ─── Chipy filtrów w ludzkim języku (jedna reprezentacja w całym module) ──────
@@ -294,7 +295,10 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
         {open === 'services' && (
           <SectionBody>
             <FieldRow>
-              <FieldLabel>Korzystał z usługi</FieldLabel>
+              <FieldLabel>
+                Korzystał z usługi
+                <InfoTooltip text="Klient musi mieć w historii co najmniej jedną wizytę z tą usługą. Przy kilku usługach wystarczy jedna z nich — kampania trafi do klientów, którzy mieli dowolną z zaznaczonych (logika LUB)." />
+              </FieldLabel>
               <SelectWrap style={{ width: 260 }}>
                 <ServiceMultiSelect
                   selectedIds={value.servicesUsedAnyOf}
@@ -304,17 +308,23 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             </FieldRow>
             {value.servicesUsedAnyOf.length > 1 && (
               <LogicHint>
-                Klient musi mieć wykonaną <strong>przynajmniej jedną</strong> z wybranych usług (warunek „lub").
+                Wystarczy, że klient miał <strong>dowolną</strong> z wybranych usług (logika LUB, nie I).
               </LogicHint>
             )}
             <FieldRow>
-              <FieldLabel>Ostatnie wykonanie ponad</FieldLabel>
+              <FieldLabel>
+                Ostatnie wykonanie ponad
+                <InfoTooltip text="Dotyczy usług wybranych powyżej. Filtruje klientów, u których ostatni raz dana usługa była wykonana dawniej niż podana liczba dni temu." />
+              </FieldLabel>
               <NumInput type="number" min={1} placeholder="np. 180" value={value.serviceLastUsedOlderThanDays ?? ''}
                 onChange={(e) => set({ serviceLastUsedOlderThanDays: num(e.target.value) })} />
               <FieldLabel as="span">dni temu</FieldLabel>
             </FieldRow>
             <FieldRow>
-              <FieldLabel>Nigdy nie korzystał z</FieldLabel>
+              <FieldLabel>
+                Nigdy nie korzystał z
+                <InfoTooltip text="Wyklucza klientów, którzy mieli w historii którąkolwiek z wybranych usług (logika LUB). Przy kilku usługach — wystarczy jedna, żeby klient został wykluczony." />
+              </FieldLabel>
               <SelectWrap style={{ width: 260 }}>
                 <ServiceMultiSelect
                   selectedIds={value.servicesUsedNoneOf}
@@ -324,7 +334,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             </FieldRow>
             {value.servicesUsedNoneOf.length > 1 && (
               <LogicHint>
-                Wykluczymy klientów, którzy mieli <strong>którąkolwiek</strong> z tych usług.
+                Klient zostanie wykluczony, jeśli miał <strong>którąkolwiek</strong> z wybranych usług (logika LUB).
               </LogicHint>
             )}
           </SectionBody>
@@ -370,7 +380,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
                 </ChipRow>
                 {value.vehicleBrands.length > 1 && (
                   <LogicHint>
-                    Kampania trafi do klientów z <strong>dowolnym</strong> z powyższych pojazdów (warunek „lub").
+                    Kampania trafi do klientów z <strong>dowolnym</strong> z powyższych pojazdów (logika LUB, nie I).
                   </LogicHint>
                 )}
               </>
