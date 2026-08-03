@@ -154,6 +154,24 @@ const RemovableChip = styled(Chip)`
   &::after { content: '×'; margin-left: 6px; font-weight: 700; }
 `;
 
+const LogicHint = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: 12px;
+  line-height: 1.4;
+
+  strong {
+    font-weight: 700;
+    color: ${(p) => p.theme.colors.text};
+    letter-spacing: 0.02em;
+  }
+`;
+
 const AddBtn = styled.button`
   padding: 8px 16px;
   border: none;
@@ -284,6 +302,11 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
                 />
               </SelectWrap>
             </FieldRow>
+            {value.servicesUsedAnyOf.length > 1 && (
+              <LogicHint>
+                Klient musi mieć wykonaną <strong>przynajmniej jedną</strong> z wybranych usług (warunek „lub").
+              </LogicHint>
+            )}
             <FieldRow>
               <FieldLabel>Ostatnie wykonanie ponad</FieldLabel>
               <NumInput type="number" min={1} placeholder="np. 180" value={value.serviceLastUsedOlderThanDays ?? ''}
@@ -299,6 +322,11 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
                 />
               </SelectWrap>
             </FieldRow>
+            {value.servicesUsedNoneOf.length > 1 && (
+              <LogicHint>
+                Wykluczymy klientów, którzy mieli <strong>którąkolwiek</strong> z tych usług.
+              </LogicHint>
+            )}
           </SectionBody>
         )}
       </Section>
@@ -331,14 +359,21 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
               </AddBtn>
             </FieldRow>
             {value.vehicleBrands.length > 0 && (
-              <ChipRow>
-                {value.vehicleBrands.map((b, i) => (
-                  <RemovableChip key={`${b.brand}-${i}`}
-                    onClick={() => set({ vehicleBrands: value.vehicleBrands.filter((_, idx) => idx !== i) })}>
-                    {b.model ? `${b.brand} ${b.model}` : b.brand}
-                  </RemovableChip>
-                ))}
-              </ChipRow>
+              <>
+                <ChipRow>
+                  {value.vehicleBrands.map((b, i) => (
+                    <RemovableChip key={`${b.brand}-${i}`}
+                      onClick={() => set({ vehicleBrands: value.vehicleBrands.filter((_, idx) => idx !== i) })}>
+                      {b.model ? `${b.brand} ${b.model}` : b.brand}
+                    </RemovableChip>
+                  ))}
+                </ChipRow>
+                {value.vehicleBrands.length > 1 && (
+                  <LogicHint>
+                    Kampania trafi do klientów z <strong>dowolnym</strong> z powyższych pojazdów (warunek „lub").
+                  </LogicHint>
+                )}
+              </>
             )}
             <FieldRow>
               <FieldLabel>Rocznik (od–do)</FieldLabel>

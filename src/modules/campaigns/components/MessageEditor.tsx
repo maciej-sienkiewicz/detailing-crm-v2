@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Send } from 'lucide-react';
+import { Mail, MessageSquare, Send } from 'lucide-react';
 import { PLACEHOLDERS } from '../constants';
 import { smsMeta } from '../utils/sms';
 import { useTestSend } from '../hooks/useCampaigns';
@@ -107,6 +107,36 @@ const TokenSection = styled.div`
   background: ${(p) => p.theme.colors.surfaceAlt};
   border-radius: 10px;
   border: 1px solid ${(p) => p.theme.colors.border};
+`;
+
+const ChannelCard = styled.div<{ $accent: string }>`
+  position: relative;
+  background: #ffffff;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-left: 4px solid ${(p) => p.$accent};
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ChannelCardHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+
+  svg { width: 16px; height: 16px; stroke-width: 1.75; }
+  h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: ${(p) => p.theme.colors.text};
+  }
 `;
 
 const TokenRow = styled.div`
@@ -244,28 +274,38 @@ export function MessageEditor({ value, onChange }: Props) {
       </TokenSection>
 
       {showSms && (
-        <Field>
-          <Label>Treść SMS</Label>
-          <TextArea
-            ref={smsRef}
-            value={value.smsTemplate}
-            onChange={(e) => set({ smsTemplate: e.target.value })}
-            placeholder="Cześć {{imie}}! …"
-          />
-          <CounterRow $warn={meta.segments > 1}>
-            <span>
-              {meta.length} znaków · {meta.encoding}
-              {meta.encoding === 'UCS-2' && ' (polskie znaki skracają SMS)'}
-            </span>
-            <span>{meta.segments} {meta.segments === 1 ? 'segment' : 'segmenty'} = {meta.segments} kredyt(y) / odbiorcę</span>
-          </CounterRow>
-        </Field>
+        <ChannelCard $accent="#0ea5e9">
+          <ChannelCardHead>
+            <MessageSquare color="#0ea5e9" />
+            <h4>Wiadomość SMS</h4>
+          </ChannelCardHead>
+          <Field>
+            <Label>Treść</Label>
+            <TextArea
+              ref={smsRef}
+              value={value.smsTemplate}
+              onChange={(e) => set({ smsTemplate: e.target.value })}
+              placeholder="Cześć {{imie}}! …"
+            />
+            <CounterRow $warn={meta.segments > 1}>
+              <span>
+                {meta.length} znaków · {meta.encoding}
+                {meta.encoding === 'UCS-2' && ' (polskie znaki skracają SMS)'}
+              </span>
+              <span>{meta.segments} {meta.segments === 1 ? 'segment' : 'segmenty'} = {meta.segments} kredyt(y) / odbiorcę</span>
+            </CounterRow>
+          </Field>
+        </ChannelCard>
       )}
 
       {showEmail && (
-        <>
+        <ChannelCard $accent="#8b5cf6">
+          <ChannelCardHead>
+            <Mail color="#8b5cf6" />
+            <h4>Wiadomość e-mail</h4>
+          </ChannelCardHead>
           <Field>
-            <Label>Temat e-maila</Label>
+            <Label>Temat</Label>
             <Input
               value={value.emailSubject}
               onChange={(e) => set({ emailSubject: e.target.value })}
@@ -273,7 +313,7 @@ export function MessageEditor({ value, onChange }: Props) {
             />
           </Field>
           <Field>
-            <Label>Treść e-maila</Label>
+            <Label>Treść</Label>
             <TextArea
               value={value.emailBody}
               onChange={(e) => set({ emailBody: e.target.value })}
@@ -281,7 +321,7 @@ export function MessageEditor({ value, onChange }: Props) {
               placeholder="Dzień dobry {{imie}}, …"
             />
           </Field>
-        </>
+        </ChannelCard>
       )}
 
       <TestRow>
