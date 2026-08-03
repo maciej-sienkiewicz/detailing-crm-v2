@@ -90,7 +90,7 @@ const buildMenuSections = (
         {
             title: 'Marketing',
             items: [
-                { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
+                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
                 { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' },
                 { path: '/google-reviews', label: 'Google Reviews', icon: Search, requires: 'MARKETING_MANAGE' },
             ],

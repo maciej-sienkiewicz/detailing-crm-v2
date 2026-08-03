@@ -32,6 +32,7 @@ import {FinanceView} from "@/modules/finance";
 import { StatisticsView, CategoryDetailView, DelayStatisticsView, CostsView } from "@/modules/statistics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
+import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { SettingsView } from '@/modules/settings';
@@ -265,6 +266,27 @@ export const router = createBrowserRouter([
     },
 
     // ── Komunikacja i marketing ──────────────────────────────────────────
+    {
+        path: '/campaigns',
+        element: gatedPage(<CampaignsListView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+    },
+    {
+        path: '/campaigns/new',
+        element: gatedPage(<CampaignWizardView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+    },
+    {
+        path: '/campaigns/settings',
+        element: gatedPage(<CampaignSettingsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+    },
+    {
+        path: '/campaigns/:id',
+        element: gatedPage(<CampaignDetailsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+    },
+    {
+        path: '/campaigns/:id/edit',
+        element: gatedPage(<CampaignWizardView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+    },
+    // Legacy: stara ścieżka kampanii SMS prowadzi do nowego modułu
     {
         path: '/sms-campaigns',
         element: gatedPage(<SmsCampaignsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
