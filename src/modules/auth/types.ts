@@ -45,6 +45,8 @@ export interface User {
     mobileToken?: string | null;
     /** null = owner (full access). List = user's effective permission codes. */
     permissions?: string[] | null;
+    /** True when the user's role has time tracking enabled — shows Czas pracy in sidebar. */
+    trackWorkTime?: boolean;
 }
 
 export interface CheckAuthResponse {

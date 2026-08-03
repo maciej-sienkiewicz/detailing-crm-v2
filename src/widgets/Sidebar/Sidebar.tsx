@@ -20,6 +20,7 @@ import {
     Search,
     Inbox,
     Layers,
+    Clock,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -54,18 +55,20 @@ import {
 // Each menu entry may declare a permission requirement (single code or ANY-OF
 // list). Entries the user cannot access are removed entirely — inaccessible
 // modules simply do not exist in the UI. Sections left empty are dropped.
-type GuardedMenuItem = MenuItem & { requires?: PermissionRequirement };
+type GuardedMenuItem = MenuItem & { requires?: PermissionRequirement; showWhen?: boolean };
 type GuardedMenuSection = { title?: string; items: GuardedMenuItem[] };
 
 const buildMenuSections = (
     newLeadsCount: number,
     can: (required: PermissionRequirement) => boolean,
+    trackWorkTime: boolean,
 ): MenuSection[] => {
     const sections: GuardedMenuSection[] = [
         {
             title: 'Główne',
             items: [
                 { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard },
+                { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
                 { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW' },
                 { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
                 { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
@@ -101,8 +104,11 @@ const buildMenuSections = (
         .map(({ title, items }) => ({
             title,
             items: items
-                .filter(({ requires }) => !requires || can(requires))
-                .map(({ requires: _requires, ...item }) => item),
+                .filter(({ requires, showWhen }) => {
+                    if (showWhen !== undefined) return showWhen;
+                    return !requires || can(requires);
+                })
+                .map(({ requires: _requires, showWhen: _showWhen, ...item }) => item),
         }))
         .filter(section => section.items.length > 0);
 };
@@ -133,7 +139,7 @@ export const Sidebar = () => {
 
     // Persistent WebSocket connection for the entire CRM session
     useLeadSocket();
-    const menuSections = buildMenuSections(newLeadsCount, can);
+    const menuSections = buildMenuSections(newLeadsCount, can, user?.trackWorkTime ?? false);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {

@@ -35,6 +35,7 @@ import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
+import { WorkTimeView } from '@/modules/worktime';
 import { SettingsView } from '@/modules/settings';
 import { PhoneSignatureView } from '@/modules/profile/views/PhoneSignatureView';
 import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
@@ -298,6 +299,12 @@ export const router = createBrowserRouter([
     {
         path: '/consents',
         element: gatedPage(<ConsentSettingsView />, 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
+    },
+
+    // ── Czas pracy (self-service dla pracowników z trackWorkTime) ────────
+    {
+        path: '/worktime',
+        element: page(<WorkTimeView />),
     },
 
     // ── Zespół ───────────────────────────────────────────────────────────
