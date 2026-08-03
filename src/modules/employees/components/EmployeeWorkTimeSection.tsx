@@ -595,9 +595,6 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
 
                             <Chips>
                                 <Chip>{p.totalHours} h</Chip>
-                                {p.overtimeMinutes > 0 && (
-                                    <Chip $amber>+{p.overtimeHours} h OT</Chip>
-                                )}
                                 <StatusBadge $status={p.status}>{STATUS_LABEL[p.status]}</StatusBadge>
                             </Chips>
 
