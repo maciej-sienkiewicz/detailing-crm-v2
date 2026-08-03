@@ -15,6 +15,7 @@ import { useActivateCampaign } from '../hooks/useCampaigns';
 import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, TILE_STYLES } from '../constants';
 import { CampaignKindBadge, CampaignStatusBadge, Eyebrow, MutedText, Page, SectionCard } from '../components/shared';
 import { audienceChips, Chip, ChipRow, useServiceCatalog } from '../components/AudienceBuilder';
+import { ContentPreview } from '../components/ContentPreview';
 import type { Campaign } from '../types';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -70,40 +71,6 @@ const Grid = styled.div`
   margin-bottom: 20px;
 
   @media (max-width: 1023px) { grid-template-columns: repeat(2, 1fr); }
-`;
-
-const MessagePreview = styled.div`
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 14px 14px 14px 4px;
-  padding: 14px 16px;
-  font-size: 14px;
-  line-height: 1.55;
-  color: ${(p) => p.theme.colors.text};
-  max-width: 480px;
-  white-space: pre-wrap;
-`;
-
-const EmailPreview = styled.div`
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  max-width: 560px;
-  overflow: hidden;
-
-  header {
-    padding: 10px 16px;
-    background: ${(p) => p.theme.colors.surfaceAlt};
-    border-bottom: 1px solid ${(p) => p.theme.colors.border};
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  div {
-    padding: 14px 16px;
-    font-size: 14px;
-    line-height: 1.55;
-    white-space: pre-wrap;
-  }
 `;
 
 const RecipientsTable = styled.table`
@@ -293,14 +260,7 @@ export function CampaignDetailsView() {
       </Grid>
 
       <SectionCard style={{ marginBottom: 16 }}>
-        <Eyebrow>Treść</Eyebrow>
-        {c.smsTemplate && <MessagePreview>{c.smsTemplate}</MessagePreview>}
-        {c.emailSubject && (
-          <EmailPreview style={{ marginTop: c.smsTemplate ? 12 : 0 }}>
-            <header>{c.emailSubject}</header>
-            <div>{c.emailBody}</div>
-          </EmailPreview>
-        )}
+        <ContentPreview campaign={c} />
       </SectionCard>
 
       {c.kind === 'AUTOMATIC' && c.trigger && (
