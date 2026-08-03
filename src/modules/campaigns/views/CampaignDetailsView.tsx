@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
   AlertTriangle, CalendarClock, CheckCircle2, Coins, Copy, Mail, MessageSquare,
-  Pause, Pencil, Play, Radio, SkipForward, Square, Trash2, Users,
+  Pause, Pencil, Play, Radio, RefreshCw, SkipForward, Square, Trash2, Users,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { StatTile } from '@/common/components/StatTile';
 import {
   useArchiveCampaign, useCampaign, useCampaignRecipients, useCancelCampaign,
-  useDeleteCampaign, useDuplicateCampaign, usePauseCampaign, useStopCampaign,
+  useDeleteCampaign, useDuplicateCampaign, usePauseCampaign, useRetryAllFailed,
+  useRetryRecipient, useStopCampaign,
 } from '../hooks/useCampaigns';
 import { useActivateCampaign } from '../hooks/useCampaigns';
 import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, TILE_STYLES } from '../constants';
@@ -114,6 +115,57 @@ const SearchInput = styled.input`
   }
 `;
 
+const RecipientsSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+`;
+
+const RetryAllBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  transition: all 180ms ease;
+
+  &:hover { background: #fef3c7; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  svg { width: 13px; height: 13px; stroke-width: 2; }
+`;
+
+const RetryRowBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  background: #ffffff;
+  color: ${(p) => p.theme.colors.textSecondary};
+  cursor: pointer;
+  transition: all 150ms ease;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  svg { width: 13px; height: 13px; stroke-width: 2; }
+`;
+
 const Timeline = styled.ul`
   list-style: none;
   margin: 0;
@@ -192,6 +244,9 @@ export function CampaignDetailsView() {
   const duplicate = useDuplicateCampaign();
   const remove = useDeleteCampaign();
 
+  const retryRecipient = useRetryRecipient(id ?? '');
+  const retryAllFailed = useRetryAllFailed(id ?? '');
+
   const [search, setSearch] = useState('');
   const [confirmAction, setConfirmAction] = useState<null | 'stop' | 'cancel' | 'delete'>(null);
 
@@ -205,6 +260,11 @@ export function CampaignDetailsView() {
   const c = campaign;
   const chips = audienceChips(c.audience, serviceNames);
   const isProjection = c.status === 'DRAFT' || c.status === 'SCHEDULED';
+
+  const NON_RETRYABLE = new Set(['SENT', 'PENDING', 'EXCLUDED_MANUALLY', 'SKIPPED_OPTED_OUT']);
+  const isRetryable = (status: string) => !NON_RETRYABLE.has(status);
+  const BULK_RETRYABLE = new Set(['FAILED', 'STOPPED', 'SKIPPED_NO_CREDITS', 'SKIPPED_FREQUENCY_CAP']);
+  const hasRetryableRecipients = recipients.some((r) => BULK_RETRYABLE.has(r.status));
 
   const runDuplicate = async () => {
     const copy = await duplicate.mutateAsync(c.id);
@@ -276,7 +336,18 @@ export function CampaignDetailsView() {
       )}
 
       <SectionCard style={{ marginBottom: 16 }}>
-        <Eyebrow>{isProjection ? 'Prognozowani odbiorcy' : 'Odbiorcy'}</Eyebrow>
+        <RecipientsSectionHeader>
+          <Eyebrow style={{ margin: 0 }}>{isProjection ? 'Prognozowani odbiorcy' : 'Odbiorcy'}</Eyebrow>
+          {!isProjection && hasRetryableRecipients && (
+            <RetryAllBtn
+              onClick={() => retryAllFailed.mutate()}
+              disabled={retryAllFailed.isPending}
+              title="Ponów wszystkie nieudane i zatrzymane wiadomości"
+            >
+              <RefreshCw /> Ponów nieudane
+            </RetryAllBtn>
+          )}
+        </RecipientsSectionHeader>
         {isProjection && (
           <MutedText style={{ display: 'block', marginBottom: 10 }}>
             Stan na dziś — ostateczna lista zostanie wyliczona w dniu wysyłki. Ręczne wykluczenia
@@ -295,7 +366,7 @@ export function CampaignDetailsView() {
             />
             <RecipientsTable>
               <thead>
-                <tr><th>Kanał</th><th>Adres</th><th>Status</th><th>Wysłano</th></tr>
+                <tr><th>Kanał</th><th>Adres</th><th>Status</th><th>Wysłano</th><th /></tr>
               </thead>
               <tbody>
                 {filteredRecipients.map((r) => (
@@ -307,6 +378,18 @@ export function CampaignDetailsView() {
                       {r.errorMessage && <MutedText> — {r.errorMessage}</MutedText>}
                     </td>
                     <td><MutedText>{fmt(r.sentAt) ?? '—'}</MutedText></td>
+                    <td style={{ width: 36, padding: '6px 8px' }}>
+                      {isRetryable(r.status) && (
+                        <RetryRowBtn
+                          title="Ponów wysyłkę"
+                          aria-label="Ponów wysyłkę"
+                          disabled={retryRecipient.isPending}
+                          onClick={() => retryRecipient.mutate(r.id)}
+                        >
+                          <RefreshCw />
+                        </RetryRowBtn>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
