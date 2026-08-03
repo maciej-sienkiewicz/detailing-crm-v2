@@ -40,7 +40,7 @@ const getHeroDesc = (stats?: OperationalStats): string => {
   if (stats.incomingToday > 0) {
     const n = stats.incomingToday;
     const suffix = n === 1 ? 'wizyta' : n < 5 ? 'wizyty' : 'wizyt';
-    parts.push(`Dziś na warsztacie ${n} ${suffix}`);
+    parts.push(`Dziś w salonie ${n} ${suffix}`);
   }
   if (stats.inProgress > 0) parts.push(`${stats.inProgress} w trakcie realizacji`);
   if (stats.readyForPickup > 0) parts.push(`${stats.readyForPickup} gotowych do wydania`);
