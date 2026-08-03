@@ -49,6 +49,12 @@ const AddBtn = styled.label`
     cursor: pointer;
     transition: background 150ms ease, border-color 150ms ease;
     white-space: nowrap;
+    min-height: 32px;
+
+    @media (hover: none) and (pointer: coarse) {
+        min-height: 40px;
+        padding: 8px 14px;
+    }
 
     &:hover {
         background: ${p => p.theme.colors.primary};
@@ -133,6 +139,17 @@ const DeleteBtn = styled.button`
     svg { width: 10px; height: 10px; }
 
     ${PhotoThumb}:hover & { opacity: 1; }
+
+    /* Touch devices: always visible and 44px tap target */
+    @media (hover: none) and (pointer: coarse) {
+        opacity: 1;
+        width: 28px;
+        height: 28px;
+        top: 2px;
+        right: 2px;
+
+        svg { width: 12px; height: 12px; }
+    }
 `;
 
 const SkeletonThumb = styled.div`

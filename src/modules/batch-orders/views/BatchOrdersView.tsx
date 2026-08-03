@@ -16,10 +16,16 @@ const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 24px;
+    padding: 16px;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    overflow-x: clip;
+    box-sizing: border-box;
+
+    @media (min-width: ${p => p.theme.breakpoints.sm}) {
+        padding: 24px;
+    }
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         padding: 32px;
