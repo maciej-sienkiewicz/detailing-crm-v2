@@ -15,6 +15,7 @@ import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
 import { TabletsSection } from '../components/TabletsSection';
 import { VisitCardSection } from '../components/VisitCardSection';
+import { SecuritySection } from '../components/SecuritySection';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { HelpModal } from '../components/shared/SettingsLayout';
 import type { HelpContent } from '../components/shared/SettingsLayout';
@@ -367,6 +368,8 @@ export function SettingsView() {
         content = <VisitCardSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
+    } else if (section === 'security') {
+        content = <SecuritySection />;
     } else {
         content = <ComingSoonSection label={activeLabel} />;
     }

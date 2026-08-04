@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
     LayoutDashboard,
     Calendar,
@@ -21,6 +21,7 @@ import {
     Inbox,
     Layers,
     Clock,
+    UserRoundCog,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -31,6 +32,7 @@ import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
 import { useLeadSocket } from '@/modules/leads/hooks/useLeadSocket';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
+import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import {
     Overlay,
     SidebarContainer,
@@ -50,6 +52,8 @@ import {
     UserName,
     UserRole,
     UserLogoutButton,
+    SwitchUserBtn,
+    SwitchUserBtnCollapsed,
 } from './SidebarStyles';
 
 // Each menu entry may declare a permission requirement (single code or ANY-OF
@@ -133,6 +137,9 @@ export const Sidebar = () => {
     const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
     const { user, setAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const { getProfiles } = useKnownProfiles();
+
+    const [showSwitcher, setShowSwitcher] = useState(false);
 
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
@@ -140,6 +147,9 @@ export const Sidebar = () => {
     // Persistent WebSocket connection for the entire CRM session
     useLeadSocket();
     const menuSections = buildMenuSections(newLeadsCount, can, user?.trackWorkTime ?? false);
+
+    // Show user switcher button when 2+ profiles are stored locally
+    const hasMultipleProfiles = getProfiles().length >= 2;
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -201,6 +211,19 @@ export const Sidebar = () => {
                     onNavigate={closeMobileMenu}
                 />
 
+                {hasMultipleProfiles && !isCollapsed && (
+                    <SwitchUserBtn onClick={() => setShowSwitcher(true)}>
+                        <UserRoundCog size={14} />
+                        Przełącz użytkownika
+                    </SwitchUserBtn>
+                )}
+
+                {hasMultipleProfiles && isCollapsed && (
+                    <SwitchUserBtnCollapsed onClick={() => setShowSwitcher(true)} title="Przełącz użytkownika">
+                        <UserRoundCog size={16} />
+                    </SwitchUserBtnCollapsed>
+                )}
+
                 <UserProfile $isCollapsed={isCollapsed}>
                     <UserAvatar>
                         {getInitials(user?.firstName, user?.lastName)}
@@ -225,6 +248,10 @@ export const Sidebar = () => {
                 <ExpandButton onClick={toggleCollapse} title="Rozwiń menu">
                     <PanelLeftOpen />
                 </ExpandButton>
+            )}
+
+            {showSwitcher && (
+                <UserSwitcherPanel onClose={() => setShowSwitcher(false)} />
             )}
         </>
     );
