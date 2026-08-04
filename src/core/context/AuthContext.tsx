@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '@/modules/auth/api/authApi';
 import { disconnectStompClient } from '@/core/socketClient';
-import { useKnownProfiles } from '@/modules/pin-switcher';
 import type { User } from '@/modules/auth/types';
 
 interface AuthContextType {
@@ -23,7 +22,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
-  const { addOrUpdateProfile } = useKnownProfiles();
 
   const checkAuth = async () => {
     try {
@@ -34,15 +32,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('[AuthContext] Wynik sprawdzenia:', result);
       setIsAuthenticated(result.isAuthenticated);
       setUser(result.user ?? null);
-      if (result.isAuthenticated && result.user) {
-        addOrUpdateProfile({
-          userId: result.user.userId,
-          studioId: result.user.studioId,
-          firstName: result.user.firstName ?? '',
-          lastName: result.user.lastName ?? '',
-          role: result.user.role,
-        });
-      }
     } catch (error) {
       console.error('[AuthContext] Błąd podczas sprawdzania autentykacji:', error);
       setIsAuthenticated(false);
