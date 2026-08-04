@@ -137,7 +137,7 @@ export const Sidebar = () => {
     const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
     const { user, setAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const { getProfiles } = useKnownProfiles();
+    const { getProfiles, addOrUpdateProfile } = useKnownProfiles();
 
     const [showSwitcher, setShowSwitcher] = useState(false);
 
@@ -148,8 +148,24 @@ export const Sidebar = () => {
     useLeadSocket();
     const menuSections = buildMenuSections(newLeadsCount, can, user?.trackWorkTime ?? false);
 
+    // Register the current user in localStorage so the switcher can list them.
+    // Runs whenever the logged-in user changes (login / PIN switch).
+    const [profileCount, setProfileCount] = useState(() => getProfiles().length);
+    useEffect(() => {
+        if (user) {
+            addOrUpdateProfile({
+                userId: user.userId,
+                studioId: user.studioId,
+                firstName: user.firstName ?? '',
+                lastName: user.lastName ?? '',
+                role: user.role,
+            });
+            setProfileCount(getProfiles().length);
+        }
+    }, [user]);  // eslint-disable-line react-hooks/exhaustive-deps
+
     // Show user switcher button when 2+ profiles are stored locally
-    const hasMultipleProfiles = getProfiles().length >= 2;
+    const hasMultipleProfiles = profileCount >= 2;
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
