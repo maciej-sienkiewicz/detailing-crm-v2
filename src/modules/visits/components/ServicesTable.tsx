@@ -163,16 +163,27 @@ const RowKebabBtn = styled(KebabBtn)`
     @media (max-width: 767px) { opacity: 1; }
 `;
 
-const EditorVatStatic = styled.div`
-    padding: 8px 10px;
-    border: 1.5px dashed ${st.border};
+const EditorVatSelect = styled.select`
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 6px;
+    border: 1.5px solid ${st.border};
     border-radius: 9px;
     font-size: 14px;
     font-weight: 600;
-    color: ${st.textMuted};
-    background: ${st.bg};
+    font-family: inherit;
+    color: ${st.text};
+    background: ${st.bgCard};
+    outline: none;
     text-align: center;
-    cursor: help;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color 180ms, box-shadow 180ms;
+
+    &:focus {
+        border-color: ${BRAND};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
 `;
 
 const Table = styled.table`
@@ -1720,6 +1731,18 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         if (g !== null) setEdNetStr(eFmt(eNetFromGross(g, edVatRate)));
     };
 
+    const handleEdVatChange = (rate: number) => {
+        setEdVatRate(rate);
+        setEdDirty(true);
+        if (edLastField === 'gross') {
+            const g = eParse(edGrossStr);
+            if (g !== null) setEdNetStr(eFmt(eNetFromGross(g, rate)));
+        } else {
+            const n = eParse(edNetStr);
+            if (n !== null) setEdGrossStr(eFmt(eGrossFromNet(n, rate)));
+        }
+    };
+
     const pickQuickDiscount = (pct: number) => {
         setEdMode('DISCOUNT');
         setEdAdjType('PERCENT');
@@ -2469,9 +2492,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </EditorField>
                                     <EditorField>
                                         <EditorFieldLabel>VAT</EditorFieldLabel>
-                                        <EditorVatStatic title="Stawkę VAT zmienisz zbiorczo dla wszystkich usług — menu ⋯ nad tabelą">
-                                            {fmtVat(edVatRate)}
-                                        </EditorVatStatic>
+                                        <EditorVatSelect
+                                            value={edVatRate}
+                                            onChange={e => handleEdVatChange(Number(e.target.value))}
+                                        >
+                                            {([23, 8, 5, 0, -1] as const).map(rate => (
+                                                <option key={rate} value={rate}>{rate === -1 ? 'zw.' : `${rate}%`}</option>
+                                            ))}
+                                        </EditorVatSelect>
                                     </EditorField>
                                 </EditorGrid>
                             </div>
