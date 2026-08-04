@@ -303,7 +303,7 @@ export const AppointmentEditView = () => {
                             : undefined,
                     },
                 }
-                : (formData.hasFullCustomerData && formData.customerData.id)
+                : formData.customerData.id
                     ? {
                         mode: 'UPDATE',
                         id: formData.customerData.id,
