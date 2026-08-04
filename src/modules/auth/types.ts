@@ -47,6 +47,8 @@ export interface User {
     permissions?: string[] | null;
     /** True when the user's role has time tracking enabled — shows Czas pracy in sidebar. */
     trackWorkTime?: boolean;
+    /** Minutes of inactivity before client-side lock screen fires. 0 = disabled. */
+    idleTimeoutMinutes?: number;
 }
 
 export interface CheckAuthResponse {
