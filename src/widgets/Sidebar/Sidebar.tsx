@@ -52,8 +52,8 @@ import {
     UserName,
     UserRole,
     UserLogoutButton,
-    SwitchUserBtn,
-    SwitchUserBtnCollapsed,
+    UserSwitchButton,
+    UserActions,
 } from './SidebarStyles';
 
 // Each menu entry may declare a permission requirement (single code or ANY-OF
@@ -211,19 +211,6 @@ export const Sidebar = () => {
                     onNavigate={closeMobileMenu}
                 />
 
-                {hasMultipleProfiles && !isCollapsed && (
-                    <SwitchUserBtn onClick={() => setShowSwitcher(true)}>
-                        <UserRoundCog size={14} />
-                        Przełącz użytkownika
-                    </SwitchUserBtn>
-                )}
-
-                {hasMultipleProfiles && isCollapsed && (
-                    <SwitchUserBtnCollapsed onClick={() => setShowSwitcher(true)} title="Przełącz użytkownika">
-                        <UserRoundCog size={16} />
-                    </SwitchUserBtnCollapsed>
-                )}
-
                 <UserProfile $isCollapsed={isCollapsed}>
                     <UserAvatar>
                         {getInitials(user?.firstName, user?.lastName)}
@@ -232,14 +219,24 @@ export const Sidebar = () => {
                         <UserName>{displayName}</UserName>
                         <UserRole>{user ? getRoleLabel(user.role) : ''}</UserRole>
                     </UserInfo>
-                    <UserLogoutButton
-                        $isCollapsed={isCollapsed}
-                        onClick={handleLogout}
-                        title="Wyloguj"
-                        aria-label="Wyloguj"
-                    >
-                        <LogOut />
-                    </UserLogoutButton>
+                    <UserActions $isCollapsed={isCollapsed}>
+                        {hasMultipleProfiles && (
+                            <UserSwitchButton
+                                onClick={() => setShowSwitcher(true)}
+                                title="Przełącz użytkownika"
+                                aria-label="Przełącz użytkownika"
+                            >
+                                <UserRoundCog size={14} />
+                            </UserSwitchButton>
+                        )}
+                        <UserLogoutButton
+                            onClick={handleLogout}
+                            title="Wyloguj"
+                            aria-label="Wyloguj"
+                        >
+                            <LogOut />
+                        </UserLogoutButton>
+                    </UserActions>
                 </UserProfile>
 
             </SidebarContainer>

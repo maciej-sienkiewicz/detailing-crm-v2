@@ -503,7 +503,19 @@ export const UserRole = styled.div`
     margin-top: 2px;
 `;
 
-export const UserLogoutButton = styled.button<{ $isCollapsed: boolean }>`
+export const UserActions = styled.div<{ $isCollapsed: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        display: ${p => p.$isCollapsed ? 'none' : 'flex'};
+    }
+`;
+
+const iconBtn = () => `
     width: 28px;
     height: 28px;
     border-radius: 8px;
@@ -516,19 +528,13 @@ export const UserLogoutButton = styled.button<{ $isCollapsed: boolean }>`
     justify-content: center;
     flex-shrink: 0;
     transition: all 150ms ease;
-    margin-left: auto;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        display: ${p => p.$isCollapsed ? 'none' : 'flex'};
-    }
-
     svg { width: 14px; height: 14px; stroke-width: 1.75; }
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.06);
-        color: #f1f5f9;
-    }
+    &:hover { background: rgba(255, 255, 255, 0.06); color: #f1f5f9; }
 `;
+
+export const UserSwitchButton = styled.button`${iconBtn()}`;
+
+export const UserLogoutButton = styled.button`${iconBtn()}`;
 
 // ─── Expand / Mobile Buttons ──────────────────────────────────────────────────
 
@@ -592,49 +598,3 @@ export const MobileMenuButton = styled.button`
     }
 `;
 
-// ─── User Switcher Button ─────────────────────────────────────────────────────
-
-export const SwitchUserBtn = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 8px 4px;
-    padding: 8px 12px;
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.18);
-    border-radius: 10px;
-    color: #a5b4fc;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms ease;
-    white-space: nowrap;
-    width: calc(100% - 16px);
-
-    &:hover {
-        background: rgba(99, 102, 241, 0.15);
-        border-color: rgba(99, 102, 241, 0.35);
-        color: #c7d2fe;
-    }
-`;
-
-export const SwitchUserBtnCollapsed = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    margin: 0 auto 4px;
-    padding: 0;
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.18);
-    border-radius: 10px;
-    color: #a5b4fc;
-    cursor: pointer;
-    transition: all 180ms ease;
-
-    &:hover {
-        background: rgba(99, 102, 241, 0.15);
-        border-color: rgba(99, 102, 241, 0.35);
-    }
-`;
