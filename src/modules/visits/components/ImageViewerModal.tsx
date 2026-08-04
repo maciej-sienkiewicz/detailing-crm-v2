@@ -73,18 +73,25 @@ const ImageContainer = styled.div`
     min-width: 0;
     background-color: #000;
     border-radius: ${props => props.theme.radii.lg};
-    overflow: hidden;
 `;
 
 const Image = styled.img`
-    /* Sized by the padded overlay rather than raw viewport units, so the image
-       is never tucked under browser chrome or a notch. */
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
+    /* Explicit viewport-relative limits so the image always fits without
+       relying on parent height being definite (which it often is not in
+       a flex chain). object-fit: contain preserves aspect ratio — nothing
+       is ever cropped. */
+    max-width: calc(100vw - 180px);
+    max-height: calc(100dvh - 100px);
     width: auto;
     height: auto;
     object-fit: contain;
     border-radius: ${props => props.theme.radii.lg};
+
+    @media (max-width: 640px) {
+        max-width: calc(100vw - 24px);
+        max-height: calc(100dvh - 160px);
+    }
 `;
 
 const ImageInfo = styled.div`
