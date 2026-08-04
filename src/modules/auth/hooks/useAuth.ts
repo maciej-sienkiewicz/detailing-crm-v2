@@ -12,7 +12,8 @@ export const useLogin = () => {
     return useMutation({
         mutationFn: (credentials: LoginCredentials) => authApi.login(credentials),
         onSuccess: (data) => {
-            // Ustaw stan autentykacji i dane użytkownika po udanym logowaniu
+            // Fresh password login clears any stale idle-lock flag
+            sessionStorage.removeItem('crm_session_locked');
             setAuthenticated(true);
             if (data.user) {
                 setUser(data.user);
@@ -48,7 +49,7 @@ export const useLogout = () => {
     return useMutation({
         mutationFn: () => authApi.logout(),
         onSuccess: () => {
-            // Ustaw stan autentykacji na false po wylogowaniu
+            sessionStorage.removeItem('crm_session_locked');
             setAuthenticated(false);
             navigate('/login');
         },
