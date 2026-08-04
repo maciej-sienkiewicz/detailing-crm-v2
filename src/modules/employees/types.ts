@@ -37,6 +37,7 @@ export interface EmployeeAccountInfo {
     userId: string;
     roleId: string | null;
     isActive: boolean;
+    hasPinConfigured?: boolean;
 }
 
 export interface EmployeeDetail {

@@ -207,6 +207,21 @@ const TrashIcon = () => (
     </svg>
 );
 
+const PinStatusBadge = styled.div<{ $configured: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    background: ${({ $configured }) => $configured ? st.accentGreenDim : st.bgCardAlt};
+    color: ${({ $configured }) => $configured ? '#059669' : st.textMuted};
+    border: 1px solid ${({ $configured }) => $configured ? 'rgba(16,185,129,0.2)' : st.border};
+
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
 // ─── Komponent ───────────────────────────────────────────────────────────────
 
 interface Props {
@@ -374,6 +389,15 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
 
                 {account && (
                     <BtnStack>
+                        <PinStatusBadge $configured={!!account.hasPinConfigured}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                            </svg>
+                            {account.hasPinConfigured
+                                ? 'Ten pracownik ma skonfigurowany kod PIN'
+                                : 'Ten pracownik nie skonfigurował jeszcze kodu PIN'}
+                        </PinStatusBadge>
                         <Field>
                             <Label>Rola (uprawnienia)</Label>
                             <Select
