@@ -328,8 +328,13 @@ export function SettingsView() {
         items: g.items.filter(it => canSee(it.id)),
     })).filter(g => g.items.length > 0), [canSee]);
 
+    // Owners and admins land on the first visible section (company / team).
+    // Regular employees land on security (PIN setup) so their first render
+    // never triggers API calls for sections they don't have backend access to.
     const firstVisibleSection: SectionId =
-        visibleNavGroups[0]?.items[0]?.id ?? 'security';
+        (isOwner || can('EMPLOYEES_MANAGE'))
+            ? (visibleNavGroups[0]?.items[0]?.id ?? 'security')
+            : 'security';
 
     const tabParam = searchParams.get('tab') as SectionId | null;
     const initialSection: SectionId =
