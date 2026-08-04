@@ -5,6 +5,7 @@ import { Sidebar } from '@/widgets/Sidebar';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
+import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 
 const LayoutContainer = styled.div`
@@ -62,15 +63,17 @@ export const Layout = ({ children }: LayoutProps) => {
     const flashKey = keyRef.current;
 
     return (
-        <CalendarNavigationProvider>
-            <LayoutContainer>
-                <Sidebar />
-                <ContentWrapper $isCollapsed={isCollapsed}>
-                    {children}
-                    <RouteFlash key={`${pathname}-${flashKey}`} />
-                </ContentWrapper>
-            </LayoutContainer>
-            <CalendarNavigationOverlay />
-        </CalendarNavigationProvider>
+        <IdleTimeoutProvider>
+            <CalendarNavigationProvider>
+                <LayoutContainer>
+                    <Sidebar />
+                    <ContentWrapper $isCollapsed={isCollapsed}>
+                        {children}
+                        <RouteFlash key={`${pathname}-${flashKey}`} />
+                    </ContentWrapper>
+                </LayoutContainer>
+                <CalendarNavigationOverlay />
+            </CalendarNavigationProvider>
+        </IdleTimeoutProvider>
     );
 };

@@ -15,25 +15,42 @@ interface Props {
 }
 
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
+const LOCK_STORAGE_KEY = 'crm_session_locked';
 
 export const IdleTimeoutProvider = ({ children }: Props) => {
     const { user, isAuthenticated } = useAuth();
     const [isLocked, setIsLocked] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const timeoutMs = (user?.idleTimeoutMinutes ?? 0) * 60 * 1000;
+    const timeoutMs = (user?.idleTimeoutSeconds ?? 0) * 1000;
     const isActive = isAuthenticated && timeoutMs > 0;
+
+    // Restore lock state from sessionStorage on authentication
+    useEffect(() => {
+        if (isAuthenticated && sessionStorage.getItem(LOCK_STORAGE_KEY) === '1') {
+            setIsLocked(true);
+        }
+        if (!isAuthenticated) {
+            sessionStorage.removeItem(LOCK_STORAGE_KEY);
+            setIsLocked(false);
+        }
+    }, [isAuthenticated]);
+
+    const lock = () => {
+        sessionStorage.setItem(LOCK_STORAGE_KEY, '1');
+        setIsLocked(true);
+    };
 
     const resetTimer = () => {
         if (!isActive) return;
         if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setIsLocked(true), timeoutMs);
+        timerRef.current = setTimeout(lock, timeoutMs);
     };
 
     useEffect(() => {
         if (!isActive) {
             if (timerRef.current) clearTimeout(timerRef.current);
-            setIsLocked(false);
+            if (!sessionStorage.getItem(LOCK_STORAGE_KEY)) setIsLocked(false);
             return;
         }
 
@@ -48,7 +65,7 @@ export const IdleTimeoutProvider = ({ children }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive, timeoutMs]);
 
-    // When locked, also lock on visibility change (tab switch back)
+    // Reset timer when tab becomes visible again
     useEffect(() => {
         if (!isActive) return;
         const handleVisibility = () => {
@@ -60,6 +77,7 @@ export const IdleTimeoutProvider = ({ children }: Props) => {
     }, [isActive, timeoutMs]);
 
     const handleUnlock = () => {
+        sessionStorage.removeItem(LOCK_STORAGE_KEY);
         setIsLocked(false);
         resetTimer();
     };

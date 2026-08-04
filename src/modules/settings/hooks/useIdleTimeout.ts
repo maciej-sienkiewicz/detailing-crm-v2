@@ -20,7 +20,7 @@ export const useSetIdleTimeout = () => {
         onSuccess: (data) => {
             queryClient.setQueryData(QUERY_KEY, data);
             if (user) {
-                setUser({ ...user, idleTimeoutMinutes: data.idleTimeoutMinutes });
+                setUser({ ...user, idleTimeoutSeconds: data.idleTimeoutSeconds });
             }
         },
     });

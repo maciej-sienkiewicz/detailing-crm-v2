@@ -97,11 +97,13 @@ const SavedMsg = styled.span`
 
 const TIMEOUT_OPTIONS = [
     { label: 'Wyłączone', value: 0 },
-    { label: '5 minut', value: 5 },
-    { label: '10 minut', value: 10 },
-    { label: '15 minut', value: 15 },
-    { label: '30 minut', value: 30 },
-    { label: '60 minut', value: 60 },
+    { label: '10 sekund (test)', value: 10 },
+    { label: '1 minuta', value: 60 },
+    { label: '5 minut', value: 300 },
+    { label: '10 minut', value: 600 },
+    { label: '15 minut', value: 900 },
+    { label: '30 minut', value: 1800 },
+    { label: '60 minut', value: 3600 },
 ];
 
 const IdleTimeoutCard = () => {
@@ -110,7 +112,7 @@ const IdleTimeoutCard = () => {
     const [value, setValue] = useState<number | null>(null);
     const [saved, setSaved] = useState(false);
 
-    const current = value ?? data?.idleTimeoutMinutes ?? 0;
+    const current = value ?? data?.idleTimeoutSeconds ?? 0;
 
     const handleSave = () => {
         mutate(current, {
