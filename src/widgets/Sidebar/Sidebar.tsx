@@ -26,7 +26,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
-import { usePermissions, ANY_FINANCE, ANY_SETTINGS } from '@/core/permissions';
+import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
@@ -91,7 +91,7 @@ const buildMenuSections = (
             items: [
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
-                { path: '/settings',   label: 'Ustawienia', icon: Settings, requires: ANY_SETTINGS },
+                { path: '/settings',   label: 'Ustawienia', icon: Settings },
             ],
         },
         {
