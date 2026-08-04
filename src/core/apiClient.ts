@@ -41,14 +41,17 @@ apiClient.interceptors.response.use(
         if (status === 401) {
             console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
             const currentPath = window.location.pathname;
+            const requestUrl = error.config?.url ?? '';
             const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice'];
             // Public token-based pages must never bounce to /login
             const isPublicPath = publicPaths.includes(currentPath)
                 || currentPath.startsWith('/vc/')
                 || currentPath.startsWith('/sign/')
                 || currentPath.startsWith('/m/sig/');
+            // PIN verification endpoints return 401 for wrong PIN — caller handles retries, don't bounce to /login
+            const isPinEndpoint = requestUrl.includes('/v1/pin');
 
-            if (!isPublicPath) {
+            if (!isPublicPath && !isPinEndpoint) {
                 console.warn('[apiClient] Przekierowanie na /login');
                 window.location.href = '/login';
             }
