@@ -22,6 +22,7 @@ import {
     Layers,
     Clock,
     UserRoundCog,
+    Images,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -76,6 +77,7 @@ const buildMenuSections = (
                 { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW' },
                 { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
                 { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
+                { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
             ],
         },
