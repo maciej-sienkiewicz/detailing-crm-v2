@@ -357,10 +357,16 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
     const [isSwitching, setIsSwitching] = useState(false);
 
     useEffect(() => {
-        const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') { onClose(); return; }
+            if (!selected) return;
+            if (e.key === 'Backspace') { handleDelete(); return; }
+            if (/^\d$/.test(e.key)) handleDigit(e.key);
+        };
         document.addEventListener('keydown', handleKey);
         return () => document.removeEventListener('keydown', handleKey);
-    }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onClose, selected, pin, isSwitching]);
 
     const triggerShake = () => {
         setShake(true);
