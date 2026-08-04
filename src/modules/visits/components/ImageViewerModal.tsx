@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
 // ImageViewerModal is a fullscreen lightbox with a very dark overlay.
@@ -268,7 +269,7 @@ export const ImageViewerModal = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <ModalOverlay onClick={onClose}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
                 <CloseButton onClick={onClose} title="Zamknij (Esc)">
@@ -319,6 +320,7 @@ export const ImageViewerModal = ({
                     </ImageInfo>
                 </ImageContainer>
             </ModalContent>
-        </ModalOverlay>
+        </ModalOverlay>,
+        document.body
     );
 };
