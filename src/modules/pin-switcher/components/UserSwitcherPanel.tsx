@@ -29,16 +29,12 @@ const Overlay = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* scrollable when content taller than viewport (small landscape phones) */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     animation: ${fadeIn} 200ms ease;
     backdrop-filter: blur(4px);
-    /* vertical centering: flex + padding; centering collapses gracefully when
-       content overflows and the element becomes a scroll container            */
     padding: 56px 16px 32px;
     box-sizing: border-box;
-    /* push content to center vertically only when there is room             */
     justify-content: safe center;
 `;
 
@@ -94,7 +90,6 @@ const ProfileGrid = styled.div`
     animation: ${slideUp} 250ms ease;
 
     @media (max-width: 480px)  { gap: 10px; }
-    /* landscape: single scrollable row so the grid never overflows vertically */
     @media (max-height: 500px) {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -197,7 +192,6 @@ const ProfileLockHint = styled.span`
 
 // ─── PIN entry view ───────────────────────────────────────────────────────────
 
-// Outer wrapper — switches to row in landscape to split info ↔ numpad
 const ModalWrap = styled.div`
     display: flex;
     flex-direction: column;
@@ -216,7 +210,6 @@ const ModalWrap = styled.div`
     }
 `;
 
-// Left / top block: avatar + name + dots + error
 const ModalInfo = styled.div`
     display: flex;
     flex-direction: column;
@@ -226,7 +219,6 @@ const ModalInfo = styled.div`
     @media (max-height: 500px) { gap: 10px; }
 `;
 
-// Right / bottom block: numpad + password link
 const ModalNumpadSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -342,9 +334,11 @@ const getRoleLabel = (profile: StudioProfile) =>
 
 interface Props {
     onClose: () => void;
+    /** When true: session is locked — no close/escape, only PIN or password login allowed */
+    lockMode?: boolean;
 }
 
-export const UserSwitcherPanel = ({ onClose }: Props) => {
+export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
     const navigate = useNavigate();
     const { setUser, setAuthenticated } = useAuth();
     const { addOrUpdateProfile } = useKnownProfiles();
@@ -358,7 +352,10 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') { onClose(); return; }
+            if (e.key === 'Escape') {
+                if (!lockMode) onClose();
+                return;
+            }
             if (!selected) return;
             if (e.key === 'Backspace') { handleDelete(); return; }
             if (/^\d$/.test(e.key)) handleDigit(e.key);
@@ -366,7 +363,7 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
         document.addEventListener('keydown', handleKey);
         return () => document.removeEventListener('keydown', handleKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [onClose, selected, pin, isSwitching]);
+    }, [onClose, selected, pin, isSwitching, lockMode]);
 
     const triggerShake = () => {
         setShake(true);
@@ -399,7 +396,7 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
                 setUser(result.user);
                 setAuthenticated(true);
                 onClose();
-                navigate('/dashboard');
+                if (!lockMode) navigate('/dashboard');
             }
         } catch {
             triggerShake();
@@ -417,20 +414,24 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
     // ── PIN entry screen ──────────────────────────────────────────────────────
     if (selected) {
         return (
-            <Overlay onClick={(e) => { if (e.target === e.currentTarget) clearSelection(); }}>
-                <CloseBtn onClick={onClose} aria-label="Zamknij">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </CloseBtn>
+            <Overlay onClick={(e) => { if (!lockMode && e.target === e.currentTarget) clearSelection(); }}>
+                {!lockMode && (
+                    <CloseBtn onClick={onClose} aria-label="Zamknij">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </CloseBtn>
+                )}
 
                 <ModalWrap>
-                    <BackBtn onClick={clearSelection}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <polyline points="15 18 9 12 15 6"/>
-                        </svg>
-                        Wróć do listy
-                    </BackBtn>
+                    {!lockMode && (
+                        <BackBtn onClick={clearSelection}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Wróć do listy
+                        </BackBtn>
+                    )}
 
                     <ModalInfo>
                         <ModalAvatar>{getInitials(selected.firstName, selected.lastName)}</ModalAvatar>
@@ -450,7 +451,7 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
                             <NumBtn onClick={() => handleDigit('0')} disabled={isSwitching}>0</NumBtn>
                             <NumBtn onClick={handleDelete} disabled={isSwitching || pin.length === 0}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+                                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0-2-2z"/>
                                     <line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/>
                                 </svg>
                             </NumBtn>
@@ -466,15 +467,21 @@ export const UserSwitcherPanel = ({ onClose }: Props) => {
 
     // ── Profile selection screen ──────────────────────────────────────────────
     return (
-        <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <CloseBtn onClick={onClose} aria-label="Zamknij">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </CloseBtn>
+        <Overlay onClick={(e) => { if (!lockMode && e.target === e.currentTarget) onClose(); }}>
+            {!lockMode && (
+                <CloseBtn onClick={onClose} aria-label="Zamknij">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </CloseBtn>
+            )}
 
-            <Title>Wybierz użytkownika</Title>
-            <Subtitle>Wybierz profil i wprowadź kod PIN, aby się przełączyć</Subtitle>
+            <Title>{lockMode ? 'Sesja zablokowana' : 'Wybierz użytkownika'}</Title>
+            <Subtitle>
+                {lockMode
+                    ? 'Wprowadź kod PIN, aby wznowić sesję'
+                    : 'Wybierz profil i wprowadź kod PIN, aby się przełączyć'}
+            </Subtitle>
 
             {isLoading ? (
                 <p style={{ color: '#64748b' }}>Ładowanie…</p>
