@@ -24,7 +24,7 @@ import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { LeadListView } from "@/modules/leads";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_SETTINGS, ANY_DASHBOARD } from './permissions';
+import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
@@ -320,7 +320,7 @@ export const router = createBrowserRouter([
     // ── Ustawienia (dodatkowo zakładki filtrowane wewnątrz widoku) ───────
     {
         path: '/settings',
-        element: page(<SettingsView />, ANY_SETTINGS),
+        element: page(<SettingsView />),
     },
 
     // ── Powrót z płatności Przelewy24 ────────────────────────────────────
