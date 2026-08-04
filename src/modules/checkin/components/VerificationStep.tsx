@@ -1361,7 +1361,7 @@ export const VerificationStep = ({
                             <Label>{t.checkin.verification.firstName}</Label>
                             <Input
                                 value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
-                                onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
+                                onChange={(e) => handleCustomerFieldChange({ firstName: capitalizeFirst(e.target.value) })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
                                 onFocus={() => handleCustomerInputFocus(firstNameFieldRef)}
                                 autoComplete="new-password"
@@ -1375,7 +1375,7 @@ export const VerificationStep = ({
                             <Label>{t.checkin.verification.lastName}</Label>
                             <Input
                                 value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
-                                onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
+                                onChange={(e) => handleCustomerFieldChange({ lastName: capitalizeFirst(e.target.value) })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
                                 onFocus={() => handleCustomerInputFocus(lastNameFieldRef)}
                                 autoComplete="new-password"
