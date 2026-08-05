@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
-import { useDebounce } from '@/common/hooks';
+import { useDebounce, useVisualViewportSheet } from '@/common/hooks';
 import { formatCurrency } from '@/common/utils';
 import { netPlnToGrossPln, grossPlnToNetPln } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType } from '@/common/utils/priceAdjustment';
@@ -152,17 +152,22 @@ const MobileBackdrop = styled.div`
 
 const MobileSheet = styled.div`
     position: fixed;
+    /* Fallback for browsers without visualViewport; useVisualViewportSheet
+       overrides top/height at runtime so the sheet tracks the visible region
+       between the top of the screen and the keyboard. */
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 9999;
     background: ${st.bgCard};
-    border-radius: 0;
     box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
-    padding-bottom: env(safe-area-inset-bottom);
+    min-height: 0;
+    /* 0 in Safari (browser chrome already clears the notch); only bites when
+       installed as a PWA, where the sheet really does reach the status bar. */
+    padding-top: env(safe-area-inset-top);
 `;
 
 const MobileSheetHandle = styled.div`
@@ -223,9 +228,13 @@ const MobileSheetEditable = styled.div`
 
 const MobileSheetList = styled.div`
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Sits on the scroll area, not the sheet: with the keyboard up the inset
+       would otherwise carve a dead gap above it. */
+    padding-bottom: env(safe-area-inset-bottom);
 `;
 
 const MobileDropItem = styled.button<{ $custom?: boolean }>`
@@ -456,28 +465,9 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         };
     }, [open, updateDropPos, isMobile]);
 
-    // Adjust mobile bottom sheet position above the iOS keyboard
-    useEffect(() => {
-        if (!isMobile || !open) return;
-        const vv = window.visualViewport;
-        if (!vv) return;
-        const adjust = () => {
-            const el = sheetRef.current;
-            if (!el) return;
-            const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-            el.style.top = '0';
-            el.style.bottom = `${keyboardH}px`;
-            el.style.height = 'auto';
-            el.style.maxHeight = 'none';
-        };
-        vv.addEventListener('resize', adjust);
-        vv.addEventListener('scroll', adjust);
-        adjust();
-        return () => {
-            vv.removeEventListener('resize', adjust);
-            vv.removeEventListener('scroll', adjust);
-        };
-    }, [isMobile, open]);
+    // Keep the sheet spanning the visible region: title and search field pinned
+    // to the top of the screen, list ending at the keyboard edge.
+    useVisualViewportSheet(isMobile && open, sheetRef);
 
     // Transfer focus from nameInput to the sheet's contentEditable when the sheet opens
     useEffect(() => {
