@@ -236,7 +236,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const { isCollapsed } = useSidebar();
     const sidebarWidth = isCollapsed ? 64 : 240;
 
-    const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+    const [highlightedServiceIdx, setHighlightedServiceIdx] = useState(-1);
+    const serviceDropdownRef = useRef<HTMLDivElement>(null);
     const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const customerDropdownContainerRef = useRef<HTMLDivElement>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
@@ -359,12 +361,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }, [isOpen]);
 
     useEffect(() => {
-        if (!form.showServiceDropdown) { setServiceDropdownPos(null); return; }
+        if (!form.showServiceDropdown) { setServiceDropdownPos(null); setHighlightedServiceIdx(-1); return; }
         const el = form.serviceInputRef.current;
         if (!el) return;
         const update = () => {
             const r = el.getBoundingClientRect();
-            setServiceDropdownPos({ top: r.bottom, left: r.left, width: r.width });
+            const spaceBelow = window.innerHeight - r.bottom - 8;
+            const maxHeight = Math.min(320, Math.max(100, spaceBelow));
+            setServiceDropdownPos({ top: r.bottom + 2, left: r.left, width: r.width, maxHeight });
         };
         update();
         window.addEventListener('scroll', update, true);
@@ -374,6 +378,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             window.removeEventListener('resize', update);
         };
     }, [form.showServiceDropdown]);
+
+    // Scroll highlighted service item into view when navigating with arrow keys
+    useEffect(() => {
+        if (highlightedServiceIdx < 0 || !serviceDropdownRef.current) return;
+        const items = serviceDropdownRef.current.querySelectorAll<HTMLElement>('[data-service-item]');
+        items[highlightedServiceIdx]?.scrollIntoView({ block: 'nearest' });
+    }, [highlightedServiceIdx]);
 
     useEffect(() => {
         if (!form.showCustomerDropdown) { setCustomerDropdownPos(null); return; }
@@ -393,6 +404,20 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }, [form.showCustomerDropdown]);
 
     if (!eventData && !initialData) return null;
+
+    const highlightMatch = (text: string, query: string): React.ReactNode => {
+        const q = query.trim();
+        if (!q) return text;
+        const idx = text.toLowerCase().indexOf(q.toLowerCase());
+        if (idx === -1) return text;
+        return (
+            <>
+                {text.slice(0, idx)}
+                <S.ServiceDropdownHighlight>{text.slice(idx, idx + q.length)}</S.ServiceDropdownHighlight>
+                {text.slice(idx + q.length)}
+            </>
+        );
+    };
 
     return (
         <>
@@ -1092,51 +1117,123 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.IconWrapper>
                                 <S.RowContent>
                                     <S.DropdownContainer>
-                                        <S.Input
-                                            ref={form.serviceInputRef}
-                                            type="text"
-                                            placeholder="Dodaj usługę..."
-                                            value={form.serviceSearch}
-                                            onChange={(e) => {
-                                                form.setServiceSearch(e.target.value);
-                                                form.setShowServiceDropdown(true);
-                                            }}
-                                            aria-invalid={!!form.errors.services || !!form.errors.servicePrices}
-                                            $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
-                                            $dropdownOpen={form.showServiceDropdown}
-                                            onFocus={() => {
-                                                form.setFocusedField('services');
-                                                if (form.services.length === 0) {
-                                                    form.setIsQuickServiceModalOpen(true);
-                                                } else {
+                                        <S.ServiceSearchWrap>
+                                            <S.Input
+                                                ref={form.serviceInputRef}
+                                                type="text"
+                                                placeholder="Dodaj usługę..."
+                                                value={form.serviceSearch}
+                                                style={form.serviceSearch ? { paddingRight: 36 } : undefined}
+                                                onChange={(e) => {
+                                                    form.setServiceSearch(e.target.value);
                                                     form.setShowServiceDropdown(true);
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                form.setFocusedField(null);
-                                                setTimeout(() => form.setShowServiceDropdown(false), 200);
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    if (form.serviceSearch.trim() && form.filteredServices.length === 0) {
+                                                    setHighlightedServiceIdx(-1);
+                                                }}
+                                                aria-invalid={!!form.errors.services || !!form.errors.servicePrices}
+                                                $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
+                                                $dropdownOpen={form.showServiceDropdown}
+                                                onFocus={() => {
+                                                    form.setFocusedField('services');
+                                                    if (form.services.length === 0) {
                                                         form.setIsQuickServiceModalOpen(true);
-                                                        form.setShowServiceDropdown(false);
-                                                        form.setFocusedField(null);
+                                                    } else {
+                                                        form.setShowServiceDropdown(true);
                                                     }
-                                                }
-                                            }}
-                                        />
+                                                }}
+                                                onBlur={() => {
+                                                    form.setFocusedField(null);
+                                                    setTimeout(() => {
+                                                        form.setShowServiceDropdown(false);
+                                                        setHighlightedServiceIdx(-1);
+                                                    }, 200);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    const count = form.filteredServices.length;
+                                                    if (e.key === 'Escape') {
+                                                        e.preventDefault();
+                                                        form.setShowServiceDropdown(false);
+                                                        setHighlightedServiceIdx(-1);
+                                                        return;
+                                                    }
+                                                    if (e.key === 'ArrowDown') {
+                                                        e.preventDefault();
+                                                        if (!form.showServiceDropdown) {
+                                                            form.setShowServiceDropdown(true);
+                                                            return;
+                                                        }
+                                                        setHighlightedServiceIdx(prev => (prev + 1) % Math.max(1, count));
+                                                        return;
+                                                    }
+                                                    if (e.key === 'ArrowUp') {
+                                                        e.preventDefault();
+                                                        setHighlightedServiceIdx(prev => prev <= 0 ? count - 1 : prev - 1);
+                                                        return;
+                                                    }
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const highlighted = form.filteredServices[highlightedServiceIdx];
+                                                        if (highlighted) {
+                                                            form.addService(highlighted);
+                                                            setHighlightedServiceIdx(-1);
+                                                        } else if (count === 1) {
+                                                            form.addService(form.filteredServices[0]);
+                                                        } else if (form.serviceSearch.trim() && count === 0) {
+                                                            form.setIsQuickServiceModalOpen(true);
+                                                            form.setShowServiceDropdown(false);
+                                                            form.setFocusedField(null);
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            {form.serviceSearch && (
+                                                <S.ServiceSearchClear
+                                                    type="button"
+                                                    tabIndex={-1}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => {
+                                                        form.setServiceSearch('');
+                                                        setHighlightedServiceIdx(-1);
+                                                        form.serviceInputRef.current?.focus();
+                                                    }}
+                                                    aria-label="Wyczyść wyszukiwanie"
+                                                >
+                                                    <IconX />
+                                                </S.ServiceSearchClear>
+                                            )}
+                                        </S.ServiceSearchWrap>
                                         {form.showServiceDropdown && serviceDropdownPos && createPortal(
-                                            <S.ServicePortalDropdown style={{ top: serviceDropdownPos.top, left: serviceDropdownPos.left, width: serviceDropdownPos.width }}>
-                                                {form.filteredServices.map((service: Service) => (
+                                            <S.ServicePortalDropdown
+                                                ref={serviceDropdownRef}
+                                                style={{
+                                                    top: serviceDropdownPos.top,
+                                                    left: serviceDropdownPos.left,
+                                                    width: serviceDropdownPos.width,
+                                                    maxHeight: serviceDropdownPos.maxHeight,
+                                                }}
+                                            >
+                                                {form.filteredServices.length === 0 && form.serviceSearch.trim() && (
+                                                    <S.ServiceDropdownEmpty>
+                                                        Brak usług pasujących do „{form.serviceSearch.trim()}"
+                                                    </S.ServiceDropdownEmpty>
+                                                )}
+                                                {form.filteredServices.map((service: Service, idx: number) => (
                                                     <S.ServiceDropdownItem
                                                         key={service.id}
                                                         type="button"
+                                                        data-service-item
+                                                        $isHighlighted={idx === highlightedServiceIdx}
                                                         onMouseDown={(e) => e.preventDefault()}
-                                                        onClick={() => form.addService(service)}
+                                                        onMouseEnter={() => setHighlightedServiceIdx(idx)}
+                                                        onMouseLeave={() => setHighlightedServiceIdx(-1)}
+                                                        onClick={() => {
+                                                            form.addService(service);
+                                                            setHighlightedServiceIdx(-1);
+                                                            setTimeout(() => form.serviceInputRef.current?.focus(), 0);
+                                                        }}
                                                     >
-                                                        <S.ServiceDropdownName>{service.name}</S.ServiceDropdownName>
+                                                        <S.ServiceDropdownName>
+                                                            {highlightMatch(service.name, form.serviceSearch)}
+                                                        </S.ServiceDropdownName>
                                                         {service.requireManualPrice ? (
                                                             <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
                                                         ) : (
@@ -1157,7 +1254,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     }}
                                                 >
                                                     <IconPlus />
-                                                    <span>Wprowadź nową usługę</span>
+                                                    <span>
+                                                        {form.serviceSearch.trim()
+                                                            ? `Utwórz „${form.serviceSearch.trim()}"`
+                                                            : 'Wprowadź nową usługę'}
+                                                    </span>
                                                 </S.DropdownAddButton>
                                             </S.ServicePortalDropdown>,
                                             document.body
