@@ -408,15 +408,37 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         vv.addEventListener('scroll', adjust);
         adjust();
 
-        if (form.showServiceDropdown) {
-            setTimeout(() => serviceSheetInputRef.current?.focus(), 80);
-        }
-
         return () => {
             vv.removeEventListener('resize', adjust);
             vv.removeEventListener('scroll', adjust);
         };
     }, [isMobile, form.showServiceDropdown, form.showCustomerDropdown]);
+
+    // When service sheet opens on mobile, set tabindex=-1 on all background inputs
+    // so iOS grays out the ^ v navigation arrows (they appear because iOS sees other inputs in the DOM)
+    useEffect(() => {
+        if (!isMobile || !form.showServiceDropdown) return;
+
+        const inputs = Array.from(
+            document.querySelectorAll<HTMLElement>('input, textarea, select')
+        );
+        inputs.forEach(el => {
+            el.dataset._prevTabindex = el.getAttribute('tabindex') ?? '__none__';
+            el.setAttribute('tabindex', '-1');
+        });
+
+        return () => {
+            inputs.forEach(el => {
+                const prev = el.dataset._prevTabindex;
+                delete el.dataset._prevTabindex;
+                if (prev === '__none__') {
+                    el.removeAttribute('tabindex');
+                } else if (prev !== undefined) {
+                    el.setAttribute('tabindex', prev);
+                }
+            });
+        };
+    }, [isMobile, form.showServiceDropdown]);
 
     // Auto-expand advanced sections when editing existing data on mobile
     useEffect(() => {
@@ -1281,11 +1303,27 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 onClick={() => {
                                                     if (form.services.length === 0) {
                                                         form.setIsQuickServiceModalOpen(true);
-                                                    } else {
-                                                        form.setServiceSearch('');
-                                                        setHighlightedServiceIdx(-1);
-                                                        form.setShowServiceDropdown(true);
+                                                        return;
                                                     }
+                                                    // iOS only opens keyboard from focus() called within a user gesture.
+                                                    // Mount a temporary off-screen contenteditable NOW (within the gesture),
+                                                    // open the keyboard, then transfer focus after the portal mounts.
+                                                    const tmp = document.createElement('div');
+                                                    tmp.contentEditable = 'true';
+                                                    tmp.setAttribute('inputmode', 'search');
+                                                    tmp.style.cssText = 'position:fixed;top:-200px;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+                                                    document.body.appendChild(tmp);
+                                                    tmp.focus();
+
+                                                    form.setServiceSearch('');
+                                                    setHighlightedServiceIdx(-1);
+                                                    form.setShowServiceDropdown(true);
+
+                                                    // Transfer focus to real search field after portal renders (~2 frames)
+                                                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                                                        serviceSheetInputRef.current?.focus();
+                                                        document.body.removeChild(tmp);
+                                                    }));
                                                 }}
                                             >
                                                 <span>Dodaj usługę...</span>
