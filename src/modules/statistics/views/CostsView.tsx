@@ -2307,15 +2307,22 @@ export const CostsView = () => {
         return slices;
     }, [breakdown]);
 
-    // Category totals map from breakdown
+    // Category totals map — computed client-side from allItems so that the same
+    // effectiveGross fallback (grossValue ?? netValue*(1+rate)) is used everywhere,
+    // including items where grossValue is null (e.g. vatRate="zw" exempt invoices).
+    // The server's breakdown.totalCostGross sums only grossValue and returns 0 for
+    // exempt items, which causes the sidebar to show incorrect totals.
     const catTotalsMap = useMemo(() => {
         const m = new Map<string, { totalCostGross: number; itemCount: number }>();
-        breakdown?.categories.forEach(c => m.set(c.categoryId, {
-            totalCostGross: c.totalCostGross,
-            itemCount:      c.itemCount,
-        }));
+        allItems.forEach(item => {
+            if (!item.costCategoryId) return;
+            const entry = m.get(item.costCategoryId) ?? { totalCostGross: 0, itemCount: 0 };
+            entry.totalCostGross += effectiveGross(item);
+            entry.itemCount++;
+            m.set(item.costCategoryId, entry);
+        });
         return m;
-    }, [breakdown]);
+    }, [allItems]);
 
     // ── Drop handler ──────────────────────────────────────────────────────────
 
