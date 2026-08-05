@@ -10,6 +10,7 @@ import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
 import { QuickColorModal } from '../QuickColorModal';
 import { Toggle } from '@/common/components/Toggle';
+import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
@@ -385,38 +386,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         }
     }, [isOpen]);
 
-    // Adjust mobile bottom sheets to always sit above the iOS keyboard
-    useEffect(() => {
-        if (!isMobile) return;
-        const isAnySheetOpen = form.showServiceDropdown || form.showCustomerDropdown;
-        if (!isAnySheetOpen) return;
-
-        const vv = window.visualViewport;
-        if (!vv) return;
-
-        const adjust = () => {
-            const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-            [serviceSheetRef, customerSheetRef].forEach(ref => {
-                const el = ref.current;
-                if (!el) return;
-                // Anchor from top so the sheet always fills from the top of the screen
-                // down to the keyboard edge, regardless of URL bar / notch offsets.
-                el.style.top = '0';
-                el.style.bottom = `${keyboardH}px`;
-                el.style.height = 'auto';
-                el.style.maxHeight = 'none';
-            });
-        };
-
-        vv.addEventListener('resize', adjust);
-        vv.addEventListener('scroll', adjust);
-        adjust();
-
-        return () => {
-            vv.removeEventListener('resize', adjust);
-            vv.removeEventListener('scroll', adjust);
-        };
-    }, [isMobile, form.showServiceDropdown, form.showCustomerDropdown]);
+    // Keep both mobile sheets spanning the visible region: header and search
+    // field pinned to the top of the screen, list ending at the keyboard edge.
+    useVisualViewportSheet(
+        isMobile && (form.showServiceDropdown || form.showCustomerDropdown),
+        serviceSheetRef,
+        customerSheetRef,
+    );
 
     // When any mobile sheet is open, set tabindex=-1 on all background inputs
     // so iOS grays out the ^ v navigation arrows (they appear because iOS sees other inputs in the DOM)

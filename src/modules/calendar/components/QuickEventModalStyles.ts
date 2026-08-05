@@ -1626,18 +1626,25 @@ export const MobileSheetBackdrop = styled.div`
 
 export const MobileBottomSheet = styled.div`
     position: fixed;
+    /* Fallback for browsers without visualViewport; useVisualViewportSheet
+       overrides top/height at runtime so the sheet tracks the visible region
+       between the top of the screen and the keyboard. */
+    top: 0;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 10000;
     background: #ffffff;
-    border-radius: 20px 20px 0 0;
     box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
-    max-height: 55dvh;
+    /* Header + search field are flex-shrink: 0, so only the list absorbs the
+       height change — they stay visible no matter how tall the keyboard is. */
+    min-height: 0;
+    /* 0 in Safari (browser chrome already clears the notch); only bites when
+       installed as a PWA, where the sheet really does reach the status bar. */
+    padding-top: env(safe-area-inset-top);
     animation: ${sheetSlideUp} 280ms cubic-bezier(0.32, 0.72, 0, 1);
-    padding-bottom: env(safe-area-inset-bottom);
 `;
 
 export const MobileSheetHandle = styled.div`
@@ -1727,9 +1734,14 @@ export const MobileSheetSearchEditable = styled.div`
 
 export const MobileSheetScrollable = styled.div`
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Sits on the scroll area, not the sheet: with the keyboard up the inset
+       would otherwise carve a dead gap above it. Here it is just trailing
+       scroll space past the last item. */
+    padding-bottom: env(safe-area-inset-bottom);
 `;
 
 // ─── Mobile "Dodaj usługę" trigger button ────────────────────────────────────
