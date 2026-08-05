@@ -536,20 +536,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconClock />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
-                                        <Toggle
-                                            checked={isRecurring}
-                                            onChange={setIsRecurring}
-                                            label="Cykliczna"
-                                            size="sm"
-                                        />
-                                        <Toggle
-                                            checked={form.isAllDay}
-                                            onChange={form.handleAllDayToggle}
-                                            label="Wizyta całodniowa"
-                                            size="sm"
-                                        />
-                                    </div>
+                                    {!isMobile && (
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
+                                            <Toggle
+                                                checked={isRecurring}
+                                                onChange={setIsRecurring}
+                                                label="Cykliczna"
+                                                size="sm"
+                                            />
+                                            <Toggle
+                                                checked={form.isAllDay}
+                                                onChange={form.handleAllDayToggle}
+                                                label="Wizyta całodniowa"
+                                                size="sm"
+                                            />
+                                        </div>
+                                    )}
                                     <S.InputGrid>
                                         <S.InputGroup>
                                             <S.Label>{form.isAllDay ? 'Data' : 'Początek'}</S.Label>
@@ -973,10 +975,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     type="button"
                                                                     onMouseDown={(e) => e.preventDefault()}
                                                                     onClick={() => {
-                                                                        form.handleAddNewCustomerDirectly();
+                                                                        const ok = form.handleAddNewCustomerDirectly({ silent: true });
                                                                         form.setShowCustomerDropdown(false);
                                                                         form.setFocusedField(null);
-                                                                        if (!showContactFields) setShowContactFields(true);
+                                                                        if (!ok) {
+                                                                            setShowContactFields(true);
+                                                                            setTimeout(() => form.customerPhoneInputRef.current?.focus(), 300);
+                                                                        }
                                                                     }}
                                                                 >
                                                                     <IconPlus />
@@ -1696,7 +1701,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.AddColorButton>
                                         )}
                                     </S.ColorPickerList>
-                                    {form.selectedColor && (
+                                    {form.selectedColor && !isMobile && (
                                         <S.SelectedColorName>{form.selectedColor.name}</S.SelectedColorName>
                                     )}
                                 </S.ColorPickerSection>
