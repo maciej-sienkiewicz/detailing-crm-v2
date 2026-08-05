@@ -141,6 +141,77 @@ const DropItem = styled.li<{ $custom?: boolean }>`
     }
 `;
 
+/* ─── Mobile bottom sheet (replaces the positioned dropdown on narrow screens) ─ */
+
+const MobileBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.28);
+`;
+
+const MobileSheet = styled.div`
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: ${st.bgCard};
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    max-height: 55dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+`;
+
+const MobileSheetHandle = styled.div`
+    width: 36px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+`;
+
+const MobileSheetTitle = styled.div`
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    padding: 10px 16px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #f1f5f9;
+`;
+
+const MobileSheetList = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+`;
+
+const MobileDropItem = styled.button<{ $custom?: boolean }>`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    color: ${p => p.$custom ? BRAND_DARK : '#0f172a'};
+    font-weight: ${p => p.$custom ? 600 : 400};
+    background: transparent;
+    font-family: inherit;
+    transition: background 120ms;
+
+    &:last-child { border-bottom: none; }
+    &:active { background: #f0f9ff; }
+`;
+
 const PriceHint = styled.span`
     font-size: 11px;
     color: ${st.textMuted};
@@ -307,6 +378,8 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     const nameWrapRef = useRef<HTMLDivElement>(null);
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [isMobile] = useState(() => window.innerWidth < 640);
+    const sheetRef = useRef<HTMLDivElement>(null);
 
     // The draft row is appended at the bottom of a long table; on a phone the
     // autofocused field would otherwise open behind the keyboard.
@@ -326,7 +399,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     }, []);
 
     useEffect(() => {
-        if (!open) return;
+        if (!open || isMobile) return;
         updateDropPos();
         window.addEventListener('scroll', updateDropPos, true);
         window.addEventListener('resize', updateDropPos);
@@ -340,7 +413,28 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
             window.visualViewport?.removeEventListener('resize', updateDropPos);
             window.visualViewport?.removeEventListener('scroll', updateDropPos);
         };
-    }, [open, updateDropPos]);
+    }, [open, updateDropPos, isMobile]);
+
+    // Adjust mobile bottom sheet position above the iOS keyboard
+    useEffect(() => {
+        if (!isMobile || !open) return;
+        const vv = window.visualViewport;
+        if (!vv) return;
+        const adjust = () => {
+            const el = sheetRef.current;
+            if (!el) return;
+            const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+            el.style.bottom = `${keyboardH}px`;
+            el.style.maxHeight = `${vv.height - 48}px`;
+        };
+        vv.addEventListener('resize', adjust);
+        vv.addEventListener('scroll', adjust);
+        adjust();
+        return () => {
+            vv.removeEventListener('resize', adjust);
+            vv.removeEventListener('scroll', adjust);
+        };
+    }, [isMobile, open]);
 
     // Local display strings — typed freely, never re-derived from parent on
     // every keystroke. Parent basePriceNet is updated immediately on each valid
@@ -482,30 +576,64 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         onBlur={handleBlur}
                         placeholder="Wyszukaj lub wpisz nazwę usługi…"
                         autoFocus
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
                     />
-                    {open && (suggestions.length > 0 || query.trim()) && dropPos && createPortal(
-                        <Dropdown
-                            style={{ top: dropPos.top, left: dropPos.left, width: dropPos.width }}
-                            onMouseDown={handleMouseDown}
-                        >
-                            {suggestions.map(svc => (
-                                <DropItem key={svc.id} onClick={() => handleSelect(svc)}>
-                                    <span>{svc.name}</span>
-                                    {svc.basePriceNet > 0 && (
-                                        <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
-                                    )}
-                                </DropItem>
-                            ))}
-                            {query.trim() && (
-                                <DropItem
-                                    $custom
-                                    onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
-                                >
-                                    + Dodaj „{query.trim()}" jako niestandardową
-                                </DropItem>
-                            )}
-                        </Dropdown>,
-                        document.body
+                    {open && (suggestions.length > 0 || query.trim()) && (
+                        isMobile ? createPortal(
+                            <>
+                                <MobileBackdrop onMouseDown={handleMouseDown} onClick={() => setOpen(false)} />
+                                <MobileSheet ref={sheetRef} onMouseDown={handleMouseDown}>
+                                    <MobileSheetHandle />
+                                    <MobileSheetTitle>Wybierz usługę</MobileSheetTitle>
+                                    <MobileSheetList>
+                                        {suggestions.map(svc => (
+                                            <MobileDropItem key={svc.id} type="button" onClick={() => handleSelect(svc)}>
+                                                <span>{svc.name}</span>
+                                                {svc.basePriceNet > 0 && (
+                                                    <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
+                                                )}
+                                            </MobileDropItem>
+                                        ))}
+                                        {query.trim() && (
+                                            <MobileDropItem
+                                                $custom
+                                                type="button"
+                                                onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
+                                            >
+                                                + Dodaj „{query.trim()}" jako niestandardową
+                                            </MobileDropItem>
+                                        )}
+                                    </MobileSheetList>
+                                </MobileSheet>
+                            </>,
+                            document.body
+                        ) : (dropPos && createPortal(
+                            <Dropdown
+                                style={{ top: dropPos.top, left: dropPos.left, width: dropPos.width }}
+                                onMouseDown={handleMouseDown}
+                            >
+                                {suggestions.map(svc => (
+                                    <DropItem key={svc.id} onClick={() => handleSelect(svc)}>
+                                        <span>{svc.name}</span>
+                                        {svc.basePriceNet > 0 && (
+                                            <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
+                                        )}
+                                    </DropItem>
+                                ))}
+                                {query.trim() && (
+                                    <DropItem
+                                        $custom
+                                        onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
+                                    >
+                                        + Dodaj „{query.trim()}" jako niestandardową
+                                    </DropItem>
+                                )}
+                            </Dropdown>,
+                            document.body
+                        ))
                     )}
                 </NameWrap>
             </Cell>
