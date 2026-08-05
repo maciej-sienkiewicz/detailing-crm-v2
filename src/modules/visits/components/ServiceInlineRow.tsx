@@ -152,16 +152,16 @@ const MobileBackdrop = styled.div`
 
 const MobileSheet = styled.div`
     position: fixed;
-    top: 0;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 9999;
     background: ${st.bgCard};
-    border-radius: 0;
+    border-radius: 20px 20px 0 0;
     box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
+    max-height: 55dvh;
     padding-bottom: env(safe-area-inset-bottom);
 `;
 
@@ -181,44 +181,6 @@ const MobileSheetTitle = styled.div`
     padding: 10px 16px;
     flex-shrink: 0;
     border-bottom: 1px solid #f1f5f9;
-`;
-
-const MobileSheetSearchWrap = styled.div`
-    position: relative;
-    padding: 10px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    flex-shrink: 0;
-`;
-
-const MobileSheetEditable = styled.div`
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 44px;
-    padding: 11px 16px;
-    font-size: 16px;
-    font-family: inherit;
-    color: #0f172a;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 12px;
-    outline: none;
-    line-height: 1.35;
-    word-break: break-word;
-    -webkit-user-select: text;
-    user-select: text;
-    white-space: pre-wrap;
-
-    &:empty::before {
-        content: attr(data-placeholder);
-        color: #94a3b8;
-        pointer-events: none;
-    }
-
-    &:focus {
-        border-color: ${BRAND};
-        background: #ffffff;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
 `;
 
 const MobileSheetList = styled.div`
@@ -418,9 +380,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [isMobile] = useState(() => window.innerWidth < 640);
     const sheetRef = useRef<HTMLDivElement>(null);
-    const sheetEditableRef = useRef<HTMLDivElement>(null);
-    const suppressBlurRef = useRef(false);
-    const sheetOpenRef = useRef(false);
 
     // The draft row is appended at the bottom of a long table; on a phone the
     // autofocused field would otherwise open behind the keyboard.
@@ -465,10 +424,8 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
             const el = sheetRef.current;
             if (!el) return;
             const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-            el.style.top = '0';
             el.style.bottom = `${keyboardH}px`;
-            el.style.height = 'auto';
-            el.style.maxHeight = 'none';
+            el.style.maxHeight = `${vv.height - 48}px`;
         };
         vv.addEventListener('resize', adjust);
         vv.addEventListener('scroll', adjust);
@@ -477,31 +434,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
             vv.removeEventListener('resize', adjust);
             vv.removeEventListener('scroll', adjust);
         };
-    }, [isMobile, open]);
-
-    // Transfer focus from nameInput to the sheet's contentEditable when the sheet opens
-    useEffect(() => {
-        if (!isMobile) return;
-        if (open && !sheetOpenRef.current) {
-            sheetOpenRef.current = true;
-            const currentQuery = nameInputRef.current?.value ?? '';
-            suppressBlurRef.current = true;
-            nameInputRef.current?.blur();
-            requestAnimationFrame(() => {
-                const el = sheetEditableRef.current;
-                if (!el) return;
-                el.textContent = currentQuery;
-                const sel = window.getSelection();
-                const range = document.createRange();
-                range.selectNodeContents(el);
-                range.collapse(false);
-                sel?.removeAllRanges();
-                sel?.addRange(range);
-                el.focus();
-            });
-        } else if (!open) {
-            sheetOpenRef.current = false;
-        }
     }, [isMobile, open]);
 
     // Local display strings — typed freely, never re-derived from parent on
@@ -573,10 +505,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     };
 
     const handleBlur = () => {
-        if (suppressBlurRef.current) {
-            suppressBlurRef.current = false;
-            return;
-        }
         closeTimer.current = setTimeout(() => setOpen(false), 160);
     };
     const handleMouseDown = () => {
@@ -660,21 +588,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                 <MobileSheet ref={sheetRef} onMouseDown={handleMouseDown}>
                                     <MobileSheetHandle />
                                     <MobileSheetTitle>Wybierz usługę</MobileSheetTitle>
-                                    <MobileSheetSearchWrap>
-                                        <MobileSheetEditable
-                                            ref={sheetEditableRef}
-                                            contentEditable
-                                            suppressContentEditableWarning
-                                            data-placeholder="Szukaj usługi…"
-                                            onInput={e => {
-                                                const text = (e.target as HTMLDivElement).textContent ?? '';
-                                                handleQueryChange(capitalizeFirst(text));
-                                            }}
-                                            onKeyDown={e => {
-                                                if (e.key === 'Enter') e.preventDefault();
-                                            }}
-                                        />
-                                    </MobileSheetSearchWrap>
                                     <MobileSheetList>
                                         {suggestions.map(svc => (
                                             <MobileDropItem key={svc.id} type="button" onClick={() => handleSelect(svc)}>

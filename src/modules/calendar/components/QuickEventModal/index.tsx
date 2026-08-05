@@ -396,15 +396,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
         const adjust = () => {
             const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+            const availH = vv.height;
             [serviceSheetRef, customerSheetRef].forEach(ref => {
                 const el = ref.current;
                 if (!el) return;
-                // Anchor from top so the sheet always fills from the top of the screen
-                // down to the keyboard edge, regardless of URL bar / notch offsets.
-                el.style.top = '0';
                 el.style.bottom = `${keyboardH}px`;
-                el.style.height = 'auto';
-                el.style.maxHeight = 'none';
+                el.style.height = `${availH}px`;
+                el.style.maxHeight = `${availH}px`;
             });
         };
 
@@ -1093,15 +1091,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     type="button"
                                                                     onMouseDown={(e) => e.preventDefault()}
                                                                     onClick={() => {
-                                                                        // On mobile the sheet has no phone/email field — add the customer
-                                                                        // using whatever name was typed (skipping contact validation).
-                                                                        // Phone/email can be filled later in the chip's edit mode.
-                                                                        const ok = form.handleAddNewCustomerDirectly({ skipContactValidation: true });
+                                                                        const ok = form.handleAddNewCustomerDirectly({ silent: true });
                                                                         form.setShowCustomerDropdown(false);
                                                                         form.setFocusedField(null);
                                                                         if (!ok) {
-                                                                            // No name typed — show contact fields so user can fill details
                                                                             setShowContactFields(true);
+                                                                            setTimeout(() => form.customerPhoneInputRef.current?.focus(), 300);
                                                                         }
                                                                     }}
                                                                 >
