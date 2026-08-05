@@ -603,22 +603,24 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         return errs;
     };
 
-    const handleAddNewCustomerDirectly = (options?: { silent?: boolean }): boolean => {
+    const handleAddNewCustomerDirectly = (options?: { silent?: boolean; skipContactValidation?: boolean }): boolean => {
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
         const ph = customerFullPhone;
         const em = customerEmail.trim();
         if (!fn && !ln && !ph && !em) return false;
-        const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);
-        if (Object.keys(fieldErrors).length > 0) {
-            setErrors(prev => ({ ...prev, ...fieldErrors }));
-            if (!options?.silent) {
-                showError('Dane klienta', Object.values(fieldErrors)[0]);
-                if (fieldErrors.customerFirstName) customerInputRef.current?.focus();
-                else if (fieldErrors.customerLastName) customerLastNameInputRef.current?.focus();
-                else customerPhoneInputRef.current?.focus();
+        if (!options?.skipContactValidation) {
+            const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);
+            if (Object.keys(fieldErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...fieldErrors }));
+                if (!options?.silent) {
+                    showError('Dane klienta', Object.values(fieldErrors)[0]);
+                    if (fieldErrors.customerFirstName) customerInputRef.current?.focus();
+                    else if (fieldErrors.customerLastName) customerLastNameInputRef.current?.focus();
+                    else customerPhoneInputRef.current?.focus();
+                }
+                return false;
             }
-            return false;
         }
         setErrors(prev => {
             const { customer: _, customerFirstName: __, customerLastName: ___, customerPhone: ____, customerEmail: _____, ...rest } = prev;
