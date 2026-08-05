@@ -1686,6 +1686,10 @@ export const MobileSheetSearchInput = styled.input`
         background: #ffffff;
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     }
+
+    /* suppress native clear button added by type="search" */
+    &::-webkit-search-cancel-button { display: none; }
+    &::-webkit-search-decoration { display: none; }
 `;
 
 export const MobileSheetScrollable = styled.div`

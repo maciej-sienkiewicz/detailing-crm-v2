@@ -1455,7 +1455,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <S.MobileSheetSearchWrap>
                                                         <S.MobileSheetSearchInput
                                                             ref={serviceSheetInputRef}
-                                                            type="text"
+                                                            type="search"
+                                                            inputMode="search"
+                                                            enterKeyHint="search"
+                                                            autoComplete="off"
+                                                            autoCorrect="off"
+                                                            autoCapitalize="off"
+                                                            spellCheck={false}
                                                             placeholder="Szukaj usługi..."
                                                             value={form.serviceSearch}
                                                             onChange={(e) => {
