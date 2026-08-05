@@ -1202,6 +1202,11 @@ export const ColorButton = styled.button<{ $color: string; $isSelected: boolean 
     transition: all 150ms ease;
 
     &:hover { transform: scale(1.18); }
+
+    @media (max-width: 639px) {
+        width: 22px;
+        height: 22px;
+    }
 `;
 
 export const AddColorButton = styled.button`
@@ -1225,6 +1230,11 @@ export const AddColorButton = styled.button`
     }
 
     svg { width: 12px; height: 12px; }
+
+    @media (max-width: 639px) {
+        width: 22px;
+        height: 22px;
+    }
 `;
 
 // "+N więcej" button shown when colors overflow the inline row
@@ -1234,6 +1244,11 @@ export const MoreColorsButton = styled.button<{ $active?: boolean }>`
     justify-content: center;
     padding: 0 9px;
     height: 26px;
+
+    @media (max-width: 639px) {
+        height: 22px;
+        padding: 0 7px;
+    }
     border-radius: 9999px;
     border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
     background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
