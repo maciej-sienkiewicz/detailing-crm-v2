@@ -6,7 +6,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core';
+import type { DateSelectArg, EventClickArg, DatesSetArg, DateClickArg } from '@fullcalendar/core';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -166,10 +166,36 @@ const CalendarContainer = styled.div`
         position: relative;
     }
 
+    /* ===================== DAY OF WEEK NAME (środek-górna) ===================== */
+    .fc-day-weekname {
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 9px;
+        font-weight: 700;
+        color: #94a3b8;
+        pointer-events: none;
+        line-height: 1;
+        z-index: 1;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .fc-day-other .fc-day-weekname {
+        color: #cbd5e1;
+    }
+
+    .fc-day-today .fc-day-weekname {
+        color: #0ea5e9;
+    }
+
     .fc-leave-badge {
         position: absolute;
         top: 3px;
-        left: 3px;
+        right: 3px;
+        left: auto;
         display: inline-flex;
         align-items: center;
         gap: 2px;
@@ -209,7 +235,8 @@ const CalendarContainer = styled.div`
     .fc-d2d-badge {
         position: absolute;
         top: 3px;
-        left: 3px;
+        right: 3px;
+        left: auto;
         display: inline-flex;
         align-items: center;
         gap: 2px;
@@ -578,6 +605,10 @@ const CalendarContainer = styled.div`
     }
 
     @media (max-width: 480px) {
+        .fc-day-weekname {
+            display: none;
+        }
+
         .fc-col-header-cell {
             padding: 4px 1px;
             font-size: 9px;
@@ -1290,9 +1321,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         if (!info || info.count <= 0) {
             existing?.remove();
-            // Przesuń D2D badge z powrotem do lewego rogu jeśli nie ma już ludzika
+            // Przesuń D2D badge z powrotem do prawego rogu jeśli nie ma już ludzika
             const d2dBadge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
-            if (d2dBadge) d2dBadge.style.left = '3px';
+            if (d2dBadge) { d2dBadge.style.right = '3px'; d2dBadge.style.left = ''; }
             return;
         }
 
@@ -1331,7 +1362,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         // Przelicz pozycję D2D badge jeśli już istnieje w tej komórce
         const d2dBadge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
-        if (d2dBadge) d2dBadge.style.left = `${badge.offsetWidth + 6}px`;
+        if (d2dBadge) { d2dBadge.style.right = `${badge.offsetWidth + 6}px`; d2dBadge.style.left = ''; }
     }, []);
 
     // Po zmianie danych urlopowych odśwież badge na wszystkich zamontowanych komórkach
@@ -1399,9 +1430,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         const countEl = badge.querySelector<HTMLElement>('.fc-d2d-count');
         if (countEl) countEl.textContent = String(info.count);
 
-        // Jeśli jest badge urlopowy, przesuń samochodzik w prawo żeby nie nachodził
+        // Jeśli jest badge urlopowy, przesuń samochodzik w lewo (oba po prawej stronie)
         const leaveBadge = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
-        badge.style.left = leaveBadge ? `${leaveBadge.offsetWidth + 6}px` : '3px';
+        badge.style.right = leaveBadge ? `${leaveBadge.offsetWidth + 6}px` : '3px';
+        badge.style.left = '';
     }, []);
 
     // Po zmianie danych D2D odśwież badge na wszystkich zamontowanych komórkach
@@ -1439,6 +1471,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             onViewChange(arg.view.type as CalendarViewType);
         }
     }, [onViewChange]);
+
+    /**
+     * Handle date click (single tap on mobile touch devices).
+     * On desktop the 'select' callback handles single-day selection;
+     * on mobile touch a single tap fires only dateClick (not select).
+     */
+    const handleDateClick = useCallback((info: DateClickArg) => {
+        const nativeEvent = info.jsEvent as PointerEvent | null;
+        if (nativeEvent?.pointerType !== 'touch') return;
+
+        const start = info.date;
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        setSelectedEventData({ start, end, allDay: Boolean(info.allDay) });
+        setQuickModalOpen(true);
+    }, []);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
@@ -2027,9 +2074,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 firstDay={1}
 
                 // Event handling
+                dateClick={handleDateClick}
                 select={handleDateSelect}
                 eventClick={handleEventClick}
                 datesSet={handleDatesSet}
+                longPressDelay={400}
 
                 // Events data
                 events={events}
@@ -2086,6 +2135,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     leaveCellsRef.current.set(iso, frame);
                     applyLeaveBadge(iso, frame);
                     applyD2DBadge(iso, frame);
+
+                    // Inject day-of-week label (center-top of tile)
+                    if (!frame.querySelector('.fc-day-weekname')) {
+                        const WEEKDAY_NAMES = ['Nd', 'Pn', 'Wt', 'Śr', 'Czw', 'Pt', 'So'];
+                        const weeknameEl = document.createElement('span');
+                        weeknameEl.className = 'fc-day-weekname';
+                        weeknameEl.textContent = WEEKDAY_NAMES[d.getDay()];
+                        frame.appendChild(weeknameEl);
+                    }
                 }}
                 dayCellWillUnmount={(arg) => {
                     if (arg.view.type !== 'dayGridMonth') return;
