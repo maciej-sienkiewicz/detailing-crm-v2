@@ -180,12 +180,44 @@ const MobileSheetHandle = styled.div`
 `;
 
 const MobileSheetTitle = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     font-size: 15px;
     font-weight: 700;
     color: #0f172a;
-    padding: 10px 16px;
+    padding: 4px 8px 4px 16px;
     flex-shrink: 0;
     border-bottom: 1px solid #f1f5f9;
+`;
+
+/**
+ * The sheet covers the whole screen, so the backdrop is unreachable — this is
+ * the only way out on a phone.
+ */
+const MobileSheetClose = styled.button`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 140ms, color 140ms;
+
+    svg { width: 20px; height: 20px; }
+
+    &:active {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
 `;
 
 const MobileSheetSearchWrap = styled.div`
@@ -649,7 +681,22 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                 <MobileBackdrop onMouseDown={handleMouseDown} onClick={() => setOpen(false)} />
                                 <MobileSheet ref={sheetRef} onMouseDown={handleMouseDown}>
                                     <MobileSheetHandle />
-                                    <MobileSheetTitle>Wybierz usługę</MobileSheetTitle>
+                                    <MobileSheetTitle>
+                                        <span>Wybierz usługę</span>
+                                        <MobileSheetClose
+                                            type="button"
+                                            aria-label="Zamknij"
+                                            // Keep focus on the editable until the click lands; the
+                                            // sheet then unmounts and the keyboard drops with it.
+                                            onMouseDown={e => e.preventDefault()}
+                                            onClick={() => setOpen(false)}
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </MobileSheetClose>
+                                    </MobileSheetTitle>
                                     <MobileSheetSearchWrap>
                                         <MobileSheetEditable
                                             ref={sheetEditableRef}

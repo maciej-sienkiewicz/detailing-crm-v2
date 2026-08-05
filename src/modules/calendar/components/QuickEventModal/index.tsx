@@ -1001,7 +1001,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
                                                         <S.MobileBottomSheet ref={customerSheetRef}>
                                                             <S.MobileSheetHandle />
-                                                            <S.MobileSheetTitle>Szukaj klienta</S.MobileSheetTitle>
+                                                            <S.MobileSheetTitle>
+                                                                <span>Szukaj klienta</span>
+                                                                <S.MobileSheetClose
+                                                                    type="button"
+                                                                    aria-label="Zamknij"
+                                                                    // Keep focus on the editable until the click lands; the
+                                                                    // sheet then unmounts and the keyboard drops with it.
+                                                                    onMouseDown={(e) => e.preventDefault()}
+                                                                    onClick={() => form.setShowCustomerDropdown(false)}
+                                                                >
+                                                                    <IconX />
+                                                                </S.MobileSheetClose>
+                                                            </S.MobileSheetTitle>
                                                             <S.MobileSheetSearchWrap>
                                                                 <S.MobileSheetSearchEditable
                                                                     ref={customerSheetInputRef}
@@ -1527,7 +1539,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 />
                                                 <S.MobileBottomSheet ref={serviceSheetRef}>
                                                     <S.MobileSheetHandle />
-                                                    <S.MobileSheetTitle>Wybierz usługę</S.MobileSheetTitle>
+                                                    <S.MobileSheetTitle>
+                                                        <span>Wybierz usługę</span>
+                                                        <S.MobileSheetClose
+                                                            type="button"
+                                                            aria-label="Zamknij"
+                                                            // Keep focus on the editable until the click lands; the
+                                                            // sheet then unmounts and the keyboard drops with it.
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            onClick={() => {
+                                                                form.setShowServiceDropdown(false);
+                                                                form.setServiceSearch('');
+                                                            }}
+                                                        >
+                                                            <IconX />
+                                                        </S.MobileSheetClose>
+                                                    </S.MobileSheetTitle>
                                                     <S.MobileSheetSearchWrap>
                                                         <S.MobileSheetSearchEditable
                                                             ref={serviceSheetInputRef}
