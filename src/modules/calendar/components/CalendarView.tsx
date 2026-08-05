@@ -148,8 +148,8 @@ const CalendarContainer = styled.div`
     }
 
     .fc-daygrid-day-top {
-        justify-content: flex-start;
-        padding: 4px 0 0 4px;
+        justify-content: center;
+        padding: 4px 0 0;
     }
 
     /* Other month days */
@@ -164,31 +164,6 @@ const CalendarContainer = styled.div`
        colliding with the centred .fc-daygrid-day-number. */
     .fc-daygrid-day-frame {
         position: relative;
-    }
-
-    /* ===================== DAY OF WEEK NAME (środek-górna) ===================== */
-    .fc-day-weekname {
-        position: absolute;
-        top: 6px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 9px;
-        font-weight: 700;
-        color: #94a3b8;
-        pointer-events: none;
-        line-height: 1;
-        z-index: 1;
-        letter-spacing: 0.4px;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
-
-    .fc-day-other .fc-day-weekname {
-        color: #cbd5e1;
-    }
-
-    .fc-day-today .fc-day-weekname {
-        color: #0ea5e9;
     }
 
     .fc-leave-badge {
@@ -605,10 +580,6 @@ const CalendarContainer = styled.div`
     }
 
     @media (max-width: 480px) {
-        .fc-day-weekname {
-            display: none;
-        }
-
         .fc-col-header-cell {
             padding: 4px 1px;
             font-size: 9px;
@@ -2135,15 +2106,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     leaveCellsRef.current.set(iso, frame);
                     applyLeaveBadge(iso, frame);
                     applyD2DBadge(iso, frame);
-
-                    // Inject day-of-week label (center-top of tile)
-                    if (!frame.querySelector('.fc-day-weekname')) {
-                        const WEEKDAY_NAMES = ['Nd', 'Pn', 'Wt', 'Śr', 'Czw', 'Pt', 'So'];
-                        const weeknameEl = document.createElement('span');
-                        weeknameEl.className = 'fc-day-weekname';
-                        weeknameEl.textContent = WEEKDAY_NAMES[d.getDay()];
-                        frame.appendChild(weeknameEl);
-                    }
                 }}
                 dayCellWillUnmount={(arg) => {
                     if (arg.view.type !== 'dayGridMonth') return;
