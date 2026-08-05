@@ -213,12 +213,13 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
     const el = triggerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom - GAP;
+    const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+    const spaceBelow = vvHeight - rect.bottom - GAP;
     const spaceAbove = rect.top - GAP;
     if (spaceBelow >= MENU_MIN_HEIGHT || spaceBelow >= spaceAbove) {
       setMenuStyle({ top: rect.bottom + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceBelow, MENU_MAX_HEIGHT) });
     } else {
-      setMenuStyle({ bottom: window.innerHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
+      setMenuStyle({ bottom: vvHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
     }
   };
 
@@ -231,10 +232,14 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
+    window.visualViewport?.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('scroll', onScroll);
     return () => {
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKey);
+      window.visualViewport?.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('scroll', onScroll);
     };
   }, [open, onBlur]);
 
@@ -369,12 +374,13 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
     const el = triggerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom - GAP;
+    const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+    const spaceBelow = vvHeight - rect.bottom - GAP;
     const spaceAbove = rect.top - GAP;
     if (spaceBelow >= MENU_MIN_HEIGHT || spaceBelow >= spaceAbove) {
       setMenuStyle({ top: rect.bottom + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceBelow, MENU_MAX_HEIGHT) });
     } else {
-      setMenuStyle({ bottom: window.innerHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
+      setMenuStyle({ bottom: vvHeight - rect.top + GAP, left: rect.left, width: rect.width, maxHeight: Math.min(spaceAbove, MENU_MAX_HEIGHT) });
     }
   };
 
@@ -387,10 +393,14 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
+    window.visualViewport?.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('scroll', onScroll);
     return () => {
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKey);
+      window.visualViewport?.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('scroll', onScroll);
     };
   }, [open, onBlur]);
 

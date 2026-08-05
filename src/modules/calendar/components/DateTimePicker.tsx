@@ -90,9 +90,10 @@ const Trigger = styled.button<{ $accentColor?: string; $hasError?: boolean; $has
     }
 `;
 
-const DropdownFixed = styled.div<{ $top: number; $left: number; $ready: boolean }>`
+const DropdownFixed = styled.div<{ $top?: number; $bottom?: number; $left: number; $ready: boolean }>`
     position: fixed;
-    top: ${props => props.$top}px;
+    top: ${props => props.$top !== undefined ? `${props.$top}px` : 'auto'};
+    bottom: ${props => props.$bottom !== undefined ? `${props.$bottom}px` : 'auto'};
     left: ${props => props.$left}px;
     z-index: 9999;
     background: ${props => props.theme.colors.surface};
@@ -284,7 +285,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     onBlur,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
     const [posReady, setPosReady] = useState(false);
 
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -319,17 +320,25 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         }
     }, [value]);
 
-    // Position dropdown below trigger, clamped to viewport
+    // Position dropdown below (or above) trigger, clamped to viewport
     const updatePosition = useCallback(() => {
         if (!triggerRef.current) return;
         const rect = triggerRef.current.getBoundingClientRect();
+        const vvHeight = window.visualViewport?.height ?? window.innerHeight;
         let left = rect.left;
         if (dropdownRef.current) {
             const dropW = dropdownRef.current.offsetWidth;
             const maxLeft = window.innerWidth - dropW - 8;
             if (left > maxLeft) left = Math.max(8, maxLeft);
         }
-        setDropdownPos({ top: rect.bottom + 4, left });
+        const dropH = dropdownRef.current?.offsetHeight ?? 320;
+        const spaceBelow = vvHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (spaceBelow < dropH && spaceAbove > spaceBelow) {
+            setDropdownPos({ bottom: vvHeight - rect.top + 4, left });
+        } else {
+            setDropdownPos({ top: rect.bottom + 4, left });
+        }
     }, []);
 
     useEffect(() => {
@@ -338,9 +347,13 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         setPosReady(true);
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
+        window.visualViewport?.addEventListener('resize', updatePosition);
+        window.visualViewport?.addEventListener('scroll', updatePosition);
         return () => {
             window.removeEventListener('scroll', updatePosition, true);
             window.removeEventListener('resize', updatePosition);
+            window.visualViewport?.removeEventListener('resize', updatePosition);
+            window.visualViewport?.removeEventListener('scroll', updatePosition);
         };
     }, [isOpen, updatePosition]);
 
@@ -450,7 +463,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </Trigger>
 
             {isOpen && createPortal(
-                <DropdownFixed ref={dropdownRef} $top={dropdownPos.top} $left={dropdownPos.left} $ready={posReady}>
+                <DropdownFixed ref={dropdownRef} $top={dropdownPos.top} $bottom={dropdownPos.bottom} $left={dropdownPos.left} $ready={posReady}>
                     <CalendarSection>
                         <NavRow>
                             <NavBtn type="button" onClick={handlePrevMonth}>‹</NavBtn>
