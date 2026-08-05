@@ -318,9 +318,13 @@ export const CustomerPortalDropdown = styled.div`
     box-shadow:
         0 8px 20px -4px rgba(0,0,0,0.10),
         0 0 0 3px rgba(14,165,233,0.10);
-    max-height: 220px;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 `;
 
 export const DropdownItem = styled.button<{ $accentColor?: string }>`
@@ -452,8 +456,13 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     }
 
     @media (max-width: 639px) {
-        min-height: 52px;
-        padding: 14px 16px 14px 13px;
+        /* Stacked layout on mobile — name wraps, price below */
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+        padding: 14px 16px;
+        min-height: 60px;
+        border-left: none;
     }
 `;
 
@@ -466,6 +475,13 @@ export const ServiceDropdownName = styled.span`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    @media (max-width: 639px) {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        line-height: 1.4;
+    }
 `;
 
 export const ServiceDropdownHighlight = styled.mark`
@@ -496,6 +512,12 @@ export const ServiceDropdownGross = styled.span`
     color: #0f172a;
     font-feature-settings: 'tnum';
     white-space: nowrap;
+
+    @media (max-width: 639px) {
+        font-size: 12px;
+        font-weight: 500;
+        color: #64748b;
+    }
 `;
 
 export const ServiceDropdownNet = styled.span`
@@ -504,6 +526,10 @@ export const ServiceDropdownNet = styled.span`
     color: #94a3b8;
     font-feature-settings: 'tnum';
     white-space: nowrap;
+
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 export const ServiceDropdownManualBadge = styled.span`
@@ -1559,4 +1585,168 @@ export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
     padding: ${p => p.$isTotal ? '8px 0 0' : '4px 0'};
     border-top: ${p => p.$isTotal ? '1px solid #e2e8f0' : 'none'};
     margin-top: ${p => p.$isTotal ? '8px' : '0'};
+`;
+
+// ─── Mobile bottom sheet ──────────────────────────────────────────────────────
+
+const sheetSlideUp = keyframes`
+    from { transform: translateY(100%); opacity: 0.6; }
+    to   { transform: translateY(0);    opacity: 1; }
+`;
+
+const sheetFadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
+export const MobileSheetBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    animation: ${sheetFadeIn} 220ms ease;
+    touch-action: none;
+`;
+
+export const MobileBottomSheet = styled.div`
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    background: #ffffff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    max-height: 70dvh;
+    animation: ${sheetSlideUp} 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    padding-bottom: env(safe-area-inset-bottom);
+`;
+
+export const MobileSheetHandle = styled.div`
+    width: 36px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+`;
+
+export const MobileSheetTitle = styled.div`
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    padding: 12px 20px 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #f1f5f9;
+`;
+
+export const MobileSheetSearchWrap = styled.div`
+    position: relative;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+`;
+
+export const MobileSheetSearchInput = styled.input`
+    width: 100%;
+    box-sizing: border-box;
+    height: 44px;
+    padding: 0 44px 0 16px;
+    /* 16px prevents iOS Safari from auto-zooming on focus */
+    font-size: 16px;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    outline: none;
+    font-family: inherit;
+
+    &::placeholder { color: #94a3b8; }
+
+    &:focus {
+        border-color: #0ea5e9;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+`;
+
+export const MobileSheetScrollable = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+`;
+
+// ─── Mobile "Dodaj usługę" trigger button ────────────────────────────────────
+
+export const MobileAddServiceButton = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    color: #94a3b8;
+    text-align: left;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    svg {
+        width: 15px;
+        height: 15px;
+        color: #0ea5e9;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+
+    &:active {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+`;
+
+// ─── Advanced sections toggle (mobile) ───────────────────────────────────────
+
+export const AdvancedToggleBtn = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 0 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+
+    svg { width: 14px; height: 14px; color: #0ea5e9; flex-shrink: 0; }
+    &:active { color: #0ea5e9; }
+`;
+
+// ─── Show phone/email toggle (mobile customer form) ───────────────────────────
+
+export const ContactFieldsToggle = styled.button`
+    display: block;
+    width: 100%;
+    padding: 6px 14px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0ea5e9;
+    background: none;
+    border: none;
+    border-top: 1px solid #f1f5f9;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+
+    &:active { color: #0284c7; }
 `;

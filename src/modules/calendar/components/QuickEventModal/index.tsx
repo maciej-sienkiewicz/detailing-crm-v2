@@ -239,9 +239,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
     const [highlightedServiceIdx, setHighlightedServiceIdx] = useState(-1);
     const serviceDropdownRef = useRef<HTMLDivElement>(null);
-    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
     const customerDropdownContainerRef = useRef<HTMLDivElement>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
+
+    // Mobile-specific UX state
+    const [isMobile, setIsMobile] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [showContactFields, setShowContactFields] = useState(false);
 
     const MAX_VISIBLE_COLORS = 5;
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
@@ -360,6 +365,31 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         if (!isOpen) setAutoOpenModel(false);
     }, [isOpen]);
 
+    // Detect mobile viewport
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
+    // Reset mobile-specific state when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setShowAdvanced(false);
+            setShowContactFields(false);
+        }
+    }, [isOpen]);
+
+    // Auto-expand advanced sections when editing existing data on mobile
+    useEffect(() => {
+        if (isOpen && isMobile) {
+            if (form.notes || form.doorToDoor.enabled || form.sendConfirmationSms || form.sendReminderSms || form.sendVisitCard) {
+                setShowAdvanced(true);
+            }
+        }
+    }, [isOpen, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         if (!form.showServiceDropdown) { setServiceDropdownPos(null); setHighlightedServiceIdx(-1); return; }
         const el = form.serviceInputRef.current;
@@ -387,12 +417,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }, [highlightedServiceIdx]);
 
     useEffect(() => {
-        if (!form.showCustomerDropdown) { setCustomerDropdownPos(null); return; }
+        if (!form.showCustomerDropdown || isMobile) { setCustomerDropdownPos(null); return; }
         const el = customerDropdownContainerRef.current;
         if (!el) return;
         const update = () => {
             const r = el.getBoundingClientRect();
-            setCustomerDropdownPos({ top: r.bottom, left: r.left, width: r.width });
+            const spaceBelow = window.innerHeight - r.bottom - 8;
+            const maxHeight = Math.min(280, Math.max(100, spaceBelow));
+            setCustomerDropdownPos({ top: r.bottom, left: r.left, width: r.width, maxHeight });
         };
         update();
         window.addEventListener('scroll', update, true);
@@ -401,7 +433,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             window.removeEventListener('scroll', update, true);
             window.removeEventListener('resize', update);
         };
-    }, [form.showCustomerDropdown]);
+    }, [form.showCustomerDropdown, isMobile]);
 
     if (!eventData && !initialData) return null;
 
@@ -724,7 +756,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <S.CustomerInputBlock
                                                     $focused={form.focusedField === 'customer'}
                                                     $hasError={!!(form.errors.customer || form.errors.customerFirstName || form.errors.customerLastName || form.errors.customerPhone || form.errors.customerEmail)}
-                                                    $dropdownOpen={form.showCustomerDropdown}
+                                                    $dropdownOpen={!isMobile && form.showCustomerDropdown}
                                                 >
                                                     <S.CustomerInputRow>
                                                         <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerFirstName}>
@@ -762,62 +794,77 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             />
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
-                                                    <S.CustomerInputRow>
-                                                        <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
-                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
-                                                            <S.PhoneInputRow>
-                                                                <S.PhonePrefixInput
-                                                                    ref={form.customerPhonePrefixRef}
-                                                                    type="text"
-                                                                    placeholder="+48"
-                                                                    value={form.customerPhonePrefix}
-                                                                    onChange={(e) => {
-                                                                        form.setCustomerPhonePrefix(e.target.value);
-                                                                        form.setShowCustomerDropdown(true);
-                                                                    }}
-                                                                    onFocus={form.handleCustomerFieldFocus}
-                                                                    onBlur={form.handleCustomerFieldBlur}
-                                                                    autoComplete="new-password"
-                                                                    $hasError={!!form.errors.customerPhone}
-                                                                />
+
+                                                    {/* Phone + email — always on desktop, collapsible on mobile */}
+                                                    {(!isMobile || showContactFields) && (
+                                                        <S.CustomerInputRow>
+                                                            <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
+                                                                <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
+                                                                <S.PhoneInputRow>
+                                                                    <S.PhonePrefixInput
+                                                                        ref={form.customerPhonePrefixRef}
+                                                                        type="text"
+                                                                        placeholder="+48"
+                                                                        value={form.customerPhonePrefix}
+                                                                        onChange={(e) => {
+                                                                            form.setCustomerPhonePrefix(e.target.value);
+                                                                            form.setShowCustomerDropdown(true);
+                                                                        }}
+                                                                        onFocus={form.handleCustomerFieldFocus}
+                                                                        onBlur={form.handleCustomerFieldBlur}
+                                                                        autoComplete="new-password"
+                                                                        $hasError={!!form.errors.customerPhone}
+                                                                    />
+                                                                    <S.CustomerFieldInput
+                                                                        ref={form.customerPhoneInputRef}
+                                                                        type="tel"
+                                                                        placeholder="123 456 789"
+                                                                        value={form.customerPhone}
+                                                                        onChange={(e) => {
+                                                                            form.setCustomerPhone(form.formatPhone(e.target.value));
+                                                                            form.setShowCustomerDropdown(true);
+                                                                        }}
+                                                                        onFocus={form.handleCustomerFieldFocus}
+                                                                        onBlur={form.handleCustomerFieldBlur}
+                                                                        autoComplete="new-password"
+                                                                        $hasError={!!form.errors.customerPhone}
+                                                                    />
+                                                                </S.PhoneInputRow>
+                                                            </S.CustomerFieldGroup>
+                                                            <S.CustomerFieldGroup $hasError={!!form.errors.customerEmail}>
+                                                                <S.CustomerFieldLabel $hasError={!!form.errors.customerEmail}>E-mail</S.CustomerFieldLabel>
                                                                 <S.CustomerFieldInput
-                                                                    ref={form.customerPhoneInputRef}
-                                                                    type="tel"
-                                                                    placeholder="123 456 789"
-                                                                    value={form.customerPhone}
+                                                                    ref={form.customerEmailInputRef}
+                                                                    type="email"
+                                                                    placeholder="jan@example.com"
+                                                                    value={form.customerEmail}
                                                                     onChange={(e) => {
-                                                                        form.setCustomerPhone(form.formatPhone(e.target.value));
+                                                                        form.setCustomerEmail(e.target.value);
                                                                         form.setShowCustomerDropdown(true);
                                                                     }}
                                                                     onFocus={form.handleCustomerFieldFocus}
                                                                     onBlur={form.handleCustomerFieldBlur}
                                                                     autoComplete="new-password"
-                                                                    $hasError={!!form.errors.customerPhone}
+                                                                    $hasError={!!form.errors.customerEmail}
                                                                 />
-                                                            </S.PhoneInputRow>
-                                                        </S.CustomerFieldGroup>
-                                                        <S.CustomerFieldGroup $hasError={!!form.errors.customerEmail}>
-                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerEmail}>E-mail</S.CustomerFieldLabel>
-                                                            <S.CustomerFieldInput
-                                                                ref={form.customerEmailInputRef}
-                                                                type="email"
-                                                                placeholder="jan@example.com"
-                                                                value={form.customerEmail}
-                                                                onChange={(e) => {
-                                                                    form.setCustomerEmail(e.target.value);
-                                                                    form.setShowCustomerDropdown(true);
-                                                                }}
-                                                                onFocus={form.handleCustomerFieldFocus}
-                                                                onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="new-password"
-                                                                $hasError={!!form.errors.customerEmail}
-                                                            />
-                                                        </S.CustomerFieldGroup>
-                                                    </S.CustomerInputRow>
+                                                            </S.CustomerFieldGroup>
+                                                        </S.CustomerInputRow>
+                                                    )}
+
+                                                    {/* Mobile: show "add phone/email" toggle */}
+                                                    {isMobile && !showContactFields && (
+                                                        <S.ContactFieldsToggle
+                                                            type="button"
+                                                            onClick={() => setShowContactFields(true)}
+                                                        >
+                                                            + Dodaj telefon i e-mail
+                                                        </S.ContactFieldsToggle>
+                                                    )}
                                                 </S.CustomerInputBlock>
 
-                                                {form.showCustomerDropdown && customerDropdownPos && createPortal(
-                                                    <S.CustomerPortalDropdown style={{ top: customerDropdownPos.top, left: customerDropdownPos.left, width: customerDropdownPos.width }}>
+                                                {/* Desktop portal dropdown */}
+                                                {!isMobile && form.showCustomerDropdown && customerDropdownPos && createPortal(
+                                                    <S.CustomerPortalDropdown style={{ top: customerDropdownPos.top, left: customerDropdownPos.left, width: customerDropdownPos.width, maxHeight: customerDropdownPos.maxHeight }}>
                                                         {form.customerResults.length > 0 && (
                                                             <S.DropdownSeparator>Istniejący klienci</S.DropdownSeparator>
                                                         )}
@@ -875,6 +922,74 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             </span>
                                                         </S.DropdownAddButton>
                                                     </S.CustomerPortalDropdown>,
+                                                    document.body
+                                                )}
+
+                                                {/* Mobile bottom sheet for customer results */}
+                                                {isMobile && form.showCustomerDropdown && createPortal(
+                                                    <>
+                                                        <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
+                                                        <S.MobileBottomSheet>
+                                                            <S.MobileSheetHandle />
+                                                            <S.MobileSheetTitle>
+                                                                {form.customerResults.length > 0 ? 'Wybierz klienta' : 'Nie znaleziono klienta'}
+                                                            </S.MobileSheetTitle>
+                                                            <S.MobileSheetScrollable>
+                                                                {form.customerResults.map((c) => {
+                                                                    const hasContact = !!(c.phone || c.email);
+                                                                    return (
+                                                                        <S.DropdownItem
+                                                                            key={c.id}
+                                                                            type="button"
+                                                                            onMouseDown={(e) => e.preventDefault()}
+                                                                            onClick={() => {
+                                                                                form.customerJustSelectedRef.current = true;
+                                                                                form.handleCustomerSelect({
+                                                                                    id: c.id,
+                                                                                    firstName: c.firstName,
+                                                                                    lastName: c.lastName,
+                                                                                    phone: c.phone,
+                                                                                    email: c.email,
+                                                                                    isNew: false,
+                                                                                });
+                                                                                form.setShowCustomerDropdown(false);
+                                                                            }}
+                                                                            $accentColor={form.accentColor}
+                                                                        >
+                                                                            {(c.firstName || c.lastName)
+                                                                                ? <span>{c.firstName} {c.lastName}</span>
+                                                                                : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                                            }
+                                                                            <S.DropdownItemMeta $warning={!hasContact}>
+                                                                                {hasContact
+                                                                                    ? [c.phone, c.email].filter(Boolean).join('  ·  ')
+                                                                                    : '⚠ Brak danych kontaktowych'
+                                                                                }
+                                                                            </S.DropdownItemMeta>
+                                                                        </S.DropdownItem>
+                                                                    );
+                                                                })}
+                                                                <S.DropdownAddButton
+                                                                    type="button"
+                                                                    onMouseDown={(e) => e.preventDefault()}
+                                                                    onClick={() => {
+                                                                        form.handleAddNewCustomerDirectly();
+                                                                        form.setShowCustomerDropdown(false);
+                                                                        form.setFocusedField(null);
+                                                                        if (!showContactFields) setShowContactFields(true);
+                                                                    }}
+                                                                >
+                                                                    <IconPlus />
+                                                                    <span>
+                                                                        {form.customerResults.length > 0
+                                                                            ? 'To inna osoba — dodaj jako nowego klienta'
+                                                                            : 'Dodaj nowego klienta'
+                                                                        }
+                                                                    </span>
+                                                                </S.DropdownAddButton>
+                                                            </S.MobileSheetScrollable>
+                                                        </S.MobileBottomSheet>
+                                                    </>,
                                                     document.body
                                                 )}
                                             </S.DropdownContainer>
@@ -1117,91 +1232,110 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.IconWrapper>
                                 <S.RowContent>
                                     <S.DropdownContainer>
-                                        <S.ServiceSearchWrap>
-                                            <S.Input
-                                                ref={form.serviceInputRef}
-                                                type="text"
-                                                placeholder="Dodaj usługę..."
-                                                value={form.serviceSearch}
-                                                style={form.serviceSearch ? { paddingRight: 36 } : undefined}
-                                                onChange={(e) => {
-                                                    form.setServiceSearch(e.target.value);
-                                                    form.setShowServiceDropdown(true);
-                                                    setHighlightedServiceIdx(-1);
-                                                }}
-                                                aria-invalid={!!form.errors.services || !!form.errors.servicePrices}
-                                                $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
-                                                $dropdownOpen={form.showServiceDropdown}
-                                                onFocus={() => {
-                                                    form.setFocusedField('services');
+                                        {isMobile ? (
+                                            /* Mobile: tap-to-open bottom sheet */
+                                            <S.MobileAddServiceButton
+                                                type="button"
+                                                onClick={() => {
                                                     if (form.services.length === 0) {
                                                         form.setIsQuickServiceModalOpen(true);
                                                     } else {
+                                                        form.setServiceSearch('');
+                                                        setHighlightedServiceIdx(-1);
                                                         form.setShowServiceDropdown(true);
                                                     }
                                                 }}
-                                                onBlur={() => {
-                                                    form.setFocusedField(null);
-                                                    setTimeout(() => {
-                                                        form.setShowServiceDropdown(false);
+                                            >
+                                                <span>Dodaj usługę...</span>
+                                                <IconPlus />
+                                            </S.MobileAddServiceButton>
+                                        ) : (
+                                            /* Desktop: inline search input */
+                                            <S.ServiceSearchWrap>
+                                                <S.Input
+                                                    ref={form.serviceInputRef}
+                                                    type="text"
+                                                    placeholder="Dodaj usługę..."
+                                                    value={form.serviceSearch}
+                                                    style={form.serviceSearch ? { paddingRight: 36 } : undefined}
+                                                    onChange={(e) => {
+                                                        form.setServiceSearch(e.target.value);
+                                                        form.setShowServiceDropdown(true);
                                                         setHighlightedServiceIdx(-1);
-                                                    }, 200);
-                                                }}
-                                                onKeyDown={(e) => {
-                                                    const count = form.filteredServices.length;
-                                                    if (e.key === 'Escape') {
-                                                        e.preventDefault();
-                                                        form.setShowServiceDropdown(false);
-                                                        setHighlightedServiceIdx(-1);
-                                                        return;
-                                                    }
-                                                    if (e.key === 'ArrowDown') {
-                                                        e.preventDefault();
-                                                        if (!form.showServiceDropdown) {
+                                                    }}
+                                                    aria-invalid={!!form.errors.services || !!form.errors.servicePrices}
+                                                    $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
+                                                    $dropdownOpen={form.showServiceDropdown}
+                                                    onFocus={() => {
+                                                        form.setFocusedField('services');
+                                                        if (form.services.length === 0) {
+                                                            form.setIsQuickServiceModalOpen(true);
+                                                        } else {
                                                             form.setShowServiceDropdown(true);
+                                                        }
+                                                    }}
+                                                    onBlur={() => {
+                                                        form.setFocusedField(null);
+                                                        setTimeout(() => {
+                                                            form.setShowServiceDropdown(false);
+                                                            setHighlightedServiceIdx(-1);
+                                                        }, 200);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        const count = form.filteredServices.length;
+                                                        if (e.key === 'Escape') {
+                                                            e.preventDefault();
+                                                            form.setShowServiceDropdown(false);
+                                                            setHighlightedServiceIdx(-1);
                                                             return;
                                                         }
-                                                        setHighlightedServiceIdx(prev => (prev + 1) % Math.max(1, count));
-                                                        return;
-                                                    }
-                                                    if (e.key === 'ArrowUp') {
-                                                        e.preventDefault();
-                                                        setHighlightedServiceIdx(prev => prev <= 0 ? count - 1 : prev - 1);
-                                                        return;
-                                                    }
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        const highlighted = form.filteredServices[highlightedServiceIdx];
-                                                        if (highlighted) {
-                                                            form.addService(highlighted);
-                                                            setHighlightedServiceIdx(-1);
-                                                        } else if (count === 1) {
-                                                            form.addService(form.filteredServices[0]);
-                                                        } else if (form.serviceSearch.trim() && count === 0) {
-                                                            form.setIsQuickServiceModalOpen(true);
-                                                            form.setShowServiceDropdown(false);
-                                                            form.setFocusedField(null);
+                                                        if (e.key === 'ArrowDown') {
+                                                            e.preventDefault();
+                                                            if (!form.showServiceDropdown) { form.setShowServiceDropdown(true); return; }
+                                                            setHighlightedServiceIdx(prev => (prev + 1) % Math.max(1, count));
+                                                            return;
                                                         }
-                                                    }
-                                                }}
-                                            />
-                                            {form.serviceSearch && (
-                                                <S.ServiceSearchClear
-                                                    type="button"
-                                                    tabIndex={-1}
-                                                    onMouseDown={(e) => e.preventDefault()}
-                                                    onClick={() => {
-                                                        form.setServiceSearch('');
-                                                        setHighlightedServiceIdx(-1);
-                                                        form.serviceInputRef.current?.focus();
+                                                        if (e.key === 'ArrowUp') {
+                                                            e.preventDefault();
+                                                            setHighlightedServiceIdx(prev => prev <= 0 ? count - 1 : prev - 1);
+                                                            return;
+                                                        }
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const highlighted = form.filteredServices[highlightedServiceIdx];
+                                                            if (highlighted) {
+                                                                form.addService(highlighted);
+                                                                setHighlightedServiceIdx(-1);
+                                                            } else if (count === 1) {
+                                                                form.addService(form.filteredServices[0]);
+                                                            } else if (form.serviceSearch.trim() && count === 0) {
+                                                                form.setIsQuickServiceModalOpen(true);
+                                                                form.setShowServiceDropdown(false);
+                                                                form.setFocusedField(null);
+                                                            }
+                                                        }
                                                     }}
-                                                    aria-label="Wyczyść wyszukiwanie"
-                                                >
-                                                    <IconX />
-                                                </S.ServiceSearchClear>
-                                            )}
-                                        </S.ServiceSearchWrap>
-                                        {form.showServiceDropdown && serviceDropdownPos && createPortal(
+                                                />
+                                                {form.serviceSearch && (
+                                                    <S.ServiceSearchClear
+                                                        type="button"
+                                                        tabIndex={-1}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => {
+                                                            form.setServiceSearch('');
+                                                            setHighlightedServiceIdx(-1);
+                                                            form.serviceInputRef.current?.focus();
+                                                        }}
+                                                        aria-label="Wyczyść wyszukiwanie"
+                                                    >
+                                                        <IconX />
+                                                    </S.ServiceSearchClear>
+                                                )}
+                                            </S.ServiceSearchWrap>
+                                        )}
+
+                                        {/* Desktop portal dropdown */}
+                                        {!isMobile && form.showServiceDropdown && serviceDropdownPos && createPortal(
                                             <S.ServicePortalDropdown
                                                 ref={serviceDropdownRef}
                                                 style={{
@@ -1263,6 +1397,90 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.ServicePortalDropdown>,
                                             document.body
                                         )}
+
+                                        {/* Mobile bottom sheet */}
+                                        {isMobile && form.showServiceDropdown && createPortal(
+                                            <>
+                                                <S.MobileSheetBackdrop
+                                                    onClick={() => {
+                                                        form.setShowServiceDropdown(false);
+                                                        form.setServiceSearch('');
+                                                    }}
+                                                />
+                                                <S.MobileBottomSheet>
+                                                    <S.MobileSheetHandle />
+                                                    <S.MobileSheetTitle>Wybierz usługę</S.MobileSheetTitle>
+                                                    <S.MobileSheetSearchWrap>
+                                                        <S.MobileSheetSearchInput
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Szukaj usługi..."
+                                                            value={form.serviceSearch}
+                                                            onChange={(e) => {
+                                                                form.setServiceSearch(e.target.value);
+                                                                setHighlightedServiceIdx(-1);
+                                                            }}
+                                                        />
+                                                        {form.serviceSearch && (
+                                                            <S.ServiceSearchClear
+                                                                type="button"
+                                                                tabIndex={-1}
+                                                                onMouseDown={(e) => e.preventDefault()}
+                                                                onClick={() => form.setServiceSearch('')}
+                                                                style={{ top: '50%', right: 26 }}
+                                                            >
+                                                                <IconX />
+                                                            </S.ServiceSearchClear>
+                                                        )}
+                                                    </S.MobileSheetSearchWrap>
+                                                    <S.MobileSheetScrollable>
+                                                        {form.filteredServices.length === 0 && form.serviceSearch.trim() && (
+                                                            <S.ServiceDropdownEmpty>
+                                                                Brak usług pasujących do „{form.serviceSearch.trim()}"
+                                                            </S.ServiceDropdownEmpty>
+                                                        )}
+                                                        {form.filteredServices.map((service: Service) => (
+                                                            <S.ServiceDropdownItem
+                                                                key={service.id}
+                                                                type="button"
+                                                                $isHighlighted={false}
+                                                                onClick={() => {
+                                                                    form.addService(service);
+                                                                    setHighlightedServiceIdx(-1);
+                                                                }}
+                                                            >
+                                                                <S.ServiceDropdownName>
+                                                                    {highlightMatch(service.name, form.serviceSearch)}
+                                                                </S.ServiceDropdownName>
+                                                                {service.requireManualPrice ? (
+                                                                    <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
+                                                                ) : (
+                                                                    <S.ServiceDropdownGross>
+                                                                        {((service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100).toFixed(2)} zł brutto
+                                                                    </S.ServiceDropdownGross>
+                                                                )}
+                                                            </S.ServiceDropdownItem>
+                                                        ))}
+                                                        <S.DropdownAddButton
+                                                            type="button"
+                                                            onClick={() => {
+                                                                form.setIsQuickServiceModalOpen(true);
+                                                                form.setShowServiceDropdown(false);
+                                                                form.setFocusedField(null);
+                                                            }}
+                                                        >
+                                                            <IconPlus />
+                                                            <span>
+                                                                {form.serviceSearch.trim()
+                                                                    ? `Utwórz „${form.serviceSearch.trim()}"`
+                                                                    : 'Wprowadź nową usługę'}
+                                                            </span>
+                                                        </S.DropdownAddButton>
+                                                    </S.MobileSheetScrollable>
+                                                </S.MobileBottomSheet>
+                                            </>,
+                                            document.body
+                                        )}
                                     </S.DropdownContainer>
 
                                     {form.errors.services && <S.ErrorMessage>{form.errors.services}</S.ErrorMessage>}
@@ -1277,6 +1495,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     )}
                                 </S.RowContent>
                             </S.Row>
+
+                            {/* Advanced toggle (mobile only) */}
+                            {isMobile && !showAdvanced && (
+                                <>
+                                    <S.Divider />
+                                    <S.AdvancedToggleBtn type="button" onClick={() => setShowAdvanced(true)}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 5v14M5 12h14"/>
+                                        </svg>
+                                        Notatka, SMS, door to door
+                                    </S.AdvancedToggleBtn>
+                                </>
+                            )}
+
+                            {(!isMobile || showAdvanced) && (
+                            <>
 
                             <S.Divider />
 
@@ -1420,6 +1654,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </LockedSection>
                                 </S.RowContent>
                             </S.Row>
+
+                            </>
+                            )} {/* end advanced sections */}
+
                         </S.ScrollableContent>
 
                         {/* ── Footer ─────────────────────────────────────────────── */}
@@ -1500,9 +1738,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             )}
 
                             <S.FooterActions>
-                                <S.Button type="button" onClick={form.clearForm} $variant="ghost" title="Wyczyść wszystkie pola">
-                                    Wyczyść wszystko
-                                </S.Button>
+                                {!isMobile && (
+                                    <S.Button type="button" onClick={form.clearForm} $variant="ghost" title="Wyczyść wszystkie pola">
+                                        Wyczyść wszystko
+                                    </S.Button>
+                                )}
                                 <S.Button type="button" onClick={onClose} $variant="secondary">
                                     Anuluj
                                 </S.Button>
