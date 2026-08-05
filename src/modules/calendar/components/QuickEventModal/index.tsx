@@ -250,6 +250,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
+    const customerSheetInputRef = useRef<HTMLDivElement>(null);
 
     const MAX_VISIBLE_COLORS = 5;
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
@@ -414,10 +415,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         };
     }, [isMobile, form.showServiceDropdown, form.showCustomerDropdown]);
 
-    // When service sheet opens on mobile, set tabindex=-1 on all background inputs
+    // When any mobile sheet is open, set tabindex=-1 on all background inputs
     // so iOS grays out the ^ v navigation arrows (they appear because iOS sees other inputs in the DOM)
     useEffect(() => {
-        if (!isMobile || !form.showServiceDropdown) return;
+        if (!isMobile || (!form.showServiceDropdown && !form.showCustomerDropdown)) return;
 
         const inputs = Array.from(
             document.querySelectorAll<HTMLElement>('input, textarea, select')
@@ -438,7 +439,34 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 }
             });
         };
-    }, [isMobile, form.showServiceDropdown]);
+    }, [isMobile, form.showServiceDropdown, form.showCustomerDropdown]);
+
+    // When customer sheet opens: init contenteditable with current search value + transfer focus
+    useEffect(() => {
+        if (!isMobile || !form.showCustomerDropdown) return;
+
+        // Blur all main inputs so keyboard nav bar arrows are inactive
+        form.customerInputRef.current?.blur();
+
+        const el = customerSheetInputRef.current;
+        if (!el) return;
+
+        // Pre-fill with whatever the user already typed
+        const current = form.customerFirstName;
+        if (el.innerText !== current) {
+            el.innerText = current;
+            // Move cursor to end
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(el);
+            range.collapse(false);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+        }
+
+        // Keyboard is already open (user was typing) — just transfer focus
+        el.focus();
+    }, [isMobile, form.showCustomerDropdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Auto-expand advanced sections when editing existing data on mobile
     useEffect(() => {
@@ -992,9 +1020,35 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
                                                         <S.MobileBottomSheet ref={customerSheetRef}>
                                                             <S.MobileSheetHandle />
-                                                            <S.MobileSheetTitle>
-                                                                {form.customerResults.length > 0 ? 'Wybierz klienta' : 'Nie znaleziono klienta'}
-                                                            </S.MobileSheetTitle>
+                                                            <S.MobileSheetTitle>Szukaj klienta</S.MobileSheetTitle>
+                                                            <S.MobileSheetSearchWrap>
+                                                                <S.MobileSheetSearchEditable
+                                                                    ref={customerSheetInputRef}
+                                                                    contentEditable
+                                                                    suppressContentEditableWarning
+                                                                    role="searchbox"
+                                                                    aria-label="Szukaj klienta"
+                                                                    data-placeholder="Imię lub nazwisko..."
+                                                                    inputMode="search"
+                                                                    enterKeyHint="search"
+                                                                    autoCorrect="off"
+                                                                    autoCapitalize="words"
+                                                                    spellCheck={false}
+                                                                    onInput={(e) => {
+                                                                        const text = e.currentTarget.innerText.replace(/\n/g, '');
+                                                                        form.setCustomerFirstName(text);
+                                                                        form.setShowCustomerDropdown(true);
+                                                                    }}
+                                                                    onPaste={(e) => {
+                                                                        e.preventDefault();
+                                                                        const text = e.clipboardData.getData('text/plain').replace(/\n/g, '');
+                                                                        document.execCommand('insertText', false, text);
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') e.preventDefault();
+                                                                    }}
+                                                                />
+                                                            </S.MobileSheetSearchWrap>
                                                             <S.MobileSheetScrollable>
                                                                 {form.customerResults.map((c) => {
                                                                     const hasContact = !!(c.phone || c.email);
