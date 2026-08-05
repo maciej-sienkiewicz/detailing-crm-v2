@@ -2266,12 +2266,29 @@ export const CostsView = () => {
     }, [allItems]);
 
     // Donut slices: per-category share of all costs in the selected range.
+    // Computed client-side (same effectiveGross fallback as catTotalsMap) so that
+    // VAT-exempt items (grossValue=null) are counted correctly.
     // Tail beyond the 7 largest folds into "Pozostałe"; unassigned costs get
     // their own neutral slice so percentages are shares of ALL costs.
     const pieSlices = useMemo<PieSliceDatum[]>(() => {
-        const cats = (breakdown?.categories ?? [])
+        // Build per-category totals from allItems client-side
+        const catMap = new Map<string, { totalCostGross: number; itemCount: number }>();
+        allItems.forEach(item => {
+            if (!item.costCategoryId) return;
+            const entry = catMap.get(item.costCategoryId) ?? { totalCostGross: 0, itemCount: 0 };
+            entry.totalCostGross += effectiveGross(item);
+            entry.itemCount++;
+            catMap.set(item.costCategoryId, entry);
+        });
+
+        const cats = categories
+            .map(cat => {
+                const totals = catMap.get(cat.id) ?? { totalCostGross: 0, itemCount: 0 };
+                return { categoryId: cat.id, categoryName: cat.name, color: cat.color, ...totals };
+            })
             .filter(c => c.totalCostGross > 0)
             .sort((a, b) => b.totalCostGross - a.totalCostGross);
+
         const MAX_SLICES = 7;
         const head = cats.slice(0, MAX_SLICES);
         const tail = cats.slice(MAX_SLICES);
@@ -2294,18 +2311,21 @@ export const CostsView = () => {
                 itemCount:  tail.reduce((s, c) => s + c.itemCount, 0),
             });
         }
-        if ((breakdown?.unassignedCostGross ?? 0) > 0) {
+        // Unassigned: items with no costCategoryId
+        const unassignedItems = allItems.filter(i => !i.costCategoryId);
+        const unassignedGross = unassignedItems.reduce((s, i) => s + effectiveGross(i), 0);
+        if (unassignedGross > 0) {
             slices.push({
                 key:        '__unassigned',
                 categoryId: null,
                 name:       'Nieprzypisane',
                 color:      PIE_UNASSIGNED_COLOR,
-                value:      breakdown!.unassignedCostGross,
-                itemCount:  breakdown!.unassignedItemCount,
+                value:      unassignedGross,
+                itemCount:  unassignedItems.length,
             });
         }
         return slices;
-    }, [breakdown]);
+    }, [allItems, categories]);
 
     // Category totals map — computed client-side from allItems so that the same
     // effectiveGross fallback (grossValue ?? netValue*(1+rate)) is used everywhere,
