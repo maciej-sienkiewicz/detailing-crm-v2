@@ -249,7 +249,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showContactFields, setShowContactFields] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
-    const serviceSheetInputRef = useRef<HTMLInputElement>(null);
+    const serviceSheetInputRef = useRef<HTMLDivElement>(null);
 
     const MAX_VISIBLE_COLORS = 5;
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
@@ -1453,20 +1453,30 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <S.MobileSheetHandle />
                                                     <S.MobileSheetTitle>Wybierz usługę</S.MobileSheetTitle>
                                                     <S.MobileSheetSearchWrap>
-                                                        <S.MobileSheetSearchInput
+                                                        <S.MobileSheetSearchEditable
                                                             ref={serviceSheetInputRef}
-                                                            type="search"
+                                                            contentEditable
+                                                            suppressContentEditableWarning
+                                                            role="searchbox"
+                                                            aria-label="Szukaj usługi"
+                                                            data-placeholder="Szukaj usługi..."
                                                             inputMode="search"
                                                             enterKeyHint="search"
-                                                            autoComplete="off"
                                                             autoCorrect="off"
                                                             autoCapitalize="off"
                                                             spellCheck={false}
-                                                            placeholder="Szukaj usługi..."
-                                                            value={form.serviceSearch}
-                                                            onChange={(e) => {
-                                                                form.setServiceSearch(e.target.value);
+                                                            onInput={(e) => {
+                                                                const text = e.currentTarget.innerText.replace(/\n/g, '');
+                                                                form.setServiceSearch(text);
                                                                 setHighlightedServiceIdx(-1);
+                                                            }}
+                                                            onPaste={(e) => {
+                                                                e.preventDefault();
+                                                                const text = e.clipboardData.getData('text/plain').replace(/\n/g, '');
+                                                                document.execCommand('insertText', false, text);
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') e.preventDefault();
                                                             }}
                                                         />
                                                         {form.serviceSearch && (
@@ -1474,7 +1484,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 type="button"
                                                                 tabIndex={-1}
                                                                 onMouseDown={(e) => e.preventDefault()}
-                                                                onClick={() => form.setServiceSearch('')}
+                                                                onClick={() => {
+                                                                    if (serviceSheetInputRef.current) {
+                                                                        serviceSheetInputRef.current.innerText = '';
+                                                                    }
+                                                                    form.setServiceSearch('');
+                                                                    serviceSheetInputRef.current?.focus();
+                                                                }}
                                                                 style={{ top: '50%', right: 26 }}
                                                             >
                                                                 <IconX />

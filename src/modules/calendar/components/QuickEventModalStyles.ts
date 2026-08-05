@@ -1692,6 +1692,39 @@ export const MobileSheetSearchInput = styled.input`
     &::-webkit-search-decoration { display: none; }
 `;
 
+// contenteditable variant — used on iOS mobile to avoid the ^ v ✓ accessory bar
+// Safari only attaches inputAccessoryView to <input>/<textarea>, not contenteditable
+export const MobileSheetSearchEditable = styled.div`
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 11px 44px 11px 16px;
+    font-size: 16px;
+    font-family: inherit;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    outline: none;
+    line-height: 1.35;
+    word-break: break-word;
+    -webkit-user-select: text;
+    user-select: text;
+    white-space: pre-wrap;
+
+    &:empty::before {
+        content: attr(data-placeholder);
+        color: #94a3b8;
+        pointer-events: none;
+    }
+
+    &:focus {
+        border-color: #0ea5e9;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+`;
+
 export const MobileSheetScrollable = styled.div`
     flex: 1;
     overflow-y: auto;
