@@ -147,13 +147,14 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         const el = inputRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom - 12;
+        const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+        const spaceBelow = vvHeight - rect.bottom - 12;
         const spaceAbove = rect.top - 12;
         // Open in the roomier direction and never let the list run past the
         // viewport edge — cap its height to the space actually available.
         if (spaceBelow < 150 && spaceAbove > spaceBelow) {
             setDropdownStyle({
-                bottom: window.innerHeight - rect.top + 4,
+                bottom: vvHeight - rect.top + 4,
                 left: rect.left,
                 width: rect.width,
                 maxHeight: Math.min(240, Math.max(120, spaceAbove)),
@@ -182,10 +183,14 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         raf = requestAnimationFrame(follow);
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
+        window.visualViewport?.addEventListener('resize', updatePosition);
+        window.visualViewport?.addEventListener('scroll', updatePosition);
         return () => {
             cancelAnimationFrame(raf);
             window.removeEventListener('scroll', updatePosition, true);
             window.removeEventListener('resize', updatePosition);
+            window.visualViewport?.removeEventListener('resize', updatePosition);
+            window.visualViewport?.removeEventListener('scroll', updatePosition);
         };
     }, [isOpen, updatePosition]);
 

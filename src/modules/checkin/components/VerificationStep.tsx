@@ -337,7 +337,6 @@ const CustomerAutocompleteDropdown = styled.div`
     box-shadow: ${st.shadowLg};
     z-index: 9999;
     overflow: hidden;
-    max-height: 280px;
     overflow-y: auto;
 `;
 
@@ -523,18 +522,14 @@ const ColorCaret = styled.span`
     transform: rotate(45deg);
 `;
 
-const ColorMenu = styled.div<{ $top: number; $left: number; $width: number }>`
+const ColorMenu = styled.div`
     position: fixed;
-    top: ${p => p.$top}px;
-    left: ${p => p.$left}px;
-    width: ${p => p.$width}px;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     box-shadow: ${st.shadowLg};
     padding: 4px 0;
     z-index: 9999;
-    max-height: 300px;
     overflow: auto;
 `;
 
@@ -599,7 +594,7 @@ interface ColorDropdownProps {
 
 const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownProps) => {
     const [open, setOpen] = useState(false);
-    const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+    const [menuPos, setMenuPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number }>({ left: 0, width: 0, maxHeight: 0 });
     const containerRef = useRef<HTMLDivElement | null>(null);
     const triggerRef = useRef<HTMLButtonElement | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
@@ -607,7 +602,15 @@ const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownPro
     const calcPos = useCallback(() => {
         if (!triggerRef.current) return;
         const r = triggerRef.current.getBoundingClientRect();
-        setMenuPos({ top: r.bottom + 4, left: r.left, width: r.width });
+        const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+        const spaceBelow = vvHeight - r.bottom - 4;
+        const spaceAbove = r.top - 4;
+        const maxH = 300;
+        if (spaceBelow < 120 && spaceAbove > spaceBelow) {
+            setMenuPos({ bottom: vvHeight - r.top + 4, left: r.left, width: r.width, maxHeight: Math.min(maxH, spaceAbove) });
+        } else {
+            setMenuPos({ top: r.bottom + 4, left: r.left, width: r.width, maxHeight: Math.min(maxH, spaceBelow) });
+        }
     }, []);
 
     const handleOpen = () => {
@@ -627,10 +630,14 @@ const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownPro
         document.addEventListener('mousedown', onDocClick);
         document.addEventListener('keydown', onEsc);
         window.addEventListener('scroll', onScroll, true);
+        window.visualViewport?.addEventListener('resize', onScroll);
+        window.visualViewport?.addEventListener('scroll', onScroll);
         return () => {
             document.removeEventListener('mousedown', onDocClick);
             document.removeEventListener('keydown', onEsc);
             window.removeEventListener('scroll', onScroll, true);
+            window.visualViewport?.removeEventListener('resize', onScroll);
+            window.visualViewport?.removeEventListener('scroll', onScroll);
         };
     }, [open, calcPos]);
 
@@ -644,7 +651,7 @@ const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownPro
                 <ColorCaret />
             </ColorTrigger>
             {open && createPortal(
-                <ColorMenu ref={menuRef} role="listbox" $top={menuPos.top} $left={menuPos.left} $width={menuPos.width}>
+                <ColorMenu ref={menuRef} role="listbox" style={{ top: menuPos.top, bottom: menuPos.bottom, left: menuPos.left, width: menuPos.width, maxHeight: menuPos.maxHeight }}>
                     {colors.map(c => (
                         <ColorMenuItem
                             key={c.id}
@@ -756,7 +763,7 @@ export const VerificationStep = ({
     const vehicleAutoSelectedRef = useRef(false);
 
     const [customerAutocompleteOpen, setCustomerAutocompleteOpen] = useState(false);
-    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number } | null>(null);
     const [selectedCustomerIdForVehicles, setSelectedCustomerIdForVehicles] = useState<string | undefined>(undefined);
 
     const customerSearchQuery = [formData.customerData.firstName, formData.customerData.lastName]
@@ -817,7 +824,7 @@ export const VerificationStep = ({
         console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
     }, [formData.homeAddress, formData.company]);
 
-    // Position the customer autocomplete dropdown below the focused input field
+    // Position the customer autocomplete dropdown below (or above) the focused input field
     useEffect(() => {
         if (!showCustomerAutocomplete) {
             setCustomerDropdownPos(null);
@@ -827,14 +834,26 @@ export const VerificationStep = ({
         if (!el) return;
         const update = () => {
             const r = el.getBoundingClientRect();
-            setCustomerDropdownPos({ top: r.bottom + 4, left: r.left, width: r.width });
+            const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+            const spaceBelow = vvHeight - r.bottom - 4;
+            const spaceAbove = r.top - 4;
+            const maxH = 280;
+            if (spaceBelow < 120 && spaceAbove > spaceBelow) {
+                setCustomerDropdownPos({ bottom: vvHeight - r.top + 4, left: r.left, width: r.width, maxHeight: Math.min(maxH, spaceAbove) });
+            } else {
+                setCustomerDropdownPos({ top: r.bottom + 4, left: r.left, width: r.width, maxHeight: Math.min(maxH, spaceBelow) });
+            }
         };
         update();
         window.addEventListener('scroll', update, true);
         window.addEventListener('resize', update);
+        window.visualViewport?.addEventListener('resize', update);
+        window.visualViewport?.addEventListener('scroll', update);
         return () => {
             window.removeEventListener('scroll', update, true);
             window.removeEventListener('resize', update);
+            window.visualViewport?.removeEventListener('resize', update);
+            window.visualViewport?.removeEventListener('scroll', update);
         };
     }, [showCustomerAutocomplete]);
 
@@ -1917,7 +1936,7 @@ export const VerificationStep = ({
             {/* ── Customer autocomplete dropdown ───────────────────────── */}
             {showCustomerAutocomplete && customerDropdownPos && createPortal(
                 <CustomerAutocompleteDropdown
-                    style={{ top: customerDropdownPos.top, left: customerDropdownPos.left, width: customerDropdownPos.width }}
+                    style={{ top: customerDropdownPos.top, bottom: customerDropdownPos.bottom, left: customerDropdownPos.left, width: customerDropdownPos.width, maxHeight: customerDropdownPos.maxHeight }}
                     onMouseDown={(e) => e.preventDefault()}
                 >
                     {foundCustomers.map((c) => (
