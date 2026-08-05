@@ -395,9 +395,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             onChange(`${datePart}T${hourLocal || '09'}:${minuteLocal || '00'}`);
         } else {
             onChange(datePart);
-            setIsOpen(false);
-            onBlur?.();
         }
+        setIsOpen(false);
+        onBlur?.();
     };
 
     const updateTimeInValue = (hour: string, minute: string) => {

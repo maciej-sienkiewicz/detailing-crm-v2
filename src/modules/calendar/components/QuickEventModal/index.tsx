@@ -502,6 +502,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setStartDateTime(val);
                                                     if (form.isAllDay) {
                                                         form.setEndDateTime(`${val.split('T')[0]}T23:59:59`);
+                                                    } else {
+                                                        const startDate = val.split('T')[0];
+                                                        const endDate = form.endDateTime.split('T')[0];
+                                                        if (startDate > endDate) {
+                                                            const endTime = form.endDateTime.split('T')[1] ?? '00:00';
+                                                            form.setEndDateTime(`${startDate}T${endTime}`);
+                                                        }
                                                     }
                                                 }}
                                                 showTime={!form.isAllDay}
