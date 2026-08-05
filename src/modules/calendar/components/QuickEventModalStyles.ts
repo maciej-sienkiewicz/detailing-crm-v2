@@ -297,9 +297,15 @@ export const ServicePortalDropdown = styled.div`
     box-shadow:
         0 8px 20px -4px rgba(0,0,0,0.10),
         0 0 0 3px rgba(14,165,233,0.10);
-    max-height: 220px;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior: contain;
+
+    /* thin custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 `;
 
 export const CustomerPortalDropdown = styled.div`
@@ -388,28 +394,66 @@ export const DropdownAddButton = styled.button`
     }
 `;
 
+// ─── Service search input wrapper + clear button ──────────────────────────────
+
+export const ServiceSearchWrap = styled.div`
+    position: relative;
+    width: 100%;
+`;
+
+export const ServiceSearchClear = styled.button`
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e2e8f0;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #64748b;
+    padding: 0;
+    transition: background 150ms ease, color 150ms ease;
+    flex-shrink: 0;
+    z-index: 1;
+
+    &:hover { background: #cbd5e1; color: #0f172a; }
+    svg { width: 10px; height: 10px; }
+`;
+
 // ─── Service dropdown items ───────────────────────────────────────────────────
 
-export const ServiceDropdownItem = styled.button`
+export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     width: 100%;
-    padding: 10px 16px;
+    /* constant 13 px left padding + always-present 3 px border-left avoids layout shift */
+    padding: 12px 16px 12px 13px;
+    min-height: 48px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: transparent;
+    background: ${p => p.$isHighlighted ? '#f0f9ff' : 'transparent'};
     border: none;
+    border-left: 3px solid ${p => p.$isHighlighted ? '#0ea5e9' : 'transparent'};
     border-bottom: 1px solid #f1f5f9;
     text-align: left;
     cursor: pointer;
-    transition: background 150ms ease, border-left 150ms ease, padding-left 150ms ease;
+    transition: background 120ms ease, border-color 120ms ease;
 
     &:last-child { border-bottom: none; }
 
     &:hover {
-        background: #f8fafc;
-        border-left: 3px solid #0ea5e9;
-        padding-left: 13px;
+        background: #f0f9ff;
+        border-left-color: #0ea5e9;
+    }
+
+    @media (max-width: 639px) {
+        min-height: 52px;
+        padding: 14px 16px 14px 13px;
     }
 `;
 
@@ -422,6 +466,20 @@ export const ServiceDropdownName = styled.span`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+`;
+
+export const ServiceDropdownHighlight = styled.mark`
+    background: none;
+    color: #0ea5e9;
+    font-weight: 700;
+`;
+
+export const ServiceDropdownEmpty = styled.div`
+    padding: 20px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.5;
 `;
 
 export const ServiceDropdownPrices = styled.div`
