@@ -401,7 +401,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 const el = ref.current;
                 if (!el) return;
                 el.style.bottom = `${keyboardH}px`;
-                el.style.maxHeight = `${availH - 48}px`;
+                el.style.height = `${availH}px`;
+                el.style.maxHeight = `${availH}px`;
             });
         };
 
@@ -445,7 +446,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     useEffect(() => {
         if (!isMobile || !form.showCustomerDropdown) return;
 
-        // Blur all main inputs so keyboard nav bar arrows are inactive
+        // Suppress the blur-timer that would close the dropdown immediately after
+        // we programmatically move focus from the inline input to the sheet's search field.
+        form.skipNextCustomerBlurRef.current = true;
         form.customerInputRef.current?.blur();
 
         const el = customerSheetInputRef.current;

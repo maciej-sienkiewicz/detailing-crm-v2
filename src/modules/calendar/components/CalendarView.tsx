@@ -1450,7 +1450,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
      */
     const handleDateClick = useCallback((info: DateClickArg) => {
         const nativeEvent = info.jsEvent as PointerEvent | null;
-        if (nativeEvent?.pointerType !== 'touch') return;
+        // Skip genuine desktop mouse clicks — those are handled by the `select` callback.
+        // Allow touch, pen, and iOS-synthesized MouseEvents (which have pointerType undefined).
+        if (nativeEvent?.pointerType === 'mouse') return;
 
         const start = info.date;
         const end = new Date(start.getTime() + 60 * 60 * 1000);

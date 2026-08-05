@@ -119,6 +119,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     // When a customer is prefilled but not yet confirmed by the user, keep the
     // edit form open and suppress the auto-confirm-on-blur until they act.
     const prefillAwaitingConfirmRef = useRef(false);
+    // Set to true before programmatically blurring customer inputs (e.g. when
+    // transitioning to the mobile search bottom sheet) so the blur handler
+    // doesn't schedule a dropdown close.
+    const skipNextCustomerBlurRef = useRef(false);
 
     // ─── Vehicle edit mode ─────────────────────────────────────────────────────
     const [vehicleEditMode, setVehicleEditMode] = useState(false);
@@ -563,6 +567,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleCustomerFieldBlur = () => {
+        if (skipNextCustomerBlurRef.current) {
+            skipNextCustomerBlurRef.current = false;
+            return;
+        }
         setCustomerFirstName(v => capitalizeWords(v));
         setCustomerLastName(v => capitalizeWords(v));
         // prefix cleanup on blur: ensure it starts with +
@@ -940,6 +948,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         customerPhonePrefixRef,
         customerPhoneInputRef,
         customerEmailInputRef,
+        skipNextCustomerBlurRef,
         vehicleBrandInputRef,
         vehicleModelInputRef,
         vehicleYearInputRef,
