@@ -459,9 +459,9 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
         /* Stacked layout on mobile — name wraps, price below */
         flex-direction: column;
         align-items: flex-start;
-        gap: 3px;
-        padding: 14px 16px;
-        min-height: 60px;
+        gap: 2px;
+        padding: 11px 16px;
+        min-height: 0;
         border-left: none;
     }
 `;
@@ -477,10 +477,11 @@ export const ServiceDropdownName = styled.span`
     white-space: nowrap;
 
     @media (max-width: 639px) {
+        font-size: 14px;
         white-space: normal;
         overflow: visible;
         text-overflow: unset;
-        line-height: 1.4;
+        line-height: 1.35;
     }
 `;
 
@@ -1634,7 +1635,7 @@ export const MobileBottomSheet = styled.div`
     box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
-    max-height: 70dvh;
+    max-height: 55dvh;
     animation: ${sheetSlideUp} 280ms cubic-bezier(0.32, 0.72, 0, 1);
     padding-bottom: env(safe-area-inset-bottom);
 `;

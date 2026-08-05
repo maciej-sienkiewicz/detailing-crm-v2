@@ -247,6 +247,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isMobile, setIsMobile] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [showContactFields, setShowContactFields] = useState(false);
+    const serviceSheetRef = useRef<HTMLDivElement>(null);
+    const customerSheetRef = useRef<HTMLDivElement>(null);
+    const serviceSheetInputRef = useRef<HTMLInputElement>(null);
 
     const MAX_VISIBLE_COLORS = 5;
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
@@ -380,6 +383,40 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             setShowContactFields(false);
         }
     }, [isOpen]);
+
+    // Adjust mobile bottom sheets to always sit above the iOS keyboard
+    useEffect(() => {
+        if (!isMobile) return;
+        const isAnySheetOpen = form.showServiceDropdown || form.showCustomerDropdown;
+        if (!isAnySheetOpen) return;
+
+        const vv = window.visualViewport;
+        if (!vv) return;
+
+        const adjust = () => {
+            const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+            const availH = vv.height;
+            [serviceSheetRef, customerSheetRef].forEach(ref => {
+                const el = ref.current;
+                if (!el) return;
+                el.style.bottom = `${keyboardH}px`;
+                el.style.maxHeight = `${availH - 48}px`;
+            });
+        };
+
+        vv.addEventListener('resize', adjust);
+        vv.addEventListener('scroll', adjust);
+        adjust();
+
+        if (form.showServiceDropdown) {
+            setTimeout(() => serviceSheetInputRef.current?.focus(), 80);
+        }
+
+        return () => {
+            vv.removeEventListener('resize', adjust);
+            vv.removeEventListener('scroll', adjust);
+        };
+    }, [isMobile, form.showServiceDropdown, form.showCustomerDropdown]);
 
     // Auto-expand advanced sections when editing existing data on mobile
     useEffect(() => {
@@ -931,7 +968,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 {isMobile && form.showCustomerDropdown && createPortal(
                                                     <>
                                                         <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
-                                                        <S.MobileBottomSheet>
+                                                        <S.MobileBottomSheet ref={customerSheetRef}>
                                                             <S.MobileSheetHandle />
                                                             <S.MobileSheetTitle>
                                                                 {form.customerResults.length > 0 ? 'Wybierz klienta' : 'Nie znaleziono klienta'}
@@ -1412,12 +1449,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         form.setServiceSearch('');
                                                     }}
                                                 />
-                                                <S.MobileBottomSheet>
+                                                <S.MobileBottomSheet ref={serviceSheetRef}>
                                                     <S.MobileSheetHandle />
                                                     <S.MobileSheetTitle>Wybierz usługę</S.MobileSheetTitle>
                                                     <S.MobileSheetSearchWrap>
                                                         <S.MobileSheetSearchInput
-                                                            autoFocus
+                                                            ref={serviceSheetInputRef}
                                                             type="text"
                                                             placeholder="Szukaj usługi..."
                                                             value={form.serviceSearch}
