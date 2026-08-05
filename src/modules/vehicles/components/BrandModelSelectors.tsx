@@ -1,7 +1,8 @@
 // src/modules/vehicles/components/BrandModelSelectors.tsx
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect, type RefObject } from 'react';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
+import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
 import { useVehicleMetadata } from '../hooks/useVehicleMetadata';
 
 // Reuse ColorDropdown-like styling
@@ -174,6 +175,252 @@ const EmptyState = styled.div`
   font-size: ${props => props.theme.fontSizes.sm};
 `;
 
+/* ─── Mobile full-screen sheet ─────────────────────────────────────────────── */
+/*
+ * An anchored popover cannot work on a phone: the field sits mid-form, so once
+ * the keyboard opens iOS scrolls the visual viewport and the `position: fixed`
+ * menu — anchored to layout-viewport coordinates — drifts off screen, taking
+ * the search field with it. A sheet locked to the visible region avoids the
+ * whole class of problem, and matches the customer/service pickers.
+ */
+
+const SheetBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.45);
+`;
+
+const Sheet = styled.div`
+  position: fixed;
+  /* Fallback for browsers without visualViewport; useVisualViewportSheet
+     overrides top/height at runtime so the sheet tracks the visible region
+     between the top of the screen and the keyboard. */
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2001;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #ffffff;
+  box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
+  /* 0 in Safari; only bites as an installed PWA, where the sheet reaches the
+     status bar. */
+  padding-top: env(safe-area-inset-top);
+`;
+
+const SheetHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 4px 8px 4px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+`;
+
+const SheetClose = styled.button`
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms, color 140ms;
+
+  svg { width: 20px; height: 20px; }
+
+  &:active {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+`;
+
+const SheetSearchWrap = styled.div`
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f5f9;
+`;
+
+const SheetSearchInput = styled.input`
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 16px;
+  /* Doubled selector so this wins over any global rule. 16px is the threshold
+     below which iOS Safari zooms the page on focus — that zoom was the "weird
+     shift" that pushed the field out of sight while typing. */
+  && { font-size: 16px; }
+  font-family: inherit;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  outline: none;
+
+  &::placeholder { color: #94a3b8; }
+
+  &:focus {
+    border-color: #0ea5e9;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+  }
+
+  &:disabled { opacity: 0.6; }
+`;
+
+const SheetList = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* On the scroll area, not the sheet: with the keyboard up this would
+     otherwise be a dead gap above it. */
+  padding-bottom: env(safe-area-inset-bottom);
+`;
+
+const SheetItem = styled.button<{ $selected?: boolean }>`
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
+  color: ${p => p.$selected ? '#0284c7' : '#0f172a'};
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: ${p => p.$selected ? 600 : 400};
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:last-child { border-bottom: none; }
+  &:active { background: #f0f9ff; }
+`;
+
+const SheetEmpty = styled.div`
+  padding: 24px 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+`;
+
+const SheetDoneBar = styled.div`
+  flex-shrink: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid #f1f5f9;
+`;
+
+const SheetDoneBtn = styled.button`
+  width: 100%;
+  min-height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: #0ea5e9;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active { background: #0284c7; }
+`;
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+interface SelectSheetProps {
+  title: string;
+  placeholder: string;
+  searchDisabled?: boolean;
+  query: string;
+  onQueryChange: (value: string) => void;
+  items: string[];
+  selected?: string;
+  onPick: (value: string) => void;
+  onClose: () => void;
+  onDone?: () => void;
+  sheetRef: RefObject<HTMLDivElement | null>;
+  searchRef: RefObject<HTMLInputElement | null>;
+}
+
+const SelectSheet = ({
+  title, placeholder, searchDisabled, query, onQueryChange,
+  items, selected, onPick, onClose, onDone, sheetRef, searchRef,
+}: SelectSheetProps) => createPortal(
+  <>
+    <SheetBackdrop />
+    <Sheet ref={sheetRef} role="listbox" aria-label={title}>
+      <SheetHeader>
+        <span>{title}</span>
+        <SheetClose
+          type="button"
+          aria-label="Zamknij"
+          // Hold focus on the search field until the click lands; the sheet
+          // then unmounts and the keyboard drops with it.
+          onMouseDown={e => e.preventDefault()}
+          onClick={onClose}
+        >
+          <CloseIcon />
+        </SheetClose>
+      </SheetHeader>
+      <SheetSearchWrap>
+        <SheetSearchInput
+          ref={searchRef}
+          type="text"
+          placeholder={placeholder}
+          value={query}
+          disabled={searchDisabled}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          onChange={e => onQueryChange(e.target.value)}
+        />
+      </SheetSearchWrap>
+      <SheetList>
+        {items.length === 0 && <SheetEmpty>Brak wyników</SheetEmpty>}
+        {items.map(item => (
+          <SheetItem
+            key={item}
+            type="button"
+            $selected={item === selected}
+            onClick={() => onPick(item)}
+          >
+            {item}
+          </SheetItem>
+        ))}
+      </SheetList>
+      {onDone && (
+        <SheetDoneBar>
+          <SheetDoneBtn type="button" onMouseDown={e => e.preventDefault()} onClick={onDone}>
+            Gotowe
+          </SheetDoneBtn>
+        </SheetDoneBar>
+      )}
+    </Sheet>
+  </>,
+  document.body,
+);
+
 type MenuStyle = { top?: number; bottom?: number; left: number; width: number; maxHeight: number };
 
 interface BrandSelectProps {
@@ -196,6 +443,10 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
   const [menuStyle, setMenuStyle] = useState<MenuStyle | null>(null);
   const [query, setQuery] = useState('');
   const didFocusRef = useRef(false);
+  const isMobile = !useBreakpoint('sm');
+
+  // Sheet spans the visible region, so the search field stays put while typing.
+  useVisualViewportSheet(isMobile && open, portalMenuRef);
 
   const brands = useMemo(() => (data || []).map(b => b.marka).sort((a, b) => a.localeCompare(b)), [data]);
   const filteredBrands = useMemo(() => {
@@ -225,13 +476,16 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
 
   useEffect(() => {
     if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); onBlur?.(); } };
+    window.addEventListener('keydown', onKey);
+    // The sheet is viewport-locked, so none of the anchoring work applies.
+    if (isMobile) return () => window.removeEventListener('keydown', onKey);
+
     updatePosition();
     const onScroll = () => updatePosition();
     const onResize = () => updatePosition();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); onBlur?.(); } };
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onResize);
-    window.addEventListener('keydown', onKey);
     window.visualViewport?.addEventListener('resize', onResize);
     window.visualViewport?.addEventListener('scroll', onScroll);
     return () => {
@@ -241,19 +495,21 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
       window.visualViewport?.removeEventListener('resize', onResize);
       window.visualViewport?.removeEventListener('scroll', onScroll);
     };
-  }, [open, onBlur]);
+  }, [open, onBlur, isMobile]);
 
-  // Focus search input after portal is rendered (menuStyle is set means portal is visible)
+  // Focus the search field once the menu is actually on screen (on desktop
+  // that means menuStyle has been measured; the sheet needs no measuring).
   useEffect(() => {
     if (!open) {
       didFocusRef.current = false;
       return;
     }
-    if (!menuStyle || didFocusRef.current) return;
+    if (!isMobile && !menuStyle) return;
+    if (didFocusRef.current) return;
     didFocusRef.current = true;
-    const timer = setTimeout(() => searchRef.current?.focus(), 0);
+    const timer = setTimeout(() => searchRef.current?.focus(), isMobile ? 60 : 0);
     return () => clearTimeout(timer);
-  }, [open, menuStyle]);
+  }, [open, menuStyle, isMobile]);
 
   // Reset query each time menu opens
   useEffect(() => {
@@ -294,7 +550,22 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
         )}
         <Caret />
       </Trigger>
-      {open && menuStyle && createPortal(
+      {open && isMobile && (
+        <SelectSheet
+          title="Wybierz markę"
+          placeholder="Szukaj marki..."
+          query={query}
+          onQueryChange={setQuery}
+          items={filteredBrands}
+          selected={value}
+          onPick={b => { onChange(b); setOpen(false); onBlur?.(); }}
+          onClose={() => { setOpen(false); onBlur?.(); }}
+          onDone={onDone && (() => { setOpen(false); onDone(); })}
+          sheetRef={portalMenuRef}
+          searchRef={searchRef}
+        />
+      )}
+      {open && !isMobile && menuStyle && createPortal(
         <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width, maxHeight: menuStyle.maxHeight }}>
           <SearchContainer>
             <SearchInput
@@ -350,6 +621,10 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
   const [menuStyle, setMenuStyle] = useState<MenuStyle | null>(null);
   const [query, setQuery] = useState('');
   const didFocusRef = useRef(false);
+  const isMobile = !useBreakpoint('sm');
+
+  // Sheet spans the visible region, so the search field stays put while typing.
+  useVisualViewportSheet(isMobile && open, portalMenuRef);
 
   const models = useMemo(() => {
     if (!brand || !data) return [] as string[];
@@ -386,13 +661,16 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
 
   useEffect(() => {
     if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); onBlur?.(); } };
+    window.addEventListener('keydown', onKey);
+    // The sheet is viewport-locked, so none of the anchoring work applies.
+    if (isMobile) return () => window.removeEventListener('keydown', onKey);
+
     updatePosition();
     const onScroll = () => updatePosition();
     const onResize = () => updatePosition();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); onBlur?.(); } };
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onResize);
-    window.addEventListener('keydown', onKey);
     window.visualViewport?.addEventListener('resize', onResize);
     window.visualViewport?.addEventListener('scroll', onScroll);
     return () => {
@@ -402,19 +680,21 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
       window.visualViewport?.removeEventListener('resize', onResize);
       window.visualViewport?.removeEventListener('scroll', onScroll);
     };
-  }, [open, onBlur]);
+  }, [open, onBlur, isMobile]);
 
-  // Focus search input after portal is rendered (menuStyle is set means portal is visible)
+  // Focus the search field once the menu is actually on screen (on desktop
+  // that means menuStyle has been measured; the sheet needs no measuring).
   useEffect(() => {
     if (!open) {
       didFocusRef.current = false;
       return;
     }
-    if (!menuStyle || didFocusRef.current) return;
+    if (!isMobile && !menuStyle) return;
+    if (didFocusRef.current) return;
     didFocusRef.current = true;
-    const timer = setTimeout(() => searchRef.current?.focus(), 0);
+    const timer = setTimeout(() => searchRef.current?.focus(), isMobile ? 60 : 0);
     return () => clearTimeout(timer);
-  }, [open, menuStyle]);
+  }, [open, menuStyle, isMobile]);
 
   useEffect(() => {
     if (open) setQuery('');
@@ -454,7 +734,23 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
         )}
         <Caret />
       </Trigger>
-      {open && menuStyle && createPortal(
+      {open && isMobile && (
+        <SelectSheet
+          title="Wybierz model"
+          placeholder={brand ? 'Szukaj modelu...' : 'Wybierz markę'}
+          searchDisabled={!brand}
+          query={query}
+          onQueryChange={setQuery}
+          items={filteredModels}
+          selected={value}
+          onPick={m => { onChange(m); setOpen(false); onBlur?.(); }}
+          onClose={() => { setOpen(false); onBlur?.(); }}
+          onDone={onDone && (() => { setOpen(false); onDone(); })}
+          sheetRef={portalMenuRef}
+          searchRef={searchRef}
+        />
+      )}
+      {open && !isMobile && menuStyle && createPortal(
         <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width, maxHeight: menuStyle.maxHeight }}>
           <SearchContainer>
             <SearchInput

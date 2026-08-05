@@ -1828,22 +1828,3 @@ export const AdvancedToggleBtn = styled.button`
     svg { width: 14px; height: 14px; color: #0ea5e9; flex-shrink: 0; }
     &:active { color: #0ea5e9; }
 `;
-
-// ─── Show phone/email toggle (mobile customer form) ───────────────────────────
-
-export const ContactFieldsToggle = styled.button`
-    display: block;
-    width: 100%;
-    padding: 6px 14px 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #0ea5e9;
-    background: none;
-    border: none;
-    border-top: 1px solid #f1f5f9;
-    cursor: pointer;
-    font-family: inherit;
-    text-align: left;
-
-    &:active { color: #0284c7; }
-`;

@@ -247,7 +247,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // Mobile-specific UX state
     const [isMobile, setIsMobile] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
-    const [showContactFields, setShowContactFields] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
@@ -382,7 +381,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     useEffect(() => {
         if (!isOpen) {
             setShowAdvanced(false);
-            setShowContactFields(false);
         }
     }, [isOpen]);
 
@@ -865,9 +863,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
 
-                                                    {/* Phone + email — always on desktop, collapsible on mobile */}
-                                                    {(!isMobile || showContactFields) && (
-                                                        <S.CustomerInputRow>
+                                                    {/* Phone + email — always visible, on every viewport */}
+                                                    <S.CustomerInputRow>
                                                             <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
                                                                 <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
                                                                 <S.PhoneInputRow>
@@ -918,18 +915,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     $hasError={!!form.errors.customerEmail}
                                                                 />
                                                             </S.CustomerFieldGroup>
-                                                        </S.CustomerInputRow>
-                                                    )}
-
-                                                    {/* Mobile: show "add phone/email" toggle */}
-                                                    {isMobile && !showContactFields && (
-                                                        <S.ContactFieldsToggle
-                                                            type="button"
-                                                            onClick={() => setShowContactFields(true)}
-                                                        >
-                                                            + Dodaj telefon i e-mail
-                                                        </S.ContactFieldsToggle>
-                                                    )}
+                                                    </S.CustomerInputRow>
                                                 </S.CustomerInputBlock>
 
                                                 {/* Desktop portal dropdown */}
@@ -1081,16 +1067,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     type="button"
                                                                     onMouseDown={(e) => e.preventDefault()}
                                                                     onClick={() => {
-                                                                        // On mobile the sheet has no phone/email field — add the customer
-                                                                        // using whatever name was typed (skipping contact validation).
-                                                                        // Phone/email can be filled later in the chip's edit mode.
-                                                                        const ok = form.handleAddNewCustomerDirectly({ skipContactValidation: true });
+                                                                        // The sheet has no phone/email field — add the customer using
+                                                                        // whatever name was typed (skipping contact validation).
+                                                                        // If nothing was typed we just close: the phone/email inputs
+                                                                        // are always on screen behind the sheet.
+                                                                        form.handleAddNewCustomerDirectly({ skipContactValidation: true });
                                                                         form.setShowCustomerDropdown(false);
                                                                         form.setFocusedField(null);
-                                                                        if (!ok) {
-                                                                            // No name typed — show contact fields so user can fill details
-                                                                            setShowContactFields(true);
-                                                                        }
                                                                     }}
                                                                 >
                                                                     <IconPlus />
