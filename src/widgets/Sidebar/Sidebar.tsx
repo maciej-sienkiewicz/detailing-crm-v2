@@ -94,16 +94,20 @@ const buildMenuSections = (
             items: [
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
-                { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' },
-                { path: '/settings',   label: 'Ustawienia', icon: Settings },
+                { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' }
             ],
         },
         {
             title: 'Marketing',
             items: [
                 { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
-                { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' },
-                { path: '/google-reviews', label: 'Google Reviews', icon: Search, requires: 'MARKETING_MANAGE' },
+                { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' }
+            ],
+        },
+        {
+            title: 'Portal',
+            items: [
+                { path: '/settings',   label: 'Ustawienia', icon: Settings },
             ],
         },
     ];
