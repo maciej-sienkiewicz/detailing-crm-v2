@@ -19,12 +19,13 @@ export interface BreakdownRow {
     isDraggable?: boolean;
 }
 
-const Wrapper = styled.div`
+const Wrapper = styled.div<{ $maxHeight?: string }>`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    overflow-x: auto;
+    overflow: auto;
     box-shadow: ${st.shadowSm};
+    ${p => p.$maxHeight && `max-height: ${p.$maxHeight};`}
 `;
 
 const Table = styled.table`
@@ -33,10 +34,7 @@ const Table = styled.table`
     border-collapse: collapse;
 `;
 
-const Thead = styled.thead`
-    background: ${st.bg};
-    border-bottom: 1px solid ${st.border};
-`;
+const Thead = styled.thead``;
 
 const Th = styled.th<{ $align?: 'left' | 'right' }>`
     padding: 10px 16px;
@@ -47,6 +45,11 @@ const Th = styled.th<{ $align?: 'left' | 'right' }>`
     text-transform: uppercase;
     letter-spacing: 0.6px;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: ${st.bg};
+    z-index: 1;
+    box-shadow: 0 1px 0 ${st.border};
 `;
 
 const Tr = styled.tr<{
@@ -201,6 +204,7 @@ interface BreakdownTableProps {
     droppable?: boolean;
     onDrop?: (draggedId: string, targetId: string) => void;
     rowActions?: (row: BreakdownRow) => ReactNode;
+    maxHeight?: string;
 }
 
 export const BreakdownTable = ({
@@ -213,6 +217,7 @@ export const BreakdownTable = ({
     droppable = false,
     onDrop,
     rowActions,
+    maxHeight,
 }: BreakdownTableProps) => {
     const [dragOverRowId, setDragOverRowId] = useState<string | null>(null);
 
@@ -226,6 +231,7 @@ export const BreakdownTable = ({
 
     return (
         <Wrapper
+            $maxHeight={maxHeight}
             onDragLeave={(e) => {
                 if (droppable && !e.currentTarget.contains(e.relatedTarget as Node)) {
                     setDragOverRowId(null);

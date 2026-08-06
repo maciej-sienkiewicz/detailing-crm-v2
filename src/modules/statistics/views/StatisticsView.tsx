@@ -226,6 +226,23 @@ const DragHint = styled.div`
     color: ${st.textSecondary};
 `;
 
+const CategoryDropdown = styled.select`
+    padding: 4px 8px;
+    font-size: ${st.fontXs};
+    font-weight: 500;
+    color: ${st.text};
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    cursor: pointer;
+    max-width: 150px;
+    font-family: inherit;
+    transition: border-color ${st.transition};
+
+    &:focus { outline: none; border-color: ${st.accentBlue}; }
+    &:hover { border-color: ${st.borderHover}; }
+`;
+
 // ─── Common ───────────────────────────────────────────────────────────────────
 
 const AddButton = styled.button`
@@ -955,6 +972,7 @@ export const StatisticsView = () => {
                             onRowClick={handleCategoryRowClick}
                             droppable
                             onDrop={handleAssignServiceToCategory}
+                            maxHeight="480px"
                             rowActions={(row) => {
                                 const cat = categories.find(c => c.id === row.id);
                                 if (!cat) return null;
@@ -990,6 +1008,7 @@ export const StatisticsView = () => {
                             rows={filteredServiceRows}
                             isLoading={breakdownLoading}
                             showColorDot={!selectedCategoryId}
+                            maxHeight="520px"
                             emptyText={
                                 serviceNameFilter.trim()
                                     ? 'Brak usług pasujących do wyszukiwanej frazy'
@@ -999,14 +1018,24 @@ export const StatisticsView = () => {
                                     ? 'Brak usług przypisanych do tej kategorii'
                                     : t.statistics.breakdown.empty
                             }
-                            rowActions={(row) => row.categoryId ? (
-                                <RowActionBtn
-                                    title="Odepnij od kategorii"
-                                    onClick={() => handleUnpinService(row.id, row.categoryId!)}
+                            rowActions={(row) => (
+                                <CategoryDropdown
+                                    value={row.categoryId ?? ''}
+                                    onChange={async (e) => {
+                                        const newCatId = e.target.value;
+                                        if (newCatId === '' && row.categoryId) {
+                                            await handleUnpinService(row.id, row.categoryId);
+                                        } else if (newCatId && newCatId !== row.categoryId) {
+                                            await handleAssignServiceToCategory(row.id, newCatId);
+                                        }
+                                    }}
                                 >
-                                    ✕
-                                </RowActionBtn>
-                            ) : null}
+                                    <option value="">Bez kategorii</option>
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </CategoryDropdown>
+                            )}
                         />
                     </TableColumn>
                 </TablesGrid>
