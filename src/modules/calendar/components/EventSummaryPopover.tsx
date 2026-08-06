@@ -151,7 +151,7 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
 `;
 
 const PopoverHeader = styled.div<{ $color: string }>`
-    padding: 20px 24px 30px;
+    padding: 20px 24px 16px;
     background: ${props => props.$color};
     color: white;
     border-bottom: none;
@@ -177,7 +177,7 @@ const PopoverHeader = styled.div<{ $color: string }>`
     }
 
     @media (max-height: 800px) {
-        padding: 14px 18px 22px;
+        padding: 14px 18px 14px;
     }
 
     @media (max-width: 639px) {
