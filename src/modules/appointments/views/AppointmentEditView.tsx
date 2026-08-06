@@ -225,6 +225,7 @@ export const AppointmentEditView = () => {
                 damagePoints: initialData.damagePoints || [],
                 visitStartAt: fromInstantToLocalInput(startRaw),
                 visitEndAt: fromInstantToLocalInput(endRaw),
+                isAllDay: appointment?.schedule?.isAllDay ?? false,
                 doorToDoor: initialData.doorToDoor,
             };
             initialFormDataRef.current = snapshot;
@@ -352,7 +353,7 @@ export const AppointmentEditView = () => {
                     },
             services: formData.services.map(toApiServiceLineItem),
             schedule: {
-                isAllDay: false,
+                isAllDay: formData.isAllDay ?? false,
                 startDateTime: startInstant,
                 endDateTime: endInstant,
             },
