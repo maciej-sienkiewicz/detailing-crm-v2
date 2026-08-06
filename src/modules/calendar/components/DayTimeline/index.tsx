@@ -85,19 +85,8 @@ export const DayTimelineView = ({
 
     const handleCardClick = (e: React.MouseEvent, eventData: AppointmentEventData | VisitEventData) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const popoverWidth = 380;
-        const margin = 16;
 
-        let x = rect.right + 10;
-        if (x + popoverWidth + margin > window.innerWidth) {
-            x = Math.max(margin, rect.left - popoverWidth - 10);
-        }
-        let y = rect.top;
-        if (y + 520 + margin > window.innerHeight) {
-            y = Math.max(margin, window.innerHeight - 520 - margin);
-        }
-
-        onEventClick(eventData, { x, y });
+        onEventClick(eventData, { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
     };
 
     return (

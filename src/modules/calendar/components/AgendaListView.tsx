@@ -5,6 +5,7 @@ import React, { useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
+import type { PopoverAnchor } from './EventSummaryPopover';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -272,7 +273,7 @@ export interface AgendaListViewProps {
     rangeEnd: string;
     /** The currently selected/focused date (dateRange.start for navigated month) */
     focusDate?: string;
-    onEventClick: (eventData: AppointmentEventData | VisitEventData, position: { x: number; y: number }) => void;
+    onEventClick: (eventData: AppointmentEventData | VisitEventData, anchor: PopoverAnchor) => void;
 }
 
 export const AgendaListView: React.FC<AgendaListViewProps> = ({
@@ -340,7 +341,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                                 $dimmed={isCancelled}
                                                 onClick={e => {
                                                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                                    onEventClick(data, { x: rect.left, y: rect.top });
+                                                    onEventClick(data, { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
                                                 }}
                                             >
                                                 <EventContent>

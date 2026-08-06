@@ -1,6 +1,6 @@
 // src/modules/calendar/components/EventSummaryPopover.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -47,6 +47,32 @@ const popoverOut = keyframes`
 const ENTER_MS = 240;
 const EXIT_MS  = 160;
 
+// ─── Layout constants ─────────────────────────────────────────────────────────
+// Single source of truth shared by the CSS below and the measure pass. Callers
+// no longer guess these — they only hand over the anchor rect of the clicked
+// event and the popover positions itself against its own measured size.
+
+/** Popover width on tall viewports; must match the `width` rule below. */
+export const POPOVER_WIDTH = 390;
+/** Popover width under the `max-height: 800px` breakpoint. */
+export const POPOVER_WIDTH_COMPACT = 340;
+/** Hard ceiling on popover height; the body scrolls past it. */
+const POPOVER_MAX_HEIGHT = 580;
+/** Minimum breathing room between the popover and the viewport edges. */
+const VIEWPORT_MARGIN = 16;
+/** Horizontal gap between the anchored event and the popover. */
+const ANCHOR_GAP = 10;
+/** Below this width the Overlay centers the popover as a flex child. */
+const MOBILE_BREAKPOINT = 768;
+
+/** Anchor rect of the clicked event, in viewport coordinates. */
+export interface PopoverAnchor {
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+}
+
 const Overlay = styled.div<{ $closing: boolean }>`
     position: fixed;
     inset: 0;
@@ -82,8 +108,12 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
         0 4px 6px rgba(0, 0, 0, 0.02),
         0 12px 24px rgba(0, 0, 0, 0.06),
         0 24px 48px rgba(0, 0, 0, 0.08);
-    width: 390px;
-    max-height: min(580px, calc(100vh - ${props => props.$y}px - 16px));
+    width: ${POPOVER_WIDTH}px;
+    /* Height must NOT depend on $y — otherwise the same event renders a
+       different popover depending on where on screen it was clicked. The
+       fit-on-screen guarantee comes from the measure pass below, which knows
+       the real rendered height instead of guessing it. */
+    max-height: min(${POPOVER_MAX_HEIGHT}px, calc(100vh - ${VIEWPORT_MARGIN * 2}px));
     z-index: 1000;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.8);
@@ -95,7 +125,7 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
         : css`${popoverIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1) forwards`};
 
     @media (max-height: 800px) {
-        width: 340px;
+        width: ${POPOVER_WIDTH_COMPACT}px;
         border-radius: 14px;
     }
 
@@ -127,6 +157,12 @@ const PopoverHeader = styled.div<{ $color: string }>`
     border-bottom: none;
     position: relative;
     overflow: hidden;
+    /* Without this the header absorbs the entire height deficit: PopoverBody is
+       flex: 1 1 0%, so its zero basis gives it zero shrink weight, and the
+       footer is explicitly protected. The header would then be silently
+       cropped by its own overflow: hidden, taking the EventTime chip with it.
+       Overflow belongs in the scrollable body, never here. */
+    flex-shrink: 0;
 
     &::after {
         content: '';
@@ -844,6 +880,12 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
 interface EventSummaryPopoverProps {
     event: AppointmentEventData | VisitEventData;
     position: { x: number; y: number };
+    /**
+     * Rect of the clicked event. When supplied the popover anchors itself to
+     * it and flips/clamps against its own measured size; `position` is then
+     * only the pre-measure starting point.
+     */
+    anchor?: PopoverAnchor | null;
     onClose: () => void;
     onManageClick: () => void; // used for visits navigation
     onEditReservationClick?: () => void;
@@ -858,6 +900,7 @@ interface EventSummaryPopoverProps {
 export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     event,
     position,
+    anchor,
     onClose,
     onManageClick,
     onEditReservationClick,
@@ -873,6 +916,67 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     const [closing, setClosing] = useState(false);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [coords, setCoords] = useState(position);
+
+    // Position against the *measured* popover, not an assumed height. Callers
+    // used to hard-code 520/580 and clamp `y` up by that much, which parked
+    // short popovers far above their event ("too much empty space below") and
+    // squeezed tall ones. Running in a layout effect means the corrected
+    // coordinates are committed before the browser paints, so there is no
+    // visible jump. A ResizeObserver keeps this honest when async content —
+    // the SMS row, a long services list — changes the height after mount.
+    const anchorTop    = anchor?.top;
+    const anchorLeft   = anchor?.left;
+    const anchorRight  = anchor?.right;
+
+    useLayoutEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        // Under the mobile breakpoint the Overlay centers the popover as a
+        // flex child and the CSS overrides left/top with !important, so any
+        // computed coordinates would be dead weight.
+        if (window.innerWidth <= MOBILE_BREAKPOINT) return;
+
+        const place = () => {
+            const w = el.offsetWidth;
+            const h = el.offsetHeight;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            let x: number;
+            let y: number;
+
+            if (anchorLeft != null && anchorRight != null && anchorTop != null) {
+                x = anchorRight + ANCHOR_GAP;
+                // Not enough room on the right — flip to the left of the event.
+                if (x + w + VIEWPORT_MARGIN > vw) x = anchorLeft - w - ANCHOR_GAP;
+                y = anchorTop;
+            } else {
+                x = position.x;
+                y = position.y;
+            }
+
+            // Clamp into the viewport using the real size.
+            if (x + w + VIEWPORT_MARGIN > vw) x = vw - w - VIEWPORT_MARGIN;
+            if (x < VIEWPORT_MARGIN) x = VIEWPORT_MARGIN;
+            if (y + h + VIEWPORT_MARGIN > vh) y = vh - h - VIEWPORT_MARGIN;
+            if (y < VIEWPORT_MARGIN) y = VIEWPORT_MARGIN;
+
+            setCoords(prev => (prev.x === x && prev.y === y ? prev : { x, y }));
+        };
+
+        place();
+
+        const ro = new ResizeObserver(place);
+        ro.observe(el);
+        window.addEventListener('resize', place);
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('resize', place);
+        };
+    }, [anchorTop, anchorLeft, anchorRight, position.x, position.y]);
 
     // Personal-data access is determined by the X-Pii-Access response header
     // the backend sets on every authenticated response. When false the server
@@ -956,7 +1060,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     return (
         <>
             <Overlay $closing={closing} onClick={handleClose}>
-            <PopoverContainer $x={position.x} $y={position.y} $closing={closing} onClick={e => e.stopPropagation()}>
+            <PopoverContainer ref={containerRef} $x={coords.x} $y={coords.y} $closing={closing} onClick={e => e.stopPropagation()}>
                 <PopoverHeader $color={event.colorHex || '#3b82f6'}>
                     <HeaderCloseButton type="button" onClick={handleClose} title="Zamknij (Esc)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
