@@ -29,7 +29,7 @@ import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
-import { StatisticsView, CategoryDetailView, DelayStatisticsView, CostsView } from "@/modules/statistics";
+import { StatisticsView, CategoryDetailView, CostsView } from "@/modules/statistics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
@@ -253,10 +253,6 @@ export const router = createBrowserRouter([
     {
         path: '/statistics/costs',
         element: gatedPage(<CostsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
-    },
-    {
-        path: '/statistics/delays',
-        element: gatedPage(<DelayStatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
     },
     {
         path: '/statistics/categories/:categoryId',
