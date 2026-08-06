@@ -19,24 +19,23 @@ export interface BreakdownRow {
     isDraggable?: boolean;
 }
 
-const Wrapper = styled.div`
+const Wrapper = styled.div<{ $maxHeight?: string }>`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    overflow-x: auto;
+    overflow: auto;
     box-shadow: ${st.shadowSm};
+    ${p => p.$maxHeight && `max-height: ${p.$maxHeight};`}
 `;
 
 const Table = styled.table`
     width: 100%;
     min-width: 560px;
     border-collapse: collapse;
+    table-layout: fixed;
 `;
 
-const Thead = styled.thead`
-    background: ${st.bg};
-    border-bottom: 1px solid ${st.border};
-`;
+const Thead = styled.thead``;
 
 const Th = styled.th<{ $align?: 'left' | 'right' }>`
     padding: 10px 16px;
@@ -47,6 +46,11 @@ const Th = styled.th<{ $align?: 'left' | 'right' }>`
     text-transform: uppercase;
     letter-spacing: 0.6px;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: ${st.bg};
+    z-index: 1;
+    box-shadow: 0 1px 0 ${st.border};
 `;
 
 const Tr = styled.tr<{
@@ -102,10 +106,26 @@ const Td = styled.td<{ $align?: 'left' | 'right' }>`
     font-variant-numeric: tabular-nums;
 `;
 
+const NameTd = styled.td`
+    padding: 11px 16px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+
+    &:hover ~ td {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.1s;
+    }
+`;
+
 const NameCell = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+    overflow: hidden;
 `;
 
 const ColorDot = styled.span<{ $color: string }>`
@@ -119,8 +139,14 @@ const ColorDot = styled.span<{ $color: string }>`
 `;
 
 const NameText = styled.span`
+    display: block;
+    flex: 1;
+    min-width: 0;
     font-weight: 500;
     color: ${st.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 const InactiveBadge = styled.span`
@@ -201,6 +227,7 @@ interface BreakdownTableProps {
     droppable?: boolean;
     onDrop?: (draggedId: string, targetId: string) => void;
     rowActions?: (row: BreakdownRow) => ReactNode;
+    maxHeight?: string;
 }
 
 export const BreakdownTable = ({
@@ -213,6 +240,7 @@ export const BreakdownTable = ({
     droppable = false,
     onDrop,
     rowActions,
+    maxHeight,
 }: BreakdownTableProps) => {
     const [dragOverRowId, setDragOverRowId] = useState<string | null>(null);
 
@@ -226,6 +254,7 @@ export const BreakdownTable = ({
 
     return (
         <Wrapper
+            $maxHeight={maxHeight}
             onDragLeave={(e) => {
                 if (droppable && !e.currentTarget.contains(e.relatedTarget as Node)) {
                     setDragOverRowId(null);
@@ -236,10 +265,10 @@ export const BreakdownTable = ({
                 <Thead>
                     <tr>
                         <Th>{t.statistics.breakdown.name}</Th>
-                        <Th $align="right">{t.statistics.breakdown.orders}</Th>
-                        <Th $align="right">{t.statistics.breakdown.revenue}</Th>
-                        <Th $align="right">{t.statistics.breakdown.share}</Th>
-                        {hasActions && <Th />}
+                        <Th $align="right" style={{ width: 80 }}>{t.statistics.breakdown.orders}</Th>
+                        <Th $align="right" style={{ width: 110 }}>{t.statistics.breakdown.revenue}</Th>
+                        <Th $align="right" style={{ width: 65 }}>{t.statistics.breakdown.share}</Th>
+                        {hasActions && <Th style={{ width: 80 }} />}
                     </tr>
                 </Thead>
                 <tbody>
@@ -295,19 +324,19 @@ export const BreakdownTable = ({
                                     }
                                 } : undefined}
                             >
-                                <Td>
+                                <NameTd>
                                     <NameCell>
                                         {row.isDraggable && <DragHandle>⠿</DragHandle>}
                                         {showColorDot && <ColorDot $color={barColor} />}
                                         {row.isUnassigned && (
                                             <UnassignedIcon title="Nieprzypisana do kategorii">⚠</UnassignedIcon>
                                         )}
-                                        <NameText>{row.name}</NameText>
+                                        <NameText title={row.name}>{row.name}</NameText>
                                         {row.isActive === false && (
                                             <InactiveBadge>({t.statistics.categories.statusInactive})</InactiveBadge>
                                         )}
                                     </NameCell>
-                                </Td>
+                                </NameTd>
                                 <Td $align="right">{row.orderCount}</Td>
                                 <Td $align="right">
                                     <RevenueText>{formatRevenue(row.totalRevenueGross)}</RevenueText>

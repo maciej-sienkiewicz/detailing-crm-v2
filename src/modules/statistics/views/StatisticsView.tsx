@@ -1,5 +1,5 @@
 // src/modules/statistics/views/StatisticsView.tsx
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
@@ -225,6 +225,139 @@ const DragHint = styled.div`
     font-size: ${st.fontXs};
     color: ${st.textSecondary};
 `;
+
+// ─── Portal category select ───────────────────────────────────────────────────
+
+const CatSelectTrigger = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: ${st.fontXs};
+    font-weight: 500;
+    color: ${st.text};
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    cursor: pointer;
+    max-width: 150px;
+    font-family: inherit;
+    transition: border-color ${st.transition};
+    &:focus { outline: none; border-color: ${st.accentBlue}; }
+    &:hover { border-color: ${st.borderHover}; }
+`;
+
+const CatSelectLabel = styled.span`
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const CatSelectPanel = styled.div`
+    position: fixed;
+    z-index: 9999;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    min-width: 160px;
+    max-width: 240px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px;
+`;
+
+const CatSelectOption = styled.button<{ $active: boolean }>`
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 10px;
+    border: none;
+    border-radius: ${st.radiusSm};
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: ${p => p.$active ? '600' : '400'};
+    color: ${p => p.$active ? st.accentBlue : st.text};
+    background: ${p => p.$active ? st.accentBlueDim : 'transparent'};
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background ${st.transition};
+    &:hover { background: ${p => p.$active ? st.accentBlueDim : st.bg}; }
+`;
+
+interface CategorySelectProps {
+    value: string;
+    categories: Category[];
+    onChange: (newValue: string) => void;
+}
+
+const CategorySelect = ({ value, categories, onChange }: CategorySelectProps) => {
+    const [open, setOpen] = useState(false);
+    const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+
+    const currentName = value
+        ? (categories.find(c => c.id === value)?.name ?? 'Kategoria')
+        : 'Bez kategorii';
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: MouseEvent) => {
+            if (
+                panelRef.current && !panelRef.current.contains(e.target as Node) &&
+                triggerRef.current && !triggerRef.current.contains(e.target as Node)
+            ) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const handleOpen = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        if (!triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
+        const panelH = Math.min(200, (categories.length + 1) * 36 + 8);
+        const panelW = 200;
+        const left = Math.max(8, Math.min(rect.left, window.innerWidth - panelW - 8));
+        const top = rect.bottom + 4 + panelH > window.innerHeight
+            ? Math.max(8, rect.top - panelH - 4)
+            : rect.bottom + 4;
+        setPanelStyle({ top, left, width: panelW });
+        setOpen(p => !p);
+    };
+
+    const handleSelect = (newVal: string) => {
+        setOpen(false);
+        onChange(newVal);
+    };
+
+    return (
+        <>
+            <CatSelectTrigger ref={triggerRef} onClick={handleOpen}>
+                <CatSelectLabel>{currentName}</CatSelectLabel>
+                ▾
+            </CatSelectTrigger>
+            {open && createPortal(
+                <CatSelectPanel ref={panelRef} style={panelStyle}>
+                    <CatSelectOption $active={value === ''} onClick={() => handleSelect('')}>
+                        Bez kategorii
+                    </CatSelectOption>
+                    {categories.map(c => (
+                        <CatSelectOption key={c.id} $active={value === c.id} onClick={() => handleSelect(c.id)}>
+                            {c.name}
+                        </CatSelectOption>
+                    ))}
+                </CatSelectPanel>,
+                document.body
+            )}
+        </>
+    );
+};
 
 // ─── Common ───────────────────────────────────────────────────────────────────
 
@@ -955,6 +1088,7 @@ export const StatisticsView = () => {
                             onRowClick={handleCategoryRowClick}
                             droppable
                             onDrop={handleAssignServiceToCategory}
+                            maxHeight="480px"
                             rowActions={(row) => {
                                 const cat = categories.find(c => c.id === row.id);
                                 if (!cat) return null;
@@ -990,6 +1124,7 @@ export const StatisticsView = () => {
                             rows={filteredServiceRows}
                             isLoading={breakdownLoading}
                             showColorDot={!selectedCategoryId}
+                            maxHeight="520px"
                             emptyText={
                                 serviceNameFilter.trim()
                                     ? 'Brak usług pasujących do wyszukiwanej frazy'
@@ -999,14 +1134,19 @@ export const StatisticsView = () => {
                                     ? 'Brak usług przypisanych do tej kategorii'
                                     : t.statistics.breakdown.empty
                             }
-                            rowActions={(row) => row.categoryId ? (
-                                <RowActionBtn
-                                    title="Odepnij od kategorii"
-                                    onClick={() => handleUnpinService(row.id, row.categoryId!)}
-                                >
-                                    ✕
-                                </RowActionBtn>
-                            ) : null}
+                            rowActions={(row) => (
+                                <CategorySelect
+                                    value={row.categoryId ?? ''}
+                                    categories={categories}
+                                    onChange={async (newCatId) => {
+                                        if (newCatId === '' && row.categoryId) {
+                                            await handleUnpinService(row.id, row.categoryId);
+                                        } else if (newCatId && newCatId !== row.categoryId) {
+                                            await handleAssignServiceToCategory(row.id, newCatId);
+                                        }
+                                    }}
+                                />
+                            )}
                         />
                     </TableColumn>
                 </TablesGrid>

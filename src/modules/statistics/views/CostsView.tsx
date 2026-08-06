@@ -458,8 +458,7 @@ const CatTable = styled.div`
     background: #fff;
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    overflow-y: auto;
-    max-height: calc(100vh - 320px);
+    overflow: hidden;
     box-shadow: ${st.shadowSm};
 `;
 
@@ -563,8 +562,7 @@ const ItemsTable = styled.div`
     background: #fff;
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    overflow-y: auto;
-    max-height: calc(100vh - 320px);
+    overflow: hidden;
     box-shadow: ${st.shadowSm};
 `;
 
@@ -580,9 +578,6 @@ const ItemsHeader = styled.div`
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    position: sticky;
-    top: 0;
-    z-index: 1;
 `;
 
 const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?: boolean }>`
@@ -603,6 +598,7 @@ const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?
 
 
 const ItemName = styled.span`
+    display: block;
     font-size: ${st.fontSm};
     font-weight: 500;
     color: ${st.text};
@@ -630,25 +626,6 @@ const CatBadge = styled.span<{ $color?: string }>`
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
-`;
-
-const CategorySelect = styled.select`
-    appearance: none;
-    padding: 3px 20px 3px 7px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: 11px;
-    font-family: inherit;
-    color: ${st.text};
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2394A3B8'/%3E%3C/svg%3E") no-repeat right 6px center;
-    background-size: 8px 5px;
-    cursor: pointer;
-    min-width: 90px;
-    max-width: 140px;
-    transition: border-color ${st.transition};
-
-    &:focus { outline: none; border-color: ${st.accentBlue}; box-shadow: 0 0 0 2px ${st.accentBlueDim}; }
-    &:hover { border-color: ${st.borderHover}; }
 `;
 
 // ─── View mode switcher ───────────────────────────────────────────────────────
@@ -807,7 +784,7 @@ const KebabBtn = styled.button`
 
 const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
     display: grid;
-    grid-template-columns: 26px 1fr auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
@@ -821,7 +798,7 @@ const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
 
 const InvoiceItemsHeaderGrid = styled.div`
     display: grid;
-    grid-template-columns: 26px 1fr auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto auto;
     gap: 8px;
     padding: 8px 14px;
     background: ${st.bg};
@@ -831,9 +808,6 @@ const InvoiceItemsHeaderGrid = styled.div`
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    position: sticky;
-    top: 0;
-    z-index: 1;
 `;
 
 const ExpandBtn = styled.button`
@@ -2428,7 +2402,10 @@ export const CostsView = () => {
         const rect = e.currentTarget.getBoundingClientRect();
         const menuW = 230;
         const x = Math.max(8, Math.min(rect.right - menuW, window.innerWidth - menuW - 8));
-        const y = rect.bottom + 4;
+        const menuH = 240;
+        const y = rect.bottom + 4 + menuH > window.innerHeight
+            ? Math.max(8, rect.top - menuH - 4)
+            : rect.bottom + 4;
         setCtxMenu({ items, invoiceId, needsConfirm, x, y });
     }, []);
 
@@ -2800,6 +2777,7 @@ export const CostsView = () => {
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
                                         <span />
+                                        <span />
                                     </InvoiceItemsHeaderGrid>
                                     {invoiceGroups.length === 0 && (
                                         <TableEmpty>Brak faktur dla wybranego okresu</TableEmpty>
@@ -2845,20 +2823,19 @@ export const CostsView = () => {
                                                         )}
                                                     </div>
                                                     <ItemMeta>{fmtPLN(grp.totalGross)}</ItemMeta>
-                                                    <CategorySelect
-                                                        value={grp.costCategoryId ?? ''}
-                                                        onClick={e => e.stopPropagation()}
-                                                        onChange={e => {
-                                                            e.stopPropagation();
-                                                            const newCatId = e.target.value;
-                                                            if (newCatId) handleCategoryDrop(`INVOICE:${grp.invoiceId}`, newCatId);
-                                                        }}
+                                                    {grp.costCategoryId ? (
+                                                        catName
+                                                            ? <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                            : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
+                                                    ) : (
+                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                    )}
+                                                    <IconBtn
+                                                        title="Podgląd faktury"
+                                                        onClick={e => { e.stopPropagation(); setPreviewInvoiceId(grp.invoiceId); }}
                                                     >
-                                                        <option value="">— kategoria —</option>
-                                                        {categories.map(c => (
-                                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                                        ))}
-                                                    </CategorySelect>
+                                                        <FileText style={{ width: 14, height: 14 }} />
+                                                    </IconBtn>
                                                     <KebabBtn
                                                         title="Opcje"
                                                         onClick={e => openCtx(e, grpItems, grp.invoiceId, grpItems.length > 1)}
@@ -2890,20 +2867,13 @@ export const CostsView = () => {
                                                                         {item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '—'}
                                                                     </ItemMeta>
                                                                     <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
-                                                                    <CategorySelect
-                                                                        value={item.costCategoryId ?? ''}
-                                                                        onClick={e => e.stopPropagation()}
-                                                                        onChange={e => {
-                                                                            e.stopPropagation();
-                                                                            const newCatId = e.target.value;
-                                                                            if (newCatId) assignMut.mutate({ categoryId: newCatId, itemIds: [item.id] });
-                                                                        }}
-                                                                    >
-                                                                        <option value="">— kategoria —</option>
-                                                                        {categories.map(c => (
-                                                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                                                        ))}
-                                                                    </CategorySelect>
+                                                                    {item.costCategoryId ? (
+                                                                        item.costCategoryName
+                                                                            ? <CatBadge $color={itemCatColor}>{item.costCategoryName}</CatBadge>
+                                                                            : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
+                                                                    ) : (
+                                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                                    )}
                                                                     <KebabBtn
                                                                         title="Opcje"
                                                                         onClick={e => openCtx(e, [item], item.invoiceId, false)}
@@ -2955,20 +2925,13 @@ export const CostsView = () => {
                                                 </div>
                                                 <ItemMeta>{item.quantity ?? '—'} {item.unit ?? ''}</ItemMeta>
                                                 <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
-                                                <CategorySelect
-                                                    value={item.costCategoryId ?? ''}
-                                                    onClick={e => e.stopPropagation()}
-                                                    onChange={e => {
-                                                        e.stopPropagation();
-                                                        const newCatId = e.target.value;
-                                                        if (newCatId) assignMut.mutate({ categoryId: newCatId, itemIds: [item.id] });
-                                                    }}
-                                                >
-                                                    <option value="">— kategoria —</option>
-                                                    {categories.map(c => (
-                                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                                    ))}
-                                                </CategorySelect>
+                                                {item.costCategoryId ? (
+                                                    item.costCategoryName
+                                                        ? <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
+                                                        : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
+                                                ) : (
+                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                )}
                                                 <KebabBtn
                                                     title="Opcje"
                                                     onClick={e => openCtx(e, [item], item.invoiceId, false)}
@@ -3014,20 +2977,13 @@ export const CostsView = () => {
                                                 </div>
                                                 <ItemMeta>{grp.itemCount}</ItemMeta>
                                                 <ItemMeta>{fmtPLN(grp.totalGross)}</ItemMeta>
-                                                <CategorySelect
-                                                    value={grp.costCategoryId ?? ''}
-                                                    onClick={e => e.stopPropagation()}
-                                                    onChange={e => {
-                                                        e.stopPropagation();
-                                                        const newCatId = e.target.value;
-                                                        if (newCatId) handleCategoryDrop(`NAME:${grp.name}`, newCatId);
-                                                    }}
-                                                >
-                                                    <option value="">— kategoria —</option>
-                                                    {categories.map(c => (
-                                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                                    ))}
-                                                </CategorySelect>
+                                                {grp.costCategoryId ? (
+                                                    catName
+                                                        ? <CatBadge $color={catColor}>{catName}</CatBadge>
+                                                        : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
+                                                ) : (
+                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                )}
                                                 <KebabBtn
                                                     title="Opcje"
                                                     onClick={e => openCtx(e, grpItems, null, grpItems.length > 1)}
