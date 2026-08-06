@@ -1,12 +1,13 @@
 // src/modules/activity/components/ActivityRow.tsx
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled, { css } from 'styled-components';
-import { ChevronDown, ArrowRight } from 'lucide-react';
+import { ChevronDown, ArrowRight, ExternalLink } from 'lucide-react';
 import { PiiText } from '@/common/pii';
 import { ActivityIcon } from './ActivityIcon';
 import { actorAccent, formatTime, iconTone, severityFlag } from '../activityTheme';
-import type { ActivityItem } from '../types';
+import type { ActivityItem, ActivityReference } from '../types';
 
 // ─── rail + shell ─────────────────────────────────────────────────────────────
 
@@ -282,6 +283,47 @@ const NewValue = styled.span`
     font-weight: 600;
 `;
 
+// ─── navigation ───────────────────────────────────────────────────────────────
+
+const NavChip = styled(Link)`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.textSecondary};
+    background: ${p => p.theme.colors.surfaceAlt};
+    border: 1px solid ${p => p.theme.colors.border};
+    padding: 2px 8px;
+    border-radius: 9999px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 150ms ease, border-color 150ms ease;
+
+    svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+    &:hover {
+        color: var(--brand-primary);
+        border-color: var(--brand-primary);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+    }
+`;
+
+/** Maps backend resource codes to in-app routes. Returns null for resources with no panel route. */
+const subjectPath = (ref: ActivityReference): string | null => {
+    switch (ref.resource) {
+        case 'VISIT':        return `/visits/${ref.id}`;
+        case 'CUSTOMER':     return `/customers/${ref.id}`;
+        case 'VEHICLE':      return `/vehicles/${ref.id}`;
+        case 'APPOINTMENT':  return `/appointments/${ref.id}/edit`;
+        default:             return null;
+    }
+};
+
 // ─── component ────────────────────────────────────────────────────────────────
 
 /**
@@ -291,10 +333,10 @@ const NewValue = styled.span`
  * `PiiText`, which swaps embedded masks for a blurred fake rather than showing a
  * bare "***".
  *
- * The related objects the backend sends are deliberately NOT rendered as chips:
- * `description` already names them in prose ("Klient: Anna Nowak · Pojazd: Audi
- * A4"), and repeating them underneath said the same thing twice in two shapes.
- * They stay in the payload for whoever wires up drill-down navigation.
+ * Related objects are not rendered as chips to avoid duplicating the description
+ * line. Navigation links are the exception: a single "→ Wizyta" chip lets the
+ * owner jump to the entity with one click — information the description line
+ * cannot give in clickable form.
  */
 
 interface ActivityRowProps {
@@ -308,6 +350,19 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
     const flag = severityFlag(item.severity.code);
     const actor = actorAccent(item.actor.type);
     const hasChanges = item.changes.length > 0;
+
+    // Primary navigation target: the subject the action was performed on.
+    // Additional targets come from related objects (e.g. the visit when the
+    // event is on a COMMUNICATION module row).
+    const navLinks: Array<{ path: string; label: string }> = [];
+    if (item.subject) {
+        const path = subjectPath(item.subject);
+        if (path) navLinks.push({ path, label: item.subject.label ?? item.subject.resource });
+    }
+    item.related?.forEach(ref => {
+        const path = subjectPath(ref);
+        if (path && ref.label) navLinks.push({ path, label: ref.label });
+    });
 
     return (
         <Row $bar={flag.bar} $wash={flag.wash}>
@@ -344,6 +399,14 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                             ? <CustomerChip>{item.channel.label}</CustomerChip>
                             : <Chip>{item.channel.label}</Chip>
                     )}
+
+                    {/* One-click navigation to the entity the event concerns. */}
+                    {navLinks.map(({ path, label }) => (
+                        <NavChip key={path} to={path}>
+                            <ExternalLink />
+                            {label}
+                        </NavChip>
+                    ))}
                 </MetaLine>
 
                 {hasChanges && (
