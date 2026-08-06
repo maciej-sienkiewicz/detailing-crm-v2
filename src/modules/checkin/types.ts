@@ -152,6 +152,7 @@ export interface CheckInFormData {
     visitStartAt?: string;
     // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
     visitEndAt?: string;
+    isAllDay?: boolean;
     photos: PhotoSlot[];
     damagePoints: DamagePoint[];
     /** Vehicle body type the damage points were placed on (sedan, suv, ...) */

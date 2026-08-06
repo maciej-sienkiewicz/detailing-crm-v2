@@ -83,7 +83,11 @@ export const ScheduleSection = ({
                     <Input
                         type={isAllDay ? 'date' : 'datetime-local'}
                         value={startDateTime}
-                        onChange={(e) => onStartDateTimeChange(e.target.value)}
+                        onChange={(e) => {
+                            onStartDateTimeChange(e.target.value);
+                            // Keep end date in sync when in all-day mode
+                            if (isAllDay) onEndDateTimeChange(`${e.target.value}T23:59:59`);
+                        }}
                     />
                 </FieldGroup>
 
@@ -94,7 +98,7 @@ export const ScheduleSection = ({
                             type="date"
                             value={endDateTime.split('T')[0] || ''}
                             onChange={(e) => {
-                                onEndDateTimeChange(isAllDay ? `${e.target.value}T23:59:59` : `${e.target.value}T23:59:59`);
+                                onEndDateTimeChange(`${e.target.value}T23:59:59`);
                             }}
                         />
                     </FieldGroup>
