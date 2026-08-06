@@ -83,6 +83,29 @@ const IconTile = styled.div<{ $edge: string; $solid: string }>`
     }
 `;
 
+// Imię i nazwisko aktora — absolutnie przy prawej krawędzi, widoczne tylko na hover
+const HoverActor = styled.span`
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 150ms ease;
+
+    ${Row}:hover & {
+        opacity: 1;
+    }
+
+    @media (max-width: 720px) {
+        display: none;
+    }
+`;
+
 // ─── body ─────────────────────────────────────────────────────────────────────
 
 const Body = styled.div`
@@ -160,13 +183,6 @@ const MetaLine = styled.div`
     gap: 8px;
     flex-wrap: wrap;
     margin-top: 2px;
-`;
-
-const Actor = styled.span`
-    font-size: 12.5px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textSecondary};
-    min-width: 0;
 `;
 
 // ─── expandable changes ───────────────────────────────────────────────────────
@@ -336,6 +352,10 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
         if (path && ref.label) navLinks.push({ path, label: ref.label });
     });
 
+    const actorLabel = item.actor.type === 'CUSTOMER'
+        ? item.actor.displayName  // PiiText handles rendering below
+        : item.actor.displayName;
+
     return (
         <Row $bar={flag.bar} $wash={flag.wash}>
             <Time>{formatTime(item.occurredAt)}</Time>
@@ -362,20 +382,16 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                         )
                 )}
 
-                <MetaLine>
-                    <Actor>
-                        {item.actor.type === 'CUSTOMER'
-                            ? <PiiText value={item.actor.displayName} kind="name" />
-                            : item.actor.displayName}
-                    </Actor>
-
-                    {navLinks.map(({ path, label }) => (
-                        <NavChip key={path} to={path}>
-                            <ExternalLink />
-                            {label}
-                        </NavChip>
-                    ))}
-                </MetaLine>
+                {navLinks.length > 0 && (
+                    <MetaLine>
+                        {navLinks.map(({ path, label }) => (
+                            <NavChip key={path} to={path}>
+                                <ExternalLink />
+                                {label}
+                            </NavChip>
+                        ))}
+                    </MetaLine>
+                )}
 
                 {hasChanges && (
                     <>
@@ -409,6 +425,12 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                     </>
                 )}
             </Body>
+
+            <HoverActor aria-hidden="true">
+                {item.actor.type === 'CUSTOMER'
+                    ? <PiiText value={actorLabel} kind="name" />
+                    : actorLabel}
+            </HoverActor>
         </Row>
     );
 };
