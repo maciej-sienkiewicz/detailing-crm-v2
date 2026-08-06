@@ -210,17 +210,29 @@ const Popup = styled.div<{ $open: boolean }>`
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    z-index: 200;
+    z-index: 1000;
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
     width: 320px;
     padding: 8px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.12); border-radius: 2px; }
 `;
 
-const PopupSection = styled.div`
+const PopupSectionHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 8px 10px 4px;
+`;
+
+const PopupSectionTitle = styled.span`
     font-size: 10px;
     font-weight: 700;
     color: #94a3b8;
@@ -228,7 +240,48 @@ const PopupSection = styled.div`
     letter-spacing: 0.1em;
 `;
 
-const PopupRow = styled.button<{ $active: boolean }>`
+const SectionAllBtn = styled.button`
+    font-size: 10px;
+    font-weight: 600;
+    color: #0284c7;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 120ms ease;
+    flex-shrink: 0;
+
+    &:hover {
+        background: #e0f2fe;
+    }
+`;
+
+/* OnlyBtn must be defined before PopupRow so the CSS reference works */
+const OnlyBtn = styled.button`
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    background: none;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 2px 7px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 120ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
+    flex-shrink: 0;
+    line-height: 1.4;
+
+    &:hover {
+        background: #0284c7;
+        color: #fff;
+        border-color: #0284c7;
+    }
+`;
+
+const PopupRow = styled.div<{ $active: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
@@ -236,14 +289,15 @@ const PopupRow = styled.button<{ $active: boolean }>`
     border-radius: 8px;
     cursor: pointer;
     background: ${p => (p.$active ? '#f0f9ff' : 'transparent')};
-    border: none;
-    width: 100%;
-    font-family: inherit;
-    text-align: left;
     transition: background 120ms ease;
+    user-select: none;
 
     &:hover {
         background: ${p => (p.$active ? '#e0f2fe' : '#f8fafc')};
+    }
+
+    &:hover ${OnlyBtn} {
+        opacity: 1;
     }
 `;
 
@@ -262,7 +316,6 @@ const PopupDot = styled.span<{ $color: string }>`
 `;
 
 const PopupCheck = styled.span`
-    margin-left: auto;
     color: #0284c7;
     display: flex;
     flex-shrink: 0;
@@ -295,6 +348,25 @@ const ColorChip = styled.span<{ $hex: string }>`
     color: #0f172a;
     white-space: nowrap;
 `;
+
+/* ─────────────────────────────────────────────────────────────────
+   SVG helpers
+───────────────────────────────────────────────────────────────── */
+
+const CheckIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+
+const XIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
 
 /* ─────────────────────────────────────────────────────────────────
    Props
@@ -361,8 +433,18 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         }
     };
 
-    // Blacklist: przełącza ukrycie pojedynczego koloru. Kolory spoza listy
-    // (w tym nowo utworzone) są zawsze widoczne.
+    const onlyAppointmentStatus = (s: AppointmentStatus) => {
+        onAppointmentStatusesChange([s]);
+    };
+
+    const onlyVisitStatus = (s: VisitStatus) => {
+        onVisitStatusesChange([s]);
+    };
+
+    const onlyColor = (id: string) => {
+        onHiddenColorIdsChange(availableColors.filter(c => c.id !== id).map(c => c.id));
+    };
+
     const toggleColor = (id: string) => {
         const next = hiddenColorIds.includes(id)
             ? hiddenColorIds.filter(c => c !== id)
@@ -381,15 +463,12 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         onPopupClose?.();
     };
 
-    // "Dodaj filtr" button always toggles internal state
     const togglePopup = () => setPopupOpen(o => !o);
 
-    // When mobile pill triggers external open, open our popup
     useEffect(() => {
         if (popupOpenProp) setPopupOpen(true);
     }, [popupOpenProp]);
 
-    // Close on outside click
     useEffect(() => {
         if (!popupOpen) return;
         const handler = (e: MouseEvent) => {
@@ -439,11 +518,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                                         title={`Usuń filtr: ${m.label}`}
                                         aria-label={`Usuń filtr: ${m.label}`}
                                     >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                            <line x1="6" y1="6" x2="18" y2="18" />
-                                        </svg>
+                                        <XIcon />
                                     </ChipRemove>
                                 </Chip>
                             );
@@ -460,11 +535,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                                         title={`Ukryj kolor: ${color.name}`}
                                         aria-label={`Ukryj kolor: ${color.name}`}
                                     >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                            <line x1="6" y1="6" x2="18" y2="18" />
-                                        </svg>
+                                        <XIcon />
                                     </ChipRemove>
                                 </ColorChip>
                             ))}
@@ -483,63 +554,103 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
 
                 {/* Popup */}
                 <Popup $open={popupOpen} role="listbox" aria-label="Filtruj po statusie">
-                    <PopupSection>Rezerwacje</PopupSection>
+
+                    {/* ── Rezerwacje ── */}
+                    <PopupSectionHeader>
+                        <PopupSectionTitle>Rezerwacje</PopupSectionTitle>
+                        <SectionAllBtn
+                            onClick={e => { e.stopPropagation(); onAppointmentStatusesChange(ALL_APPOINTMENT_STATUSES); }}
+                        >
+                            Wszystkie
+                        </SectionAllBtn>
+                    </PopupSectionHeader>
                     {ALL_APPOINTMENT_STATUSES.map(s => {
                         const m = STATUS_META[s];
                         const on = isActive(s);
                         return (
-                            <PopupRow key={s} $active={on} onClick={() => toggle(s)} role="option" aria-selected={on}>
+                            <PopupRow
+                                key={s}
+                                $active={on}
+                                onClick={() => toggle(s)}
+                                role="option"
+                                aria-selected={on}
+                            >
                                 <PopupDot $color={m.dot} />
                                 <PopupRowLabel>{m.label}</PopupRowLabel>
-                                {on && (
-                                    <PopupCheck>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="20 6 9 17 4 12" />
-                                        </svg>
-                                    </PopupCheck>
-                                )}
+                                <OnlyBtn
+                                    onClick={e => { e.stopPropagation(); onlyAppointmentStatus(s); }}
+                                    title={`Pokaż tylko: ${m.label}`}
+                                >
+                                    Tylko
+                                </OnlyBtn>
+                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
                             </PopupRow>
                         );
                     })}
 
-                    <PopupSection>Wizyty</PopupSection>
+                    {/* ── Wizyty ── */}
+                    <PopupSectionHeader>
+                        <PopupSectionTitle>Wizyty</PopupSectionTitle>
+                        <SectionAllBtn
+                            onClick={e => { e.stopPropagation(); onVisitStatusesChange(ALL_VISIT_STATUSES); }}
+                        >
+                            Wszystkie
+                        </SectionAllBtn>
+                    </PopupSectionHeader>
                     {ALL_VISIT_STATUSES.map(s => {
                         const m = STATUS_META[s];
                         const on = isActive(s);
                         return (
-                            <PopupRow key={s} $active={on} onClick={() => toggle(s)} role="option" aria-selected={on}>
+                            <PopupRow
+                                key={s}
+                                $active={on}
+                                onClick={() => toggle(s)}
+                                role="option"
+                                aria-selected={on}
+                            >
                                 <PopupDot $color={m.dot} />
                                 <PopupRowLabel>{m.label}</PopupRowLabel>
-                                {on && (
-                                    <PopupCheck>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="20 6 9 17 4 12" />
-                                        </svg>
-                                    </PopupCheck>
-                                )}
+                                <OnlyBtn
+                                    onClick={e => { e.stopPropagation(); onlyVisitStatus(s); }}
+                                    title={`Pokaż tylko: ${m.label}`}
+                                >
+                                    Tylko
+                                </OnlyBtn>
+                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
                             </PopupRow>
                         );
                     })}
 
+                    {/* ── Kolory ── */}
                     {availableColors.length > 0 && (
                         <>
-                            <PopupSection>Kolory</PopupSection>
+                            <PopupSectionHeader>
+                                <PopupSectionTitle>Kolory</PopupSectionTitle>
+                                <SectionAllBtn
+                                    onClick={e => { e.stopPropagation(); onHiddenColorIdsChange([]); }}
+                                >
+                                    Wszystkie
+                                </SectionAllBtn>
+                            </PopupSectionHeader>
                             {availableColors.map(color => {
                                 const on = !hiddenColorIds.includes(color.id);
                                 return (
-                                    <PopupRow key={color.id} $active={on} onClick={() => toggleColor(color.id)} role="option" aria-selected={on}>
+                                    <PopupRow
+                                        key={color.id}
+                                        $active={on}
+                                        onClick={() => toggleColor(color.id)}
+                                        role="option"
+                                        aria-selected={on}
+                                    >
                                         <ColorSwatch $hex={color.hexColor} />
                                         <PopupRowLabel>{color.name}</PopupRowLabel>
-                                        {on && (
-                                            <PopupCheck>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                            </PopupCheck>
-                                        )}
+                                        <OnlyBtn
+                                            onClick={e => { e.stopPropagation(); onlyColor(color.id); }}
+                                            title={`Pokaż tylko kolor: ${color.name}`}
+                                        >
+                                            Tylko
+                                        </OnlyBtn>
+                                        {on && <PopupCheck><CheckIcon /></PopupCheck>}
                                     </PopupRow>
                                 );
                             })}
