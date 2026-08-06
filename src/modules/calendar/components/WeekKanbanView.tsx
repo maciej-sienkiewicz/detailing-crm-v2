@@ -1,6 +1,7 @@
 import styled, { css, keyframes } from 'styled-components';
 import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData, CalendarViewType } from '../types';
+import type { PopoverAnchor } from './EventSummaryPopover';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,7 +125,7 @@ interface WeekKanbanViewProps {
     currentView: CalendarViewType;
     onEventClick: (
         eventData: AppointmentEventData | VisitEventData,
-        position: { x: number; y: number }
+        anchor: PopoverAnchor
     ) => void;
     onDayAddClick: (date: Date) => void;
     onPrev: () => void;
@@ -577,19 +578,8 @@ export const WeekKanbanView = ({
         const { event } = slot;
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const rect  = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const popoverWidth = window.innerHeight <= 800 ? 340 : 380;
-        const margin = 16;
 
-        let x = rect.right + 10;
-        if (x + popoverWidth + margin > window.innerWidth) {
-            x = Math.max(margin, rect.left - popoverWidth - 10);
-        }
-        let y = rect.top;
-        if (y + 580 + margin > window.innerHeight) {
-            y = Math.max(margin, window.innerHeight - 580 - margin);
-        }
-
-        onEventClick(props, { x, y });
+        onEventClick(props, { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
     };
 
     return (

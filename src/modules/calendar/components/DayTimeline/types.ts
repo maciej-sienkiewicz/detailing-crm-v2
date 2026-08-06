@@ -1,4 +1,5 @@
 import type { CalendarView as CalendarViewType, AppointmentEventData, VisitEventData } from '../../types';
+import type { PopoverAnchor } from '../EventSummaryPopover';
 
 export type { CalendarViewType };
 
@@ -18,7 +19,7 @@ export interface DayTimelineViewProps {
     isToday: boolean;
     onEventClick: (
         eventData: AppointmentEventData | VisitEventData,
-        position: { x: number; y: number }
+        anchor: PopoverAnchor
     ) => void;
     onPrev: () => void;
     onNext: () => void;

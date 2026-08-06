@@ -24,6 +24,7 @@ import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
+import type { PopoverAnchor } from './EventSummaryPopover';
 import { DeleteRecurringModal } from '@/modules/operations/components/DeleteRecurringModal';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { useDeleteOperation } from '@/modules/operations/hooks/useDeleteOperation';
@@ -1084,6 +1085,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [popoverEvent, setPopoverEvent] = useState<AppointmentEventData | VisitEventData | null>(null);
     const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
+    const [popoverAnchor, setPopoverAnchor] = useState<PopoverAnchor | null>(null);
 
     const [endDateModalOpen, setEndDateModalOpen] = useState(false);
     const [endDateDraft, setEndDateDraft] = useState('');
@@ -1484,40 +1486,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const handleEventClick = useCallback((clickInfo: EventClickArg) => {
         const eventData = clickInfo.event.extendedProps as AppointmentEventData | VisitEventData;
 
-        // Calculate popover position near the clicked event
+        // Hand over the raw anchor rect — the popover flips and clamps itself
+        // against its own measured size. Guessing the popover's dimensions here
+        // is what made the header render differently per screen position.
         const rect = clickInfo.el.getBoundingClientRect();
-        const popoverWidth = window.innerHeight <= 800 ? 340 : 380;
-        const popoverMaxHeight = 580;
-        const margin = 16;
-
-        // Try to position to the right of the event
-        let x = rect.right + 10;
-        let y = rect.top;
-
-        // Adjust X if popover would go off the right edge
-        if (x + popoverWidth + margin > window.innerWidth) {
-            // Try positioning to the left
-            x = rect.left - popoverWidth - 10;
-
-            // If still off screen (left edge), center it on screen
-            if (x < margin) {
-                x = Math.max(margin, (window.innerWidth - popoverWidth) / 2);
-            }
-        }
-
-        // Adjust Y if popover would go off the bottom edge
-        if (y + popoverMaxHeight + margin > window.innerHeight) {
-            // Position from bottom, aligned with bottom of screen
-            y = Math.max(margin, window.innerHeight - popoverMaxHeight - margin);
-        }
-
-        // Ensure popover doesn't go above the top edge
-        if (y < margin) {
-            y = margin;
-        }
 
         setPopoverEvent(eventData);
-        setPopoverPosition({ x, y });
+        setPopoverAnchor({ top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
+        setPopoverPosition({ x: rect.right + 10, y: rect.top });
         setPopoverOpen(true);
     }, []);
 
@@ -1911,9 +1887,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         rangeStart={dateRange.start}
                         rangeEnd={dateRange.end}
                         focusDate={new Date().toISOString()}
-                        onEventClick={(eventData, position) => {
+                        onEventClick={(eventData, anchor) => {
                             setPopoverEvent(eventData);
-                            setPopoverPosition(position);
+                            setPopoverAnchor(anchor);
+                            setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
                             setPopoverOpen(true);
                         }}
                     />
@@ -1927,9 +1904,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         calendarTitle={calendarTitle}
                         currentView={currentView}
                         hideToolbar
-                        onEventClick={(eventData, position) => {
+                        onEventClick={(eventData, anchor) => {
                             setPopoverEvent(eventData);
-                            setPopoverPosition(position);
+                            setPopoverAnchor(anchor);
+                            setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
                             setPopoverOpen(true);
                         }}
                         onDayAddClick={(date) => {
@@ -1960,9 +1938,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                 today.getDate()     === day.getDate()
                             );
                         })()}
-                        onEventClick={(eventData, position) => {
+                        onEventClick={(eventData, anchor) => {
                             setPopoverEvent(eventData);
-                            setPopoverPosition(position);
+                            setPopoverAnchor(anchor);
+                            setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
                             setPopoverOpen(true);
                         }}
                         onPrev={() => calendarRef.current?.getApi().prev()}
@@ -2265,6 +2244,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 <EventSummaryPopover
                     event={popoverEvent}
                     position={popoverPosition}
+                    anchor={popoverAnchor}
                     onClose={handlePopoverClose}
                     onManageClick={handleManageClick}
                     onEditReservationClick={handleEditReservationClick}
