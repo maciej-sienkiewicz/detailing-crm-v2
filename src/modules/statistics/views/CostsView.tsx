@@ -598,6 +598,7 @@ const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?
 
 
 const ItemName = styled.span`
+    display: block;
     font-size: ${st.fontSm};
     font-weight: 500;
     color: ${st.text};
@@ -783,7 +784,7 @@ const KebabBtn = styled.button`
 
 const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
     display: grid;
-    grid-template-columns: 26px 1fr auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
@@ -797,7 +798,7 @@ const InvoiceRowGrid = styled.div<{ $draggable?: boolean }>`
 
 const InvoiceItemsHeaderGrid = styled.div`
     display: grid;
-    grid-template-columns: 26px 1fr auto auto auto;
+    grid-template-columns: 26px 1fr auto auto auto auto;
     gap: 8px;
     padding: 8px 14px;
     background: ${st.bg};
@@ -2401,7 +2402,10 @@ export const CostsView = () => {
         const rect = e.currentTarget.getBoundingClientRect();
         const menuW = 230;
         const x = Math.max(8, Math.min(rect.right - menuW, window.innerWidth - menuW - 8));
-        const y = rect.bottom + 4;
+        const menuH = 240;
+        const y = rect.bottom + 4 + menuH > window.innerHeight
+            ? Math.max(8, rect.top - menuH - 4)
+            : rect.bottom + 4;
         setCtxMenu({ items, invoiceId, needsConfirm, x, y });
     }, []);
 
@@ -2773,6 +2777,7 @@ export const CostsView = () => {
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
                                         <span />
+                                        <span />
                                     </InvoiceItemsHeaderGrid>
                                     {invoiceGroups.length === 0 && (
                                         <TableEmpty>Brak faktur dla wybranego okresu</TableEmpty>
@@ -2825,6 +2830,12 @@ export const CostsView = () => {
                                                     ) : (
                                                         <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
                                                     )}
+                                                    <IconBtn
+                                                        title="Podgląd faktury"
+                                                        onClick={e => { e.stopPropagation(); setPreviewInvoiceId(grp.invoiceId); }}
+                                                    >
+                                                        <FileText style={{ width: 14, height: 14 }} />
+                                                    </IconBtn>
                                                     <KebabBtn
                                                         title="Opcje"
                                                         onClick={e => openCtx(e, grpItems, grp.invoiceId, grpItems.length > 1)}

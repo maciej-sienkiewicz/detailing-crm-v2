@@ -32,6 +32,7 @@ const Table = styled.table`
     width: 100%;
     min-width: 560px;
     border-collapse: collapse;
+    table-layout: fixed;
 `;
 
 const Thead = styled.thead``;
@@ -105,10 +106,26 @@ const Td = styled.td<{ $align?: 'left' | 'right' }>`
     font-variant-numeric: tabular-nums;
 `;
 
+const NameTd = styled.td`
+    padding: 11px 16px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+
+    &:hover ~ td {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.1s;
+    }
+`;
+
 const NameCell = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+    overflow: hidden;
 `;
 
 const ColorDot = styled.span<{ $color: string }>`
@@ -122,8 +139,14 @@ const ColorDot = styled.span<{ $color: string }>`
 `;
 
 const NameText = styled.span`
+    display: block;
+    flex: 1;
+    min-width: 0;
     font-weight: 500;
     color: ${st.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 const InactiveBadge = styled.span`
@@ -242,10 +265,10 @@ export const BreakdownTable = ({
                 <Thead>
                     <tr>
                         <Th>{t.statistics.breakdown.name}</Th>
-                        <Th $align="right">{t.statistics.breakdown.orders}</Th>
-                        <Th $align="right">{t.statistics.breakdown.revenue}</Th>
-                        <Th $align="right">{t.statistics.breakdown.share}</Th>
-                        {hasActions && <Th />}
+                        <Th $align="right" style={{ width: 80 }}>{t.statistics.breakdown.orders}</Th>
+                        <Th $align="right" style={{ width: 110 }}>{t.statistics.breakdown.revenue}</Th>
+                        <Th $align="right" style={{ width: 65 }}>{t.statistics.breakdown.share}</Th>
+                        {hasActions && <Th style={{ width: 80 }} />}
                     </tr>
                 </Thead>
                 <tbody>
@@ -301,19 +324,19 @@ export const BreakdownTable = ({
                                     }
                                 } : undefined}
                             >
-                                <Td>
+                                <NameTd>
                                     <NameCell>
                                         {row.isDraggable && <DragHandle>⠿</DragHandle>}
                                         {showColorDot && <ColorDot $color={barColor} />}
                                         {row.isUnassigned && (
                                             <UnassignedIcon title="Nieprzypisana do kategorii">⚠</UnassignedIcon>
                                         )}
-                                        <NameText>{row.name}</NameText>
+                                        <NameText title={row.name}>{row.name}</NameText>
                                         {row.isActive === false && (
                                             <InactiveBadge>({t.statistics.categories.statusInactive})</InactiveBadge>
                                         )}
                                     </NameCell>
-                                </Td>
+                                </NameTd>
                                 <Td $align="right">{row.orderCount}</Td>
                                 <Td $align="right">
                                     <RevenueText>{formatRevenue(row.totalRevenueGross)}</RevenueText>
