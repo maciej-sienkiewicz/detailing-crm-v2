@@ -6,7 +6,7 @@ import styled, { css } from 'styled-components';
 import { ChevronDown, ArrowRight, ExternalLink } from 'lucide-react';
 import { PiiText } from '@/common/pii';
 import { ActivityIcon } from './ActivityIcon';
-import { actorAccent, formatTime, iconTone, severityFlag } from '../activityTheme';
+import { formatTime, iconTone, severityFlag } from '../activityTheme';
 import type { ActivityItem, ActivityReference } from '../types';
 
 // ─── rail + shell ─────────────────────────────────────────────────────────────
@@ -20,8 +20,6 @@ const Row = styled.article<{ $bar: string | null; $wash: string | null }>`
     padding: 14px 18px 14px 0;
     background: ${p => p.$wash ?? 'transparent'};
 
-    /* Importance flag. Absent on the quiet majority, which is what makes it
-       readable on the rows that carry it. */
     ${p => p.$bar && css`
         &::after {
             content: '';
@@ -35,8 +33,6 @@ const Row = styled.article<{ $bar: string | null; $wash: string | null }>`
         }
     `}
 
-    /* The rail: a hairline running through every row, so the eye has a spine to
-       follow instead of a stack of unrelated cards. */
     &::before {
         content: '';
         position: absolute;
@@ -69,7 +65,7 @@ const Time = styled.div`
     white-space: nowrap;
 `;
 
-const IconTile = styled.div<{ $tint: string; $edge: string; $solid: string }>`
+const IconTile = styled.div<{ $edge: string; $solid: string }>`
     position: relative;
     z-index: 1;
     width: 40px;
@@ -77,10 +73,9 @@ const IconTile = styled.div<{ $tint: string; $edge: string; $solid: string }>`
     border-radius: 12px;
     display: grid;
     place-items: center;
-    background: ${p => p.$tint};
-    border: 1px solid ${p => p.$edge};
+    background: ${p => p.theme.colors.surface};
+    border: 1.5px solid ${p => p.$edge};
     color: ${p => p.$solid};
-    /* Punches a hole in the rail so the tile sits on top of it, not next to it. */
     box-shadow: 0 0 0 4px ${p => p.theme.colors.surface};
 
     @media (max-width: 720px) {
@@ -147,46 +142,11 @@ const MetaLine = styled.div`
     margin-top: 2px;
 `;
 
-const Actor = styled.span<{ $fg: string; $bg: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
+const Actor = styled.span`
     font-size: 12.5px;
     font-weight: 500;
     color: ${p => p.theme.colors.textSecondary};
     min-width: 0;
-
-    span.avatar {
-        display: grid;
-        place-items: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 9999px;
-        background: ${p => p.$bg};
-        color: ${p => p.$fg};
-        font-size: 9.5px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        flex-shrink: 0;
-    }
-`;
-
-const Chip = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: ${p => p.theme.colors.textSecondary};
-    background: ${p => p.theme.colors.surfaceAlt};
-    border: 1px solid ${p => p.theme.colors.border};
-    padding: 2px 8px;
-    border-radius: 9999px;
-    white-space: nowrap;
-`;
-
-const CustomerChip = styled(Chip)`
-    color: #6d28d9;
-    background: rgba(124, 58, 237, 0.08);
-    border-color: rgba(124, 58, 237, 0.2);
 `;
 
 // ─── expandable changes ───────────────────────────────────────────────────────
@@ -326,19 +286,6 @@ const subjectPath = (ref: ActivityReference): string | null => {
 
 // ─── component ────────────────────────────────────────────────────────────────
 
-/**
- * Personal data reaches this view embedded inside strings the backend composed —
- * a title naming the customer, a context line. The backend has already replaced
- * anything the session may not see with the mask, so those strings go through
- * `PiiText`, which swaps embedded masks for a blurred fake rather than showing a
- * bare "***".
- *
- * Related objects are not rendered as chips to avoid duplicating the description
- * line. Navigation links are the exception: a single "→ Wizyta" chip lets the
- * owner jump to the entity with one click — information the description line
- * cannot give in clickable form.
- */
-
 interface ActivityRowProps {
     item: ActivityItem;
 }
@@ -348,12 +295,8 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
 
     const tone = iconTone(item.icon);
     const flag = severityFlag(item.severity.code);
-    const actor = actorAccent(item.actor.type);
     const hasChanges = item.changes.length > 0;
 
-    // Primary navigation target: the subject the action was performed on.
-    // Additional targets come from related objects (e.g. the visit when the
-    // event is on a COMMUNICATION module row).
     const navLinks: Array<{ path: string; label: string }> = [];
     if (item.subject) {
         const path = subjectPath(item.subject);
@@ -368,7 +311,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
         <Row $bar={flag.bar} $wash={flag.wash}>
             <Time>{formatTime(item.occurredAt)}</Time>
 
-            <IconTile $tint={tone.tint} $edge={tone.edge} $solid={tone.solid}>
+            <IconTile $edge={tone.edge} $solid={tone.solid}>
                 <ActivityIcon icon={item.icon} />
             </IconTile>
 
@@ -383,24 +326,12 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 )}
 
                 <MetaLine>
-                    <Actor $fg={actor.fg} $bg={actor.bg}>
-                        <span className="avatar">{item.actor.initials}</span>
+                    <Actor>
                         {item.actor.type === 'CUSTOMER'
                             ? <PiiText value={item.actor.displayName} kind="name" />
                             : item.actor.displayName}
                     </Actor>
 
-                    <Chip>{item.module.label}</Chip>
-
-                    {/* Only surfaced when it is not the panel — "where did this come
-                        from" is only interesting when the answer is unusual. */}
-                    {item.channel.code !== 'WEB_PANEL' && (
-                        item.channel.code === 'PUBLIC_LINK'
-                            ? <CustomerChip>{item.channel.label}</CustomerChip>
-                            : <Chip>{item.channel.label}</Chip>
-                    )}
-
-                    {/* One-click navigation to the entity the event concerns. */}
                     {navLinks.map(({ path, label }) => (
                         <NavChip key={path} to={path}>
                             <ExternalLink />
