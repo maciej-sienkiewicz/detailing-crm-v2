@@ -1,5 +1,3 @@
-// src/modules/activity/components/ActivityRow.tsx
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled, { css } from 'styled-components';
@@ -132,6 +130,28 @@ const Description = styled.p`
     font-size: 13px;
     line-height: 1.45;
     color: ${p => p.theme.colors.textSecondary};
+`;
+
+const DescriptionLink = styled(Link)`
+    display: block;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: ${p => p.theme.colors.textSecondary};
+    text-decoration: none;
+    transition: color 150ms ease;
+
+    &:hover {
+        color: var(--brand-primary);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        border-radius: 3px;
+    }
 `;
 
 const MetaLine = styled.div`
@@ -297,12 +317,21 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
     const flag = severityFlag(item.severity.code);
     const hasChanges = item.changes.length > 0;
 
+    // CUSTOMER refs are already present in item.description (e.g. "Klient: Jan Kowalski").
+    // Showing them again as NavChips would triple the information. We surface the customer
+    // path only to make the description line itself navigable.
+    let customerPath: string | null = null;
+    if (item.subject?.resource === 'CUSTOMER') {
+        customerPath = subjectPath(item.subject);
+    }
+
     const navLinks: Array<{ path: string; label: string }> = [];
-    if (item.subject) {
+    if (item.subject && item.subject.resource !== 'CUSTOMER') {
         const path = subjectPath(item.subject);
         if (path) navLinks.push({ path, label: item.subject.label ?? item.subject.resource });
     }
     item.related?.forEach(ref => {
+        if (ref.resource === 'CUSTOMER') return;
         const path = subjectPath(ref);
         if (path && ref.label) navLinks.push({ path, label: ref.label });
     });
@@ -322,7 +351,15 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 </TopLine>
 
                 {item.description && (
-                    <Description><PiiText value={item.description} /></Description>
+                    customerPath
+                        ? (
+                            <DescriptionLink to={customerPath}>
+                                <PiiText value={item.description} />
+                            </DescriptionLink>
+                        )
+                        : (
+                            <Description><PiiText value={item.description} /></Description>
+                        )
                 )}
 
                 <MetaLine>
@@ -348,7 +385,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                             aria-expanded={open}
                         >
                             <ChevronDown />
-                            {open ? 'Ukryj zmiany' : `Zmiany: ${item.changeSummary ?? ''}`}
+                            {open ? 'Ukryj szczegóły' : 'Szczegóły'}
                         </ExpandButton>
 
                         {open && (
