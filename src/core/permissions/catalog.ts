@@ -42,6 +42,10 @@ export const PERMISSIONS = {
     SERVICES_MANAGE: 'SERVICES_MANAGE',
     // Zlecenia zbiorcze
     BATCH_ORDERS: 'BATCH_ORDERS',
+    // Historia aktywności — feed przecina wszystkie moduły i pokazuje również
+    // zdarzenia kadrowo-płacowe oraz bezpieczeństwa, więc nie może jechać na
+    // uprawnieniu żadnego pojedynczego modułu. Właściciel ma dostęp zawsze.
+    AUDIT_VIEW: 'AUDIT_VIEW',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

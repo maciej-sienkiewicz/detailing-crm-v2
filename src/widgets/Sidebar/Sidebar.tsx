@@ -23,6 +23,7 @@ import {
     Clock,
     UserRoundCog,
     Images,
+    Activity,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -93,6 +94,7 @@ const buildMenuSections = (
             items: [
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
+                { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' },
                 { path: '/settings',   label: 'Ustawienia', icon: Settings },
             ],
         },

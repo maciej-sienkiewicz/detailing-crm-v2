@@ -36,6 +36,7 @@ import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSet
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
+import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
 import { PhoneSignatureView } from '@/modules/profile/views/PhoneSignatureView';
 import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
@@ -305,6 +306,12 @@ export const router = createBrowserRouter([
     {
         path: '/worktime',
         element: page(<WorkTimeView />),
+    },
+
+    // ── Historia aktywności ──────────────────────────────────────────────
+    {
+        path: '/activity',
+        element: page(<ActivityView />, 'AUDIT_VIEW'),
     },
 
     // ── Zespół ───────────────────────────────────────────────────────────
