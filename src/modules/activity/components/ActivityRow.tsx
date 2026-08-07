@@ -320,6 +320,17 @@ const subjectPath = (ref: ActivityReference): string | null => {
     }
 };
 
+/** Maps backend resource codes to navigation button labels. */
+const subjectLabel = (ref: ActivityReference): string => {
+    switch (ref.resource) {
+        case 'VISIT':        return 'Przejdź do wizyty';
+        case 'CUSTOMER':     return 'Przejdź do klienta';
+        case 'VEHICLE':      return 'Przejdź do pojazdu';
+        case 'APPOINTMENT':  return 'Przejdź do rezerwacji';
+        default:             return ref.label ?? ref.resource;
+    }
+};
+
 // ─── component ────────────────────────────────────────────────────────────────
 
 interface ActivityRowProps {
@@ -344,12 +355,12 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
     const navLinks: Array<{ path: string; label: string }> = [];
     if (item.subject && item.subject.resource !== 'CUSTOMER') {
         const path = subjectPath(item.subject);
-        if (path) navLinks.push({ path, label: item.subject.label ?? item.subject.resource });
+        if (path) navLinks.push({ path, label: subjectLabel(item.subject) });
     }
     item.related?.forEach(ref => {
         if (ref.resource === 'CUSTOMER') return;
         const path = subjectPath(ref);
-        if (path && ref.label) navLinks.push({ path, label: ref.label });
+        if (path) navLinks.push({ path, label: subjectLabel(ref) });
     });
 
     const actorLabel = item.actor.type === 'CUSTOMER'
