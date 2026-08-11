@@ -42,6 +42,9 @@ export const publicSigningApi = {
     getSession: async (token: string): Promise<PublicSigningSession> => {
         const response = await apiClient.get<PublicSigningSession>(
             `/public/signing/${encodeURIComponent(token)}`,
+            // Explicit timeout: without one a stalled mobile connection spins forever
+            // and the customer never reaches the retry path
+            { timeout: 15_000 },
         );
         return response.data;
     },
@@ -50,7 +53,7 @@ export const publicSigningApi = {
     getDocument: async (token: string): Promise<ArrayBuffer> => {
         const response = await apiClient.get<ArrayBuffer>(
             `/public/signing/${encodeURIComponent(token)}/document`,
-            { responseType: 'arraybuffer' },
+            { responseType: 'arraybuffer', timeout: 60_000 },
         );
         return response.data;
     },
@@ -59,6 +62,8 @@ export const publicSigningApi = {
         const response = await apiClient.post<{ status: string }>(
             `/public/signing/${encodeURIComponent(token)}/submit`,
             payload,
+            // Server-side sealing + timestamping can take up to ~10 s on its own
+            { timeout: 90_000 },
         );
         return response.data;
     },
