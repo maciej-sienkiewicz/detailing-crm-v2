@@ -229,7 +229,7 @@ export const CatTable = styled.div`
     box-shadow: ${st.shadowSm};
 `;
 
-export const CatRow = styled.div<{ $dragOver?: boolean; $selected?: boolean }>`
+export const CatRow = styled.div<{ $dragOver?: boolean; $selected?: boolean; $excluded?: boolean }>`
     display: grid;
     grid-template-columns: auto 1fr auto auto;
     align-items: center;
@@ -242,6 +242,13 @@ export const CatRow = styled.div<{ $dragOver?: boolean; $selected?: boolean }>`
 
     &:last-child { border-bottom: none; }
     &:hover { background: ${st.bg}; }
+
+    /* Kategoria pomijana w statystykach — delikatnie wyszarzony wiersz
+       (spany = kropka koloru, nazwa, kwota; akcje pozostają w pełni widoczne) */
+    ${p => p.$excluded && css`
+        background: ${st.bgCardAlt};
+        > span { opacity: 0.55; }
+    `}
 
     ${p => p.$selected && css`
         background: ${st.accentBlueDim} !important;

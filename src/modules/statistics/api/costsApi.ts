@@ -34,6 +34,10 @@ export const costsApi = {
         await apiClient.delete(`${BASE}/${categoryId}`);
     },
 
+    setStatsExclusion: async (categoryId: string, excludeFromStats: boolean): Promise<void> => {
+        await apiClient.put(`${BASE}/${categoryId}/stats-exclusion`, { excludeFromStats });
+    },
+
     // ── Item assignments ─────────────────────────────────────────────────────
 
     assignItems: async (categoryId: string, itemIds: string[]): Promise<void> => {

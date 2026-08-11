@@ -1,7 +1,7 @@
 // src/modules/statistics/views/CostsView.tsx
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import styled, { css } from 'styled-components';
-import { ReceiptText, Tag, Plus, Pencil, Trash2, FileText, Zap, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { ReceiptText, Tag, Plus, Pencil, Trash2, FileText, Zap, ChevronDown, ChevronUp, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/common/components/PageHeader';
 import {
@@ -43,6 +43,7 @@ import {
     useCreateCostCategory,
     useUpdateCostCategory,
     useDeleteCostCategory,
+    useSetCostCategoryStatsExclusion,
     useAssignCostItems,
     useCostExpenseItems,
     useCostBreakdown,
@@ -63,6 +64,19 @@ import type {
     CostViewMode,
     SupplierAutoRule,
 } from '../costTypes';
+
+// ─── Stats-exclusion eye toggle ───────────────────────────────────────────────
+
+/** Przełącznik „Nie uwzględniaj w statystykach" — mocno czerwone przekreślone
+    oko, gdy kategoria jest pomijana w KPI/wykresach. */
+const EyeToggleBtn = styled(IconBtn)<{ $excluded?: boolean }>`
+    ${p => p.$excluded && css`
+        color: #DC2626;
+        border-color: #FCA5A5;
+        background: #FEF2F2;
+        &:hover { background: #FEE2E2; color: #B91C1C; border-color: #F87171; }
+    `}
+`;
 
 // ─── Simple cost chart ────────────────────────────────────────────────────────
 
@@ -1323,6 +1337,7 @@ export const CostsView = () => {
 
     const deleteMut   = useDeleteCostCategory();
     const assignMut   = useAssignCostItems();
+    const statsExclusionMut = useSetCostCategoryStatsExclusion();
 
     // Auto-rules
     const { rules, isLoading: rulesLoading } = useAutoRules();
@@ -1334,6 +1349,21 @@ export const CostsView = () => {
     const [applyMsg,     setApplyMsg]     = useState<string | null>(null);
 
     const catColorMap = useMemo(() => categoryColorById(categories), [categories]);
+
+    // ── Kategorie pomijane w statystykach (np. „Własne" — przelewy między spółkami).
+    // Ich pozycje nie wchodzą do KPI, wykresu czasowego ani diagramu kołowego,
+    // ale pozostają widoczne na listach i w sumach po lewej stronie.
+    const excludedCategoryIds = useMemo(
+        () => new Set(categories.filter(c => c.excludeFromStats).map(c => c.id)),
+        [categories]
+    );
+
+    const statsItems = useMemo(
+        () => excludedCategoryIds.size === 0
+            ? allItems
+            : allItems.filter(i => !i.costCategoryId || !excludedCategoryIds.has(i.costCategoryId)),
+        [allItems, excludedCategoryIds]
+    );
 
     // Unique sellers from already-loaded items — used for NIP autocomplete in the rule form
     const sellerSuggestions = useMemo(() => {
@@ -1368,15 +1398,15 @@ export const CostsView = () => {
     const invoiceGroups = useMemo(() => groupByInvoice(visibleItems), [visibleItems]);
     const nameGroups    = useMemo(() => groupByName(visibleItems),    [visibleItems]);
 
-    // KPI totals derived from items (gross computed from net+VAT when not in DB)
-    const totalCostGross = allItems.reduce((s, i) => s + effectiveGross(i), 0);
-    const totalCostNet   = allItems.reduce((s, i) => s + (i.netValue ?? 0), 0);
-    const totalItems     = allItems.length;
+    // KPI totals derived from stats items (gross computed from net+VAT when not in DB)
+    const totalCostGross = statsItems.reduce((s, i) => s + effectiveGross(i), 0);
+    const totalCostNet   = statsItems.reduce((s, i) => s + (i.netValue ?? 0), 0);
+    const totalItems     = statsItems.length;
 
     // Chart data grouped by month, derived from items so gross is always computed
     const chartData = useMemo(() => {
         const map = new Map<string, { period: string; itemCount: number; totalCostGross: number }>();
-        allItems.forEach(i => {
+        statsItems.forEach(i => {
             if (!i.saleDate) return;
             const period = i.saleDate.slice(0, 7);
             if (!map.has(period)) map.set(period, { period, itemCount: 0, totalCostGross: 0 });
@@ -1385,15 +1415,16 @@ export const CostsView = () => {
             entry.totalCostGross += effectiveGross(i);
         });
         return [...map.values()].sort((a, b) => a.period.localeCompare(b.period));
-    }, [allItems]);
+    }, [statsItems]);
 
     // Donut slices: per-category share of all costs in the selected range.
     // Computed client-side (same effectiveGross fallback as catTotalsMap) so that
     // VAT-exempt items (grossValue=null) are counted correctly.
     const pieSlices = useMemo<PieSliceDatum[]>(() => {
-        // Build per-category totals from allItems client-side
+        // Build per-category totals from stats items client-side
+        // (kategorie z excludeFromStats nie mają tu pozycji, więc nie trafiają do donuta)
         const catMap = new Map<string, { totalCostGross: number; itemCount: number }>();
-        allItems.forEach(item => {
+        statsItems.forEach(item => {
             if (!item.costCategoryId) return;
             const entry = catMap.get(item.costCategoryId) ?? { totalCostGross: 0, itemCount: 0 };
             entry.totalCostGross += effectiveGross(item);
@@ -1412,12 +1443,12 @@ export const CostsView = () => {
             };
         });
 
-        const unassignedItems = allItems.filter(i => !i.costCategoryId);
+        const unassignedItems = statsItems.filter(i => !i.costCategoryId);
         return buildCategoryShareSlices(cats, {
             value:     unassignedItems.reduce((s, i) => s + effectiveGross(i), 0),
             itemCount: unassignedItems.length,
         });
-    }, [allItems, categories]);
+    }, [statsItems, categories]);
 
     // Category totals map — computed client-side from allItems so that the same
     // effectiveGross fallback (grossValue ?? netValue*(1+rate)) is used everywhere,
@@ -1556,6 +1587,10 @@ export const CostsView = () => {
     const handleEditCategory = (cat: CostCategory) => {
         setEditingCategory(cat);
         setFormModalOpen(true);
+    };
+
+    const handleToggleStatsExclusion = (cat: CostCategory) => {
+        statsExclusionMut.mutate({ categoryId: cat.id, excludeFromStats: !cat.excludeFromStats });
     };
 
     const handleDeleteCategory = async (cat: CostCategory) => {
@@ -1807,6 +1842,7 @@ export const CostsView = () => {
                                     <CatRow
                                         key={cat.id}
                                         $selected={isSelected}
+                                        $excluded={cat.excludeFromStats}
                                         $dragOver={catDragOver === cat.id}
                                         onClick={() => setSelectedCategoryId(prev => prev === cat.id ? null : cat.id)}
                                         onDragOver={e => {
@@ -1825,6 +1861,15 @@ export const CostsView = () => {
                                         <CatName>{cat.name}</CatName>
                                         <CatMeta>{totals ? fmtPLN(totals.totalCostGross) : '—'}</CatMeta>
                                         <CatActions onClick={e => e.stopPropagation()}>
+                                            <EyeToggleBtn
+                                                $excluded={cat.excludeFromStats}
+                                                title={cat.excludeFromStats
+                                                    ? 'Kategoria pomijana w statystykach — kliknij, aby ją uwzględnić'
+                                                    : 'Nie uwzględniaj w statystykach'}
+                                                onClick={() => handleToggleStatsExclusion(cat)}
+                                            >
+                                                {cat.excludeFromStats ? <EyeOff /> : <Eye />}
+                                            </EyeToggleBtn>
                                             <IconBtn title="Edytuj" onClick={() => handleEditCategory(cat)}>
                                                 <Pencil />
                                             </IconBtn>
@@ -2108,7 +2153,7 @@ export const CostsView = () => {
                 <PeriodExpensesModal
                     period={periodModal}
                     granularity="MONTHLY"
-                    allItems={allItems}
+                    allItems={statsItems}
                     onClose={() => setPeriodModal(null)}
                 />
             )}
