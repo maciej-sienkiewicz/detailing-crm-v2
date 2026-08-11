@@ -1,9 +1,9 @@
 // ─── Permission catalog (frontend mirror) ───────────────────────────────────
 // Mirrors the backend enum `pl.detailing.crm.role.domain.Permission`.
 // The backend is the source of truth: it computes the user's EFFECTIVE
-// permission set (tree closure + cross-module expansion + feature gating)
-// and returns it from GET /api/v1/auth/me as `user.permissions`.
-// `null` permissions = studio owner = unrestricted access.
+// permission set (dependency-graph closure: ancestors + implications,
+// plus feature gating) and returns it from GET /api/v1/auth/me as
+// `user.permissions`. `null` permissions = studio owner = unrestricted access.
 
 export const PERMISSIONS = {
     // Wizyty i kalendarz
@@ -15,7 +15,7 @@ export const PERMISSIONS = {
     VISITS_SERVICE_PRICES_EDIT: 'VISITS_SERVICE_PRICES_EDIT',
     VISITS_MEDIA_DELETE: 'VISITS_MEDIA_DELETE',
     VISITS_DOCUMENTS_MANAGE: 'VISITS_DOCUMENTS_MANAGE',
-    // Klienci i pojazdy
+    // Klienci i pojazdy — sekcja modułu „Wizyty i kalendarz” (nie osobny moduł)
     CUSTOMERS_VIEW: 'CUSTOMERS_VIEW',
     CUSTOMERS_MANAGE: 'CUSTOMERS_MANAGE',
     CUSTOMERS_DELETE: 'CUSTOMERS_DELETE',
