@@ -6,6 +6,8 @@ export interface CostCategory {
     description: string | null;
     color: string | null;
     isActive: boolean;
+    /** Gdy true — koszty tej kategorii są pomijane w KPI, wykresach i diagramie kołowym */
+    excludeFromStats: boolean;
     createdAt: string;
     updatedAt: string;
 }

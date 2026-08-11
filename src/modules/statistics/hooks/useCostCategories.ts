@@ -38,6 +38,18 @@ export const useUpdateCostCategory = () => {
     });
 };
 
+export const useSetCostCategoryStatsExclusion = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ categoryId, excludeFromStats }: { categoryId: string; excludeFromStats: boolean }) =>
+            costsApi.setStatsExclusion(categoryId, excludeFromStats),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: [COST_CATEGORIES_KEY] });
+            qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+        },
+    });
+};
+
 export const useDeleteCostCategory = () => {
     const qc = useQueryClient();
     return useMutation({
