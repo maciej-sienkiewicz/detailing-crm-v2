@@ -1052,10 +1052,9 @@ interface ExpenseFilters {
 
 interface ExpensesTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
-  onAddExpense: () => void;
 }
 
-const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange, onAddExpense }) => {
+const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange }) => {
   const [filters, setFilters] = useState<ExpenseFilters>({
     source: '', paymentStatus: '', page: 1,
   });
@@ -1118,10 +1117,6 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
         <RefreshBtn onClick={() => refetch()} title="Odśwież">
           <RefreshIcon />
         </RefreshBtn>
-        <AddButton onClick={onAddExpense} style={{ padding: '5px 14px', fontSize: '12px' }}>
-          <PlusIcon />
-          Dodaj fakturę ręcznie
-        </AddButton>
       </FiltersStrip>
 
       {isError ? (
@@ -1208,6 +1203,12 @@ export const FinanceView: React.FC = () => {
                 Dodaj dokument przychodowy
               </PageHeaderPrimaryButton>
             )}
+            {activeTab === 'expenses' && (
+              <PageHeaderPrimaryButton onClick={openExpenseModal}>
+                <PlusIcon />
+                Dodaj fakturę ręcznie
+              </PageHeaderPrimaryButton>
+            )}
           </FinHdrActions>
         }
       />
@@ -1252,7 +1253,7 @@ export const FinanceView: React.FC = () => {
             <IncomeTabContent activeDateRange={activeDateRange} onEdit={handleEditDocument} />
           )}
           {activeTab === 'expenses' && (
-            <ExpensesTabContent activeDateRange={activeDateRange} onAddExpense={openExpenseModal} />
+            <ExpensesTabContent activeDateRange={activeDateRange} />
           )}
           {activeTab === 'cash' && <CashRegisterPanel />}
           {activeTab === 'payment-summary' && <PaymentSummaryTab />}
