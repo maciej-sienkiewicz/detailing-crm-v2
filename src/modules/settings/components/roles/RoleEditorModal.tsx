@@ -264,6 +264,19 @@ function dependentsOf(code: string, index: TreeIndex): string[] {
     ]);
 }
 
+/**
+ * The first direct prerequisite of `code` that is not yet selected, or null if all are met.
+ * A permission is disabled in the editor when this returns non-null.
+ */
+function getBlocker(code: string, selected: Set<string>, index: TreeIndex): string | null {
+    const parent = index.parentOf.get(code) ?? null;
+    if (parent !== null && !selected.has(parent)) return parent;
+    for (const implied of (index.impliesOf.get(code) ?? [])) {
+        if (!selected.has(implied)) return implied;
+    }
+    return null;
+}
+
 /** Groups sibling nodes by their section label, preserving declaration order. */
 function groupBySection(nodes: PermissionTreeNode[]): Array<{ section: string | null; nodes: PermissionTreeNode[] }> {
     const groups: Array<{ section: string | null; nodes: PermissionTreeNode[] }> = [];
@@ -325,8 +338,9 @@ export function RoleEditorModal({
                 next.delete(code);
                 dependentsOf(code, index).forEach(c => next.delete(c));
             } else {
+                // No auto-cascade: the user must explicitly enable prerequisites.
+                // The UI disables this row until all direct requirements are met.
                 next.add(code);
-                requirementsOf(code, index).forEach(c => next.add(c));
             }
             return next;
         });
@@ -337,18 +351,15 @@ export function RoleEditorModal({
         setSelected(prev => {
             const next = new Set(prev);
             const allOn = codes.length > 0 && codes.every(c => next.has(c));
-            // Implications may cross module boundaries, so a bulk toggle cascades
-            // like a single checkbox: on pulls in each code's requirements, off
-            // drops everything depending on the removed codes.
             if (allOn) {
                 codes.forEach(c => {
                     next.delete(c);
                     dependentsOf(c, index).forEach(d => next.delete(d));
                 });
             } else {
+                // Only enable permissions whose direct prerequisites are already met.
                 codes.forEach(c => {
-                    next.add(c);
-                    requirementsOf(c, index).forEach(r => next.add(r));
+                    if (getBlocker(c, next, index) === null) next.add(c);
                 });
             }
             return next;
@@ -375,21 +386,24 @@ export function RoleEditorModal({
     const renderNodes = (nodes: PermissionTreeNode[], moduleFeatureOk: boolean) => (
         groupBySection(nodes).map(group => (
             <NodeBlock key={group.section ?? group.nodes[0].code}>
-                {group.section && <SectionLabel>{group.section}</SectionLabel>}
                 {group.nodes.map(node => {
                     const checked = selected.has(node.code);
                     const nodeFeatureOk = moduleFeatureOk && isFeatureEnabled(node.featureKey);
+                    const blocker = getBlocker(node.code, selected, index);
+                    const disabled = !nodeFeatureOk || blocker !== null;
                     return (
                         <NodeBlock key={node.code}>
-                            <CheckRow onClick={() => toggle(node.code)}>
+                            <CheckRow
+                                $disabled={disabled}
+                                onClick={disabled ? undefined : () => toggle(node.code)}
+                            >
                                 <CheckBox $checked={checked}>{checked && <TinyCheck />}</CheckBox>
                                 <PermTexts>
-                                    <PermLabel $dim={!nodeFeatureOk}>{node.displayName}</PermLabel>
-                                    {node.description && <PermDesc>{node.description}</PermDesc>}
-                                    {node.implies.length > 0 && (
+                                    <PermLabel $dim={disabled}>{node.displayName}</PermLabel>
+                                    {node.description && !blocker && <PermDesc>{node.description}</PermDesc>}
+                                    {blocker && (
                                         <PermDesc>
-                                            Obejmuje też:{' '}
-                                            {node.implies.map(c => index.labelOf.get(c) ?? c).join(', ')}
+                                            Najpierw zaznacz: {index.labelOf.get(blocker) ?? blocker}
                                         </PermDesc>
                                     )}
                                 </PermTexts>
@@ -418,7 +432,7 @@ export function RoleEditorModal({
                         <ModalSubtitle>
                             {mode === 'edit'
                                 ? 'Zmiana uprawnień natychmiast dotyczy wszystkich użytkowników z tą rolą.'
-                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie — uprawnienie niżej wymaga uprawnienia nadrzędnego, a powiązane uprawnienia zaznaczają się automatycznie.'}
+                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie — opcje wymagające innego uprawnienia są wyszarzone, dopóki uprawnienie nadrzędne nie jest zaznaczone.'}
                         </ModalSubtitle>
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
