@@ -280,8 +280,9 @@ export const TrendChart = ({
                             data={data}
                             margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
                             onMouseMove={state => {
-                                const period = state?.activePayload?.[0]?.payload?.period ?? null;
-                                setHoveredPeriod(period);
+                                // Recharts nie typuje activePayload w handlerze — stąd rzutowanie
+                                const s = state as unknown as { activePayload?: { payload?: { period?: string } }[] };
+                                setHoveredPeriod(s?.activePayload?.[0]?.payload?.period ?? null);
                             }}
                             onMouseLeave={() => setHoveredPeriod(null)}
                         >
@@ -329,8 +330,9 @@ export const TrendChart = ({
                                 maxBarSize={48}
                                 animationDuration={700}
                                 animationEasing="ease-out"
-                                onClick={(entry: { period?: string }) => {
-                                    if (entry?.period) onBarClick?.(entry.period);
+                                onClick={(entry: unknown) => {
+                                    const period = (entry as { period?: string } | null)?.period;
+                                    if (period) onBarClick?.(period);
                                 }}
                                 shape={(props: BarShapeProps & { period?: string }) => (
                                     <ActiveBarShape

@@ -176,8 +176,8 @@ export const CategoryDetailView = () => {
     const navigate = useNavigate();
 
     const [granularity, setGranularity] = useState<Granularity>('MONTHLY');
-    const [startDate, setStartDate] = useState(oneYearAgo());
-    const [endDate, setEndDate] = useState(today());
+    const [startDate] = useState(oneYearAgo());
+    const [endDate] = useState(today());
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
@@ -243,8 +243,6 @@ export const CategoryDetailView = () => {
                     startDate={startDate}
                     endDate={endDate}
                     onGranularityChange={setGranularity}
-                    onStartDateChange={setStartDate}
-                    onEndDateChange={setEndDate}
                 />
 
                 {statsLoading && <LoadingOverlay><Spinner /></LoadingOverlay>}
