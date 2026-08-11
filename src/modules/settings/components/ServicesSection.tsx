@@ -105,6 +105,45 @@ const ToggleFilterBtn = styled.button<{ $on: boolean }>`
   &:hover { border-color: #0ea5e9; color: #0ea5e9; }
 `;
 
+const TypeFilterGroup = styled.div`
+  display: flex;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  overflow: hidden;
+  flex-shrink: 0;
+`;
+
+const TypeFilterBtn = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: ${p => p.$active ? 600 : 500};
+  background: ${p => p.$active ? '#0f172a' : 'white'};
+  color: ${p => p.$active ? '#fff' : '#475569'};
+  border: none;
+  border-right: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 150ms;
+
+  &:last-child { border-right: none; }
+  &:hover:not(:disabled) { background: ${p => p.$active ? '#0f172a' : '#f8fafc'}; }
+`;
+
+const NewServiceBadge = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 1px 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+`;
+
 const AddButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -1001,6 +1040,7 @@ export const ServicesSection: React.FC = () => {
   const [debouncedSearch, setDebounced]   = useState('');
   const [page, setPage]                   = useState(1);
   const [showInactive, setShowInactive]   = useState(false);
+  const [typeFilter, setTypeFilter]       = useState<'all' | 'services' | 'packages'>('all');
 
   const [formMode, setFormMode]           = useState<FormMode | null>(null);
   const [editTarget, setEditTarget]       = useState<Service | null>(null);
@@ -1022,6 +1062,9 @@ export const ServicesSection: React.FC = () => {
   const [updatedServiceName, setUpdatedServiceName]   = useState('');
 
   const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
+
+  // "Save custom service to DB?" dialog
+  const [pendingCustomName, setPendingCustomName]     = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { setDebounced(search); setPage(1); }, 350);
@@ -1065,6 +1108,61 @@ export const ServicesSection: React.FC = () => {
   const isPkgSaving = createPkgMutation.isPending || updatePkgMutation.isPending;
   const totalItems  = pagination?.totalItems ?? 0;
   const totalPages  = pagination?.totalPages ?? 1;
+
+  const filteredServices = services.filter(s => {
+    if (typeFilter === 'services') return !s.isPackage;
+    if (typeFilter === 'packages') return s.isPackage;
+    return true;
+  });
+
+  const addCustomServiceToPkg = async (name: string, saveToDb: boolean) => {
+    if (saveToDb) {
+      const newService = await createMutation.mutateAsync({
+        name,
+        basePriceNet: 0,
+        basePriceGross: 0,
+        vatRate: 23,
+        requireManualPrice: true,
+      });
+      setPkgFormValues(prev => ({
+        ...prev,
+        selectedServices: [...prev.selectedServices, {
+          id: newService.id,
+          name: newService.name,
+          basePriceNet: 0,
+          basePriceGross: 0,
+          vatRate: 23 as const,
+          requireManualPrice: true,
+          isActive: true,
+          isPackage: false,
+          packageItems: null,
+          createdAt: '', updatedAt: '',
+          createdByFirstName: '', createdByLastName: '', updatedBy: '',
+          replacesServiceId: null,
+        }],
+      }));
+    } else {
+      setPkgFormValues(prev => ({
+        ...prev,
+        selectedServices: [...prev.selectedServices, {
+          id: `NEW::${name}`,
+          name,
+          basePriceNet: 0,
+          basePriceGross: 0,
+          vatRate: 23 as const,
+          requireManualPrice: true,
+          isActive: true,
+          isPackage: false,
+          packageItems: null,
+          createdAt: '', updatedAt: '',
+          createdByFirstName: '', createdByLastName: '', updatedBy: '',
+          replacesServiceId: null,
+        }],
+      }));
+    }
+    setPkgServiceSearch('');
+    setPkgFormErrors(prev => ({ ...prev, services: undefined }));
+  };
 
   // ── Form handlers ──
   const anyFormOpen = formMode !== null || pkgFormMode !== null;
@@ -1158,7 +1256,27 @@ export const ServicesSection: React.FC = () => {
 
     const basePriceNet = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.netInput);
     const basePriceGross = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.grossInput);
-    const serviceIds = pkgFormValues.selectedServices.map(s => s.id);
+
+    // Create any virtual services (id starts with NEW::) before submitting
+    const resolvedServices = [...pkgFormValues.selectedServices];
+    for (let i = 0; i < resolvedServices.length; i++) {
+      if (resolvedServices[i].id.startsWith('NEW::')) {
+        try {
+          const created = await createMutation.mutateAsync({
+            name: resolvedServices[i].name,
+            basePriceNet: 0,
+            basePriceGross: 0,
+            vatRate: 23,
+            requireManualPrice: true,
+          });
+          resolvedServices[i] = { ...resolvedServices[i], id: created.id };
+        } catch {
+          return;
+        }
+      }
+    }
+
+    const serviceIds = resolvedServices.map(s => s.id);
 
     if (pkgFormMode === 'add') {
       await createPkgMutation.mutateAsync({
@@ -1299,6 +1417,18 @@ export const ServicesSection: React.FC = () => {
             onChange={e => setSearch(e.target.value)}
           />
         </SearchWrap>
+
+        <TypeFilterGroup>
+          <TypeFilterBtn $active={typeFilter === 'all'} onClick={() => { setTypeFilter('all'); setPage(1); }}>
+            Wszystkie
+          </TypeFilterBtn>
+          <TypeFilterBtn $active={typeFilter === 'services'} onClick={() => { setTypeFilter('services'); setPage(1); }}>
+            Usługi
+          </TypeFilterBtn>
+          <TypeFilterBtn $active={typeFilter === 'packages'} onClick={() => { setTypeFilter('packages'); setPage(1); }}>
+            Pakiety
+          </TypeFilterBtn>
+        </TypeFilterGroup>
 
         <ToggleFilterBtn $on={showInactive} onClick={() => { setShowInactive(v => !v); setPage(1); }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1533,7 +1663,7 @@ export const ServicesSection: React.FC = () => {
                     onFocus={() => setPkgDropdownOpen(true)}
                     $error={!!pkgFormErrors.services && pkgFormValues.selectedServices.length === 0}
                   />
-                  {pkgDropdownOpen && availablePickerServices.length > 0 && (
+                  {pkgDropdownOpen && (availablePickerServices.length > 0 || pkgServiceSearch.trim().length >= 2) && (
                     <ServicePickerDropdown>
                       {availablePickerServices.map(svc => (
                         <ServicePickerOption
@@ -1543,6 +1673,23 @@ export const ServicesSection: React.FC = () => {
                           {svc.name}
                         </ServicePickerOption>
                       ))}
+                      {pkgServiceSearch.trim().length >= 2 && (
+                        <ServicePickerOption
+                          onMouseDown={() => {
+                            const name = pkgServiceSearch.trim();
+                            setPendingCustomName(name);
+                            setPkgDropdownOpen(false);
+                            setPkgServiceSearch('');
+                          }}
+                          style={{
+                            color: '#2563eb',
+                            fontWeight: 600,
+                            borderTop: availablePickerServices.length > 0 ? '1px solid #e2e8f0' : undefined,
+                          }}
+                        >
+                          ＋ Dodaj „{pkgServiceSearch.trim()}" jako nową pozycję
+                        </ServicePickerOption>
+                      )}
                     </ServicePickerDropdown>
                   )}
                 </ServicePickerWrap>
@@ -1555,6 +1702,9 @@ export const ServicesSection: React.FC = () => {
                     <SelectedServiceItem key={svc.id}>
                       <PositionDot>{index + 1}</PositionDot>
                       <SelectedServiceName>{svc.name}</SelectedServiceName>
+                      {svc.id.startsWith('NEW::') && (
+                        <NewServiceBadge>Nowa</NewServiceBadge>
+                      )}
                       <RemoveServiceBtn type="button" onClick={() => removeServiceFromPkg(svc.id)}>×</RemoveServiceBtn>
                     </SelectedServiceItem>
                   ))}
@@ -1610,7 +1760,7 @@ export const ServicesSection: React.FC = () => {
             </EmptyDesc>
           </EmptyWrap>
         ) : (
-          services.map(service => {
+          filteredServices.map(service => {
             const calc = !service.requireManualPrice
               ? {
                   ...calculateGrossFromNet(service.basePriceNet, service.vatRate),
@@ -1726,6 +1876,42 @@ export const ServicesSection: React.FC = () => {
           </Pager>
         )}
       </ServiceList>
+
+      {/* ── "Save custom service to DB?" dialog ── */}
+      {pendingCustomName && (
+        <Overlay onClick={e => e.target === e.currentTarget && setPendingCustomName(null)}>
+          <Dialog>
+            <DialogTitle>Zapamiętać usługę w bazie?</DialogTitle>
+            <DialogText>
+              Czy chcesz zapisać <strong>„{pendingCustomName}"</strong> jako osobną usługę
+              w katalogu?<br /><br />
+              Jeśli tak — usługa zostanie natychmiast dodana z flagą{' '}
+              <strong>wyceny ręcznej</strong> i będzie dostępna przy tworzeniu
+              przyszłych zleceń.<br />
+              Jeśli nie — pozycja zostanie dodana tylko do tego pakietu.
+            </DialogText>
+            <DialogActions>
+              <CancelBtn
+                onClick={() => {
+                  addCustomServiceToPkg(pendingCustomName, false);
+                  setPendingCustomName(null);
+                }}
+              >
+                Nie, tylko w tym pakiecie
+              </CancelBtn>
+              <SubmitBtn
+                onClick={async () => {
+                  await addCustomServiceToPkg(pendingCustomName, true);
+                  setPendingCustomName(null);
+                }}
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? 'Zapisywanie…' : 'Tak, zapisz w katalogu'}
+              </SubmitBtn>
+            </DialogActions>
+          </Dialog>
+        </Overlay>
+      )}
 
       {/* ── Affected packages dialog ── */}
       {affectedPackages && affectedPackages.length > 0 && (
