@@ -185,12 +185,21 @@ const TinyCheck = () => (
     </svg>
 );
 
-// ─── Tree helpers ─────────────────────────────────────────────────────────────
+// ─── Dependency-graph helpers ─────────────────────────────────────────────────
+// The catalog is a tree (parent/children) plus explicit implications (`implies`),
+// which may cross branches and modules. Both are dependency edges: a permission
+// requires its whole ancestor chain AND everything it implies.
 interface TreeIndex {
     /** code → parent code (null for module roots). */
     parentOf: Map<string, string | null>;
     /** code → direct child codes. */
     childrenOf: Map<string, string[]>;
+    /** code → codes it additionally requires beyond its parent (may cross modules). */
+    impliesOf: Map<string, string[]>;
+    /** code → codes that imply it (reverse of impliesOf). */
+    impliedBy: Map<string, string[]>;
+    /** code → displayName, for rendering implication hints. */
+    labelOf: Map<string, string>;
     /** All codes per module, in tree order. */
     moduleCodes: Map<string, string[]>;
 }
@@ -198,11 +207,19 @@ interface TreeIndex {
 function buildTreeIndex(catalog: PermissionModuleTree[]): TreeIndex {
     const parentOf = new Map<string, string | null>();
     const childrenOf = new Map<string, string[]>();
+    const impliesOf = new Map<string, string[]>();
+    const impliedBy = new Map<string, string[]>();
+    const labelOf = new Map<string, string>();
     const moduleCodes = new Map<string, string[]>();
 
     const visit = (node: PermissionTreeNode, parent: string | null, codes: string[]) => {
         parentOf.set(node.code, parent);
         childrenOf.set(node.code, node.children.map(c => c.code));
+        impliesOf.set(node.code, node.implies);
+        labelOf.set(node.code, node.displayName);
+        node.implies.forEach(target => {
+            impliedBy.set(target, [...(impliedBy.get(target) ?? []), node.code]);
+        });
         codes.push(node.code);
         node.children.forEach(child => visit(child, node.code, codes));
     };
@@ -213,28 +230,38 @@ function buildTreeIndex(catalog: PermissionModuleTree[]): TreeIndex {
         moduleCodes.set(module.module, codes);
     });
 
-    return { parentOf, childrenOf, moduleCodes };
+    return { parentOf, childrenOf, impliesOf, impliedBy, labelOf, moduleCodes };
 }
 
-function ancestorsOf(code: string, index: TreeIndex): string[] {
+/** BFS over dependency edges, excluding the start code itself. */
+function expandFrom(code: string, step: (c: string) => string[]): string[] {
+    const seen = new Set([code]);
     const result: string[] = [];
-    let current = index.parentOf.get(code) ?? null;
-    while (current) {
-        result.push(current);
-        current = index.parentOf.get(current) ?? null;
-    }
-    return result;
-}
-
-function descendantsOf(code: string, index: TreeIndex): string[] {
-    const result: string[] = [];
-    const queue = [...(index.childrenOf.get(code) ?? [])];
+    const queue = step(code);
     while (queue.length > 0) {
         const next = queue.shift()!;
+        if (seen.has(next)) continue;
+        seen.add(next);
         result.push(next);
-        queue.push(...(index.childrenOf.get(next) ?? []));
+        queue.push(...step(next));
     }
     return result;
+}
+
+/** Everything `code` requires: its ancestor chain and implied permissions, transitively. */
+function requirementsOf(code: string, index: TreeIndex): string[] {
+    return expandFrom(code, c => {
+        const parent = index.parentOf.get(c);
+        return parent ? [parent, ...(index.impliesOf.get(c) ?? [])] : (index.impliesOf.get(c) ?? []);
+    });
+}
+
+/** Everything that requires `code`: its subtree and permissions implying it, transitively. */
+function dependentsOf(code: string, index: TreeIndex): string[] {
+    return expandFrom(code, c => [
+        ...(index.childrenOf.get(c) ?? []),
+        ...(index.impliedBy.get(c) ?? []),
+    ]);
 }
 
 /** Groups sibling nodes by their section label, preserving declaration order. */
@@ -283,22 +310,23 @@ export function RoleEditorModal({
     );
 
     /**
-     * The single cascade rule of the tree:
-     * - checking a node also checks its whole ancestor chain (a child is
-     *   meaningless without its parent),
-     * - unchecking a node also unchecks its whole subtree.
-     * Both directions are immediately visible in the rendered hierarchy,
-     * so no confirmation dialog is needed.
+     * The cascade rule of the dependency graph:
+     * - checking a node also checks everything it requires — its whole ancestor
+     *   chain and its implications, transitively (possibly in other modules),
+     * - unchecking a node also unchecks everything that requires it — its subtree
+     *   and the permissions implying it, transitively.
+     * The backend closes the persisted set over the same graph, so what is shown
+     * checked is exactly what gets saved and enforced.
      */
     const toggle = useCallback((code: string) => {
         setSelected(prev => {
             const next = new Set(prev);
             if (next.has(code)) {
                 next.delete(code);
-                descendantsOf(code, index).forEach(c => next.delete(c));
+                dependentsOf(code, index).forEach(c => next.delete(c));
             } else {
                 next.add(code);
-                ancestorsOf(code, index).forEach(c => next.add(c));
+                requirementsOf(code, index).forEach(c => next.add(c));
             }
             return next;
         });
@@ -309,9 +337,20 @@ export function RoleEditorModal({
         setSelected(prev => {
             const next = new Set(prev);
             const allOn = codes.length > 0 && codes.every(c => next.has(c));
-            // The tree never crosses module boundaries, so a bulk module toggle
-            // is self-contained: no ancestors or descendants live outside `codes`.
-            codes.forEach(c => (allOn ? next.delete(c) : next.add(c)));
+            // Implications may cross module boundaries, so a bulk toggle cascades
+            // like a single checkbox: on pulls in each code's requirements, off
+            // drops everything depending on the removed codes.
+            if (allOn) {
+                codes.forEach(c => {
+                    next.delete(c);
+                    dependentsOf(c, index).forEach(d => next.delete(d));
+                });
+            } else {
+                codes.forEach(c => {
+                    next.add(c);
+                    requirementsOf(c, index).forEach(r => next.add(r));
+                });
+            }
             return next;
         });
     }, [index]);
@@ -347,6 +386,12 @@ export function RoleEditorModal({
                                 <PermTexts>
                                     <PermLabel $dim={!nodeFeatureOk}>{node.displayName}</PermLabel>
                                     {node.description && <PermDesc>{node.description}</PermDesc>}
+                                    {node.implies.length > 0 && (
+                                        <PermDesc>
+                                            Obejmuje też:{' '}
+                                            {node.implies.map(c => index.labelOf.get(c) ?? c).join(', ')}
+                                        </PermDesc>
+                                    )}
                                 </PermTexts>
                                 {!nodeFeatureOk && node.featureKey && (
                                     <Badge $variant="amber">⚠ Wymaga modułu</Badge>
@@ -373,7 +418,7 @@ export function RoleEditorModal({
                         <ModalSubtitle>
                             {mode === 'edit'
                                 ? 'Zmiana uprawnień natychmiast dotyczy wszystkich użytkowników z tą rolą.'
-                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie — uprawnienie niżej wymaga uprawnienia nadrzędnego.'}
+                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie — uprawnienie niżej wymaga uprawnienia nadrzędnego, a powiązane uprawnienia zaznaczają się automatycznie.'}
                         </ModalSubtitle>
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">

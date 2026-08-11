@@ -20,6 +20,7 @@ const sanitizeNode = (node: PermissionTreeNode): PermissionTreeNode => ({
     description: node.description ?? null,
     section: node.section ?? null,
     featureKey: node.featureKey ?? null,
+    implies: node.implies ?? [],
     children: (node.children ?? []).map(sanitizeNode),
 });
 

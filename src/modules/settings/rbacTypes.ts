@@ -1,14 +1,20 @@
 // ─── Roles & Permissions (RBAC, Settings) ──────────────────────────────────────
 // Types for the "Role i uprawnienia" settings tab.
 //
-// The permission catalog is a TREE (hardcoded on the backend): a node's children
-// require the node itself, so granting a permission implies granting its whole
-// ancestor chain. The editor renders the hierarchy and cascades selection along it.
+// The permission catalog is a DEPENDENCY GRAPH (hardcoded on the backend): a tree —
+// a node's children require the node itself, so granting a permission implies granting
+// its whole ancestor chain — plus explicit implications (`implies`), which may point at
+// another branch or module (e.g. creating visits implies managing customers). The editor
+// renders the tree and cascades selection along both kinds of edges; the backend closes
+// the persisted set over the same graph, so a role can never be inconsistent.
 
-/** Permission modules grouping (hardcoded on the backend, `PermissionModule`). */
+/**
+ * Permission modules grouping (hardcoded on the backend, `PermissionModule`).
+ * Customers/vehicles are no longer a module — they are the "Klienci i pojazdy"
+ * section inside VISITS.
+ */
 export type PermissionModuleKey =
     | 'VISITS'
-    | 'CUSTOMERS'
     | 'FINANCE'
     | 'EMPLOYEES'
     | 'COMMUNICATION'
@@ -16,7 +22,8 @@ export type PermissionModuleKey =
     | 'STATISTICS'
     | 'LEADS'
     | 'TASKS'
-    | 'SERVICES';
+    | 'SERVICES'
+    | 'AUDIT';
 
 export interface PermissionTreeNode {
     code: string;
@@ -26,6 +33,11 @@ export interface PermissionTreeNode {
     section: string | null;
     /** Non-null when the permission is gated by a different subscription feature than its module. */
     featureKey: string | null;
+    /**
+     * Codes this permission additionally requires beyond its parent chain (possibly in
+     * another branch or module). Selecting this node must also select them.
+     */
+    implies: string[];
     /** Permissions that require this one. */
     children: PermissionTreeNode[];
 }
