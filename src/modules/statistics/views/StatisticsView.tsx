@@ -1,12 +1,11 @@
 // src/modules/statistics/views/StatisticsView.tsx
-import { useState, useMemo, useRef, useEffect, type CSSProperties } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useMemo } from 'react';
 import styled from 'styled-components';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { t } from '@/common/i18n';
+import { PageHeader } from '@/common/components/PageHeader';
 import { StatsFilters } from '../components/StatsFilters';
-import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
-import { BreakdownTable } from '../components/BreakdownTable';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
 import { StatsNav } from '../components/StatsNav';
@@ -14,764 +13,87 @@ import { useCategories, useDeleteCategory, useAssignService, useUnassignService 
 import { useBreakdown, useCategoryStats } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
 import { st } from '../components/StatisticsTheme';
-import { PageHeader } from '@/common/components/PageHeader';
+import {
+    // layout
+    ViewContainer, Section, SectionHeading, SectionTitle, SectionRule,
+    TablesHeaderRow, TablesGrid, TableColumn, TableColumnHeader, TableColumnTitle,
+    HdrBtns,
+    // KPI + charts
+    KpiRow, KpiCard, KpiLabel, KpiValue,
+    ChartsRow, ChartCard, ChartTitle,
+    Spinner, LoadingOverlay, ErrorBox, ErrorText, RetryButton,
+    // tables
+    CatTable, CatRow, CatDot, CatName, CatMeta, CatActions, IconBtn,
+    TableEmpty, TableLoading,
+    ItemsTable, ItemsHeader, ItemRow, ItemName, ItemMeta, CatBadge, KebabBtn,
+    // filters / buttons
+    FilterBar, FilterBtn, SearchInput, ClearFilterBtn, AddButton, DragHint,
+    // pie
+    CategorySharePie, buildCategoryShareSlices, type PieSliceDatum,
+    // context menu
+    CategoryAssignMenu, ctxMenuPosition,
+    // date picker + helpers
+    HeaderDatePicker,
+    fmtPLNFromGrosz, today, oneYearAgo,
+} from '../components/shared';
 
-// ─── Layout ──────────────────────────────────────────────────────────────────
-
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    padding: ${props => props.theme.spacing.lg};
-    max-width: 1800px;
-    margin: 0 auto;
-    width: 100%;
-
-    @media (max-width: 639px) {
-        padding: ${props => props.theme.spacing.md};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: ${props => props.theme.spacing.xxl};
-    }
-`;
-
-
-const Section = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-// ─── Section heading ──────────────────────────────────────────────────────────
-
-const SectionHeading = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-`;
-
-const SectionTitle = styled.h2`
-    margin: 0;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-`;
-
-const SectionRule = styled.div`
-    flex: 1;
-    height: 1px;
-    background: ${st.border};
-`;
-
-// ─── Selected category banner ─────────────────────────────────────────────────
+// ─── View-specific styled ─────────────────────────────────────────────────────
 
 const SelectedCategoryBanner = styled.div<{ $visible: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: ${props => props.$visible ? '10px 16px' : '0 16px'};
+    padding: ${p => p.$visible ? '10px 16px' : '0 16px'};
     background: ${st.accentBlueDim};
     border: 1px solid ${st.accentBlue}33;
     border-radius: ${st.radiusSm};
     font-size: ${st.fontSm};
     color: ${st.text};
-    max-height: ${props => props.$visible ? '60px' : '0'};
+    max-height: ${p => p.$visible ? '60px' : '0'};
     overflow: hidden;
-    opacity: ${props => props.$visible ? 1 : 0};
-    pointer-events: ${props => props.$visible ? 'auto' : 'none'};
+    opacity: ${p => p.$visible ? 1 : 0};
+    pointer-events: ${p => p.$visible ? 'auto' : 'none'};
     transition: max-height 0.2s ease, opacity 0.15s ease, padding 0.2s ease;
-`;
-
-const ClearSelectionBtn = styled.button`
-    margin-left: auto;
-    padding: 3px 10px;
-    background: transparent;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
-    font-weight: 500;
-    color: ${st.textSecondary};
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover {
-        color: ${st.text};
-        border-color: ${st.borderHover};
-        background: ${st.bg};
-    }
-`;
-
-// ─── Two-column breakdown ─────────────────────────────────────────────────────
-
-const twoColGrid = `
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-
-    @media (max-width: ${(props: any) => props.theme.breakpoints.lg}) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-/** Shared header row — both column titles live here so they always align. */
-const TablesHeaderRow = styled.div`
-    ${twoColGrid}
-    align-items: center;
-`;
-
-/** Tables sit in a separate grid below the header row. */
-const TablesGrid = styled.div`
-    ${twoColGrid}
-    align-items: start;
-`;
-
-const TableColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-`;
-
-const TableColumnHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
-
-const TableColumnTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const TableColumnControls = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-`;
-
-const ServiceTableFilterLabel = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    font-style: italic;
-`;
-
-const ServiceFiltersBar = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    width: 100%;
-`;
-
-const ServiceFilterInput = styled.input`
-    flex: 1;
-    min-width: 150px;
-    padding: 6px 12px;
-    background: ${st.bg};
-    color: ${st.text};
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    transition: border-color ${st.transition};
-
-    &::placeholder { color: ${st.textMuted}; }
-    &:focus { outline: none; border-color: ${st.accentBlue}; }
-`;
-
-const UnassignedFilterBtn = styled.button<{ $active: boolean }>`
-    padding: 5px 12px;
-    background: ${p => p.$active ? st.accentAmberDim : 'transparent'};
-    border: 1px solid ${p => p.$active ? st.accentAmber : st.border};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${p => p.$active ? '#92400E' : st.textSecondary};
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    &:hover {
-        border-color: ${p => p.$active ? st.accentAmber : st.borderHover};
-        color: ${p => p.$active ? '#92400E' : st.text};
-        background: ${p => p.$active ? 'rgba(245,158,11,0.18)' : st.bg};
-    }
-`;
-
-const DragHint = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: ${st.accentAmberDim};
-    border: 1px solid ${st.accentAmber}44;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    color: ${st.textSecondary};
-`;
-
-// ─── Portal category select ───────────────────────────────────────────────────
-
-const CatSelectTrigger = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    font-size: ${st.fontXs};
-    font-weight: 500;
-    color: ${st.text};
-    background: ${st.bg};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    cursor: pointer;
-    max-width: 150px;
-    font-family: inherit;
-    transition: border-color ${st.transition};
-    &:focus { outline: none; border-color: ${st.accentBlue}; }
-    &:hover { border-color: ${st.borderHover}; }
-`;
-
-const CatSelectLabel = styled.span`
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const CatSelectPanel = styled.div`
-    position: fixed;
-    z-index: 9999;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-    min-width: 160px;
-    max-width: 240px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 4px;
-`;
-
-const CatSelectOption = styled.button<{ $active: boolean }>`
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 7px 10px;
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: ${p => p.$active ? '600' : '400'};
-    color: ${p => p.$active ? st.accentBlue : st.text};
-    background: ${p => p.$active ? st.accentBlueDim : 'transparent'};
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: background ${st.transition};
-    &:hover { background: ${p => p.$active ? st.accentBlueDim : st.bg}; }
-`;
-
-interface CategorySelectProps {
-    value: string;
-    categories: Category[];
-    onChange: (newValue: string) => void;
-}
-
-const CategorySelect = ({ value, categories, onChange }: CategorySelectProps) => {
-    const [open, setOpen] = useState(false);
-    const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const panelRef = useRef<HTMLDivElement>(null);
-
-    const currentName = value
-        ? (categories.find(c => c.id === value)?.name ?? 'Kategoria')
-        : 'Bez kategorii';
-
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: MouseEvent) => {
-            if (
-                panelRef.current && !panelRef.current.contains(e.target as Node) &&
-                triggerRef.current && !triggerRef.current.contains(e.target as Node)
-            ) setOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
-
-    const handleOpen = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        if (!triggerRef.current) return;
-        const rect = triggerRef.current.getBoundingClientRect();
-        const panelH = Math.min(200, (categories.length + 1) * 36 + 8);
-        const panelW = 200;
-        const left = Math.max(8, Math.min(rect.left, window.innerWidth - panelW - 8));
-        const top = rect.bottom + 4 + panelH > window.innerHeight
-            ? Math.max(8, rect.top - panelH - 4)
-            : rect.bottom + 4;
-        setPanelStyle({ top, left, width: panelW });
-        setOpen(p => !p);
-    };
-
-    const handleSelect = (newVal: string) => {
-        setOpen(false);
-        onChange(newVal);
-    };
-
-    return (
-        <>
-            <CatSelectTrigger ref={triggerRef} onClick={handleOpen}>
-                <CatSelectLabel>{currentName}</CatSelectLabel>
-                ▾
-            </CatSelectTrigger>
-            {open && createPortal(
-                <CatSelectPanel ref={panelRef} style={panelStyle}>
-                    <CatSelectOption $active={value === ''} onClick={() => handleSelect('')}>
-                        Bez kategorii
-                    </CatSelectOption>
-                    {categories.map(c => (
-                        <CatSelectOption key={c.id} $active={value === c.id} onClick={() => handleSelect(c.id)}>
-                            {c.name}
-                        </CatSelectOption>
-                    ))}
-                </CatSelectPanel>,
-                document.body
-            )}
-        </>
-    );
-};
-
-// ─── Common ───────────────────────────────────────────────────────────────────
-
-const AddButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: ${st.shadowXs};
-    transition: all ${st.transition};
-
-    &:hover {
-        background: #2563EB;
-        box-shadow: ${st.shadowSm};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-`;
-
-const LoadingOverlay = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-`;
-
-const Spinner = styled.div`
-    width: 36px;
-    height: 36px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
 `;
 
 const ChartArea = styled.div<{ $fading: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 16px;
-    opacity: ${props => props.$fading ? 0.4 : 1};
-    transform: ${props => props.$fading ? 'scale(0.995)' : 'scale(1)'};
+    opacity: ${p => p.$fading ? 0.4 : 1};
+    transform: ${p => p.$fading ? 'scale(0.995)' : 'scale(1)'};
     transition: opacity 0.2s ease, transform 0.2s ease;
-    pointer-events: ${props => props.$fading ? 'none' : 'auto'};
+    pointer-events: ${p => p.$fading ? 'none' : 'auto'};
 `;
 
-const ErrorBox = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 32px;
-    background: ${st.accentRedDim};
-    border: 1px solid ${st.accentRed}33;
-    border-radius: ${st.radius};
-    text-align: center;
-`;
-
-const ErrorText = styled.p`
-    margin: 0;
-    color: ${st.accentRed};
-    font-size: ${st.fontSm};
-    font-weight: 500;
-`;
-
-const RetryButton = styled.button`
-    padding: 8px 20px;
-    background: transparent;
-    border: 1px solid ${st.accentBlue};
-    color: ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover {
-        background: ${st.accentBlueDim};
-    }
-`;
-
-const RowActionBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    background: transparent;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: 13px;
-    cursor: pointer;
+const InactiveBadge = styled.span`
+    font-size: ${st.fontXs};
     color: ${st.textMuted};
-    transition: all ${st.transition};
-
-    &:hover {
-        background: ${st.bg};
-        color: ${st.text};
-        border-color: ${st.borderHover};
-        box-shadow: ${st.shadowXs};
-    }
-
-    &:not(:last-child) {
-        margin-right: 3px;
-    }
-`;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const today = () => new Date().toISOString().slice(0, 10);
-const oneYearAgo = () => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
-    return d.toISOString().slice(0, 10);
-};
-const spDaysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
-const spMonthsAgo = (n: number) => { const d = new Date(); d.setMonth(d.getMonth() - n); return d.toISOString().slice(0, 10); };
-
-// ─── Header date picker ───────────────────────────────────────────────────────
-
-const HdrBtns = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-
-    @media (max-width: 639px) {
-        flex-wrap: wrap;
-        width: 100%;
-    }
-`;
-
-const HdrPickerWrap = styled.div`
-    position: relative;
-    flex-shrink: 0;
-`;
-
-const HdrPickerTrigger = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 15px;
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.08)'};
-    color: ${p => p.$active ? '#7dd3fc' : '#e2e8f0'};
-    border: 1px solid ${p => p.$active ? 'rgba(125, 211, 252, 0.45)' : 'rgba(255, 255, 255, 0.14)'};
-    border-radius: 9999px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
+    font-weight: 400;
     white-space: nowrap;
-    transition: all ${st.transition};
-
-    &:hover {
-        background: ${p => p.$active ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.14)'};
-        color: #fff;
-    }
-    svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
-
-const HdrPickerPanel = styled.div`
-    position: fixed;
-    z-index: 9000;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
-    min-width: 250px;
-    padding: 8px;
-`;
-
-const HdrPresetGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const HdrPresetBtn = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 8px 12px;
-    background: ${p => p.$active ? '#eff6ff' : 'transparent'};
-    color: ${p => p.$active ? st.accentBlue : st.text};
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: ${p => p.$active ? '600' : '500'};
-    text-align: left;
-    cursor: pointer;
-    transition: background ${st.transition}, color ${st.transition};
-
-    &:hover { background: ${p => p.$active ? '#dbeafe' : st.bg}; }
-    span.hint { font-size: 11px; color: ${p => p.$active ? '#7dd3fc' : st.textMuted}; font-weight: 400; }
-`;
-
-const HdrDivider = styled.div`
-    height: 1px;
-    background: ${st.border};
-    margin: 6px 0;
-`;
-
-const HdrDateLabel = styled.div`
-    padding: 2px 10px 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const HdrRangeRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0 2px;
-`;
-
-const HdrDateInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    padding: 6px 8px;
-    background: ${st.bg};
-    color: ${st.text};
-    border: 1.5px solid ${st.border};
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 12px;
-    cursor: pointer;
-    transition: border-color ${st.transition};
-    &:focus { outline: none; border-color: ${st.accentBlue}; }
-`;
-
-const HdrApplyBtn = styled.button`
-    width: 100%;
-    margin-top: 8px;
-    padding: 7px 10px;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: background ${st.transition};
-    &:hover { background: #2563eb; }
-    &:disabled { background: #94a3b8; cursor: not-allowed; }
-`;
-
-const HdrSep = styled.span`
-    font-size: 12px;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-`;
-
-const HdrCalIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-);
-
-const HdrChevIcon = () => (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <polyline points="6 9 12 15 18 9" />
-    </svg>
-);
-
-const HdrCheckIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
-
-type StatsPreset = { label: string; hint: string; startDate: string; endDate: string; granularity: Granularity; };
-
-const getStatsPresets = (): StatsPreset[] => [
-    { label: t.statistics.presets.last7days,    hint: '7 dni',    startDate: spDaysAgo(7),    endDate: today(), granularity: 'DAILY' },
-    { label: t.statistics.presets.last30days,   hint: '30 dni',   startDate: spDaysAgo(30),   endDate: today(), granularity: 'WEEKLY' },
-    { label: t.statistics.presets.last3months,  hint: '3 mies.',  startDate: spMonthsAgo(3),  endDate: today(), granularity: 'MONTHLY' },
-    { label: t.statistics.presets.last12months, hint: '12 mies.', startDate: spMonthsAgo(12), endDate: today(), granularity: 'MONTHLY' },
-];
-
-interface StatsDatePickerProps {
-    startDate: string;
-    endDate: string;
-    onStartDateChange: (d: string) => void;
-    onEndDateChange: (d: string) => void;
-    onGranularityChange: (g: Granularity) => void;
-}
-
-const StatsDatePicker = ({
-    startDate,
-    endDate,
-    onStartDateChange,
-    onEndDateChange,
-    onGranularityChange,
-}: StatsDatePickerProps) => {
-    const [open, setOpen] = useState(false);
-    const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
-    const [pendingFrom, setPendingFrom] = useState('');
-    const [pendingTo, setPendingTo] = useState('');
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const panelRef = useRef<HTMLDivElement>(null);
-
-    const presets = getStatsPresets();
-    const activeIdx = presets.findIndex(p => p.startDate === startDate && p.endDate === endDate);
-
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: MouseEvent) => {
-            if (
-                panelRef.current && !panelRef.current.contains(e.target as Node) &&
-                triggerRef.current && !triggerRef.current.contains(e.target as Node)
-            ) setOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
-
-    const handleToggle = () => {
-        if (!open && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setPanelPos({ top: rect.bottom + 8, right: Math.max(0, window.innerWidth - rect.right) });
-            setPendingFrom(startDate);
-            setPendingTo(endDate);
-        }
-        setOpen(p => !p);
-    };
-
-    const applyPreset = (preset: StatsPreset) => {
-        onStartDateChange(preset.startDate);
-        onEndDateChange(preset.endDate);
-        onGranularityChange(preset.granularity);
-        setOpen(false);
-    };
-
-    const applyCustom = () => {
-        if (pendingFrom) onStartDateChange(pendingFrom);
-        if (pendingTo) onEndDateChange(pendingTo);
-        setOpen(false);
-    };
-
-    const label = activeIdx >= 0 ? presets[activeIdx].label : `${startDate} – ${endDate}`;
-
-    return (
-        <HdrPickerWrap>
-            <HdrPickerTrigger ref={triggerRef} $active onClick={handleToggle}>
-                <HdrCalIcon />
-                {label}
-                <HdrChevIcon />
-            </HdrPickerTrigger>
-
-            {open && panelPos && createPortal(
-                <HdrPickerPanel ref={panelRef} style={{ top: panelPos.top, right: panelPos.right }}>
-                    <HdrPresetGroup>
-                        {presets.map((p, idx) => (
-                            <HdrPresetBtn key={p.label} $active={idx === activeIdx} onClick={() => applyPreset(p)}>
-                                {p.label}
-                                <span className="hint">{p.hint}</span>
-                                {idx === activeIdx && <HdrCheckIcon />}
-                            </HdrPresetBtn>
-                        ))}
-                    </HdrPresetGroup>
-
-                    <HdrDivider />
-                    <HdrDateLabel>Niestandardowy zakres</HdrDateLabel>
-
-                    <HdrRangeRow>
-                        <HdrDateInput
-                            type="date"
-                            value={pendingFrom}
-                            max={pendingTo || undefined}
-                            onChange={e => setPendingFrom(e.target.value)}
-                        />
-                        <HdrSep>–</HdrSep>
-                        <HdrDateInput
-                            type="date"
-                            value={pendingTo}
-                            min={pendingFrom || undefined}
-                            onChange={e => setPendingTo(e.target.value)}
-                        />
-                    </HdrRangeRow>
-
-                    <HdrApplyBtn disabled={!pendingFrom && !pendingTo} onClick={applyCustom}>
-                        Zastosuj zakres
-                    </HdrApplyBtn>
-                </HdrPickerPanel>,
-                document.body
-            )}
-        </HdrPickerWrap>
-    );
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
+
+type AssignmentFilter = 'ALL' | 'UNASSIGNED' | 'ASSIGNED';
+
+interface ServiceRow {
+    id: string;
+    name: string;
+    orderCount: number;
+    totalRevenueGross: number;
+    isActive: boolean;
+    categoryId: string | null;
+    categoryName: string | null;
+    categoryColor: string | null;
+}
+
+type ServiceCtxMenu = {
+    serviceId: string;
+    categoryId: string | null;
+    x: number;
+    y: number;
+};
 
 export const StatisticsView = () => {
     const [granularity, setGranularity] = useState<Granularity>('MONTHLY');
@@ -781,8 +103,10 @@ export const StatisticsView = () => {
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [drillPeriod, setDrillPeriod] = useState<string | null>(null);
-    const [serviceNameFilter, setServiceNameFilter] = useState('');
-    const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+    const [search, setSearch] = useState('');
+    const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('ALL');
+    const [catDragOver, setCatDragOver] = useState<string | null>(null);
+    const [ctxMenu, setCtxMenu] = useState<ServiceCtxMenu | null>(null);
 
     const {
         breakdown,
@@ -818,37 +142,40 @@ export const StatisticsView = () => {
     const chartInitialLoading = selectedCategoryId ? catStatsLoading : breakdownLoading;
     const chartFetching = selectedCategoryId ? catStatsFetching : breakdownFetching;
 
-    const lastChartDataRef = useRef(chartData);
-    if (chartData !== undefined) lastChartDataRef.current = chartData;
-    const displayData = chartData ?? lastChartDataRef.current;
+    // Podczas przełączania kategorii trzymamy ostatnie dane, żeby wykres nie znikał
+    const [lastChartData, setLastChartData] = useState(chartData);
+    if (chartData !== undefined && chartData !== lastChartData) setLastChartData(chartData);
+    const displayData = chartData ?? lastChartData;
 
     const unassignedCount = breakdown?.unassignedServices.length ?? 0;
 
-    const serviceCategoryColor = useMemo(() => {
-        const map = new Map<string, string>();
-        breakdown?.categories.forEach(cat => {
-            if (cat.color) {
-                cat.services.forEach(s => map.set(s.serviceId, cat.color!));
-            }
+    // ── KPI (podąża za wyborem kategorii — baner wyjaśnia kontekst) ──────────
+    const totals = displayData?.totals;
+    const avgOrderGross = totals && totals.orderCount > 0
+        ? totals.totalRevenueGross / totals.orderCount
+        : 0;
+
+    // ── Donut: udział kategorii w przychodach całego okresu ──────────────────
+    const pieSlices = useMemo<PieSliceDatum[]>(() => {
+        if (!breakdown) return [];
+        const cats = breakdown.categories.map(c => ({
+            categoryId: c.categoryId,
+            name:       c.categoryName,
+            color:      c.color,
+            value:      c.totals.totalRevenueGross / 100,
+            itemCount:  c.services.length,
+        }));
+        const unassignedGross = breakdown.unassignedServices
+            .reduce((s, x) => s + x.totals.totalRevenueGross, 0);
+        return buildCategoryShareSlices(cats, {
+            value:     unassignedGross / 100,
+            itemCount: breakdown.unassignedServices.length,
         });
-        return map;
     }, [breakdown]);
 
-    const serviceRows = useMemo(() => {
+    // ── Wiersze usług (prawy panel) ───────────────────────────────────────────
+    const serviceRows = useMemo<ServiceRow[]>(() => {
         if (!breakdown) return [];
-
-        if (selectedCategoryId) {
-            const cat = breakdown.categories.find(c => c.categoryId === selectedCategoryId);
-            return (cat?.services ?? []).map(s => ({
-                id: s.serviceId,
-                name: s.serviceName,
-                orderCount: s.totals.orderCount,
-                totalRevenueGross: s.totals.totalRevenueGross,
-                isActive: s.isActive,
-                categoryId: selectedCategoryId,
-                isDraggable: false,
-            }));
-        }
 
         const assigned = breakdown.categories.flatMap(cat =>
             cat.services.map(s => ({
@@ -857,10 +184,9 @@ export const StatisticsView = () => {
                 orderCount: s.totals.orderCount,
                 totalRevenueGross: s.totals.totalRevenueGross,
                 isActive: s.isActive,
-                color: cat.color ?? undefined,
-                categoryId: cat.categoryId,
-                isUnassigned: false,
-                isDraggable: false,
+                categoryId: cat.categoryId as string | null,
+                categoryName: cat.categoryName as string | null,
+                categoryColor: cat.color,
             }))
         );
 
@@ -870,38 +196,25 @@ export const StatisticsView = () => {
             orderCount: s.totals.orderCount,
             totalRevenueGross: s.totals.totalRevenueGross,
             isActive: s.isActive,
-            color: undefined,
-            isUnassigned: true,
-            isDraggable: true,
+            categoryId: null,
+            categoryName: null,
+            categoryColor: null,
         }));
 
-        return [...assigned, ...unassigned];
-    }, [breakdown, selectedCategoryId, serviceCategoryColor]);
+        return [...assigned, ...unassigned].sort((a, b) => b.totalRevenueGross - a.totalRevenueGross);
+    }, [breakdown]);
 
     const filteredServiceRows = useMemo(() => {
         let rows = serviceRows;
-        if (!selectedCategoryId && showUnassignedOnly) {
-            rows = rows.filter(r => r.isUnassigned);
-        }
-        const q = serviceNameFilter.trim().toLowerCase();
-        if (q) {
-            rows = rows.filter(r => r.name.toLowerCase().includes(q));
-        }
+        if (selectedCategoryId) rows = rows.filter(r => r.categoryId === selectedCategoryId);
+        if (assignmentFilter === 'UNASSIGNED') rows = rows.filter(r => !r.categoryId);
+        if (assignmentFilter === 'ASSIGNED') rows = rows.filter(r => r.categoryId);
+        const q = search.trim().toLowerCase();
+        if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q));
         return rows;
-    }, [serviceRows, serviceNameFilter, showUnassignedOnly, selectedCategoryId]);
+    }, [serviceRows, selectedCategoryId, assignmentFilter, search]);
 
-    const handleCategoryRowClick = (id: string) => {
-        setSelectedCategoryId(prev => {
-            const next = prev === id ? null : id;
-            if (next !== null) setShowUnassignedOnly(false);
-            return next;
-        });
-    };
-
-    const handleShowUnassignedOnly = () => {
-        if (!showUnassignedOnly) setSelectedCategoryId(null);
-        setShowUnassignedOnly(prev => !prev);
-    };
+    // ── Handlers ──────────────────────────────────────────────────────────────
 
     const handleEditCategory = (category: Category) => {
         setEditingCategory(category);
@@ -920,13 +233,35 @@ export const StatisticsView = () => {
         setEditingCategory(undefined);
     };
 
-    const handleAssignServiceToCategory = async (serviceId: string, categoryId: string) => {
-        await assignMutation.mutateAsync({ categoryId, serviceId });
+    const handleAssignService = (serviceId: string, categoryId: string) => {
+        assignMutation.mutate({ categoryId, serviceId });
     };
 
-    const handleUnpinService = async (serviceId: string, categoryId: string) => {
-        await unassignMutation.mutateAsync({ categoryId, serviceId });
+    const handleUnassignService = (serviceId: string, categoryId: string) => {
+        unassignMutation.mutate({ categoryId, serviceId });
     };
+
+    const openServiceMenu = (e: React.MouseEvent<HTMLButtonElement>, row: ServiceRow) => {
+        e.stopPropagation();
+        const { x, y } = ctxMenuPosition(e.currentTarget.getBoundingClientRect());
+        setCtxMenu({ serviceId: row.id, categoryId: row.categoryId, x, y });
+    };
+
+    const handleCtxAssign = (categoryId: string) => {
+        if (!ctxMenu) return;
+        setCtxMenu(null);
+        if (categoryId !== ctxMenu.categoryId) {
+            handleAssignService(ctxMenu.serviceId, categoryId);
+        }
+    };
+
+    const handleCtxUnassign = () => {
+        if (!ctxMenu?.categoryId) return;
+        setCtxMenu(null);
+        handleUnassignService(ctxMenu.serviceId, ctxMenu.categoryId);
+    };
+
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <ViewContainer>
@@ -935,11 +270,11 @@ export const StatisticsView = () => {
                 subtitle="Analiza przychodów i struktury usług"
                 actions={
                     <HdrBtns>
-                        <StatsDatePicker
+                        <HeaderDatePicker
                             startDate={startDate}
                             endDate={endDate}
-                            onStartDateChange={setStartDate}
-                            onEndDateChange={setEndDate}
+                            onStartChange={setStartDate}
+                            onEndChange={setEndDate}
                             onGranularityChange={setGranularity}
                         />
                         <StatsNav />
@@ -960,7 +295,7 @@ export const StatisticsView = () => {
             {/* ── Overview section ─────────────────────────── */}
             <Section>
                 <SectionHeading>
-                    <SectionTitle>Przegląd okresu</SectionTitle>
+                    <SectionTitle>Przegląd przychodów</SectionTitle>
                     <SectionRule />
                 </SectionHeading>
 
@@ -976,30 +311,50 @@ export const StatisticsView = () => {
                 )}
 
                 <SelectedCategoryBanner $visible={!!selectedCategory}>
-                    <span style={{
-                        display: 'inline-block',
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        background: selectedCategory?.color ?? 'transparent',
-                        flexShrink: 0,
-                        boxShadow: `0 0 0 3px ${selectedCategory?.color ?? 'transparent'}33`,
-                    }} />
+                    <CatDot $color={selectedCategory?.color ?? 'transparent'} />
                     <span>
                         {t.statistics.overview.title}: <strong>{selectedCategory?.name ?? ''}</strong>
                     </span>
-                    <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
+                    <ClearFilterBtn style={{ marginLeft: 'auto' }} onClick={() => setSelectedCategoryId(null)}>
                         ✕ Wszystkie kategorie
-                    </ClearSelectionBtn>
+                    </ClearFilterBtn>
                 </SelectedCategoryBanner>
 
                 {displayData && (
                     <ChartArea $fading={chartFetching || (chartInitialLoading && !chartData)}>
-                        <StatsTotalsBar totals={displayData.totals} />
-                        <StatsChart
-                            data={displayData.data}
-                            onBarClick={setDrillPeriod}
-                        />
+                        <KpiRow>
+                            <KpiCard $accent="#10B981">
+                                <KpiLabel>Łączny przychód brutto</KpiLabel>
+                                <KpiValue>{fmtPLNFromGrosz(displayData.totals.totalRevenueGross)}</KpiValue>
+                            </KpiCard>
+                            <KpiCard $accent="#3B82F6">
+                                <KpiLabel>Liczba zleceń</KpiLabel>
+                                <KpiValue>{displayData.totals.orderCount.toLocaleString('pl-PL')}</KpiValue>
+                            </KpiCard>
+                            <KpiCard $accent="#8B5CF6">
+                                <KpiLabel>Średnia wartość zlecenia</KpiLabel>
+                                <KpiValue>{fmtPLNFromGrosz(avgOrderGross)}</KpiValue>
+                            </KpiCard>
+                        </KpiRow>
+
+                        <ChartsRow>
+                            <ChartCard>
+                                <ChartTitle>Struktura przychodów wg kategorii</ChartTitle>
+                                <CategorySharePie
+                                    slices={pieSlices}
+                                    isLoading={breakdownLoading}
+                                    selectedCategoryId={selectedCategoryId}
+                                    onSelectCategory={setSelectedCategoryId}
+                                    ariaLabel="Udział kategorii w przychodach"
+                                    countNoun="usł."
+                                />
+                            </ChartCard>
+
+                            <StatsChart
+                                data={displayData.data}
+                                onBarClick={setDrillPeriod}
+                            />
+                        </ChartsRow>
                     </ChartArea>
                 )}
             </Section>
@@ -1011,62 +366,47 @@ export const StatisticsView = () => {
                     <SectionRule />
                 </SectionHeading>
 
-                {/* Column headers in a shared grid — guaranteed same-line alignment */}
                 <TablesHeaderRow>
+                    {/* LEFT header */}
                     <TableColumnHeader>
-                        <TableColumnTitle>{t.statistics.breakdown.categoriesTitle}</TableColumnTitle>
-                        <AddButton
-                            onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
-                        >
-                            + {t.statistics.categories.add}
+                        <TableColumnTitle>Kategorie usług</TableColumnTitle>
+                        <AddButton onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}>
+                            <Plus /> {t.statistics.categories.add}
                         </AddButton>
                     </TableColumnHeader>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* RIGHT header */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         <TableColumnHeader>
                             <TableColumnTitle>
-                                {selectedCategory
-                                    ? selectedCategory.name
-                                    : t.statistics.breakdown.servicesTitle}
+                                {selectedCategory ? selectedCategory.name : 'Usługi'}
                             </TableColumnTitle>
-                            <TableColumnControls>
-                                {selectedCategory && (
-                                    <ServiceTableFilterLabel>
-                                        przypisane usługi
-                                    </ServiceTableFilterLabel>
-                                )}
-                                {selectedCategory && (
-                                    <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
-                                        ✕ Pokaż wszystkie
-                                    </ClearSelectionBtn>
-                                )}
-                            </TableColumnControls>
+                            {selectedCategoryId && (
+                                <ClearFilterBtn onClick={() => setSelectedCategoryId(null)}>
+                                    ✕ Pokaż wszystkie
+                                </ClearFilterBtn>
+                            )}
                         </TableColumnHeader>
 
-                        <ServiceFiltersBar>
-                            <ServiceFilterInput
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <FilterBar>
+                                <FilterBtn $active={assignmentFilter === 'ALL'} onClick={() => setAssignmentFilter('ALL')}>Wszystkie</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'UNASSIGNED'} onClick={() => setAssignmentFilter('UNASSIGNED')}>Nieprzypisane</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'ASSIGNED'} onClick={() => setAssignmentFilter('ASSIGNED')}>Przypisane</FilterBtn>
+                            </FilterBar>
+                            <SearchInput
                                 type="text"
                                 placeholder="Szukaj po nazwie..."
-                                value={serviceNameFilter}
-                                onChange={e => setServiceNameFilter(e.target.value)}
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
                             />
-                            {!selectedCategoryId && (
-                                <UnassignedFilterBtn
-                                    $active={showUnassignedOnly}
-                                    onClick={handleShowUnassignedOnly}
-                                >
-                                    {showUnassignedOnly ? '✕ ' : ''}Pokaż bez kategorii
-                                </UnassignedFilterBtn>
-                            )}
-                        </ServiceFiltersBar>
+                        </div>
                     </div>
                 </TablesHeaderRow>
 
-                {/* Tables in a matching grid below */}
                 <TablesGrid>
-                    {/* LEFT: Categories */}
+                    {/* ── LEFT: categories ───────────────────────────── */}
                     <TableColumn>
-                        {catLoading && <LoadingOverlay><Spinner /></LoadingOverlay>}
                         {catError && (
                             <ErrorBox>
                                 <ErrorText>{t.statistics.categories.error}</ErrorText>
@@ -1074,80 +414,123 @@ export const StatisticsView = () => {
                             </ErrorBox>
                         )}
 
-                        <BreakdownTable
-                            rows={(breakdown?.categories ?? []).map(cs => ({
-                                id: cs.categoryId,
-                                name: cs.categoryName,
-                                orderCount: cs.totals.orderCount,
-                                totalRevenueGross: cs.totals.totalRevenueGross,
-                                color: cs.color ?? undefined,
-                            }))}
-                            isLoading={breakdownLoading}
-                            showColorDot
-                            selectedId={selectedCategoryId}
-                            onRowClick={handleCategoryRowClick}
-                            droppable
-                            onDrop={handleAssignServiceToCategory}
-                            maxHeight="480px"
-                            rowActions={(row) => {
-                                const cat = categories.find(c => c.id === row.id);
-                                if (!cat) return null;
-                                return (
-                                    <>
-                                        <RowActionBtn
-                                            title={t.common.edit}
-                                            onClick={() => handleEditCategory(cat)}
-                                        >
-                                            ✏
-                                        </RowActionBtn>
-                                        <RowActionBtn
-                                            title={t.common.delete}
-                                            onClick={() => handleDeleteCategory(cat)}
-                                        >
-                                            🗑
-                                        </RowActionBtn>
-                                    </>
-                                );
+                        <CatTable
+                            onDragLeave={e => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node))
+                                    setCatDragOver(null);
                             }}
-                        />
+                        >
+                            {(catLoading || breakdownLoading) && <TableLoading><Spinner /></TableLoading>}
+                            {!catLoading && !breakdownLoading && (breakdown?.categories.length ?? 0) === 0 && (
+                                <TableEmpty>
+                                    Brak kategorii usług. Utwórz pierwszą, aby zacząć grupować przychody.
+                                </TableEmpty>
+                            )}
+                            {!catLoading && !breakdownLoading && (breakdown?.categories ?? []).map(cs => {
+                                const cat = categories.find(c => c.id === cs.categoryId);
+                                const isSelected = selectedCategoryId === cs.categoryId;
+                                return (
+                                    <CatRow
+                                        key={cs.categoryId}
+                                        $selected={isSelected}
+                                        $dragOver={catDragOver === cs.categoryId}
+                                        onClick={() => setSelectedCategoryId(prev => prev === cs.categoryId ? null : cs.categoryId)}
+                                        onDragOver={e => {
+                                            e.preventDefault();
+                                            e.dataTransfer.dropEffect = 'move';
+                                            setCatDragOver(cs.categoryId);
+                                        }}
+                                        onDrop={e => {
+                                            e.preventDefault();
+                                            setCatDragOver(null);
+                                            const serviceId = e.dataTransfer.getData('text/plain');
+                                            if (serviceId) handleAssignService(serviceId, cs.categoryId);
+                                        }}
+                                    >
+                                        <CatDot $color={cs.color ?? '#94A3B8'} />
+                                        <CatName>{cs.categoryName}</CatName>
+                                        <CatMeta>{fmtPLNFromGrosz(cs.totals.totalRevenueGross)}</CatMeta>
+                                        <CatActions onClick={e => e.stopPropagation()}>
+                                            {cat && (
+                                                <>
+                                                    <IconBtn title={t.common.edit} onClick={() => handleEditCategory(cat)}>
+                                                        <Pencil />
+                                                    </IconBtn>
+                                                    <IconBtn title={t.common.delete} onClick={() => handleDeleteCategory(cat)}>
+                                                        <Trash2 />
+                                                    </IconBtn>
+                                                </>
+                                            )}
+                                        </CatActions>
+                                    </CatRow>
+                                );
+                            })}
+                        </CatTable>
                     </TableColumn>
 
-                    {/* RIGHT: Services */}
+                    {/* ── RIGHT: services ─────────────────────────────── */}
                     <TableColumn>
                         {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
-                                ⚠ {unassignedCount} usług bez kategorii — przeciągnij na wybraną kategorię po lewej.
+                                ⚠ {unassignedCount} usług bez kategorii — przeciągnij na wybraną kategorię po lewej
+                                lub użyj menu ⋮ w wierszu.
                             </DragHint>
                         )}
 
-                        <BreakdownTable
-                            rows={filteredServiceRows}
-                            isLoading={breakdownLoading}
-                            showColorDot={!selectedCategoryId}
-                            maxHeight="520px"
-                            emptyText={
-                                serviceNameFilter.trim()
-                                    ? 'Brak usług pasujących do wyszukiwanej frazy'
-                                    : showUnassignedOnly
-                                    ? 'Brak usług bez kategorii'
-                                    : selectedCategoryId
-                                    ? 'Brak usług przypisanych do tej kategorii'
-                                    : t.statistics.breakdown.empty
-                            }
-                            rowActions={(row) => (
-                                <CategorySelect
-                                    value={row.categoryId ?? ''}
-                                    categories={categories}
-                                    onChange={async (newCatId) => {
-                                        if (newCatId === '' && row.categoryId) {
-                                            await handleUnpinService(row.id, row.categoryId);
-                                        } else if (newCatId && newCatId !== row.categoryId) {
-                                            await handleAssignServiceToCategory(row.id, newCatId);
-                                        }
-                                    }}
-                                />
+                        <ItemsTable>
+                            {breakdownLoading && <TableLoading><Spinner /></TableLoading>}
+
+                            {!breakdownLoading && (
+                                <>
+                                    <ItemsHeader>
+                                        <span>Usługa</span>
+                                        <span>Zlecenia</span>
+                                        <span>Przychód</span>
+                                        <span>Kategoria</span>
+                                        <span />
+                                    </ItemsHeader>
+                                    {filteredServiceRows.length === 0 && (
+                                        <TableEmpty>
+                                            {search.trim()
+                                                ? 'Brak usług pasujących do wyszukiwanej frazy'
+                                                : assignmentFilter === 'UNASSIGNED'
+                                                ? 'Brak usług bez kategorii'
+                                                : selectedCategoryId
+                                                ? 'Brak usług przypisanych do tej kategorii'
+                                                : t.statistics.breakdown.empty}
+                                        </TableEmpty>
+                                    )}
+                                    {filteredServiceRows.map(row => (
+                                        <ItemRow
+                                            key={row.id}
+                                            $draggable
+                                            draggable
+                                            onDragStart={e => {
+                                                e.dataTransfer.setData('text/plain', row.id);
+                                                e.dataTransfer.effectAllowed = 'move';
+                                            }}
+                                        >
+                                            <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <ItemName title={row.name}>{row.name}</ItemName>
+                                                {!row.isActive && (
+                                                    <InactiveBadge>({t.statistics.categories.statusInactive.toLowerCase()})</InactiveBadge>
+                                                )}
+                                            </div>
+                                            <ItemMeta>{row.orderCount}</ItemMeta>
+                                            <ItemMeta>{fmtPLNFromGrosz(row.totalRevenueGross)}</ItemMeta>
+                                            {row.categoryId ? (
+                                                <CatBadge $color={row.categoryColor ?? undefined}>
+                                                    {row.categoryName}
+                                                </CatBadge>
+                                            ) : (
+                                                <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                            )}
+                                            <KebabBtn title="Opcje" onClick={e => openServiceMenu(e, row)}>⋮</KebabBtn>
+                                        </ItemRow>
+                                    ))}
+                                </>
                             )}
-                        />
+                        </ItemsTable>
                     </TableColumn>
                 </TablesGrid>
             </Section>
@@ -1165,6 +548,18 @@ export const StatisticsView = () => {
                 categoryName={selectedCategory?.name ?? null}
                 onClose={() => setDrillPeriod(null)}
             />
+
+            {/* ── Context menu: przypisanie kategorii ───────── */}
+            {ctxMenu && (
+                <CategoryAssignMenu
+                    x={ctxMenu.x}
+                    y={ctxMenu.y}
+                    categories={categories}
+                    onAssign={handleCtxAssign}
+                    onUnassign={ctxMenu.categoryId ? handleCtxUnassign : undefined}
+                    onClose={() => setCtxMenu(null)}
+                />
+            )}
         </ViewContainer>
     );
 };
