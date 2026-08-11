@@ -23,7 +23,8 @@ import {
     HdrBtns,
     // KPI + charts
     KpiRow, KpiCard, KpiLabel, KpiValue,
-    ChartsRow, ChartCard, ChartTitle, ChartEmpty, Spinner,
+    ChartsRow, ChartCard, ChartTitle, Spinner,
+    TrendChart,
     // tables
     CatTable, CatRow, CatDot, CatName, CatMeta, CatActions, IconBtn,
     TableEmpty, TableLoading,
@@ -76,50 +77,6 @@ const EyeToggleBtn = styled(IconBtn)<{ $excluded?: boolean }>`
         background: #FEF2F2;
         &:hover { background: #FEE2E2; color: #B91C1C; border-color: #F87171; }
     `}
-`;
-
-// ─── Simple cost chart ────────────────────────────────────────────────────────
-
-const BarsWrap = styled.div<{ $count: number }>`
-    display: flex;
-    align-items: flex-end;
-    gap: 6px;
-    height: 120px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    /* When few bars don't stretch — center them so they don't hug the left edge */
-    justify-content: ${p => p.$count < 6 ? 'center' : 'flex-start'};
-    padding: 0 2px;
-`;
-
-const BarItem = styled.div<{ $clickable?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex: none;
-    width: 40px;
-    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
-`;
-
-const BarFill = styled.div<{ $h: number; $color: string; $clickable?: boolean }>`
-    width: 100%;
-    height: ${p => p.$h}px;
-    min-height: 3px;
-    background: ${p => p.$color};
-    border-radius: 3px 3px 0 0;
-    transition: height 0.3s ease, opacity 0.15s ease;
-    ${p => p.$clickable && css`${BarItem}:hover & { opacity: 0.7; }`}
-`;
-
-const BarLabel = styled.div`
-    font-size: 10px;
-    color: ${st.textMuted};
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
 `;
 
 // ─── View mode switcher ───────────────────────────────────────────────────────
@@ -1403,10 +1360,20 @@ export const CostsView = () => {
     const totalCostNet   = statsItems.reduce((s, i) => s + (i.netValue ?? 0), 0);
     const totalItems     = statsItems.length;
 
+    // Źródło wykresu trendu: po wybraniu kategorii pokazujemy jej pozycje
+    // (także gdy jest wykluczona ze statystyk — użytkownik świadomie ją ogląda),
+    // bez wyboru — pozycje liczone do statystyk.
+    const chartSourceItems = useMemo(
+        () => selectedCategoryId
+            ? allItems.filter(i => i.costCategoryId === selectedCategoryId)
+            : statsItems,
+        [allItems, statsItems, selectedCategoryId]
+    );
+
     // Chart data grouped by month, derived from items so gross is always computed
     const chartData = useMemo(() => {
         const map = new Map<string, { period: string; itemCount: number; totalCostGross: number }>();
-        statsItems.forEach(i => {
+        chartSourceItems.forEach(i => {
             if (!i.saleDate) return;
             const period = i.saleDate.slice(0, 7);
             if (!map.has(period)) map.set(period, { period, itemCount: 0, totalCostGross: 0 });
@@ -1415,7 +1382,7 @@ export const CostsView = () => {
             entry.totalCostGross += effectiveGross(i);
         });
         return [...map.values()].sort((a, b) => a.period.localeCompare(b.period));
-    }, [statsItems]);
+    }, [chartSourceItems]);
 
     // Donut slices: per-category share of all costs in the selected range.
     // Computed client-side (same effectiveGross fallback as catTotalsMap) so that
@@ -1661,35 +1628,21 @@ export const CostsView = () => {
                 </ChartCard>
 
                 {/* Cost trend chart */}
-                <ChartCard>
-                    <ChartTitle>Rozkład kosztów w czasie</ChartTitle>
-                    {itemsFetching && <ChartEmpty><Spinner /></ChartEmpty>}
-                    {!itemsFetching && chartData.length === 0 && (
-                        <ChartEmpty>Brak danych dla wybranego okresu</ChartEmpty>
-                    )}
-                    {!itemsFetching && chartData.length > 0 && (() => {
-                        const max = Math.max(...chartData.map(d => d.totalCostGross), 1);
-                        return (
-                            <BarsWrap $count={chartData.length}>
-                                {chartData.map(d => (
-                                    <BarItem
-                                        key={d.period}
-                                        $clickable
-                                        title={`${formatPeriodLabel(d.period, 'MONTHLY')}: ${fmtPLN(d.totalCostGross)} · kliknij, aby zobaczyć szczegóły`}
-                                        onClick={() => setPeriodModal(d.period)}
-                                    >
-                                        <BarFill
-                                            $h={Math.round((d.totalCostGross / max) * 100)}
-                                            $color={selectedCategoryId ? (catColorMap.get(selectedCategoryId) ?? '#EF4444') : '#EF4444'}
-                                            $clickable
-                                        />
-                                        <BarLabel>{d.period.slice(0, 7)}</BarLabel>
-                                    </BarItem>
-                                ))}
-                            </BarsWrap>
-                        );
-                    })()}
-                </ChartCard>
+                <TrendChart
+                    title="Rozkład kosztów w czasie"
+                    data={chartData.map(d => ({ period: d.period, value: d.totalCostGross, count: d.itemCount }))}
+                    valueLabel="Koszt brutto"
+                    countLabel="Pozycje"
+                    valueColor={selectedCategoryId ? (catColorMap.get(selectedCategoryId) ?? '#EF4444') : '#EF4444'}
+                    countColor="#64748B"
+                    formatValue={fmtPLN}
+                    formatAxisValue={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)}
+                    formatCount={n => `${n} ${n === 1 ? 'pozycja' : n < 5 ? 'pozycje' : 'pozycji'}`}
+                    height={260}
+                    isLoading={itemsFetching}
+                    onBarClick={setPeriodModal}
+                    clickHint="Kliknij dowolny słupek, aby zobaczyć wydatki z danego okresu"
+                />
                 </ChartsRow>
             </Section>
 
@@ -2153,7 +2106,7 @@ export const CostsView = () => {
                 <PeriodExpensesModal
                     period={periodModal}
                     granularity="MONTHLY"
-                    allItems={statsItems}
+                    allItems={chartSourceItems}
                     onClose={() => setPeriodModal(null)}
                 />
             )}

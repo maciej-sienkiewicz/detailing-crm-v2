@@ -1,7 +1,9 @@
 // src/modules/statistics/components/shared/index.ts
 export * from './format';
 export * from './shareSlices';
+export * from './animations';
 export * from './ui';
 export * from './CategorySharePie';
+export * from './TrendChart';
 export * from './CategoryAssignMenu';
 export * from './HeaderDatePicker';

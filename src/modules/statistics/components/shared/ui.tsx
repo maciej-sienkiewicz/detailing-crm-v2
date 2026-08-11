@@ -3,6 +3,7 @@
 // Styl referencyjny: widok "Koszty".
 import styled, { css } from 'styled-components';
 import { st } from '../StatisticsTheme';
+import { cardEntrance } from './animations';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,11 @@ export const KpiCard = styled.div<{ $accent: string }>`
     display: flex;
     flex-direction: column;
     gap: 6px;
+    ${cardEntrance}
+
+    /* Lekki efekt kaskady kolejnych kafli */
+    &:nth-child(2) { animation-delay: 0.06s; }
+    &:nth-child(3) { animation-delay: 0.12s; }
 `;
 
 export const KpiLabel = styled.div`
@@ -147,6 +153,7 @@ export const ChartCard = styled.div`
     border-radius: ${st.radius};
     box-shadow: ${st.shadowSm};
     padding: 20px;
+    ${cardEntrance}
 `;
 
 export const ChartTitle = styled.div`
