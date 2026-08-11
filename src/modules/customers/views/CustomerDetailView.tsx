@@ -431,11 +431,12 @@ export const CustomerDetailView = () => {
     const [reservationMenu, setReservationMenu] = useState<{ id: string; x: number; y: number } | null>(null);
     const [visitsPage, setVisitsPage] = useState(0);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
+    const [showDeletedVehicles, setShowDeletedVehicles] = useState(false);
 
     const VISITS_PAGE_SIZE = 4;
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
-    const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
+    const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!, showDeletedVehicles);
     const { visits: regularVisits, reservations }            = useCustomerActiveData(customerId!);
     const { visits: deletedVisits }                          = useCustomerDeletedVisits(customerId!, showDeletedVisits);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
@@ -701,6 +702,16 @@ export const CustomerDetailView = () => {
                                     Pojazdy
                                     <PanelCountBadge>{vehicles.length}</PanelCountBadge>
                                 </PanelTitle>
+                                <DeletedToggleWrap>
+                                    <DeletedToggleLabel>Usunięte</DeletedToggleLabel>
+                                    <ToggleSwitch
+                                        $active={showDeletedVehicles}
+                                        onClick={() => setShowDeletedVehicles(v => !v)}
+                                        title={showDeletedVehicles ? 'Ukryj usunięte pojazdy' : 'Pokaż usunięte pojazdy'}
+                                    >
+                                        <ToggleThumb $active={showDeletedVehicles} />
+                                    </ToggleSwitch>
+                                </DeletedToggleWrap>
                                 <AddVehicleButton onClick={() => setIsAddVehicleOpen(true)}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <line x1="12" y1="5" x2="12" y2="19" />
@@ -719,21 +730,32 @@ export const CustomerDetailView = () => {
                                         <NoteText>Brak przypisanych pojazdów.</NoteText>
                                     </PanelBody>
                                 ) : (
-                                    vehicles.map((vehicle: Vehicle) => (
-                                        <VehicleItem
-                                            key={vehicle.id}
-                                            onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                                        >
-                                            <CarLogoImage brand={vehicle.make} size="sm" />
-                                            <VehicleInfo>
-                                                <VehicleName>{vehicle.make} {vehicle.model}</VehicleName>
-                                                <VehicleSub>
-                                                    {vehicle.licensePlate}
-                                                    {vehicle.year ? ` · ${vehicle.year}` : ''}
-                                                </VehicleSub>
-                                            </VehicleInfo>
-                                        </VehicleItem>
-                                    ))
+                                    vehicles.map((vehicle: Vehicle) => {
+                                        const isDeleted = vehicle.status === 'archived';
+                                        return (
+                                            <VehicleItem
+                                                key={vehicle.id}
+                                                onClick={() => !isDeleted && navigate(`/vehicles/${vehicle.id}`)}
+                                                style={{ opacity: isDeleted ? 0.5 : 1, cursor: isDeleted ? 'default' : 'pointer' }}
+                                            >
+                                                <CarLogoImage brand={vehicle.make} size="sm" />
+                                                <VehicleInfo>
+                                                    <VehicleName>
+                                                        {vehicle.make} {vehicle.model}
+                                                        {isDeleted && (
+                                                            <StatusBadge $kind="error" style={{ marginLeft: 6, fontSize: 10 }}>
+                                                                Usunięty
+                                                            </StatusBadge>
+                                                        )}
+                                                    </VehicleName>
+                                                    <VehicleSub>
+                                                        {vehicle.licensePlate}
+                                                        {vehicle.year ? ` · ${vehicle.year}` : ''}
+                                                    </VehicleSub>
+                                                </VehicleInfo>
+                                            </VehicleItem>
+                                        );
+                                    })
                                 )}
                             </PanelBodyFlush>
                         </Panel>

@@ -3,10 +3,10 @@ import { customerDetailApi } from '../api/customerDetailApi';
 
 const CUSTOMER_VEHICLES_QUERY_KEY = 'customerVehicles';
 
-export const useCustomerVehicles = (customerId: string) => {
+export const useCustomerVehicles = (customerId: string, includeDeleted = false) => {
     const query = useQuery({
-        queryKey: [CUSTOMER_VEHICLES_QUERY_KEY, customerId],
-        queryFn: () => customerDetailApi.getCustomerVehicles(customerId),
+        queryKey: [CUSTOMER_VEHICLES_QUERY_KEY, customerId, includeDeleted],
+        queryFn: () => customerDetailApi.getCustomerVehicles(customerId, includeDeleted),
         enabled: !!customerId,
     });
 

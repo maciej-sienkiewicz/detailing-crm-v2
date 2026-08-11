@@ -20,6 +20,8 @@ interface BackendVehicle {
     model: string;
     year: number;
     licensePlate: string;
+    color?: string;
+    active?: boolean;
 }
 
 // Backend visit response type
@@ -127,12 +129,12 @@ export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehi
     year: backendVehicle.year,
     licensePlate: backendVehicle.licensePlate,
     vin: '—',
-    color: '—',
+    color: backendVehicle.color ?? '—',
     mileage: 0,
     nextInspectionDate: null,
     nextServiceDate: null,
     addedAt: new Date().toISOString(),
-    status: 'active',
+    status: backendVehicle.active === false ? 'archived' : 'active',
 });
 
 export const mapBackendVehiclesResponse = (backendVehicles: BackendVehicle[]): CustomerVehiclesResponse => ({

@@ -55,6 +55,8 @@ interface BackendVehicle {
     model: string;
     year: number;
     licensePlate: string;
+    color?: string;
+    active?: boolean;
 }
 
 // Backend appointment/reservation response type
@@ -418,13 +420,14 @@ export const customerDetailApi = {
         };
     },
 
-    getCustomerVehicles: async (customerId: string): Promise<CustomerVehiclesResponse> => {
+    getCustomerVehicles: async (customerId: string, includeDeleted = false): Promise<CustomerVehiclesResponse> => {
         if (USE_MOCKS) {
             return mockGetCustomerVehicles(customerId);
         }
 
         const response = await apiClient.get<BackendVehicle[]>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/vehicles`
+            `${CUSTOMERS_BASE_PATH}/${customerId}/vehicles`,
+            { params: includeDeleted ? { includeDeleted: true } : undefined }
         );
         return mapBackendVehiclesResponse(response.data);
     },
