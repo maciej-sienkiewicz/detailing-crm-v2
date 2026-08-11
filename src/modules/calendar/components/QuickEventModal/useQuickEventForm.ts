@@ -243,7 +243,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (eventData) {
             const timeDiff = eventData.end.getTime() - eventData.start.getTime();
             const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-            const shouldBeAllDay = daysDiff === 1 && eventData.allDay;
+            const shouldBeAllDay = daysDiff <= 1 && eventData.allDay;
 
             if (shouldBeAllDay) {
                 setIsAllDay(true);
@@ -426,6 +426,42 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
+    // ─── Helpers ───────────────────────────────────────────────────────────────
+    const getNextTimeSlot = (): { start: string; end: string } => {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const steps = [0, 15, 30, 45];
+        const nextStep = steps.find(s => s >= m);
+        const [sh, sm] = nextStep !== undefined
+            ? [h, nextStep]
+            : [(h + 1) % 24, 0];
+        const eh = Math.min(sh + 1, 23);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return { start: `${pad(sh)}:${pad(sm)}`, end: `${pad(eh)}:${pad(sm)}` };
+    };
+
+    // ─── Auto-adjust endDateTime when startDateTime moves past it ──────────────
+    useEffect(() => {
+        if (!startDateTime || !endDateTime || isAllDay) return;
+        if (!startDateTime.includes('T') || !endDateTime.includes('T')) return;
+        const [sd, st] = startDateTime.split('T');
+        const [ed, et] = endDateTime.split('T');
+        if (sd > ed) {
+            setEndDateTime(`${sd}T${et}`);
+        } else if (sd === ed && st >= et) {
+            const [h, m] = st.split(':').map(Number);
+            const totalMin = h * 60 + m + 60;
+            const newH = Math.min(Math.floor(totalMin / 60), 23);
+            const rawM = totalMin % 60;
+            const snapped = [0, 15, 30, 45].reduce((p, c) =>
+                Math.abs(c - rawM) < Math.abs(p - rawM) ? c : p
+            );
+            setEndDateTime(`${sd}T${String(newH).padStart(2, '0')}:${String(snapped).padStart(2, '0')}`);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [startDateTime]);
+
     // ─── Handlers ──────────────────────────────────────────────────────────────
     const handleAllDayToggle = (checked: boolean) => {
         setIsAllDay(checked);
@@ -437,8 +473,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         } else {
             const base = startDateTime || nowIso;
             const date = base.split('T')[0];
-            setStartDateTime(startDateTime.includes('T') ? startDateTime : `${date}T09:00`);
-            setEndDateTime(endDateTime ? (endDateTime.includes('T') ? endDateTime : `${date}T10:00`) : `${date}T10:00`);
+            const slot = getNextTimeSlot();
+            setStartDateTime(startDateTime.includes('T') ? startDateTime : `${date}T${slot.start}`);
+            setEndDateTime(endDateTime ? (endDateTime.includes('T') ? endDateTime : `${date}T${slot.end}`) : `${date}T${slot.end}`);
         }
     };
 
