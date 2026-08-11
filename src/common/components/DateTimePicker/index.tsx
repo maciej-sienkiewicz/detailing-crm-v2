@@ -32,6 +32,15 @@ function snapToStep(minute: number): number {
     );
 }
 
+function getNearestUpcomingSlot(): { hour: number; minute: number } {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const nextStep = MINUTE_STEPS.find(s => s >= m);
+    if (nextStep !== undefined) return { hour: h, minute: nextStep };
+    return { hour: (h + 1) % 24, minute: 0 };
+}
+
 function formatDisplay(value: string, showTime: boolean) {
     if (!value) return '';
     const [datePart, timePart] = value.split('T');
@@ -344,13 +353,14 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const [viewYear, setViewYear] = useState(() => parsed.year ?? today.getFullYear());
     const [viewMonth, setViewMonth] = useState(() => parsed.month ?? today.getMonth());
 
-    // Hour state — derived from value, or default 09
+    const _defaultSlot = getNearestUpcomingSlot();
+    // Hour state — derived from value, or nearest upcoming slot
     const [hour, setHour] = useState(() =>
-        parsed.hour !== null ? parsed.hour : 9
+        parsed.hour !== null ? parsed.hour : _defaultSlot.hour
     );
-    // Minute — snapped to nearest 15-min step
+    // Minute — snapped to nearest 15-min step, or nearest upcoming slot
     const [minute, setMinute] = useState(() =>
-        parsed.minute !== null ? snapToStep(parsed.minute) : 0
+        parsed.minute !== null ? snapToStep(parsed.minute) : _defaultSlot.minute
     );
 
     // Sync from external value changes
@@ -447,7 +457,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             setViewYear(year); setViewMonth(month);
         }
         onChange(buildIso(year, month, cell.day, hour, minute));
-        if (!showTime) { setIsOpen(false); onBlur?.(); }
+        setIsOpen(false);
+        onBlur?.();
     };
 
     const handleHourChange = (delta: number) => {
