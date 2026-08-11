@@ -21,6 +21,20 @@ const Status = styled.div`
     font-size: 13px;
 `;
 
+const RetryBtn = styled.button`
+    display: block;
+    margin: 12px auto 0;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #1d4ed8;
+    background: #ffffff;
+    border: 1.5px solid #1d4ed8;
+    border-radius: 9999px;
+    cursor: pointer;
+`;
+
 interface PdfPagesViewerProps {
     /** Raw PDF bytes. The component copies them — pdf.js detaches its input buffer. */
     data: ArrayBuffer;
@@ -30,11 +44,12 @@ interface PdfPagesViewerProps {
 export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [state, setState] = useState<'rendering' | 'done' | 'error'>('rendering');
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
 
-        const render = async () => {
+        const render = async (retriesLeft: number): Promise<void> => {
             try {
                 const pdfjs = await import('pdfjs-dist');
                 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -52,13 +67,17 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
 
                 const containerWidth = container.clientWidth || 320;
                 const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                // Cap the backing-store width: on multi-page documents unbounded
+                // canvases exhaust iOS Safari's canvas memory budget and the render
+                // throws mid-document
+                const targetWidth = Math.min(containerWidth * dpr, 1600);
 
                 for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
                     const page = await doc.getPage(pageNumber);
                     if (cancelled) return;
 
                     const baseViewport = page.getViewport({ scale: 1 });
-                    const scale = (containerWidth / baseViewport.width) * dpr;
+                    const scale = targetWidth / baseViewport.width;
                     const viewport = page.getViewport({ scale });
 
                     const canvas = document.createElement('canvas');
@@ -82,24 +101,36 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
                 setState('done');
             } catch (err) {
                 console.error('[PdfPagesViewer] Failed to render PDF:', err);
-                if (!cancelled) {
-                    setState('error');
-                    onRenderError?.();
+                if (cancelled) return;
+                if (retriesLeft > 0) {
+                    // A failed dynamic import of pdf.js or its worker chunk (flaky
+                    // mobile network) usually succeeds on a fresh attempt
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    if (!cancelled) return render(retriesLeft - 1);
+                    return;
                 }
+                setState('error');
+                onRenderError?.();
             }
         };
 
-        void render();
+        setState('rendering');
+        void render(1);
         return () => {
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data]);
+    }, [data, attempt]);
 
     return (
         <PagesWrap>
             {state === 'rendering' && <Status>Ładowanie dokumentu…</Status>}
-            {state === 'error' && <Status>Nie udało się wyświetlić dokumentu.</Status>}
+            {state === 'error' && (
+                <Status>
+                    Nie udało się wyświetlić dokumentu.
+                    <RetryBtn onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</RetryBtn>
+                </Status>
+            )}
             <div ref={containerRef} />
         </PagesWrap>
     );

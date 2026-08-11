@@ -271,11 +271,14 @@ const extractApiErrorMessage = (error: unknown): string => {
 type ViewPhase =
     | { kind: 'loading' }
     | { kind: 'invalid' }
+    | { kind: 'load-error' }
     | { kind: 'terminal'; session: PublicSigningSession }
     | { kind: 'active'; session: PublicSigningSession; pdf: ArrayBuffer; pdfSha256: string }
     | { kind: 'integrity-error' }
     | { kind: 'submitted' }
     | { kind: 'declined' };
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ─── View ─────────────────────────────────────────────────────────────────────
 
@@ -288,48 +291,82 @@ export const PublicSigningView = () => {
     const [hasStrokes, setHasStrokes] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [loadAttempt, setLoadAttempt] = useState(0);
     const padRef = useRef<SignaturePadHandle>(null);
 
     useEffect(() => {
         document.title = 'Podpis dokumentu';
         let cancelled = false;
 
-        const load = async () => {
-            try {
-                const session = await publicSigningApi.getSession(token);
-                if (cancelled) return;
+        // Throws on any API failure so the retry loop below decides what to do
+        const loadOnce = async (): Promise<void> => {
+            const session = await publicSigningApi.getSession(token);
+            if (cancelled) return;
 
-                const terminal = ['COMPLETED', 'DECLINED', 'CANCELLED', 'EXPIRED', 'FAILED'];
-                if (terminal.includes(session.status) || !session.challenge) {
-                    setPhase({ kind: 'terminal', session });
+            const terminal = ['COMPLETED', 'DECLINED', 'CANCELLED', 'EXPIRED', 'FAILED'];
+            if (terminal.includes(session.status) || !session.challenge) {
+                setPhase({ kind: 'terminal', session });
+                return;
+            }
+
+            const pdf = await publicSigningApi.getDocument(token);
+            if (cancelled) return;
+
+            // WYSIWYS: what we render must be byte-identical to what the
+            // employee requested — otherwise refuse to let the customer sign.
+            const pdfSha256 = await sha256Hex(pdf);
+            if (pdfSha256.toLowerCase() !== session.documentSha256.toLowerCase()) {
+                setPhase({ kind: 'integrity-error' });
+                return;
+            }
+
+            setPhase({ kind: 'active', session, pdf, pdfSha256 });
+        };
+
+        // Mobile networks flake: only a 404 proves a bad token. Everything else
+        // (timeout, connection drop, 5xx, transient 4xx) gets automatic retries —
+        // the previous dead-end "link nieprawidłowy" screen for any hiccup was the
+        // main source of "nie udało się wyświetlić dokumentu" reports.
+        const load = async (): Promise<void> => {
+            for (let attempt = 0; ; attempt++) {
+                try {
+                    await loadOnce();
                     return;
+                } catch (error) {
+                    if (cancelled) return;
+                    const status = (error as { response?: { status?: number } })?.response?.status;
+                    console.error(
+                        `[PublicSigningView] Load attempt ${attempt + 1} failed (status=${status ?? 'network'}):`,
+                        error,
+                    );
+                    if (status === 404) {
+                        setPhase({ kind: 'invalid' });
+                        return;
+                    }
+                    if (attempt >= 2) {
+                        setPhase({ kind: 'load-error' });
+                        return;
+                    }
+                    // Re-running the full load also re-fetches the session, so a state
+                    // change between the two calls (e.g. expiry) resolves to the proper
+                    // terminal screen instead of an error.
+                    await delay(1000 * (attempt + 1));
+                    if (cancelled) return;
                 }
-
-                const pdf = await publicSigningApi.getDocument(token);
-                if (cancelled) return;
-
-                // WYSIWYS: what we render must be byte-identical to what the
-                // employee requested — otherwise refuse to let the customer sign.
-                const pdfSha256 = await sha256Hex(pdf);
-                if (pdfSha256.toLowerCase() !== session.documentSha256.toLowerCase()) {
-                    setPhase({ kind: 'integrity-error' });
-                    return;
-                }
-
-                setPhase({ kind: 'active', session, pdf, pdfSha256 });
-            } catch (error) {
-                console.error('[PublicSigningView] Failed to load signing session:', error);
-                if (!cancelled) setPhase({ kind: 'invalid' });
             }
         };
 
-        if (token) void load();
-        else setPhase({ kind: 'invalid' });
+        if (token) {
+            setPhase({ kind: 'loading' });
+            void load();
+        } else {
+            setPhase({ kind: 'invalid' });
+        }
 
         return () => {
             cancelled = true;
         };
-    }, [token]);
+    }, [token, loadAttempt]);
 
     const handleDeclarationChange = (checked: boolean) => {
         setDeclarationAccepted(checked);
@@ -402,6 +439,27 @@ export const PublicSigningView = () => {
             <Page>
                 <Shell>
                     <CenterSpinner />
+                </Shell>
+            </Page>
+        );
+    }
+
+    if (phase.kind === 'load-error') {
+        return (
+            <Page>
+                <Shell>
+                    <StatusCard>
+                        <StatusBadge><InfoSvg /></StatusBadge>
+                        <StatusTitle>Nie udało się załadować dokumentu</StatusTitle>
+                        <StatusText>
+                            Wygląda na problem z połączeniem internetowym. Sprawdź zasięg
+                            i spróbuj ponownie — link pozostaje ważny.
+                        </StatusText>
+                        <div style={{ height: 20 }} />
+                        <PrimaryBtn onClick={() => setLoadAttempt(a => a + 1)}>
+                            Spróbuj ponownie
+                        </PrimaryBtn>
+                    </StatusCard>
                 </Shell>
             </Page>
         );
