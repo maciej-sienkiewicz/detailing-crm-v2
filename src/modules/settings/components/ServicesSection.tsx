@@ -1094,7 +1094,8 @@ export const ServicesSection: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const filters = { search: debouncedSearch, page, limit: PAGE_SIZE, showInactive };
+  const isPackageFilter = typeFilter === 'packages' ? true : typeFilter === 'services' ? false : undefined;
+  const filters = { search: debouncedSearch, page, limit: PAGE_SIZE, showInactive, isPackage: isPackageFilter };
   const { services, pagination, isLoading } = useServices(filters);
 
   const createMutation  = useCreateService();
@@ -1108,12 +1109,6 @@ export const ServicesSection: React.FC = () => {
   const isPkgSaving = createPkgMutation.isPending || updatePkgMutation.isPending;
   const totalItems  = pagination?.totalItems ?? 0;
   const totalPages  = pagination?.totalPages ?? 1;
-
-  const filteredServices = services.filter(s => {
-    if (typeFilter === 'services') return !s.isPackage;
-    if (typeFilter === 'packages') return s.isPackage;
-    return true;
-  });
 
   const addCustomServiceToPkg = async (name: string, saveToDb: boolean) => {
     if (saveToDb) {
@@ -1760,7 +1755,7 @@ export const ServicesSection: React.FC = () => {
             </EmptyDesc>
           </EmptyWrap>
         ) : (
-          filteredServices.map(service => {
+          services.map(service => {
             const calc = !service.requireManualPrice
               ? {
                   ...calculateGrossFromNet(service.basePriceNet, service.vatRate),
