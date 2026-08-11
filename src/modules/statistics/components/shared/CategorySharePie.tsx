@@ -1,10 +1,11 @@
 // src/modules/statistics/components/shared/CategorySharePie.tsx
 // Diagram kołowy (donut) udziału kategorii — wspólny dla zakładek Przychody i Koszty.
-import { useState } from 'react';
-import styled from 'styled-components';
+import { useEffect, useState } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { st } from '../StatisticsTheme';
 import { fmtPLN, fmtPct } from './format';
 import { CatDot, ChartEmpty, Spinner } from './ui';
+import { prefersReducedMotion } from './animations';
 import type { PieSliceDatum } from './shareSlices';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -26,7 +27,12 @@ const PieLegendList = styled.div`
     overflow-y: auto;
 `;
 
-const PieLegendRow = styled.button<{ $active?: boolean; $clickable?: boolean }>`
+const legendFadeIn = keyframes`
+    from { opacity: 0; transform: translateX(6px); }
+    to   { opacity: 1; transform: translateX(0); }
+`;
+
+const PieLegendRow = styled.button<{ $active?: boolean; $clickable?: boolean; $index?: number }>`
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
@@ -39,6 +45,9 @@ const PieLegendRow = styled.button<{ $active?: boolean; $clickable?: boolean }>`
     text-align: left;
     cursor: ${p => p.$clickable ? 'pointer' : 'default'};
     transition: background ${st.transition};
+    animation: ${legendFadeIn} 0.35s ease both;
+    animation-delay: ${p => 0.1 + (p.$index ?? 0) * 0.05}s;
+    @media (prefers-reduced-motion: reduce) { animation: none; }
     &:hover { background: ${p => p.$active ? st.accentBlueDim : (p.$clickable ? st.bg : 'transparent')}; }
 `;
 
@@ -88,6 +97,34 @@ function donutSlicePath(cx: number, cy: number, rOut: number, rIn: number, a0: n
     ].join(' ');
 }
 
+// ─── Entrance sweep animation ─────────────────────────────────────────────────
+
+const SWEEP_DURATION_MS = 700;
+const easeOutCubic = (p: number) => 1 - Math.pow(1 - p, 3);
+
+/**
+ * Postęp 0→1 animowany raz po zamontowaniu — donut "rysuje się" ruchem
+ * wskazówek zegara. Przy prefers-reduced-motion od razu zwraca 1.
+ */
+const useSweepProgress = (): number => {
+    const [progress, setProgress] = useState(() => (prefersReducedMotion() ? 1 : 0));
+
+    useEffect(() => {
+        if (prefersReducedMotion()) return;
+        let raf = 0;
+        const start = performance.now();
+        const tick = (now: number) => {
+            const p = Math.min(1, (now - start) / SWEEP_DURATION_MS);
+            setProgress(easeOutCubic(p));
+            if (p < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    return progress;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface CategorySharePieProps {
@@ -112,15 +149,17 @@ export const CategorySharePie = ({
     centerLabel = 'Łącznie brutto',
 }: CategorySharePieProps) => {
     const [hoverKey, setHoverKey] = useState<string | null>(null);
+    const sweep = useSweepProgress();
     const total = slices.reduce((s, x) => s + x.value, 0);
 
     if (isLoading) return <ChartEmpty style={{ height: 220 }}><Spinner /></ChartEmpty>;
     if (total <= 0) return <ChartEmpty style={{ height: 220 }}>Brak danych dla wybranego okresu</ChartEmpty>;
 
     const size = 220, cx = size / 2, cy = size / 2, rOut = 104, rIn = 66;
+    // Kąty przemnożone przez sweep — przy wejściu donut rysuje się od godziny 12.
     const { arcs } = slices.reduce<{ angle: number; arcs: (PieSliceDatum & { a0: number; a1: number })[] }>(
         (acc, s) => {
-            const a1 = acc.angle + (s.value / total) * Math.PI * 2;
+            const a1 = acc.angle + (s.value / total) * Math.PI * 2 * sweep;
             acc.arcs.push({ ...s, a0: acc.angle, a1 });
             return { angle: a1, arcs: acc.arcs };
         },
@@ -159,7 +198,7 @@ export const CategorySharePie = ({
                     </PieSlicePath>
                 ))}
                 {active ? (
-                    <>
+                    <g opacity={sweep}>
                         <text x={cx} y={cy - 8} textAnchor="middle"
                               style={{ fontSize: 22, fontWeight: 800, fill: st.text, fontVariantNumeric: 'tabular-nums' }}>
                             {fmtPct(active.value, total)}
@@ -168,9 +207,9 @@ export const CategorySharePie = ({
                               style={{ fontSize: 11, fontWeight: 600, fill: st.textMuted }}>
                             {active.name.length > 22 ? `${active.name.slice(0, 21)}…` : active.name}
                         </text>
-                    </>
+                    </g>
                 ) : (
-                    <>
+                    <g opacity={sweep}>
                         <text x={cx} y={cy - 8} textAnchor="middle"
                               style={{ fontSize: 17, fontWeight: 800, fill: st.text, fontVariantNumeric: 'tabular-nums' }}>
                             {total.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} zł
@@ -179,17 +218,18 @@ export const CategorySharePie = ({
                               style={{ fontSize: 11, fontWeight: 600, fill: st.textMuted }}>
                             {centerLabel}
                         </text>
-                    </>
+                    </g>
                 )}
             </svg>
 
             <PieLegendList>
-                {slices.map(s => (
+                {slices.map((s, idx) => (
                     <PieLegendRow
                         key={s.key}
                         type="button"
                         $active={!!s.categoryId && selectedCategoryId === s.categoryId}
                         $clickable={!!s.categoryId}
+                        $index={idx}
                         title={`${s.name}: ${fmtPLN(s.value)} · ${s.itemCount} ${countNoun}`}
                         onMouseEnter={() => setHoverKey(s.key)}
                         onMouseLeave={() => setHoverKey(k => (k === s.key ? null : k))}
