@@ -166,6 +166,9 @@ const InvoiceItemsHeaderGrid = styled.div`
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 `;
 
 const ExpandBtn = styled.button`
@@ -1837,7 +1840,7 @@ export const CostsView = () => {
 
                     {/* ── RIGHT: items panel ─────────────────────────── */}
                     <TableColumn>
-                        <ItemsTable>
+                        <ItemsTable $maxHeight="min(560px, 70vh)">
                             {(itemsLoading || itemsFetching) && <TableLoading><Spinner /></TableLoading>}
 
                             {!itemsLoading && viewMode === 'INVOICE' && (
