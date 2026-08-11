@@ -22,7 +22,6 @@ export type PermissionModuleKey =
     | 'STATISTICS'
     | 'LEADS'
     | 'TASKS'
-    | 'SERVICES'
     | 'AUDIT';
 
 export interface PermissionTreeNode {

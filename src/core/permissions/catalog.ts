@@ -17,7 +17,6 @@ export const PERMISSIONS = {
     VISITS_DOCUMENTS_MANAGE: 'VISITS_DOCUMENTS_MANAGE',
     // Klienci i pojazdy — sekcja modułu „Wizyty i kalendarz” (nie osobny moduł)
     CUSTOMERS_VIEW: 'CUSTOMERS_VIEW',
-    CUSTOMERS_MANAGE: 'CUSTOMERS_MANAGE',
     CUSTOMERS_DELETE: 'CUSTOMERS_DELETE',
     // Finanse
     FINANCE_INVOICES: 'FINANCE_INVOICES',
@@ -37,9 +36,6 @@ export const PERMISSIONS = {
     // Zadania
     TASKS_VIEW: 'TASKS_VIEW',
     TASKS_MANAGE: 'TASKS_MANAGE',
-    // Usługi (cennik)
-    SERVICES_VIEW: 'SERVICES_VIEW',
-    SERVICES_MANAGE: 'SERVICES_MANAGE',
     // Zlecenia zbiorcze
     BATCH_ORDERS: 'BATCH_ORDERS',
     // Historia aktywności — feed przecina wszystkie moduły i pokazuje również
@@ -72,7 +68,7 @@ export const ANY_SETTINGS: PermissionCode[] = [
     'EMPLOYEES_MANAGE',
     'COMMUNICATION_SEND',
     'VISITS_DOCUMENTS_MANAGE',
-    'SERVICES_VIEW',
+    'VISITS_CREATE',
 ];
 
 /**

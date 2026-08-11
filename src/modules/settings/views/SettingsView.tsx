@@ -299,7 +299,7 @@ const VALID_SECTIONS = new Set<SectionId>([
 const SECTION_REQUIREMENTS: Partial<Record<SectionId, PermissionRequirement | 'OWNER_ONLY'>> = {
     // Company data (NIP, address, branding) is studio configuration — owner's call.
     company: 'OWNER_ONLY',
-    services: 'SERVICES_VIEW',
+    services: 'VISITS_CREATE',
     team: 'EMPLOYEES_MANAGE',
     roles: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
