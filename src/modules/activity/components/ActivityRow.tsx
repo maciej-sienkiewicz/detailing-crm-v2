@@ -344,21 +344,12 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
     const flag = severityFlag(item.severity.code);
     const hasChanges = item.changes.length > 0;
 
-    // CUSTOMER refs are already present in item.description (e.g. "Klient: Jan Kowalski").
-    // Showing them again as NavChips would triple the information. We surface the customer
-    // path only to make the description line itself navigable.
-    let customerPath: string | null = null;
-    if (item.subject?.resource === 'CUSTOMER') {
-        customerPath = subjectPath(item.subject);
-    }
-
     const navLinks: Array<{ path: string; label: string }> = [];
-    if (item.subject && item.subject.resource !== 'CUSTOMER') {
+    if (item.subject) {
         const path = subjectPath(item.subject);
         if (path) navLinks.push({ path, label: subjectLabel(item.subject) });
     }
     item.related?.forEach(ref => {
-        if (ref.resource === 'CUSTOMER') return;
         const path = subjectPath(ref);
         if (path) navLinks.push({ path, label: subjectLabel(ref) });
     });
@@ -382,15 +373,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 </TopLine>
 
                 {item.description && (
-                    customerPath
-                        ? (
-                            <DescriptionLink to={customerPath}>
-                                <PiiText value={item.description} />
-                            </DescriptionLink>
-                        )
-                        : (
-                            <Description><PiiText value={item.description} /></Description>
-                        )
+                    <Description><PiiText value={item.description} /></Description>
                 )}
 
                 {navLinks.length > 0 && (
