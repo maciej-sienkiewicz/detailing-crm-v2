@@ -1,8 +1,7 @@
 // src/modules/statistics/views/CostsView.tsx
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import styled, { css } from 'styled-components';
-import { ReceiptText, Tag, Plus, Pencil, Trash2, X, FileText, Zap, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { ReceiptText, Tag, Plus, Pencil, Trash2, FileText, Zap, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/common/components/PageHeader';
 import {
@@ -18,12 +17,33 @@ import { SharedButton } from '@/common/styles';
 import { StatsNav } from '../components/StatsNav';
 import { st } from '../components/StatisticsTheme';
 import {
+    // layout
+    ViewContainer, Section, SectionHeading, SectionTitle, SectionRule,
+    TablesHeaderRow, TablesGrid, TableColumn, TableColumnHeader, TableColumnTitle,
+    HdrBtns,
+    // KPI + charts
+    KpiRow, KpiCard, KpiLabel, KpiValue,
+    ChartsRow, ChartCard, ChartTitle, ChartEmpty, Spinner,
+    // tables
+    CatTable, CatRow, CatDot, CatName, CatMeta, CatActions, IconBtn,
+    TableEmpty, TableLoading,
+    ItemsTable, ItemsHeader, ItemRow, ItemName, ItemMeta, CatBadge, KebabBtn,
+    // filters / buttons
+    FilterBar, FilterBtn, SearchInput, ClearFilterBtn, AddButton,
+    // pie
+    CategorySharePie, buildCategoryShareSlices, type PieSliceDatum,
+    // context menu
+    CategoryAssignMenu, CtxItem, ctxMenuPosition,
+    // date picker + helpers
+    HeaderDatePicker,
+    fmtPLN, today, oneYearAgo,
+} from '../components/shared';
+import {
     useCostCategories,
     useCreateCostCategory,
     useUpdateCostCategory,
     useDeleteCostCategory,
     useAssignCostItems,
-    useUnassignCostItem,
     useCostExpenseItems,
     useCostBreakdown,
     useAutoRules,
@@ -41,155 +61,10 @@ import type {
     CostInvoiceGroup,
     CostNameGroup,
     CostViewMode,
-    CreateCostCategoryRequest,
-    UpdateCostCategoryRequest,
     SupplierAutoRule,
 } from '../costTypes';
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
-const today = () => new Date().toISOString().slice(0, 10);
-const oneYearAgo = () => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
-    return d.toISOString().slice(0, 10);
-};
-const spDaysAgo   = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
-const spMonthsAgo = (n: number) => { const d = new Date(); d.setMonth(d.getMonth() - n); return d.toISOString().slice(0, 10); };
-
-const fmtPLN = (v: number) =>
-    v.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 2 });
-
-// ─── Layout ───────────────────────────────────────────────────────────────────
-
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    padding: ${p => p.theme.spacing.lg};
-    max-width: 1800px;
-    margin: 0 auto;
-    width: 100%;
-    @media (max-width: 639px) { padding: ${p => p.theme.spacing.md}; }
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
-`;
-
-const Section = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const SectionHeading = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-`;
-
-const SectionTitle = styled.h2`
-    margin: 0;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-`;
-
-const SectionRule = styled.div`
-    flex: 1;
-    height: 1px;
-    background: ${st.border};
-`;
-
-const twoColGrid = `
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    @media (max-width: ${(p: any) => p.theme.breakpoints.lg}) { grid-template-columns: 1fr; }
-`;
-
-const TablesHeaderRow = styled.div`${twoColGrid} align-items: start;`;
-const TablesGrid = styled.div`${twoColGrid} align-items: start;`;
-
-const TableColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-`;
-
-const TableColumnHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
-
-const TableColumnTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-// ─── KPI tiles ────────────────────────────────────────────────────────────────
-
-const KpiRow = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    @media (max-width: 700px) { grid-template-columns: 1fr 1fr; }
-`;
-
-const KpiCard = styled.div<{ $accent: string }>`
-    background: #fff;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    padding: 20px 20px 16px;
-    border-top: 3px solid ${p => p.$accent};
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const KpiLabel = styled.div`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-`;
-
-const KpiValue = styled.div`
-    font-size: ${st.fontXl};
-    font-weight: 800;
-    color: ${st.text};
-    letter-spacing: -0.5px;
-    font-variant-numeric: tabular-nums;
-`;
-
 // ─── Simple cost chart ────────────────────────────────────────────────────────
-
-const ChartCard = styled.div`
-    background: #fff;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    padding: 20px;
-`;
-
-const ChartTitle = styled.div`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 16px;
-`;
 
 const BarsWrap = styled.div<{ $count: number }>`
     display: flex;
@@ -233,401 +108,6 @@ const BarLabel = styled.div`
     max-width: 100%;
 `;
 
-const ChartEmpty = styled.div`
-    height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
-
-// ─── Category share donut ─────────────────────────────────────────────────────
-
-const ChartsRow = styled.div`
-    display: grid;
-    grid-template-columns: minmax(340px, 2fr) 3fr;
-    gap: 16px;
-    align-items: stretch;
-    @media (max-width: 1100px) { grid-template-columns: 1fr; }
-`;
-
-const PieBody = styled.div`
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 20px;
-    align-items: center;
-    @media (max-width: 480px) { grid-template-columns: 1fr; justify-items: center; }
-`;
-
-const PieLegendList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    max-height: 220px;
-    overflow-y: auto;
-`;
-
-const PieLegendRow = styled.button<{ $active?: boolean; $clickable?: boolean }>`
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
-    background: ${p => p.$active ? st.accentBlueDim : 'transparent'};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-family: inherit;
-    text-align: left;
-    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
-    transition: background ${st.transition};
-    &:hover { background: ${p => p.$active ? st.accentBlueDim : (p.$clickable ? st.bg : 'transparent')}; }
-`;
-
-const PieLegendName = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.text};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const PieLegendMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-`;
-
-const PieLegendPct = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    min-width: 48px;
-`;
-
-const PieSlicePath = styled.path<{ $dimmed: boolean; $clickable: boolean }>`
-    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
-    opacity: ${p => p.$dimmed ? 0.35 : 1};
-    transition: opacity 0.15s ease;
-`;
-
-interface PieSliceDatum {
-    key: string;
-    categoryId: string | null;
-    name: string;
-    color: string;
-    value: number;
-    itemCount: number;
-}
-
-const PIE_UNASSIGNED_COLOR = '#94A3B8';
-const PIE_OTHER_COLOR = '#CBD5E1';
-
-const fmtPct = (value: number, total: number) =>
-    total > 0
-        ? `${(value / total * 100).toLocaleString('pl-PL', { maximumFractionDigits: 1 })}%`
-        : '—';
-
-function donutSlicePath(cx: number, cy: number, rOut: number, rIn: number, a0: number, a1: number): string {
-    // Clamp a hair below full circle — an arc where start == end renders nothing
-    const span = Math.min(a1 - a0, Math.PI * 2 - 0.0001);
-    const end = a0 + span;
-    const large = span > Math.PI ? 1 : 0;
-    const p = (r: number, a: number) => `${(cx + r * Math.cos(a)).toFixed(3)} ${(cy + r * Math.sin(a)).toFixed(3)}`;
-    return [
-        `M ${p(rOut, a0)}`,
-        `A ${rOut} ${rOut} 0 ${large} 1 ${p(rOut, end)}`,
-        `L ${p(rIn, end)}`,
-        `A ${rIn} ${rIn} 0 ${large} 0 ${p(rIn, a0)}`,
-        'Z',
-    ].join(' ');
-}
-
-interface CategorySharePieProps {
-    slices: PieSliceDatum[];
-    isLoading: boolean;
-    selectedCategoryId: string | null;
-    onSelectCategory: (categoryId: string | null) => void;
-}
-
-const CategorySharePie = ({ slices, isLoading, selectedCategoryId, onSelectCategory }: CategorySharePieProps) => {
-    const [hoverKey, setHoverKey] = useState<string | null>(null);
-    const total = slices.reduce((s, x) => s + x.value, 0);
-
-    if (isLoading) return <ChartEmpty style={{ height: 220 }}><Spinner /></ChartEmpty>;
-    if (total <= 0) return <ChartEmpty style={{ height: 220 }}>Brak danych dla wybranego okresu</ChartEmpty>;
-
-    const size = 220, cx = size / 2, cy = size / 2, rOut = 104, rIn = 66;
-    let angle = -Math.PI / 2;
-    const arcs = slices.map(s => {
-        const a0 = angle;
-        angle += (s.value / total) * Math.PI * 2;
-        return { ...s, a0, a1: angle };
-    });
-
-    const hovered = hoverKey ? slices.find(s => s.key === hoverKey) : undefined;
-    const active = hovered
-        ?? (selectedCategoryId ? slices.find(s => s.categoryId === selectedCategoryId) : undefined);
-
-    const handleSliceClick = (s: PieSliceDatum) => {
-        if (!s.categoryId) return;
-        onSelectCategory(selectedCategoryId === s.categoryId ? null : s.categoryId);
-    };
-
-    return (
-        <PieBody>
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img"
-                 aria-label="Udział kategorii w kosztach">
-                {arcs.map(s => (
-                    <PieSlicePath
-                        key={s.key}
-                        d={donutSlicePath(cx, cy, rOut, rIn, s.a0, s.a1)}
-                        fill={s.color}
-                        stroke="#fff"
-                        strokeWidth={2}
-                        $clickable={!!s.categoryId}
-                        $dimmed={
-                            (hoverKey !== null && hoverKey !== s.key) ||
-                            (hoverKey === null && selectedCategoryId !== null && selectedCategoryId !== s.categoryId)
-                        }
-                        onMouseEnter={() => setHoverKey(s.key)}
-                        onMouseLeave={() => setHoverKey(k => (k === s.key ? null : k))}
-                        onClick={() => handleSliceClick(s)}
-                    >
-                        <title>{`${s.name}: ${fmtPLN(s.value)} (${fmtPct(s.value, total)})`}</title>
-                    </PieSlicePath>
-                ))}
-                {active ? (
-                    <>
-                        <text x={cx} y={cy - 8} textAnchor="middle"
-                              style={{ fontSize: 22, fontWeight: 800, fill: st.text, fontVariantNumeric: 'tabular-nums' }}>
-                            {fmtPct(active.value, total)}
-                        </text>
-                        <text x={cx} y={cy + 14} textAnchor="middle"
-                              style={{ fontSize: 11, fontWeight: 600, fill: st.textMuted }}>
-                            {active.name.length > 22 ? `${active.name.slice(0, 21)}…` : active.name}
-                        </text>
-                    </>
-                ) : (
-                    <>
-                        <text x={cx} y={cy - 8} textAnchor="middle"
-                              style={{ fontSize: 17, fontWeight: 800, fill: st.text, fontVariantNumeric: 'tabular-nums' }}>
-                            {total.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} zł
-                        </text>
-                        <text x={cx} y={cy + 14} textAnchor="middle"
-                              style={{ fontSize: 11, fontWeight: 600, fill: st.textMuted }}>
-                            Łącznie brutto
-                        </text>
-                    </>
-                )}
-            </svg>
-
-            <PieLegendList>
-                {slices.map(s => (
-                    <PieLegendRow
-                        key={s.key}
-                        type="button"
-                        $active={!!s.categoryId && selectedCategoryId === s.categoryId}
-                        $clickable={!!s.categoryId}
-                        title={`${s.name}: ${fmtPLN(s.value)} · ${s.itemCount} poz.`}
-                        onMouseEnter={() => setHoverKey(s.key)}
-                        onMouseLeave={() => setHoverKey(k => (k === s.key ? null : k))}
-                        onClick={() => handleSliceClick(s)}
-                    >
-                        <CatDot $color={s.color} />
-                        <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                            <PieLegendName>{s.name}</PieLegendName>
-                            <PieLegendMeta>{fmtPLN(s.value)}</PieLegendMeta>
-                        </span>
-                        <PieLegendPct>{fmtPct(s.value, total)}</PieLegendPct>
-                    </PieLegendRow>
-                ))}
-            </PieLegendList>
-        </PieBody>
-    );
-};
-
-// ─── Categories table ─────────────────────────────────────────────────────────
-
-const CatTable = styled.div`
-    background: #fff;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const CatRow = styled.div<{ $dragOver?: boolean; $selected?: boolean }>`
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
-    border-bottom: 1px solid ${st.border};
-    cursor: pointer;
-    transition: background ${st.transition};
-    position: relative;
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${st.bg}; }
-
-    ${p => p.$selected && css`
-        background: ${st.accentBlueDim} !important;
-        box-shadow: inset 3px 0 0 ${st.accentBlue};
-    `}
-
-    ${p => p.$dragOver && css`
-        background: ${st.accentBlueDim} !important;
-        outline: 2px dashed ${st.accentBlue};
-        outline-offset: -2px;
-    `}
-`;
-
-const CatDot = styled.span<{ $color: string }>`
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: ${p => p.$color};
-    box-shadow: 0 0 0 2px ${p => p.$color}22;
-    flex-shrink: 0;
-`;
-
-const CatName = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.text};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const CatMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-`;
-
-const CatActions = styled.div`
-    display: flex;
-    gap: 3px;
-    flex-shrink: 0;
-`;
-
-const IconBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    background: transparent;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all ${st.transition};
-    &:hover { background: ${st.bg}; color: ${st.text}; border-color: ${st.borderHover}; }
-    svg { width: 12px; height: 12px; }
-`;
-
-const TableEmpty = styled.div`
-    padding: 32px 16px;
-    text-align: center;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
-
-const TableLoading = styled(TableEmpty)``;
-
-const Spinner = styled.div`
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    border: 2px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    @keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-// ─── Items table (right panel) ────────────────────────────────────────────────
-
-const ItemsTable = styled.div`
-    background: #fff;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const ItemsHeader = styled.div`
-    display: grid;
-    grid-template-columns: 1fr auto auto auto auto;
-    gap: 8px;
-    padding: 8px 14px;
-    background: ${st.bg};
-    border-bottom: 1px solid ${st.border};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean; $assigned?: boolean }>`
-    display: grid;
-    grid-template-columns: 1fr auto auto auto auto;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border-bottom: 1px solid ${st.border};
-    transition: background ${st.transition}, opacity 0.2s;
-    cursor: ${p => p.$draggable ? 'grab' : 'default'};
-    opacity: ${p => p.$dimmed ? 0.4 : 1};
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${p => p.$draggable ? st.bg : 'transparent'}; }
-    &:active { cursor: ${p => p.$draggable ? 'grabbing' : 'default'}; }
-`;
-
-
-const ItemName = styled.span`
-    display: block;
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.text};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const ItemMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-`;
-
-const CatBadge = styled.span<{ $color?: string }>`
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-    background: ${p => p.$color ? `${p.$color}22` : st.accentBlueDim};
-    color: ${p => p.$color ?? st.accentBlue};
-    white-space: nowrap;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
 // ─── View mode switcher ───────────────────────────────────────────────────────
 
 const ViewModeBar = styled.div`
@@ -656,128 +136,6 @@ const ViewModeBtn = styled.button<{ $active: boolean }>`
     box-shadow: ${p => p.$active ? st.shadowXs : 'none'};
     svg { width: 13px; height: 13px; flex-shrink: 0; }
     &:hover { color: ${p => p.$active ? st.text : st.textSecondary}; }
-`;
-
-// ─── Search bar ───────────────────────────────────────────────────────────────
-
-const SearchInput = styled.input`
-    flex: 1;
-    min-width: 140px;
-    padding: 6px 12px;
-    background: ${st.bg};
-    color: ${st.text};
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    transition: border-color ${st.transition};
-    &::placeholder { color: ${st.textMuted}; }
-    &:focus { outline: none; border-color: ${st.accentBlue}; }
-`;
-
-// ─── Assignment filter bar ────────────────────────────────────────────────────
-
-const FilterBar = styled.div`
-    display: flex;
-    gap: 2px;
-    background: ${st.bg};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    padding: 3px;
-    flex-shrink: 0;
-`;
-
-const FilterBtn = styled.button<{ $active: boolean }>`
-    padding: 4px 10px;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-family: inherit;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-    background: ${p => p.$active ? '#fff' : 'transparent'};
-    color: ${p => p.$active ? st.text : st.textMuted};
-    box-shadow: ${p => p.$active ? st.shadowXs : 'none'};
-    &:hover { color: ${p => p.$active ? st.text : st.textSecondary}; }
-`;
-
-// ─── Context menu ─────────────────────────────────────────────────────────────
-
-const CtxPanel = styled.div`
-    position: fixed;
-    z-index: 9100;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
-    min-width: 220px;
-    max-width: 280px;
-    padding: 4px;
-    overflow: hidden;
-`;
-
-const CtxItem = styled.button<{ $danger?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 8px 12px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${p => p.$danger ? '#DC2626' : st.text};
-    cursor: pointer;
-    text-align: left;
-    transition: background ${st.transition};
-    &:hover { background: ${p => p.$danger ? '#FEF2F2' : st.bg}; }
-    svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.6; }
-`;
-
-const CtxDivider = styled.div`
-    height: 1px;
-    background: ${st.border};
-    margin: 4px 0;
-`;
-
-const CtxSectionLabel = styled.div`
-    padding: 4px 12px 2px;
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const CtxCatDot = styled.span<{ $color: string }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${p => p.$color};
-    flex-shrink: 0;
-`;
-
-const KebabBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: ${st.radiusSm};
-    color: ${st.textMuted};
-    cursor: pointer;
-    font-size: 15px;
-    line-height: 1;
-    transition: all ${st.transition};
-    flex-shrink: 0;
-    &:hover { background: ${st.bg}; border-color: ${st.border}; color: ${st.text}; }
 `;
 
 // ─── Invoice accordion (expandable rows) ──────────────────────────────────────
@@ -1232,234 +590,6 @@ const ApplyNowToggle = styled.label`
         flex-shrink: 0;
     }
 `;
-
-// ─── Add / action buttons ─────────────────────────────────────────────────────
-
-const AddButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: ${st.shadowXs};
-    transition: all ${st.transition};
-    svg { width: 14px; height: 14px; }
-    &:hover { background: #2563EB; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
-    &:active { transform: translateY(0); }
-`;
-
-// ─── Date picker (reused from StatisticsView pattern) ────────────────────────
-
-const HdrBtns = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-
-    @media (max-width: 639px) {
-        flex-wrap: wrap;
-        width: 100%;
-    }
-`;
-
-const HdrPickerTrigger = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 15px;
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.08)'};
-    color: ${p => p.$active ? '#7dd3fc' : '#e2e8f0'};
-    border: 1px solid ${p => p.$active ? 'rgba(125, 211, 252, 0.45)' : 'rgba(255, 255, 255, 0.14)'};
-    border-radius: 9999px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    &:hover { background: ${p => p.$active ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.14)'}; color: #fff; }
-    svg { width: 14px; height: 14px; flex-shrink: 0; }
-`;
-
-const HdrPickerPanel = styled.div`
-    position: fixed;
-    z-index: 9000;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
-    min-width: 250px;
-    padding: 8px;
-`;
-
-const HdrPresetBtn = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 8px 12px;
-    background: ${p => p.$active ? '#eff6ff' : 'transparent'};
-    color: ${p => p.$active ? st.accentBlue : st.text};
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: ${p => p.$active ? '600' : '500'};
-    text-align: left;
-    cursor: pointer;
-    transition: background ${st.transition}, color ${st.transition};
-    &:hover { background: ${p => p.$active ? '#dbeafe' : st.bg}; }
-    span.hint { font-size: 11px; color: ${p => p.$active ? '#7dd3fc' : st.textMuted}; font-weight: 400; }
-`;
-
-const HdrDivider = styled.div`
-    height: 1px;
-    background: ${st.border};
-    margin: 6px 0;
-`;
-
-const HdrDateLabel = styled.div`
-    padding: 2px 10px 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const HdrRangeRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0 2px;
-`;
-
-const HdrDateInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    padding: 6px 8px;
-    background: ${st.bg};
-    color: ${st.text};
-    border: 1.5px solid ${st.border};
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 12px;
-    &:focus { outline: none; border-color: ${st.accentBlue}; }
-`;
-
-const HdrApplyBtn = styled.button`
-    width: 100%;
-    margin-top: 8px;
-    padding: 7px 10px;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    &:hover { background: #2563eb; }
-    &:disabled { background: #94a3b8; cursor: not-allowed; }
-`;
-
-const CalIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-);
-
-const ChevIcon = () => (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <polyline points="6 9 12 15 18 9" />
-    </svg>
-);
-
-type Preset = { label: string; hint: string; startDate: string; endDate: string };
-const getPresets = (): Preset[] => [
-    { label: 'Ostatnie 7 dni',    hint: '7 dni',    startDate: spDaysAgo(7),    endDate: today() },
-    { label: 'Ostatnie 30 dni',   hint: '30 dni',   startDate: spDaysAgo(30),   endDate: today() },
-    { label: 'Ostatnie 3 miesiące', hint: '3 mies.', startDate: spMonthsAgo(3), endDate: today() },
-    { label: 'Ostatnie 12 miesięcy', hint: '12 mies.', startDate: spMonthsAgo(12), endDate: today() },
-];
-
-const DatePicker = ({
-    startDate, endDate, onStartChange, onEndChange,
-}: {
-    startDate: string; endDate: string;
-    onStartChange: (d: string) => void; onEndChange: (d: string) => void;
-}) => {
-    const [open, setOpen] = useState(false);
-    const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
-    const [pFrom, setPFrom] = useState('');
-    const [pTo, setPTo] = useState('');
-    const trigRef = useRef<HTMLButtonElement>(null);
-    const panelRef = useRef<HTMLDivElement>(null);
-    const presets = getPresets();
-    const activeIdx = presets.findIndex(p => p.startDate === startDate && p.endDate === endDate);
-
-    useEffect(() => {
-        if (!open) return;
-        const h = (e: MouseEvent) => {
-            if (panelRef.current && !panelRef.current.contains(e.target as Node) &&
-                trigRef.current && !trigRef.current.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
-    }, [open]);
-
-    const handleToggle = () => {
-        if (!open && trigRef.current) {
-            const r = trigRef.current.getBoundingClientRect();
-            setPanelPos({ top: r.bottom + 8, right: Math.max(0, window.innerWidth - r.right) });
-            setPFrom(startDate); setPTo(endDate);
-        }
-        setOpen(p => !p);
-    };
-
-    const label = activeIdx >= 0 ? presets[activeIdx].label : `${startDate} – ${endDate}`;
-
-    return (
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-            <HdrPickerTrigger ref={trigRef} $active onClick={handleToggle}>
-                <CalIcon />{label}<ChevIcon />
-            </HdrPickerTrigger>
-            {open && panelPos && createPortal(
-                <HdrPickerPanel ref={panelRef} style={{ top: panelPos.top, right: panelPos.right }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {presets.map((p, i) => (
-                            <HdrPresetBtn key={p.label} $active={i === activeIdx} onClick={() => {
-                                onStartChange(p.startDate); onEndChange(p.endDate); setOpen(false);
-                            }}>
-                                {p.label}<span className="hint">{p.hint}</span>
-                            </HdrPresetBtn>
-                        ))}
-                    </div>
-                    <HdrDivider />
-                    <HdrDateLabel>Niestandardowy zakres</HdrDateLabel>
-                    <HdrRangeRow>
-                        <HdrDateInput type="date" value={pFrom} max={pTo || undefined} onChange={e => setPFrom(e.target.value)} />
-                        <span style={{ fontSize: 12, color: st.textMuted }}>–</span>
-                        <HdrDateInput type="date" value={pTo} min={pFrom || undefined} onChange={e => setPTo(e.target.value)} />
-                    </HdrRangeRow>
-                    <HdrApplyBtn disabled={!pFrom && !pTo} onClick={() => {
-                        if (pFrom) onStartChange(pFrom);
-                        if (pTo) onEndChange(pTo);
-                        setOpen(false);
-                    }}>Zastosuj zakres</HdrApplyBtn>
-                </HdrPickerPanel>,
-                document.body
-            )}
-        </div>
-    );
-};
 
 // ─── Category form modal ──────────────────────────────────────────────────────
 
@@ -2175,7 +1305,6 @@ export const CostsView = () => {
 
     // Context menu
     const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
-    const ctxRef = useRef<HTMLDivElement>(null);
 
     // Invoice preview
     const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
@@ -2187,11 +1316,10 @@ export const CostsView = () => {
 
     const { categories, isLoading: catLoading } = useCostCategories();
     const { items: allItems, isLoading: itemsLoading, isFetching: itemsFetching } = useCostExpenseItems(startDate, endDate);
-    const { breakdown, isFetching: breakdownFetching } = useCostBreakdown('MONTHLY', startDate, endDate);
+    const { isFetching: breakdownFetching } = useCostBreakdown('MONTHLY', startDate, endDate);
 
     const deleteMut   = useDeleteCostCategory();
     const assignMut   = useAssignCostItems();
-    const unassignMut = useUnassignCostItem();
 
     // Auto-rules
     const { rules, isLoading: rulesLoading } = useAutoRules();
@@ -2214,16 +1342,6 @@ export const CostsView = () => {
             .map(([nip, name]) => ({ nip, name }))
             .sort((a, b) => a.name.localeCompare(b.name, 'pl'));
     }, [allItems]);
-
-    // Close context menu on outside click
-    useEffect(() => {
-        if (!ctxMenu) return;
-        const h = (e: MouseEvent) => {
-            if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setCtxMenu(null);
-        };
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
-    }, [ctxMenu]);
 
     // Filter items by selected category or show all
     const visibleItems = useMemo(() => {
@@ -2269,8 +1387,6 @@ export const CostsView = () => {
     // Donut slices: per-category share of all costs in the selected range.
     // Computed client-side (same effectiveGross fallback as catTotalsMap) so that
     // VAT-exempt items (grossValue=null) are counted correctly.
-    // Tail beyond the 7 largest folds into "Pozostałe"; unassigned costs get
-    // their own neutral slice so percentages are shares of ALL costs.
     const pieSlices = useMemo<PieSliceDatum[]>(() => {
         // Build per-category totals from allItems client-side
         const catMap = new Map<string, { totalCostGross: number; itemCount: number }>();
@@ -2282,50 +1398,22 @@ export const CostsView = () => {
             catMap.set(item.costCategoryId, entry);
         });
 
-        const cats = categories
-            .map(cat => {
-                const totals = catMap.get(cat.id) ?? { totalCostGross: 0, itemCount: 0 };
-                return { categoryId: cat.id, categoryName: cat.name, color: cat.color, ...totals };
-            })
-            .filter(c => c.totalCostGross > 0)
-            .sort((a, b) => b.totalCostGross - a.totalCostGross);
+        const cats = categories.map(cat => {
+            const totals = catMap.get(cat.id) ?? { totalCostGross: 0, itemCount: 0 };
+            return {
+                categoryId: cat.id,
+                name:       cat.name,
+                color:      cat.color,
+                value:      totals.totalCostGross,
+                itemCount:  totals.itemCount,
+            };
+        });
 
-        const MAX_SLICES = 7;
-        const head = cats.slice(0, MAX_SLICES);
-        const tail = cats.slice(MAX_SLICES);
-
-        const slices: PieSliceDatum[] = head.map(c => ({
-            key:        c.categoryId,
-            categoryId: c.categoryId,
-            name:       c.categoryName,
-            color:      c.color ?? '#6B7280',
-            value:      c.totalCostGross,
-            itemCount:  c.itemCount,
-        }));
-        if (tail.length > 0) {
-            slices.push({
-                key:        '__other',
-                categoryId: null,
-                name:       `Pozostałe kategorie (${tail.length})`,
-                color:      PIE_OTHER_COLOR,
-                value:      tail.reduce((s, c) => s + c.totalCostGross, 0),
-                itemCount:  tail.reduce((s, c) => s + c.itemCount, 0),
-            });
-        }
-        // Unassigned: items with no costCategoryId
         const unassignedItems = allItems.filter(i => !i.costCategoryId);
-        const unassignedGross = unassignedItems.reduce((s, i) => s + effectiveGross(i), 0);
-        if (unassignedGross > 0) {
-            slices.push({
-                key:        '__unassigned',
-                categoryId: null,
-                name:       'Nieprzypisane',
-                color:      PIE_UNASSIGNED_COLOR,
-                value:      unassignedGross,
-                itemCount:  unassignedItems.length,
-            });
-        }
-        return slices;
+        return buildCategoryShareSlices(cats, {
+            value:     unassignedItems.reduce((s, i) => s + effectiveGross(i), 0),
+            itemCount: unassignedItems.length,
+        });
     }, [allItems, categories]);
 
     // Category totals map — computed client-side from allItems so that the same
@@ -2399,13 +1487,7 @@ export const CostsView = () => {
         needsConfirm: boolean
     ) => {
         e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const menuW = 230;
-        const x = Math.max(8, Math.min(rect.right - menuW, window.innerWidth - menuW - 8));
-        const menuH = 240;
-        const y = rect.bottom + 4 + menuH > window.innerHeight
-            ? Math.max(8, rect.top - menuH - 4)
-            : rect.bottom + 4;
+        const { x, y } = ctxMenuPosition(e.currentTarget.getBoundingClientRect());
         setCtxMenu({ items, invoiceId, needsConfirm, x, y });
     }, []);
 
@@ -2494,7 +1576,7 @@ export const CostsView = () => {
                 subtitle="Analiza kosztów i wydatków studia"
                 actions={
                     <HdrBtns>
-                        <DatePicker
+                        <HeaderDatePicker
                             startDate={startDate}
                             endDate={endDate}
                             onStartChange={setStartDate}
@@ -2536,6 +1618,7 @@ export const CostsView = () => {
                         isLoading={breakdownFetching}
                         selectedCategoryId={selectedCategoryId}
                         onSelectCategory={setSelectedCategoryId}
+                        ariaLabel="Udział kategorii w kosztach"
                     />
                 </ChartCard>
 
@@ -2669,21 +1752,9 @@ export const CostsView = () => {
                                     : 'Pozycje kosztowe'}
                             </TableColumnTitle>
                             {selectedCategoryId && (
-                                <button
-                                    style={{
-                                        padding: '3px 10px',
-                                        background: 'transparent',
-                                        border: `1px solid ${st.border}`,
-                                        borderRadius: st.radiusFull,
-                                        fontSize: st.fontXs,
-                                        fontWeight: 500,
-                                        color: st.textSecondary,
-                                        cursor: 'pointer',
-                                    }}
-                                    onClick={() => setSelectedCategoryId(null)}
-                                >
+                                <ClearFilterBtn onClick={() => setSelectedCategoryId(null)}>
                                     ✕ Pokaż wszystkie
-                                </button>
+                                </ClearFilterBtn>
                             )}
                         </TableColumnHeader>
 
@@ -3040,33 +2111,23 @@ export const CostsView = () => {
             )}
 
             {/* ── Context menu ─────────────────────────────────────── */}
-            {ctxMenu && createPortal(
-                <CtxPanel ref={ctxRef} style={{ top: ctxMenu.y, left: ctxMenu.x }}>
-                    <CtxSectionLabel>Przypisz do kategorii</CtxSectionLabel>
-                    {categories.length === 0 && (
-                        <div style={{ padding: '8px 12px', fontSize: st.fontSm, color: st.textMuted }}>Brak kategorii</div>
-                    )}
-                    {categories.map(cat => (
-                        <CtxItem key={cat.id} onClick={() => handleCtxAssign(cat.id)}>
-                            <CtxCatDot $color={cat.color ?? '#94A3B8'} />
-                            {cat.name}
-                        </CtxItem>
-                    ))}
-                    {(ctxMenu.items.some(i => i.costCategoryId) || ctxMenu.invoiceId) && <CtxDivider />}
-                    {ctxMenu.items.some(i => i.costCategoryId) && (
-                        <CtxItem $danger onClick={handleCtxUnassign}>
-                            <X />
-                            {ctxMenu.items.length > 1 ? 'Usuń przypisanie wszystkich' : 'Usuń przypisanie'}
-                        </CtxItem>
-                    )}
+            {ctxMenu && (
+                <CategoryAssignMenu
+                    x={ctxMenu.x}
+                    y={ctxMenu.y}
+                    categories={categories}
+                    onAssign={handleCtxAssign}
+                    onUnassign={ctxMenu.items.some(i => i.costCategoryId) ? handleCtxUnassign : undefined}
+                    unassignLabel={ctxMenu.items.length > 1 ? 'Usuń przypisanie wszystkich' : 'Usuń przypisanie'}
+                    onClose={() => setCtxMenu(null)}
+                >
                     {ctxMenu.invoiceId && (
                         <CtxItem onClick={handleCtxPreview}>
                             <FileText />
                             Podgląd faktury
                         </CtxItem>
                     )}
-                </CtxPanel>,
-                document.body
+                </CategoryAssignMenu>
             )}
         </ViewContainer>
     );
