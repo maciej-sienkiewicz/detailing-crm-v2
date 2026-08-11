@@ -40,6 +40,7 @@ export interface ServiceListFilters {
     sortBy?: 'name' | 'basePriceNet';
     sortDirection?: 'asc' | 'desc';
     showInactive?: boolean;
+    isPackage?: boolean;
 }
 
 export interface ServicePagination {

@@ -296,6 +296,7 @@ export const servicesApi = {
         });
         if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
+        if (filters.isPackage !== undefined) params.append('isPackage', String(filters.isPackage));
 
         const response = await apiClient.get(`${BASE_PATH}?${params}`);
         return response.data;
