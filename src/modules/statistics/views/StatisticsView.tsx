@@ -477,7 +477,7 @@ export const StatisticsView = () => {
                             </DragHint>
                         )}
 
-                        <ItemsTable>
+                        <ItemsTable $maxHeight="min(560px, 70vh)">
                             {breakdownLoading && <TableLoading><Spinner /></TableLoading>}
 
                             {!breakdownLoading && (

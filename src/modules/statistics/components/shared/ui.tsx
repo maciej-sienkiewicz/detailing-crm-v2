@@ -314,12 +314,19 @@ export const TableLoading = styled(TableEmpty)``;
 
 // ─── Items table (right panel) ────────────────────────────────────────────────
 
-export const ItemsTable = styled.div`
+export const ItemsTable = styled.div<{ $maxHeight?: string }>`
     background: #fff;
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     overflow: hidden;
     box-shadow: ${st.shadowSm};
+
+    /* Ograniczona wysokość + wewnętrzny scroll — lista kategorii po lewej
+       pozostaje widoczna, więc drag&drop działa bez przewijania całej strony. */
+    ${p => p.$maxHeight && css`
+        max-height: ${p.$maxHeight};
+        overflow-y: auto;
+    `}
 `;
 
 export const ItemsHeader = styled.div`
@@ -334,6 +341,9 @@ export const ItemsHeader = styled.div`
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 `;
 
 export const ItemRow = styled.div<{ $draggable?: boolean; $dimmed?: boolean }>`
