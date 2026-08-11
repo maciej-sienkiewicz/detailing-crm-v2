@@ -104,7 +104,6 @@ const DeletedToggleWrap = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto;
 `;
 
 const DeletedToggleLabel = styled.span`
@@ -134,6 +133,34 @@ const ToggleThumb = styled.span<{ $active: boolean }>`
     background: #fff;
     transform: translateX(${p => p.$active ? '16px' : '0'});
     transition: transform 150ms ease;
+`;
+
+const VehicleHeaderActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+`;
+
+const ArchiveToggleBtn = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1.5px solid ${p => p.$active ? '#9F1239' : '#e2e8f0'};
+    background: ${p => p.$active ? '#FFF1F2' : 'transparent'};
+    color: ${p => p.$active ? '#9F1239' : '#94a3b8'};
+    cursor: pointer;
+    transition: all 150ms ease;
+    flex-shrink: 0;
+    svg { width: 13px; height: 13px; }
+    &:hover {
+        border-color: #9F1239;
+        color: #9F1239;
+        background: #FFF1F2;
+    }
 `;
 
 // ─── Hero header ──────────────────────────────────────────────────────────────
@@ -702,23 +729,26 @@ export const CustomerDetailView = () => {
                                     Pojazdy
                                     <PanelCountBadge>{vehicles.length}</PanelCountBadge>
                                 </PanelTitle>
-                                <DeletedToggleWrap>
-                                    <DeletedToggleLabel>Usunięte</DeletedToggleLabel>
-                                    <ToggleSwitch
+                                <VehicleHeaderActions>
+                                    <ArchiveToggleBtn
                                         $active={showDeletedVehicles}
                                         onClick={() => setShowDeletedVehicles(v => !v)}
                                         title={showDeletedVehicles ? 'Ukryj usunięte pojazdy' : 'Pokaż usunięte pojazdy'}
                                     >
-                                        <ToggleThumb $active={showDeletedVehicles} />
-                                    </ToggleSwitch>
-                                </DeletedToggleWrap>
-                                <AddVehicleButton onClick={() => setIsAddVehicleOpen(true)}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="12" y1="5" x2="12" y2="19" />
-                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                    </svg>
-                                    Dodaj
-                                </AddVehicleButton>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6l-1 14H6L5 6"/>
+                                            <path d="M9 6V4h6v2"/>
+                                        </svg>
+                                    </ArchiveToggleBtn>
+                                    <AddVehicleButton onClick={() => setIsAddVehicleOpen(true)}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <line x1="12" y1="5" x2="12" y2="19" />
+                                            <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                        Dodaj
+                                    </AddVehicleButton>
+                                </VehicleHeaderActions>
                             </PanelHead>
                             <PanelBodyFlush>
                                 {vehiclesLoading ? (
