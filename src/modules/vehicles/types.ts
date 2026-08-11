@@ -60,6 +60,7 @@ export interface Vehicle {
     createdAt: string;
     updatedAt: string;
     deletedAt: string | null;
+    deletedBy: string | null;
 }
 
 export interface VehicleListItem {

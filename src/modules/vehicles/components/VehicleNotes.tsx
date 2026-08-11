@@ -227,9 +227,10 @@ const Empty = styled.p`
 
 interface VehicleNotesProps {
     vehicleId: string;
+    readOnly?: boolean;
 }
 
-export const VehicleNotes = ({ vehicleId }: VehicleNotesProps) => {
+export const VehicleNotes = ({ vehicleId, readOnly = false }: VehicleNotesProps) => {
     const { notes, isLoading } = useVehicleNotes(vehicleId);
     const createMutation = useCreateVehicleNote(vehicleId);
     const updateMutation = useUpdateVehicleNote(vehicleId);
@@ -285,7 +286,7 @@ export const VehicleNotes = ({ vehicleId }: VehicleNotesProps) => {
                     {!isLoading && <Badge>{notes.length}</Badge>}
                 </CardTitle>
 
-                {!isAdding && (
+                {!isAdding && !readOnly && (
                     <AddButton onClick={() => setIsAdding(true)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="12" y1="5" x2="12" y2="19" />
@@ -353,6 +354,7 @@ export const VehicleNotes = ({ vehicleId }: VehicleNotesProps) => {
                                             {note.createdByName} · {formatDateTime(note.createdAt)}
                                             {note.updatedAt !== note.createdAt && ' (edytowano)'}
                                         </NoteMeta>
+                                        {!readOnly && (
                                         <NoteActions>
                                             <IconBtn onClick={() => handleStartEdit(note)} title="Edytuj">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -372,6 +374,7 @@ export const VehicleNotes = ({ vehicleId }: VehicleNotesProps) => {
                                                 </svg>
                                             </IconBtn>
                                         </NoteActions>
+                                        )}
                                     </NoteFooter>
                                 </>
                             )}

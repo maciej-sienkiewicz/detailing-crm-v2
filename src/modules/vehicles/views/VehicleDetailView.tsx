@@ -41,6 +41,61 @@ import {
 } from './VehicleDetailView.styles';
 import styled from 'styled-components';
 
+// ── Deletion banner ────────────────────────────────────────────────────────────
+
+const DeletionBanner = styled.div`
+    width: 100%;
+    background: #fff1f2;
+    border: 1.5px solid #fecdd3;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    @media (max-width: 640px) {
+        padding: 14px 16px;
+        gap: 12px;
+    }
+`;
+
+const DeletionBannerIcon = styled.div`
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fee2e2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    margin-top: 1px;
+
+    svg { width: 18px; height: 18px; }
+`;
+
+const DeletionBannerBody = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const DeletionBannerTitle = styled.p`
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #991b1b;
+    line-height: 1.4;
+`;
+
+const DeletionBannerDetail = styled.p`
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #b91c1c;
+    line-height: 1.5;
+`;
+
 const DeletedToggleWrap = styled.div`
     display: flex;
     align-items: center;
@@ -172,6 +227,12 @@ export const VehicleDetailView = () => {
     const vehicleName = [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Pojazd';
     const yearSuffix  = vehicle.yearOfProduction ? ` (${vehicle.yearOfProduction})` : '';
 
+    const isArchived = vehicle.status === 'archived' || !!vehicle.deletedAt;
+
+    const deletedAtFormatted = vehicle.deletedAt
+        ? new Date(vehicle.deletedAt).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : null;
+
     const totalSpent   = vehicle.stats?.totalSpent  ?? { grossAmount: 0, currency: 'PLN' };
     const totalVisits  = vehicle.stats?.totalVisits ?? 0;
     const lastVisit    = vehicle.stats?.lastVisitDate ?? null;
@@ -193,6 +254,29 @@ export const VehicleDetailView = () => {
                     <BreadcrumbCurrent>{vehicle.licensePlate || vehicleName}</BreadcrumbCurrent>
                 </BreadcrumbNav>
 
+                {/* ─── Deletion banner ───────────────────────────── */}
+                {isArchived && (
+                    <DeletionBanner role="alert">
+                        <DeletionBannerIcon>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                        </DeletionBannerIcon>
+                        <DeletionBannerBody>
+                            <DeletionBannerTitle>
+                                Ten pojazd został usunięty
+                                {deletedAtFormatted ? ` dnia ${deletedAtFormatted}` : ''}
+                                {vehicle.deletedBy ? ` przez ${vehicle.deletedBy}` : ''}.
+                            </DeletionBannerTitle>
+                            <DeletionBannerDetail>
+                                Operacja jest nieodwracalna. Nie możesz wprowadzić żadnych danych do tego pojazdu.
+                            </DeletionBannerDetail>
+                        </DeletionBannerBody>
+                    </DeletionBanner>
+                )}
+
                 {/* ─── Page header ───────────────────────────────── */}
                 <PageHeader>
                     <HeaderLeft>
@@ -213,6 +297,7 @@ export const VehicleDetailView = () => {
                             $variant="secondary"
                             $size="sm"
                             onClick={() => setIsEditOwnersModalOpen(true)}
+                            disabled={isArchived}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -226,6 +311,7 @@ export const VehicleDetailView = () => {
                             $variant="secondary"
                             $size="sm"
                             onClick={() => setIsEditModalOpen(true)}
+                            disabled={isArchived}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -236,6 +322,7 @@ export const VehicleDetailView = () => {
                         <SharedButton
                             $variant="primary"
                             $size="sm"
+                            disabled={isArchived}
                             onClick={() => {
                                 const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
                                 const nameParts = singleOwner?.customerName.split(' ') ?? [];
@@ -276,7 +363,7 @@ export const VehicleDetailView = () => {
                             $variant="danger"
                             $size="sm"
                             onClick={() => setShowDeleteConfirm(true)}
-                            disabled={isDeleting || vehicle.status === 'archived'}
+                            disabled={isDeleting || isArchived}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polyline points="3 6 5 6 21 6"/>
@@ -370,6 +457,7 @@ export const VehicleDetailView = () => {
                                 </PanelTitle>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <PanelCountBadge>{vehicle.owners.length}</PanelCountBadge>
+                                    {!isArchived && (
                                     <PanelAction onClick={() => setIsEditOwnersModalOpen(true)}>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -377,6 +465,7 @@ export const VehicleDetailView = () => {
                                         </svg>
                                         Zarządzaj
                                     </PanelAction>
+                                    )}
                                 </div>
                             </PanelHead>
                             <PanelBodyFlush>
@@ -402,7 +491,7 @@ export const VehicleDetailView = () => {
                         </Panel>
 
                         {/* Notes */}
-                        <VehicleNotes vehicleId={vehicleId!} />
+                        <VehicleNotes vehicleId={vehicleId!} readOnly={isArchived} />
 
                     </LeftRail>
 
