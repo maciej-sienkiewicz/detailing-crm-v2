@@ -1003,7 +1003,7 @@ interface CalendarViewProps {
 }
 
 // Module-level singletons — survive React StrictMode double-mount.
-let _dashboardPendingHighlight: { id: string; date: string } | null = null;
+let _dashboardPendingHighlight: { id: string; date: string; openPopover?: boolean } | null = null;
 // Set when a search result is selected; used to detect the same-month case where
 // eventDidMount won't fire (event already rendered) and fall back to eventElMapRef.
 let _searchPendingHighlight: { id: string } | null = null;
@@ -1102,9 +1102,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     // Capture from location.state into module-level var (survives StrictMode double-mount).
     // Read at render time so it's available before any effects run.
-    const _stateRef = (location.state as { highlightEventId?: string; highlightDate?: string } | null);
+    const _stateRef = (location.state as {
+        highlightEventId?: string;
+        highlightDate?: string;
+        openEventPopover?: boolean;
+    } | null);
     if (_stateRef?.highlightEventId && !_dashboardPendingHighlight) {
-        _dashboardPendingHighlight = { id: _stateRef.highlightEventId, date: _stateRef.highlightDate ?? '' };
+        _dashboardPendingHighlight = {
+            id: _stateRef.highlightEventId,
+            date: _stateRef.highlightDate ?? '',
+            openPopover: _stateRef.openEventPopover ?? false,
+        };
     }
 
     // Clear router state so back-navigation doesn't replay the animation.
@@ -2054,12 +2062,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
                     if (_dashboardPendingHighlight?.id && arg.event.id === _dashboardPendingHighlight.id) {
                         const id = _dashboardPendingHighlight.id;
+                        const openPopover = _dashboardPendingHighlight.openPopover ?? false;
                         _dashboardPendingHighlight = null;
                         requestAnimationFrame(() => {
                             const rect = arg.el.getBoundingClientRect();
                             setDashboardHighlightId(id);
                             reportTargetRect(rect);
                             setTimeout(() => setDashboardHighlightId(null), 7200);
+
+                            // Deep-link z zakładki Aktywność: od razu otwórz podsumowanie
+                            // zdarzenia — dokładnie tak, jak zrobiłby to handleEventClick.
+                            if (openPopover) {
+                                const eventData = arg.event.extendedProps as AppointmentEventData | VisitEventData;
+                                setPopoverEvent(eventData);
+                                setPopoverAnchor({ top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
+                                setPopoverPosition({ x: rect.right + 10, y: rect.top });
+                                setPopoverOpen(true);
+                            }
                         });
                     }
                 }}

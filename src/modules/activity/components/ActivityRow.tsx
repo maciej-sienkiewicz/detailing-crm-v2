@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { ChevronDown, ArrowRight, ExternalLink } from 'lucide-react';
 import { PiiText } from '@/common/pii';
+import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { ActivityIcon } from './ActivityIcon';
 import { formatTime, iconTone, severityFlag } from '../activityTheme';
 import type { ActivityItem, ActivityReference } from '../types';
@@ -83,12 +84,13 @@ const IconTile = styled.div<{ $edge: string; $solid: string }>`
     }
 `;
 
-// Imię i nazwisko aktora — absolutnie przy prawej krawędzi, widoczne tylko na hover
+// Imię i nazwisko aktora — przy prawej krawędzi, widoczne tylko na hover.
+// Kotwiczone do góry wiersza (na wysokości tytułu), a nie do środka — przy
+// rozwiniętych szczegółach środek wiersza wypada na tabeli zmian.
 const HoverActor = styled.span`
     position: absolute;
-    top: 50%;
+    top: 18px;
     right: 18px;
-    transform: translateY(-50%);
     font-size: 12px;
     font-weight: 500;
     color: ${p => p.theme.colors.textMuted};
@@ -188,11 +190,9 @@ const MetaLine = styled.div`
 // ─── expandable changes ───────────────────────────────────────────────────────
 
 const ExpandButton = styled.button<{ $open: boolean }>`
-    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    margin-top: 2px;
     padding: 3px 9px 3px 7px;
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: 9999px;
@@ -309,13 +309,21 @@ const NavChip = styled(Link)`
     }
 `;
 
+interface NavTarget {
+    path: string;
+    /** Set for reservations — the chip resolves the date and deep-links the calendar. */
+    appointmentId?: string;
+}
+
 /** Maps backend resource codes to in-app routes. Returns null for resources with no panel route. */
-const subjectPath = (ref: ActivityReference): string | null => {
+const subjectPath = (ref: ActivityReference): NavTarget | null => {
     switch (ref.resource) {
-        case 'VISIT':        return `/visits/${ref.id}`;
-        case 'CUSTOMER':     return `/customers/${ref.id}`;
-        case 'VEHICLE':      return `/vehicles/${ref.id}`;
-        case 'APPOINTMENT':  return `/appointments/${ref.id}/edit`;
+        case 'VISIT':        return { path: `/visits/${ref.id}` };
+        case 'CUSTOMER':     return { path: `/customers/${ref.id}` };
+        case 'VEHICLE':      return { path: `/vehicles/${ref.id}` };
+        // Reservations live on the calendar, not under a detail route: jump there,
+        // highlight the event and open its summary popover right away.
+        case 'APPOINTMENT':  return { path: '/calendar', appointmentId: ref.id };
         default:             return null;
     }
 };
@@ -339,19 +347,47 @@ interface ActivityRowProps {
 
 export const ActivityRow = ({ item }: ActivityRowProps) => {
     const [open, setOpen] = useState(false);
+    const navigate = useNavigate();
+
+    /**
+     * Deep-link to the reservation on the calendar. The feed knows only the
+     * appointment id, so the date is resolved first — the calendar needs it to
+     * jump to the right month before it can highlight the event and open its
+     * summary popover (same contract as LeadListView / dashboard panels).
+     */
+    const goToAppointment = async (e: React.MouseEvent, appointmentId: string) => {
+        e.preventDefault();
+        let highlightDate = '';
+        try {
+            const res = await appointmentApi.getAppointment(appointmentId);
+            highlightDate = res.schedule?.startDateTime ?? '';
+        } catch {
+            // Navigate anyway — the calendar just won't jump months.
+        }
+        navigate('/calendar', {
+            state: { highlightEventId: appointmentId, highlightDate, openEventPopover: true },
+        });
+    };
 
     const tone = iconTone(item.icon);
     const flag = severityFlag(item.severity.code);
     const hasChanges = item.changes.length > 0;
 
-    const navLinks: Array<{ path: string; label: string }> = [];
-    if (item.subject) {
-        const path = subjectPath(item.subject);
-        if (path) navLinks.push({ path, label: subjectLabel(item.subject) });
+    // Once a reservation has been turned into a visit it no longer exists as a
+    // reservation, so linking to it would be a business error — hide the chip.
+    const appointmentGone = item.action.code === 'VISIT_CREATED'
+        || item.action.code === 'APPOINTMENT_CONVERTED';
+    const linkable = (ref: ActivityReference) =>
+        !(appointmentGone && ref.resource === 'APPOINTMENT');
+
+    const navLinks: Array<NavTarget & { label: string }> = [];
+    if (item.subject && linkable(item.subject)) {
+        const target = subjectPath(item.subject);
+        if (target) navLinks.push({ ...target, label: subjectLabel(item.subject) });
     }
-    item.related?.forEach(ref => {
-        const path = subjectPath(ref);
-        if (path) navLinks.push({ path, label: subjectLabel(ref) });
+    item.related?.filter(linkable).forEach(ref => {
+        const target = subjectPath(ref);
+        if (target) navLinks.push({ ...target, label: subjectLabel(ref) });
     });
 
     const actorLabel = item.actor.type === 'CUSTOMER'
@@ -376,47 +412,50 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                     <Description><PiiText value={item.description} /></Description>
                 )}
 
-                {navLinks.length > 0 && (
+                {(navLinks.length > 0 || hasChanges) && (
                     <MetaLine>
-                        {navLinks.map(({ path, label }) => (
-                            <NavChip key={path} to={path}>
+                        {navLinks.map(({ path, appointmentId, label }) => (
+                            <NavChip
+                                key={`${path}-${label}`}
+                                to={path}
+                                onClick={appointmentId
+                                    ? (e: React.MouseEvent) => { void goToAppointment(e, appointmentId); }
+                                    : undefined}
+                            >
                                 <ExternalLink />
                                 {label}
                             </NavChip>
                         ))}
+                        {hasChanges && (
+                            <ExpandButton
+                                $open={open}
+                                onClick={() => setOpen(v => !v)}
+                                aria-expanded={open}
+                            >
+                                <ChevronDown />
+                                {open ? 'Ukryj szczegóły' : 'Szczegóły'}
+                            </ExpandButton>
+                        )}
                     </MetaLine>
                 )}
 
-                {hasChanges && (
-                    <>
-                        <ExpandButton
-                            $open={open}
-                            onClick={() => setOpen(v => !v)}
-                            aria-expanded={open}
-                        >
-                            <ChevronDown />
-                            {open ? 'Ukryj szczegóły' : 'Szczegóły'}
-                        </ExpandButton>
-
-                        {open && (
-                            <Changes>
-                                {item.changes.map(change => (
-                                    <ChangeRow key={change.field}>
-                                        <ChangeLabel>{change.label}</ChangeLabel>
-                                        <ChangeValues>
-                                            {change.oldValueDisplay && (
-                                                <>
-                                                    <OldValue>{change.oldValueDisplay}</OldValue>
-                                                    <ArrowRight />
-                                                </>
-                                            )}
-                                            <NewValue>{change.newValueDisplay ?? '—'}</NewValue>
-                                        </ChangeValues>
-                                    </ChangeRow>
-                                ))}
-                            </Changes>
-                        )}
-                    </>
+                {hasChanges && open && (
+                    <Changes>
+                        {item.changes.map(change => (
+                            <ChangeRow key={change.field}>
+                                <ChangeLabel>{change.label}</ChangeLabel>
+                                <ChangeValues>
+                                    {change.oldValueDisplay && (
+                                        <>
+                                            <OldValue>{change.oldValueDisplay}</OldValue>
+                                            <ArrowRight />
+                                        </>
+                                    )}
+                                    <NewValue>{change.newValueDisplay ?? '—'}</NewValue>
+                                </ChangeValues>
+                            </ChangeRow>
+                        ))}
+                    </Changes>
                 )}
             </Body>
 
