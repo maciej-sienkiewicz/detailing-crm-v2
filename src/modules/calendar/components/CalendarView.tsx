@@ -18,6 +18,7 @@ import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, Mod
 import { SharedButton } from '@/common/styles';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useDoorToDoorCalendar } from '../hooks/useDoorToDoorCalendar';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { useLeaveCalendar } from '@/modules/employees/hooks/useLeaves';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCalendarFilters } from '../hooks/useCalendarFilters';
@@ -2298,23 +2299,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     <CloseBtn onClick={() => setEndDateModalOpen(false)} />
                 </ModalHeader>
                 <ModalContent>
-                    <input
-                        type="datetime-local"
+                    <DateTimePicker
                         value={endDateDraft}
-                        onChange={e => setEndDateDraft(e.target.value)}
-                        onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEndDate(); }}
-                        autoFocus
-                        style={{
-                            width: '100%',
-                            boxSizing: 'border-box',
-                            padding: '9px 12px',
-                            border: '1.5px solid #e2e8f0',
-                            borderRadius: 8,
-                            fontSize: 15,
-                            color: '#0f172a',
-                            outline: 'none',
-                        }}
+                        onChange={setEndDateDraft}
+                        showTime
+                        placeholder="Wybierz datę i godzinę"
                     />
                 </ModalContent>
                 <ModalFooter>

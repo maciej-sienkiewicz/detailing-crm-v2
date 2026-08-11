@@ -5,6 +5,7 @@ import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { usePermissions } from '@/core/permissions';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -305,23 +306,6 @@ const VehicleRow = styled.div`
 `;
 
 /* ── Date edit modal ── */
-
-const DateInputField = styled.input`
-    width: 100%;
-    box-sizing: border-box;
-    padding: 9px 12px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 15px;
-    color: #0f172a;
-    outline: none;
-    transition: border-color 180ms ease, box-shadow 180ms ease;
-
-    &:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-    }
-`;
 
 /* ── Right actions ── */
 
@@ -756,13 +740,12 @@ export const VisitHeader = ({
                     <CloseBtn onClick={() => setIsDateModalOpen(false)} />
                 </ModalHeader>
                 <ModalContent>
-                    <DateInputField
-                        type="datetime-local"
+                    <DateTimePicker
                         value={draftDate}
-                        onChange={e => setDraftDate(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') saveDateModal(); }}
-                        onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
-                        autoFocus
+                        onChange={setDraftDate}
+                        showTime
+                        placeholder="Wybierz datę i godzinę"
+                        accentColor="#6366f1"
                     />
                 </ModalContent>
                 <ModalFooter>
