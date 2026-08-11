@@ -3,6 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { ArrowRight, RotateCcw, Users, CheckCircle2 } from 'lucide-react';
 import type { AudienceCustomer, AgentAudienceResult } from '../types';
 import { generateAudienceFromPrompt, createCampaign } from '../api/smsCampaignsApi';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -765,11 +766,11 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
           </FieldGroup>
           <FieldGroup>
             <Label htmlFor="camp-date">Data wysyłki</Label>
-            <Input
-              id="camp-date"
-              type="datetime-local"
+            <DateTimePicker
               value={launchDate}
-              onChange={e => setLaunchDate(e.target.value)}
+              onChange={setLaunchDate}
+              showTime
+              placeholder="Wybierz datę i godzinę"
             />
           </FieldGroup>
         </ConfigGrid>

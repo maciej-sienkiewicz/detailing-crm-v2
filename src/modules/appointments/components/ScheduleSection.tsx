@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { Card } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, Input } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { t } from '@/common/i18n';
 
 const SectionHeaderWithToggle = styled.div`
@@ -52,11 +53,9 @@ export const ScheduleSection = ({
         const nowIso = new Date().toISOString();
         if (checked) {
             const date = (startDateTime || nowIso).split('T')[0];
-            // In all-day mode we store start as date-only and end as end-of-day for the same date
             onStartDateTimeChange(date);
             onEndDateTimeChange(`${date}T23:59:59`);
         } else {
-            // When switching off all-day, ensure start has time component suitable for datetime-local input
             const date = (startDateTime || nowIso).split('T')[0];
             const startWithTime = `${date}T09:00`;
             const endWithTime = `${date}T10:00`;
@@ -80,15 +79,23 @@ export const ScheduleSection = ({
             <FormGrid>
                 <FieldGroup>
                     <Label>{isAllDay ? t.appointments.createView.date : t.appointments.createView.startDateTime}</Label>
-                    <Input
-                        type={isAllDay ? 'date' : 'datetime-local'}
-                        value={startDateTime}
-                        onChange={(e) => {
-                            onStartDateTimeChange(e.target.value);
-                            // Keep end date in sync when in all-day mode
-                            if (isAllDay) onEndDateTimeChange(`${e.target.value}T23:59:59`);
-                        }}
-                    />
+                    {isAllDay ? (
+                        <Input
+                            type="date"
+                            value={startDateTime}
+                            onChange={(e) => {
+                                onStartDateTimeChange(e.target.value);
+                                onEndDateTimeChange(`${e.target.value}T23:59:59`);
+                            }}
+                        />
+                    ) : (
+                        <DateTimePicker
+                            value={startDateTime}
+                            onChange={onStartDateTimeChange}
+                            showTime
+                            placeholder="Wybierz datę i godzinę"
+                        />
+                    )}
                 </FieldGroup>
 
                 {!isAllDay && (

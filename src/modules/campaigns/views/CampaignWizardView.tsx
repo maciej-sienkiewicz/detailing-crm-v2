@@ -19,6 +19,7 @@ import { AudienceEstimatePanel } from '../components/AudienceEstimatePanel';
 import { MessageEditor, type MessageContent } from '../components/MessageEditor';
 import { Eyebrow, Page, SectionCard } from '../components/shared';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { smsMeta } from '../utils/sms';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -516,7 +517,12 @@ export function CampaignWizardView() {
               {scheduleMode === 'AT' && (
                 <FormField>
                   <FormLabel>Data i godzina wysyłki</FormLabel>
-                  <FormInput type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
+                  <DateTimePicker
+                    value={scheduleAt}
+                    onChange={setScheduleAt}
+                    showTime
+                    placeholder="Wybierz datę i godzinę"
+                  />
                 </FormField>
               )}
               <ScheduleNote>

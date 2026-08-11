@@ -13,6 +13,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 import type { Operation } from '../types';
 
 const FormGroup = styled.div`
@@ -29,27 +30,6 @@ const Label = styled.label`
     font-weight: 600;
     color: #0f172a;
     margin-bottom: 8px;
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0f172a;
-    transition: all 0.15s ease;
-
-    &:focus {
-        outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    &:disabled {
-        background-color: #f8fafc;
-        cursor: not-allowed;
-    }
 `;
 
 const ErrorMessage = styled.div`
@@ -79,8 +59,7 @@ export const ChangeDateModal = ({
 
     useEffect(() => {
         if (reservation && isOpen) {
-            // Konwertuj ISO string na format datetime-local (YYYY-MM-DDTHH:mm)
-            const formatToDatetimeLocal = (isoString: string) => {
+            const formatToLocal = (isoString: string) => {
                 const date = new Date(isoString);
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -90,8 +69,8 @@ export const ChangeDateModal = ({
                 return `${year}-${month}-${day}T${hours}:${minutes}`;
             };
 
-            setStartDateTime(formatToDatetimeLocal(reservation.startDateTime));
-            setEndDateTime(formatToDatetimeLocal(reservation.endDateTime));
+            setStartDateTime(formatToLocal(reservation.startDateTime));
+            setEndDateTime(formatToLocal(reservation.endDateTime));
             setError('');
         }
     }, [reservation, isOpen]);
@@ -112,7 +91,6 @@ export const ChangeDateModal = ({
             return;
         }
 
-        // Konwertuj z powrotem na ISO string
         onConfirm(start.toISOString(), end.toISOString());
     };
 
@@ -132,24 +110,22 @@ export const ChangeDateModal = ({
 
             <ModalContent>
                 <FormGroup>
-                    <Label htmlFor="startDateTime">Data i godzina przyjazdu</Label>
-                    <Input
-                        id="startDateTime"
-                        type="datetime-local"
+                    <Label>Data i godzina przyjazdu</Label>
+                    <DateTimePicker
                         value={startDateTime}
-                        onChange={(e) => setStartDateTime(e.target.value)}
-                        disabled={isUpdating}
+                        onChange={setStartDateTime}
+                        showTime
+                        placeholder="Wybierz datę i godzinę"
                     />
                 </FormGroup>
 
                 <FormGroup>
-                    <Label htmlFor="endDateTime">Data i godzina zakończenia</Label>
-                    <Input
-                        id="endDateTime"
-                        type="datetime-local"
+                    <Label>Data i godzina zakończenia</Label>
+                    <DateTimePicker
                         value={endDateTime}
-                        onChange={(e) => setEndDateTime(e.target.value)}
-                        disabled={isUpdating}
+                        onChange={setEndDateTime}
+                        showTime
+                        placeholder="Wybierz datę i godzinę"
                     />
                 </FormGroup>
 
