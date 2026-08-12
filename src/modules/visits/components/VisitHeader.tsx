@@ -688,7 +688,7 @@ export const VisitHeader = ({
                         </ActionButton>
                     )}
 
-                    {can('VISITS_CHANGE_STATUS') && (
+                    {can('VISITS_VIEW') && (
                         <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <polyline points="20 6 9 17 4 12" />

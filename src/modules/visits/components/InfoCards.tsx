@@ -511,7 +511,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                 </HistoryLine>
 
                 {/* Karta Wizyty — widok dla klienta */}
-                {visitId && can('VISITS_DOCUMENTS_MANAGE') && (
+                {visitId && can('VISITS_CREATE') && (
                     <>
                         <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok dla klienta">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

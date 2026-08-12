@@ -187,11 +187,11 @@ export const router = createBrowserRouter([
     },
     {
         path: '/protocols',
-        element: page(<ProtocolRulesView />, 'VISITS_DOCUMENTS_MANAGE'),
+        element: page(<ProtocolRulesView />, 'VISITS_CREATE'),
     },
     {
         path: '/protocols/demo',
-        element: page(<ProtocolDemoView />, 'VISITS_DOCUMENTS_MANAGE'),
+        element: page(<ProtocolDemoView />, 'VISITS_CREATE'),
     },
 
     // ── Mobile (public, token-based) ─────────────────────────────────────
