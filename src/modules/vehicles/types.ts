@@ -72,6 +72,7 @@ export interface VehicleListItem {
     owners: VehicleOwner[];
     stats: VehicleFinancialStats;
     status: VehicleStatus;
+    updatedAt: string;
 }
 
 export interface VehicleListResponse {
@@ -90,6 +91,7 @@ export type VehicleSortField =
     | 'licensePlate'
     | 'brand'
     | 'lastVisitDate'
+    | 'lastActivity'
     | 'totalVisits'
     | 'totalSpent'
     | 'createdAt';

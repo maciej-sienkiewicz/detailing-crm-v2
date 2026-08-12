@@ -73,6 +73,7 @@ export interface PaginationMeta {
 export type CustomerSortField =
     | 'lastName'
     | 'lastVisitDate'
+    | 'lastActivity'
     | 'totalVisits'
     | 'totalRevenue'
     | 'vehicleCount'
