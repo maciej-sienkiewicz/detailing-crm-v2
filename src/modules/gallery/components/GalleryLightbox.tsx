@@ -70,32 +70,11 @@ const ImageArea = styled.div`
     }
 `;
 
-const ImageStack = styled.div`
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
 const MainImage = styled.img`
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
     display: block;
-`;
-
-// Full-resolution layer rendered on top of the thumbnail; fades in once decoded
-// so the user sees a sharp-enough image immediately instead of a blank area.
-const FullResImage = styled.img<{ $loaded: boolean }>`
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    opacity: ${p => (p.$loaded ? 1 : 0)};
-    transition: opacity 0.25s ease;
 `;
 
 const FullResBtn = styled.a`
@@ -122,7 +101,7 @@ const FullResBtn = styled.a`
     svg { width: 14px; height: 14px; }
 `;
 
-const SourceBadgeImg = styled.span<{ $source: 'VEHICLE' | 'VISIT' }>`
+const SourceBadgeImg = styled.span<{ $source: 'VEHICLE' | 'VISIT' | 'BATCH_ORDER' }>`
     position: absolute;
     top: ${p => p.theme.spacing.md};
     left: ${p => p.theme.spacing.md};
@@ -134,6 +113,9 @@ const SourceBadgeImg = styled.span<{ $source: 'VEHICLE' | 'VISIT' }>`
     letter-spacing: 0.05em;
     ${p => p.$source === 'VISIT' ? `
         background: rgba(16,185,129,0.85);
+        color: white;
+    ` : p.$source === 'BATCH_ORDER' ? `
+        background: rgba(245,158,11,0.85);
         color: white;
     ` : `
         background: rgba(14,165,233,0.85);
@@ -353,12 +335,19 @@ interface GalleryLightboxProps {
 
 export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
     const navigate = useNavigate();
-    const [fullResLoaded, setFullResLoaded] = useState(false);
 
-    // Reset the fade-in when the photo changes
+    // Show the thumbnail instantly, then swap the same <img> to the full-size
+    // source once it has finished downloading in the background — a single
+    // element, so the layout never changes.
+    const [mainSrc, setMainSrc] = useState(photo.thumbnailUrl);
     useEffect(() => {
-        setFullResLoaded(false);
-    }, [photo.fullSizeUrl]);
+        setMainSrc(photo.thumbnailUrl);
+        let cancelled = false;
+        const loader = new Image();
+        loader.onload = () => { if (!cancelled) setMainSrc(photo.fullSizeUrl); };
+        loader.src = photo.fullSizeUrl;
+        return () => { cancelled = true; };
+    }, [photo.thumbnailUrl, photo.fullSizeUrl]);
 
     // Close on Escape
     useEffect(() => {
@@ -383,23 +372,14 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
                 {/* ── Image side ── */}
                 <ImageArea>
                     <SourceBadgeImg $source={photo.source}>
-                        {photo.source === 'VISIT' ? 'Wizyta' : 'Pojazd'}
+                        {photo.source === 'VISIT' ? 'Wizyta' : photo.source === 'BATCH_ORDER' ? 'Zbiorcze' : 'Pojazd'}
                     </SourceBadgeImg>
 
-                    <ImageStack>
-                        <MainImage
-                            src={photo.thumbnailUrl}
-                            alt={photo.description ?? photo.fileName}
-                        />
-                        <FullResImage
-                            src={photo.fullSizeUrl}
-                            alt=""
-                            aria-hidden="true"
-                            decoding="async"
-                            $loaded={fullResLoaded}
-                            onLoad={() => setFullResLoaded(true)}
-                        />
-                    </ImageStack>
+                    <MainImage
+                        src={mainSrc}
+                        alt={photo.description ?? photo.fileName}
+                        decoding="async"
+                    />
 
                     <FullResBtn
                         href={photo.fullSizeUrl}
