@@ -29,7 +29,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
-import { usePermissions, ANY_FINANCE } from '@/core/permissions';
+import { usePermissions, ANY_FINANCE, ANY_DASHBOARD } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
@@ -72,12 +72,12 @@ const buildMenuSections = (
     can: (required: PermissionRequirement) => boolean,
     trackWorkTime: boolean,
 ): MenuSection[] => {
-    const canSeeDashboard = can('VISITS_VIEW');
+    const canSeeDashboard = can(ANY_DASHBOARD);
     const sections: GuardedMenuSection[] = [
         {
             title: 'Główne',
             items: [
-                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: 'VISITS_VIEW' },
+                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: ANY_DASHBOARD },
                 // Task inbox replacing the dashboard's "Do zrobienia" for roles without Tablica.
                 { path: '/notifications', label: 'Powiadomienia',     icon: Bell, badge: unreadNotifications > 0 ? unreadNotifications : undefined, alert: unreadNotifications > 0, showWhen: !canSeeDashboard },
                 { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
@@ -156,7 +156,7 @@ export const Sidebar = () => {
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
     // Badge for the task inbox — only fetched by users who actually see the tab.
-    const unreadNotifications = useMyTasksUnreadCount({ enabled: !can('VISITS_VIEW') });
+    const unreadNotifications = useMyTasksUnreadCount({ enabled: !can(ANY_DASHBOARD) });
 
     // Persistent WebSocket connection for the entire CRM session
     useLeadSocket();
