@@ -1202,9 +1202,11 @@ export const VisitDetailView = () => {
                                     onDocumentsToggle={handleDocumentsToggle}
                                     onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
                                 />
-                                {visit.technicalNotes && (
-                                    <TechnicalNotesCard notes={visit.technicalNotes} />
-                                )}
+                                <TechnicalNotesCard
+                                    notes={visit.technicalNotes ?? null}
+                                    visitId={visit.id}
+                                    canEdit={can('VISITS_CREATE')}
+                                />
                             </>
                         )}
                         <DesktopOnlyWrap>
