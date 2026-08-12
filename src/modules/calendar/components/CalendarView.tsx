@@ -1500,6 +1500,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         // is what made the header render differently per screen position.
         const rect = clickInfo.el.getBoundingClientRect();
 
+        // On phones FullCalendar's "jeszcze N" overflow popover would keep
+        // covering the event popover we're about to open — dismiss it first.
+        // (Rect is captured above, so removing the clicked element is safe.)
+        if (window.innerWidth < 640) {
+            const morePopover = clickInfo.el.closest('.fc-popover');
+            morePopover?.querySelector<HTMLElement>('.fc-popover-close')?.click();
+        }
+
         setPopoverEvent(eventData);
         setPopoverAnchor({ top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
         setPopoverPosition({ x: rect.right + 10, y: rect.top });
