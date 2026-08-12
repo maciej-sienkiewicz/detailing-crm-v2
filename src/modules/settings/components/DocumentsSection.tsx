@@ -466,6 +466,7 @@ interface StageSectionProps {
 }
 
 function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSectionProps) {
+    const { can: canRules } = usePermissions();
     const deleteRule = useDeleteProtocolRule();
     const deleteTemplate = useDeleteProtocolTemplate();
     const [editingTemplate, setEditingTemplate] = useState<ProtocolTemplate | null>(null);
@@ -549,13 +550,13 @@ function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSec
                                                 <PencilIcon />
                                             </IconBtn>
                                         )}
-                                        <IconBtn
+                                        {canRules('VISITS_DELETE') && <IconBtn
                                             className="danger"
                                             title="Usuń"
                                             onClick={() => handleDelete(rule)}
                                         >
                                             <TrashIcon />
-                                        </IconBtn>
+                                        </IconBtn>}
                                     </RuleActions>
                                 </RuleItem>
                             );
@@ -645,6 +646,7 @@ interface ConsentSectionProps {
 }
 
 function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) {
+    const { can: canDefs } = usePermissions();
     const { deleteDefinition, isDeleting } = useDeleteDefinition({ onSuccess: onRefresh });
 
     const handleDelete = (def: ConsentResponse) => {
@@ -705,14 +707,14 @@ function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) 
                                         <EyeIcon />
                                     </IconBtn>
                                 )}
-                                <IconBtn
+                                {canDefs('VISITS_DELETE') && <IconBtn
                                     className="danger"
                                     title="Usuń"
                                     disabled={isDeleting}
                                     onClick={() => handleDelete(def)}
                                 >
                                     <TrashIcon />
-                                </IconBtn>
+                                </IconBtn>}
                             </RuleActions>
                         </RuleItem>
                     ))
