@@ -1,6 +1,6 @@
 // src/modules/gallery/components/GalleryLightbox.tsx
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { PiiValue } from '@/common/pii';
 import { useNavigate } from 'react-router-dom';
@@ -70,11 +70,32 @@ const ImageArea = styled.div`
     }
 `;
 
+const ImageStack = styled.div`
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
 const MainImage = styled.img`
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
     display: block;
+`;
+
+// Full-resolution layer rendered on top of the thumbnail; fades in once decoded
+// so the user sees a sharp-enough image immediately instead of a blank area.
+const FullResImage = styled.img<{ $loaded: boolean }>`
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: ${p => (p.$loaded ? 1 : 0)};
+    transition: opacity 0.25s ease;
 `;
 
 const FullResBtn = styled.a`
@@ -332,6 +353,12 @@ interface GalleryLightboxProps {
 
 export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
     const navigate = useNavigate();
+    const [fullResLoaded, setFullResLoaded] = useState(false);
+
+    // Reset the fade-in when the photo changes
+    useEffect(() => {
+        setFullResLoaded(false);
+    }, [photo.fullSizeUrl]);
 
     // Close on Escape
     useEffect(() => {
@@ -359,10 +386,20 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
                         {photo.source === 'VISIT' ? 'Wizyta' : 'Pojazd'}
                     </SourceBadgeImg>
 
-                    <MainImage
-                        src={photo.thumbnailUrl}
-                        alt={photo.description ?? photo.fileName}
-                    />
+                    <ImageStack>
+                        <MainImage
+                            src={photo.thumbnailUrl}
+                            alt={photo.description ?? photo.fileName}
+                        />
+                        <FullResImage
+                            src={photo.fullSizeUrl}
+                            alt=""
+                            aria-hidden="true"
+                            decoding="async"
+                            $loaded={fullResLoaded}
+                            onLoad={() => setFullResLoaded(true)}
+                        />
+                    </ImageStack>
 
                     <FullResBtn
                         href={photo.fullSizeUrl}

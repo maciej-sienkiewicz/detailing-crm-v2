@@ -34,7 +34,10 @@ import { StatisticsView, CategoryDetailView, CostsView } from "@/modules/statist
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
-import { GalleryView } from "@/modules/gallery/views/GalleryView";
+// Lazy — a heavy, styled-components-rich module most sessions never open
+const GalleryView = lazy(() =>
+    import("@/modules/gallery/views/GalleryView").then(m => ({ default: m.GalleryView }))
+);
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
@@ -184,7 +187,12 @@ export const router = createBrowserRouter([
     },
     {
         path: '/gallery',
-        element: page(<GalleryView />, 'VISITS_VIEW'),
+        element: page(
+            <Suspense fallback={null}>
+                <GalleryView />
+            </Suspense>,
+            'VISITS_VIEW'
+        ),
     },
     {
         path: '/protocols',

@@ -156,6 +156,8 @@ export const VehicleMiniGallery = ({ photos }: VehicleMiniGalleryProps) => {
                         <Image
                             src={currentPhoto.photoUrl}
                             alt={currentPhoto.description || 'Zdjęcie pojazdu'}
+                            loading="lazy"
+                            decoding="async"
                         />
                         <PrevButton
                             onClick={handlePrevious}

@@ -519,9 +519,11 @@ export const DocumentGallery = ({
         },
     });
 
-    const documentPhotos = documents.filter(doc =>
+    // Memoized — this feeds the allPhotos/allTags/filteredPhotos memos below,
+    // which were recomputing on every render when this array got a new identity.
+    const documentPhotos = useMemo(() => documents.filter(doc =>
         (doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP') && !isPdfFile(doc.fileName)
-    );
+    ), [documents]);
 
     // Build normalised list, merging local tag overrides
     const allPhotos: NormalisedPhoto[] = useMemo(() => [
@@ -673,6 +675,8 @@ export const DocumentGallery = ({
                                             <PhotoImage
                                                 src={photo.fileUrl}
                                                 alt={photo.fileName}
+                                                loading="lazy"
+                                                decoding="async"
                                                 onClick={() => handleImageClick(index)}
                                             />
                                         ) : (

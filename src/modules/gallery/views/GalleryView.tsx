@@ -1,6 +1,6 @@
 // src/modules/gallery/views/GalleryView.tsx
 
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { PiiValue } from '@/common/pii';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
@@ -401,6 +401,85 @@ function buildPageNumbers(current: number, total: number): (number | '…')[] {
     return result;
 }
 
+// Fire-and-forget warmup of the full-size image so the lightbox can show it
+// instantly. The browser dedupes and caches the request; the Set just avoids
+// re-creating Image objects for cards hovered repeatedly.
+const warmedUrls = new Set<string>();
+function warmImage(url: string) {
+    if (warmedUrls.has(url)) return;
+    warmedUrls.add(url);
+    const img = new Image();
+    img.src = url;
+}
+
+// ─── card component ───────────────────────────────────────────────────────────
+
+interface GalleryCardProps {
+    photo: GalleryPhoto;
+    index: number;
+    onSelect: (photo: GalleryPhoto) => void;
+}
+
+// Memoized so parent state changes (lightbox open/close, filter typing) don't
+// re-render the whole grid of cards.
+const GalleryCard = memo(({ photo, index, onSelect }: GalleryCardProps) => (
+    <Card
+        $index={index}
+        onClick={() => onSelect(photo)}
+        onMouseEnter={() => warmImage(photo.fullSizeUrl)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && onSelect(photo)}
+        aria-label={`Zdjęcie: ${photo.fileName}`}
+    >
+        <CardImage
+            src={photo.thumbnailUrl}
+            alt={photo.description ?? photo.fileName}
+            loading="lazy"
+            decoding="async"
+        />
+        <CardOverlay />
+        <ZoomIcon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+                <line x1="11" y1="8" x2="11" y2="14" />
+                <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
+        </ZoomIcon>
+        <CardBody>
+            <CardTitle>
+                {photo.source === 'BATCH_ORDER'
+                    ? ([photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.contractorName || photo.fileName)
+                    : ([photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.fileName)}
+            </CardTitle>
+            {photo.tags.length > 0 && (
+                <CardTags>
+                    {photo.tags.slice(0, 3).map(tag => (
+                        <CardTag key={tag}>{tag}</CardTag>
+                    ))}
+                    {photo.tags.length > 3 && (
+                        <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', alignSelf: 'center' }}>
+                            +{photo.tags.length - 3}
+                        </span>
+                    )}
+                </CardTags>
+            )}
+            <CardMeta>
+                <CardVehicle>
+                    {photo.source === 'BATCH_ORDER'
+                        ? (photo.contractorName ?? photo.vehicleLicensePlate ?? '')
+                        : (photo.vehicleLicensePlate ?? (photo.customerName ? <PiiValue value={photo.customerName} kind="name" /> : ''))}
+                </CardVehicle>
+                <SourceBadge $source={photo.source}>
+                    {photo.source === 'VISIT' ? 'Wizyta' : photo.source === 'BATCH_ORDER' ? 'Zbiorcze' : 'Pojazd'}
+                </SourceBadge>
+            </CardMeta>
+        </CardBody>
+    </Card>
+));
+GalleryCard.displayName = 'GalleryCard';
+
 // ─── component ─────────────────────────────────────────────────────────────────
 
 export const GalleryView = () => {
@@ -410,13 +489,21 @@ export const GalleryView = () => {
     const [activeTags, setActiveTags] = useState<string[]>([]);
     const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null);
 
-    const { photos, pagination, availableTags, isFetching, isLoading } = useGallery({
+    // Stable filter identity so the query key (and the next-page prefetch
+    // effect in useGallery) only change when a filter actually changes.
+    const filters = useMemo(() => ({
         tags: activeTags,
         brand,
         model,
         page,
         pageSize: PAGE_SIZE,
-    });
+    }), [activeTags, brand, model, page]);
+
+    const { photos, pagination, availableTags, isFetching, isLoading } = useGallery(filters);
+
+    const handleSelectPhoto = useCallback((photo: GalleryPhoto) => {
+        setSelectedPhoto(photo);
+    }, []);
 
     const handleBrandChange = useCallback((b: string) => {
         setBrand(b);
@@ -503,59 +590,12 @@ export const GalleryView = () => {
                     ) : (
                         <Grid>
                             {photos.map((photo, idx) => (
-                                <Card
+                                <GalleryCard
                                     key={photo.id}
-                                    $index={idx}
-                                    onClick={() => setSelectedPhoto(photo)}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={e => e.key === 'Enter' && setSelectedPhoto(photo)}
-                                    aria-label={`Zdjęcie: ${photo.fileName}`}
-                                >
-                                    <CardImage
-                                        src={photo.thumbnailUrl}
-                                        alt={photo.description ?? photo.fileName}
-                                        loading="lazy"
-                                    />
-                                    <CardOverlay />
-                                    <ZoomIcon>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="11" cy="11" r="8" />
-                                            <path d="M21 21l-4.35-4.35" />
-                                            <line x1="11" y1="8" x2="11" y2="14" />
-                                            <line x1="8" y1="11" x2="14" y2="11" />
-                                        </svg>
-                                    </ZoomIcon>
-                                    <CardBody>
-                                        <CardTitle>
-                                            {photo.source === 'BATCH_ORDER'
-                                                ? ([photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.contractorName || photo.fileName)
-                                                : ([photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') || photo.fileName)}
-                                        </CardTitle>
-                                        {photo.tags.length > 0 && (
-                                            <CardTags>
-                                                {photo.tags.slice(0, 3).map(tag => (
-                                                    <CardTag key={tag}>{tag}</CardTag>
-                                                ))}
-                                                {photo.tags.length > 3 && (
-                                                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', alignSelf: 'center' }}>
-                                                        +{photo.tags.length - 3}
-                                                    </span>
-                                                )}
-                                            </CardTags>
-                                        )}
-                                        <CardMeta>
-                                            <CardVehicle>
-                                                {photo.source === 'BATCH_ORDER'
-                                                    ? (photo.contractorName ?? photo.vehicleLicensePlate ?? '')
-                                                    : (photo.vehicleLicensePlate ?? (photo.customerName ? <PiiValue value={photo.customerName} kind="name" /> : ''))}
-                                            </CardVehicle>
-                                            <SourceBadge $source={photo.source}>
-                                                {photo.source === 'VISIT' ? 'Wizyta' : photo.source === 'BATCH_ORDER' ? 'Zbiorcze' : 'Pojazd'}
-                                            </SourceBadge>
-                                        </CardMeta>
-                                    </CardBody>
-                                </Card>
+                                    photo={photo}
+                                    index={idx}
+                                    onSelect={handleSelectPhoto}
+                                />
                             ))}
                         </Grid>
                     )}
