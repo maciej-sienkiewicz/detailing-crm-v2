@@ -13,6 +13,7 @@ import type {
     ServiceLineItem,
     VisitPhotosResponse,
     ConfirmVisitOptions,
+    TechnicalNoteHistoryResponse,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -577,6 +578,15 @@ export const visitApi = {
 
     updateEstimatedCompletionDate: async (visitId: string, date: string): Promise<void> => {
         await apiClient.patch(`${BASE_PATH}/${visitId}/estimated-completion-date`, { estimatedCompletionDate: date });
+    },
+
+    updateTechnicalNote: async (visitId: string, content: string | null): Promise<void> => {
+        await apiClient.patch(`${BASE_PATH}/${visitId}/technical-note`, { content });
+    },
+
+    getTechnicalNoteHistory: async (visitId: string): Promise<TechnicalNoteHistoryResponse> => {
+        const response = await apiClient.get(`${BASE_PATH}/${visitId}/technical-note/history`);
+        return response.data;
     },
 
     confirmDraftVisit: async (visitId: string, options?: ConfirmVisitOptions): Promise<{ visitId: string; message: string }> => {

@@ -167,6 +167,19 @@ export interface UpdateVisitPayload {
     doorToDoor?: DoorToDoorInfo;
 }
 
+export interface TechnicalNoteHistoryEntry {
+    id: string;
+    content: string | null;
+    action: 'CREATED' | 'UPDATED' | 'CLEARED';
+    changedById: string;
+    changedByName: string;
+    changedAt: string;
+}
+
+export interface TechnicalNoteHistoryResponse {
+    entries: TechnicalNoteHistoryEntry[];
+}
+
 export interface UploadDocumentPayload {
     visitId: string;
     customerId?: string;

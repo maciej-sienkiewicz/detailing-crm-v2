@@ -11,6 +11,7 @@ import type {
     UpdateServicePayload,
     DeleteServicePayload,
     UpdateServiceStatusPayload,
+    TechnicalNoteHistoryEntry,
 } from '../types';
 import {useToast} from "@/common/components/Toast";
 
@@ -435,5 +436,43 @@ export const useRejectServiceChange = (visitId: string) => {
     return {
         rejectServiceChange: mutate,
         isRejecting: isPending,
+    };
+};
+
+export const visitTechnicalNoteHistoryQueryKey = (visitId: string) => ['visit', visitId, 'technical-note-history'];
+
+export const useUpdateTechnicalNote = (visitId: string) => {
+    const queryClient = useQueryClient();
+    const { showSuccess, showError } = useToast();
+
+    const { mutateAsync, isPending } = useMutation({
+        mutationFn: (content: string | null) => visitApi.updateTechnicalNote(visitId, content),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            queryClient.invalidateQueries({ queryKey: visitTechnicalNoteHistoryQueryKey(visitId) });
+            showSuccess('Notatka techniczna zaktualizowana');
+        },
+        onError: () => {
+            showError('Nie udało się zaktualizować notatki technicznej');
+        },
+    });
+
+    return {
+        updateTechnicalNote: mutateAsync,
+        isUpdating: isPending,
+    };
+};
+
+export const useTechnicalNoteHistory = (visitId: string) => {
+    const { data, isLoading, isError } = useQuery({
+        queryKey: visitTechnicalNoteHistoryQueryKey(visitId),
+        queryFn: () => visitApi.getTechnicalNoteHistory(visitId),
+        enabled: !!visitId,
+    });
+
+    return {
+        entries: (data?.entries ?? []) as TechnicalNoteHistoryEntry[],
+        isLoading,
+        isError,
     };
 };
