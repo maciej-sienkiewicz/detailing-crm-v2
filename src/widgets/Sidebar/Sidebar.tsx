@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+    Bell,
     LayoutDashboard,
     Calendar,
     CalendarCheck,
@@ -32,6 +33,7 @@ import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
+import { useMyTasksUnreadCount } from '@/modules/notifications';
 import { useLeadSocket } from '@/modules/leads/hooks/useLeadSocket';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
@@ -66,14 +68,18 @@ type GuardedMenuSection = { title?: string; items: GuardedMenuItem[] };
 
 const buildMenuSections = (
     newLeadsCount: number,
+    unreadNotifications: number,
     can: (required: PermissionRequirement) => boolean,
     trackWorkTime: boolean,
 ): MenuSection[] => {
+    const canSeeDashboard = can('VISITS_VIEW');
     const sections: GuardedMenuSection[] = [
         {
             title: 'Główne',
             items: [
                 { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: 'VISITS_VIEW' },
+                // Task inbox replacing the dashboard's "Do zrobienia" for roles without Tablica.
+                { path: '/notifications', label: 'Powiadomienia',     icon: Bell, badge: unreadNotifications > 0 ? unreadNotifications : undefined, alert: unreadNotifications > 0, showWhen: !canSeeDashboard },
                 { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
                 { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW' },
                 { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
@@ -149,10 +155,12 @@ export const Sidebar = () => {
 
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
+    // Badge for the task inbox — only fetched by users who actually see the tab.
+    const unreadNotifications = useMyTasksUnreadCount({ enabled: !can('VISITS_VIEW') });
 
     // Persistent WebSocket connection for the entire CRM session
     useLeadSocket();
-    const menuSections = buildMenuSections(newLeadsCount, can, user?.trackWorkTime ?? false);
+    const menuSections = buildMenuSections(newLeadsCount, unreadNotifications, can, user?.trackWorkTime ?? false);
 
     // Register the current user in localStorage so the switcher can list them.
     // Runs whenever the logged-in user changes (login / PIN switch).

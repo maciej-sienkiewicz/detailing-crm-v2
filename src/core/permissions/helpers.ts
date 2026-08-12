@@ -42,6 +42,7 @@ export function getDefaultRoute(user: User | null): string {
     const match = candidates.find(({ requires }) => hasPermission(user, requires));
     if (match) return match.path;
     if (hasPermission(user, 'VISITS_VIEW')) return '/dashboard';
-    if (user?.trackWorkTime) return '/worktime';
-    return '/no-access';
+    // No permissions at all: the task inbox ("Powiadomienia") is their home —
+    // it is self-service on the backend and shows work assigned to them.
+    return '/notifications';
 }
