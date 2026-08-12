@@ -63,14 +63,19 @@ apiClient.interceptors.response.use(
         }
 
         if (status === 403) {
-            // The backend is the authority on permissions. A 403 here means the UI
-            // showed something the user cannot do — usually because their role was
-            // just changed in another session. Surface it and ask AuthContext to
-            // re-sync the permission set so the UI hides the capability.
+            // The backend is the authority on permissions. Soft-UX rule: reads that the
+            // user did not explicitly trigger fail SILENTLY — the view simply shows
+            // nothing (permissions hide capabilities, they don't announce errors).
+            // Only a deliberate action (mutation) gets a toast, because the user
+            // clicked something and needs to know why nothing happened.
+            // Either way, re-sync the permission set so the UI hides the capability.
             console.warn('[apiClient] Access forbidden:', error.config?.url);
-            const message: string =
-                error.response?.data?.message ?? 'Nie masz uprawnień do wykonania tej operacji';
-            window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
+            const method = (error.config?.method ?? 'get').toLowerCase();
+            if (method !== 'get' && method !== 'head') {
+                const message: string =
+                    error.response?.data?.message ?? 'Nie masz uprawnień do wykonania tej operacji';
+                window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
+            }
             window.dispatchEvent(new CustomEvent('auth:permissions-stale'));
         }
 

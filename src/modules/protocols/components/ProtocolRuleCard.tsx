@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { useState } from 'react';
 import { useDeleteProtocolRule } from '../api/useProtocols';
+import { usePermissions } from '@/core/permissions';
 import type { ProtocolRule } from '../types';
 
 // Material Design 3 inspired card
@@ -241,6 +242,7 @@ interface ProtocolRuleCardProps {
 
 export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardProps) => {
     const [showDetails, setShowDetails] = useState(false);
+    const { can } = usePermissions();
     const deleteMutation = useDeleteProtocolRule();
 
     const handleDelete = async () => {
@@ -308,10 +310,10 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                         <EditIcon />
                         Edytuj
                     </IconButton>
-                    <IconButton $variant="danger" onClick={handleDelete}>
+                    {can('VISITS_DELETE') && <IconButton $variant="danger" onClick={handleDelete}>
                         <TrashIcon />
                         Usuń
-                    </IconButton>
+                    </IconButton>}
                 </Actions>
             </CardHeader>
             {showDetails && (

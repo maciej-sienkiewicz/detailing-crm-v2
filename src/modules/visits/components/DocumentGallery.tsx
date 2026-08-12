@@ -7,6 +7,7 @@ import type { VisitDocument, VisitPhoto } from '../types';
 import { ImageViewerModal } from './ImageViewerModal';
 import { PdfViewerModal } from './PdfViewerModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { usePermissions } from '@/core/permissions';
 import { TagChip } from '@/modules/photos/components/TagChip';
 import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
 import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
@@ -496,6 +497,11 @@ export const DocumentGallery = ({
     onDeletePhoto,
     onUpdatePhotoTags,
 }: DocumentGalleryProps) => {
+    // Destructive actions are separate capabilities: documents ride on VISITS_DELETE,
+    // photos on VISITS_MEDIA_DELETE (backend enforces the same split).
+    const { can } = usePermissions();
+    const canDeleteDocuments = can('VISITS_DELETE');
+    const canDeletePhotos = can('VISITS_MEDIA_DELETE');
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isPhoto: boolean; name: string } | null>(null);
@@ -703,7 +709,7 @@ export const DocumentGallery = ({
                                                         <line x1="12" y1="15" x2="12" y2="3"/>
                                                     </svg>
                                                 </IconButton>
-                                                <DeleteIconButton
+                                                {canDeletePhotos && <DeleteIconButton
                                                     onClick={e => {
                                                         e.stopPropagation();
                                                         handleDeleteClick(photo.id, photo.isVisitPhoto, photo.fileName);
@@ -714,7 +720,7 @@ export const DocumentGallery = ({
                                                         <polyline points="3 6 5 6 21 6"/>
                                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                                     </svg>
-                                                </DeleteIconButton>
+                                                </DeleteIconButton>}
                                             </PhotoActions>
                                         </PhotoOverlay>
                                     </PhotoImageBox>
@@ -779,13 +785,13 @@ export const DocumentGallery = ({
                                             </svg>
                                             Pobierz
                                         </ActionButton>
-                                        <DeleteButton onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}>
+                                        {canDeleteDocuments && <DeleteButton onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <polyline points="3 6 5 6 21 6"/>
                                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                             </svg>
                                             Usuń
-                                        </DeleteButton>
+                                        </DeleteButton>}
                                     </DocumentActions>
                                 </DocumentCard>
                             ))}

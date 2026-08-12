@@ -3,6 +3,7 @@
 import styled from 'styled-components';
 import type { CustomerDocument } from '../types';
 import { formatDateTime } from '@/common/utils';
+import { usePermissions } from '@/core/permissions';
 
 const Card = styled.article<{ $isClickable?: boolean }>`
     background: white;
@@ -178,6 +179,7 @@ interface DocumentCardProps {
 }
 
 export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = false }: DocumentCardProps) => {
+    const { can } = usePermissions();
     const ext = document.fileName.split('.').pop()?.toLowerCase() || '';
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
     const isPDF = ext === 'pdf';
@@ -229,7 +231,7 @@ export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = fa
                             <line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
                     </ActionButton>
-                    <DeleteButton
+                    {can('VISITS_DELETE') && <DeleteButton
                         onClick={handleDelete}
                         disabled={isDeleting}
                         title="Usuń"
@@ -238,7 +240,7 @@ export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = fa
                             <polyline points="3,6 5,6 21,6"/>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                         </svg>
-                    </DeleteButton>
+                    </DeleteButton>}
                 </Actions>
             </CardFooter>
         </Card>
