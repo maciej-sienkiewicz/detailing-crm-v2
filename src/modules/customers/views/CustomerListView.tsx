@@ -234,8 +234,8 @@ export const CustomerListView = () => {
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [showDeleteBlocked, setShowDeleteBlocked] = useState(false);
     const [activeTab, setActiveTab] = useState<CustomerTab>('all');
-    const [sortBy, setSortBy] = useState<CustomerSortField>('lastName');
-    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+    const [sortBy, setSortBy] = useState<CustomerSortField>('lastActivity');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const { searchInput, debouncedSearch, handleSearchChange } = useCustomerSearch();
     const { page, limit, goToPage, resetPagination } = useCustomerPagination();
     const isDesktop = useBreakpoint('lg');

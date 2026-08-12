@@ -404,21 +404,33 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const sortCustomers = (
     customers: Customer[],
-    sortBy: CustomerSortField = 'lastName',
-    sortDirection: SortDirection = 'asc'
+    sortBy: CustomerSortField = 'lastActivity',
+    sortDirection: SortDirection = 'desc'
 ): Customer[] => {
     const sorted = [...customers].sort((a, b) => {
         let comparison = 0;
 
         switch (sortBy) {
             case 'lastName':
-                comparison = a.lastName.localeCompare(b.lastName, 'pl');
+                comparison = (a.lastName ?? '').localeCompare(b.lastName ?? '', 'pl');
                 break;
             case 'lastVisitDate':
                 const dateA = a.lastVisitDate ? new Date(a.lastVisitDate).getTime() : 0;
                 const dateB = b.lastVisitDate ? new Date(b.lastVisitDate).getTime() : 0;
                 comparison = dateA - dateB;
                 break;
+            case 'lastActivity': {
+                const actA = Math.max(
+                    a.lastVisitDate ? new Date(a.lastVisitDate).getTime() : 0,
+                    new Date(a.updatedAt).getTime()
+                );
+                const actB = Math.max(
+                    b.lastVisitDate ? new Date(b.lastVisitDate).getTime() : 0,
+                    new Date(b.updatedAt).getTime()
+                );
+                comparison = actA - actB;
+                break;
+            }
             case 'totalVisits':
                 comparison = a.totalVisits - b.totalVisits;
                 break;

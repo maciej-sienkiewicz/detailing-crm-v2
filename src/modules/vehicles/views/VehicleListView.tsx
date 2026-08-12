@@ -287,7 +287,7 @@ export const VehicleListView = () => {
             search: debouncedSearch,
             page,
             limit,
-            sortBy: 'createdAt' as const,
+            sortBy: 'lastActivity' as const,
             sortDirection: 'desc' as const,
             ...appliedFilters,
             ...(showDeleted && { includeDeleted: true }),
