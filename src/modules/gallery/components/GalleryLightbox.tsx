@@ -70,9 +70,12 @@ const ImageArea = styled.div`
     }
 `;
 
+// Fills the whole image area regardless of the file's intrinsic size, so
+// swapping the src from thumbnail to full-size never changes the rendered
+// geometry — the photo only sharpens in place instead of jumping.
 const MainImage = styled.img`
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     display: block;
 `;
