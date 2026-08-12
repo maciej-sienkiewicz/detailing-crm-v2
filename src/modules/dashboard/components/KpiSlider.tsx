@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { RevenueKpiCard } from './RevenueKpiCard';
 import { ReservationsKpiCard } from './ReservationsKpiCard';
+import { usePermissions } from '@/core/permissions';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -85,14 +86,18 @@ const Dot = styled.button<{ $active: boolean; $color: string }>`
 
 // ─── Slides config ────────────────────────────────────────────────────────────
 
-const SLIDES = [
-  { key: 'revenue',      color: '#0ea5e9', component: <RevenueKpiCard /> },
-  { key: 'reservations', color: '#8b5cf6', component: <ReservationsKpiCard /> },
+// Revenue is financial data — the card (and its /revenue-summary request) exists
+// only for users who can read financial reports or statistics.
+const ALL_SLIDES = [
+  { key: 'revenue',      color: '#0ea5e9', component: <RevenueKpiCard />,      requires: ['FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW'] as const },
+  { key: 'reservations', color: '#8b5cf6', component: <ReservationsKpiCard />, requires: null },
 ] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const KpiSlider = () => {
+  const { can } = usePermissions();
+  const SLIDES = ALL_SLIDES.filter(s => !s.requires || can([...s.requires]));
   const [active, setActive]       = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [animKey, setAnimKey]     = useState(0);

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/core/context/AuthContext';
-import type { PermissionRequirement } from './catalog';
+import type { AccessRequirement } from './catalog';
 import { getDefaultRoute, hasPermission } from './helpers';
 
 /**
@@ -15,7 +15,7 @@ export function usePermissions() {
     const { user } = useAuth();
 
     const can = useCallback(
-        (required: PermissionRequirement) => hasPermission(user, required),
+        (required: AccessRequirement) => hasPermission(user, required),
         [user],
     );
 

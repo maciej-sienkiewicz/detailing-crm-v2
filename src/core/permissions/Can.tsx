@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
-import type { PermissionRequirement } from './catalog';
+import type { AccessRequirement } from './catalog';
 import { usePermissions } from './usePermissions';
 
 interface CanProps {
-    /** Single code or ANY-OF list required to render the children. */
-    anyOf: PermissionRequirement;
+    /** Single code, ANY-OF list, or 'OWNER_ONLY' required to render the children. */
+    anyOf: AccessRequirement;
     /** Rendered when the permission is missing (default: nothing). */
     fallback?: ReactNode;
     children: ReactNode;

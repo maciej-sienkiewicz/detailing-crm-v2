@@ -24,7 +24,7 @@ import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { LeadListView } from "@/modules/leads";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { RequirePermission, HomeRedirect, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
+import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
@@ -339,11 +339,12 @@ export const router = createBrowserRouter([
     },
     {
         path: '/batch-orders',
-        element: (
-            <ProtectedRoute>
-                <Layout><BatchOrdersView /></Layout>
-            </ProtectedRoute>
-        ),
+        element: page(<BatchOrdersView />, 'BATCH_ORDERS'),
+    },
+    // Landing page for users whose role grants no permissions — see getDefaultRoute.
+    {
+        path: '/no-access',
+        element: page(<NoAccessView />),
     },
 
     {

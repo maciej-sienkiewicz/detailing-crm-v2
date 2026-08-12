@@ -56,6 +56,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, []);
 
+  // Po każdym 403 z API odśwież efektywne uprawnienia (permissions z /auth/me) —
+  // rola mogła zostać zmieniona w innej sesji, a UI ukrywa to, czego użytkownik
+  // nie może zrobić. Debounce chroni przed burstem 403 z jednego widoku.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const refreshPermissions = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; }, 5000);
+      authApi.checkAuth()
+        .then(result => {
+          setIsAuthenticated(result.isAuthenticated);
+          setUser(result.user ?? null);
+        })
+        .catch(() => { /* 401 obsługuje interceptor (redirect na /login) */ });
+    };
+    window.addEventListener('auth:permissions-stale', refreshPermissions);
+    return () => {
+      window.removeEventListener('auth:permissions-stale', refreshPermissions);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
