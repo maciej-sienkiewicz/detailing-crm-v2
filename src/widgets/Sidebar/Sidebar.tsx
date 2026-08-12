@@ -73,7 +73,7 @@ const buildMenuSections = (
         {
             title: 'Główne',
             items: [
-                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard },
+                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: 'VISITS_VIEW' },
                 { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
                 { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW' },
                 { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
@@ -116,10 +116,8 @@ const buildMenuSections = (
         .map(({ title, items }) => ({
             title,
             items: items
-                .filter(({ requires, showWhen }) => {
-                    if (showWhen !== undefined) return showWhen;
-                    return !requires || can(requires);
-                })
+                .filter(({ requires, showWhen }) =>
+                    (showWhen ?? true) && (!requires || can(requires)))
                 .map(({ requires: _requires, showWhen: _showWhen, ...item }) => item),
         }))
         .filter(section => section.items.length > 0);

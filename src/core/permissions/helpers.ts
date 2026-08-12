@@ -1,5 +1,5 @@
 import type { User } from '@/modules/auth/types';
-import type { PermissionCode, PermissionRequirement } from './catalog';
+import type { AccessRequirement, PermissionCode, PermissionRequirement } from './catalog';
 
 /**
  * Checks the user's effective permissions (computed by the backend and
@@ -7,11 +7,13 @@ import type { PermissionCode, PermissionRequirement } from './catalog';
  *
  * Conventions:
  * - `user.permissions == null` → studio owner → full access,
+ * - `'OWNER_ONLY'` requirement → only the studio owner passes,
  * - no user → no access (routes behind ProtectedRoute never hit this).
  */
-export function hasPermission(user: User | null, required: PermissionRequirement): boolean {
+export function hasPermission(user: User | null, required: AccessRequirement): boolean {
     if (!user) return false;
     const granted = user.permissions;
+    if (required === 'OWNER_ONLY') return granted == null;
     if (granted == null) return true;
     const codes = Array.isArray(required) ? required : [required];
     return codes.some((code: PermissionCode) => granted.includes(code));
@@ -20,9 +22,14 @@ export function hasPermission(user: User | null, required: PermissionRequirement
 /**
  * Where "/" (and any unknown path) should land for this user. Mirrors the
  * pre-permissions behaviour for owners (customers first), and silently picks
- * the first area the user can access otherwise — never a "no access" screen.
- * The dashboard is available to every authenticated user, so it is the
- * universal fallback.
+ * the first area the user can access otherwise — never a "no access" screen
+ * for anyone with at least one permission.
+ *
+ * Every permission in the catalog implies VISITS_VIEW through the dependency
+ * graph, so the /dashboard fallback is reachable for any non-empty permission
+ * set. A user with an empty set (no role, or a role with nothing enabled)
+ * lands on /worktime when they track work time, otherwise on /no-access —
+ * never in a redirect loop.
  */
 export function getDefaultRoute(user: User | null): string {
     const candidates: Array<{ path: string; requires: PermissionRequirement }> = [
@@ -33,5 +40,8 @@ export function getDefaultRoute(user: User | null): string {
         { path: '/statistics', requires: 'STATISTICS_VIEW' },
     ];
     const match = candidates.find(({ requires }) => hasPermission(user, requires));
-    return match?.path ?? '/dashboard';
+    if (match) return match.path;
+    if (hasPermission(user, 'VISITS_VIEW')) return '/dashboard';
+    if (user?.trackWorkTime) return '/worktime';
+    return '/no-access';
 }

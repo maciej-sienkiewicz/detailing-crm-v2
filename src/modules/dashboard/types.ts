@@ -267,8 +267,8 @@ export interface TaskArchivePage {
 export interface DashboardData {
   /** Operational statistics */
   stats: OperationalStats;
-  /** Revenue metric with week-over-week comparison */
-  revenue: BusinessMetric;
+  /** Revenue metric with week-over-week comparison — null when the user may not see financial data */
+  revenue: BusinessMetric | null;
   /** Call activity metric with week-over-week comparison */
   callActivity: BusinessMetric;
   /** Instagram photos posted this week vs last week */

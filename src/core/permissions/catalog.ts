@@ -49,6 +49,14 @@ export type PermissionCode = keyof typeof PERMISSIONS;
  */
 export type PermissionRequirement = PermissionCode | PermissionCode[];
 
+/**
+ * A requirement that may additionally be owner-only. No permission code can
+ * grant an OWNER_ONLY area — it matches exactly the studio owner
+ * (`user.permissions == null`). Used for billing, subscription and
+ * company-wide configuration surfaces.
+ */
+export type AccessRequirement = PermissionRequirement | 'OWNER_ONLY';
+
 /** ANY-OF shorthand: access to the finance area in any capacity. */
 export const ANY_FINANCE: PermissionCode[] = [
     'FINANCE_INVOICES',

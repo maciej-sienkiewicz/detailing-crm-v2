@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
-import type { PermissionRequirement } from '@/core/permissions';
+import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
@@ -296,7 +296,7 @@ const VALID_SECTIONS = new Set<SectionId>([
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
 // be reached via ?tab= — the view falls back to the first visible tab.
-const SECTION_REQUIREMENTS: Partial<Record<SectionId, PermissionRequirement | 'OWNER_ONLY'>> = {
+const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // Company data (NIP, address, branding) is studio configuration — owner's call.
     company: 'OWNER_ONLY',
     services: 'VISITS_CREATE',

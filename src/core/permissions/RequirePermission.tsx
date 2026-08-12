@@ -1,12 +1,12 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
-import type { PermissionRequirement } from './catalog';
+import type { AccessRequirement } from './catalog';
 import { getDefaultRoute, hasPermission } from './helpers';
 
 interface RequirePermissionProps {
-    /** Single code or ANY-OF list the user must hold to see this route. */
-    anyOf: PermissionRequirement;
+    /** Single code, ANY-OF list, or 'OWNER_ONLY' the user must hold to see this route. */
+    anyOf: AccessRequirement;
     children: ReactNode;
 }
 
