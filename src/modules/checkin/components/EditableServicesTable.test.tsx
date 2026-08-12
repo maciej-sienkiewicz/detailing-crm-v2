@@ -45,6 +45,7 @@ vi.mock('@/modules/calendar/components/QuickServiceModal', () => ({
 
 vi.mock('@/common/hooks', () => ({
     useDebounce: (value: string) => value,
+    useVisualViewportSheet: () => {},
 }));
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
