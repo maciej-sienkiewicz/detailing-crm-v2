@@ -1272,7 +1272,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <FooterActions>
                                 {isCancelled ? (
                                     <>
-                                        {can('VISITS_CHANGE_STATUS') && (
+                                        {can('VISITS_VIEW') && (
                                             <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
                                         )}
                                         {can('VISITS_DELETE') && (
@@ -1287,13 +1287,13 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         {can('VISITS_CREATE') && (
                                             <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
                                         )}
-                                        {can('VISITS_CHANGE_STATUS') && (
+                                        {can('VISITS_VIEW') && (
                                             <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
                                         )}
                                     </>
                                 )}
                             </FooterActions>
-                            {!isCancelled && can('VISITS_DOCUMENTS_MANAGE') && (
+                            {!isCancelled && can('VISITS_CREATE') && (
                                 <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -1311,7 +1311,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </svg>
                                 Przejdź do wizyty
                             </ManageButton>
-                            {onEditEndDateClick && can('VISITS_CHANGE_STATUS') && (
+                            {onEditEndDateClick && can('VISITS_VIEW') && (
                                 <SecondaryButton onClick={onEditEndDateClick} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -1323,7 +1323,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     Edytuj datę zakończenia
                                 </SecondaryButton>
                             )}
-                            {can('VISITS_DOCUMENTS_MANAGE') && (
+                            {can('VISITS_CREATE') && (
                                 <SecondaryButton onClick={() => setIsCardModalOpen(true)} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="5" width="18" height="14" rx="2" />

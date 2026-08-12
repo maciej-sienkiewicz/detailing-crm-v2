@@ -731,7 +731,7 @@ function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) 
 
 export function DocumentsSection() {
     const { can } = usePermissions();
-    const canManage = can('VISITS_DOCUMENTS_MANAGE');
+    const canManage = can('VISITS_CREATE');
 
     const [addStage, setAddStage] = useState<ProtocolStage>('CHECK_IN');
     const [modalOpen, setModalOpen] = useState(false);
