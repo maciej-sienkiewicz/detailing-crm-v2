@@ -25,6 +25,7 @@ import { LeadListView } from "@/modules/leads";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
+import { NotificationsView } from '@/modules/notifications';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
@@ -345,6 +346,11 @@ export const router = createBrowserRouter([
     {
         path: '/no-access',
         element: page(<NoAccessView />),
+    },
+    // Task inbox for roles without dashboard access (self-service backend, no permission).
+    {
+        path: '/notifications',
+        element: page(<NotificationsView />),
     },
 
     {

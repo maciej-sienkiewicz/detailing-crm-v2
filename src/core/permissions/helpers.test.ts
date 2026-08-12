@@ -57,9 +57,9 @@ describe('getDefaultRoute', () => {
         expect(getDefaultRoute(employee('CUSTOMERS_VIEW', 'VISITS_VIEW'))).toBe('/customers');
     });
 
-    it('never loops a zero-permission user through gated routes', () => {
-        expect(getDefaultRoute(employee())).toBe('/no-access');
-        expect(getDefaultRoute(makeUser({ permissions: [], trackWorkTime: true }))).toBe('/worktime');
-        expect(getDefaultRoute(null)).toBe('/no-access');
+    it('sends a zero-permission user to the task inbox, never into a redirect loop', () => {
+        expect(getDefaultRoute(employee())).toBe('/notifications');
+        expect(getDefaultRoute(makeUser({ permissions: [], trackWorkTime: true }))).toBe('/notifications');
+        expect(getDefaultRoute(null)).toBe('/notifications');
     });
 });
