@@ -5,6 +5,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Overview } from '../types';
 import { useDismissInsight } from '../hooks/useAnalytics';
 import { InsightCard } from './InsightCard';
+import { SuggestionsSection } from './SuggestionsSection';
 import {
     Card, CardTitle, CardHint, CenterState, DeltaBadge, MetricCell, SelfTag, formatNumber,
 } from './MetricBits';
@@ -210,7 +211,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                                 <strong>
                                     miejsce {overview.position.rank} z {overview.position.total}
                                 </strong>
-                                <span>@{overview.selfUsername} na tle obserwowanych studiów</span>
+                                <span>@{overview.selfUsername} wśród {overview.comparisonGroupSize} obserwowanych profili</span>
                             </RankText>
                         </>
                     ) : (
@@ -242,6 +243,19 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                     </MetricBox>
                 </MetricsRow>
             </PositionBar>
+
+            {overview.comparisonGroupSize < 4 && (
+                <Card>
+                    <CardTitle>Rozbuduj grupę porównawczą</CardTitle>
+                    <CardHint>
+                        Obserwujesz {overview.comparisonGroupSize}{' '}
+                        {overview.comparisonGroupSize === 1 ? 'profil' : 'profile'}. Od 4 profili
+                        odblokujemy porównania z medianą Twojej grupy – oto konta podobne do tych,
+                        które już obserwujesz:
+                    </CardHint>
+                    <SuggestionsSection compact />
+                </Card>
+            )}
 
             {overview.insights.length > 0 && (
                 <Card>

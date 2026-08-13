@@ -8,6 +8,7 @@ import type { InstagramProfile } from '../types';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { useProfileActions } from '../hooks/useProfileActions';
 import { SelfTag } from './MetricBits';
+import { SuggestionsSection } from './SuggestionsSection';
 
 /**
  * Panel zarządzania obserwowanymi profilami (drawer z prawej strony).
@@ -259,6 +260,8 @@ export const ProfilesDrawer: React.FC<{
                             )}
                         </Row>
                     ))}
+
+                    <SuggestionsSection />
                 </Body>
             </Panel>
         </>,

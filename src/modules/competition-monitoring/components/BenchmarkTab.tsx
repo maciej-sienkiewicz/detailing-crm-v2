@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-    Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine,
+    Bar, BarChart, CartesianGrid, ComposedChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { Star } from 'lucide-react';
@@ -184,19 +184,37 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
         [benchmark.weekly, selected]
     );
 
-    const followerData = useMemo(() => {
-        const byDate = new Map<string, Record<string, number | string | null>>();
+    // Przyrosty obserwujących: delta między kolejnymi pomiarami, agregowana
+    // do tygodni przy dłuższych oknach (żeby słupki były czytelne).
+    const followerDeltaWeekly = benchmark.weeks > 8;
+    const followerDeltas = useMemo(() => {
+        const isoMonday = (date: string) => {
+            const d = new Date(`${date}T00:00:00Z`);
+            const day = (d.getUTCDay() + 6) % 7;
+            d.setUTCDate(d.getUTCDate() - day);
+            return d.toISOString().slice(0, 10);
+        };
+
+        const byBucket = new Map<string, Record<string, number | string>>();
         benchmark.followers
             .filter(series => selected.includes(series.profileId))
             .forEach(series => {
+                let prev: number | null = null;
                 series.points.forEach(point => {
-                    const row = byDate.get(point.date) ?? { date: point.date };
-                    row[`f_${series.profileId}`] = point.count;
-                    byDate.set(point.date, row);
+                    if (point.count === null) return;
+                    if (prev !== null) {
+                        const bucket = followerDeltaWeekly ? isoMonday(point.date) : point.date;
+                        const row = byBucket.get(bucket) ?? { date: bucket };
+                        const deltaKey = `d_${series.profileId}`;
+                        row[deltaKey] = (Number(row[deltaKey]) || 0) + (point.count - prev);
+                        row[`t_${series.profileId}`] = point.count;
+                        byBucket.set(bucket, row);
+                    }
+                    prev = point.count;
                 });
             });
-        return [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    }, [benchmark.followers, selected]);
+        return [...byBucket.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    }, [benchmark.followers, selected, followerDeltaWeekly]);
 
     const annotations = useMemo(
         () => benchmark.annotations.filter(a => !a.profileId || selected.includes(a.profileId)),
@@ -243,8 +261,15 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             <Card>
                 <CardTitle>Porównanie profili</CardTitle>
                 <CardHint>
-                    Każda liczba ze zmianą vs poprzedni okres i odniesieniem do typowego studia z Twojej
-                    listy. Kliknij wiersz, aby dodać profil do wykresów (maks. {MAX_CHART_PROFILES}).
+                    Każda liczba ze zmianą vs poprzedni okres. Porównania dotyczą wyłącznie{' '}
+                    <strong>obserwowanej przez Ciebie grupy {benchmark.comparisonGroupSize}{' '}
+                    {benchmark.comparisonGroupSize === 1 ? 'profilu' : 'profili'}</strong>.
+                    {benchmark.comparisonGroupSize < 4 && (
+                        <> Dodaj jeszcze {4 - benchmark.comparisonGroupSize}{' '}
+                        {4 - benchmark.comparisonGroupSize === 1 ? 'profil' : 'profile'}, aby odblokować
+                        odniesienie do mediany grupy.</>
+                    )}{' '}
+                    Kliknij wiersz, aby dodać profil do wykresów (maks. {MAX_CHART_PROFILES}).
                 </CardHint>
                 <TableScroll>
                     <Table>
@@ -331,59 +356,74 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 </Card>
 
                 <Card>
-                    <CardTitle>Obserwujący dzień po dniu</CardTitle>
-                    <CardHint>Równy wzrost = zdrowy profil. Nagłe skoki opisujemy w Przeglądzie.</CardHint>
-                    <ResponsiveContainer width="100%" height={280}>
-                        <LineChart data={followerData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-                            <CartesianGrid stroke={st.border} strokeDasharray="3 3" vertical={false} />
-                            <XAxis
-                                dataKey="date"
-                                tickFormatter={value =>
-                                    new Date(String(value)).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })
-                                }
-                                tick={{ fontSize: 11, fill: st.textMuted }}
-                                interval="preserveStartEnd"
-                            />
-                            <YAxis
-                                tick={{ fontSize: 11, fill: st.textMuted }}
-                                tickFormatter={value => formatNumber(Number(value))}
-                                domain={['auto', 'auto']}
-                            />
-                            <Tooltip
-                                content={({ active, payload, label }) => {
-                                    if (!active || !payload?.length) return null;
-                                    return (
-                                        <TooltipBox>
-                                            <strong>
-                                                {new Date(String(label)).toLocaleDateString('pl-PL', {
-                                                    day: 'numeric',
-                                                    month: 'long',
-                                                })}
-                                            </strong>
-                                            {payload.map(entry => {
-                                                const profileId = String(entry.dataKey).slice(2);
-                                                return (
-                                                    <div key={profileId} style={{ color: colorFor(profileId) }}>
-                                                        @{usernameFor(profileId)}: {formatNumber(Number(entry.value))}
-                                                    </div>
-                                                );
-                                            })}
-                                        </TooltipBox>
-                                    );
-                                }}
-                            />
-                            {selected.map(profileId => (
-                                <Line
-                                    key={profileId}
-                                    dataKey={`f_${profileId}`}
-                                    stroke={colorFor(profileId)}
-                                    strokeWidth={2}
-                                    dot={false}
-                                    connectNulls
+                    <CardTitle>Przyrost obserwujących</CardTitle>
+                    <CardHint>
+                        Słupek = o ile zmieniła się liczba obserwujących w danym{' '}
+                        {followerDeltaWeekly ? 'tygodniu' : 'dniu'}. Dzięki temu małe i duże profile
+                        czyta się tak samo dobrze – liczy się zmiana, nie wielkość konta.
+                    </CardHint>
+                    {followerDeltas.length === 0 ? (
+                        <HintNote>
+                            Historia obserwujących buduje się od dnia dodania profilu – pierwsze słupki
+                            pojawią się po 2 dniach zbierania danych.
+                        </HintNote>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={280}>
+                            <BarChart data={followerDeltas} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                                <CartesianGrid stroke={st.border} strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tickFormatter={value =>
+                                        new Date(String(value)).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })
+                                    }
+                                    tick={{ fontSize: 11, fill: st.textMuted }}
+                                    interval="preserveStartEnd"
                                 />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
+                                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: st.textMuted }} />
+                                <ReferenceLine y={0} stroke={st.borderHover} />
+                                <Tooltip
+                                    cursor={{ fill: st.bgCardAlt }}
+                                    content={({ active, payload, label }) => {
+                                        if (!active || !payload?.length) return null;
+                                        const row = payload[0]?.payload as Record<string, number | string>;
+                                        return (
+                                            <TooltipBox>
+                                                <strong>
+                                                    {followerDeltaWeekly ? 'tydzień od ' : ''}
+                                                    {new Date(String(label)).toLocaleDateString('pl-PL', {
+                                                        day: 'numeric',
+                                                        month: 'long',
+                                                    })}
+                                                </strong>
+                                                {payload
+                                                    .filter(entry => String(entry.dataKey).startsWith('d_'))
+                                                    .map(entry => {
+                                                        const profileId = String(entry.dataKey).slice(2);
+                                                        const delta = Number(entry.value);
+                                                        const total = row[`t_${profileId}`];
+                                                        return (
+                                                            <div key={profileId} style={{ color: colorFor(profileId) }}>
+                                                                @{usernameFor(profileId)}: {delta > 0 ? '+' : ''}{delta} obs.
+                                                                {total !== undefined ? ` (łącznie ${formatNumber(Number(total))})` : ''}
+                                                            </div>
+                                                        );
+                                                    })}
+                                            </TooltipBox>
+                                        );
+                                    }}
+                                />
+                                {selected.map(profileId => (
+                                    <Bar
+                                        key={profileId}
+                                        dataKey={`d_${profileId}`}
+                                        fill={colorFor(profileId)}
+                                        radius={[3, 3, 0, 0]}
+                                        maxBarSize={16}
+                                    />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
                 </Card>
             </ChartsGrid>
         </Layout>

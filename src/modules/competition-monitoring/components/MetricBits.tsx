@@ -129,10 +129,10 @@ export const MetricCell: React.FC<{
             {showBenchmark && metric.benchmark !== null && (
                 <CellBenchmark $above={above}>
                     {above === null
-                        ? `typowo: ${formatNumber(metric.benchmark, decimals)}${unit}`
+                        ? `mediana Twojej grupy: ${formatNumber(metric.benchmark, decimals)}${unit}`
                         : above
-                            ? `powyżej typowego studia (${formatNumber(metric.benchmark, decimals)}${unit})`
-                            : `poniżej typowego studia (${formatNumber(metric.benchmark, decimals)}${unit})`}
+                            ? `powyżej mediany Twojej grupy (${formatNumber(metric.benchmark, decimals)}${unit})`
+                            : `poniżej mediany Twojej grupy (${formatNumber(metric.benchmark, decimals)}${unit})`}
                 </CellBenchmark>
             )}
         </CellWrap>
