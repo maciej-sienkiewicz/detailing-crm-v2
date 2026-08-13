@@ -21,26 +21,9 @@ const Cell = styled.td`
 `;
 
 const Name = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 7px;
   font-size: 13.5px;
   font-weight: 600;
   color: ${st.text};
-`;
-
-const Info = styled.span`
-  display: inline-grid;
-  place-items: center;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  border: 1px solid ${st.borderHover};
-  color: ${st.textMuted};
-  font-size: 9.5px;
-  font-weight: 700;
-  cursor: help;
-  flex-shrink: 0;
 `;
 
 const Snippet = styled.div<{ $empty: boolean }>`
@@ -112,10 +95,7 @@ export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, onOpen, onToggle
       }}
     >
       <Cell>
-        <Name>
-          {spec.name}
-          <Info title={spec.description}>i</Info>
-        </Name>
+        <Name>{spec.name}</Name>
         <Snippet $empty={empty}>
           {empty ? 'Brak treści — nic nie zostanie wysłane' : resolveTemplate(snippetSource)}
         </Snippet>

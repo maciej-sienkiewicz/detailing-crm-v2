@@ -38,8 +38,8 @@ const Panel = styled.aside`
 const Head = styled.div`
   display: flex;
   gap: 14px;
-  align-items: flex-start;
-  padding: 18px 22px 14px;
+  align-items: center;
+  padding: 16px 22px;
   border-bottom: 1px solid ${st.border};
 `;
 
@@ -48,14 +48,6 @@ const Title = styled.h2`
   font-weight: 650;
   letter-spacing: -0.015em;
   color: ${st.text};
-`;
-
-const Desc = styled.p`
-  margin-top: 5px;
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: ${st.textSecondary};
-  max-width: 52ch;
 `;
 
 const Close = styled.button`
@@ -155,10 +147,7 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
         tabIndex={-1}
       >
         <Head>
-          <div>
-            <Title>{spec.name}</Title>
-            <Desc>{spec.description}</Desc>
-          </div>
+          <Title>{spec.name}</Title>
           <Close type="button" onClick={onClose} aria-label="Zamknij">✕</Close>
         </Head>
 
