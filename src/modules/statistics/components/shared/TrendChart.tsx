@@ -119,7 +119,26 @@ interface BarShapeProps {
 
 const ActiveBarShape = (props: BarShapeProps) => {
     const { x = 0, y = 0, width = 0, height = 0, fill, isHovered, hoverColor, glowColor } = props;
-    if (!height || height <= 0) return null;
+
+    // Okres o wartości 0 — rysujemy płaski znacznik przy osi, żeby było widać,
+    // że dane dla tego okresu istnieją (np. wizyty bez przychodu) i można w nie kliknąć.
+    if (!height || height <= 0) {
+        return (
+            <g style={{ cursor: 'pointer' }}>
+                <rect
+                    x={x}
+                    y={y - 2}
+                    width={width}
+                    height={2}
+                    rx={1}
+                    ry={1}
+                    fill={isHovered ? hoverColor : fill}
+                    opacity={isHovered ? 0.75 : 0.35}
+                />
+            </g>
+        );
+    }
+
     return (
         <g style={{ cursor: 'pointer' }}>
             {isHovered && (
@@ -279,12 +298,23 @@ export const TrendChart = ({
                         <ComposedChart
                             data={data}
                             margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                            style={onBarClick ? { cursor: 'pointer' } : undefined}
                             onMouseMove={state => {
                                 // Recharts nie typuje activePayload w handlerze — stąd rzutowanie
                                 const s = state as unknown as { activePayload?: { payload?: { period?: string } }[] };
                                 setHoveredPeriod(s?.activePayload?.[0]?.payload?.period ?? null);
                             }}
                             onMouseLeave={() => setHoveredPeriod(null)}
+                            // Drill-down obsługujemy na poziomie wykresu, nie słupka.
+                            // Słupek o wartości 0 nie ma wysokości, więc nie renderuje żadnego
+                            // elementu SVG i nie da się w niego kliknąć — a to właśnie okresy
+                            // "N wizyt, 0 zł" są najczęściej tym, co użytkownik chce rozwinąć.
+                            onClick={state => {
+                                if (!onBarClick) return;
+                                const s = state as unknown as { activePayload?: { payload?: { period?: string } }[] };
+                                const period = s?.activePayload?.[0]?.payload?.period;
+                                if (period) onBarClick(period);
+                            }}
                         >
                             <CartesianGrid strokeDasharray="3 3" stroke={st.border} vertical={false} />
                             <XAxis
@@ -330,10 +360,6 @@ export const TrendChart = ({
                                 maxBarSize={48}
                                 animationDuration={700}
                                 animationEasing="ease-out"
-                                onClick={(entry: unknown) => {
-                                    const period = (entry as { period?: string } | null)?.period;
-                                    if (period) onBarClick?.(period);
-                                }}
                                 shape={(props: BarShapeProps & { period?: string }) => (
                                     <ActiveBarShape
                                         {...props}

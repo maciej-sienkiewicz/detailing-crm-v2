@@ -39,6 +39,6 @@ export const StatsChart = ({ data, onBarClick }: StatsChartProps) => (
         formatCount={formatVisits}
         emptyText={t.statistics.chart.noData}
         onBarClick={onBarClick}
-        clickHint={onBarClick ? 'Kliknij dowolny słupek, aby zobaczyć szczegóły wizyt z danego okresu' : undefined}
+        clickHint={onBarClick ? 'Kliknij dowolny okres na wykresie, aby zobaczyć szczegóły wizyt — także tam, gdzie przychód wynosi 0 zł' : undefined}
     />
 );
