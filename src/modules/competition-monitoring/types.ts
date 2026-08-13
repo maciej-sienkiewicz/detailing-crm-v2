@@ -1,3 +1,13 @@
+/**
+ * Typy modułu analizy konkurencji na Instagramie (API v2).
+ *
+ * Reguła kontraktu: każda metryka przychodzi jako MetricTriple
+ * (wartość + poprzedni okres + delta % + mediana konkurencji) –
+ * UI nigdy nie pokazuje liczby bez kontekstu.
+ */
+
+// ─── Profile (zarządzanie) ────────────────────────────────────────────────────
+
 export type InstagramProfileStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REJECTED';
 
 export interface InstagramProfile {
@@ -6,83 +16,175 @@ export interface InstagramProfile {
     username: string;
     status: InstagramProfileStatus;
     apiError: boolean;
+    isSelf: boolean;
     addedAt: string;
 }
 
-export interface InstagramPost {
+// ─── Metryki ──────────────────────────────────────────────────────────────────
+
+export interface MetricTriple {
+    value: number | null;
+    previous: number | null;
+    deltaPct: number | null;
+    benchmark: number | null;
+}
+
+export interface Storefront {
+    score: number;
+    gaps: string[];
+}
+
+// ─── Insighty ─────────────────────────────────────────────────────────────────
+
+export type InsightSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface Insight {
     id: string;
-    postPk: string;
-    postCode: string;
+    type: string;
+    severity: InsightSeverity;
+    title: string;
+    body: string;
+    actionText: string;
+    probableCause: string | null;
+    username: string | null;
+    permalink: string | null;
+    status: 'NEW' | 'DISMISSED';
+    createdAt: string;
+}
+
+// ─── Przegląd ─────────────────────────────────────────────────────────────────
+
+export interface MiniRankRow {
+    studioProfileId: string;
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    followers: number | null;
+    followerDelta30d: number | null;
+    erPct: number | null;
+    postsPerWeek: number | null;
+    activityIndex: number;
+}
+
+export interface Overview {
+    weeks: number;
+    lastSyncAt: string | null;
+    profilesCount: number;
+    hasSelf: boolean;
+    selfUsername: string | null;
+    position: { rank: number; total: number } | null;
+    erPct: MetricTriple;
+    postsPerWeek: MetricTriple;
+    activityIndex: MetricTriple;
+    storefront: Storefront | null;
+    insights: Insight[];
+    miniRanking: MiniRankRow[];
+}
+
+// ─── Porównanie ───────────────────────────────────────────────────────────────
+
+export interface FormatMix {
+    photoPct: number;
+    reelsPct: number;
+    carouselPct: number;
+}
+
+export interface BenchmarkRow {
+    studioProfileId: string;
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    apiError: boolean;
+    followers: MetricTriple;
+    erPct: MetricTriple;
+    postsPerWeek: MetricTriple;
+    regularityPct: number;
+    formatMix: FormatMix;
+    activityIndex: MetricTriple;
+    storefront: Storefront;
+}
+
+export interface WeeklyChartPoint {
+    weekStart: string;
+    values: Record<string, { posts: number; engagement: number }>;
+}
+
+export interface FollowerSeries {
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    points: { date: string; count: number | null }[];
+}
+
+export interface ChartAnnotation {
+    date: string;
+    profileId: string | null;
+    type: string;
+    title: string;
+}
+
+export interface Benchmark {
+    weeks: number;
+    rows: BenchmarkRow[];
+    weekly: WeeklyChartPoint[];
+    followers: FollowerSeries[];
+    annotations: ChartAnnotation[];
+}
+
+// ─── Treści ───────────────────────────────────────────────────────────────────
+
+export type ContentFormat = 'PHOTO' | 'REELS' | 'CAROUSEL';
+
+export interface ContentItem {
+    postId: string;
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    takenAt: string;
+    permalink: string;
+    caption: string | null;
     likeCount: number;
     commentCount: number;
     viewCount: number | null;
-    caption: string | null;
-    takenAt: string;
-    scrapedAt: string;
+    format: ContentFormat;
+    topic: string;
+    topicLabel: string;
+    isPromo: boolean;
+    isContest: boolean;
+    erPct: number | null;
+    engagement: number;
+    reaction: 'LIKED' | 'DISLIKED' | null;
 }
 
-export interface WeeklyStat {
-    weekStart: string;   // "YYYY-MM-DD" — Monday of that week
-    postCount: number;
-    storyCount: number;
-    totalLikes: number;
-    totalComments: number;
-    avgLikes: number;
-    avgComments: number;
+export interface ContentPage {
+    items: ContentItem[];
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    topics: { value: string; label: string; count: number }[];
 }
 
-export interface FollowerHistoryEntry {
-    date: string;          // "YYYY-MM-DD"
-    followerCount: number;
-}
-
-export interface DailyStoryStat {
-    date: string;          // "YYYY-MM-DD"
-    storyCount: number;
-}
-
-export interface ProfileSummary {
-    // Identification
-    id: string;
-    profileId: string;
-    username: string;
-    status: InstagramProfileStatus;
-    apiError: boolean;
-    addedAt: string;
-
-    // Post metrics (within the requested `weeks` window)
-    postCount: number;
-    avgLikes: number;
-    avgComments: number;
-    avgViews: number | null;
-    postsPerWeek: number;
-    lastPostAt: string | null;
+export interface HeatmapCell {
+    dayOfWeek: number; // 1 = poniedziałek … 7 = niedziela
+    daypart: number;   // 0: 6–11, 1: 11–16, 2: 16–21, 3: 21–6
+    posts: number;
     avgEngagement: number;
-
-    // Stories
-    storiesPerWeek: number;
-
-    // Profile details (from /user/details sync, may be null before first sync)
-    followerCount: number | null;
-    followingCount: number | null;
-    mediaCount: number | null;
-    hasContactData: boolean | null;
-    isVerified: boolean | null;
-    isBusiness: boolean | null;
-    accountType: number | null;          // 1=personal 2=creator 3=professional
-    category: string | null;
-    externalUrl: string | null;
-    biography: string | null;
-    hasHighlightReels: boolean | null;
-    totalClipsCount: number | null;
-    isPrivate: boolean | null;
-    detailsLastSyncedAt: string | null;
-
-    // Time-series data
-    weeklyStats: WeeklyStat[];
-    followerHistory: FollowerHistoryEntry[];
-    dailyStoryStats: DailyStoryStat[];
 }
+
+export interface Heatmap {
+    cells: HeatmapCell[];
+    bestDayOfWeek: number | null;
+    bestDaypart: number | null;
+}
+
+export interface HashtagStat {
+    tag: string;
+    uses: number;
+    profilesCount: number;
+    avgEngagement: number;
+}
+
+// ─── Generator AI (bez zmian) ─────────────────────────────────────────────────
 
 export interface GenerateInstagramPostRequest {
     topic: string;
@@ -96,32 +198,29 @@ export interface InstagramPostResult {
     content: string;
 }
 
-export interface InstagramStory {
-    storyId: string;
-    imageUrl: string | null;
-    videoUrl: string | null;
-    takenAt: string;
-    profileId: string;
-    username: string;
-}
+// ─── Stałe UI ─────────────────────────────────────────────────────────────────
 
-export interface StoryGroup {
-    profileId: string;
-    username: string;
-    stories: InstagramStory[];
-}
-
-// ─── Chart helpers ────────────────────────────────────────────────────────────
-
+/** Paleta kolorów przypisywanych profilom na wykresach (self zawsze pierwszy kolor). */
 export const PROFILE_COLORS = [
-    '#0ea5e9',  // sky
-    '#8b5cf6',  // violet
-    '#f59e0b',  // amber
-    '#10b981',  // emerald
-    '#ef4444',  // red
-    '#06b6d4',  // cyan
-    '#f97316',  // orange
-    '#64748b',  // slate
+    '#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981',
+    '#ef4444', '#06b6d4', '#f97316', '#64748b',
 ] as const;
 
-export type WeeksOption = 4 | 13 | 26 | 52;
+export type WeeksOption = 4 | 12 | 26 | 52;
+
+export const WEEKS_OPTIONS: { value: WeeksOption; label: string }[] = [
+    { value: 4, label: 'Miesiąc' },
+    { value: 12, label: 'Kwartał' },
+    { value: 26, label: 'Pół roku' },
+    { value: 52, label: 'Rok' },
+];
+
+export const FORMAT_LABELS: Record<ContentFormat, string> = {
+    PHOTO: 'Zdjęcie',
+    REELS: 'Rolka',
+    CAROUSEL: 'Karuzela',
+};
+
+export const DAYPART_LABELS = ['Rano (6–11)', 'Południe (11–16)', 'Wieczór (16–21)', 'Noc (21–6)'];
+
+export const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];

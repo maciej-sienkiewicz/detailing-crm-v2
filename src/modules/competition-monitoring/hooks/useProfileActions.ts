@@ -1,12 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
 import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
+import { invalidateAnalytics } from './useAnalytics';
 
 export const useProfileActions = () => {
     const queryClient = useQueryClient();
 
-    const invalidate = () =>
+    // Zmiany w profilach unieważniają też analitykę – ranking i benchmark
+    // muszą odzwierciedlać aktualny koszyk profili
+    const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: [INSTAGRAM_PROFILES_KEY] });
+        invalidateAnalytics(queryClient);
+    };
 
     const approve = useMutation({
         mutationFn: (id: string) => instagramApi.approveProfile(id),
@@ -23,6 +28,12 @@ export const useProfileActions = () => {
         onSuccess: invalidate,
     });
 
+    const markSelf = useMutation({
+        mutationFn: ({ id, isSelf }: { id: string; isSelf: boolean }) =>
+            instagramApi.markSelf(id, isSelf),
+        onSuccess: invalidate,
+    });
+
     return {
         approveProfile: approve.mutate,
         isApproving: approve.isPending,
@@ -30,5 +41,7 @@ export const useProfileActions = () => {
         isRejecting: reject.isPending,
         removeProfile: remove.mutate,
         isRemoving: remove.isPending,
+        markSelf: markSelf.mutate,
+        isMarkingSelf: markSelf.isPending,
     };
 };

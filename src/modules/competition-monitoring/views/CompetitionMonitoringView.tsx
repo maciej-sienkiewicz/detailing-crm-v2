@@ -1,37 +1,43 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { Plus, Sparkles, Users } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
-import { useAuth } from '@/core/context/AuthContext';
+import {
+    PageHeader,
+    PageHeaderGhostButton,
+    PageHeaderPrimaryButton,
+} from '@/common/components/PageHeader/PageHeader';
+import { useOverview, useBenchmark } from '../hooks/useAnalytics';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
-import { useCompetitionSummary } from '../hooks/useCompetitionSummary';
-import { useProfileActions } from '../hooks/useProfileActions';
-import { ProfileCard } from '../components/ProfileCard';
+import { OverviewTab } from '../components/OverviewTab';
+import { BenchmarkTab } from '../components/BenchmarkTab';
+import { ContentTab } from '../components/ContentTab';
+import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
-import { PostsModal } from '../components/PostsModal';
-import { TrendCharts } from '../components/TrendCharts';
-import { RankingTable } from '../components/RankingTable';
-import { ProfileChipSelector } from '../components/ProfileChipSelector';
 import { GeneratePostModal } from '../components/GeneratePostModal';
-import { ProfileSeoCard } from '../components/ProfileSeoCard';
-import { PROFILE_COLORS } from '../types';
-import type { InstagramProfile, InstagramProfileStatus, WeeksOption } from '../types';
+import { CenterState, Spinner } from '../components/MetricBits';
+import { WEEKS_OPTIONS, type WeeksOption } from '../types';
 
-// ─── Animations ───────────────────────────────────────────────────────────────
+/**
+ * Analiza konkurencji na Instagramie – trzy płaskie zakładki:
+ *   Przegląd   – pozycja studia + gotowe wnioski (domyślna),
+ *   Porównanie – tabela benchmarkowa + 2 wykresy z adnotacjami,
+ *   Treści     – najskuteczniejsze posty, pory publikacji, hasztagi.
+ * Stan (zakładka, okres) trzymany w URL – widoki są linkowalne.
+ */
 
 const fadeUp = keyframes`
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
-
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
     gap: 20px;
     padding: 24px;
-    max-width: 1920px;
+    max-width: 1600px;
     margin: 0 auto;
     width: 100%;
     animation: ${fadeUp} 300ms ease both;
@@ -40,8 +46,6 @@ const ViewContainer = styled.main`
         padding: 32px;
     }
 `;
-
-// ─── Weeks selector (dark variant for PageHeader) ─────────────────────────────
 
 const WeeksBar = styled.div`
     display: inline-flex;
@@ -58,499 +62,175 @@ const WeeksBtn = styled.button<{ $active: boolean }>`
     border: none;
     font-family: inherit;
     font-size: ${st.fontSm};
-    font-weight: ${p => p.$active ? 700 : 400};
-    background: ${p => p.$active ? 'rgba(255,255,255,0.14)' : 'transparent'};
-    color: ${p => p.$active ? '#f1f5f9' : '#64748b'};
-    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};
+    font-weight: ${p => (p.$active ? 700 : 400)};
+    background: ${p => (p.$active ? 'rgba(255,255,255,0.14)' : 'transparent')};
+    color: ${p => (p.$active ? '#f1f5f9' : '#64748b')};
     cursor: pointer;
     transition: all ${st.transition};
     white-space: nowrap;
 
-    &:hover { color: ${p => p.$active ? '#f1f5f9' : '#94a3b8'}; }
-`;
-
-// ─── Selector + Charts card ────────────────────────────────────────────────────
-
-const SelectorCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusLg};
-    box-shadow: ${st.shadowSm};
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-`;
-
-const SelectorTop = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding-bottom: 14px;
-    border-bottom: 1px solid ${st.border};
-    margin-bottom: 16px;
-`;
-
-const MaxNote = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-// ─── Info banner ──────────────────────────────────────────────────────────────
-
-const InfoBanner = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 16px;
-    background: ${st.bgAccentBlue};
-    border: 1px solid rgba(59,130,246,0.18);
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
-
-// ─── Panel Card (profiles tab) ────────────────────────────────────────────────
-
-const PanelCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusLg};
-    box-shadow: ${st.shadowSm};
-    overflow: hidden;
+    &:hover { color: ${p => (p.$active ? '#f1f5f9' : '#94a3b8')}; }
 `;
 
 const TabBar = styled.nav`
     display: flex;
-    align-items: stretch;
+    gap: 6px;
     border-bottom: 1px solid ${st.border};
-    background: ${st.bgCard};
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
 `;
 
-const TabButton = styled.button<{ $active: boolean }>`
-    flex-shrink: 0;
-    padding: 13px 20px;
-    font-size: ${st.fontSm};
-    font-weight: ${p => p.$active ? 600 : 400};
-    cursor: pointer;
+const TabBtn = styled.button<{ $active: boolean }>`
+    padding: 10px 18px;
     border: none;
-    font-family: inherit;
     background: transparent;
-    color: ${p => p.$active ? st.accentBlue : st.textSecondary};
-    border-bottom: 2px solid ${p => p.$active ? st.accentBlue : 'transparent'};
+    font-family: inherit;
+    font-size: ${st.fontMd};
+    font-weight: ${p => (p.$active ? 700 : 500)};
+    color: ${p => (p.$active ? st.accentBlue : st.textSecondary)};
+    border-bottom: 2px solid ${p => (p.$active ? st.accentBlue : 'transparent')};
     margin-bottom: -1px;
-    transition: color ${st.transition}, border-color ${st.transition};
-    display: flex;
+    cursor: pointer;
+    transition: color ${st.transition};
+    display: inline-flex;
     align-items: center;
     gap: 7px;
-    white-space: nowrap;
 
-    &:hover { color: ${p => p.$active ? st.accentBlue : st.text}; }
+    &:hover { color: ${p => (p.$active ? st.accentBlue : st.text)}; }
 `;
 
-const TabBadge = styled.span<{ $active: boolean }>`
+const PendingBadge = styled.span`
+    background: ${st.accentAmber};
+    color: #fff;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    border-radius: ${st.radiusFull};
     padding: 1px 7px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 700;
-    background: ${p => p.$active ? st.accentBlueDim : st.bgCardAlt};
-    color: ${p => p.$active ? st.accentBlue : st.textMuted};
 `;
 
-const TabBadgeAmber = styled.span`
-    padding: 1px 7px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 700;
-    background: rgba(245,158,11,0.12);
-    color: #92400e;
-`;
+type TabKey = 'przeglad' | 'porownanie' | 'tresci';
 
-// ─── Loading / error states ────────────────────────────────────────────────────
-
-const LoadingOverlay = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-`;
-
-const Spinner = styled.div`
-    width: 36px;
-    height: 36px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    @keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-const ErrorBox = styled.div`
-    padding: 48px 32px;
-    text-align: center;
-    color: #dc2626;
-`;
-
-const RetryBtn = styled.button`
-    margin-top: 12px;
-    padding: 8px 20px;
-    background: transparent;
-    border: 1px solid ${st.accentBlue};
-    color: ${st.accentBlue};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all ${st.transition};
-    display: block;
-    margin-inline: auto;
-
-    &:hover { background: ${st.accentBlue}; color: #fff; }
-`;
-
-const EmptyAnalytics = styled.div`
-    text-align: center;
-    padding: 72px 32px;
-    color: ${st.textMuted};
-`;
-
-const EmptyIcon = styled.div`
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.3;
-`;
-
-const EmptyTitle = styled.h3`
-    margin: 0 0 8px;
-    font-size: ${st.fontLg};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const EmptyDesc = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-    max-width: 360px;
-    margin-inline: auto;
-    line-height: 1.6;
-`;
-
-// ─── Profile management tab ────────────────────────────────────────────────────
-
-const FilterBar = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 10px 16px;
-    background: ${st.bgCardAlt};
-    border-bottom: 1px solid ${st.border};
-`;
-
-const FilterBtn = styled.button<{ $active: boolean }>`
-    padding: 5px 14px;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all ${st.transition};
-    border: 1px solid ${p => p.$active ? st.accentBlue : st.border};
-    background: ${p => p.$active ? st.accentBlueDim : st.bgCard};
-    color: ${p => p.$active ? st.accentBlue : st.textSecondary};
-
-    &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
-`;
-
-const ProfileList = styled.div`
-    display: flex;
-    flex-direction: column;
-    & > * + * { border-top: 1px solid ${st.border}; }
-`;
-
-const ProfileRow = styled.div`
-    padding: 8px 16px;
-`;
-
-const ListEmpty = styled.div`
-    text-align: center;
-    padding: 56px 32px;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-`;
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const MAX_CHART_PROFILES = 4;
-
-const WEEKS_OPTIONS: { value: WeeksOption; label: string }[] = [
-    { value: 4,  label: '4 tyg.'  },
-    { value: 13, label: '3 mies.' },
-    { value: 26, label: '6 mies.' },
-    { value: 52, label: 'Rok'     },
+const TABS: { key: TabKey; label: string }[] = [
+    { key: 'przeglad', label: 'Przegląd' },
+    { key: 'porownanie', label: 'Porównanie' },
+    { key: 'tresci', label: 'Treści' },
 ];
 
-type MainTab    = 'analytics' | 'profiles';
-type FilterType = 'ALL' | InstagramProfileStatus;
-
-const FILTER_LABELS: Record<FilterType, string> = {
-    ALL: 'Wszystkie',
-    ACTIVE: 'Aktywne',
-    PENDING_APPROVAL: 'Oczekujące',
-    REJECTED: 'Odrzucone',
-};
-
-// ─── View ─────────────────────────────────────────────────────────────────────
-
 export const CompetitionMonitoringView = () => {
-    const { user } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [weeks, setWeeks]                         = useState<WeeksOption>(13);
-    const [activeTab, setActiveTab]                 = useState<MainTab>('analytics');
-    const [isAddModalOpen, setIsAddModalOpen]       = useState(false);
-    const [isGenerateOpen, setIsGenerateOpen]       = useState(false);
-    const [selectedProfile, setSelectedProfile]     = useState<InstagramProfile | null>(null);
-    const [activeFilter, setActiveFilter]           = useState<FilterType>('ALL');
-    const [selectedIds, setSelectedIds]             = useState<Set<string>>(new Set());
+    const tab = (searchParams.get('widok') as TabKey) || 'przeglad';
+    const weeksParam = Number(searchParams.get('okres'));
+    const weeks: WeeksOption = ([4, 12, 26, 52] as const).includes(weeksParam as WeeksOption)
+        ? (weeksParam as WeeksOption)
+        : 12;
 
-    const { profiles, isLoading: pLoading, isError: pError, refetch: refetchProfiles } = useInstagramProfiles();
-    const { summaries, isLoading: sLoading, isError: sError, refetch: refetchSummary }  = useCompetitionSummary(weeks);
-    const { approveProfile, isApproving, rejectProfile, isRejecting, removeProfile, isRemoving } = useProfileActions();
-
-    const isManagerOrOwner = user?.role === 'MANAGER' || user?.role === 'OWNER';
-    const pendingCount     = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
-    const activeCount      = summaries.length;
-
-    // Assign stable colors per profile id
-    const colorMap = useMemo<Record<string, string>>(() => {
-        const map: Record<string, string> = {};
-        summaries.forEach((p, i) => { map[p.id] = PROFILE_COLORS[i % PROFILE_COLORS.length]; });
-        return map;
-    }, [summaries]);
-
-    // Auto-select first MAX_CHART_PROFILES on first load
-    useMemo(() => {
-        if (summaries.length > 0 && selectedIds.size === 0) {
-            setSelectedIds(new Set(summaries.slice(0, MAX_CHART_PROFILES).map(p => p.id)));
-        }
-    }, [summaries]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const toggleId = useCallback((id: string) => {
-        setSelectedIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) { next.delete(id); } else { next.add(id); }
-            return next;
-        });
-    }, []);
-
-    const selectedProfiles = useMemo(
-        () => summaries.filter(p => selectedIds.has(p.id)),
-        [summaries, selectedIds]
+    const setUrlState = useCallback(
+        (next: { tab?: TabKey; weeks?: WeeksOption }) => {
+            setSearchParams(prev => {
+                const params = new URLSearchParams(prev);
+                if (next.tab) params.set('widok', next.tab);
+                if (next.weeks) params.set('okres', String(next.weeks));
+                return params;
+            }, { replace: true });
+        },
+        [setSearchParams]
     );
 
-    const filteredManagement = activeFilter === 'ALL'
-        ? profiles
-        : profiles.filter(p => p.status === activeFilter);
+    const [isDrawerOpen, setDrawerOpen] = useState(false);
+    const [isAddOpen, setAddOpen] = useState(false);
+    const [isGenerateOpen, setGenerateOpen] = useState(false);
 
-    // ─── Analytics content ────────────────────────────────────────────────────
-
-    const renderAnalytics = () => {
-        if (sLoading) return <LoadingOverlay><Spinner /></LoadingOverlay>;
-
-        if (sError) return (
-            <ErrorBox>
-                <p>Nie udało się załadować danych analitycznych.</p>
-                <RetryBtn onClick={() => refetchSummary()}>Spróbuj ponownie</RetryBtn>
-            </ErrorBox>
-        );
-
-        if (summaries.length === 0) return (
-            <EmptyAnalytics>
-                <EmptyIcon>📊</EmptyIcon>
-                <EmptyTitle>Brak danych do analizy</EmptyTitle>
-                <EmptyDesc>
-                    Dodaj aktywne profile i poczekaj na pierwszą niedzielną synchronizację, aby zobaczyć rankingi i trendy.
-                </EmptyDesc>
-            </EmptyAnalytics>
-        );
-
-        return null;
-    };
-
-    const analyticsEmpty = renderAnalytics();
-
-    // ─── Render ───────────────────────────────────────────────────────────────
+    const overviewQuery = useOverview(weeks);
+    const benchmarkQuery = useBenchmark(weeks, tab === 'porownanie');
+    const { profiles } = useInstagramProfiles();
+    const pendingCount = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
 
     return (
         <ViewContainer>
-
-            {/* ── Header ──────────────────────────────────────────────────── */}
             <PageHeader
-                title="Analityka Instagram"
-                subtitle="Obserwuj i porównuj profile konkurentów"
+                title="Konkurencja na Instagramie"
+                subtitle="Co robi konkurencja, co u niej działa i co możesz z tym zrobić"
                 actions={
                     <>
                         <WeeksBar>
-                            {WEEKS_OPTIONS.map(o => (
-                                <WeeksBtn key={o.value} $active={weeks === o.value} onClick={() => setWeeks(o.value)}>
-                                    {o.label}
+                            {WEEKS_OPTIONS.map(option => (
+                                <WeeksBtn
+                                    key={option.value}
+                                    $active={weeks === option.value}
+                                    onClick={() => setUrlState({ weeks: option.value })}
+                                >
+                                    {option.label}
                                 </WeeksBtn>
                             ))}
                         </WeeksBar>
-                        <PageHeaderGhostButton onClick={() => setIsGenerateOpen(true)}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                            </svg>
-                            Generuj post
+                        <PageHeaderGhostButton onClick={() => setGenerateOpen(true)}>
+                            <Sparkles /> Generuj post
                         </PageHeaderGhostButton>
-                        <PageHeaderPrimaryButton onClick={() => setIsAddModalOpen(true)}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            Dodaj profil
+                        <PageHeaderGhostButton onClick={() => setDrawerOpen(true)}>
+                            <Users /> Profile
+                            {pendingCount > 0 && <PendingBadge>{pendingCount}</PendingBadge>}
+                        </PageHeaderGhostButton>
+                        <PageHeaderPrimaryButton onClick={() => setAddOpen(true)}>
+                            <Plus /> Dodaj profil
                         </PageHeaderPrimaryButton>
                     </>
                 }
             />
 
-            {/* ── Pending banner ───────────────────────────────────────────── */}
-            {pendingCount > 0 && isManagerOrOwner && (
-                <InfoBanner>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={st.accentBlue} strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    {pendingCount} {pendingCount === 1 ? 'profil oczekuje' : 'profile oczekują'} na akceptację.
-                    Przejdź do zakładki <strong style={{ marginInline: 4 }}>Profile</strong>, aby je zatwierdzić.
-                </InfoBanner>
+            <TabBar>
+                {TABS.map(item => (
+                    <TabBtn
+                        key={item.key}
+                        $active={tab === item.key}
+                        onClick={() => setUrlState({ tab: item.key })}
+                    >
+                        {item.label}
+                    </TabBtn>
+                ))}
+            </TabBar>
+
+            {tab === 'przeglad' && (
+                overviewQuery.isLoading ? (
+                    <CenterState><Spinner /></CenterState>
+                ) : overviewQuery.isError ? (
+                    <CenterState>
+                        <strong>Nie udało się pobrać danych</strong>
+                        <span>Spróbuj odświeżyć stronę – jeśli problem wraca, daj nam znać.</span>
+                    </CenterState>
+                ) : overviewQuery.data ? (
+                    <OverviewTab overview={overviewQuery.data} />
+                ) : null
             )}
 
-            {/* ── Main tabs ────────────────────────────────────────────────── */}
-            <PanelCard>
-                <TabBar>
-                    <TabButton $active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                        </svg>
-                        Analityka
-                        {activeCount > 0 && <TabBadge $active={activeTab === 'analytics'}>{activeCount}</TabBadge>}
-                    </TabButton>
-                    <TabButton $active={activeTab === 'profiles'} onClick={() => setActiveTab('profiles')}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                        Profile
-                        {profiles.length > 0 && <TabBadge $active={activeTab === 'profiles'}>{profiles.length}</TabBadge>}
-                        {pendingCount > 0 && <TabBadgeAmber>{pendingCount}</TabBadgeAmber>}
-                    </TabButton>
-                </TabBar>
+            {tab === 'porownanie' && (
+                benchmarkQuery.isLoading ? (
+                    <CenterState><Spinner /></CenterState>
+                ) : benchmarkQuery.isError ? (
+                    <CenterState>
+                        <strong>Nie udało się pobrać danych</strong>
+                        <span>Spróbuj odświeżyć stronę.</span>
+                    </CenterState>
+                ) : benchmarkQuery.data && benchmarkQuery.data.rows.length > 0 ? (
+                    <BenchmarkTab benchmark={benchmarkQuery.data} />
+                ) : (
+                    <CenterState>
+                        <strong>Brak danych do porównania</strong>
+                        <span>Dodaj profile konkurencji i poczekaj na pierwszą synchronizację.</span>
+                    </CenterState>
+                )
+            )}
 
-                {/* Analytics tab */}
-                {activeTab === 'analytics' && (
-                    analyticsEmpty ?? (
-                        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {tab === 'tresci' && <ContentTab weeks={weeks} />}
 
-                            {/* Profile chip selector */}
-                            <SelectorCard>
-                                <SelectorTop>
-                                    <ProfileChipSelector
-                                        profiles={summaries}
-                                        selectedIds={selectedIds}
-                                        colorMap={colorMap}
-                                        onToggle={toggleId}
-                                        maxSelected={MAX_CHART_PROFILES}
-                                    />
-                                    <MaxNote>Maks. {MAX_CHART_PROFILES} profile na wykresie</MaxNote>
-                                </SelectorTop>
-
-                                {/* Charts with 4 tabs */}
-                                <TrendCharts
-                                    profiles={selectedProfiles}
-                                    colorMap={colorMap}
-                                    weeks={weeks}
-                                />
-                            </SelectorCard>
-
-                            {/* Ranking table — all profiles */}
-                            <RankingTable
-                                profiles={summaries}
-                                colorMap={colorMap}
-                                selectedIds={selectedIds}
-                                onToggle={toggleId}
-                            />
-
-                            {/* Profile SEO comparison card */}
-                            <ProfileSeoCard profiles={summaries} />
-                        </div>
-                    )
-                )}
-
-                {/* Profiles management tab */}
-                {activeTab === 'profiles' && (
-                    pLoading ? <LoadingOverlay><Spinner /></LoadingOverlay>
-                    : pError  ? (
-                        <ErrorBox>
-                            <p>Nie udało się załadować listy profili.</p>
-                            <RetryBtn onClick={() => refetchProfiles()}>Spróbuj ponownie</RetryBtn>
-                        </ErrorBox>
-                    ) : (
-                        <>
-                            {profiles.length > 0 && (
-                                <FilterBar>
-                                    {(Object.keys(FILTER_LABELS) as FilterType[]).map(key => (
-                                        <FilterBtn key={key} $active={activeFilter === key} onClick={() => setActiveFilter(key)}>
-                                            {FILTER_LABELS[key]} · {key === 'ALL' ? profiles.length : profiles.filter(p => p.status === key).length}
-                                        </FilterBtn>
-                                    ))}
-                                </FilterBar>
-                            )}
-                            {filteredManagement.length === 0 ? (
-                                <ListEmpty>
-                                    {profiles.length === 0
-                                        ? 'Brak obserwowanych profili. Kliknij „Dodaj profil", aby zacząć.'
-                                        : 'Brak profili w tej kategorii.'}
-                                </ListEmpty>
-                            ) : (
-                                <ProfileList>
-                                    {filteredManagement.map(profile => (
-                                        <ProfileRow key={profile.id}>
-                                            <ProfileCard
-                                                profile={profile}
-                                                isManagerOrOwner={isManagerOrOwner}
-                                                isApproving={isApproving}
-                                                isRejecting={isRejecting}
-                                                isRemoving={isRemoving}
-                                                onApprove={approveProfile}
-                                                onReject={rejectProfile}
-                                                onRemove={removeProfile}
-                                                onViewPosts={(p) => setSelectedProfile(p)}
-                                            />
-                                        </ProfileRow>
-                                    ))}
-                                </ProfileList>
-                            )}
-                        </>
-                    )
-                )}
-            </PanelCard>
-
-            {/* ── Modals ───────────────────────────────────────────────────── */}
-            <AddProfileModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
-            {selectedProfile && <PostsModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
-            {isGenerateOpen  && <GeneratePostModal onClose={() => setIsGenerateOpen(false)} />}
+            <ProfilesDrawer
+                open={isDrawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                onAddProfile={() => {
+                    setDrawerOpen(false);
+                    setAddOpen(true);
+                }}
+            />
+            <AddProfileModal isOpen={isAddOpen} onClose={() => setAddOpen(false)} />
+            {isGenerateOpen && <GeneratePostModal onClose={() => setGenerateOpen(false)} />}
         </ViewContainer>
     );
 };
