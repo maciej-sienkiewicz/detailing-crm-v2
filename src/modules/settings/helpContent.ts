@@ -180,67 +180,70 @@ export const DOCUMENTS_HELP: HelpContent = {
     ],
 };
 
-export const SMS_TEMPLATES_HELP: HelpContent = {
-    title: 'Szablony SMS',
+export const MESSAGE_TEMPLATES_HELP: HelpContent = {
+    title: 'Szablony wiadomości',
     items: [
         {
-            id: 'trigger',
-            label: 'Wyzwalacz wysyłki',
-            description: 'Określa zdarzenie, po którym SMS jest wysyłany automatycznie. Każdy szablon przypisany jest do konkretnego etapu obsługi zlecenia — np. przyjęcia pojazdu, zakończenia usługi lub gotowości do odbioru. Wyłączony szablon albo pusta treść oznaczają, że wiadomość nie zostanie wysłana wcale — system nie ma żadnej treści zapasowej.',
+            id: 'list',
+            label: 'Lista wiadomości',
+            description: 'Jeden wiersz to jedna sytuacja, w której odzywamy się do klienta — od potwierdzenia rezerwacji po zestawienie zbiorcze dla kontrahenta. Wiersze są pogrupowane w kolejności, w jakiej dzieje się obsługa zlecenia. Pod nazwą widzisz fragment prawdziwej treści z podstawionymi przykładowymi danymi, więc nie musisz wchodzić w szczegóły, żeby sprawdzić, co dostanie klient.',
             usedIn: [
-                'Automatyczna wysyłka przy zdarzeniach w zleceniu',
-                'Widoczny w historii komunikacji z klientem',
+                'Ustawienia → Szablony wiadomości',
+                'Historia komunikacji w profilu klienta',
             ],
         },
         {
-            id: 'content',
-            label: 'Treść wiadomości',
-            description: 'Tekst SMS wysyłanego do klienta. Zmienne wstawiasz przyciskami nad polem — każdy szablon udostępnia tylko te, które potrafi wypełnić (np. {{imie}}, {{data}}, {{godzina}}, {{pojazd}}, {{link}}). Nazwa, telefon i adres Twojego studia nie są zmiennymi — wpisz je wprost w treści, bo znasz je już w chwili pisania szablonu. Jeden SMS to standardowo 160 znaków; dłuższe wiadomości są łączone i zużywają więcej kredytów.',
+            id: 'channels',
+            label: 'Kanały SMS i e-mail',
+            description: 'Część wiadomości wychodzi obydwoma kanałami — na przykład link do Karty Wizyty. Chipy w kolumnie „Kanał" włączają i wyłączają każdy kanał osobno, bez otwierania szczegółów. Szary chip oznacza, że dana wiadomość nie jest wysyłana tym kanałem w ogóle.',
             usedIn: [
-                'Wiadomość SMS do klienta',
-                'Historia komunikacji w profilu klienta',
+                'Kolumna „Kanał" na liście',
+                'Zakładki SMS / E-mail w panelu edycji',
+            ],
+        },
+        {
+            id: 'status',
+            label: 'Kiedy wiadomość faktycznie wychodzi',
+            description: 'Zielony chip oznacza, że wiadomość jest włączona i ma treść. Bursztynowy to ostrzeżenie: reguła jest włączona, ale temat lub treść są puste, więc mimo pozornie aktywnego stanu nic nie zostanie wysłane. System nie ma żadnej treści zapasowej — wychodzi wyłącznie to, co sam wpiszesz.',
+            usedIn: [
+                'Chipy na liście',
+                'Filtr „Aktywne"',
+            ],
+        },
+        {
+            id: 'timing',
+            label: 'Czas wysyłki',
+            description: 'Trzy wiadomości mają konfigurowalne opóźnienie. Przypomnienie przed wizytą liczymy od godziny rozpoczęcia rezerwacji. Podziękowanie po wizycie i przypomnienie po przerwie liczymy od momentu odbioru pojazdu — dlatego rezerwacja, na którą klient się nie stawił, nigdy nie dostanie tych wiadomości.',
+            usedIn: [
+                'Kolumna „Kiedy wychodzi"',
+                'Sekcja „Czas wysyłki" w panelu edycji',
+            ],
+        },
+        {
+            id: 'variables',
+            label: 'Zmienne w treści',
+            description: 'Zmienne wstawiasz przyciskami nad polem tekstowym. Każda wiadomość udostępnia tylko te, które potrafi wypełnić — dlatego listy różnią się między szablonami. Nazwa, adres, telefon i strona Twojej firmy nie są zmiennymi: znasz je w chwili pisania szablonu, więc wpisz je wprost w treści. Wpisanie zmiennej, której dana wiadomość nie zna, zablokuje zapis i zostanie oznaczone w edytorze.',
+            usedIn: [
+                'Panel edycji — przyciski „Wstaw"',
+                'Podgląd wiadomości',
+            ],
+        },
+        {
+            id: 'sender',
+            label: 'Nazwa nadawcy SMS',
+            description: 'Do 11 znaków alfanumerycznych wyświetlanych zamiast numeru telefonu. Operator wymaga podpisanego upoważnienia — pobierz wzór, podpisz i wgraj go tutaj. Do czasu potwierdzenia przez operatora SMS-y wychodzą z numeru domyślnego.',
+            usedIn: [
+                'Każdy SMS wysłany do klienta',
+                'Kampanie SMS',
             ],
         },
         {
             id: 'credits',
             label: 'Kredyty SMS',
-            description: 'Każdy wysłany SMS zużywa kredyty z Twojego konta. Wiadomość do 160 znaków to 1 kredyt; dłuższe wiadomości składające się z wielu segmentów zużywają odpowiednio więcej. Stan kredytów możesz sprawdzić i uzupełnić w zakładce „Kredyty SMS i AI".',
+            description: 'Każdy wysłany SMS zużywa kredyty. Wiadomość do 160 znaków to 1 kredyt, a polskie znaki diakrytyczne skracają ten limit do 70 znaków — licznik pod polem treści pokazuje, na ile wiadomości rozpadnie się Twój szablon. Stan kredytów uzupełnisz w zakładce „Kredyty SMS i AI".',
             usedIn: [
-                'Saldo kredytów SMS w zakładce Kredyty',
-                'Historia transakcji kredytowych',
-            ],
-        },
-    ],
-};
-
-export const EMAIL_TEMPLATES_HELP: HelpContent = {
-    title: 'Szablony e-mail',
-    items: [
-        {
-            id: 'trigger',
-            label: 'Wyzwalacz wysyłki',
-            description: 'Określa zdarzenie, po którym e-mail jest wysyłany automatycznie do klienta. Dostępne wyzwalacze odpowiadają etapom obsługi zlecenia — od przyjęcia pojazdu po zamknięcie miesiąca dla kontrahenta. Wyłączony szablon albo pusty temat lub treść oznaczają, że wiadomość nie zostanie wysłana wcale — system nie ma żadnej treści zapasowej.',
-            usedIn: [
-                'Automatyczna wysyłka przy zdarzeniach w zleceniu',
-                'Historia komunikacji z klientem',
-            ],
-        },
-        {
-            id: 'content',
-            label: 'Treść wiadomości',
-            description: 'Temat i treść e-maila wysyłanego do klienta. Zmienne wstawiasz przyciskami nad polem — każdy szablon udostępnia tylko te, które potrafi wypełnić (np. {{imie_nazwisko}}, {{pojazd}}, {{numer_wizyty}}, {{link}}). Nazwa, adres i dane kontaktowe Twojej firmy nie są zmiennymi — wpisz je wprost w treści lub w podpisie.',
-            usedIn: [
-                'Wiadomość e-mail do klienta',
-                'Historia komunikacji w profilu klienta',
-            ],
-        },
-        {
-            id: 'footer',
-            label: 'Stopka e-maila',
-            description: 'Automatyczne e-maile nie mają osobnej stopki — wszystko, co ma trafić do klienta, wpisujesz w treści szablonu, łącznie z podpisem i danymi kontaktowymi. Osobne stopki SMS i e-mail ustawiasz tylko dla kampanii marketingowych, w Kampanie → Ustawienia.',
-            usedIn: [
-                'Każdy automatyczny e-mail',
-                'Stopki kampanii: Kampanie → Ustawienia',
+                'Licznik segmentów w edytorze',
+                'Saldo kredytów w zakładce Kredyty',
             ],
         },
     ],

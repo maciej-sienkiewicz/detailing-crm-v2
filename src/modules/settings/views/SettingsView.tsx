@@ -9,8 +9,7 @@ import { ServicesSection } from '../components/ServicesSection';
 import { TeamSection } from '../components/TeamSection';
 import { RolesSection } from '../components/RolesSection';
 import { SubscriptionSettingsPage } from '@/modules/subscription';
-import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
-import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
+import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
 import { TabletsSection } from '../components/TabletsSection';
@@ -23,8 +22,7 @@ import {
     COMPANY_HELP,
     SERVICES_HELP,
     DOCUMENTS_HELP,
-    SMS_TEMPLATES_HELP,
-    EMAIL_TEMPLATES_HELP,
+    MESSAGE_TEMPLATES_HELP,
     CREDITS_HELP,
     INVOICES_HELP,
 } from '../helpContent';
@@ -33,7 +31,7 @@ import {
 
 type SectionId =
     | 'company' | 'services' | 'team' | 'roles' | 'opening'
-    | 'templates' | 'email-templates' | 'reminders' | 'documents'
+    | 'templates' | 'reminders' | 'documents'
     | 'tablets' | 'visit-card'
     | 'plan' | 'credits' | 'invoices' | 'security'
     | 'integrations' | 'api';
@@ -62,7 +60,6 @@ const ListChecksIcon = () => <Icon d="M3 5h6M3 10h6M3 15h6M13 5l2 2 4-4M13 10l2 
 const UsersIcon      = () => <Icon d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3M8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M18 21v-2a4 4 0 0 0-3-3.87" />;
 const ClockIcon      = () => <Icon d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 5v5l3 3" />;
 const MessageIcon    = () => <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />;
-const MailIcon       = () => <Icon d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6" />;
 const BellIcon       = () => <Icon d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />;
 const FileSignIcon   = () => <Icon d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7zM14 2v5h5M9 18c.8-.8 1-1.5.8-2.3-.3-1-1.2-1.7-1-2.7.2-.8.9-1.5 1.2-2" />;
 const CrownIcon      = () => <Icon d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />;
@@ -99,8 +96,7 @@ const NAV_GROUPS: NavGroup[] = [
     {
         group: 'Komunikacja',
         items: [
-            { id: 'templates',       label: 'Szablony SMS',          icon: <MessageIcon /> },
-            { id: 'email-templates', label: 'Szablony email',        icon: <MailIcon /> },
+            { id: 'templates',       label: 'Szablony wiadomości',   icon: <MessageIcon /> },
             { id: 'documents',       label: 'Dokumenty i podpisy',   icon: <FileSignIcon /> },
             { id: 'tablets',         label: 'Urządzenia mobilne',               icon: <TabletIcon /> },
             { id: 'visit-card',      label: 'Karta Wizyty',          icon: <CardIcon /> },
@@ -123,8 +119,7 @@ const SECTION_HELP: Partial<Record<SectionId, HelpContent>> = {
     company:         COMPANY_HELP,
     services:        SERVICES_HELP,
     documents:       DOCUMENTS_HELP,
-    templates:       SMS_TEMPLATES_HELP,
-    'email-templates': EMAIL_TEMPLATES_HELP,
+    templates:       MESSAGE_TEMPLATES_HELP,
     credits:         CREDITS_HELP,
     invoices:        INVOICES_HELP,
 };
@@ -287,7 +282,7 @@ function ComingSoonSection({ label }: { label: string }) {
 
 const VALID_SECTIONS = new Set<SectionId>([
     'company', 'services', 'team', 'roles', 'opening',
-    'templates', 'email-templates', 'reminders', 'documents',
+    'templates', 'reminders', 'documents',
     'tablets', 'visit-card',
     'plan', 'credits', 'invoices', 'security',
     'integrations', 'api',
@@ -303,7 +298,6 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     team: 'EMPLOYEES_MANAGE',
     roles: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
-    'email-templates': 'COMMUNICATION_SEND',
     reminders: 'COMMUNICATION_SEND',
     documents:  'VISITS_CREATE',
     tablets:    'VISITS_CREATE',
@@ -338,7 +332,9 @@ export function SettingsView() {
             ? (visibleNavGroups[0]?.items[0]?.id ?? 'security')
             : 'security';
 
-    const tabParam = searchParams.get('tab') as SectionId | null;
+    // 'email-templates' was folded into 'templates'; keep old bookmarks working.
+    const rawTab = searchParams.get('tab');
+    const tabParam = (rawTab === 'email-templates' ? 'templates' : rawTab) as SectionId | null;
     const initialSection: SectionId =
         tabParam && VALID_SECTIONS.has(tabParam) && canSee(tabParam)
             ? tabParam
@@ -356,9 +352,7 @@ export function SettingsView() {
     } else if (section === 'documents') {
         content = <DocumentsSection />;
     } else if (section === 'templates') {
-        content = <AutomationSettings />;
-    } else if (section === 'email-templates') {
-        content = <EmailAutomationSettings />;
+        content = <MessageTemplatesSection />;
     } else if (section === 'services') {
         content = <ServicesSection />;
     } else if (section === 'team') {
