@@ -234,6 +234,24 @@ export interface TrendChartPoint {
     count: number;
 }
 
+// Recharts 3 przekazuje do handlerów wykresu MouseHandlerDataParam, w którym NIE ma
+// activePayload (to było API recharts 2 — rzutowanie na nie zwracało undefined i klik
+// nigdy nie odpalał). Okres odzyskujemy z activeLabel — wartości osi X, bo XAxis ma
+// dataKey="period" — z awaryjnym zejściem do indeksu w tablicy danych.
+type ChartMouseState = {
+    activeLabel?: string | number;
+    activeTooltipIndex?: number | string | null;
+    activeIndex?: number | string | null;
+};
+
+export const resolvePeriod = (state: ChartMouseState | undefined, data: TrendChartPoint[]): string | null => {
+    if (!state) return null;
+    if (typeof state.activeLabel === 'string' && state.activeLabel) return state.activeLabel;
+    const raw = state.activeTooltipIndex ?? state.activeIndex;
+    const idx = typeof raw === 'number' ? raw : raw != null ? Number(raw) : NaN;
+    return Number.isInteger(idx) && idx >= 0 && idx < data.length ? data[idx].period : null;
+};
+
 interface TrendChartProps {
     data: TrendChartPoint[];
     title: string;
@@ -300,9 +318,7 @@ export const TrendChart = ({
                             margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
                             style={onBarClick ? { cursor: 'pointer' } : undefined}
                             onMouseMove={state => {
-                                // Recharts nie typuje activePayload w handlerze — stąd rzutowanie
-                                const s = state as unknown as { activePayload?: { payload?: { period?: string } }[] };
-                                setHoveredPeriod(s?.activePayload?.[0]?.payload?.period ?? null);
+                                setHoveredPeriod(resolvePeriod(state, data));
                             }}
                             onMouseLeave={() => setHoveredPeriod(null)}
                             // Drill-down obsługujemy na poziomie wykresu, nie słupka.
@@ -311,8 +327,7 @@ export const TrendChart = ({
                             // "N wizyt, 0 zł" są najczęściej tym, co użytkownik chce rozwinąć.
                             onClick={state => {
                                 if (!onBarClick) return;
-                                const s = state as unknown as { activePayload?: { payload?: { period?: string } }[] };
-                                const period = s?.activePayload?.[0]?.payload?.period;
+                                const period = resolvePeriod(state, data);
                                 if (period) onBarClick(period);
                             }}
                         >
