@@ -68,6 +68,8 @@ export interface MiniRankRow {
 
 export interface Overview {
     weeks: number;
+    /** Liczebność obserwowanej grupy – wszystkie porównania dotyczą tylko tej grupy. */
+    comparisonGroupSize: number;
     lastSyncAt: string | null;
     profilesCount: number;
     hasSelf: boolean;
@@ -125,6 +127,8 @@ export interface ChartAnnotation {
 
 export interface Benchmark {
     weeks: number;
+    /** Liczebność obserwowanej grupy – wszystkie porównania dotyczą tylko tej grupy. */
+    comparisonGroupSize: number;
     rows: BenchmarkRow[];
     weekly: WeeklyChartPoint[];
     followers: FollowerSeries[];
@@ -182,6 +186,65 @@ export interface HashtagStat {
     uses: number;
     profilesCount: number;
     avgEngagement: number;
+}
+
+// ─── Sugestie podobnych profili ──────────────────────────────────────────────
+
+export interface ProfileSuggestion {
+    username: string;
+    fullName: string | null;
+    isVerified: boolean;
+    recommendedByCount: number;
+    similarTo: string;
+}
+
+// ─── Raport tygodnia ─────────────────────────────────────────────────────────
+
+export interface ReportEvent {
+    severity: InsightSeverity;
+    title: string;
+    body: string;
+    permalink: string | null;
+}
+
+export interface ReportPayload {
+    comparisonGroupSize: number;
+    hasSelf: boolean;
+    selfUsername: string | null;
+    position: { rank: number; total: number } | null;
+    erPct: MetricTriple;
+    postsPerWeek: MetricTriple;
+    activityIndex: MetricTriple;
+    events: ReportEvent[];
+    topPost: {
+        username: string;
+        permalink: string;
+        engagement: number;
+        topicLabel: string;
+        format: ContentFormat;
+    } | null;
+    bestSlotLabel: string | null;
+    topTopicLabel: string | null;
+    storefrontGaps: string[];
+    recommendation: { text: string; reason: string };
+}
+
+export interface Report {
+    id: string;
+    periodStart: string;
+    periodEnd: string;
+    title: string;
+    lead: string;
+    narrativeSource: 'LLM' | 'TEMPLATE';
+    createdAt: string;
+    payload: ReportPayload;
+}
+
+export interface ReportBrief {
+    id: string;
+    periodStart: string;
+    periodEnd: string;
+    title: string;
 }
 
 // ─── Generator AI (bez zmian) ─────────────────────────────────────────────────

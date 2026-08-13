@@ -13,6 +13,7 @@ import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { OverviewTab } from '../components/OverviewTab';
 import { BenchmarkTab } from '../components/BenchmarkTab';
 import { ContentTab } from '../components/ContentTab';
+import { ReportTab } from '../components/ReportTab';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { GeneratePostModal } from '../components/GeneratePostModal';
@@ -106,12 +107,13 @@ const PendingBadge = styled.span`
     padding: 1px 7px;
 `;
 
-type TabKey = 'przeglad' | 'porownanie' | 'tresci';
+type TabKey = 'przeglad' | 'porownanie' | 'tresci' | 'raport';
 
 const TABS: { key: TabKey; label: string }[] = [
     { key: 'przeglad', label: 'Przegląd' },
     { key: 'porownanie', label: 'Porównanie' },
     { key: 'tresci', label: 'Treści' },
+    { key: 'raport', label: 'Raport' },
 ];
 
 export const CompetitionMonitoringView = () => {
@@ -220,6 +222,8 @@ export const CompetitionMonitoringView = () => {
             )}
 
             {tab === 'tresci' && <ContentTab weeks={weeks} />}
+
+            {tab === 'raport' && <ReportTab />}
 
             <ProfilesDrawer
                 open={isDrawerOpen}

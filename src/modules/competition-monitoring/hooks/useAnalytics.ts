@@ -14,6 +14,8 @@ export const ANALYTICS_KEYS = {
     heatmap: 'ig-heatmap',
     hashtags: 'ig-hashtags',
     insights: 'ig-insights',
+    suggestions: 'ig-suggestions',
+    reports: 'ig-reports',
 } as const;
 
 const STALE_TIME = 5 * 60 * 1000;
@@ -61,6 +63,38 @@ export const useHashtags = (weeks: WeeksOption, enabled = true) =>
         queryFn: () => instagramApi.getHashtags(weeks),
         staleTime: STALE_TIME,
         enabled,
+    });
+
+export const useSuggestions = (enabled = true) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.suggestions],
+        queryFn: instagramApi.getSuggestions,
+        staleTime: STALE_TIME,
+        enabled,
+    });
+
+export const useLatestReport = (enabled = true) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.reports, 'latest'],
+        queryFn: instagramApi.getLatestReport,
+        staleTime: STALE_TIME,
+        enabled,
+    });
+
+export const useReportList = (enabled = true) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.reports, 'list'],
+        queryFn: () => instagramApi.getReports(),
+        staleTime: STALE_TIME,
+        enabled,
+    });
+
+export const useReportById = (id: string | null) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.reports, 'byId', id],
+        queryFn: () => instagramApi.getReportById(id as string),
+        staleTime: STALE_TIME,
+        enabled: id !== null,
     });
 
 export const useDismissInsight = () => {
