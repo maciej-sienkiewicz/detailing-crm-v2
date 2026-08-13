@@ -1,3 +1,9 @@
+# Jawna nazwa projektu Compose. Bez niej projekt bierze nazwę z katalogu
+# (/opt/apps/{env}/app-frontend → "app-frontend" dla OBU środowisk), przez co
+# deploy develop z --remove-orphans usuwałby kontener produkcyjnego frontendu
+# (inny klucz serwisu w tym samym projekcie = "osierocony").
+name: app-frontend-develop
+
 services:
   detailing-crm-frontend-develop:
     image: ${ENV_DETAILING_CRM_FRONTEND_IMAGE}
