@@ -61,9 +61,9 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'ghost' }>`
     ${({ $variant }) =>
         $variant === 'primary'
             ? `
-        background: ${st.accent};
+        background: ${st.accentBlue};
         color: #fff;
-        border-color: ${st.accent};
+        border-color: ${st.accentBlue};
         &:hover { opacity: 0.85; }
     `
             : `
@@ -173,7 +173,7 @@ const Textarea = styled.textarea`
     box-sizing: border-box;
     &:focus {
         outline: none;
-        border-color: ${st.accent};
+        border-color: ${st.accentBlue};
     }
 `;
 
@@ -198,9 +198,9 @@ const Btn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
     ${({ $variant }) =>
         $variant === 'primary'
             ? `
-        background: ${st.accent};
+        background: ${st.accentBlue};
         color: #fff;
-        border-color: ${st.accent};
+        border-color: ${st.accentBlue};
         &:hover { opacity: 0.85; }
         &:disabled { opacity: 0.5; cursor: not-allowed; }
     `
