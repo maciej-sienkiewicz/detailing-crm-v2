@@ -9,3 +9,6 @@ export { KsefSyncWidget }          from './KsefSyncWidget';
 export { KsefCredentialsPanel }    from './KsefCredentialsPanel';
 export { AddExpenseModal }         from './AddExpenseModal';
 export { InvoicePreviewModal }     from './InvoicePreviewModal';
+export { KsefRevenueTable }        from './KsefRevenueTable';
+export { IssueInvoiceModal }       from './IssueInvoiceModal';
+export { RevenueInvoiceDetailModal } from './RevenueInvoiceDetailModal';

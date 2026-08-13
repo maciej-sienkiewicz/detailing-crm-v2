@@ -392,4 +392,162 @@ export interface KsefStatistics {
 
 // ─── View state ───────────────────────────────────────────────────────────────
 
-export type FinanceTab = 'income' | 'expenses' | 'cash' | 'payment-summary';
+export type FinanceTab = 'income' | 'expenses' | 'ksef-invoices' | 'cash' | 'payment-summary';
+
+// ─── KSeF: Faktury przychodowe ────────────────────────────────────────────────
+
+export type RevenueSource = 'CRM' | 'EXTERNAL';
+
+export type KsefRevenueStatus =
+  | 'PENDING'
+  | 'SENDING'
+  | 'SUBMITTED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'QUEUED_RETRY';
+
+export type RevenueInvoiceType = 'VAT' | 'KOR';
+
+export type DuplicateStatus = 'NONE' | 'SUSPECTED' | 'CONFIRMED_DUPLICATE' | 'DISMISSED';
+
+/** Kod stawki VAT wg FA(3). */
+export type RevenueVatRate = '23' | '8' | '5' | '0' | 'zw';
+
+export interface RevenueParty {
+  nip:          string | null;
+  name:         string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  countryCode:  string | null;
+}
+
+export interface RevenueInvoiceItem {
+  lineNumber:   number;
+  name:         string;
+  unit:         string | null;
+  quantity:     number;
+  unitPriceNet: number;  // grosze
+  netValue:     number;  // grosze
+  vatValue:     number;  // grosze
+  grossValue:   number;  // grosze
+  vatRate:      string;
+}
+
+export interface RevenueInvoice {
+  id:                 string;
+  source:             RevenueSource;
+  ksefStatus:         KsefRevenueStatus;
+  invoiceNumber:      string;
+  ksefNumber:         string | null;
+  invoiceType:        RevenueInvoiceType;
+  originalInvoiceId:  string | null;
+  originalKsefNumber: string | null;
+  correctionReason:   string | null;
+  issueDate:          string;
+  saleDate:           string | null;
+  seller:             RevenueParty;
+  buyer:              RevenueParty;
+  totalNet:           number;  // grosze
+  totalVat:           number;  // grosze
+  totalGross:         number;  // grosze
+  currency:           string;
+  paymentForm:        string | null;
+  paymentFormLabel:   string | null;
+  paymentStatus:      'PAID' | 'PENDING';
+  paymentDueDate:     string | null;
+  duplicateStatus:    DuplicateStatus;
+  duplicateOfId:      string | null;
+  hasUpo:             boolean;
+  hasXml:             boolean;
+  sendAttempts:       number;
+  lastSendError:      string | null;
+  sentAt:             string | null;
+  acceptedAt:         string | null;
+  visitId:            string | null;
+  customerId:         string | null;
+  description:        string | null;
+  note:               string | null;
+  createdAt:          string;
+  items:              RevenueInvoiceItem[] | null;
+}
+
+export interface RevenueInvoiceListResponse {
+  invoices: RevenueInvoice[];
+  total:    number;
+  page:     number;
+  pageSize: number;
+}
+
+export interface RevenueInvoiceListFilters {
+  page:             number;
+  pageSize:         number;
+  source?:          RevenueSource;
+  ksefStatus?:      KsefRevenueStatus;
+  duplicateStatus?: DuplicateStatus;
+  dateFrom?:        string;
+  dateTo?:          string;
+}
+
+export interface IssueInvoiceItemRequest {
+  name:         string;
+  unit?:        string;
+  quantity?:    number;
+  unitPriceNet: number;  // grosze
+  vatRate:      RevenueVatRate;
+}
+
+export interface IssueInvoiceBuyerRequest {
+  nip?:          string;
+  name?:         string;
+  addressLine1?: string;
+  addressLine2?: string;
+  countryCode?:  string;
+  email?:        string;
+}
+
+export interface IssueInvoiceRequest {
+  buyer:                IssueInvoiceBuyerRequest;
+  items:                IssueInvoiceItemRequest[];
+  issueDate?:           string;
+  saleDate?:            string;
+  paymentForm?:         string;
+  isPaid?:              boolean;
+  paymentDueDate?:      string;
+  exemptionLegalBasis?: string;
+  visitId?:             string;
+  customerId?:          string;
+  description?:         string;
+}
+
+export interface IssueCorrectionRequest {
+  reason:               string;
+  items?:               IssueInvoiceItemRequest[];
+  issueDate?:           string;
+  exemptionLegalBasis?: string;
+}
+
+export interface RevenueMonthlyStats {
+  month:           string;
+  gross:           number;  // grosze
+  net:             number;  // grosze
+  vat:             number;  // grosze
+  invoiceCount:    number;
+  correctionCount: number;
+  externalCount:   number;
+}
+
+export interface RevenueTotals {
+  gross:           number;  // grosze
+  net:             number;  // grosze
+  vat:             number;  // grosze
+  invoiceCount:    number;
+  correctionCount: number;
+  externalCount:   number;
+}
+
+export interface RevenueStatistics {
+  year:             number;
+  totals:           RevenueTotals;
+  monthly:          RevenueMonthlyStats[];
+  pendingKsefCount: number;
+}

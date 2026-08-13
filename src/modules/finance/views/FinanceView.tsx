@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import type { FinanceTab, FinancialDocument } from '../types';
+import type { FinanceTab, FinancialDocument, RevenueInvoice } from '../types';
 import { DocumentStatus } from '../types';
-import type { ExpenseSource, ExpensePaymentStatus } from '../types';
+import type { ExpenseSource, ExpensePaymentStatus, KsefRevenueStatus, RevenueSource } from '../types';
 import { useFinanceDocuments } from '../hooks/useFinance';
 import { useKsefExpenses } from '../hooks/useKsef';
+import { useKsefRevenueInvoices } from '../hooks/useKsefRevenue';
 import {
   FinanceSummaryCards,
   DocumentsTable,
@@ -16,6 +17,9 @@ import {
   KsefExpensesTable,
   KsefSyncWidget,
   AddExpenseModal,
+  KsefRevenueTable,
+  IssueInvoiceModal,
+  RevenueInvoiceDetailModal,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
@@ -1156,12 +1160,131 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
   );
 };
 
+// ─── KSeF revenue invoices tab ────────────────────────────────────────────────
+
+interface RevenueFilters {
+  source:     string;
+  ksefStatus: string;
+  duplicates: boolean;
+  page:       number;
+}
+
+interface RevenueTabContentProps {
+  activeDateRange: { dateFrom?: string; dateTo?: string };
+  onSelect: (invoice: RevenueInvoice) => void;
+}
+
+const RevenueTabContent: React.FC<RevenueTabContentProps> = ({ activeDateRange, onSelect }) => {
+  const [filters, setFilters] = useState<RevenueFilters>({
+    source: '', ksefStatus: '', duplicates: false, page: 1,
+  });
+
+  const { invoices, total, isLoading, isError, refetch } = useKsefRevenueInvoices({
+    source:          (filters.source     as RevenueSource)      || undefined,
+    ksefStatus:      (filters.ksefStatus as KsefRevenueStatus)  || undefined,
+    duplicateStatus: filters.duplicates ? 'SUSPECTED' : undefined,
+    dateFrom:        activeDateRange.dateFrom,
+    dateTo:          activeDateRange.dateTo,
+    page:            filters.page,
+    pageSize:        PAGE_SIZE,
+  });
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const hasFilters = !!(filters.source || filters.ksefStatus || filters.duplicates);
+  const setFilter  = <K extends keyof RevenueFilters>(key: K, value: RevenueFilters[K]) =>
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+
+  return (
+    <>
+      <KsefSyncWidget />
+
+      <FiltersStrip>
+        <FilterSelect
+          value={filters.source}
+          onChange={(val) => setFilter('source', val)}
+          options={[
+            { value: 'CRM',      label: 'Wystawione w CRM' },
+            { value: 'EXTERNAL', label: 'Zewnętrzne (z KSeF)' },
+          ]}
+          placeholder="Wszystkie źródła"
+        />
+        <FilterSelect
+          value={filters.ksefStatus}
+          onChange={(val) => setFilter('ksefStatus', val)}
+          options={[
+            { value: 'ACCEPTED',     label: 'W KSeF' },
+            { value: 'SUBMITTED',    label: 'Przetwarzane' },
+            { value: 'QUEUED_RETRY', label: 'Offline24 (do dosłania)' },
+            { value: 'REJECTED',     label: 'Odrzucone' },
+          ]}
+          placeholder="Wszystkie statusy"
+        />
+        <FilterSeparator />
+        {hasFilters && (
+          <ClearFiltersBtn onClick={() => setFilters({ source: '', ksefStatus: '', duplicates: false, page: 1 })}>
+            Wyczyść filtry
+          </ClearFiltersBtn>
+        )}
+        <ToggleLabel>
+          <ToggleTrack $on={filters.duplicates} />
+          <ToggleText>Tylko podejrzane duplikaty</ToggleText>
+          <input
+            type="checkbox"
+            checked={filters.duplicates}
+            onChange={(e) => setFilter('duplicates', e.target.checked)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+          />
+        </ToggleLabel>
+        <RefreshBtn onClick={() => refetch()} title="Odśwież">
+          <RefreshIcon />
+        </RefreshBtn>
+      </FiltersStrip>
+
+      {isError ? (
+        <InlineError>
+          Nie udało się załadować faktur przychodowych.
+          <br />
+          <button onClick={() => refetch()}>Spróbuj ponownie</button>
+        </InlineError>
+      ) : (
+        <KsefRevenueTable invoices={invoices} isLoading={isLoading} onSelect={onSelect} />
+      )}
+
+      {totalPages > 1 && (
+        <PaginationFooter>
+          <PaginationInfo>
+            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+          </PaginationInfo>
+          <PaginationBtns>
+            <PageBtn
+              $disabled={filters.page === 1}
+              disabled={filters.page === 1}
+              onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
+            >
+              <ChevronLeft /> Poprzednia
+            </PageBtn>
+            <PageBtn
+              $disabled={filters.page >= totalPages}
+              disabled={filters.page >= totalPages}
+              onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
+            >
+              Następna <ChevronRight />
+            </PageBtn>
+          </PaginationBtns>
+        </PaginationFooter>
+      )}
+    </>
+  );
+};
+
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export const FinanceView: React.FC = () => {
   const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [isIssueInvoiceModalOpen, setIssueInvoiceModalOpen] = useState(false);
+  const [selectedRevenueInvoiceId, setSelectedRevenueInvoiceId] = useState<string | null>(null);
   const [editingDocument, setEditingDocument] = useState<FinancialDocument | null>(null);
   const [datePreset, setDatePreset]       = useState<DatePreset>('all');
   const [customFrom, setCustomFrom]       = useState('');
@@ -1209,6 +1332,12 @@ export const FinanceView: React.FC = () => {
                 Dodaj fakturę ręcznie
               </PageHeaderPrimaryButton>
             )}
+            {activeTab === 'ksef-invoices' && (
+              <PageHeaderPrimaryButton onClick={() => setIssueInvoiceModalOpen(true)}>
+                <PlusIcon />
+                Wystaw fakturę (KSeF)
+              </PageHeaderPrimaryButton>
+            )}
           </FinHdrActions>
         }
       />
@@ -1232,6 +1361,9 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
               Dokumenty przychodowe
             </TabItem>
+            <TabItem $active={activeTab === 'ksef-invoices'} onClick={() => setActiveTab('ksef-invoices')}>
+              Faktury KSeF
+            </TabItem>
             <TabItem $active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')}>
               Dokumenty kosztowe
             </TabItem>
@@ -1244,6 +1376,7 @@ export const FinanceView: React.FC = () => {
           </TabBar>
           <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
             <option value="income">Dokumenty przychodowe</option>
+            <option value="ksef-invoices">Faktury KSeF</option>
             <option value="expenses">Dokumenty kosztowe</option>
             <option value="cash">Kasa</option>
             <option value="payment-summary">Podsumowanie płatności</option>
@@ -1251,6 +1384,12 @@ export const FinanceView: React.FC = () => {
 
           {activeTab === 'income' && (
             <IncomeTabContent activeDateRange={activeDateRange} onEdit={handleEditDocument} />
+          )}
+          {activeTab === 'ksef-invoices' && (
+            <RevenueTabContent
+              activeDateRange={activeDateRange}
+              onSelect={(invoice) => setSelectedRevenueInvoiceId(invoice.id)}
+            />
           )}
           {activeTab === 'expenses' && (
             <ExpensesTabContent activeDateRange={activeDateRange} />
@@ -1263,6 +1402,14 @@ export const FinanceView: React.FC = () => {
       <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
       <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
       <EditDocumentModal   document={editingDocument}  onClose={closeEditModal} />
+      <IssueInvoiceModal
+        isOpen={isIssueInvoiceModalOpen}
+        onClose={() => setIssueInvoiceModalOpen(false)}
+      />
+      <RevenueInvoiceDetailModal
+        invoiceId={selectedRevenueInvoiceId}
+        onClose={() => setSelectedRevenueInvoiceId(null)}
+      />
     </ViewContainer>
   );
 };
