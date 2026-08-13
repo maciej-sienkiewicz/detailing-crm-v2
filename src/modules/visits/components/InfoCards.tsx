@@ -316,14 +316,16 @@ const StatusPill = styled.span<{ $ok: boolean }>`
     font-weight: 700;
     width: fit-content;
 
+    /* Not handing over keys or documents is a normal outcome, not a failure — red would
+       read as something went wrong. Only the positive state gets a colour. */
     ${props => props.$ok ? `
         background: ${st.accentGreenDim};
         color: ${st.accentGreen};
         border: 1px solid rgba(16, 185, 129, 0.2);
     ` : `
-        background: ${st.accentRedDim};
-        color: ${st.accentRed};
-        border: 1px solid rgba(239, 68, 68, 0.2);
+        background: transparent;
+        color: ${st.textMuted};
+        border: 1px solid ${st.border};
     `}
 `;
 
