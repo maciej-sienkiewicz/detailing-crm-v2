@@ -15,7 +15,7 @@ const st = {
   shadowBlue:    '0 0 0 3px rgba(14,165,233,0.14)',
 } as const;
 
-import type { EmailAutomationConfig, EmailNotificationRule } from '../types';
+import type { EmailAutomationConfig, EmailNotificationRule, EmailRuleKey } from '../types';
 import { useEmailAutomationConfig, useUpdateEmailAutomationConfig } from '../hooks/useEmailCampaigns';
 
 // ─── Spring animations (identical to OfferComposer) ───────────────────────────
@@ -565,42 +565,89 @@ const EyeIcon = () => (
 
 // ─── Variables & template resolution ─────────────────────────────────────────
 
-const VARS: { key: string; label: string }[] = [
-  { key: '{{imie}}',     label: 'imię'     },
-  { key: '{{nazwisko}}', label: 'nazwisko' },
-  { key: '{{data}}',     label: 'data'     },
-  { key: '{{godzina}}',  label: 'godzina'  },
-  { key: '{{studio}}',   label: 'studio'   },
-];
+/**
+ * Sample values used only for the preview. Every key here is something we cannot know
+ * when the template is written — the studio's own name, phone and address are not on the
+ * list, because the studio types those straight into the text.
+ */
+const PREVIEW_VALUES: Record<string, string> = {
+  imie:          'Jan',
+  nazwisko:      'Kowalski',
+  imie_nazwisko: 'Jan Kowalski',
+  data:          '15.06.2026',
+  godzina:       '14:30',
+  pojazd:        'BMW X5',
+  rejestracja:   'WA 12345',
+  numer_wizyty:  'W/2026/0142',
+  link:          'https://example.com/vc/token123',
+  kontrahent:    'Auto Flota Sp. z o.o.',
+  okres:         '01.06.2026 – 30.06.2026',
+  kwota_brutto:  '12 480,00 zł',
+  liczba_wpisow: '18',
+};
 
-function resolveTemplate(tpl: string, studioName: string): string {
-  return tpl
-    .replace(/\{\{imie\}\}/g, 'Jan')
-    .replace(/\{\{nazwisko\}\}/g, 'Kowalski')
-    .replace(/\{\{data\}\}/g, '15.06.2026')
-    .replace(/\{\{godzina\}\}/g, '14:30')
-    .replace(/\{\{studio\}\}/g, studioName);
+const VAR_LABELS: Record<string, string> = {
+  imie:          'imię',
+  nazwisko:      'nazwisko',
+  imie_nazwisko: 'imię i nazwisko',
+  data:          'data',
+  godzina:       'godzina',
+  pojazd:        'pojazd',
+  rejestracja:   'rejestracja',
+  numer_wizyty:  'nr wizyty',
+  link:          'link',
+  kontrahent:    'kontrahent',
+  okres:         'okres',
+  kwota_brutto:  'kwota brutto',
+  liczba_wpisow: 'liczba wpisów',
+};
+
+/** Mirrors MessageTemplateKind on the backend — anything else is rejected on save. */
+const RULE_PLACEHOLDERS: Record<EmailRuleKey, string[]> = {
+  visitWelcome:        ['imie', 'nazwisko', 'imie_nazwisko', 'pojazd', 'rejestracja', 'numer_wizyty', 'data', 'godzina'],
+  visitReadyForPickup: ['imie', 'nazwisko', 'imie_nazwisko', 'pojazd', 'rejestracja', 'numer_wizyty', 'data', 'godzina'],
+  visitCardLink:       ['imie', 'nazwisko', 'imie_nazwisko', 'pojazd', 'rejestracja', 'numer_wizyty', 'data', 'godzina', 'link'],
+  reservationCardLink: ['imie', 'nazwisko', 'imie_nazwisko', 'data', 'godzina', 'link'],
+  batchOrderClose:     ['kontrahent', 'okres', 'kwota_brutto', 'liczba_wpisow'],
+};
+
+function resolveTemplate(tpl: string): string {
+  return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key: string) =>
+    key in PREVIEW_VALUES ? PREVIEW_VALUES[key] : match
+  );
+}
+
+/** Tokens the studio typed that this rule cannot fill — the save would be rejected. */
+function unknownPlaceholders(tpl: string, allowed: string[]): string[] {
+  const used = Array.from(tpl.matchAll(/\{\{\s*(\w+)\s*\}\}/g)).map(m => m[1]);
+  return Array.from(new Set(used.filter(key => !allowed.includes(key))));
 }
 
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
 
 interface RuleEditorProps {
-  rule:       EmailNotificationRule;
-  studioName: string;
-  onChange:   (rule: EmailNotificationRule) => void;
+  rule:         EmailNotificationRule;
+  placeholders: string[];
+  /** Shown as the sender line in the preview — not a template variable. */
+  studioName:   string;
+  onChange:     (rule: EmailNotificationRule) => void;
 }
 
-const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) => {
+const RuleEditor: React.FC<RuleEditorProps> = ({ rule, placeholders, studioName, onChange }) => {
   const [showPreview, setShowPreview] = useState(false);
 
   const insertIntoSubject = (key: string) =>
-    onChange({ ...rule, subjectTemplate: rule.subjectTemplate + key });
+    onChange({ ...rule, subjectTemplate: `${rule.subjectTemplate}{{${key}}}` });
 
   const insertIntoBody = (key: string) =>
-    onChange({ ...rule, bodyTemplate: rule.bodyTemplate + key });
+    onChange({ ...rule, bodyTemplate: `${rule.bodyTemplate}{{${key}}}` });
 
-  const resolvedSubject = resolveTemplate(rule.subjectTemplate, studioName);
-  const resolvedBody    = resolveTemplate(rule.bodyTemplate, studioName);
+  const resolvedSubject = resolveTemplate(rule.subjectTemplate);
+  const resolvedBody    = resolveTemplate(rule.bodyTemplate);
+  const unknownVars     = unknownPlaceholders(
+    `${rule.subjectTemplate} ${rule.bodyTemplate}`,
+    placeholders
+  );
 
   return (
     <>
@@ -608,9 +655,9 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) =
         <SectionLabel>Temat wiadomości</SectionLabel>
         <ChipsRow>
           <ChipsLead>Wstaw:</ChipsLead>
-          {VARS.map(({ key, label }) => (
-            <VarChip key={key} type="button" title={key} onClick={() => insertIntoSubject(key)}>
-              {label}
+          {placeholders.map(key => (
+            <VarChip key={key} type="button" title={`{{${key}}}`} onClick={() => insertIntoSubject(key)}>
+              {VAR_LABELS[key] ?? key}
             </VarChip>
           ))}
         </ChipsRow>
@@ -626,9 +673,9 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) =
         <SectionLabel>Treść wiadomości</SectionLabel>
         <ChipsRow>
           <ChipsLead>Wstaw:</ChipsLead>
-          {VARS.map(({ key, label }) => (
-            <VarChip key={key} type="button" title={key} onClick={() => insertIntoBody(key)}>
-              {label}
+          {placeholders.map(key => (
+            <VarChip key={key} type="button" title={`{{${key}}}`} onClick={() => insertIntoBody(key)}>
+              {VAR_LABELS[key] ?? key}
             </VarChip>
           ))}
         </ChipsRow>
@@ -638,6 +685,13 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) =
           placeholder="Wpisz treść wiadomości email…"
         />
       </FieldGroup>
+
+      {unknownVars.length > 0 && (
+        <DisabledHint>
+          <InfoIcon />
+          {`Ta wiadomość nie zna zmiennych ${unknownVars.map(v => `{{${v}}}`).join(', ')} — usuń je lub wpisz wartość wprost, inaczej zapis zostanie odrzucony.`}
+        </DisabledHint>
+      )}
 
       <PreviewBtn type="button" onClick={() => setShowPreview(true)}>
         <EyeIcon />
@@ -673,32 +727,78 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) =
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
-const CONFIG_DEFAULTS: EmailAutomationConfig = {
-  visitWelcome: {
-    enabled: false,
-    subjectTemplate: 'Witaj {{imie}} w {{studio}}!',
-    bodyTemplate:
-      'Drogi/a {{imie}},\n\nDziękujemy za umówienie wizyty w {{studio}} na {{data}} o godz. {{godzina}}.\n\nCzekamy na Ciebie!\n\nZespół {{studio}}',
-  },
-  visitReadyForPickup: {
-    enabled: false,
-    subjectTemplate: 'Twój pojazd jest gotowy do odbioru – {{studio}}',
-    bodyTemplate:
-      'Drogi/a {{imie}},\n\nInformujemy, że Twój pojazd jest już gotowy do odbioru w {{studio}}.\n\nDo zobaczenia!\n\nZespół {{studio}}',
-  },
-};
+/**
+ * A rule the backend has not sent yet renders as empty and disabled. We never invent
+ * message text here: what goes out to a customer is only ever what the studio saved.
+ */
+const BLANK_RULE: EmailNotificationRule = { enabled: false, subjectTemplate: '', bodyTemplate: '' };
 
 function mergeWithDefaults(config: Partial<EmailAutomationConfig>): EmailAutomationConfig {
-  return {
-    visitWelcome:        config.visitWelcome        ?? CONFIG_DEFAULTS.visitWelcome,
-    visitReadyForPickup: config.visitReadyForPickup ?? CONFIG_DEFAULTS.visitReadyForPickup,
-  };
+  return (Object.keys(RULE_PLACEHOLDERS) as EmailRuleKey[]).reduce((acc, key) => {
+    acc[key] = config[key] ?? BLANK_RULE;
+    return acc;
+  }, {} as EmailAutomationConfig);
 }
+
+// ─── Rule catalogue ───────────────────────────────────────────────────────────
+
+const svg = (children: React.ReactNode) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {children}
+  </svg>
+);
+
+interface EmailRuleCardDef {
+  key:         EmailRuleKey;
+  title:       string;
+  description: string;
+  trigger:     string;
+  icon:        React.ReactNode;
+}
+
+const RULE_CARDS: EmailRuleCardDef[] = [
+  {
+    key: 'visitWelcome',
+    title: 'Powitanie przy przyjęciu pojazdu',
+    description: 'Email wysyłany do klienta w momencie gdy pojazd zostaje przyjęty i wizyta zostaje rozpoczęta.',
+    trigger: 'Przy rozpoczęciu wizyty',
+    icon: svg(<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>),
+  },
+  {
+    key: 'visitReadyForPickup',
+    title: 'Pojazd gotowy do odbioru',
+    description: 'Poinformuj klienta natychmiast gdy jego pojazd jest gotowy — jeden klik z widoku wizyty.',
+    trigger: 'Po oznaczeniu jako gotowy',
+    icon: svg(<><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></>),
+  },
+  {
+    key: 'visitCardLink',
+    title: 'Link do Karty Wizyty',
+    description: 'Email z linkiem do Karty Wizyty. Wstaw zmienną link, żeby dodać adres karty.',
+    trigger: 'Przy wysyłce Karty Wizyty',
+    icon: svg(<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>),
+  },
+  {
+    key: 'reservationCardLink',
+    title: 'Link do Karty Rezerwacji',
+    description: 'Email z linkiem do strony rezerwacji, wysyłany zanim pojazd trafi do serwisu.',
+    trigger: 'Przy wysyłce Karty Rezerwacji',
+    icon: svg(<><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M12 14h4"/></>),
+  },
+  {
+    key: 'batchOrderClose',
+    title: 'Zestawienie zbiorcze dla kontrahenta',
+    description: 'Email z podsumowaniem zamkniętego miesiąca i raportem PDF w załączniku.',
+    trigger: 'Przy zamknięciu miesiąca',
+    icon: svg(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></>),
+  },
+];
 
 // ─── Card subcomponent ────────────────────────────────────────────────────────
 
 interface EmailRuleCardProps {
   rule:            EmailNotificationRule;
+  placeholders:    string[];
   open:            boolean;
   title:           string;
   description:     string;
@@ -711,7 +811,7 @@ interface EmailRuleCardProps {
 }
 
 const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
-  rule, open, title, description, icon, meta, studioName,
+  rule, placeholders, open, title, description, icon, meta, studioName,
   onToggleOpen, onToggleEnabled, onChange,
 }) => (
   <Card $enabled={rule.enabled}>
@@ -744,7 +844,7 @@ const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
               Reguła jest wyłączona — możesz edytować szablon, ale emaile nie będą wysyłane.
             </DisabledHint>
           )}
-          <RuleEditor rule={rule} studioName={studioName} onChange={onChange} />
+          <RuleEditor rule={rule} placeholders={placeholders} studioName={studioName} onChange={onChange} />
         </CardBody>
       </>
     )}
@@ -783,21 +883,21 @@ export const EmailAutomationSettings: React.FC = () => {
   const [localConfig, setLocalConfig] = useState<EmailAutomationConfig | null>(null);
   const [savedConfig, setSavedConfig] = useState<EmailAutomationConfig | null>(null);
   const [dirty, setDirty]             = useState(false);
-  const [openCards, setOpenCards]     = useState<Set<keyof EmailAutomationConfig>>(new Set());
+  const [openCards, setOpenCards]     = useState<Set<EmailRuleKey>>(new Set());
 
   useEffect(() => {
     if (config && !localConfig) {
       const merged = mergeWithDefaults(config);
       setLocalConfig(merged);
       setSavedConfig(merged);
-      const initialOpen = new Set<keyof EmailAutomationConfig>(
-        (Object.keys(merged) as (keyof EmailAutomationConfig)[]).filter(k => merged[k].enabled)
+      const initialOpen = new Set<EmailRuleKey>(
+        (Object.keys(merged) as EmailRuleKey[]).filter(k => merged[k].enabled)
       );
       setOpenCards(initialOpen);
     }
   }, [config, localConfig]);
 
-  const toggleCardOpen = (key: keyof EmailAutomationConfig) => {
+  const toggleCardOpen = (key: EmailRuleKey) => {
     setOpenCards(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -806,13 +906,13 @@ export const EmailAutomationSettings: React.FC = () => {
     });
   };
 
-  const makeRuleUpdater = (key: keyof EmailAutomationConfig) => (rule: EmailNotificationRule) => {
+  const makeRuleUpdater = (key: EmailRuleKey) => (rule: EmailNotificationRule) => {
     if (!localConfig) return;
     setLocalConfig({ ...localConfig, [key]: rule });
     setDirty(true);
   };
 
-  const makeToggleEnabled = (key: keyof EmailAutomationConfig) => (e: React.MouseEvent) => {
+  const makeToggleEnabled = (key: EmailRuleKey) => (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!localConfig) return;
     const rule = localConfig[key];
@@ -841,49 +941,26 @@ export const EmailAutomationSettings: React.FC = () => {
   return (
     <>
       <Container>
-        <EmailRuleCard
-          rule={localConfig.visitWelcome}
-          open={openCards.has('visitWelcome')}
-          title="Powitanie przy przyjęciu pojazdu"
-          description="Email wysyłany do klienta w momencie gdy pojazd zostaje przyjęty i wizyta zostaje rozpoczęta."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-          }
-          meta={
-            localConfig.visitWelcome.enabled
-              ? <ImmediateBadge>Przy rozpoczęciu wizyty</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('visitWelcome')}
-          onToggleEnabled={makeToggleEnabled('visitWelcome')}
-          onChange={makeRuleUpdater('visitWelcome')}
-        />
-
-        <EmailRuleCard
-          rule={localConfig.visitReadyForPickup}
-          open={openCards.has('visitReadyForPickup')}
-          title="Pojazd gotowy do odbioru"
-          description="Poinformuj klienta natychmiast gdy jego pojazd jest gotowy — jeden klik z widoku wizyty."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 8 12 12 14 14"/>
-            </svg>
-          }
-          meta={
-            localConfig.visitReadyForPickup.enabled
-              ? <ImmediateBadge>Po oznaczeniu jako gotowy</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('visitReadyForPickup')}
-          onToggleEnabled={makeToggleEnabled('visitReadyForPickup')}
-          onChange={makeRuleUpdater('visitReadyForPickup')}
-        />
+        {RULE_CARDS.map(card => (
+          <EmailRuleCard
+            key={card.key}
+            rule={localConfig[card.key]}
+            placeholders={RULE_PLACEHOLDERS[card.key]}
+            open={openCards.has(card.key)}
+            title={card.title}
+            description={card.description}
+            studioName={studioName}
+            icon={card.icon}
+            meta={
+              localConfig[card.key].enabled
+                ? <ImmediateBadge>{card.trigger}</ImmediateBadge>
+                : <InactiveLabel>Nieaktywne</InactiveLabel>
+            }
+            onToggleOpen={() => toggleCardOpen(card.key)}
+            onToggleEnabled={makeToggleEnabled(card.key)}
+            onChange={makeRuleUpdater(card.key)}
+          />
+        ))}
       </Container>
 
       <UnsavedChangesBanner

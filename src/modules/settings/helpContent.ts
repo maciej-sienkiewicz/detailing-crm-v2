@@ -186,7 +186,7 @@ export const SMS_TEMPLATES_HELP: HelpContent = {
         {
             id: 'trigger',
             label: 'Wyzwalacz wysyłki',
-            description: 'Określa zdarzenie, po którym SMS jest wysyłany automatycznie. Każdy szablon przypisany jest do konkretnego etapu obsługi zlecenia — np. przyjęcia pojazdu, zakończenia usługi lub gotowości do odbioru.',
+            description: 'Określa zdarzenie, po którym SMS jest wysyłany automatycznie. Każdy szablon przypisany jest do konkretnego etapu obsługi zlecenia — np. przyjęcia pojazdu, zakończenia usługi lub gotowości do odbioru. Wyłączony szablon albo pusta treść oznaczają, że wiadomość nie zostanie wysłana wcale — system nie ma żadnej treści zapasowej.',
             usedIn: [
                 'Automatyczna wysyłka przy zdarzeniach w zleceniu',
                 'Widoczny w historii komunikacji z klientem',
@@ -195,7 +195,7 @@ export const SMS_TEMPLATES_HELP: HelpContent = {
         {
             id: 'content',
             label: 'Treść wiadomości',
-            description: 'Tekst SMS wysyłanego do klienta. Możesz używać zmiennych dynamicznych otoczonych podwójnymi nawiasami klamrowymi — np. {{imię}}, {{numer_zlecenia}}, {{marka_pojazdu}}. System zastąpi je rzeczywistymi danymi przed wysyłką. Jeden SMS to standardowo 160 znaków; dłuższe wiadomości są łączone i zużywają więcej kredytów.',
+            description: 'Tekst SMS wysyłanego do klienta. Zmienne wstawiasz przyciskami nad polem — każdy szablon udostępnia tylko te, które potrafi wypełnić (np. {{imie}}, {{data}}, {{godzina}}, {{pojazd}}, {{link}}). Nazwa, telefon i adres Twojego studia nie są zmiennymi — wpisz je wprost w treści, bo znasz je już w chwili pisania szablonu. Jeden SMS to standardowo 160 znaków; dłuższe wiadomości są łączone i zużywają więcej kredytów.',
             usedIn: [
                 'Wiadomość SMS do klienta',
                 'Historia komunikacji w profilu klienta',
@@ -219,7 +219,7 @@ export const EMAIL_TEMPLATES_HELP: HelpContent = {
         {
             id: 'trigger',
             label: 'Wyzwalacz wysyłki',
-            description: 'Określa zdarzenie, po którym e-mail jest wysyłany automatycznie do klienta. Dostępne wyzwalacze odpowiadają etapom obsługi zlecenia — od przyjęcia pojazdu po wystawienie faktury.',
+            description: 'Określa zdarzenie, po którym e-mail jest wysyłany automatycznie do klienta. Dostępne wyzwalacze odpowiadają etapom obsługi zlecenia — od przyjęcia pojazdu po zamknięcie miesiąca dla kontrahenta. Wyłączony szablon albo pusty temat lub treść oznaczają, że wiadomość nie zostanie wysłana wcale — system nie ma żadnej treści zapasowej.',
             usedIn: [
                 'Automatyczna wysyłka przy zdarzeniach w zleceniu',
                 'Historia komunikacji z klientem',
@@ -228,7 +228,7 @@ export const EMAIL_TEMPLATES_HELP: HelpContent = {
         {
             id: 'content',
             label: 'Treść wiadomości',
-            description: 'Treść e-maila wysyłanego do klienta. Możesz używać zmiennych dynamicznych — np. {{imię_klienta}}, {{numer_zlecenia}}. Stopka z danymi firmy (logo, adres, dane kontaktowe) jest dodawana automatycznie na podstawie ustawień w zakładce „Dane firmy".',
+            description: 'Temat i treść e-maila wysyłanego do klienta. Zmienne wstawiasz przyciskami nad polem — każdy szablon udostępnia tylko te, które potrafi wypełnić (np. {{imie_nazwisko}}, {{pojazd}}, {{numer_wizyty}}, {{link}}). Nazwa, adres i dane kontaktowe Twojej firmy nie są zmiennymi — wpisz je wprost w treści lub w podpisie.',
             usedIn: [
                 'Wiadomość e-mail do klienta',
                 'Historia komunikacji w profilu klienta',
@@ -237,10 +237,10 @@ export const EMAIL_TEMPLATES_HELP: HelpContent = {
         {
             id: 'footer',
             label: 'Stopka e-maila',
-            description: 'Stopka jest generowana automatycznie na podstawie danych z zakładki „Dane firmy". Zawiera logo, dane kontaktowe i opcjonalnie link do strony www. Nie wymaga ręcznej konfiguracji — zmiany w danych firmy są od razu widoczne w stopce.',
+            description: 'Automatyczne e-maile nie mają osobnej stopki — wszystko, co ma trafić do klienta, wpisujesz w treści szablonu, łącznie z podpisem i danymi kontaktowymi. Osobne stopki SMS i e-mail ustawiasz tylko dla kampanii marketingowych, w Kampanie → Ustawienia.',
             usedIn: [
                 'Każdy automatyczny e-mail',
-                'Budowanie rozpoznawalności marki',
+                'Stopki kampanii: Kampanie → Ustawienia',
             ],
         },
     ],
