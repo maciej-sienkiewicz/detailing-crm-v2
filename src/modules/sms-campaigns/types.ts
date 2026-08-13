@@ -61,17 +61,28 @@ export interface AudiencePreviewResult {
 export interface SmsAutomationRule {
   enabled: boolean;
   offsetMinutes?: number;   // minutes before/after event (absent for immediate event-based rules)
-  messageTemplate: string;  // may contain {{imie}}, {{data}}, {{godzina}}, {{studio}}
+  /**
+   * Free text with {{placeholder}} tokens. Which tokens are allowed depends on the rule —
+   * see SMS_RULE_PLACEHOLDERS. There is no placeholder for the studio's own name, phone or
+   * address: those are known when the template is written, so they go in as plain text.
+   */
+  messageTemplate: string;
 }
 
-export interface SmsAutomationConfig {
-  preVisit: SmsAutomationRule;
-  postVisit: SmsAutomationRule;
-  bookingConfirmation: SmsAutomationRule;
-  rescheduleConfirmation: SmsAutomationRule;
-  visitReadyForPickup: SmsAutomationRule;
-  visitCardLink: SmsAutomationRule;
-}
+/** Every SMS whose text the studio owns. The backend rejects a template using any other token. */
+export type SmsRuleKey =
+  | 'preVisit'
+  | 'postVisit'
+  | 'delayedReminder'
+  | 'bookingConfirmation'
+  | 'rescheduleConfirmation'
+  | 'visitReadyForPickup'
+  | 'visitCardLink'
+  | 'reservationCardLink'
+  | 'upsellConsent'
+  | 'signatureRequest';
+
+export type SmsAutomationConfig = Record<SmsRuleKey, SmsAutomationRule>;
 
 // ─── Request / response shapes ────────────────────────────────────────────────
 

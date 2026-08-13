@@ -15,7 +15,7 @@ const st = {
   shadowBlue:    '0 0 0 3px rgba(14,165,233,0.14)',
 } as const;
 
-import type { SmsAutomationConfig, SmsAutomationRule, SmsSenderNameConfig } from '../types';
+import type { SmsAutomationConfig, SmsAutomationRule, SmsRuleKey, SmsSenderNameConfig } from '../types';
 import {
   useAutomationConfig,
   useUpdateAutomationConfig,
@@ -1194,38 +1194,80 @@ function formatTimingBadge(minutes: number, direction: 'before' | 'after'): stri
   return `${value} ${unitStr} ${direction === 'before' ? 'przed wizytą' : 'po wizycie'}`;
 }
 
-function resolveTemplate(tpl: string, studioName: string): string {
-  return tpl
-    .replace(/\{\{imie\}\}/g, 'Jan')
-    .replace(/\{\{nazwisko\}\}/g, 'Kowalski')
-    .replace(/\{\{data\}\}/g, '15.06.2026')
-    .replace(/\{\{godzina\}\}/g, '14:30')
-    .replace(/\{\{studio\}\}/g, studioName)
-    .replace(/\{\{link\}\}/g, 'https://example.com/vc/token123');
+/**
+ * Sample values used only for the preview. Every key here is something we cannot know
+ * when the template is written — the studio's own name, phone and address are not on the
+ * list, because the studio types those straight into the text.
+ */
+const PREVIEW_VALUES: Record<string, string> = {
+  imie:         'Jan',
+  nazwisko:     'Kowalski',
+  data:         '15.06.2026',
+  godzina:      '14:30',
+  pojazd:       'BMW X5',
+  rejestracja:  'WA 12345',
+  numer_wizyty: 'W/2026/0142',
+  uslugi:       'Korekta lakieru (w cenie 1200.00 PLN)',
+  kwota:        '1200.00',
+  dokument:     'Protokół przyjęcia pojazdu',
+  link:         'https://example.com/vc/token123',
+};
+
+const VAR_LABELS: Record<string, string> = {
+  imie:         'imię',
+  nazwisko:     'nazwisko',
+  data:         'data',
+  godzina:      'godzina',
+  pojazd:       'pojazd',
+  rejestracja:  'rejestracja',
+  numer_wizyty: 'nr wizyty',
+  uslugi:       'usługi',
+  kwota:        'kwota',
+  dokument:     'dokument',
+  link:         'link',
+};
+
+/** Mirrors MessageTemplateKind on the backend — anything else is rejected on save. */
+const RULE_PLACEHOLDERS: Record<SmsRuleKey, string[]> = {
+  preVisit:               ['imie', 'nazwisko', 'data', 'godzina'],
+  postVisit:              ['imie', 'nazwisko', 'data', 'godzina'],
+  delayedReminder:        ['imie', 'nazwisko', 'data', 'godzina'],
+  bookingConfirmation:    ['imie', 'nazwisko', 'data', 'godzina'],
+  rescheduleConfirmation: ['imie', 'nazwisko', 'data', 'godzina'],
+  visitReadyForPickup:    ['imie', 'nazwisko', 'pojazd', 'rejestracja', 'numer_wizyty'],
+  visitCardLink:          ['imie', 'nazwisko', 'pojazd', 'rejestracja', 'numer_wizyty', 'data', 'godzina', 'link'],
+  reservationCardLink:    ['imie', 'nazwisko', 'data', 'godzina', 'link'],
+  upsellConsent:          ['imie', 'nazwisko', 'uslugi', 'kwota'],
+  signatureRequest:       ['imie', 'nazwisko', 'dokument', 'link'],
+};
+
+function resolveTemplate(tpl: string): string {
+  return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key: string) =>
+    key in PREVIEW_VALUES ? PREVIEW_VALUES[key] : match
+  );
 }
 
-const VARS: { key: string; label: string }[] = [
-  { key: '{{imie}}',     label: 'imię'     },
-  { key: '{{nazwisko}}', label: 'nazwisko' },
-  { key: '{{data}}',     label: 'data'     },
-  { key: '{{godzina}}',  label: 'godzina'  },
-  { key: '{{studio}}',   label: 'studio'   },
-  { key: '{{link}}',     label: 'link'     },
-];
+/** Tokens the studio typed that this rule cannot fill — the save would be rejected. */
+function unknownPlaceholders(tpl: string, allowed: string[]): string[] {
+  const used = Array.from(tpl.matchAll(/\{\{\s*(\w+)\s*\}\}/g)).map(m => m[1]);
+  return Array.from(new Set(used.filter(key => !allowed.includes(key))));
+}
 
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
 
 interface RuleEditorProps {
   rule:            SmsAutomationRule;
+  placeholders:    string[];
+  /** Shown as the sender line in the preview — not a template variable. */
+  studioName:      string;
   direction?:      'before' | 'after';
   directionLabel?: string;
   showTiming?:     boolean;
-  studioName:      string;
   onChange:        (rule: SmsAutomationRule) => void;
 }
 
 const RuleEditor: React.FC<RuleEditorProps> = ({
-  rule, direction, directionLabel, showTiming = true, studioName, onChange,
+  rule, placeholders, studioName, direction, directionLabel, showTiming = true, onChange,
 }) => {
   const [showPreview, setShowPreview] = useState(false);
 
@@ -1239,10 +1281,11 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
     onChange({ ...rule, offsetMinutes: valueToMinutes(v, u) });
 
   const insertVar = (key: string) =>
-    onChange({ ...rule, messageTemplate: rule.messageTemplate + key });
+    onChange({ ...rule, messageTemplate: `${rule.messageTemplate}{{${key}}}` });
 
-  const resolvedText = resolveTemplate(rule.messageTemplate, studioName);
+  const resolvedText = resolveTemplate(rule.messageTemplate);
   const resolvedLen  = resolvedText.length;
+  const unknownVars  = unknownPlaceholders(rule.messageTemplate, placeholders);
 
   return (
     <>
@@ -1280,9 +1323,9 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
           <SectionLabel>Treść wiadomości</SectionLabel>
           <ChipsRow>
             <ChipsLead>Wstaw:</ChipsLead>
-            {VARS.map(({ key, label }) => (
-              <VarChip key={key} type="button" title={key} onClick={() => insertVar(key)}>
-                {label}
+            {placeholders.map(key => (
+              <VarChip key={key} type="button" title={`{{${key}}}`} onClick={() => insertVar(key)}>
+                {VAR_LABELS[key] ?? key}
               </VarChip>
             ))}
           </ChipsRow>
@@ -1303,6 +1346,13 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
           </CharCountLabel>
         </TextareaFooter>
       </MessageSection>
+
+      {unknownVars.length > 0 && (
+        <DisabledHint>
+          <InfoIcon />
+          {`Ta wiadomość nie zna zmiennych ${unknownVars.map(v => `{{${v}}}`).join(', ')} — usuń je lub wpisz wartość wprost, inaczej zapis zostanie odrzucony.`}
+        </DisabledHint>
+      )}
 
       <PreviewBtn type="button" onClick={() => setShowPreview(true)}>
         <EyeIcon />
@@ -1345,30 +1395,122 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
-const CONFIG_DEFAULTS: SmsAutomationConfig = {
-  preVisit:               { enabled: false, offsetMinutes: 60,  messageTemplate: '' },
-  postVisit:              { enabled: false, offsetMinutes: 30,  messageTemplate: '' },
-  bookingConfirmation:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
-  rescheduleConfirmation: { enabled: false, messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
-  visitReadyForPickup:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, Twój pojazd jest gotowy do odbioru w {{studio}}. Zapraszamy!' },
-  visitCardLink:          { enabled: false, messageTemplate: '{{studio}}: Karta Twojej wizyty jest dostępna tutaj: {{link}}' },
+/**
+ * A rule the backend has not sent yet renders as empty and disabled. We never invent
+ * message text here: what goes out to a customer is only ever what the studio saved.
+ */
+const BLANK_RULE: SmsAutomationRule = { enabled: false, messageTemplate: '' };
+
+const OFFSET_DEFAULTS: Partial<Record<SmsRuleKey, number>> = {
+  preVisit:        60,
+  postVisit:       30,
+  delayedReminder: 90 * 24 * 60,
 };
 
 function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationConfig {
-  return {
-    preVisit:               config.preVisit               ?? CONFIG_DEFAULTS.preVisit,
-    postVisit:              config.postVisit              ?? CONFIG_DEFAULTS.postVisit,
-    bookingConfirmation:    config.bookingConfirmation    ?? CONFIG_DEFAULTS.bookingConfirmation,
-    rescheduleConfirmation: config.rescheduleConfirmation ?? CONFIG_DEFAULTS.rescheduleConfirmation,
-    visitReadyForPickup:    config.visitReadyForPickup    ?? CONFIG_DEFAULTS.visitReadyForPickup,
-    visitCardLink:          config.visitCardLink          ?? CONFIG_DEFAULTS.visitCardLink,
-  };
+  return (Object.keys(RULE_PLACEHOLDERS) as SmsRuleKey[]).reduce((acc, key) => {
+    const offsetMinutes = OFFSET_DEFAULTS[key];
+    acc[key] = config[key] ?? (offsetMinutes ? { ...BLANK_RULE, offsetMinutes } : BLANK_RULE);
+    return acc;
+  }, {} as SmsAutomationConfig);
 }
+
+// ─── Rule catalogue ───────────────────────────────────────────────────────────
+
+const svg = (children: React.ReactNode) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {children}
+  </svg>
+);
+
+interface RuleCardDef {
+  key:          SmsRuleKey;
+  title:        string;
+  description:  string;
+  icon:         React.ReactNode;
+  /** Time-driven rules show a timing editor; event-driven ones show [trigger]. */
+  direction?:   'before' | 'after';
+  trigger?:     string;
+}
+
+const RULE_CARDS: RuleCardDef[] = [
+  {
+    key: 'preVisit',
+    title: 'Przypomnienie przed wizytą',
+    description: 'Wyślij klientowi SMS z przypomnieniem na kilka godzin lub dni przed zaplanowaną wizytą.',
+    direction: 'before',
+    icon: svg(<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>),
+  },
+  {
+    key: 'postVisit',
+    title: 'Wiadomość po wizycie',
+    description: 'Podziękuj klientowi za wizytę i zachęć do ponownego skorzystania z usług lub wystawienia opinii.',
+    direction: 'after',
+    icon: svg(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>),
+  },
+  {
+    key: 'delayedReminder',
+    title: 'Przypomnienie po dłuższej przerwie',
+    description: 'Odezwij się do klienta, który dawno nie był w serwisie — domyślnie 3 miesiące po odbiorze pojazdu.',
+    direction: 'after',
+    icon: svg(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>),
+  },
+  {
+    key: 'bookingConfirmation',
+    title: 'Potwierdzenie rezerwacji',
+    description: 'Klient otrzyma SMS z potwierdzeniem natychmiast po dokonaniu rezerwacji.',
+    trigger: 'Natychmiast po rezerwacji',
+    icon: svg(<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></>),
+  },
+  {
+    key: 'rescheduleConfirmation',
+    title: 'Potwierdzenie zmiany terminu',
+    description: 'Poinformuj klienta o nowym terminie natychmiast po zmianie lub przełożeniu wizyty.',
+    trigger: 'Natychmiast po zmianie',
+    icon: svg(<><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>),
+  },
+  {
+    key: 'visitReadyForPickup',
+    title: 'Pojazd gotowy do odbioru',
+    description: 'Powiadom klienta SMS-em, gdy pojazd jest gotowy do odbioru po wykonaniu usług.',
+    trigger: 'Natychmiast po oznaczeniu gotowości',
+    icon: svg(<><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><circle cx="20" cy="16" r="1"/></>),
+  },
+  {
+    key: 'visitCardLink',
+    title: 'Link do Karty Wizyty',
+    description: 'SMS z linkiem do Karty Wizyty. Wstaw zmienną link, żeby dodać adres karty.',
+    trigger: 'Przy wysyłce Karty Wizyty',
+    icon: svg(<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>),
+  },
+  {
+    key: 'reservationCardLink',
+    title: 'Link do Karty Rezerwacji',
+    description: 'SMS z linkiem do strony rezerwacji, wysyłany zanim pojazd trafi do serwisu.',
+    trigger: 'Przy wysyłce Karty Rezerwacji',
+    icon: svg(<><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M12 14h4"/></>),
+  },
+  {
+    key: 'upsellConsent',
+    title: 'Zgoda na dodanie usług',
+    description: 'SMS z prośbą o potwierdzenie, gdy klient sam wybierze dodatkowe usługi z Karty Wizyty. Klient odpowiada TAK — zachowaj tę instrukcję w treści.',
+    trigger: 'Gdy klient zamówi usługi z karty',
+    icon: svg(<><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></>),
+  },
+  {
+    key: 'signatureRequest',
+    title: 'Link do podpisu dokumentu',
+    description: 'SMS z linkiem do dokumentu czekającego na podpis klienta.',
+    trigger: 'Przy wysyłce dokumentu do podpisu',
+    icon: svg(<><path d="M3 17c3 0 3-10 6-10s3 10 6 10 3-4 6-4"/><path d="M3 21h18"/></>),
+  },
+];
 
 // ─── Card subcomponent ────────────────────────────────────────────────────────
 
 interface RuleCardProps {
   rule:            SmsAutomationRule;
+  placeholders:    string[];
   open:            boolean;
   title:           string;
   description:     string;
@@ -1383,7 +1525,7 @@ interface RuleCardProps {
 }
 
 const RuleCard: React.FC<RuleCardProps> = ({
-  rule, open, title, description, icon, meta, studioName,
+  rule, placeholders, open, title, description, icon, meta, studioName,
   onToggleOpen, onToggleEnabled, onChange,
   showTiming = false, direction,
 }) => (
@@ -1419,6 +1561,7 @@ const RuleCard: React.FC<RuleCardProps> = ({
           )}
           <RuleEditor
             rule={rule}
+            placeholders={placeholders}
             direction={direction}
             showTiming={showTiming}
             studioName={studioName}
@@ -1463,21 +1606,21 @@ export const AutomationSettings: React.FC = () => {
   const [localConfig, setLocalConfig] = useState<SmsAutomationConfig | null>(null);
   const [savedConfig, setSavedConfig] = useState<SmsAutomationConfig | null>(null);
   const [dirty, setDirty]             = useState(false);
-  const [openCards, setOpenCards]     = useState<Set<keyof SmsAutomationConfig>>(new Set());
+  const [openCards, setOpenCards]     = useState<Set<SmsRuleKey>>(new Set());
 
   useEffect(() => {
     if (config && !localConfig) {
       const merged = mergeWithDefaults(config);
       setLocalConfig(merged);
       setSavedConfig(merged);
-      const initialOpen = new Set<keyof SmsAutomationConfig>(
-        (Object.keys(merged) as (keyof SmsAutomationConfig)[]).filter(k => merged[k].enabled)
+      const initialOpen = new Set<SmsRuleKey>(
+        (Object.keys(merged) as SmsRuleKey[]).filter(k => merged[k].enabled)
       );
       setOpenCards(initialOpen);
     }
   }, [config, localConfig]);
 
-  const toggleCardOpen = (key: keyof SmsAutomationConfig) => {
+  const toggleCardOpen = (key: SmsRuleKey) => {
     setOpenCards(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -1486,13 +1629,13 @@ export const AutomationSettings: React.FC = () => {
     });
   };
 
-  const makeRuleUpdater = (key: keyof SmsAutomationConfig) => (rule: SmsAutomationRule) => {
+  const makeRuleUpdater = (key: SmsRuleKey) => (rule: SmsAutomationRule) => {
     if (!localConfig) return;
     setLocalConfig({ ...localConfig, [key]: rule });
     setDirty(true);
   };
 
-  const makeToggleEnabled = (key: keyof SmsAutomationConfig) => (e: React.MouseEvent) => {
+  const makeToggleEnabled = (key: SmsRuleKey) => (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!localConfig) return;
     const rule = localConfig[key];
@@ -1526,149 +1669,35 @@ export const AutomationSettings: React.FC = () => {
       <Container>
         <SmsSenderNameCard />
 
-        <RuleCard
-          rule={localConfig.preVisit}
-          open={openCards.has('preVisit')}
-          title="Przypomnienie przed wizytą"
-          description="Wyślij klientowi SMS z przypomnieniem na kilka godzin lub dni przed zaplanowaną wizytą."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          }
-          meta={
-            localConfig.preVisit.enabled
-              ? <TimingBadge>{formatTimingBadge(localConfig.preVisit.offsetMinutes ?? 60, 'before')}</TimingBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('preVisit')}
-          onToggleEnabled={makeToggleEnabled('preVisit')}
-          onChange={makeRuleUpdater('preVisit')}
-          showTiming
-          direction="before"
-        />
-
-        <RuleCard
-          rule={localConfig.postVisit}
-          open={openCards.has('postVisit')}
-          title="Wiadomość po wizycie"
-          description="Podziękuj klientowi za wizytę i zachęć do ponownego skorzystania z usług lub wystawienia opinii."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          }
-          meta={
-            localConfig.postVisit.enabled
-              ? <TimingBadge>{formatTimingBadge(localConfig.postVisit.offsetMinutes ?? 30, 'after')}</TimingBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('postVisit')}
-          onToggleEnabled={makeToggleEnabled('postVisit')}
-          onChange={makeRuleUpdater('postVisit')}
-          showTiming
-          direction="after"
-        />
-
-        <RuleCard
-          rule={localConfig.bookingConfirmation}
-          open={openCards.has('bookingConfirmation')}
-          title="Potwierdzenie rezerwacji"
-          description="Klient otrzyma SMS z potwierdzeniem natychmiast po dokonaniu rezerwacji."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-              <polyline points="9 16 11 18 15 14"/>
-            </svg>
-          }
-          meta={
-            localConfig.bookingConfirmation.enabled
-              ? <ImmediateBadge>Natychmiast po rezerwacji</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('bookingConfirmation')}
-          onToggleEnabled={makeToggleEnabled('bookingConfirmation')}
-          onChange={makeRuleUpdater('bookingConfirmation')}
-          showTiming={false}
-        />
-
-        <RuleCard
-          rule={localConfig.rescheduleConfirmation}
-          open={openCards.has('rescheduleConfirmation')}
-          title="Potwierdzenie zmiany terminu"
-          description="Poinformuj klienta o nowym terminie natychmiast po zmianie lub przełożeniu wizyty."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 4v6h-6"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-          }
-          meta={
-            localConfig.rescheduleConfirmation.enabled
-              ? <ImmediateBadge>Natychmiast po zmianie</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('rescheduleConfirmation')}
-          onToggleEnabled={makeToggleEnabled('rescheduleConfirmation')}
-          onChange={makeRuleUpdater('rescheduleConfirmation')}
-          showTiming={false}
-        />
-
-        <RuleCard
-          rule={localConfig.visitReadyForPickup}
-          open={openCards.has('visitReadyForPickup')}
-          title="Pojazd gotowy do odbioru"
-          description="Powiadom klienta SMS-em, gdy pojazd jest gotowy do odbioru po wykonaniu usług."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
-              <rect x="9" y="11" width="14" height="10" rx="2" ry="2"/>
-              <circle cx="12" cy="16" r="1"/>
-              <circle cx="20" cy="16" r="1"/>
-            </svg>
-          }
-          meta={
-            localConfig.visitReadyForPickup.enabled
-              ? <ImmediateBadge>Natychmiast po oznaczeniu gotowości</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('visitReadyForPickup')}
-          onToggleEnabled={makeToggleEnabled('visitReadyForPickup')}
-          onChange={makeRuleUpdater('visitReadyForPickup')}
-          showTiming={false}
-        />
-
-        <RuleCard
-          rule={localConfig.visitCardLink}
-          open={openCards.has('visitCardLink')}
-          title="SMS z linkiem do Karty Wizyty"
-          description="Wyślij klientowi SMS z linkiem do Karty Wizyty po jej udostępnieniu. Użyj zmiennej {{link}}, aby wstawić adres karty."
-          studioName={studioName}
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-          }
-          meta={
-            localConfig.visitCardLink.enabled
-              ? <ImmediateBadge>Przy wysyłce Karty Wizyty</ImmediateBadge>
-              : <InactiveLabel>Nieaktywne</InactiveLabel>
-          }
-          onToggleOpen={() => toggleCardOpen('visitCardLink')}
-          onToggleEnabled={makeToggleEnabled('visitCardLink')}
-          onChange={makeRuleUpdater('visitCardLink')}
-          showTiming={false}
-        />
+        {RULE_CARDS.map(card => (
+          <RuleCard
+            key={card.key}
+            rule={localConfig[card.key]}
+            placeholders={RULE_PLACEHOLDERS[card.key]}
+            open={openCards.has(card.key)}
+            title={card.title}
+            description={card.description}
+            studioName={studioName}
+            icon={card.icon}
+            meta={
+              localConfig[card.key].enabled
+                ? card.direction
+                  ? <TimingBadge>
+                      {formatTimingBadge(
+                        localConfig[card.key].offsetMinutes ?? OFFSET_DEFAULTS[card.key] ?? 60,
+                        card.direction
+                      )}
+                    </TimingBadge>
+                  : <ImmediateBadge>{card.trigger}</ImmediateBadge>
+                : <InactiveLabel>Nieaktywne</InactiveLabel>
+            }
+            onToggleOpen={() => toggleCardOpen(card.key)}
+            onToggleEnabled={makeToggleEnabled(card.key)}
+            onChange={makeRuleUpdater(card.key)}
+            showTiming={Boolean(card.direction)}
+            direction={card.direction}
+          />
+        ))}
       </Container>
 
       <UnsavedChangesBanner

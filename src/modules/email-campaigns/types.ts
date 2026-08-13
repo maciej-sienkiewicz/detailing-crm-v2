@@ -4,12 +4,14 @@ export interface EmailNotificationRule {
   bodyTemplate: string;
 }
 
-export interface EmailAutomationConfig {
-  visitWelcome: EmailNotificationRule;
-  visitReadyForPickup: EmailNotificationRule;
-}
+/** Every e-mail whose text the studio owns. The backend rejects a template using any other token. */
+export type EmailRuleKey =
+  | 'visitWelcome'
+  | 'visitReadyForPickup'
+  | 'visitCardLink'
+  | 'reservationCardLink'
+  | 'batchOrderClose';
 
-export interface UpdateEmailAutomationConfigRequest {
-  visitWelcome: EmailNotificationRule;
-  visitReadyForPickup: EmailNotificationRule;
-}
+export type EmailAutomationConfig = Record<EmailRuleKey, EmailNotificationRule>;
+
+export type UpdateEmailAutomationConfigRequest = EmailAutomationConfig;

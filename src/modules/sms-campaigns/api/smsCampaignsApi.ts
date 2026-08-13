@@ -120,36 +120,6 @@ const mockAudienceCustomers = [
   },
 ];
 
-let mockAutomation: SmsAutomationConfig = {
-  preVisit: {
-    enabled: false,
-    offsetMinutes: 60,
-    messageTemplate: 'Przypominamy o wizycie w {{studio}} dnia {{data}} o godz. {{godzina}}. Do zobaczenia, {{imie}}!',
-  },
-  postVisit: {
-    enabled: false,
-    offsetMinutes: 30,
-    messageTemplate: 'Dziękujemy za wizytę w {{studio}}, {{imie}}! Mamy nadzieję, że jesteś zadowolony z usługi.',
-  },
-  delayedReminder: {
-    enabled: true,
-    offsetMinutes: 129600,
-    messageTemplate: 'Cześć {{imie}}! Minęły 3 miesiące od Twojej wizyty w {{studio}}. Czas na kolejny detailing? Zapraszamy!',
-  },
-  bookingConfirmation: {
-    enabled: false,
-    messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!',
-  },
-  rescheduleConfirmation: {
-    enabled: false,
-    messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!',
-  },
-  visitReadyForPickup: {
-    enabled: false,
-    messageTemplate: 'Drogi/a {{imie}}, Twój pojazd jest gotowy do odbioru w {{studio}}. Zapraszamy!',
-  },
-};
-
 const mockBrands: VehicleBrandOption[] = [
   { brand: 'Audi', models: ['A3', 'A4', 'A5', 'A6', 'Q3', 'Q5', 'Q7', 'Q8', 'RS6', 'TT'] },
   { brand: 'BMW', models: ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '7 Series', 'M3', 'M5', 'X1', 'X3', 'X5', 'X7'] },
@@ -168,7 +138,7 @@ const mockBrands: VehicleBrandOption[] = [
 // ─── API functions ─────────────────────────────────────────────────────────────
 
 export async function fetchCampaigns(): Promise<SmsCampaign[]> {
-  if (true) {
+  if (USE_MOCKS) {
     await delay(300);
     return [...mockCampaigns];
   }
@@ -243,20 +213,11 @@ export async function previewAudience(filters: CampaignFilters): Promise<Audienc
 }
 
 export async function fetchAutomationConfig(): Promise<SmsAutomationConfig> {
-  if (USE_MOCKS) {
-    await delay(300);
-    return { ...mockAutomation };
-  }
   const { data } = await apiClient.get<SmsAutomationConfig>('/v1/sms-campaigns/automation');
   return data;
 }
 
 export async function updateAutomationConfig(config: SmsAutomationConfig): Promise<SmsAutomationConfig> {
-  if (USE_MOCKS) {
-    await delay(400);
-    mockAutomation = { ...config };
-    return { ...mockAutomation };
-  }
   const { data } = await apiClient.put<SmsAutomationConfig>('/v1/sms-campaigns/automation', config);
   return data;
 }

@@ -309,7 +309,7 @@ export function MessageEditor({ value, onChange }: Props) {
             <Input
               value={value.emailSubject}
               onChange={(e) => set({ emailSubject: e.target.value })}
-              placeholder="np. Zaproszenie od {{studio}}"
+              placeholder="np. Zaproszenie na sezonowy przegląd"
             />
           </Field>
           <Field>

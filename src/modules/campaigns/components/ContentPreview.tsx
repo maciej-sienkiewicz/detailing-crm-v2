@@ -9,9 +9,6 @@ import type { Campaign } from '../types';
 const SAMPLE_VALUES: Record<string, string> = {
   '{{imie}}': 'Anna',
   '{{nazwisko}}': 'Nowak',
-  '{{studio}}': 'Twoje studio',
-  '{{telefon_studia}}': '+48 500 100 200',
-  '{{www}}': 'twoje-studio.pl',
   '{{marka}}': 'BMW',
   '{{model}}': 'X3',
   '{{ostatnia_usluga}}': 'powłoka ceramiczna',

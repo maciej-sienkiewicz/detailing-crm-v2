@@ -56,10 +56,13 @@ export const RECIPIENT_STATUS_LABELS: Record<RecipientStatus, string> = {
   STOPPED: 'Zatrzymano',
 };
 
+/**
+ * Only values we cannot know when the campaign is written. The studio's own name,
+ * phone and website are not here — type them straight into the message.
+ */
 export const PLACEHOLDERS: { token: string; label: string }[] = [
   { token: '{{imie}}', label: 'Imię' },
   { token: '{{nazwisko}}', label: 'Nazwisko' },
-  { token: '{{studio}}', label: 'Nazwa studia' },
   { token: '{{marka}}', label: 'Marka auta' },
   { token: '{{model}}', label: 'Model auta' },
   { token: '{{ostatnia_usluga}}', label: 'Ostatnia usługa' },

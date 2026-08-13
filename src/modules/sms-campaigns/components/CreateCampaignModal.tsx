@@ -300,7 +300,7 @@ const MOCK_SERVICES: ServiceFilter[] = [
   { serviceId: 'svc-tint', serviceName: 'Przyciemnianie szyb' },
 ];
 
-const TEMPLATE_VARS = ['{{imie}}', '{{nazwisko}}', '{{data}}', '{{godzina}}', '{{studio}}'];
+const TEMPLATE_VARS = ['{{imie}}', '{{nazwisko}}', '{{data}}', '{{godzina}}'];
 
 interface Props {
   isOpen: boolean;
