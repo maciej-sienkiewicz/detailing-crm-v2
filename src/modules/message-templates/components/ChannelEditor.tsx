@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { TIMING_LABEL, type MessageSpec } from '../catalog';
 import {
-  formatOffset,
   minutesToValue,
   resolveTemplate,
   smsSegments,
@@ -185,51 +184,34 @@ const Warn = styled.div`
 `;
 
 const Preview = styled.div`
-  border: 1px solid ${st.border};
-  border-radius: 10px;
-  overflow: hidden;
-`;
-
-const PreviewHead = styled.div`
   display: flex;
-  justify-content: space-between;
-  padding: 7px 12px;
-  background: ${st.bgCardAlt};
-  border-bottom: 1px solid ${st.border};
-  font-size: 11px;
-  font-weight: 600;
-  color: ${st.textSecondary};
+  flex-direction: column;
+  gap: 7px;
 `;
 
-const PreviewBody = styled.div<{ $sms: boolean }>`
-  padding: 13px;
-  background: ${p => (p.$sms ? '#F0FDF4' : st.bgCard)};
+const PreviewSurface = styled.div`
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: ${st.bg};
+  font-size: 13px;
+  line-height: 1.65;
+  color: ${st.text};
+  white-space: pre-wrap;
 `;
 
 const PreviewSubject = styled.div`
-  font-size: 12.5px;
-  color: ${st.textSecondary};
-  margin-bottom: 9px;
-  padding-bottom: 9px;
-  border-bottom: 1px solid ${st.border};
-
-  b { color: ${st.text}; }
-`;
-
-const Bubble = styled.div<{ $sms: boolean }>`
-  background: ${st.bgCard};
-  border: 1px solid ${p => (p.$sms ? '#BBF7D0' : st.border)};
-  border-radius: ${p => (p.$sms ? '12px 12px 12px 3px' : '8px')};
-  padding: 10px 12px;
-  font-size: 13px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  color: ${st.text};
-  max-width: ${p => (p.$sms ? '92%' : '100%')};
+  font-weight: 650;
+  margin-bottom: 6px;
 `;
 
 const Placeholder = styled.span`
   color: ${st.textMuted};
+`;
+
+const Intro = styled.p`
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: ${st.textSecondary};
 `;
 
 const UNITS: { value: Unit; label: string }[] = [
@@ -264,6 +246,8 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
 
   return (
     <Body>
+      <Intro>{spec.description}</Intro>
+
       <Switch>
         <SwitchText>
           <div>{draft.enabled ? 'Wiadomość jest włączona' : 'Wiadomość jest wyłączona'}</div>
@@ -371,25 +355,15 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
       )}
 
       <Preview>
-        <PreviewHead>
-          <span>Podgląd — tak zobaczy to klient</span>
-          <span>
-            {isSms
-              ? `SMS${showTiming ? ` · ${formatOffset(draft.offsetMinutes ?? 60)} ${TIMING_LABEL[spec.timing!]}` : ''}`
-              : 'E-mail'}
-          </span>
-        </PreviewHead>
-        <PreviewBody $sms={isSms}>
+        <Label>Podgląd</Label>
+        <PreviewSurface>
           {!isSms && (
             <PreviewSubject>
-              <b>Temat:</b>{' '}
-              {resolveTemplate(subject) || <Placeholder>brak tematu</Placeholder>}
+              {resolveTemplate(subject) || <Placeholder>Brak tematu</Placeholder>}
             </PreviewSubject>
           )}
-          <Bubble $sms={isSms}>
-            {resolvedBody || <Placeholder>Wpisz treść, żeby zobaczyć podgląd.</Placeholder>}
-          </Bubble>
-        </PreviewBody>
+          {resolvedBody || <Placeholder>Wpisz treść, żeby zobaczyć podgląd.</Placeholder>}
+        </PreviewSurface>
       </Preview>
     </Body>
   );
