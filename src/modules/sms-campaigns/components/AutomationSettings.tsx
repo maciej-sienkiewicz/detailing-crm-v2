@@ -1191,7 +1191,7 @@ function formatTimingBadge(minutes: number, direction: 'before' | 'after'): stri
     unit === 'days'  ? (value === 1 ? 'dzień'   : 'dni')    :
     unit === 'hours' ? (value === 1 ? 'godzinę' : 'godzin') :
     /* minutes */      (value === 1 ? 'minutę'  : 'minut');
-  return `${value} ${unitStr} ${direction === 'before' ? 'przed wizytą' : 'po wizycie'}`;
+  return `${value} ${unitStr} ${direction === 'before' ? 'przed wizytą' : 'po odbiorze pojazdu'}`;
 }
 
 /**
@@ -1312,7 +1312,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
               />
             </UnitSelectWrap>
             <DirectionTag>
-              {directionLabel ?? (direction === 'before' ? 'przed wizytą' : 'po wizycie')}
+              {directionLabel ?? (direction === 'before' ? 'przed wizytą' : 'po odbiorze pojazdu')}
             </DirectionTag>
           </TimingSentence>
         </div>
@@ -1437,21 +1437,21 @@ const RULE_CARDS: RuleCardDef[] = [
   {
     key: 'preVisit',
     title: 'Przypomnienie przed wizytą',
-    description: 'Wyślij klientowi SMS z przypomnieniem na kilka godzin lub dni przed zaplanowaną wizytą.',
+    description: 'Wyślij klientowi SMS z przypomnieniem na kilka godzin lub dni przed zaplanowaną wizytą. Pomijamy rezerwacje odwołane, porzucone i takie, przy których pojazd już do nas trafił.',
     direction: 'before',
     icon: svg(<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>),
   },
   {
     key: 'postVisit',
     title: 'Wiadomość po wizycie',
-    description: 'Podziękuj klientowi za wizytę i zachęć do ponownego skorzystania z usług lub wystawienia opinii.',
+    description: 'Podziękuj klientowi za wizytę i zachęć do ponownego skorzystania z usług lub wystawienia opinii. Wysyłane tylko po wizytach faktycznie zakończonych — czas liczymy od momentu odbioru pojazdu, więc rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
     direction: 'after',
     icon: svg(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>),
   },
   {
     key: 'delayedReminder',
     title: 'Przypomnienie po dłuższej przerwie',
-    description: 'Odezwij się do klienta, który dawno nie był w serwisie — domyślnie 3 miesiące po odbiorze pojazdu.',
+    description: 'Odezwij się do klienta, który dawno nie był w serwisie. Czas liczymy od odbioru pojazdu — domyślnie 3 miesiące.',
     direction: 'after',
     icon: svg(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>),
   },
@@ -1465,8 +1465,8 @@ const RULE_CARDS: RuleCardDef[] = [
   {
     key: 'rescheduleConfirmation',
     title: 'Potwierdzenie zmiany terminu',
-    description: 'Poinformuj klienta o nowym terminie natychmiast po zmianie lub przełożeniu wizyty.',
-    trigger: 'Natychmiast po zmianie',
+    description: 'Poinformuj klienta o nowym terminie natychmiast po przesunięciu daty rozpoczęcia rezerwacji. Zmiana samych usług, notatki czy koloru nie wywołuje SMS-a.',
+    trigger: 'Po zmianie daty rezerwacji',
     icon: svg(<><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>),
   },
   {
