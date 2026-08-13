@@ -1,0 +1,152 @@
+import React from 'react';
+import styled from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ChannelChip } from './ChannelChip';
+import { CHANNEL_LABEL, TIMING_LABEL, type MessageSpec } from '../catalog';
+import { channelStatus, formatOffset, resolveTemplate } from '../utils/template';
+import type { Channel, ChannelDraft } from '../types';
+
+const Row = styled.tr`
+  border-bottom: 1px solid ${st.border};
+  cursor: pointer;
+
+  &:last-child { border-bottom: 0; }
+  &:hover td { background: #FAFCFE; }
+  &:focus-visible { outline: 2px solid ${st.borderFocus}; outline-offset: -2px; }
+`;
+
+const Cell = styled.td`
+  padding: 10px 14px;
+  vertical-align: middle;
+`;
+
+const Name = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const Info = styled.span`
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid ${st.borderHover};
+  color: ${st.textMuted};
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: help;
+  flex-shrink: 0;
+`;
+
+const Snippet = styled.div<{ $empty: boolean }>`
+  margin-top: 2px;
+  font-size: 12px;
+  color: ${p => (p.$empty ? st.accentAmber : st.textMuted)};
+  font-style: ${p => (p.$empty ? 'italic' : 'normal')};
+  max-width: 52ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const Chips = styled.div`
+  display: flex;
+  gap: 5px;
+`;
+
+const When = styled.div`
+  font-size: 12.5px;
+  color: ${st.textSecondary};
+
+  b {
+    font-weight: 600;
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+const Chevron = styled.td`
+  padding: 10px 14px;
+  color: ${st.textMuted};
+  text-align: right;
+`;
+
+export interface RuleRowProps {
+  spec: MessageSpec;
+  drafts: Partial<Record<Channel, ChannelDraft>>;
+  onOpen: () => void;
+  onToggle: (channel: Channel) => void;
+}
+
+/**
+ * One situation in which we contact the customer.
+ *
+ * The secondary line shows the message itself with sample data substituted, not a
+ * description of it — "Dziękujemy za wizytę, Jan!" tells an operator more than a sentence
+ * explaining what a post-visit rule is. The explanation moves to the drawer.
+ */
+export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, onOpen, onToggle }) => {
+  const primaryChannel: Channel = spec.sms ? 'sms' : 'email';
+  const primary = drafts[primaryChannel];
+  const snippetSource = primaryChannel === 'email'
+    ? (primary?.subject || primary?.body || '')
+    : (primary?.body || '');
+  const empty = !snippetSource.trim();
+
+  const timingDraft = spec.timing ? drafts.sms : undefined;
+
+  return (
+    <Row
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      <Cell>
+        <Name>
+          {spec.name}
+          <Info title={spec.description}>i</Info>
+        </Name>
+        <Snippet $empty={empty}>
+          {empty ? 'Brak treści — nic nie zostanie wysłane' : resolveTemplate(snippetSource)}
+        </Snippet>
+      </Cell>
+
+      <Cell>
+        <Chips>
+          {(['sms', 'email'] as Channel[]).map(channel => (
+            <ChannelChip
+              key={channel}
+              label={CHANNEL_LABEL[channel]}
+              status={channelStatus(drafts[channel], channel === 'email')}
+              onToggle={() => onToggle(channel)}
+            />
+          ))}
+        </Chips>
+      </Cell>
+
+      <Cell>
+        <When>
+          {spec.timing && timingDraft?.offsetMinutes !== undefined ? (
+            <>
+              <b>{formatOffset(timingDraft.offsetMinutes)}</b> {TIMING_LABEL[spec.timing]}
+            </>
+          ) : (
+            spec.trigger
+          )}
+        </When>
+      </Cell>
+
+      <Chevron aria-hidden="true">›</Chevron>
+    </Row>
+  );
+};
