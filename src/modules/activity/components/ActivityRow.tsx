@@ -110,12 +110,19 @@ const HoverActor = styled.span`
 
 // ─── body ─────────────────────────────────────────────────────────────────────
 
-const Body = styled.div`
+// $reserveRight: reserves right-side space for the HoverActor label when an
+// Amount badge is present — both otherwise land on the same right-edge pixel.
+const Body = styled.div<{ $reserveRight?: boolean }>`
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding-top: 2px;
+    ${p => p.$reserveRight && css`
+        @media (min-width: 721px) {
+            padding-right: 130px;
+        }
+    `}
 `;
 
 const TopLine = styled.div`
@@ -402,7 +409,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 <ActivityIcon icon={item.icon} />
             </IconTile>
 
-            <Body>
+            <Body $reserveRight={!!item.amount}>
                 <TopLine>
                     <Title><PiiText value={item.title} /></Title>
                     {item.amount && <Amount>{item.amount.display}</Amount>}
