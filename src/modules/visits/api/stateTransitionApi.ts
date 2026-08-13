@@ -2,6 +2,7 @@ import { apiClient } from '@/core';
 import type {
     TransitionToReadyPayload,
     TransitionToCompletedPayload,
+    CompleteVisitResponse,
     SendNotificationPayload,
     SendNotificationResponse,
 } from '../types/stateTransitions';
@@ -28,16 +29,20 @@ export const stateTransitionApi = {
     complete: async (
         visitId: string,
         payload: TransitionToCompletedPayload
-    ): Promise<void> => {
+    ): Promise<CompleteVisitResponse> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 800));
             console.log('Mock: Transition to COMPLETED', { visitId, payload });
-            return;
+            return {
+                visitId, newStatus: 'completed', message: 'mock',
+                financialDocumentId: null, financialDocumentNumber: null,
+            };
         }
-        await apiClient.post(
+        const response = await apiClient.post<CompleteVisitResponse>(
             `${BASE_PATH}/${visitId}/complete`,
             payload
         );
+        return response.data;
     },
 
     reject: async (visitId: string): Promise<void> => {

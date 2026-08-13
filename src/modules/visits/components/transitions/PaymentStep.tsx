@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Banknote, CreditCard, ArrowLeftRight, FileText, Receipt, File, Smartphone, MonitorSmartphone } from 'lucide-react';
+import { Banknote, CreditCard, ArrowLeftRight, FileText, Receipt, File, Smartphone, MonitorSmartphone, Pencil } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import type { PaymentMethod, InvoiceType, PaymentDetails } from '../../hooks/useStateTransition';
+import type { CompleteInvoicePayload } from '../../types/stateTransitions';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { ModalSectionTitle } from '@/common/components/ModalKit';
+import { InvoiceAdjustmentModal, type InvoiceServiceSeed } from './InvoiceAdjustmentModal';
 
 // ─── Summary card ─────────────────────────────────────────────────────────────
 
@@ -99,13 +101,55 @@ const Pill = styled.button<{ $selected: boolean }>`
     svg { width: 13px; height: 13px; flex-shrink: 0; }
 `;
 
+// ─── Invoice config card ──────────────────────────────────────────────────────
+
+const InvoiceCard = styled.div<{ $split: boolean }>`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: ${st.radiusSm};
+    border: 1px solid ${p => p.$split ? '#fde68a' : st.border};
+    background: ${p => p.$split ? '#fffbeb' : st.bg};
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+`;
+
+const InvoiceCardRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    strong { color: ${st.text}; font-variant-numeric: tabular-nums; }
+`;
+
+const EditBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 13px;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.accentBlue};
+    background: ${st.bgCard};
+    border: 1px solid ${st.accentBlue}55;
+    border-radius: ${st.radiusFull};
+    cursor: pointer;
+    transition: all 140ms ease;
+    &:hover { background: ${st.accentBlueDim}; }
+    svg { width: 12px; height: 12px; }
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface PaymentStepProps {
     netAmount: number;
     grossAmount: number;
     currency: string;
-    onComplete: (payment: PaymentDetails) => void;
+    services: InvoiceServiceSeed[];
+    buyerDefaults: { companyName?: string; fullName: string; email?: string };
+    onComplete: (payment: PaymentDetails, invoice: CompleteInvoicePayload | null) => void;
 }
 
 const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: React.ReactNode }> = [
@@ -122,17 +166,66 @@ const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: React.React
     { value: 'other',   label: 'Inny',        icon: <File size={13} /> },
 ];
 
-export const PaymentStep = ({ netAmount, grossAmount, currency, onComplete }: PaymentStepProps) => {
+const DUE_DATE_DAYS = 14;
+
+const defaultDueDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + DUE_DATE_DAYS);
+    return date.toISOString().slice(0, 10);
+};
+
+/**
+ * Domyślna konfiguracja faktury: wszystkie usługi wizyty w cenach BRUTTO —
+ * suma domyślna równa się kwocie wizyty co do grosza (ceny brutto usług są
+ * źródłem prawdy, tak jak przy ręcznej edycji).
+ */
+const defaultInvoice = (
+    services: InvoiceServiceSeed[],
+    grossAmount: number,
+    buyerDefaults: PaymentStepProps['buyerDefaults'],
+): CompleteInvoicePayload => ({
+    items: services.length > 0
+        ? services.map(s => ({ name: s.name, quantity: 1, unitPriceGross: s.grossPrice, vatRate: '23' }))
+        : [{ name: 'Usługi detailingowe', quantity: 1, unitPriceGross: grossAmount, vatRate: '23' }],
+    buyerName: buyerDefaults.companyName ?? buyerDefaults.fullName,
+    buyerEmail: buyerDefaults.email,
+});
+
+/** Brutto pozycji w groszach — brutto wpisane jest dokładne; z netto liczone od netto. */
+const itemGross = (item: CompleteInvoicePayload['items'][number]): number => {
+    const qty = item.quantity ?? 1;
+    if (item.unitPriceGross != null) return Math.round(item.unitPriceGross * qty);
+    const rate = item.vatRate ?? '23';
+    const percent = rate === '23' ? 23 : rate === '8' ? 8 : rate === '5' ? 5 : 0;
+    const net = Math.round((item.unitPriceNet ?? 0) * qty);
+    return net + Math.round(net * percent / 100);
+};
+
+export const PaymentStep = ({ netAmount, grossAmount, currency, services, buyerDefaults, onComplete }: PaymentStepProps) => {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD');
     const [invoiceType, setInvoiceType]     = useState<InvoiceType>('INVOICE');
+    const [invoice, setInvoice]             = useState<CompleteInvoicePayload>(() =>
+        defaultInvoice(services, grossAmount, buyerDefaults));
+    const [isAdjustOpen, setAdjustOpen]     = useState(false);
 
     const vatAmount = grossAmount - netAmount;
     const fmt = (v: number) => formatCurrency(v / 100, currency);
 
+    const invoiceGross = invoice.items.reduce((sum, item) => sum + itemGross(item), 0);
+    const remainder = grossAmount - invoiceGross;
+
     useEffect(() => {
-        onComplete({ method: paymentMethod, invoiceType, amount: grossAmount });
+        onComplete(
+            {
+                method: paymentMethod,
+                invoiceType,
+                amount: grossAmount,
+                dueDate: paymentMethod === 'TRANSFER' ? defaultDueDate() : undefined,
+            },
+            invoiceType === 'INVOICE' ? invoice : null,
+        );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [paymentMethod, invoiceType, grossAmount]);
+    }, [paymentMethod, invoiceType, grossAmount, invoice]);
 
     return (
         <Container>
@@ -174,7 +267,52 @@ export const PaymentStep = ({ netAmount, grossAmount, currency, onComplete }: Pa
                         </Pill>
                     ))}
                 </PillRow>
+
+                {invoiceType === 'INVOICE' && (
+                    <InvoiceCard $split={remainder > 0}>
+                        <InvoiceCardRow>
+                            <span>
+                                Faktura KSeF: <strong>{fmt(invoiceGross)}</strong>
+                                {' · '}nabywca: <strong>{invoice.buyerNip ? `NIP ${invoice.buyerNip}` : (invoice.buyerName ?? 'konsument')}</strong>
+                            </span>
+                            <EditBtn onClick={() => setAdjustOpen(true)}>
+                                <Pencil /> Wprowadź zmiany
+                            </EditBtn>
+                        </InvoiceCardRow>
+                        {remainder > 0 && (
+                            <InvoiceCardRow>
+                                <span>
+                                    Reszta <strong>{fmt(remainder)}</strong> zostanie udokumentowana paragonem
+                                    ({remainderLabel(invoice.remainderPaymentMethod)})
+                                </span>
+                            </InvoiceCardRow>
+                        )}
+                        <span>Faktura zostanie automatycznie wysłana do KSeF po zakończeniu wizyty.</span>
+                    </InvoiceCard>
+                )}
             </Group>
+
+            <InvoiceAdjustmentModal
+                isOpen={isAdjustOpen}
+                onClose={() => setAdjustOpen(false)}
+                services={services}
+                visitGross={grossAmount}
+                currency={currency}
+                initial={invoice}
+                buyerDefaults={buyerDefaults}
+                onSave={setInvoice}
+            />
         </Container>
     );
+};
+
+const remainderLabel = (method?: PaymentMethod): string => {
+    switch (method) {
+        case 'CASH':          return 'gotówka';
+        case 'CARD':          return 'karta';
+        case 'TRANSFER':      return 'przelew';
+        case 'BLIK_NA_NUMER': return 'BLIK na numer';
+        case 'BLIK_TERMINAL': return 'BLIK terminal';
+        default:              return 'gotówka';
+    }
 };

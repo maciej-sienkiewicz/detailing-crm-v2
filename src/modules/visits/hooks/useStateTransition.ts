@@ -9,6 +9,7 @@ import type {
     PaymentDetails,
     PaymentMethod,
     InvoiceType,
+    CompleteInvoicePayload,
     TransitionToReadyPayload,
     TransitionToCompletedPayload,
     SendNotificationPayload,
@@ -45,6 +46,7 @@ export const useStateTransitionWizard = (
     const [wizardData, setWizardData] = useState<{
         notifications?: NotificationChannels;
         payment?: PaymentDetails;
+        invoice?: CompleteInvoicePayload;
     }>({});
 
     const [_qualityChecks, _setQualityChecks] = useState<QualityCheckItem[]>([
@@ -55,7 +57,7 @@ export const useStateTransitionWizard = (
 
     const totalSteps = transitionType === 'in_progress_to_ready' ? 2 : 3;
 
-    const { showError } = useToast();
+    const { showError, showSuccess } = useToast();
 
     const { mutate: markReadyForPickup, isPending: isMarkingReady } = useMutation({
         mutationFn: () => stateTransitionApi.markReadyForPickup(visitId, {
@@ -85,13 +87,36 @@ export const useStateTransitionWizard = (
         mutationFn: () => stateTransitionApi.complete(visitId, {
             signatureObtained: true,
             payment: wizardData.payment ?? { method: 'OTHER' as PaymentMethod, invoiceType: 'other' as InvoiceType, amount: 0 },
+            // Konfiguracja faktury KSeF — tylko gdy wybrano dokument typu Faktura VAT
+            invoice: wizardData.payment?.invoiceType === 'INVOICE' ? wizardData.invoice : undefined,
         }),
-        onSuccess: () => {
+        onSuccess: (result) => {
             queryClient.invalidateQueries({
                 queryKey: visitDetailQueryKey(visitId),
             });
+            if (result.ksefInvoiceNumber) {
+                const suffix = result.remainderDocumentNumber
+                    ? ` Reszta kwoty udokumentowana paragonem ${result.remainderDocumentNumber}.`
+                    : '';
+                if (result.ksefStatus === 'ACCEPTED') {
+                    showSuccess('Faktura w KSeF', `Faktura ${result.ksefInvoiceNumber} została przyjęta przez KSeF.${suffix}`);
+                } else if (result.ksefStatus === 'QUEUED_RETRY') {
+                    showSuccess(
+                        'Faktura wystawiona (offline24)',
+                        `KSeF jest chwilowo niedostępny — faktura ${result.ksefInvoiceNumber} zostanie dosłana automatycznie.${suffix}`
+                    );
+                } else {
+                    showSuccess('Faktura wystawiona', `Faktura ${result.ksefInvoiceNumber} została wysłana do KSeF.${suffix}`);
+                }
+            }
             handleClose();
             onTransitionSuccess?.();
+        },
+        onError: (error: any) => {
+            showError(
+                'Nie udało się zakończyć wizyty',
+                error?.response?.data?.message ?? 'Spróbuj ponownie.'
+            );
         },
     });
 

@@ -171,10 +171,26 @@ export const ReadyToCompletedWizard = ({
         }
     }, [isOpen, skipBriefing, currentStep]);
 
-    const handlePaymentComplete = (payment: any) => {
+    // Pozycje faktury KSeF startują z finalnych cen usług wizyty (po rabatach)
+    const invoiceServiceSeeds = visit.services.map(service => {
+        const pricing = calculateServicePrice(service);
+        return {
+            name: service.serviceName,
+            grossPrice: pricing.finalPriceGross,
+            netPrice: pricing.finalPriceNet,
+        };
+    });
+
+    const buyerDefaults = {
+        companyName: visit.customer.companyName,
+        fullName: `${visit.customer.firstName} ${visit.customer.lastName}`.trim(),
+        email: visit.customer.email || undefined,
+    };
+
+    const handlePaymentComplete = (payment: any, invoice: any) => {
         // Only update wizard data with payment details
         // Don't call handleFinish here - it will be called when user clicks the final button
-        updateWizardData({ payment });
+        updateWizardData({ payment, invoice: invoice ?? undefined });
     };
 
     const getStepTitle = () => {
@@ -248,6 +264,8 @@ export const ReadyToCompletedWizard = ({
                         netAmount={calculatedTotals.netAmount}
                         grossAmount={calculatedTotals.grossAmount}
                         currency={visit.totalCost?.currency ?? 'PLN'}
+                        services={invoiceServiceSeeds}
+                        buyerDefaults={buyerDefaults}
                         onComplete={handlePaymentComplete}
                     />
                 );
