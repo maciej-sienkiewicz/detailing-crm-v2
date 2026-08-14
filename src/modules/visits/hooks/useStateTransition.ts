@@ -105,8 +105,22 @@ export const useStateTransitionWizard = (
                         'Faktura wystawiona (offline24)',
                         `KSeF jest chwilowo niedostępny — faktura ${result.ksefInvoiceNumber} zostanie dosłana automatycznie.${suffix}`
                     );
+                } else if (result.ksefStatus === 'REJECTED') {
+                    // Odrzucenie przez walidację KSeF to błąd, nie sukces — wizyta jest
+                    // zakończona, ale faktura wymaga poprawy danych i ponownego wystawienia
+                    showError(
+                        'Faktura odrzucona przez KSeF',
+                        `Wizyta została zakończona, ale faktura ${result.ksefInvoiceNumber} nie przeszła walidacji KSeF. ` +
+                        `Szczegóły błędu znajdziesz w Finanse → Faktury KSeF.${suffix}`
+                    );
                 } else {
-                    showSuccess('Faktura wystawiona', `Faktura ${result.ksefInvoiceNumber} została wysłana do KSeF.${suffix}`);
+                    // SUBMITTED: przyjęta do sesji, KSeF nadal przetwarza — wynik pojawi się
+                    // na liście faktur po dokończeniu pollingu przez scheduler
+                    showSuccess(
+                        'Faktura wysłana do KSeF',
+                        `Faktura ${result.ksefInvoiceNumber} została wysłana i oczekuje na potwierdzenie z KSeF. ` +
+                        `Status sprawdzisz w Finanse → Faktury KSeF.${suffix}`
+                    );
                 }
             }
             handleClose();
