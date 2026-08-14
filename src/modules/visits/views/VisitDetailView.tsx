@@ -16,7 +16,7 @@ import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
-import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
+import { HandoverSheet, MarkReadyDialog } from '../components/handover';
 import { SmsReminderModal } from '../components/SmsReminderModal';
 import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminder';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
@@ -833,7 +833,7 @@ export const VisitDetailView = () => {
         }
     };
 
-    const handleReadyTransitionSuccess = () => {
+    const closeTransition = () => {
         setIsTransitionWizardOpen(false);
         setTransitionType(null);
     };
@@ -1221,19 +1221,19 @@ export const VisitDetailView = () => {
             </ContentArea>
 
             {transitionType === 'in_progress_to_ready' && (
-                <InProgressToReadyWizard
+                <MarkReadyDialog
                     visit={visit}
                     isOpen={isTransitionWizardOpen}
-                    onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
-                    onTransitionSuccess={handleReadyTransitionSuccess}
+                    onClose={closeTransition}
+                    onSuccess={closeTransition}
                 />
             )}
 
             {transitionType === 'ready_to_completed' && (
-                <ReadyToCompletedWizard
+                <HandoverSheet
                     visit={visit}
                     isOpen={isTransitionWizardOpen}
-                    onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
+                    onClose={closeTransition}
                 />
             )}
 
