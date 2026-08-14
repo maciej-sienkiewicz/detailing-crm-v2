@@ -73,6 +73,8 @@ export interface CompleteVisitResponse {
     ksefInvoiceNumber?: string | null;
     ksefStatus?: string | null;
     remainderDocumentNumber?: string | null;
+    /** Powód odrzucenia przez KSeF — obecny tylko przy ksefStatus === 'REJECTED'. */
+    ksefError?: string | null;
 }
 
 export interface SendNotificationPayload {
