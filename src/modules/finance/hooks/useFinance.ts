@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../api/financeApi';
 import type {
-  DocumentListFilters,
   CreateDocumentRequest,
   UpdateDocumentRequest,
   PaymentMethodReportParams,
@@ -14,23 +13,6 @@ export const FINANCE_SUMMARY_KEY  = ['finance', 'summary']   as const;
 export const FINANCE_REPORT_KEY   = ['finance', 'payment-method-report'] as const;
 
 // ── Documents ─────────────────────────────────────────────────────────────────
-
-export const useFinanceDocuments = (filters: DocumentListFilters) => {
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...FINANCE_DOCS_KEY, filters],
-    queryFn:  () => financeApi.getDocuments(filters),
-  });
-
-  return {
-    documents: data?.documents ?? [],
-    total:     data?.total     ?? 0,
-    page:      data?.page      ?? 1,
-    pageSize:  data?.pageSize  ?? 20,
-    isLoading,
-    isError,
-    refetch,
-  };
-};
 
 export const useFinanceDocument = (id: string | undefined) => {
   const { data, isLoading, isError } = useQuery({

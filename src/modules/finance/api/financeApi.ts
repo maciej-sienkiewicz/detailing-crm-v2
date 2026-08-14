@@ -1,10 +1,8 @@
 import { apiClient } from '@/core';
 import type {
   FinancialDocument,
-  FinancialDocumentListResponse,
   CreateDocumentRequest,
   UpdateDocumentRequest,
-  DocumentListFilters,
   CashRegister,
   CashHistoryResponse,
   CashAdjustRequest,
@@ -17,22 +15,6 @@ const BASE = '/v1/finance';
 
 export const financeApi = {
   // ── Documents ──────────────────────────────────────────────────────────────
-
-  getDocuments: async (filters: DocumentListFilters): Promise<FinancialDocumentListResponse> => {
-    const params = new URLSearchParams({
-      page: String(filters.page),
-      size: String(filters.pageSize),
-    });
-    if (filters.direction)    params.append('direction',      filters.direction);
-    if (filters.documentType) params.append('documentType',   filters.documentType);
-    if (filters.status)       params.append('status',         filters.status);
-    if (filters.visitId)      params.append('visitId',        filters.visitId);
-    if (filters.dateFrom)     params.append('dateFrom',       filters.dateFrom);
-    if (filters.dateTo)       params.append('dateTo',         filters.dateTo);
-    if (filters.includeDeleted) params.append('includeDeleted', 'true');
-    const response = await apiClient.get(`${BASE}/documents?${params}`);
-    return response.data;
-  },
 
   getDocument: async (id: string): Promise<FinancialDocument> => {
     const response = await apiClient.get(`${BASE}/documents/${id}`);

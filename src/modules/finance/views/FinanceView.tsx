@@ -1,15 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import type { FinanceTab, FinancialDocument, RevenueInvoice } from '../types';
-import { DocumentStatus } from '../types';
-import type { ExpenseSource, ExpensePaymentStatus, KsefRevenueStatus, RevenueSource } from '../types';
-import { useFinanceDocuments } from '../hooks/useFinance';
+import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
+import type { ExpenseSource, ExpensePaymentStatus } from '../types';
+import { useFinanceDocument } from '../hooks/useFinance';
 import { useKsefExpenses } from '../hooks/useKsef';
-import { useKsefRevenueInvoices } from '../hooks/useKsefRevenue';
+import { useIncomeDocuments } from '../hooks/useIncomeDocuments';
 import {
   FinanceSummaryCards,
-  DocumentsTable,
   CreateDocumentModal,
   EditDocumentModal,
   CashRegisterPanel,
@@ -17,12 +15,12 @@ import {
   KsefExpensesTable,
   KsefSyncWidget,
   AddExpenseModal,
-  KsefRevenueTable,
+  IncomeDocumentsTable,
   IssueInvoiceModal,
   RevenueInvoiceDetailModal,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -155,26 +153,6 @@ const TabItem = styled.button<{ $active: boolean }>`
     padding: 10px 14px;
     font-size: 12px;
   }
-`;
-
-// ─── Small inline add button (filters strip) ──────────────────────────────────
-
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  background: ${st.accentBlue};
-  color: white;
-  border: none;
-  border-radius: ${st.radiusFull};
-  cursor: pointer;
-  box-shadow: ${st.shadowXs};
-  transition: all ${st.transition};
-
-  &:hover { background: #2563eb; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
-  &:active { transform: translateY(0); }
 `;
 
 // ─── Filters strip ────────────────────────────────────────────────────────────
@@ -318,37 +296,6 @@ const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, p
         document.body
       )}
     </>
-  );
-};
-
-const StyledDateInput = styled.input`
-  padding: 5px 10px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${st.radiusSm};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${st.text};
-  outline: none;
-  cursor: pointer;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
-  &:focus { border-color: ${st.accentBlue}; box-shadow: ${st.shadowBlue}; }
-`;
-
-const DateInput: React.FC<{
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  title?: string;
-}> = ({ value, onChange, title }) => {
-  const ref = useRef<HTMLInputElement>(null);
-  return (
-    <StyledDateInput
-      ref={ref}
-      type="date"
-      value={value}
-      onChange={onChange}
-      title={title}
-      onClick={() => (ref.current as any)?.showPicker?.()}
-    />
   );
 };
 
@@ -704,47 +651,6 @@ const SmallCheck = () => (
   </svg>
 );
 
-const DPTrigger = styled.button<{ $active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  background: ${(p) => p.$active ? st.accentBlueDim : p.theme.colors.surface};
-  color: ${(p) => p.$active ? st.accentBlue : st.textSecondary};
-  border: 1px solid ${(p) => p.$active ? `${st.accentBlue}44` : p.theme.colors.border};
-  border-radius: ${st.radiusSm};
-  font-family: inherit;
-  font-size: ${st.fontSm};
-  font-weight: ${(p) => p.$active ? '600' : '400'};
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all ${st.transition};
-
-  &:hover {
-    background: ${(p) => p.$active ? st.accentBlueDim : p.theme.colors.surfaceHover};
-    border-color: ${(p) => p.$active ? `${st.accentBlue}55` : st.borderHover};
-    color: ${(p) => p.$active ? st.accentBlue : st.text};
-  }
-`;
-
-const DPPanel = styled.div`
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 300;
-  background: ${(p) => p.theme.colors.surface};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${st.radius};
-  box-shadow: ${st.shadowLg};
-  min-width: 230px;
-  padding: 8px;
-`;
-
-const DPWrap = styled.div`
-  position: relative;
-  flex-shrink: 0;
-`;
-
 const DPPresetGroup = styled.div`
   display: flex;
   flex-direction: column;
@@ -833,174 +739,93 @@ const DPSep = styled.span`
   flex-shrink: 0;
 `;
 
-interface DateRangePickerProps {
-  preset:       DatePreset;
-  customFrom:   string;
-  customTo:     string;
-  onChange:     (preset: DatePreset, customFrom: string, customTo: string) => void;
-}
-
-const DateRangePicker: React.FC<DateRangePickerProps> = ({ preset, customFrom, customTo, onChange }) => {
-  const [open, setOpen]                     = useState(false);
-  const [pendingFrom, setPendingFrom]       = useState('');
-  const [pendingTo, setPendingTo]           = useState('');
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const handleOpen = () => {
-    setPendingFrom(customFrom);
-    setPendingTo(customTo);
-    setOpen((p) => !p);
-  };
-
-  const selectPreset = (p: Exclude<DatePreset, 'custom'>) => {
-    onChange(p, '', '');
-    setOpen(false);
-  };
-
-  const applyCustom = () => {
-    onChange('custom', pendingFrom, pendingTo);
-    setOpen(false);
-  };
-
-  const label = formatPresetLabel(preset, preset === 'custom' ? customFrom : undefined, preset === 'custom' ? customTo : undefined);
-
-  return (
-    <DPWrap ref={wrapRef}>
-      <DPTrigger $active={preset !== 'all'} onClick={handleOpen}>
-        <CalendarIcon />
-        {label}
-        <SmallChevron />
-      </DPTrigger>
-
-      {open && (
-        <DPPanel>
-          <DPPresetGroup>
-            {([
-              ['all',     'Cały czas',        ''] as const,
-              ['week',    'Ostatni tydzień',   '7 dni'] as const,
-              ['month',   'Ostatni miesiąc',   '30 dni'] as const,
-              ['quarter', 'Ostatni kwartał',   '90 dni'] as const,
-            ]).map(([id, lbl, hint]) => (
-              <DPPresetBtn key={id} $active={preset === id} onClick={() => selectPreset(id)}>
-                {lbl}
-                {hint && <span className="hint">{hint}</span>}
-                {preset === id && <SmallCheck />}
-              </DPPresetBtn>
-            ))}
-          </DPPresetGroup>
-
-          <DPDivider />
-          <DPLabel>Niestandardowy zakres</DPLabel>
-
-          <DPRangeRow>
-            <DPDateInput
-              type="date"
-              value={pendingFrom}
-              max={pendingTo || undefined}
-              onChange={(e) => setPendingFrom(e.target.value)}
-            />
-            <DPSep>–</DPSep>
-            <DPDateInput
-              type="date"
-              value={pendingTo}
-              min={pendingFrom || undefined}
-              onChange={(e) => setPendingTo(e.target.value)}
-            />
-          </DPRangeRow>
-
-          <DPApplyBtn disabled={!pendingFrom && !pendingTo} onClick={applyCustom}>
-            Zastosuj zakres
-          </DPApplyBtn>
-        </DPPanel>
-      )}
-    </DPWrap>
-  );
-};
-
-// ─── Income documents tab ─────────────────────────────────────────────────────
+// ─── Dokumenty przychodowe (KSeF + moduł finansowy) ──────────────────────────
 
 const PAGE_SIZE = 20;
 
 interface IncomeFilters {
-  status:       string;
-  documentType: string;
-  page:         number;
+  documentType:  string;
+  paymentStatus: string;
+  duplicates:    boolean;
+  page:          number;
 }
 
 interface IncomeTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
-  onEdit: (doc: FinancialDocument) => void;
+  onSelect: (document: IncomeDocument) => void;
 }
 
-const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, onEdit }) => {
+/**
+ * Jedna lista wszystkich dokumentów przychodowych: faktury i korekty z ledgera
+ * KSeF (wystawione w CRM oraz pobrane z KSeF) razem z paragonami i dokumentami
+ * „inne" z modułu finansowego.
+ */
+const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, onSelect }) => {
   const [filters, setFilters] = useState<IncomeFilters>({
-    status: '', documentType: '', page: 1,
+    documentType: '', paymentStatus: '', duplicates: false, page: 1,
   });
-  const [showDeleted, setShowDeleted] = useState(false);
 
-  const { documents, total, isLoading, isError, refetch } = useFinanceDocuments({
-    direction:      'INCOME',
-    status:         filters.status        || undefined,
-    dateFrom:       activeDateRange.dateFrom,
-    dateTo:         activeDateRange.dateTo,
-    documentType:   filters.documentType  || undefined,
-    includeDeleted: showDeleted           || undefined,
-    page:           filters.page,
-    pageSize:       PAGE_SIZE,
+  const { documents, total, isLoading, isError, refetch } = useIncomeDocuments({
+    documentType:  (filters.documentType  as IncomeDocumentType) || undefined,
+    paymentStatus: (filters.paymentStatus as 'PAID' | 'PENDING' | 'OVERDUE') || undefined,
+    dateFrom:      activeDateRange.dateFrom,
+    dateTo:        activeDateRange.dateTo,
+    page:          filters.page,
+    pageSize:      PAGE_SIZE,
   });
+
+  // Podejrzane duplikaty dotyczą wyłącznie faktur z ledgera KSeF — filtr działa
+  // po stronie klienta, bo to zawężenie widoku, nie osobne zapytanie
+  const visibleDocuments = filters.duplicates
+    ? documents.filter((doc) => doc.duplicateStatus === 'SUSPECTED')
+    : documents;
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.status || filters.documentType);
+  const hasFilters = !!(filters.documentType || filters.paymentStatus || filters.duplicates);
   const setFilter  = <K extends keyof IncomeFilters>(key: K, value: IncomeFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
 
   return (
     <>
+      <KsefSyncWidget />
+
       <FiltersStrip>
         <FilterSelect
           value={filters.documentType}
           onChange={(val) => setFilter('documentType', val)}
           options={[
-            { value: 'INVOICE', label: 'Faktura' },
-            { value: 'RECEIPT', label: 'Paragon' },
-            { value: 'OTHER',   label: 'Inny' },
+            { value: 'INVOICE',    label: 'Faktury' },
+            { value: 'CORRECTION', label: 'Korekty' },
+            { value: 'RECEIPT',    label: 'Paragony' },
+            { value: 'OTHER',      label: 'Inne dokumenty' },
           ]}
           placeholder="Wszystkie typy"
         />
         <FilterSelect
-          value={filters.status}
-          onChange={(val) => setFilter('status', val)}
+          value={filters.paymentStatus}
+          onChange={(val) => setFilter('paymentStatus', val)}
           options={[
-            { value: DocumentStatus.PAID,    label: 'Opłacona' },
-            { value: DocumentStatus.PENDING, label: 'Oczekująca' },
-            { value: DocumentStatus.OVERDUE, label: 'Przeterminowana' },
+            { value: 'PAID',    label: 'Opłacone' },
+            { value: 'PENDING', label: 'Oczekujące' },
+            { value: 'OVERDUE', label: 'Przeterminowane' },
           ]}
           placeholder="Wszystkie statusy"
         />
         <FilterSeparator />
         {hasFilters && (
           <ClearFiltersBtn
-            onClick={() => setFilters({ status: '', documentType: '', page: 1 })}
+            onClick={() => setFilters({ documentType: '', paymentStatus: '', duplicates: false, page: 1 })}
           >
             Wyczyść filtry
           </ClearFiltersBtn>
         )}
         <ToggleLabel>
-          <ToggleTrack $on={showDeleted} />
-          <ToggleText>Wyświetl usunięte</ToggleText>
+          <ToggleTrack $on={filters.duplicates} />
+          <ToggleText>Tylko podejrzane duplikaty</ToggleText>
           <input
             type="checkbox"
-            checked={showDeleted}
-            onChange={(e) => setShowDeleted(e.target.checked)}
+            checked={filters.duplicates}
+            onChange={(e) => setFilter('duplicates', e.target.checked)}
             style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
           />
         </ToggleLabel>
@@ -1011,12 +836,12 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
 
       {isError ? (
         <InlineError>
-          Nie udało się załadować dokumentów.
+          Nie udało się załadować dokumentów przychodowych.
           <br />
           <button onClick={() => refetch()}>Spróbuj ponownie</button>
         </InlineError>
       ) : (
-        <DocumentsTable documents={documents} isLoading={isLoading} onEdit={onEdit} />
+        <IncomeDocumentsTable documents={visibleDocuments} isLoading={isLoading} onSelect={onSelect} />
       )}
 
       {totalPages > 1 && (
@@ -1160,123 +985,6 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
   );
 };
 
-// ─── KSeF revenue invoices tab ────────────────────────────────────────────────
-
-interface RevenueFilters {
-  source:     string;
-  ksefStatus: string;
-  duplicates: boolean;
-  page:       number;
-}
-
-interface RevenueTabContentProps {
-  activeDateRange: { dateFrom?: string; dateTo?: string };
-  onSelect: (invoice: RevenueInvoice) => void;
-}
-
-const RevenueTabContent: React.FC<RevenueTabContentProps> = ({ activeDateRange, onSelect }) => {
-  const [filters, setFilters] = useState<RevenueFilters>({
-    source: '', ksefStatus: '', duplicates: false, page: 1,
-  });
-
-  const { invoices, total, isLoading, isError, refetch } = useKsefRevenueInvoices({
-    source:          (filters.source     as RevenueSource)      || undefined,
-    ksefStatus:      (filters.ksefStatus as KsefRevenueStatus)  || undefined,
-    duplicateStatus: filters.duplicates ? 'SUSPECTED' : undefined,
-    dateFrom:        activeDateRange.dateFrom,
-    dateTo:          activeDateRange.dateTo,
-    page:            filters.page,
-    pageSize:        PAGE_SIZE,
-  });
-
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.source || filters.ksefStatus || filters.duplicates);
-  const setFilter  = <K extends keyof RevenueFilters>(key: K, value: RevenueFilters[K]) =>
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-
-  return (
-    <>
-      <KsefSyncWidget />
-
-      <FiltersStrip>
-        <FilterSelect
-          value={filters.source}
-          onChange={(val) => setFilter('source', val)}
-          options={[
-            { value: 'CRM',      label: 'Wystawione w CRM' },
-            { value: 'EXTERNAL', label: 'Zewnętrzne (z KSeF)' },
-          ]}
-          placeholder="Wszystkie źródła"
-        />
-        <FilterSelect
-          value={filters.ksefStatus}
-          onChange={(val) => setFilter('ksefStatus', val)}
-          options={[
-            { value: 'ACCEPTED',     label: 'W KSeF' },
-            { value: 'SUBMITTED',    label: 'Przetwarzane' },
-            { value: 'QUEUED_RETRY', label: 'Offline24 (do dosłania)' },
-            { value: 'REJECTED',     label: 'Odrzucone' },
-          ]}
-          placeholder="Wszystkie statusy"
-        />
-        <FilterSeparator />
-        {hasFilters && (
-          <ClearFiltersBtn onClick={() => setFilters({ source: '', ksefStatus: '', duplicates: false, page: 1 })}>
-            Wyczyść filtry
-          </ClearFiltersBtn>
-        )}
-        <ToggleLabel>
-          <ToggleTrack $on={filters.duplicates} />
-          <ToggleText>Tylko podejrzane duplikaty</ToggleText>
-          <input
-            type="checkbox"
-            checked={filters.duplicates}
-            onChange={(e) => setFilter('duplicates', e.target.checked)}
-            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-          />
-        </ToggleLabel>
-        <RefreshBtn onClick={() => refetch()} title="Odśwież">
-          <RefreshIcon />
-        </RefreshBtn>
-      </FiltersStrip>
-
-      {isError ? (
-        <InlineError>
-          Nie udało się załadować faktur przychodowych.
-          <br />
-          <button onClick={() => refetch()}>Spróbuj ponownie</button>
-        </InlineError>
-      ) : (
-        <KsefRevenueTable invoices={invoices} isLoading={isLoading} onSelect={onSelect} />
-      )}
-
-      {totalPages > 1 && (
-        <PaginationFooter>
-          <PaginationInfo>
-            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
-          </PaginationInfo>
-          <PaginationBtns>
-            <PageBtn
-              $disabled={filters.page === 1}
-              disabled={filters.page === 1}
-              onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
-            >
-              <ChevronLeft /> Poprzednia
-            </PageBtn>
-            <PageBtn
-              $disabled={filters.page >= totalPages}
-              disabled={filters.page >= totalPages}
-              onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-            >
-              Następna <ChevronRight />
-            </PageBtn>
-          </PaginationBtns>
-        </PaginationFooter>
-      )}
-    </>
-  );
-};
-
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export const FinanceView: React.FC = () => {
@@ -1285,7 +993,10 @@ export const FinanceView: React.FC = () => {
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isIssueInvoiceModalOpen, setIssueInvoiceModalOpen] = useState(false);
   const [selectedRevenueInvoiceId, setSelectedRevenueInvoiceId] = useState<string | null>(null);
-  const [editingDocument, setEditingDocument] = useState<FinancialDocument | null>(null);
+  // Dokument z modułu finansowego (paragon / inny) wybrany do podglądu i edycji —
+  // pełne dane dociągamy po id, bo lista zwraca tylko wspólny podzbiór pól
+  const [selectedFinanceDocumentId, setSelectedFinanceDocumentId] = useState<string | null>(null);
+  const { document: selectedFinanceDocument } = useFinanceDocument(selectedFinanceDocumentId ?? undefined);
   const [datePreset, setDatePreset]       = useState<DatePreset>('all');
   const [customFrom, setCustomFrom]       = useState('');
   const [customTo, setCustomTo]           = useState('');
@@ -1296,8 +1007,12 @@ export const FinanceView: React.FC = () => {
 
   const openIncomeModal  = useCallback(() => setIncomeModalOpen(true),  []);
   const closeIncomeModal = useCallback(() => setIncomeModalOpen(false), []);
-  const handleEditDocument = useCallback((doc: FinancialDocument) => setEditingDocument(doc), []);
-  const closeEditModal     = useCallback(() => setEditingDocument(null), []);
+  /** Szczegóły zależą od źródła: faktura KSeF ma własny widok, dokument finansowy — edycję. */
+  const handleSelectDocument = useCallback((doc: IncomeDocument) => {
+    if (doc.sourceKind === 'KSEF') setSelectedRevenueInvoiceId(doc.id);
+    else setSelectedFinanceDocumentId(doc.id);
+  }, []);
+  const closeEditModal = useCallback(() => setSelectedFinanceDocumentId(null), []);
   const openExpenseModal  = useCallback(() => setExpenseModalOpen(true),  []);
   const closeExpenseModal = useCallback(() => setExpenseModalOpen(false), []);
 
@@ -1321,21 +1036,21 @@ export const FinanceView: React.FC = () => {
               onChange={handleDateChange}
             />
             {activeTab === 'income' && (
-              <PageHeaderPrimaryButton onClick={openIncomeModal}>
-                <PlusIcon />
-                Dodaj dokument przychodowy
-              </PageHeaderPrimaryButton>
+              <>
+                <PageHeaderGhostButton onClick={openIncomeModal}>
+                  <PlusIcon />
+                  Dodaj paragon
+                </PageHeaderGhostButton>
+                <PageHeaderPrimaryButton onClick={() => setIssueInvoiceModalOpen(true)}>
+                  <PlusIcon />
+                  Wystaw fakturę (KSeF)
+                </PageHeaderPrimaryButton>
+              </>
             )}
             {activeTab === 'expenses' && (
               <PageHeaderPrimaryButton onClick={openExpenseModal}>
                 <PlusIcon />
                 Dodaj fakturę ręcznie
-              </PageHeaderPrimaryButton>
-            )}
-            {activeTab === 'ksef-invoices' && (
-              <PageHeaderPrimaryButton onClick={() => setIssueInvoiceModalOpen(true)}>
-                <PlusIcon />
-                Wystaw fakturę (KSeF)
               </PageHeaderPrimaryButton>
             )}
           </FinHdrActions>
@@ -1361,9 +1076,6 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
               Dokumenty przychodowe
             </TabItem>
-            <TabItem $active={activeTab === 'ksef-invoices'} onClick={() => setActiveTab('ksef-invoices')}>
-              Faktury KSeF
-            </TabItem>
             <TabItem $active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')}>
               Dokumenty kosztowe
             </TabItem>
@@ -1376,20 +1088,13 @@ export const FinanceView: React.FC = () => {
           </TabBar>
           <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
             <option value="income">Dokumenty przychodowe</option>
-            <option value="ksef-invoices">Faktury KSeF</option>
             <option value="expenses">Dokumenty kosztowe</option>
             <option value="cash">Kasa</option>
             <option value="payment-summary">Podsumowanie płatności</option>
           </TabSelect>
 
           {activeTab === 'income' && (
-            <IncomeTabContent activeDateRange={activeDateRange} onEdit={handleEditDocument} />
-          )}
-          {activeTab === 'ksef-invoices' && (
-            <RevenueTabContent
-              activeDateRange={activeDateRange}
-              onSelect={(invoice) => setSelectedRevenueInvoiceId(invoice.id)}
-            />
+            <IncomeTabContent activeDateRange={activeDateRange} onSelect={handleSelectDocument} />
           )}
           {activeTab === 'expenses' && (
             <ExpensesTabContent activeDateRange={activeDateRange} />
@@ -1401,7 +1106,7 @@ export const FinanceView: React.FC = () => {
 
       <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
       <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
-      <EditDocumentModal   document={editingDocument}  onClose={closeEditModal} />
+      <EditDocumentModal   document={selectedFinanceDocument ?? null} onClose={closeEditModal} />
       <IssueInvoiceModal
         isOpen={isIssueInvoiceModalOpen}
         onClose={() => setIssueInvoiceModalOpen(false)}
