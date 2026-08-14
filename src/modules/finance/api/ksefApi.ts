@@ -20,8 +20,15 @@ const BASE = '/v1/ksef';
 export const ksefApi = {
   // ── Credentials ────────────────────────────────────────────────────────────
 
+  /** Zwraca null, gdy studio nie ma zapisanych poświadczeń (backend odpowiada 404). */
   getCredentials: async (): Promise<KsefCredentials | null> => {
-    return null
+    try {
+      const response = await apiClient.get(`${BASE}/credentials`);
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) return null;
+      throw error;
+    }
   },
 
   saveCredentials: async (data: SaveKsefCredentialsRequest): Promise<KsefCredentials> => {
