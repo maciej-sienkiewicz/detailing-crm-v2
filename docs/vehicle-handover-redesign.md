@@ -374,14 +374,20 @@ bilansu przyklejonym do dołu sekcji. Cała logika kwotowa
 (`mode: NET | GROSS`, „kwota wpisana jest źródłem prawdy", VAT „w stu")
 przechodzi bez zmian — jest poprawna i zgodna z backendem.
 
-**Podział płatności — odłożony (D5).** Sekcja zapłaty ma jedną formę na całość;
-lista wpłat wejdzie osobno. Podział **dokumentu** (faktura na część kwoty +
-paragon na resztę) zostaje i działa jak dotąd, ale wyszedł z zagnieżdżonego
-modala do sekcji faktury: pasek bilansu pokazuje różnicę, a wybór metody
-płatności reszty pojawia się dopiero po kliknięciu „Resztę udokumentuj
-paragonem". Rozróżnienie z P7 zostaje w mocy jako kierunek — dopóki lista wpłat
-nie powstanie, podział dokumentu pozostaje jedynym sposobem na dwie formy
-zapłaty.
+**Podział płatności** — rozdzielony od podziału dokumentu (P7):
+
+```
+Zapłacono                                    Pozostało: 0,00 zł
+ ┌──────────────────────────────────────────────────────┐
+ │ (Karta ▾)          1 200,00 zł                  [×]  │
+ │ (Gotówka ▾)          522,00 zł                  [×]  │
+ │ + Dodaj wpłatę                                       │
+ └──────────────────────────────────────────────────────┘
+```
+
+Jedna faktura, dwie formy zapłaty. Podział **dokumentu** (faktura na część +
+paragon na resztę) zostaje osobną, rzadziej używaną opcją w sekcji faktury —
+tam, gdzie jest dziś, ale nazwaną wprost: „Wystaw fakturę na część kwoty".
 
 **„Bez dokumentu"** — dzisiejsze `Inny` mapuje się na `DocumentType.OTHER`
 i tworzy dokument z prefiksem `DOK`. Etykieta „Inny" nie mówi nic; zmiana na
@@ -533,43 +539,15 @@ obsługi odrzuceń KSeF. Logika kwot w `CompleteVisitInvoiceOrchestrator`
 Fazy są ułożone tak, żeby **każda z osobna dawała odczuwalną poprawę** i mogła
 pójść na produkcję niezależnie.
 
-| faza | zakres | efekt dla użytkownika | status |
+| faza | zakres | efekt dla użytkownika | szac. |
 |---|---|---|---|
-| **0** | `CustomerInfoResponse` += NIP i adres firmy | fundament prefillu | **zrobione** |
-| **1** | Prefill nabywcy + jawny wiersz nabywcy + GUS po NIP + walidacja danych studia na wejściu | **znika przepisywanie 4 pól**; koniec rozjazdu „UI mówi konsument, backend wystawia B2B” | **zrobione** |
-| **2** | Kreator → jeden ekran; `InvoiceAdjustmentModal` → sekcja; pozycje zwinięte | **z ~8 kliknięć do 2**; koniec modala w modalu | **zrobione** |
-| **3** | Etap A: usunięcie kroku jakości (D1) | oznaczenie gotowości: 3 → 2 kliknięcia | **zrobione** |
-| **4** | Ekran potwierdzenia + ponowna wysyłka do KSeF w miejscu + autozapis draftu | domknięcie ścieżek, koniec gubienia pracy | **zrobione** |
-| **5** | Podpis na tablecie — po powstaniu formularza protokołu (D2) | podpis, który istnieje | odłożone |
-| **6** | Podział płatności — lista wpłat (D5) | karta + gotówka bez sztucznego paragonu | odłożone |
-| **—** | Endpoint `handover-context` (jedno zapytanie zamiast czterech) | mniej migotania przy otwarciu | niezrobione, opis w §7 |
-
-Faza 0 objęła wyłącznie rozszerzenie DTO — nowego endpointu agregującego nie
-budowaliśmy. Problem „późnej walidacji sprzedawcy" rozwiązało przeniesienie
-pobrania ustawień studia z zagnieżdżonego modala na poziom ekranu wydania
-(`useHandover`), co daje ten sam efekt bez nowej powierzchni API.
-
-### Co powstało
-
-| plik | rola |
-|---|---|
-| `visits/types/handover.ts` | model stanu, arytmetyka kwot, walidacja lustrzana do backendowej |
-| `visits/hooks/useHandover.ts` | stan ekranu, draft w localStorage, zapis, wynik |
-| `visits/hooks/useMarkReady.ts` | oznaczenie gotowości |
-| `visits/api/apiError.ts` | odczyt błędu API bez `any` |
-| `handover/HandoverSheet.tsx` | ekran wydania — jedno okno, trzy sekcje |
-| `handover/SettlementSection.tsx` | kwota, forma zapłaty, dokument |
-| `handover/InvoiceSection.tsx` | nabywca i pozycje zwinięte, bilans, reszta |
-| `handover/BuyerEditor.tsx` | nabywca z GUS (`NipInputWithGus`) |
-| `handover/InvoiceItemsEditor.tsx` | pozycje faktury (przeniesione z modala) |
-| `handover/SellerPrompt.tsx` | uzupełnienie danych studia bez wychodzenia |
-| `handover/ProtocolSection.tsx` | deklaracja podpisu (D2) |
-| `handover/HandoverResultView.tsx` | potwierdzenie + ponowna wysyłka do KSeF |
-| `handover/MarkReadyDialog.tsx` | oznaczenie gotowości (D1) |
-
-Usunięte: `TransitionWizards`, `WizardLayout`, `QualityCheckStep`,
-`NotificationStep`, `ClientBriefingStep`, `SignatureStep`, `PaymentStep`,
-`InvoiceAdjustmentModal`, `useStateTransition`.
+| **0** | `CustomerInfoResponse` += NIP i adres; endpoint `handover-context` | — (fundament) | 1–2 d BE |
+| **1** | Prefill nabywcy + jawny wiersz nabywcy + GUS po NIP + walidacja danych studia na wejściu | **znika przepisywanie 4 pól**; koniec rozjazdu „UI mówi konsument, backend wystawia B2B" | 2–3 d FE |
+| **2** | Kreator → jeden ekran; `InvoiceAdjustmentModal` → sekcja; pozycje zwinięte | **z ~8 kliknięć do 2**; koniec modala w modalu | 3–4 d FE |
+| **3** | Etap A: usunięcie kroku jakości, „Cofnij do realizacji" | oznaczenie gotowości: 3 → 2 kliknięcia | 1 d FE |
+| **4** | Ekran potwierdzenia + retry KSeF w miejscu + autozapis draftu | domknięcie ścieżek, koniec gubienia pracy | 2 d FE |
+| **5** | Realny podpis na tablecie; koniec `signatureObtained: true` na sztywno | podpis, który istnieje | 2–3 d FE |
+| **6** | Podział płatności (lista wpłat) | karta + gotówka bez sztucznego paragonu | 1 d BE + 1 d FE |
 
 **Kolejność nie jest przypadkowa.** Faza 1 daje największy stosunek zysku do
 kosztu i jest niezależna od przebudowy ekranu — można ją wypuścić w tym tygodniu
@@ -597,19 +575,7 @@ warto to zrobić, żeby mieć punkt odniesienia.
 
 ---
 
-## 10. Decyzje dla biznesu — rozstrzygnięte
-
-| | decyzja | co z niej wynikło |
-|---|---|---|
-| **D1** | Weryfikacja jakości: **usunąć** | `QualityCheckStep` skasowany, `MarkReadyDialog` to jedno potwierdzenie |
-| **D2** | Brak formularza protokołu → **podpisu nie podłączamy do backendu** | `ProtocolSection` to lokalna deklaracja pracownika; `signatureObtained` wysyła stan faktyczny zamiast twardego `true` |
-| **D3** | „Inny” = rozliczenie poza dokumentem, **nienazywane wprost** | etykieta „Inne rozliczenie”, bez tekstu objaśniającego |
-| **D4** | Domyślny typ dokumentu: **bez zmian** | zostaje faktura VAT na sztywno |
-| **D5** | Podział płatności: **później** | usunięty z zakresu i z projektu dla czytelności; podział *dokumentu* (faktura + paragon na resztę) zostaje |
-
-Poniższy zapis pytań zostaje jako uzasadnienie decyzji.
-
-### Pytania w brzmieniu pierwotnym
+## 10. Decyzje dla biznesu
 
 **D1 — Weryfikacja jakości: usunąć czy zbudować od nowa?**
 Dziś nie zapisuje niczego i nie blokuje niczego. Do wyboru:
