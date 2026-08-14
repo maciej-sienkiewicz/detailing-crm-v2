@@ -66,6 +66,7 @@ mniej.
    │
    └─ Krok 3/3  Finalizacja płatności
          Metoda płatności:  ( Gotówka )( Karta ✓)( Przelew )( BLIK )( BLIK term. )
+                            ← pięć równorzędnych pigułek, każdą trzeba przeczytać
          Dokument:          ( Faktura VAT ✓)( Paragon )( Inny )
          ┌─ Faktura KSeF: 1 722,00 zł · nabywca: Jan Kowalski  [Wprowadź zmiany] ─┐
          │                                                                        │
@@ -310,7 +311,7 @@ Jeden ekran, stopka przyklejona, przycisk główny dostępny od pierwszej sekund
 │     │  netto 1 400,00 · VAT 322,00                          │    │
 │     └───────────────────────────────────────────────────────┘    │
 │                                                                   │
-│     Zapłacono   (Gotówka)(Karta ✓)(Przelew)(BLIK)(BLIK term.)    │
+│     Zapłacono   (Karta ✓)(Gotówka)(Inna metoda ▾)                │
 │                 ⌐ Podziel płatność                                │
 │                                                                   │
 │     Dokument    (Paragon)(Faktura VAT ✓)(Bez dokumentu)          │
@@ -327,12 +328,9 @@ Jeden ekran, stopka przyklejona, przycisk główny dostępny od pierwszej sekund
 │                                                                   │
 │  ③ PROTOKÓŁ WYDANIA                                               │
 │     ┌───────────────────────────────────────────────────────┐    │
-│     │ 📱 Tablet „Recepcja 1" gotowy                          │    │
-│     │                              [Poproś o podpis]         │    │
-│     │ ─────────────────────────────────────────────────────  │    │
-│     │ ☐ Protokół podpisany na papierze                       │    │
-│     │ ☐ Wydanie bez podpisu — powód: [_______________]       │    │
+│     │ 📄 Protokół wydania pojazdu       👁   🖨   💬   📱   │    │
 │     └───────────────────────────────────────────────────────┘    │
+│          podgląd · wydruk · na telefon klienta · na tablet       │
 │                                                                   │
 ├───────────────────────────────────────────────────────────────────┤
 │                          [ Wydaj pojazd i wystaw fakturę ]        │
@@ -389,14 +387,32 @@ opis tego, co realnie się stanie — patrz decyzja **D3**.
 
 ### Sekcja ③ — protokół
 
-- **Tablet sparowany** → `[Poproś o podpis]` uruchamia istniejący
-  `POST /api/v1/visits/{visitId}/protocols/{protocolId}/signature-requests`,
-  status na żywo po WebSocket (jak w check-inie). Po podpisie sekcja zmienia się
-  w `✓ Podpisano 14.08, 15:42 — Jan Kowalski`.
-- **Brak tabletu** → dwa wykluczające się checkboxy: „podpisany na papierze"
-  albo „wydanie bez podpisu" + powód. **Żaden nie jest zaznaczony domyślnie.**
-- `signatureObtained` wysyłamy zgodnie ze stanem faktycznym. Koniec z twardym
-  `true`.
+Wiersz dokumentu identyczny jak w modalu „Dokumentacja i Podpisy" przy
+przyjęciu pojazdu — ta sama maszyneria, te same akcje:
+
+```
+ ┌──────────────────────────────────────────────────────────────┐
+ │ 📄  Protokół wydania pojazdu        👁  🖨  💬  📱          │
+ └──────────────────────────────────────────────────────────────┘
+        podgląd · wydruk · wysyłka na telefon klienta · na tablet
+```
+
+- **Podgląd** otwiera `DocumentPreview`, **wydruk** — wypełniony PDF.
+- **Telefon klienta** wysyła SMS z linkiem do podpisu, **tablet** kieruje na
+  sparowane urządzenie (przy kilku — lista wyboru). Obie drogi to istniejący
+  `POST /api/v1/visits/{visitId}/protocols/{protocolId}/signature-requests`.
+- Status podpisu przychodzi na żywo po WebSockecie; po zerwaniu połączenia
+  stan jest dopytywany. Po podpisie ikona zmienia się w ✓, po odrzuceniu
+  pojawia się „Ponów" na tym samym kanale.
+- Protokoły etapu `CHECK_OUT` generujemy przy otwarciu ekranu — nic wcześniej
+  ich nie tworzy, a `generate` jest idempotentne. Gdy studio nie ma
+  skonfigurowanego dokumentu na wydanie, sekcja mówi to wprost i odsyła do
+  ustawień.
+- `signatureObtained` wysyłamy zgodnie ze stanem faktycznym — protokół
+  podpisany albo nie. Koniec z twardym `true`.
+- Gdy pracownik nie ma dostępu do danych osobowych, imię podpisującego jest
+  zamaskowane — wysyłka do podpisu jest wtedy wyłączona z podaniem powodu,
+  zamiast wpisywać `***` na dokument.
 
 ### Stopka
 
@@ -602,7 +618,7 @@ warto to zrobić, żeby mieć punkt odniesienia.
 | | decyzja | co z niej wynikło |
 |---|---|---|
 | **D1** | Weryfikacja jakości: **usunąć** | `QualityCheckStep` skasowany, `MarkReadyDialog` to jedno potwierdzenie |
-| **D2** | Brak formularza protokołu → **podpisu nie podłączamy do backendu** | `ProtocolSection` to lokalna deklaracja pracownika; `signatureObtained` wysyła stan faktyczny zamiast twardego `true` |
+| **D2** | Protokół ma wyglądać i działać jak wiersz w „Dokumentacji i Podpisach" | `ProtocolSection` używa istniejącej maszynerii podpisu: podgląd, wydruk, wysyłka na telefon i tablet, status na żywo. Okazało się, że backend obsługuje etap `CHECK_OUT` w całości — brakowało tylko wywołania generowania i UI. `signatureObtained` wysyła stan faktyczny zamiast twardego `true` |
 | **D3** | „Inny” = rozliczenie poza dokumentem, **nienazywane wprost** | etykieta „Inne rozliczenie”, bez tekstu objaśniającego |
 | **D4** | Domyślny typ dokumentu: **bez zmian** | zostaje faktura VAT na sztywno |
 | **D5** | Podział płatności: **później** | usunięty z zakresu i z projektu dla czytelności; podział *dokumentu* (faktura + paragon na resztę) zostaje |
