@@ -92,6 +92,13 @@ export interface VehicleInfo {
     currentMileage?: number;
 }
 
+export interface CustomerCompanyAddress {
+    street?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+    country?: string | null;
+}
+
 export interface CustomerInfo {
     id: string;
     firstName: string;
@@ -99,6 +106,9 @@ export interface CustomerInfo {
     email: string;
     phone: string;
     companyName?: string;
+    /** NIP z kartoteki — wypełnia nabywcę faktury przy wydaniu pojazdu. */
+    companyNip?: string | null;
+    companyAddress?: CustomerCompanyAddress | null;
     stats: {
         totalVisits: number;
         totalSpent: MoneyAmount;

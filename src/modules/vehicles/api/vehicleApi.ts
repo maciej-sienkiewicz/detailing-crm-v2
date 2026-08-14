@@ -670,6 +670,7 @@ export const vehicleApi = {
         const endDate = new Date(now);
         endDate.setFullYear(endDate.getFullYear() + 2);
 
+
         const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', {
             params: {
                 vehicleId,
