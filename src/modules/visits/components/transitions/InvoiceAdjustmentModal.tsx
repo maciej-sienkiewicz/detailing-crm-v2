@@ -353,6 +353,7 @@ export const InvoiceAdjustmentModal = ({
     const [buyerEmail, setBuyerEmail] = useState('');
     const [remainderCovered, setRemainderCovered] = useState(false);
     const [remainderMethod, setRemainderMethod] = useState<PaymentMethod>('CASH');
+    const [exemptionBasis, setExemptionBasis] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     // Re-seed przy każdym otwarciu — modal odzwierciedla bieżącą konfigurację
@@ -380,15 +381,20 @@ export const InvoiceAdjustmentModal = ({
             setBuyerEmail(initial.buyerEmail ?? '');
             setRemainderCovered(!!initial.remainderPaymentMethod);
             setRemainderMethod(initial.remainderPaymentMethod ?? 'CASH');
+            setExemptionBasis(initial.exemptionLegalBasis ?? '');
         } else {
             setItems(seedItems());
             setBuyerName(buyerDefaults.companyName ?? buyerDefaults.fullName);
             setBuyerEmail(buyerDefaults.email ?? '');
             setRemainderCovered(false);
+            setExemptionBasis('');
         }
         setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
+
+    /** Stawka „zw" wymaga podstawy prawnej zwolnienia — pole P_19A faktury FA(3). */
+    const hasExemptItem = items.some(item => item.vatRate === 'zw');
 
     const invoiceGross = useMemo(
         () => items.reduce((sum, item) => sum + itemAmounts(item).gross, 0),
@@ -426,6 +432,10 @@ export const InvoiceAdjustmentModal = ({
             if (!item.name.trim()) { setError(`Pozycja ${i + 1}: podaj nazwę`); return; }
             if (itemAmounts(item).gross <= 0) { setError(`Pozycja ${i + 1}: podaj kwotę`); return; }
         }
+        if (hasExemptItem && !exemptionBasis.trim()) {
+            setError('Stawka „zw" wymaga podania podstawy prawnej zwolnienia z VAT');
+            return;
+        }
         const nip = buyerNip.replace(/[^0-9]/g, '');
         if (nip && nip.length !== 10) { setError('NIP nabywcy musi mieć 10 cyfr'); return; }
         if (!nip && !buyerName.trim()) { setError('Faktura dla konsumenta (bez NIP) wymaga imienia i nazwiska nabywcy'); return; }
@@ -455,6 +465,7 @@ export const InvoiceAdjustmentModal = ({
             buyerAddressLine2: buyerAddress2.trim() || undefined,
             buyerEmail: buyerEmail.trim() || undefined,
             remainderPaymentMethod: balanceState === 'under' ? remainderMethod : undefined,
+            exemptionLegalBasis: hasExemptItem ? exemptionBasis.trim() : undefined,
         });
         onClose();
     };
@@ -609,6 +620,22 @@ export const InvoiceAdjustmentModal = ({
                     </AddItemBtn>
                 </ItemsWrap>
 
+                {hasExemptItem && (
+                    <FormField>
+                        <FieldLabel>Podstawa prawna zwolnienia z VAT *</FieldLabel>
+                        <InputShell>
+                            <BareInput
+                                value={exemptionBasis}
+                                onChange={e => setExemptionBasis(e.target.value)}
+                                placeholder="np. art. 113 ust. 1 ustawy o VAT"
+                            />
+                        </InputShell>
+                        <SectionHint>
+                            Wymagana przez KSeF dla pozycji ze stawką „zw" — trafia na fakturę jako pole P_19A.
+                        </SectionHint>
+                    </FormField>
+                )}
+
                 <BalanceBar $state={balanceState}>
                     <BalanceRow>
                         <span>Kwota wizyty</span>
@@ -664,7 +691,12 @@ export const InvoiceAdjustmentModal = ({
                 <SharedButton
                     $variant="primary"
                     onClick={handleSave}
-                    disabled={balanceState === 'over' || (balanceState === 'under' && !remainderCovered) || companyIncomplete}
+                    disabled={
+                        balanceState === 'over'
+                        || (balanceState === 'under' && !remainderCovered)
+                        || companyIncomplete
+                        || (hasExemptItem && !exemptionBasis.trim())
+                    }
                 >
                     Zapisz zmiany
                 </SharedButton>
