@@ -4,22 +4,12 @@ import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
-import {
-    Box,
-    BoxRow,
-    Divider,
-    GhostAction,
-    Muted,
-    Pill,
-    PillRow,
-    SectionProblems,
-} from './HandoverKit';
+import { Box, BoxRow, Divider, GhostAction, Muted, SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { SellerPrompt } from './SellerPrompt';
-import { paymentMethods } from './paymentOptions';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { formatNip, normalizeNip, type HandoverProblem, type HandoverState } from '../../types/handover';
-import type { PaymentMethod } from '../../types/stateTransitions';
 
 const BuyerLine = styled.div`
     display: flex;
@@ -211,21 +201,10 @@ export const InvoiceSection = ({
                                     paragonie — osobnym dokumentem przychodowym (przy gotówce
                                     z wpisem do kasy). Czym klient zapłacił resztę?
                                 </span>
-                                <PillRow>
-                                    {paymentMethods.map(method => (
-                                        <Pill
-                                            key={method.value}
-                                            type="button"
-                                            $selected={state.remainderMethod === method.value}
-                                            onClick={() =>
-                                                patch({ remainderMethod: method.value as PaymentMethod })
-                                            }
-                                        >
-                                            {method.icon}
-                                            {method.label}
-                                        </Pill>
-                                    ))}
-                                </PillRow>
+                                <PaymentMethodPicker
+                                    value={state.remainderMethod}
+                                    onChange={remainderMethod => patch({ remainderMethod })}
+                                />
                                 <GhostAction
                                     type="button"
                                     onClick={() => patch({ splitRemainder: false })}

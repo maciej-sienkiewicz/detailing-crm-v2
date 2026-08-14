@@ -4,9 +4,10 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
 import { Box, BoxRow, Money, Muted, Pill, PillRow, Section, SectionLabel } from './HandoverKit';
 import { InvoiceSection } from './InvoiceSection';
-import { documentTypes, paymentMethods } from './paymentOptions';
+import { PaymentMethodPicker } from './PaymentMethodPicker';
+import { documentTypes } from './paymentOptions';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
-import type { InvoiceType, PaymentMethod } from '../../types/stateTransitions';
+import type { InvoiceType } from '../../types/stateTransitions';
 
 const AmountBox = styled(Box)`
     gap: 6px;
@@ -98,19 +99,10 @@ export const SettlementSection = ({
             <Box>
                 <Group>
                     <SectionLabel as="h4">Zapłacono</SectionLabel>
-                    <PillRow>
-                        {paymentMethods.map(method => (
-                            <Pill
-                                key={method.value}
-                                type="button"
-                                $selected={state.paymentMethod === method.value}
-                                onClick={() => patch({ paymentMethod: method.value as PaymentMethod })}
-                            >
-                                {method.icon}
-                                {method.label}
-                            </Pill>
-                        ))}
-                    </PillRow>
+                    <PaymentMethodPicker
+                        value={state.paymentMethod}
+                        onChange={paymentMethod => patch({ paymentMethod })}
+                    />
                 </Group>
 
                 <Group>

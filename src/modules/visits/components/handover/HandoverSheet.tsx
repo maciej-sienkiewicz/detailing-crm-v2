@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import styled from 'styled-components';
 import {
     ModalShell,
@@ -10,6 +11,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { isPiiMasked, joinPiiName } from '@/common/pii';
 import { useHandover } from '../../hooks/useHandover';
 import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
@@ -69,12 +71,27 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
         .join(' · ');
     const customerLabel = `${visit.customer.firstName} ${visit.customer.lastName}`.trim();
 
+    // Imię i nazwisko trafia na protokół jako podpisujący. Bez uprawnienia do
+    // danych osobowych dostajemy z backendu maskę — pusta wartość wyłącza
+    // wysyłkę do podpisu, zamiast wpisać „***" na dokument.
+    const signerName = isPiiMasked(joinPiiName(visit.customer.firstName, visit.customer.lastName))
+        ? ''
+        : customerLabel;
+
     // Zamknięcie w trakcie zapisu zostawiłoby użytkownika bez informacji, czy
     // wizyta została zakończona — blokujemy do czasu odpowiedzi serwera.
     const handleClose = () => {
         if (handover.isSubmitting) return;
         onClose();
     };
+
+    // `signatureObtained` w payloadzie odzwierciedla realny stan podpisu
+    // protokołu, a nie — jak w starym kreatorze — twardą wartość `true`.
+    const { patch } = handover;
+    const handleSignedChange = useCallback(
+        (protocolSigned: boolean) => patch({ protocolSigned }),
+        [patch]
+    );
 
     return (
         <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
@@ -116,9 +133,11 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         />
 
                         <ProtocolSection
-                            signed={handover.state.protocolSigned}
-                            onChange={protocolSigned => handover.patch({ protocolSigned })}
-                            isDoorToDoor={!!visit.doorToDoor?.enabled}
+                            visitId={visit.id}
+                            signerName={signerName}
+                            customerPhone={visit.customer.phone}
+                            isOpen={isOpen}
+                            onSignedChange={handleSignedChange}
                         />
                     </Body>
                 )}
