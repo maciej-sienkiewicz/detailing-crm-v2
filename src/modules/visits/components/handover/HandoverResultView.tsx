@@ -85,6 +85,10 @@ interface Presentation {
     lead: string;
 }
 
+/** KSeF 440 — numer dokumentu jest już zajęty pod tym NIP-em. */
+export const isDuplicateRejection = (error?: string | null): boolean =>
+    !!error && (error.includes('440') || /duplikat/i.test(error));
+
 /**
  * Status KSeF → co pokazać. REJECTED jest wprost nazwane błędem: wizyta jest
  * zakończona, ale faktura wymaga poprawy — dotąd użytkownik dostawał w tym
@@ -110,11 +114,20 @@ const present = (result: CompleteVisitResponse): Presentation => {
                 lead: 'KSeF jest chwilowo niedostępny — faktura zostanie dosłana automatycznie w trybie offline24.',
             };
         case 'REJECTED':
-            return {
-                tone: 'bad',
-                title: 'Faktura odrzucona przez KSeF',
-                lead: 'Pojazd został wydany, ale faktura nie przeszła walidacji. Popraw dane nabywcy lub pozycji i wyślij ponownie.',
-            };
+            // Duplikat (kod 440) to inna sytuacja niż błąd walidacji: dane są dobre,
+            // zajęty jest numer. Ponowna wysyłka tego samego dokumentu nic nie da —
+            // trzeba wystawić fakturę od nowa, dostanie kolejny numer w serii.
+            return isDuplicateRejection(result.ksefError)
+                ? {
+                      tone: 'bad',
+                      title: 'Faktura odrzucona — duplikat numeru',
+                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w module Finanse → Dokumenty przychodowe.',
+                  }
+                : {
+                      tone: 'bad',
+                      title: 'Faktura odrzucona przez KSeF',
+                      lead: 'Pojazd został wydany, ale faktura nie przeszła walidacji. Popraw dane nabywcy lub pozycji i wyślij ponownie.',
+                  };
         default:
             return {
                 tone: 'warn',
@@ -140,18 +153,22 @@ export const HandoverResultView = ({
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
     const [status, setStatus] = useState(result.ksefStatus ?? null);
+    const [error, setError] = useState(result.ksefError ?? null);
 
-    const view = present({ ...result, ksefStatus: status });
+    const view = present({ ...result, ksefStatus: status, ksefError: error });
+    const duplicate = status === 'REJECTED' && isDuplicateRejection(error);
 
     const retry = useMutation({
         mutationFn: () => ksefRevenueApi.retryInvoice(result.ksefInvoiceId!),
         onSuccess: invoice => {
             setStatus(invoice.ksefStatus ?? null);
+            setError(invoice.lastSendError ?? null);
             queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
             if (invoice.ksefStatus === 'REJECTED') {
                 showError(
                     'KSeF nadal odrzuca fakturę',
-                    'Popraw dane w module Finanse → Faktury KSeF i spróbuj ponownie.'
+                    invoice.lastSendError ??
+                        'Popraw dane w module Finanse → Faktury KSeF i spróbuj ponownie.'
                 );
             } else {
                 showSuccess('Faktura wysłana ponownie', `Status: ${invoice.ksefStatus ?? 'w toku'}.`);
@@ -200,13 +217,15 @@ export const HandoverResultView = ({
                 </BoxRow>
                 {status === 'REJECTED' && (
                     <Muted>
-                        Szczegóły błędu walidacji znajdziesz w module Finanse → Faktury KSeF.
+                        {error ?? 'Szczegóły błędu walidacji znajdziesz w module Finanse → Dokumenty przychodowe.'}
                     </Muted>
                 )}
             </Details>
 
             <Actions>
-                {status === 'REJECTED' && result.ksefInvoiceId && (
+                {/* Przy duplikacie ponowna wysyłka tego samego XML-a zawsze da ten sam
+                    błąd — przycisk tylko frustrowałby użytkownika */}
+                {status === 'REJECTED' && !duplicate && result.ksefInvoiceId && (
                     <SharedButton
                         $variant="secondary"
                         type="button"
