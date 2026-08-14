@@ -1,5 +1,4 @@
 export { FinanceSummaryCards }     from './FinanceSummaryCards';
-export { DocumentsTable }          from './DocumentsTable';
 export { CreateDocumentModal }     from './CreateDocumentModal';
 export { EditDocumentModal }       from './EditDocumentModal';
 export { CashRegisterPanel }       from './CashRegisterPanel';
@@ -9,6 +8,7 @@ export { KsefSyncWidget }          from './KsefSyncWidget';
 export { KsefCredentialsPanel }    from './KsefCredentialsPanel';
 export { AddExpenseModal }         from './AddExpenseModal';
 export { InvoicePreviewModal }     from './InvoicePreviewModal';
-export { KsefRevenueTable }        from './KsefRevenueTable';
+export { IncomeDocumentsTable }    from './IncomeDocumentsTable';
+export { RevenueStatusBadge }      from './RevenueStatusBadge';
 export { IssueInvoiceModal }       from './IssueInvoiceModal';
 export { RevenueInvoiceDetailModal } from './RevenueInvoiceDetailModal';

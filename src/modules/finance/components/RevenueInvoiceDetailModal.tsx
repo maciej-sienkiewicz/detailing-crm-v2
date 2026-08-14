@@ -24,7 +24,7 @@ import {
   useUpdateRevenuePaymentStatus,
 } from '../hooks/useKsefRevenue';
 import { formatMoney, formatDate } from '../utils/formatters';
-import { RevenueStatusBadge } from './KsefRevenueTable';
+import { RevenueStatusBadge } from './RevenueStatusBadge';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

@@ -392,7 +392,53 @@ export interface KsefStatistics {
 
 // ─── View state ───────────────────────────────────────────────────────────────
 
-export type FinanceTab = 'income' | 'expenses' | 'ksef-invoices' | 'cash' | 'payment-summary';
+export type FinanceTab = 'income' | 'expenses' | 'cash' | 'payment-summary';
+
+// ─── Zunifikowana lista dokumentów przychodowych ──────────────────────────────
+
+/** KSEF = faktura z ledgera KSeF, FINANCE = dokument modułu finansowego. */
+export type IncomeSourceKind = 'KSEF' | 'FINANCE';
+
+export type IncomeDocumentType = 'INVOICE' | 'CORRECTION' | 'RECEIPT' | 'OTHER';
+
+export interface IncomeDocument {
+  id:               string;
+  sourceKind:       IncomeSourceKind;
+  documentType:     IncomeDocumentType;
+  documentNumber:   string;
+  issueDate:        string;
+  counterpartyName: string | null;
+  counterpartyNip:  string | null;
+  totalNet:         number;   // grosze
+  totalVat:         number;   // grosze
+  totalGross:       number;   // grosze
+  currency:         string;
+  paymentStatus:    'PAID' | 'PENDING' | 'OVERDUE';
+  paymentLabel:     string | null;
+  ksefStatus:       KsefRevenueStatus | null;
+  ksefNumber:       string | null;
+  origin:           string | null;   // CRM | EXTERNAL | VISIT | MANUAL
+  duplicateStatus:  DuplicateStatus;
+  visitId:          string | null;
+  createdAt:        string;
+}
+
+export interface IncomeDocumentListResponse {
+  documents: IncomeDocument[];
+  total:     number;
+  page:      number;
+  pageSize:  number;
+}
+
+export interface IncomeDocumentFilters {
+  page:           number;
+  pageSize:       number;
+  documentType?:  IncomeDocumentType;
+  paymentStatus?: 'PAID' | 'PENDING' | 'OVERDUE';
+  dateFrom?:      string;
+  dateTo?:        string;
+  onlyKsef?:      boolean;
+}
 
 // ─── KSeF: Faktury przychodowe ────────────────────────────────────────────────
 

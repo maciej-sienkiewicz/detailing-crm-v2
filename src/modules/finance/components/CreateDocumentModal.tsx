@@ -171,7 +171,7 @@ const today = new Date().toISOString().split('T')[0];
 const VAT_RATE = 0.23;
 
 const EMPTY_FORM: FormState = {
-    documentType:     DocumentType.INVOICE,
+    documentType:     DocumentType.RECEIPT,
     paymentMethod:    PaymentMethod.TRANSFER,
     totalNetDisplay:  '',
     totalVatDisplay:  '',
@@ -278,7 +278,6 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                 value={form.documentType}
                                 onChange={setField('documentType')}
                                 options={[
-                                    { value: DocumentType.INVOICE, label: 'Faktura' },
                                     { value: DocumentType.RECEIPT, label: 'Paragon' },
                                     { value: DocumentType.OTHER,   label: 'Inny' },
                                 ]}

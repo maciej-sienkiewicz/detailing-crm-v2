@@ -1,10 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ksefRevenueApi } from '../api/ksefRevenueApi';
-import type {
-  IssueCorrectionRequest,
-  IssueInvoiceRequest,
-  RevenueInvoiceListFilters,
-} from '../types';
+import type { IssueCorrectionRequest, IssueInvoiceRequest } from '../types';
 
 export const KSEF_REVENUE_KEY            = ['ksef', 'revenue']               as const;
 export const KSEF_REVENUE_STATISTICS_KEY = ['ksef', 'revenue', 'statistics'] as const;
@@ -18,23 +14,6 @@ const useInvalidateRevenue = () => {
 };
 
 // ── Listowanie / szczegóły ────────────────────────────────────────────────────
-
-export const useKsefRevenueInvoices = (filters: RevenueInvoiceListFilters) => {
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...KSEF_REVENUE_KEY, 'list', filters],
-    queryFn:  () => ksefRevenueApi.getInvoices(filters),
-  });
-
-  return {
-    invoices: data?.invoices ?? [],
-    total:    data?.total    ?? 0,
-    page:     data?.page     ?? 1,
-    pageSize: data?.pageSize ?? 20,
-    isLoading,
-    isError,
-    refetch,
-  };
-};
 
 /** Szczegóły faktury z pozycjami. Pobiera dopiero gdy id jest ustawione. */
 export const useKsefRevenueInvoiceDetail = (id: string | null) => {
