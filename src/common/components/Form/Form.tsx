@@ -65,13 +65,18 @@ export const Label = styled.label`
  * Place a bare <input> or <textarea> inside — the shell owns the border and focus ring.
  * The inner element must have: border: none; background: transparent; outline: none.
  */
-export const InputShell = styled.div<{ $hasError?: boolean }>`
+/**
+ * $compact shrinks padding/radius for dense, single-screen layouts (e.g. the
+ * vehicle handover sheet) where the default size reads as oversized next to
+ * surrounding 13px-scale controls. Default sizing is unchanged everywhere else.
+ */
+export const InputShell = styled.div<{ $hasError?: boolean; $compact?: boolean }>`
     position: relative;
     display: flex;
     align-items: center;
     background: white;
     border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 10px;
+    border-radius: ${props => props.$compact ? '8px' : '10px'};
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
@@ -92,12 +97,12 @@ export const InputShellTextArea = styled(InputShell)`
 // ─── Bare input / textarea (used inside InputShell) ───────────────────────────
 
 /** Bare input: no border, transparent bg — place inside InputShell. */
-export const BareInput = styled.input`
+export const BareInput = styled.input<{ $compact?: boolean }>`
     width: 100%;
-    padding: 12px 14px;
+    padding: ${props => props.$compact ? '8px 10px' : '12px 14px'};
     border: none;
-    border-radius: 10px;
-    font-size: 14px;
+    border-radius: ${props => props.$compact ? '8px' : '10px'};
+    font-size: ${props => props.$compact ? '13px' : '14px'};
     background: transparent;
     color: #0f172a;
     line-height: 1.5;
@@ -161,14 +166,14 @@ export const Input = styled.input<{ $hasError?: boolean }>`
 `;
 
 /** @deprecated Use InputShell + native <select> */
-export const Select = styled.select`
+export const Select = styled.select<{ $compact?: boolean }>`
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding: 9px 12px;
+    padding: ${props => props.$compact ? '8px 10px' : '9px 12px'};
     border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    border-radius: ${props => props.$compact ? '8px' : props.theme.radii.md};
+    font-size: ${props => props.$compact ? '13px' : props.theme.fontSizes.sm};
     background: #F8FAFC;
     color: ${props => props.theme.colors.text};
     cursor: pointer;

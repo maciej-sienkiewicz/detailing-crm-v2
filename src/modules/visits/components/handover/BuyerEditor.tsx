@@ -66,6 +66,7 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
                     onChange={value => set({ nip: value })}
                     onFetch={applyGus}
                     placeholder="np. 5213017228"
+                    compact
                 />
             </FormField>
 
@@ -79,42 +80,46 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
             <FormGrid $columns={2}>
                 <FormField>
                     <FieldLabel htmlFor="handover-buyer-name">Nazwa albo imię i nazwisko</FieldLabel>
-                    <InputShell>
+                    <InputShell $compact>
                         <BareInput
                             id="handover-buyer-name"
                             value={buyer.name}
                             onChange={e => set({ name: e.target.value })}
+                            $compact
                         />
                     </InputShell>
                 </FormField>
                 <FormField>
                     <FieldLabel htmlFor="handover-buyer-email">E-mail</FieldLabel>
-                    <InputShell>
+                    <InputShell $compact>
                         <BareInput
                             id="handover-buyer-email"
                             type="email"
                             value={buyer.email}
                             onChange={e => set({ email: e.target.value })}
+                            $compact
                         />
                     </InputShell>
                 </FormField>
                 <FormField>
                     <FieldLabel htmlFor="handover-buyer-street">Ulica i numer</FieldLabel>
-                    <InputShell>
+                    <InputShell $compact>
                         <BareInput
                             id="handover-buyer-street"
                             value={buyer.addressLine1}
                             onChange={e => set({ addressLine1: e.target.value })}
+                            $compact
                         />
                     </InputShell>
                 </FormField>
                 <FormField>
                     <FieldLabel htmlFor="handover-buyer-city">Kod pocztowy i miejscowość</FieldLabel>
-                    <InputShell>
+                    <InputShell $compact>
                         <BareInput
                             id="handover-buyer-city"
                             value={buyer.addressLine2}
                             onChange={e => set({ addressLine2: e.target.value })}
+                            $compact
                         />
                     </InputShell>
                 </FormField>
