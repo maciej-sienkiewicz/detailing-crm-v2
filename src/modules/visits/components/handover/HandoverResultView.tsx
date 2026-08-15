@@ -1,12 +1,7 @@
-import { useState } from 'react';
 import styled from 'styled-components';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { SharedButton } from '@/common/styles';
-import { ksefRevenueApi } from '@/modules/finance/api/ksefRevenueApi';
-import { useToast } from '@/common/components/Toast';
-import { apiErrorMessage } from '../../api/apiError';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Box, BoxRow, Money, Muted } from './HandoverKit';
 import type { CompleteVisitResponse } from '../../types/stateTransitions';
@@ -114,19 +109,21 @@ const present = (result: CompleteVisitResponse): Presentation => {
                 lead: 'KSeF jest chwilowo niedostępny — faktura zostanie dosłana automatycznie w trybie offline24.',
             };
         case 'REJECTED':
-            // Duplikat (kod 440) to inna sytuacja niż błąd walidacji: dane są dobre,
-            // zajęty jest numer. Ponowna wysyłka tego samego dokumentu nic nie da —
-            // trzeba wystawić fakturę od nowa, dostanie kolejny numer w serii.
+            // Odrzucona faktura nie istnieje w KSeF i nie da się jej „dosłać":
+            // jej numer jest spalony, a XML zamrożony w chwili wystawienia. Backend
+            // świadomie odmawia ponowienia — jedyną drogą jest nowy dokument.
+            // Duplikat (kod 440) wyróżniamy, bo tam dane są poprawne: zajęty jest
+            // wyłącznie numer i wystawienie od nowa wystarczy.
             return isDuplicateRejection(result.ksefError)
                 ? {
                       tone: 'bad',
                       title: 'Faktura odrzucona — duplikat numeru',
-                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w module Finanse → Dokumenty przychodowe.',
+                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w module Finanse → Dokumenty przychodowe — dostanie kolejny numer w serii.',
                   }
                 : {
                       tone: 'bad',
                       title: 'Faktura odrzucona przez KSeF',
-                      lead: 'Pojazd został wydany, ale faktura nie przeszła walidacji. Popraw dane nabywcy lub pozycji i wyślij ponownie.',
+                      lead: 'Pojazd został wydany, ale faktura nie przeszła walidacji. Popraw dane i wystaw ją ponownie w module Finanse → Dokumenty przychodowe.',
                   };
         default:
             return {
@@ -150,36 +147,10 @@ export const HandoverResultView = ({
     currency,
     onClose,
 }: HandoverResultViewProps) => {
-    const queryClient = useQueryClient();
-    const { showSuccess, showError } = useToast();
-    const [status, setStatus] = useState(result.ksefStatus ?? null);
-    const [error, setError] = useState(result.ksefError ?? null);
+    const status = result.ksefStatus ?? null;
+    const error = result.ksefError ?? null;
 
-    const view = present({ ...result, ksefStatus: status, ksefError: error });
-    const duplicate = status === 'REJECTED' && isDuplicateRejection(error);
-
-    const retry = useMutation({
-        mutationFn: () => ksefRevenueApi.retryInvoice(result.ksefInvoiceId!),
-        onSuccess: invoice => {
-            setStatus(invoice.ksefStatus ?? null);
-            setError(invoice.lastSendError ?? null);
-            queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
-            if (invoice.ksefStatus === 'REJECTED') {
-                showError(
-                    'KSeF nadal odrzuca fakturę',
-                    invoice.lastSendError ??
-                        'Popraw dane w module Finanse → Faktury KSeF i spróbuj ponownie.'
-                );
-            } else {
-                showSuccess('Faktura wysłana ponownie', `Status: ${invoice.ksefStatus ?? 'w toku'}.`);
-            }
-        },
-        onError: (error: unknown) =>
-            showError(
-                'Nie udało się wysłać ponownie',
-                apiErrorMessage(error, 'Spróbuj ponownie za chwilę.')
-            ),
-    });
+    const view = present(result);
 
     const icon =
         view.tone === 'ok' ? <CheckCircle2 /> : view.tone === 'warn' ? <Clock /> : <AlertTriangle />;
@@ -223,19 +194,6 @@ export const HandoverResultView = ({
             </Details>
 
             <Actions>
-                {/* Przy duplikacie ponowna wysyłka tego samego XML-a zawsze da ten sam
-                    błąd — przycisk tylko frustrowałby użytkownika */}
-                {status === 'REJECTED' && !duplicate && result.ksefInvoiceId && (
-                    <SharedButton
-                        $variant="secondary"
-                        type="button"
-                        disabled={retry.isPending}
-                        onClick={() => retry.mutate()}
-                    >
-                        <RefreshCw size={14} />
-                        {retry.isPending ? 'Wysyłanie…' : 'Wyślij ponownie'}
-                    </SharedButton>
-                )}
                 <SharedButton $variant="primary" type="button" onClick={onClose}>
                     Wróć do wizyty
                 </SharedButton>
