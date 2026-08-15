@@ -1,15 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ksefRevenueApi } from '../api/ksefRevenueApi';
+import { useInvalidateFinance } from './useFinance';
 import type { IssueCorrectionRequest, IssueInvoiceRequest } from '../types';
 
 export const KSEF_REVENUE_KEY            = ['ksef', 'revenue']               as const;
 export const KSEF_REVENUE_STATISTICS_KEY = ['ksef', 'revenue', 'statistics'] as const;
 
+/**
+ * Zmiana w ledgerze KSeF (nowa faktura, korekta, status płatności, duplikat)
+ * przestawia też zunifikowaną listę dokumentów przychodowych i kafle
+ * podsumowania — one liczą z tych samych rekordów, więc muszą lecieć razem.
+ */
 const useInvalidateRevenue = () => {
   const queryClient = useQueryClient();
+  const invalidateFinance = useInvalidateFinance();
   return () => {
     queryClient.invalidateQueries({ queryKey: KSEF_REVENUE_KEY });
-    queryClient.invalidateQueries({ queryKey: KSEF_REVENUE_STATISTICS_KEY });
+    invalidateFinance();
   };
 };
 
