@@ -136,11 +136,13 @@ export const validateHandover = ({ state, visitGross, sellerComplete }: Validate
     }
 
     state.items.forEach((item, index) => {
-        if (!item.name.trim()) {
-            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj nazwę.` });
-        }
-        if (itemAmounts(item).gross <= 0) {
-            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj kwotę.` });
+        const missing = [
+            !item.name.trim() && 'nazwę',
+            itemAmounts(item).gross <= 0 && 'kwotę',
+        ].filter((part): part is string => Boolean(part));
+
+        if (missing.length > 0) {
+            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj ${missing.join(' i ')}.` });
         }
     });
 
