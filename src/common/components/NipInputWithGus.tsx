@@ -6,21 +6,21 @@ import { InputShell, BareInput, FormErrorMsg } from '@/common/components/Form';
 
 export type { CompanyInfoResponse };
 
-const GusBtn = styled.button`
+const GusBtn = styled.button<{ $compact?: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 0 14px;
+    padding: ${props => props.$compact ? '0 10px' : '0 14px'};
     height: 100%;
     border: none;
     border-left: 1px solid #e2e8f0;
     background: none;
-    font-size: 12px;
+    font-size: ${props => props.$compact ? '11px' : '12px'};
     font-weight: 600;
     color: var(--brand-primary);
     cursor: pointer;
     white-space: nowrap;
-    border-radius: 0 10px 10px 0;
+    border-radius: ${props => props.$compact ? '0 8px 8px 0' : '0 10px 10px 0'};
     transition: background 0.15s ease;
     flex-shrink: 0;
 
@@ -41,6 +41,8 @@ interface NipInputWithGusProps {
     onFetch: (data: CompanyInfoResponse) => void;
     hasError?: boolean;
     placeholder?: string;
+    /** Shrinks padding/font for dense, single-screen layouts. */
+    compact?: boolean;
 }
 
 export const NipInputWithGus = ({
@@ -50,6 +52,7 @@ export const NipInputWithGus = ({
     onFetch,
     hasError,
     placeholder,
+    compact,
 }: NipInputWithGusProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const [gusError, setGusError] = useState<string | null>(null);
@@ -73,21 +76,23 @@ export const NipInputWithGus = ({
 
     return (
         <>
-            <InputShell $hasError={hasError}>
+            <InputShell $hasError={hasError} $compact={compact}>
                 <BareInput
                     id={id}
                     value={value}
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
                     autoComplete="new-password"
+                    $compact={compact}
                 />
                 <GusBtn
                     type="button"
                     onClick={handleFetch}
                     disabled={isLoading}
                     title="Pobierz dane firmy z GUS"
+                    $compact={compact}
                 >
-                    <Building2 size={13} />
+                    <Building2 size={compact ? 12 : 13} />
                     {isLoading ? 'Pobieranie…' : 'Pobierz z GUS'}
                 </GusBtn>
             </InputShell>

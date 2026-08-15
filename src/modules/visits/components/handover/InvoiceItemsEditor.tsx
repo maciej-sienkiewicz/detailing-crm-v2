@@ -133,35 +133,39 @@ export const InvoiceItemsEditor = ({
 
             {items.map((item, index) => (
                 <Row key={index}>
-                    <InputShell>
+                    <InputShell $compact>
                         <BareInput
                             value={item.name}
                             aria-label={`Nazwa pozycji ${index + 1}`}
                             onChange={e => updateItem(index, { name: e.target.value })}
+                            $compact
                         />
                     </InputShell>
-                    <DerivedShell $derived={item.mode === 'GROSS'}>
+                    <DerivedShell $derived={item.mode === 'GROSS'} $compact>
                         <BareInput
                             value={item.net}
                             inputMode="decimal"
                             aria-label={`Netto pozycji ${index + 1}`}
                             title={item.mode === 'GROSS' ? 'Wyliczone z brutto' : 'Kwota wpisana'}
                             onChange={e => updateItem(index, { net: e.target.value })}
+                            $compact
                         />
                     </DerivedShell>
-                    <DerivedShell $derived={item.mode === 'NET'}>
+                    <DerivedShell $derived={item.mode === 'NET'} $compact>
                         <BareInput
                             value={item.gross}
                             inputMode="decimal"
                             aria-label={`Brutto pozycji ${index + 1}`}
                             title={item.mode === 'NET' ? 'Wyliczone z netto' : 'Kwota wpisana'}
                             onChange={e => updateItem(index, { gross: e.target.value })}
+                            $compact
                         />
                     </DerivedShell>
                     <Select
                         value={item.vatRate}
                         aria-label={`Stawka VAT pozycji ${index + 1}`}
                         onChange={e => updateItem(index, { vatRate: e.target.value as VatRateCode })}
+                        $compact
                     >
                         <option value="23">23%</option>
                         <option value="8">8%</option>
@@ -192,11 +196,12 @@ export const InvoiceItemsEditor = ({
             {hasExemptItem && (
                 <FormField>
                     <FieldLabel>Podstawa prawna zwolnienia z VAT *</FieldLabel>
-                    <InputShell>
+                    <InputShell $compact>
                         <BareInput
                             value={exemptionBasis}
                             placeholder="np. art. 113 ust. 1 ustawy o VAT"
                             onChange={e => onExemptionBasisChange(e.target.value)}
+                            $compact
                         />
                     </InputShell>
                     <Muted>Wymagana przez KSeF dla stawki „zw" — trafia na fakturę jako pole P_19A.</Muted>
