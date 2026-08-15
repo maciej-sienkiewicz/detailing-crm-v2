@@ -14,6 +14,12 @@ const AmountBox = styled(Box)`
     background: ${st.bg};
 `;
 
+const AmountLabel = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.text};
+`;
+
 const SubRow = styled.div`
     display: flex;
     justify-content: space-between;
@@ -85,14 +91,12 @@ export const SettlementSection = ({
 
             <AmountBox>
                 <BoxRow>
-                    <span style={{ fontSize: st.fontSm, fontWeight: 600, color: st.text }}>
-                        Do zapłaty
-                    </span>
+                    <AmountLabel>Do zapłaty · brutto</AmountLabel>
                     <Money $strong>{fmt(totals.gross)}</Money>
                 </BoxRow>
                 <SubRow>
-                    <span>netto {fmt(totals.net)}</span>
-                    <span>VAT {fmt(totals.vat)}</span>
+                    <span>netto</span>
+                    <span>{fmt(totals.net)}</span>
                 </SubRow>
             </AmountBox>
 

@@ -1,15 +1,41 @@
 import styled from 'styled-components';
+import { MessageSquareQuote } from 'lucide-react';
 import { formatDateTime } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { Box, Section, SectionLabel } from './HandoverKit';
+import { Section, SectionLabel } from './HandoverKit';
 import type { VisitComment } from '../../types';
+
+/**
+ * Ciepłe tło i lewy akcent — to jedyna sekcja, której treść trzeba komuś
+ * powiedzieć na głos. Na białym tle wyglądała jak reszta formularza i łatwo
+ * ją było minąć wzrokiem w drodze do przycisku.
+ */
+const NotesBox = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 12px 13px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 3px solid ${st.accentAmber};
+    border-radius: ${st.radiusSm};
+`;
+
+const AmberLabel = styled(SectionLabel)`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #92400e;
+
+    svg { width: 13px; height: 13px; }
+`;
 
 const Note = styled.div`
     display: flex;
     flex-direction: column;
     gap: 3px;
     padding-bottom: 9px;
-    border-bottom: 1px solid ${st.border};
+    border-bottom: 1px solid #fde68a;
 
     &:last-child {
         padding-bottom: 0;
@@ -27,19 +53,19 @@ const NoteHead = styled.div`
 const Author = styled.span`
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${st.text};
+    color: #78350f;
 `;
 
 const When = styled.time`
     font-size: ${st.fontXs};
-    color: ${st.textMuted};
+    color: #b45309;
     white-space: nowrap;
 `;
 
 const Content = styled.p`
     margin: 0;
     font-size: ${st.fontSm};
-    color: ${st.textSecondary};
+    color: #713f12;
     line-height: 1.55;
 `;
 
@@ -59,8 +85,11 @@ export const CustomerNotesSection = ({ comments }: CustomerNotesSectionProps) =>
 
     return (
         <Section>
-            <SectionLabel>Do przekazania klientowi · {comments.length}</SectionLabel>
-            <Box>
+            <AmberLabel>
+                <MessageSquareQuote strokeWidth={2.2} />
+                Do przekazania klientowi · {comments.length}
+            </AmberLabel>
+            <NotesBox>
                 {comments.map(comment => (
                     <Note key={comment.id}>
                         <NoteHead>
@@ -70,7 +99,7 @@ export const CustomerNotesSection = ({ comments }: CustomerNotesSectionProps) =>
                         <Content>{comment.content}</Content>
                     </Note>
                 ))}
-            </Box>
+            </NotesBox>
         </Section>
     );
 };

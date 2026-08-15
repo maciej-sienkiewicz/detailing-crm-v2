@@ -123,11 +123,6 @@ export const InvoiceItemsEditor = ({
 
     return (
         <Wrap>
-            <Muted>
-                Wpisz netto <em>albo</em> brutto — kwota, którą wpiszesz, zostaje dokładnie taka,
-                jak ją podałeś, a druga wylicza się ze stawki VAT.
-            </Muted>
-
             <HeaderRow>
                 <span>Nazwa pozycji</span>
                 <span>Netto</span>
