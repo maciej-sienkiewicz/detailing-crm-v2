@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     ModalShell,
     ModalHeader,
@@ -11,6 +12,7 @@ import { SharedButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
 import { useChangePlan, useCheckout, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
 import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../types';
+import { CommunicationModuleTour } from './CommunicationModuleTour';
 import { formatDate } from '../utils/formatters';
 import {
     DialogBody,
@@ -173,6 +175,12 @@ interface AddOnDialogProps {
     onClose: () => void;
 }
 
+/**
+ * Add-ons that explain themselves before taking money. Only the communication
+ * module needs it today: it is the one whose price is not the whole commitment.
+ */
+const ADD_ONS_WITH_GUIDE = new Set<AddOnKey>(['CLIENT_COMMUNICATION']);
+
 export function AddOnActivationDialog({
     addOnKey,
     addOnName,
@@ -182,6 +190,11 @@ export function AddOnActivationDialog({
 }: AddOnDialogProps) {
     const { showSuccess, showError } = useToast();
     const checkout = useCheckout();
+
+    // The communication module is the one add-on whose price is not the whole
+    // commitment: it needs message texts and it needs credits. Explaining that here
+    // covers every entry point at once — module gate, paywall, settings, the visit.
+    const [guideDone, setGuideDone] = useState(!ADD_ONS_WITH_GUIDE.has(addOnKey));
 
     const handleConfirm = async () => {
         try {
@@ -199,6 +212,15 @@ export function AddOnActivationDialog({
     };
 
     const isTrial = preview?.proratedAmountCents === null;
+
+    if (!guideDone) {
+        return (
+            <CommunicationModuleTour
+                onClose={onClose}
+                onFinish={() => setGuideDone(true)}
+            />
+        );
+    }
 
     return (
         <ModalShell isOpen onClose={onClose} maxWidth="480px">

@@ -9,6 +9,7 @@ import {
   Table,
   TableScroll,
   Th,
+  stageAccent,
 } from './primitives';
 import { MESSAGES, STAGES, type MessageSpec } from '../catalog';
 import type { Channel, ChannelDraft, MessageKey, TemplatesDraft } from '../types';
@@ -51,12 +52,14 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
               const rows = visible.filter(spec => spec.stage === stage.id);
               if (rows.length === 0) return null;
 
+              const accent = stageAccent(stage.id);
+
               return (
                 <React.Fragment key={stage.id}>
-                  <StageRow>
+                  <StageRow $accent={accent.base} $tint={accent.tint}>
                     <td colSpan={4}>
-                      <StageLabel>
-                        <StageIndex>{index + 1}</StageIndex>
+                      <StageLabel $deep={accent.deep}>
+                        <StageIndex $accent={accent.base}>{index + 1}</StageIndex>
                         {stage.title}
                         <StageCaption>· {stage.caption}</StageCaption>
                       </StageLabel>
@@ -67,6 +70,7 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                     <RuleRow
                       key={spec.key}
                       spec={spec}
+                      accent={accent.base}
                       drafts={draft[spec.key] as Partial<Record<Channel, ChannelDraft>>}
                       onOpen={() => onOpen(spec.key)}
                       onToggle={channel => onToggle(spec.key, channel)}
