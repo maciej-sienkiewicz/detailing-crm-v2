@@ -9,6 +9,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { useToast } from '@/common/components/Toast';
+import { useCapability } from '@/modules/subscription';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { tabletApi } from '../api/tabletApi';
 import { useSignatureRequestsSocket } from '../hooks/useSignatureRequestsSocket';
@@ -304,10 +305,16 @@ export const SigningRequirementModal = ({
         },
     });
 
+    // Tablet = moduł podpisów; telefon klienta to reguła krzyżowa
+    // (podpisy ∧ komunikacja) rozstrzygana przez backend — patrz ProtocolSection.
+    const sigLocal = useCapability('SIGNATURE_LOCAL');
+    const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
+
     const tabletButtonTitle = (protocol: ProtocolResponse): string => {
         const phase = signingByProtocol[protocol.id]?.phase;
         if (phase === 'signed') return 'Klient podpisał dokument';
         if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (!sigLocal.enabled) return sigLocal.lockReason ?? 'Wymaga modułu Podpisy elektroniczne';
         if (tablets.length === 0) return 'Brak sparowanego tabletu';
         if (tablets.length === 1) return `Wyślij na tablet: ${tablets[0].deviceName}`;
         return 'Wybierz tablet do podpisu';
@@ -317,6 +324,7 @@ export const SigningRequirementModal = ({
         const phase = signingByProtocol[protocol.id]?.phase;
         if (phase === 'signed') return 'Klient podpisał dokument';
         if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (!sigRemote.enabled) return sigRemote.lockReason ?? 'Wymaga modułów: Podpisy elektroniczne i Automatyzacja kontaktu';
         if (!customerPhone) return 'Nie podano numeru klienta';
         return 'Wyślij prośbę na telefon klienta';
     };
@@ -381,7 +389,7 @@ export const SigningRequirementModal = ({
                                                     <span title={phoneButtonTitle(protocol)} style={{ display: 'inline-flex' }}>
                                                         <IconButton
                                                             onClick={() => handleSendToPhone(protocol.id)}
-                                                            disabled={!customerPhone || isSending || isWaiting || isSigned}
+                                                            disabled={!customerPhone || isSending || isWaiting || isSigned || !sigRemote.enabled}
                                                             $success={isSigned}
                                                             aria-label="Wyślij prośbę na telefon klienta"
                                                         >
@@ -405,7 +413,9 @@ export const SigningRequirementModal = ({
                                                         <RetryButton
                                                             onClick={() => handleRetry(protocol.id)}
                                                             title={smsChannel ? phoneButtonTitle(protocol) : tabletButtonTitle(protocol)}
-                                                            disabled={smsChannel ? !customerPhone : !hasTablets}
+                                                            disabled={smsChannel
+                                                                ? !customerPhone || !sigRemote.enabled
+                                                                : !hasTablets || !sigLocal.enabled}
                                                         >
                                                             Ponów
                                                         </RetryButton>
@@ -413,7 +423,7 @@ export const SigningRequirementModal = ({
                                                         <IconButton
                                                             onClick={() => handleTabletButtonClick(protocol.id)}
                                                             title={tabletButtonTitle(protocol)}
-                                                            disabled={!hasTablets || isSending || isWaiting || isSigned}
+                                                            disabled={!hasTablets || isSending || isWaiting || isSigned || !sigLocal.enabled}
                                                             $active={isPickerOpen}
                                                             $success={isSigned}
                                                         >

@@ -1,3 +1,4 @@
+import { useCapability } from '@/modules/subscription';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, Printer, Tablet, MessageSquare, Check, RotateCw } from 'lucide-react';
@@ -122,7 +123,15 @@ export const ProtocolSection = ({
     const canSign = signerName.trim().length > 0;
     const hasTablets = signing.tablets.length > 0 && canSign;
 
+    // Rozstrzygnięcia z backendu: tablet = moduł podpisów; telefon klienta to
+    // reguła krzyżowa (podpisy ∧ komunikacja) — link do podpisu jedzie SMS-em.
+    // Kanały gatujemy OSOBNO: studio z samymi podpisami podpisuje na tablecie,
+    // a przy telefonie widzi dokładnie, którego modułu brakuje.
+    const sigLocal = useCapability('SIGNATURE_LOCAL');
+    const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
+
     const handleTabletClick = (protocolId: string) => {
+        if (!sigLocal.enabled) return;
         if (signing.tablets.length === 1) {
             signing.sendToTablet(protocolId, signing.tablets[0].tabletId);
         } else if (signing.tablets.length > 1) {
@@ -140,6 +149,7 @@ export const ProtocolSection = ({
         const phase = signing.byProtocol[protocolId]?.phase;
         if (isSigned || phase === 'signed') return 'Klient podpisał dokument';
         if (phase === 'waiting') return 'Oczekiwanie na podpis klienta…';
+        if (!sigLocal.enabled) return sigLocal.lockReason ?? 'Wymaga modułu Podpisy elektroniczne';
         if (!canSign) return NO_SIGNER;
         if (!hasTablets) return 'Brak sparowanego tabletu';
         if (signing.tablets.length === 1) return `Wyślij na tablet: ${signing.tablets[0].deviceName}`;
@@ -150,6 +160,7 @@ export const ProtocolSection = ({
         const phase = signing.byProtocol[protocolId]?.phase;
         if (isSigned || phase === 'signed') return 'Klient podpisał dokument';
         if (phase === 'waiting') return 'Oczekiwanie na podpis klienta…';
+        if (!sigRemote.enabled) return sigRemote.lockReason ?? 'Wymaga modułów: Podpisy elektroniczne i Automatyzacja kontaktu';
         if (!canSign) return NO_SIGNER;
         if (!customerPhone) return 'Nie podano numeru klienta';
         return 'Wyślij prośbę na telefon klienta';
@@ -217,7 +228,7 @@ export const ProtocolSection = ({
                                         >
                                             <IconButton
                                                 onClick={() => signing.sendToPhone(protocol.id)}
-                                                disabled={!customerPhone || !canSign || busy}
+                                                disabled={!customerPhone || !canSign || busy || !sigRemote.enabled}
                                                 $success={isSigned}
                                                 aria-label="Wyślij prośbę na telefon klienta"
                                             >
@@ -248,7 +259,10 @@ export const ProtocolSection = ({
                                                         : tabletTitle(protocol.id, isSigned)
                                                 }
                                                 disabled={
-                                                    !canSign || (smsChannel ? !customerPhone : !hasTablets)
+                                                    !canSign ||
+                                                    (smsChannel
+                                                        ? !customerPhone || !sigRemote.enabled
+                                                        : !hasTablets || !sigLocal.enabled)
                                                 }
                                             >
                                                 Ponów
@@ -257,7 +271,7 @@ export const ProtocolSection = ({
                                             <IconButton
                                                 onClick={() => handleTabletClick(protocol.id)}
                                                 title={tabletTitle(protocol.id, isSigned)}
-                                                disabled={!hasTablets || busy}
+                                                disabled={!hasTablets || busy || !sigLocal.enabled}
                                                 $active={isPickerOpen}
                                                 $success={isSigned}
                                                 aria-label="Wyślij na tablet"

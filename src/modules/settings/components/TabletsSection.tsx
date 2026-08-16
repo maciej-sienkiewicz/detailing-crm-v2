@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
+import { RequireCapability } from '@/modules/subscription';
 import {
     Container, Toolbar, AddButton, StatsRow, StatText, Card, ColLabel,
     Badge, Dot, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox,
@@ -20,6 +21,10 @@ function tokenStatus(tokenExpiresAt: string): 'active' | 'expiring' {
     return daysLeft < 7 ? 'expiring' : 'active';
 }
 
+/**
+ * Tablet pairing only makes sense with the e-signatures module — the whole
+ * section becomes an upsell surface without it (backend rejects pairing with 402).
+ */
 export function TabletsSection() {
     const { tablets, isLoading } = useTablets();
     const deleteTablet = useDeleteTablet();
@@ -49,6 +54,11 @@ export function TabletsSection() {
     };
 
     return (
+        <RequireCapability
+            capability="SIGNATURE_LOCAL"
+            mode="upsell"
+            message="Tablety do podpisu wymagają modułu Podpisy elektroniczne."
+        >
         <Container>
             <Toolbar>
                 <div style={{ flex: 1 }} />
@@ -151,6 +161,7 @@ export function TabletsSection() {
                 <TabletPairingModal onClose={() => setPairingOpen(false)} />
             )}
         </Container>
+        </RequireCapability>
     );
 }
 
