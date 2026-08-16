@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, CloseBtn } from '@/common/components/ModalKit';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { AddOnActivationDialog } from './PlanChangeDialog';
-import { formatCents } from '../utils/formatters';
+import { ModuleGateCard } from './ModuleGate';
 import type { AddOnKey, PaywallErrorResponse } from '../types';
 
 /**
  * Global safety net for the HTTP 402 MODULE_REQUIRED contract.
  *
- * Mounted once (App). Whenever any API call is rejected because the studio
- * lacks a module — including actions the UI failed to gate — the interceptor in
- * apiClient dispatches `api:paywall` and this dialog turns the dead end into a
- * purchase path: the owner gets one-click checkout, an employee gets the
- * "ask the owner" explanation. The user must never see a raw 402 error.
+ * Mounted once (App). Fires ONLY for mutations — background reads fail silently
+ * (see apiClient) so simply visiting a view never pops a paywall. When a
+ * deliberate action is rejected because the studio lacks a module, this dialog
+ * turns the dead end into a purchase path using the same styled card as the
+ * full-page ModuleGate — every "module missing" surface looks identical.
  */
 export function PaywallListener() {
     const [payload, setPayload] = useState<PaywallErrorResponse | null>(null);
@@ -34,60 +33,45 @@ export function PaywallListener() {
 
     const close = () => setPayload(null);
 
-    const handleBuy = (addOnKey: AddOnKey, addOnName: string) => {
-        void unlock.openUnlockDialog(addOnKey, addOnName);
+    // The card sells ONE module; for cross-module rules the first purchasable
+    // option is offered and the subtitle names every missing module.
+    const option = payload.upsell.find(o => o.isAvailable) ?? payload.upsell[0] ?? null;
+    const missingNames = payload.missingFeatures.map(f => f.displayName);
+    const title = payload.capabilityDisplayName ?? option?.addOnName ?? 'Funkcja dodatkowa';
+
+    const handleUnlock = () => {
+        if (!option?.isAvailable) return;
+        void unlock.openUnlockDialog(option.addOnKey as AddOnKey, option.addOnName);
     };
 
     return (
         <>
-            <ModalShell isOpen onClose={close} maxWidth="480px">
-                <ModalHeader>
-                    <ModalTitleGroup>
-                        <ModalTitle>Ta funkcja wymaga dodatkowego modułu</ModalTitle>
-                    </ModalTitleGroup>
-                    <CloseBtn onClick={close} />
-                </ModalHeader>
-                <ModalContent>
-                    <Lead>
-                        {payload.capabilityDisplayName
-                            ? <><strong>{payload.capabilityDisplayName}</strong> nie jest dostępna w Twoim planie.</>
-                            : payload.message}
-                    </Lead>
-
-                    {payload.upsell.length > 0 && (
-                        <OptionList>
-                            {payload.upsell.map((option) => (
-                                <OptionRow key={option.addOnKey}>
-                                    <OptionInfo>
-                                        <OptionName>{option.addOnName}</OptionName>
-                                        {option.monthlyPriceGrossCents != null && (
-                                            <OptionPrice>{formatCents(option.monthlyPriceGrossCents)}/mies.</OptionPrice>
-                                        )}
-                                    </OptionInfo>
-                                    {isOwner && option.isAvailable && (
-                                        <BuyBtn type="button" onClick={() => handleBuy(option.addOnKey, option.addOnName)}>
-                                            Wykup dostęp
-                                        </BuyBtn>
-                                    )}
-                                </OptionRow>
-                            ))}
-                        </OptionList>
-                    )}
-
-                    {!isOwner && (
-                        <EmployeeHint>
-                            Aktywacja modułu wymaga uprawnień właściciela studia —
-                            poproś właściciela o odblokowanie tej funkcji.
-                        </EmployeeHint>
-                    )}
-
-                    {isOwner && (
-                        <SettingsLink href="/settings?tab=plan">
-                            Zobacz wszystkie pakiety i moduły
-                        </SettingsLink>
-                    )}
-                </ModalContent>
-            </ModalShell>
+            <Backdrop onClick={close}>
+                <CardWrap onClick={event => event.stopPropagation()}>
+                    <ModuleGateCard
+                        title={title}
+                        subtitle={
+                            missingNames.length > 0 ? (
+                                <>
+                                    Ta funkcja jest częścią modułu{missingNames.length > 1 ? 'ów' : ''}{' '}
+                                    <strong>{missingNames.join(', ')}</strong>, który nie jest aktywny
+                                    w Twoim pakiecie.
+                                </>
+                            ) : (
+                                payload.message
+                            )
+                        }
+                        addOnKey={(option?.addOnKey as AddOnKey) ?? null}
+                        priceCents={option?.monthlyPriceGrossCents ?? null}
+                        isAvailable={option?.isAvailable ?? false}
+                        isOwner={isOwner}
+                        onUnlock={handleUnlock}
+                    />
+                    <DismissLink type="button" onClick={close}>
+                        Nie teraz, wróć do pracy
+                    </DismissLink>
+                </CardWrap>
+            </Backdrop>
 
             {unlock.dialogOpen && unlock.pendingKey && (
                 <AddOnActivationDialog
@@ -102,72 +86,34 @@ export function PaywallListener() {
     );
 }
 
-const Lead = styled.p`
-    margin: 0 0 16px;
-    font-size: 14px;
-    color: #475569;
-    line-height: 1.5;
-`;
-
-const OptionList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 16px;
-`;
-
-const OptionRow = styled.div`
+const Backdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
 `;
 
-const OptionInfo = styled.div`
+const CardWrap = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 12px;
+    max-width: 480px;
+    width: 100%;
 `;
 
-const OptionName = styled.span`
-    font-size: 14px;
-    font-weight: 600;
-`;
-
-const OptionPrice = styled.span`
-    font-size: 12.5px;
-    color: #64748b;
-`;
-
-const BuyBtn = styled.button`
-    flex-shrink: 0;
-    padding: 8px 14px;
+const DismissLink = styled.button`
     border: none;
-    border-radius: 8px;
-    background: #0284c7;
-    color: #fff;
+    background: none;
     font-size: 13px;
-    font-weight: 600;
+    color: #e2e8f0;
     cursor: pointer;
-
-    &:hover { background: #0369a1; }
-`;
-
-const EmployeeHint = styled.p`
-    margin: 0;
-    font-size: 13px;
-    color: #64748b;
-    line-height: 1.5;
-`;
-
-const SettingsLink = styled.a`
-    display: inline-block;
-    font-size: 13px;
-    color: #0284c7;
-    text-decoration: none;
+    font-family: inherit;
 
     &:hover { text-decoration: underline; }
 `;

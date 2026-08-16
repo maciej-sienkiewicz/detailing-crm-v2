@@ -9,6 +9,7 @@ import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
+import { useCapability } from '@/modules/subscription';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -804,14 +805,20 @@ const SmsRowSkeleton = styled.div`
 const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId }) => {
     const queryClient = useQueryClient();
 
+    // Bez modułu komunikacji cały wiersz znika — sterowanie przypomnieniem,
+    // którego nie da się wysłać, tylko dezorientuje w tak częstym widoku.
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
+
     const { data: appointment, isLoading } = useQuery({
         queryKey: ['appointments', appointmentId],
         queryFn: () => appointmentApi.getAppointment(appointmentId),
+        enabled: comms.enabled,
     });
 
     const { data: automation } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
+        enabled: comms.enabled,
     });
 
     const smsInfo: CalendarSmsInfo | undefined = appointment?.smsInfo;
@@ -840,6 +847,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
         mutation.mutate(value);
     };
 
+    if (!comms.enabled) return null;
     if (isLoading) return <SmsRowSkeleton />;
     if (!smsInfo) return null;
 
