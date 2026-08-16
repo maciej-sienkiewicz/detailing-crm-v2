@@ -63,8 +63,31 @@ export interface Role {
     description: string | null;
     permissions: RolePermission[];
     trackWorkTime: boolean;
+    /**
+     * Accounts currently holding this role. Surfaces the delete conflict on the role
+     * card, before anyone tries — the API used to reveal it only by refusing.
+     */
+    assignedUserCount: number;
     createdAt: string;
     updatedAt: string;
+}
+
+/** One holder of a role, for the hand-over dialog's "review the people" list. */
+export interface RoleUser {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    email: string;
+    isActive: boolean;
+}
+
+/**
+ * Where the holders of a deleted role land. `null` clears their role — they keep the
+ * account but lose access until someone assigns a new one.
+ */
+export interface DeleteRoleOptions {
+    reassignToRoleId: string | null;
 }
 
 export interface CreateRoleRequest {

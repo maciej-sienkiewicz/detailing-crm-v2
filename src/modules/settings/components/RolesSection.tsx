@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useToast } from '@/common/components/Toast';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
     Container, Toolbar, AddButton, StatsRow, StatText, EmptyWrap, EmptyTitle,
     EmptyDesc, SkeletonBox, Badge,
@@ -10,9 +9,15 @@ import {
     usePermissionCatalog, useRoles, useCreateRole, useUpdateRole, useDeleteRole,
 } from '../hooks/useRoles';
 import { RoleEditorModal } from './roles/RoleEditorModal';
+import { RoleDeletionModal } from './roles/RoleDeletionModal';
 import type { Role, CreateRoleRequest } from '../rbacTypes';
 
-export function RolesSection() {
+interface RolesSectionProps {
+    /** Jumps to the employees view of the merged tab; absent when rendered standalone. */
+    onGoToEmployees?: () => void;
+}
+
+export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
     const { showSuccess } = useToast();
     const { catalog, isLoading: catalogLoading } = usePermissionCatalog();
     const { roles, isLoading } = useRoles();
@@ -39,12 +44,26 @@ export function RolesSection() {
         }
     };
 
-    const handleDelete = () => {
+    const handleDelete = (reassignToRoleId: string | null) => {
         if (!deleteTarget) return;
-        deleteRole.mutate(deleteTarget.id, {
-            onSuccess: () => showSuccess('Rola usunięta'),
-            // 422 (przypisana do użytkowników) — komunikat pokazuje globalny handler
-        });
+        const moved = deleteTarget.assignedUserCount;
+        const targetName = roles.find(r => r.id === reassignToRoleId)?.name ?? null;
+
+        deleteRole.mutate(
+            { roleId: deleteTarget.id, options: { reassignToRoleId } },
+            {
+                onSuccess: () => {
+                    if (moved === 0) {
+                        showSuccess('Rola usunięta');
+                    } else if (targetName) {
+                        showSuccess('Rola usunięta', `${moved} os. przeniesiono na rolę „${targetName}".`);
+                    } else {
+                        showSuccess('Rola usunięta', `${moved} os. została bez roli — przypisz im nową, aby odzyskały dostęp.`);
+                    }
+                    setDeleteTarget(null);
+                },
+            },
+        );
     };
 
     return (
@@ -91,7 +110,13 @@ export function RolesSection() {
             ) : (
                 <Grid>
                     {roles.map(role => (
-                        <RoleCardItem key={role.id} role={role} onEdit={() => setEditor({ mode: 'edit', role })} onDelete={() => setDeleteTarget(role)} />
+                        <RoleCardItem
+                            key={role.id}
+                            role={role}
+                            onEdit={() => setEditor({ mode: 'edit', role })}
+                            onDelete={() => setDeleteTarget(role)}
+                            onShowHolders={onGoToEmployees}
+                        />
                     ))}
                 </Grid>
             )}
@@ -108,23 +133,26 @@ export function RolesSection() {
                 />
             )}
 
-            <ConfirmationModal
-                isOpen={!!deleteTarget}
-                title="Usunąć rolę?"
-                message={deleteTarget
-                    ? `Rola „${deleteTarget.name}" zostanie usunięta. Jeśli jest przypisana do użytkowników, operacja zostanie odrzucona.`
-                    : ''}
-                variant="danger"
-                confirmText="Usuń rolę"
-                onConfirm={handleDelete}
-                onCancel={() => setDeleteTarget(null)}
-            />
+            {deleteTarget && (
+                <RoleDeletionModal
+                    role={deleteTarget}
+                    otherRoles={roles.filter(r => r.id !== deleteTarget.id)}
+                    isDeleting={deleteRole.isPending}
+                    onCancel={() => setDeleteTarget(null)}
+                    onConfirm={handleDelete}
+                />
+            )}
         </Container>
     );
 }
 
 // ─── Role card ──────────────────────────────────────────────────────────────────
-function RoleCardItem({ role, onEdit, onDelete }: { role: Role; onEdit: () => void; onDelete: () => void }) {
+function RoleCardItem({ role, onEdit, onDelete, onShowHolders }: {
+    role: Role;
+    onEdit: () => void;
+    onDelete: () => void;
+    onShowHolders?: () => void;
+}) {
     const moduleChips = useMemo(() => {
         const seen = new Map<string, string>();
         role.permissions.forEach(p => { if (!seen.has(p.module)) seen.set(p.module, p.moduleDisplayName); });
@@ -153,7 +181,19 @@ function RoleCardItem({ role, onEdit, onDelete }: { role: Role; onEdit: () => vo
                 </Actions>
             </RoleHead>
 
-            <PermCount>{role.permissions.length} uprawnień</PermCount>
+            <CardMeta>
+                <PermCount>{role.permissions.length} uprawnień</PermCount>
+                <MetaSep>·</MetaSep>
+                {role.assignedUserCount === 0 ? (
+                    <UsageText>nikt nie używa</UsageText>
+                ) : onShowHolders ? (
+                    <UsageLink type="button" onClick={onShowHolders}>
+                        {usageLabel(role.assignedUserCount)}
+                    </UsageLink>
+                ) : (
+                    <UsageText>{usageLabel(role.assignedUserCount)}</UsageText>
+                )}
+            </CardMeta>
 
             {moduleChips.length > 0 && (
                 <Chips>
@@ -242,10 +282,44 @@ const IconBtn = styled.button<{ $danger?: boolean }>`
     }
 `;
 
-const PermCount = styled.div`
+const usageLabel = (n: number) =>
+    n === 1 ? 'używa 1 pracownik' : `używa ${n} pracowników`;
+
+const CardMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+`;
+
+const PermCount = styled.span`
     font-size: 11px;
     font-weight: 600;
     color: #0284c7;
+`;
+
+const MetaSep = styled.span`
+    font-size: 11px;
+    color: #cbd5e1;
+`;
+
+const UsageText = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+`;
+
+const UsageLink = styled.button`
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+
+    &:hover { color: #0284c7; text-decoration: underline; }
 `;
 
 const Chips = styled.div`

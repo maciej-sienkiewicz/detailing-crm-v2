@@ -3,12 +3,17 @@ import type {
     PermissionModuleTree,
     PermissionTreeNode,
     Role,
+    RoleUser,
     CreateRoleRequest,
     UpdateRoleRequest,
     CreateRoleResponse,
+    DeleteRoleOptions,
 } from '../rbacTypes';
 
 const BASE = '/v1/roles';
+
+/** Mirrors RoleController.REASSIGN_TARGET_NONE — "leave the holders without a role". */
+const REASSIGN_TARGET_NONE = 'none';
 
 // ─── Permission catalog normalization ────────────────────────────────────────
 // The backend serves the catalog as a tree; we only guarantee the recursive
@@ -57,8 +62,21 @@ export const rolesApi = {
         return res.data;
     },
 
-    deleteRole: async (roleId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/${roleId}`);
+    listRoleUsers: async (roleId: string): Promise<RoleUser[]> => {
+        const res = await apiClient.get<RoleUser[]>(`${BASE}/${roleId}/users`);
+        return res.data;
+    },
+
+    /**
+     * Without [options] a role that still has holders is refused — the guard stays in
+     * place for callers that have not checked. Passing options hands the holders over
+     * and deletes in one transaction, which is what the UI always does.
+     */
+    deleteRole: async (roleId: string, options?: DeleteRoleOptions): Promise<void> => {
+        const params = options
+            ? { reassignTo: options.reassignToRoleId ?? REASSIGN_TARGET_NONE }
+            : undefined;
+        await apiClient.delete(`${BASE}/${roleId}`, { params });
     },
 
     assignRole: async (userId: string, roleId: string | null): Promise<void> => {

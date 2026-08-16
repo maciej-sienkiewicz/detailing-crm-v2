@@ -1,9 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rolesApi } from '../api/rolesApi';
-import type { CreateRoleRequest, UpdateRoleRequest } from '../rbacTypes';
+import type { CreateRoleRequest, UpdateRoleRequest, DeleteRoleOptions } from '../rbacTypes';
 
 const ROLES_KEY = ['settings', 'roles'] as const;
 const PERMISSIONS_KEY = ['settings', 'roles', 'permissions'] as const;
+const TEAM_KEY = ['settings', 'team'] as const;
+
+const roleUsersKey = (roleId: string) => [...ROLES_KEY, 'users', roleId] as const;
 
 export const usePermissionCatalog = () => {
     const { data, isLoading, isError } = useQuery({
@@ -46,10 +49,26 @@ export const useUpdateRole = () => {
     });
 };
 
+/** Who holds a role. Only fetched once the hand-over dialog asks for names. */
+export const useRoleUsers = (roleId: string | null) => {
+    const { data, isLoading, isError } = useQuery({
+        queryKey: roleUsersKey(roleId ?? '__none'),
+        queryFn: () => rolesApi.listRoleUsers(roleId as string),
+        enabled: !!roleId,
+    });
+
+    return { users: data ?? [], isLoading, isError };
+};
+
 export const useDeleteRole = () => {
-    const invalidate = useInvalidateRoles();
+    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (roleId: string) => rolesApi.deleteRole(roleId),
-        onSuccess: () => invalidate(),
+        mutationFn: ({ roleId, options }: { roleId: string; options?: DeleteRoleOptions }) =>
+            rolesApi.deleteRole(roleId, options),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ROLES_KEY });
+            // A hand-over rewrites employees' roles, so the team list is stale too.
+            queryClient.invalidateQueries({ queryKey: TEAM_KEY });
+        },
     });
 };

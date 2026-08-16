@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
@@ -6,8 +6,8 @@ import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
-import { TeamSection } from '../components/TeamSection';
-import { RolesSection } from '../components/RolesSection';
+import { TeamAndRolesSection } from '../components/TeamAndRolesSection';
+import type { TeamSubView } from '../components/TeamAndRolesSection';
 import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
@@ -30,11 +30,10 @@ import {
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
 type SectionId =
-    | 'company' | 'services' | 'team' | 'roles' | 'opening'
-    | 'templates' | 'reminders' | 'documents'
+    | 'company' | 'services' | 'team'
+    | 'templates' | 'documents'
     | 'tablets' | 'visit-card'
-    | 'plan' | 'credits' | 'invoices' | 'security'
-    | 'integrations' | 'api';
+    | 'plan' | 'credits' | 'invoices' | 'security';
 
 interface NavItem {
     id: SectionId;
@@ -58,16 +57,12 @@ const Icon = ({ d, size = 15 }: { d: string; size?: number }) => (
 const BuildingIcon   = () => <Icon d="M3 21h18M9 21V5l7-2v18M3 7l6-2" />;
 const ListChecksIcon = () => <Icon d="M3 5h6M3 10h6M3 15h6M13 5l2 2 4-4M13 10l2 2 4-4M13 15l2 2 4-4" />;
 const UsersIcon      = () => <Icon d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3M8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M18 21v-2a4 4 0 0 0-3-3.87" />;
-const ClockIcon      = () => <Icon d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 5v5l3 3" />;
 const MessageIcon    = () => <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />;
-const BellIcon       = () => <Icon d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />;
 const FileSignIcon   = () => <Icon d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7zM14 2v5h5M9 18c.8-.8 1-1.5.8-2.3-.3-1-1.2-1.7-1-2.7.2-.8.9-1.5 1.2-2" />;
 const CrownIcon      = () => <Icon d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />;
 const WalletIcon     = () => <Icon d="M20 12V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M20 12h-6a2 2 0 0 0 0 4h6" />;
 const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2zM8 10h8M8 14h4" />;
 const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
-const PlugIcon       = () => <Icon d="M7 16.9A7 7 0 1 1 16.9 7M7 16.9l9-9M9 9l6 6" />;
-const TerminalIcon   = () => <Icon d="M4 17l6-6-6-6M12 19h8" />;
 const TabletIcon     = () => <Icon d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 15h.01" />;
 const CardIcon       = () => <Icon d="M2 6h20v12H2zM2 10h20M6 15h4" />;
 const QuestionIcon   = () => (
@@ -87,10 +82,11 @@ const NAV_GROUPS: NavGroup[] = [
         ],
     },
     {
-        group: 'Zespół',
+        // Employees and roles were sibling tabs; every task that touched one needed the
+        // other, so they are now two views of a single tab.
+        group: 'Zespół i dostęp',
         items: [
-            { id: 'team',  label: 'Pracownicy',          icon: <UsersIcon /> },
-            { id: 'roles', label: 'Role i uprawnienia',  icon: <ShieldIcon /> },
+            { id: 'team', label: 'Pracownicy i role', icon: <UsersIcon /> },
         ],
     },
     {
@@ -209,37 +205,6 @@ const Content = styled.main`
     gap: 18px;
 `;
 
-// ─── Coming-soon placeholder ─────────────────────────────────────────────────
-
-const ComingSoonWrap = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 360px;
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    text-align: center;
-    gap: 12px;
-    padding: 40px;
-`;
-
-const ComingSoonTitle = styled.h3`
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-`;
-
-const ComingSoonDesc = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: #64748b;
-    max-width: 360px;
-    line-height: 1.6;
-`;
-
 const HeaderActionWrap = styled.div`
     display: flex;
     flex-direction: column;
@@ -262,31 +227,27 @@ const BreadcrumbSep = styled.span`
     opacity: 0.4;
 `;
 
-const ConstructionIcon = () => (
-    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 3h16v2H4zM4 8l8 13 8-13H4z" />
-    </svg>
-);
-
-function ComingSoonSection({ label }: { label: string }) {
-    return (
-        <ComingSoonWrap>
-            <ConstructionIcon />
-            <ComingSoonTitle>W przygotowaniu</ComingSoonTitle>
-            <ComingSoonDesc>Sekcja „{label}" zostanie udostępniona w jednej z kolejnych aktualizacji.</ComingSoonDesc>
-        </ComingSoonWrap>
-    );
-}
-
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 const VALID_SECTIONS = new Set<SectionId>([
-    'company', 'services', 'team', 'roles', 'opening',
-    'templates', 'reminders', 'documents',
+    'company', 'services', 'team',
+    'templates', 'documents',
     'tablets', 'visit-card',
     'plan', 'credits', 'invoices', 'security',
-    'integrations', 'api',
 ]);
+
+/**
+ * Old `?tab=` values that must keep working. Deep links live in toasts, e-mails and
+ * other people's bookmarks, so a renamed tab redirects rather than silently dumping
+ * the visitor on the default section.
+ */
+const SECTION_ALIASES: Record<string, { section: SectionId; view?: TeamSubView }> = {
+    'email-templates': { section: 'templates' },
+    'roles': { section: 'team', view: 'roles' },
+    'sms-credits': { section: 'credits' },
+};
+
+const TEAM_VIEW_PARAM = 'view';
 
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
@@ -296,9 +257,7 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     company: 'OWNER_ONLY',
     services: 'VISITS_CREATE',
     team: 'EMPLOYEES_MANAGE',
-    roles: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
-    reminders: 'COMMUNICATION_SEND',
     documents:  'VISITS_CREATE',
     tablets:    'VISITS_CREATE',
     'visit-card': 'VISITS_CREATE',
@@ -309,7 +268,7 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
 };
 
 export function SettingsView() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { can, isOwner } = usePermissions();
 
     const canSee = useMemo(() => (id: SectionId) => {
@@ -332,15 +291,30 @@ export function SettingsView() {
             ? (visibleNavGroups[0]?.items[0]?.id ?? 'security')
             : 'security';
 
-    // 'email-templates' was folded into 'templates'; keep old bookmarks working.
-    const rawTab = searchParams.get('tab');
-    const tabParam = (rawTab === 'email-templates' ? 'templates' : rawTab) as SectionId | null;
-    const initialSection: SectionId =
-        tabParam && VALID_SECTIONS.has(tabParam) && canSee(tabParam)
-            ? tabParam
-            : firstVisibleSection;
-    const [section, setSection] = useState<SectionId>(initialSection);
+    // The URL is the tab state, not a one-time seed for it. Reading it on every render
+    // is what makes deep links, back/forward and "send me that screen" work — the old
+    // local useState left the address bar stuck on whatever tab you first landed on.
+    const rawTab = searchParams.get('tab') ?? '';
+    const alias = SECTION_ALIASES[rawTab];
+    const tabParam = (alias?.section ?? rawTab) as SectionId;
+
+    const section: SectionId =
+        VALID_SECTIONS.has(tabParam) && canSee(tabParam) ? tabParam : firstVisibleSection;
+
+    const subView: TeamSubView =
+        (alias?.view ?? searchParams.get(TEAM_VIEW_PARAM)) === 'roles' ? 'roles' : 'employees';
+
     const [helpOpen, setHelpOpen] = useState(false);
+
+    const goToSection = useCallback((next: SectionId, view?: TeamSubView) => {
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            params.set('tab', next);
+            if (next === 'team' && view) params.set(TEAM_VIEW_PARAM, view);
+            else params.delete(TEAM_VIEW_PARAM);
+            return params;
+        });
+    }, [setSearchParams]);
 
     const activeGroup = visibleNavGroups.find(g => g.items.some(i => i.id === section))?.group ?? '';
     const activeLabel = visibleNavGroups.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
@@ -356,9 +330,12 @@ export function SettingsView() {
     } else if (section === 'services') {
         content = <ServicesSection />;
     } else if (section === 'team') {
-        content = <TeamSection />;
-    } else if (section === 'roles') {
-        content = <RolesSection />;
+        content = (
+            <TeamAndRolesSection
+                subView={subView}
+                onSubViewChange={view => goToSection('team', view)}
+            />
+        );
     } else if (section === 'plan') {
         content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {
@@ -369,10 +346,8 @@ export function SettingsView() {
         content = <VisitCardSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
-    } else if (section === 'security') {
-        content = <SecuritySection />;
     } else {
-        content = <ComingSoonSection label={activeLabel} />;
+        content = <SecuritySection />;
     }
 
     return (
@@ -406,7 +381,7 @@ export function SettingsView() {
                                 <NavItemBtn
                                     key={it.id}
                                     $active={section === it.id}
-                                    onClick={() => setSection(it.id)}
+                                    onClick={() => goToSection(it.id)}
                                 >
                                     {it.icon}
                                     <span>{it.label}</span>
