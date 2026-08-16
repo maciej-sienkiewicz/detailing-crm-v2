@@ -1,4 +1,7 @@
-import { MessageSquare, FileText, Wallet, CheckCircle2, Zap, Send, PenLine, Info } from 'lucide-react';
+import {
+    MessageSquare, FileText, Wallet, CheckCircle2, Zap, Send, PenLine, Info,
+    BadgeCheck, ArrowLeftRight, ArrowRight, FileSignature, AlertTriangle,
+} from 'lucide-react';
 import { GuidedTour, TourDesc, TourBulletList, TourBullet } from '@/common/components/GuidedTour';
 import type { TourStep } from '@/common/components/GuidedTour';
 import { useEntitlements } from '../api/subscriptionQueries';
@@ -87,9 +90,85 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             ),
         },
         {
-            icon: <Wallet />,
+            icon: <BadgeCheck />,
             from: '#8b5cf6',
+            to: '#a855f7',
+            title: 'Kto wyświetli się klientowi jako nadawca',
+            body: (
+                <>
+                    <TourDesc>
+                        To jedna decyzja z realnym skutkiem — nadawca przesądza,
+                        <strong> czy klient może odpisać</strong>.
+                    </TourDesc>
+                    <TourBulletList>
+                        <TourBullet $color="#0ea5e9">
+                            <ArrowLeftRight />
+                            <span>
+                                <strong>Numer telefonu</strong> (ustawienie domyślne) — SMS
+                                dwukierunkowy. Klient może odpisać, a odpowiedź
+                                <strong> „TAK" zatwierdza dodatkowe usługi</strong> na wizycie.
+                            </span>
+                        </TourBullet>
+                        <TourBullet $color="#a855f7">
+                            <ArrowRight />
+                            <span>
+                                <strong>Nazwa firmy</strong> (do 11 znaków) — SMS
+                                jednokierunkowy. Wygląda profesjonalnie i buduje rozpoznawalność,
+                                ale <strong>klient nie ma na co odpowiedzieć</strong>, więc zgody
+                                przez „TAK" przestają działać.
+                            </span>
+                        </TourBullet>
+                    </TourBulletList>
+                    <TourDesc style={{ marginTop: 14 }}>
+                        Ustawienie działa globalnie — obejmuje wszystkie wiadomości, nie da się
+                        wybrać nadawcy osobno dla pojedynczego szablonu.
+                    </TourDesc>
+                </>
+            ),
+        },
+        {
+            icon: <FileSignature />,
+            from: '#a855f7',
             to: '#d946ef',
+            title: 'Nazwa firmy wymaga podpisanego upoważnienia',
+            body: (
+                <>
+                    <TourDesc>
+                        Operatorzy nie pozwalają nadawać pod cudzą nazwą bez zgody. Żeby w polu
+                        nadawcy pojawiła się Twoja firma, musisz
+                        <strong> przesłać podpisane upoważnienie</strong>.
+                    </TourDesc>
+                    <TourBulletList>
+                        <TourBullet $color="#d946ef">
+                            <FileSignature />
+                            <span>
+                                W <strong>Ustawienia → Szablony wiadomości</strong> pobierz wzór
+                                upoważnienia, podpisz go i wgraj z powrotem
+                            </span>
+                        </TourBullet>
+                        <TourBullet $color="#f59e0b">
+                            <AlertTriangle />
+                            <span>
+                                Do czasu weryfikacji przez operatora
+                                <strong> w polu odbiorcy nadal będzie widoczny numer telefonu</strong> —
+                                wiadomości wychodzą normalnie, zmienia się tylko podpis
+                            </span>
+                        </TourBullet>
+                        <TourBullet $color="#64748b">
+                            <Info />
+                            <span>
+                                Nie chcesz nazwy firmy? Nie rób nic — zostajesz przy numerze
+                                i zachowujesz odpowiedzi od klientów
+                            </span>
+                        </TourBullet>
+                    </TourBulletList>
+                </>
+            ),
+        },
+        {
+            icon: <Wallet />,
+            from: '#d946ef',
+            to: '#ec4899',
             title: 'SMS-y kosztują kredyty — osobno od abonamentu',
             body: (
                 <>
@@ -122,7 +201,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
         },
         {
             icon: <CheckCircle2 />,
-            from: '#d946ef',
+            from: '#ec4899',
             to: '#16a34a',
             title: 'Co się stanie po zakupie',
             body: (
@@ -145,8 +224,10 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         </TourBullet>
                     </TourBulletList>
                     <TourDesc style={{ marginTop: 14 }}>
-                        Zanim zaczniesz wysyłać, warto przejrzeć treści szablonów — to jedyne,
-                        co zostaje po Twojej stronie.
+                        Po Twojej stronie zostają dwie rzeczy: przejrzeć treści szablonów oraz —
+                        jeśli chcesz nadawać pod nazwą firmy —
+                        <strong> wgrać podpisane upoważnienie</strong>. Bez niego SMS-y wychodzą
+                        z numeru telefonu.
                     </TourDesc>
                 </>
             ),
