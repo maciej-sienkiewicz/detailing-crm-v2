@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useCapability } from '@/modules/subscription';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import type { ConfirmVisitOptions } from '@/modules/visits/types';
 import {
@@ -258,7 +260,17 @@ interface NotificationSectionProps {
 }
 
 export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled, options, onChange }: NotificationSectionProps) => {
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const { sendEmail, emailOptions } = options;
+
+    // Neutralize, don't just blur: the section is controlled by the parent and its
+    // defaults can arrive as true — a blurred checkbox still submits its value.
+    useEffect(() => {
+        if (!comms.isLoading && !comms.enabled && (options.sendSms || options.sendEmail)) {
+            onChange({ ...options, sendSms: false, sendEmail: false });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [comms.isLoading, comms.enabled, options.sendSms, options.sendEmail]);
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
     const updateEmailOptions = (patch: Partial<typeof emailOptions>) =>
@@ -277,6 +289,11 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                 <SectionTitleIcon><BellIcon /></SectionTitleIcon>
                 <SectionTitle>Powiadomienia dla klienta</SectionTitle>
             </SectionHeader>
+
+            <LockedSection
+                locked={!comms.enabled}
+                message="Powiadomienia SMS/e-mail wymagają modułu Automatyzacja kontaktu z klientem."
+            >
 
             <NotifCardToggle
                 icon={<EmailIcon />}
@@ -332,6 +349,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                     </EmailBodyInner>
                 </EmailBody>
             </NotifCardToggle>
+            </LockedSection>
         </Section>
     );
 };

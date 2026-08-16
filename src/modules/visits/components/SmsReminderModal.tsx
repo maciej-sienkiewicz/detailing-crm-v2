@@ -14,6 +14,8 @@ import {
   CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useCapability } from '@/modules/subscription';
 
 // ── Inner components ──────────────────────────────────────────────────────────
 
@@ -305,6 +307,7 @@ interface SmsReminderModalProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, onClose }: SmsReminderModalProps) => {
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const isEditMode = !!existingReminder;
 
     const [message, setMessage] = useState(existingReminder?.messageContent ?? '');
@@ -381,6 +384,10 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
             </ModalHeader>
 
             <Body>
+                <LockedSection
+                    locked={!comms.enabled}
+                    message="Zaplanowane SMS-y wymagają modułu Automatyzacja kontaktu z klientem."
+                >
                 <CustomerRow>
                     <CustomerAvatar>
                         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -467,6 +474,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                         SMS zostanie wysłany: <strong>{formatPreviewDate(days)} o 16:00</strong>
                     </DatePreview>
                 </div>
+                </LockedSection>
             </Body>
 
             <ModalFooter>
@@ -499,7 +507,8 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                     <SharedButton
                         $variant="primary"
                         onClick={handleSubmit}
-                        disabled={!message.trim() || isBusy}
+                        disabled={!message.trim() || isBusy || !comms.enabled}
+                        title={comms.enabled ? undefined : (comms.lockReason ?? undefined)}
                     >
                         {(isScheduling || isUpdating) ? 'Zapisywanie...' : isEditMode ? 'Zapisz zmiany' : 'Zaplanuj SMS'}
                     </SharedButton>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { MessageSquare, Mail, User } from 'lucide-react';
 import {
@@ -14,7 +14,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { PiiValue, joinPiiName } from '@/common/pii';
 import { LockedSection } from '@/common/components/LockedSection';
-import { useFeature } from '@/modules/subscription';
+import { useCapability } from '@/modules/subscription';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useMarkReady } from '../../hooks/useMarkReady';
 import { Box, Section, SectionLabel } from './HandoverKit';
@@ -157,20 +157,34 @@ interface MarkReadyDialogProps {
  * działa w widoku wizyty i blokuje otwarcie tego okna.
  */
 export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReadyDialogProps) => {
-    const smsFeature = useFeature('SMS_EMAIL');
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const hasEmail = !!visit.customer.email;
 
     // Okno jest montowane dopiero przy otwarciu i odmontowywane po zamknięciu,
-    // więc stan startowy wystarczy ustawić raz.
-    const [channels, setChannels] = useState<NotificationChannels>({ sms: true, email: hasEmail });
+    // więc stan startowy wystarczy ustawić raz. Bez modułu komunikacji kanały
+    // startują wyłączone — blur na sekcji nie zeruje stanu, więc domyślne
+    // sms:true poszłoby do API mimo blokady (backend odrzuciłby je z 402).
+    const [channels, setChannels] = useState<NotificationChannels>(() => ({
+        sms: false,
+        email: false,
+    }));
+    useEffect(() => {
+        if (!comms.isLoading) {
+            setChannels({ sms: comms.enabled, email: comms.enabled && hasEmail });
+        }
+        // Ustawiamy raz, po rozstrzygnięciu entitlementów dla świeżo otwartego okna.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [comms.isLoading]);
 
     const { markReady, isMarkingReady } = useMarkReady(visit.id, () => {
         onSuccess?.();
         onClose();
     });
 
-    const toggle = (channel: keyof NotificationChannels) =>
+    const toggle = (channel: keyof NotificationChannels) => {
+        if (!comms.enabled) return;
         setChannels(prev => ({ ...prev, [channel]: !prev[channel] }));
+    };
 
     const willNotify = channels.sms || channels.email;
     const serviceCount = visit.services.filter(s => s.status !== 'REJECTED').length;
@@ -213,7 +227,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                     <Section>
                         <SectionLabel>Powiadom klienta</SectionLabel>
                         <LockedSection
-                            locked={!smsFeature.enabled}
+                            locked={!comms.enabled}
                             message="Twój abonament nie obsługuje powiadomień SMS."
                         >
                             <Channel $checked={channels.sms}>
@@ -234,11 +248,11 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                             </Channel>
                         </LockedSection>
 
-                        <Channel $checked={channels.email} $disabled={!hasEmail}>
+                        <Channel $checked={channels.email} $disabled={!hasEmail || !comms.enabled}>
                             <input
                                 type="checkbox"
                                 checked={channels.email}
-                                disabled={!hasEmail}
+                                disabled={!hasEmail || !comms.enabled}
                                 onChange={() => toggle('email')}
                             />
                             <ChannelIcon>
@@ -281,7 +295,10 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                     $variant="primary"
                     type="button"
                     disabled={isMarkingReady}
-                    onClick={() => markReady(channels)}
+                    onClick={() => markReady({
+                        sms: comms.enabled && channels.sms,
+                        email: comms.enabled && channels.email,
+                    })}
                 >
                     {isMarkingReady
                         ? 'Zapisywanie…'
