@@ -130,6 +130,51 @@ export const StatText = styled.span`
     strong { color: #0f172a; font-weight: 700; }
 `;
 
+// ─── Segmented control ──────────────────────────────────────────────────────
+// Sub-navigation inside a single settings tab. Used by the merged
+// "Pracownicy i role" tab, where employees and roles are two views of the same
+// subject and constantly reference each other.
+export const Segmented = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    background: #f1f5f9;
+    border-radius: 10px;
+`;
+
+export const SegmentedBtn = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: ${p => (p.$active ? 600 : 500)};
+    color: ${p => (p.$active ? '#0284c7' : '#64748b')};
+    background: ${p => (p.$active ? 'white' : 'transparent')};
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 150ms;
+    box-shadow: ${p => (p.$active ? '0 1px 3px rgba(15,23,42,0.08)' : 'none')};
+
+    &:hover { color: ${p => (p.$active ? '#0284c7' : '#0f172a')}; }
+
+    svg { flex-shrink: 0; }
+`;
+
+export const SegmentedCount = styled.span<{ $active: boolean }>`
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    background: ${p => (p.$active ? 'rgba(14,165,233,0.12)' : '#e2e8f0')};
+    color: ${p => (p.$active ? '#0284c7' : '#64748b')};
+`;
+
 // ─── Card / list ────────────────────────────────────────────────────────────
 export const Card = styled.div`
     background: white;

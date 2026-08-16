@@ -4,13 +4,16 @@ import styled from 'styled-components';
 import {
     Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
     ModalBody, ModalFooter, FormGrid, FormField, FieldLabel, FieldInput,
-    FieldSelect, ErrorMsg, HintText, CancelBtn, SubmitBtn,
+    ErrorMsg, HintText, CancelBtn, SubmitBtn,
     CheckRow, CheckBox,
 } from '../rbacShared.styles';
+import { RolePicker } from './RolePicker';
+import { RoleEditorModal } from '../roles/RoleEditorModal';
+import { usePermissionCatalog, useCreateRole } from '../../hooks/useRoles';
 import type {
     TeamEmployeeDetail, UpdateEmployeeRequest, CreateEmployeeFormOutput,
 } from '../../teamTypes';
-import type { Role } from '../../rbacTypes';
+import type { Role, CreateRoleRequest } from '../../rbacTypes';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
@@ -63,6 +66,21 @@ export function EmployeeFormModal({
         mode === 'edit' && employee ? fromDetail(employee) : emptyForm(),
     );
     const [errors, setErrors] = useState<Errors>({});
+    const [roleEditorOpen, setRoleEditorOpen] = useState(false);
+
+    const { catalog, isLoading: catalogLoading } = usePermissionCatalog();
+    const createRole = useCreateRole();
+
+    // A role built here is selected straight away — the point of the inline editor is
+    // that the half-filled employee form survives the detour.
+    const handleCreateRole = (payload: CreateRoleRequest) => {
+        createRole.mutate(payload, {
+            onSuccess: ({ roleId }) => {
+                set('roleId', roleId);
+                setRoleEditorOpen(false);
+            },
+        });
+    };
 
     const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
         setValues(prev => ({ ...prev, [key]: value }));
@@ -182,18 +200,15 @@ export function EmployeeFormModal({
                             </CheckRow>
 
                             {values.createAccount && (
-                                <FormField>
-                                    <FieldLabel>Rola (uprawnienia)</FieldLabel>
-                                    <FieldSelect
+                                <FormField style={{ marginTop: 14 }}>
+                                    <FieldLabel>Rola i uprawnienia</FieldLabel>
+                                    <RolePicker
+                                        roles={roles}
                                         value={values.roleId}
-                                        onChange={e => set('roleId', e.target.value)}
-                                    >
-                                        <option value="">Brak roli</option>
-                                        {roles.map(r => (
-                                            <option key={r.id} value={r.id}>{r.name}</option>
-                                        ))}
-                                    </FieldSelect>
-                                    <HintText>Możesz przypisać rolę później w szczegółach pracownika.</HintText>
+                                        onChange={roleId => set('roleId', roleId)}
+                                        onOpenFullEditor={() => setRoleEditorOpen(true)}
+                                        disabled={isSaving}
+                                    />
                                 </FormField>
                             )}
                         </AccountBox>
@@ -209,6 +224,18 @@ export function EmployeeFormModal({
                     </SubmitBtn>
                 </ModalFooter>
             </ModalCard>
+
+            {roleEditorOpen && (
+                <RoleEditorModal
+                    mode="add"
+                    role={null}
+                    catalog={catalog}
+                    catalogLoading={catalogLoading}
+                    isSaving={createRole.isPending}
+                    onClose={() => setRoleEditorOpen(false)}
+                    onSubmit={handleCreateRole}
+                />
+            )}
         </Overlay>
     );
 }

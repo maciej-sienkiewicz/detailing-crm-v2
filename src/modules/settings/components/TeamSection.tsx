@@ -7,13 +7,15 @@ import {
     AddButton, StatsRow, StatText, Card, ColLabel, Badge, Dot, EmptyWrap,
     EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
 } from './rbacShared.styles';
-import { useEmployees, useCreateEmployee, useCreateAccount } from '../hooks/useTeam';
+import { useEmployees, useCreateEmployee } from '../hooks/useTeam';
 import { useRoles } from '../hooks/useRoles';
-import { rolesApi } from '../api/rolesApi';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
 import type { CreateEmployeeFormOutput } from '../teamTypes';
 
-const PAGE_SIZE = 20;
+/** Also the page size the merged tab reads to label its segment. */
+export const TEAM_PAGE_SIZE = 20;
+
+const PAGE_SIZE = TEAM_PAGE_SIZE;
 
 function buildPageNumbers(current: number, total: number): (number | '…')[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -25,7 +27,12 @@ function buildPageNumbers(current: number, total: number): (number | '…')[] {
     return pages;
 }
 
-export function TeamSection() {
+interface TeamSectionProps {
+    /** Jumps to the roles view of the merged tab; absent when rendered standalone. */
+    onGoToRoles?: () => void;
+}
+
+export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
     const navigate = useNavigate();
     const { showSuccess } = useToast();
 
@@ -44,36 +51,45 @@ export function TeamSection() {
     const { items, pagination, isLoading } = useEmployees(filters);
 
     const createEmployee = useCreateEmployee();
-    const createAccount = useCreateAccount();
     const { roles } = useRoles();
 
     const totalItems = pagination?.totalItems ?? 0;
     const totalPages = pagination?.totalPages ?? 1;
 
+    // An account with no role is the quiet failure this list never used to show: the
+    // person signs in and lands on "Brak przypisanych uprawnień".
+    const lockedOut = items.filter(e => e.hasAccount && !e.role);
+
     const openAdd = () => setIsAddOpen(true);
     const closeForm = () => setIsAddOpen(false);
 
+    /**
+     * One call, one transaction. This used to be a chain of three requests — create
+     * employee, provision account, assign role — which could stop halfway and still
+     * report success, leaving a person who could not sign in. The backend already
+     * accepts the whole thing at once, so a failure now leaves nothing behind.
+     */
     const handleCreate = (data: CreateEmployeeFormOutput) => {
         createEmployee.mutate(
-            { firstName: data.firstName, lastName: data.lastName, phone: data.phone, email: data.email, roleId: data.roleId || null },
             {
-                onSuccess: async (employee) => {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.phone,
+                email: data.email,
+                createAccount: data.createAccount,
+                roleId: data.roleId || null,
+            },
+            {
+                onSuccess: () => {
                     if (!data.createAccount) {
                         showSuccess('Pracownik dodany');
-                        closeForm();
-                        return;
-                    }
-                    try {
-                        const { userId } = await createAccount.mutateAsync({
-                            employeeId: employee.id,
-                            payload: { email: data.email! },
-                        });
-                        if (data.roleId) {
-                            await rolesApi.assignRole(userId, data.roleId);
-                        }
+                    } else if (data.roleId) {
                         showSuccess('Pracownik dodany', 'Zaproszenie do założenia konta zostało wysłane.');
-                    } catch {
-                        showSuccess('Pracownik dodany', 'Nie udało się utworzyć konta — dodaj je ręcznie w szczegółach pracownika.');
+                    } else {
+                        showSuccess(
+                            'Pracownik dodany',
+                            'Konto powstało bez roli — przypisz ją, żeby pracownik zobaczył jakikolwiek moduł.',
+                        );
                     }
                     closeForm();
                 },
@@ -115,10 +131,35 @@ export function TeamSection() {
                 )}
             </StatsRow>
 
+            {lockedOut.length > 0 && (
+                <NoticeBar>
+                    <NoticeIcon>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                    </NoticeIcon>
+                    <NoticeText>
+                        <strong>
+                            {lockedOut.length === 1
+                                ? '1 pracownik ma konto bez roli'
+                                : `${lockedOut.length} pracowników ma konto bez roli`}
+                        </strong>
+                        {' — mogą się zalogować, ale nie zobaczą żadnego modułu. '}
+                        {lockedOut.slice(0, 3).map(e => e.fullName).join(', ')}
+                        {lockedOut.length > 3 ? ` i ${lockedOut.length - 3} więcej.` : '.'}
+                    </NoticeText>
+                    {onGoToRoles && (
+                        <NoticeAction onClick={onGoToRoles}>Przejdź do ról</NoticeAction>
+                    )}
+                </NoticeBar>
+            )}
+
             <Card>
                 <ListHeader>
                     <ColLabel>Pracownik</ColLabel>
                     <ColLabel>Kontakt</ColLabel>
+                    <ColLabel>Rola</ColLabel>
                     <ColLabel>Konto</ColLabel>
                 </ListHeader>
 
@@ -127,6 +168,7 @@ export function TeamSection() {
                         <SkeletonRow key={i}>
                             <SkeletonBox $w={`${50 + (i % 3) * 12}%`} />
                             <SkeletonBox $w="70%" />
+                            <SkeletonBox $w="60%" />
                             <SkeletonBox $w="56px" />
                         </SkeletonRow>
                     ))
@@ -156,6 +198,13 @@ export function TeamSection() {
                                     {emp.phone && <span>{emp.phone}</span>}
                                     {!emp.email && !emp.phone && <Muted>—</Muted>}
                                 </ContactCell>
+                                <div>
+                                    {emp.role
+                                        ? <Badge $variant="gray">{emp.role.name}</Badge>
+                                        : hasAccount
+                                            ? <Badge $variant="amber">Brak roli</Badge>
+                                            : <Muted>—</Muted>}
+                                </div>
                                 <div>
                                     {hasAccount
                                         ? <Badge $variant="blue"><Dot $color="#0284c7" />Ma konto</Badge>
@@ -192,7 +241,7 @@ export function TeamSection() {
                 <EmployeeFormModal
                     mode="add"
                     roles={roles}
-                    isSaving={createEmployee.isPending || createAccount.isPending}
+                    isSaving={createEmployee.isPending}
                     onClose={closeForm}
                     onSubmitCreate={handleCreate}
                     onSubmitUpdate={() => {}}
@@ -203,7 +252,7 @@ export function TeamSection() {
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-const GRID = '1fr 1fr 130px';
+const GRID = '1.3fr 1.1fr 150px 130px';
 
 const ListHeader = styled.div`
     display: grid;
@@ -270,4 +319,48 @@ const ContactCell = styled.div`
 
 const Muted = styled.span`
     color: #cbd5e1;
+`;
+
+const NoticeBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border: 1px solid rgba(245,158,11,0.35);
+    background: rgba(245,158,11,0.08);
+    border-radius: 10px;
+    flex-wrap: wrap;
+`;
+
+const NoticeIcon = styled.span`
+    display: flex;
+    flex-shrink: 0;
+    color: #d97706;
+`;
+
+const NoticeText = styled.p`
+    flex: 1;
+    min-width: 200px;
+    margin: 0;
+    font-size: 12.5px;
+    color: #78350f;
+    line-height: 1.5;
+
+    strong { font-weight: 700; }
+`;
+
+const NoticeAction = styled.button`
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #92400e;
+    background: white;
+    border: 1px solid rgba(245,158,11,0.45);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 150ms;
+
+    &:hover { background: rgba(245,158,11,0.12); }
 `;

@@ -284,7 +284,7 @@ export function CampaignsListView() {
           icon={Coins}
           value={stats?.smsCreditsAvailable ?? '—'}
           label="Kredyty SMS"
-          onClick={() => navigate('/settings?tab=sms-credits')}
+          onClick={() => navigate('/settings?tab=credits')}
           subContent={creditsLow ? <MutedText>Doładuj przed wysyłką</MutedText> : undefined}
         />
       </TileGrid>

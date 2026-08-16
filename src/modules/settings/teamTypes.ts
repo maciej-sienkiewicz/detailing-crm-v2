@@ -6,6 +6,12 @@ export interface TeamEmployeeAccount {
     isActive: boolean;
 }
 
+/** The account's role as the employee list reports it. */
+export interface TeamEmployeeRoleRef {
+    id: string;
+    name: string;
+}
+
 export interface TeamEmployeeListItem {
     id: string;
     firstName: string;
@@ -14,6 +20,12 @@ export interface TeamEmployeeListItem {
     email: string | null;
     phone: string | null;
     hasAccount: boolean;
+    /**
+     * Null means three different things — read it together with `hasAccount`: no
+     * account, an account with no role (signed in but locked out), or a caller
+     * without permission to see roles.
+     */
+    role: TeamEmployeeRoleRef | null;
 }
 
 export interface TeamPagination {
@@ -52,6 +64,8 @@ export interface CreateEmployeeRequest {
     lastName: string;
     phone?: string | null;
     email?: string | null;
+    /** Provisions the login account in the same transaction. Requires `email`. */
+    createAccount?: boolean;
     roleId?: string | null;
 }
 
