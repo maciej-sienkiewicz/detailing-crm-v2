@@ -6,6 +6,7 @@ import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { router } from '@/core';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
+import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
 import { vehicleMetadataApi } from '@/modules/vehicles/api/vehicleMetadataApi';
 
 const queryClient = new QueryClient({
@@ -37,6 +38,8 @@ const App = () => {
                     <AuthProvider>
                         <SidebarProvider>
                             <RouterProvider router={router} />
+                            {/* Global 402/MODULE_REQUIRED → upsell dialog (safety net for ungated actions) */}
+                            <PaywallListener />
                         </SidebarProvider>
                     </AuthProvider>
                 </ToastProvider>
