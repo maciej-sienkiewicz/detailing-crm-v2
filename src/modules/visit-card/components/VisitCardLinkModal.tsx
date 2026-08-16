@@ -6,6 +6,7 @@
 // (e-mail / SMS). If the card has already been delivered, a clear banner
 // says so, to avoid sending the same card twice by accident.
 
+import { useCapability } from '@/modules/subscription';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -164,6 +165,9 @@ interface VisitCardLinkModalProps {
 }
 
 export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: VisitCardLinkModalProps) => {
+    // Copying/previewing the link stays available on every plan; DELIVERING it
+    // (SMS/e-mail) is the communication module. Backend enforces the same rule.
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const [link, setLink] = useState<string | null>(null);
     const [lastEmailSentAt, setLastEmailSentAt] = useState<string | null>(null);
     const [lastSmsSentAt, setLastSmsSentAt] = useState<string | null>(null);
@@ -301,7 +305,8 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                 <SharedButton
                     $variant="primary"
                     onClick={() => setIsPickingChannel(true)}
-                    disabled={!link || isSending || isPickingChannel}
+                    disabled={!link || isSending || isPickingChannel || !comms.enabled}
+                    title={comms.enabled ? undefined : (comms.lockReason ?? 'Wymaga modułu komunikacji')}
                 >
                     {isSending
                         ? 'Wysyłanie…'

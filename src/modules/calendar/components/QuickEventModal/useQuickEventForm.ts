@@ -3,6 +3,7 @@ import type React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import { useToast } from '@/common/components/Toast';
+import { useCapability } from '@/modules/subscription';
 import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
@@ -219,8 +220,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         queryFn: () => import('@/modules/visit-card/api/visitCardApi').then(m => m.visitCardApi.getSettings()),
         staleTime: 60_000,
     });
-    // Checkbox visible only when the studio uses the Visit Card AND has the SMS module
-    const visitCardEnabled = (visitCardSettings?.enabled ?? false) && (visitCardSettings?.smsModuleActive ?? false);
+    // Checkbox visible only when the studio uses the Visit Card AND has the
+    // communication module — module possession comes from the entitlements
+    // source of truth, not the legacy smsModuleActive flag.
+    const smsCapability = useCapability('COMM_SEND_TRANSACTIONAL');
+    const visitCardEnabled = (visitCardSettings?.enabled ?? false) && smsCapability.enabled;
     const visitCardSendByDefault = visitCardSettings?.sendByDefault ?? false;
 
     // Settings drive the checkbox default ("Czy domyślnie wysyłać Kartę Wizyty?")

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useCapability } from '@/modules/subscription';
 import styled from 'styled-components';
 import type { BatchContractor, CloseMode, CloseMonthRequest } from '../types';
 
@@ -278,6 +280,7 @@ interface Props {
 export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfirm, onClose, isLoading }: Props) {
     const [mode, setMode] = useState<CloseMode>(hasPartialClose ? 'NEW_ONLY' : 'ALL');
     const [addToFinances, setAddToFinances] = useState(false);
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const [sendEmail, setSendEmail] = useState(false);
     const [email, setEmail] = useState(contractor.email ?? '');
 
@@ -288,8 +291,8 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
             from,
             to,
             addToFinances,
-            sendEmail,
-            emailOverride: sendEmail && email ? email : undefined,
+            sendEmail: comms.enabled && sendEmail,
+            emailOverride: comms.enabled && sendEmail && email ? email : undefined,
             mode,
         });
     }
@@ -359,9 +362,13 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
                         </CheckDescription>
                     </OptionBlock>
 
+                    <LockedSection
+                        locked={!comms.enabled}
+                        message="Wysyłka podsumowania e-mailem wymaga modułu Automatyzacja kontaktu z klientem."
+                    >
                     <OptionBlock
                         $active={sendEmail}
-                        onClick={() => setSendEmail(v => !v)}
+                        onClick={() => comms.enabled && setSendEmail(v => !v)}
                     >
                         <CheckRow>
                             <Checkbox
@@ -394,6 +401,7 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
                             </EmailField>
                         )}
                     </OptionBlock>
+                    </LockedSection>
                 </ModalBody>
 
                 <Actions>
