@@ -158,12 +158,42 @@ export const DOCUMENTS_HELP: HelpContent = {
         },
         {
             id: 'templates',
-            label: 'Szablony PDF',
-            description: 'Każdy protokół oparty jest na szablonie dokumentu PDF. Szablon definiuje wygląd i treść dokumentu — możesz go podejrzeć przed wdrożeniem klikając ikonę oka. Nazwy szablonów możesz edytować bezpośrednio w widoku (ikona ołówka).',
+            label: 'Szablony dokumentów (PDF i HTML)',
+            description: 'Każdy protokół oparty jest na szablonie dokumentu — wypełnialnym formularzu PDF (AcroForm) lub samodzielnym pliku HTML. PDF ma pełne wsparcie: automatyczne uzupełnianie danymi z CRM, podpis na tablecie i pieczęć kwalifikowaną. HTML jest uzupełniany danymi po stronie serwera i służy do podglądu oraz wydruku — pełny obieg podpisu na tablecie wymaga formatu PDF. Po wgraniu plik jest automatycznie weryfikowany: system sprawdza, czy zawiera wszystkie wymagane pola, i odrzuca plik z brakami, wskazując dokładnie, czego brakuje.',
             usedIn: [
                 'Bazowy projekt każdego protokołu',
-                'Widoczny w podglądzie PDF przed wysłaniem',
+                'Widoczny w podglądzie przed wdrożeniem',
+                'Weryfikowany automatycznie po wgraniu',
                 'Przechowywany bezpiecznie w chmurze',
+            ],
+        },
+        {
+            id: 'template-pdf-howto',
+            label: 'Jak przygotować szablon PDF',
+            description: 'Przygotuj jednostronicowy dokument A4 z układem protokołu (możesz pobrać szablon domyślny i użyć go jako bazy). W programie do edycji PDF (np. Adobe Acrobat lub LibreOffice Writer z eksportem do PDF z formularzem) dodaj pola formularza o dokładnych nazwach: brand, model, licenseplate, mileage, fullname, phonenumber, email, companyname, tax, date, price — jako pola tekstowe; services i remarks — jako pola tekstowe wieloliniowe; keys i documents — jako pola wyboru (checkbox). W miejscu podpisu klienta dodaj pole tekstowe o nazwie signature (minimum 60x20 pt, zalecane ok. 260x40 pt) — podpis z tabletu zostanie w nie wpasowany z zachowaniem proporcji. Opcjonalnie dodaj pole company_signature na podpis pracownika. Nie ustawiaj własnych czcionek w polach — system nadpisuje je czcionką z polskimi znakami (7 pt).',
+            usedIn: [
+                'Automatyczne uzupełnianie danymi wizyty',
+                'Podpis klienta na tablecie (pole signature)',
+                'Podpis pracownika (pole company_signature)',
+            ],
+        },
+        {
+            id: 'template-html-howto',
+            label: 'Jak przygotować szablon HTML',
+            description: 'Przygotuj samodzielny plik HTML — wszystkie style CSS i czcionki osadzone w pliku, bez odwołań do zasobów zewnętrznych. W miejscach, w które system ma wstawić dane z CRM, dodaj elementom atrybut data-field z nazwą pola, np. <div data-field="brand"></div>. Obowiązuje ta sama lista pól co w PDF (brand, model, licenseplate, mileage, services, remarks, fullname, companyname, phonenumber, email, tax, date, price, keys, documents) plus obszary podpisów: data-field="signature" i opcjonalnie data-field="company_signature". Zadbaj o format wydruku A4 (reguła @page { size: A4 }) — dokument drukowany jest 1:1.',
+            usedIn: [
+                'Uzupełnianie danymi po stronie serwera',
+                'Podgląd i wydruk protokołu',
+            ],
+        },
+        {
+            id: 'default-template',
+            label: 'Szablon domyślny',
+            description: 'Każde studio ma zawsze przypisany szablon protokołu przyjęcia — systemowy szablon domyślny jest dodawany automatycznie przy utworzeniu profilu. Możesz zastąpić go własnym szablonem, a domyślny usunąć lub dezaktywować. Jeśli jednak usuniesz swój szablon i studio zostałoby bez żadnego szablonu przyjęcia, system automatycznie przywróci szablon domyślny — nie da się zostać bez działającego protokołu przyjęcia.',
+            usedIn: [
+                'Dodawany automatycznie do nowego profilu',
+                'Przywracany po usunięciu ostatniego szablonu przyjęcia',
+                'Oznaczony etykietą „Domyślny” na liście szablonów',
             ],
         },
         {

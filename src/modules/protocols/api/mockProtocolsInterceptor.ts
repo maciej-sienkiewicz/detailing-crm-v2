@@ -106,9 +106,13 @@ export const setupProtocolMockInterceptor = (apiClient: AxiosInstance) => {
                     });
                 }
                 if (config.method === 'post') {
+                    const payload = JSON.parse(config.data);
                     const newTemplate: ProtocolTemplate = {
-                        ...JSON.parse(config.data),
+                        fileFormat: 'PDF',
+                        ...payload,
                         id: `pt-${Date.now()}`,
+                        isDefault: false,
+                        verificationStatus: 'PENDING',
                         isActive: true,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
@@ -119,6 +123,28 @@ export const setupProtocolMockInterceptor = (apiClient: AxiosInstance) => {
                         response: createMockResponse(newTemplate),
                     });
                 }
+            }
+
+            // Template verification — mock always verifies successfully
+            if (url.match(/^\/api\/v1\/protocol-templates\/[^/]+\/verify$/) && config.method === 'post') {
+                const id = url.split('/')[4];
+                const template = mockProtocolTemplatesData.find(t => t.id === id);
+                if (template) {
+                    template.verificationStatus = 'VERIFIED';
+                }
+                return Promise.reject({
+                    config,
+                    response: createMockResponse({
+                        templateId: id,
+                        fileFormat: template?.fileFormat ?? 'PDF',
+                        verificationStatus: 'VERIFIED',
+                        requiredFields: [],
+                        foundFields: [],
+                        missingFields: [],
+                        optionalFieldsFound: [],
+                        problems: [],
+                    }),
+                });
             }
 
             if (url.match(/^\/api\/v1\/protocol-templates\/[^/]+$/)) {
