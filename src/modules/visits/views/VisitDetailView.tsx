@@ -30,7 +30,6 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useAutomationConfig } from '@/modules/sms-campaigns/hooks';
 import { useVirtualKeyboard } from '@/common/hooks';
 
 // ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
@@ -278,28 +277,6 @@ const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
 
     @media (max-width: 640px) {
         padding: ${props => props.$flush ? '0' : '14px'};
-    }
-`;
-
-const SmsDisabledNotice = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin: 14px 20px;
-    padding: 11px 14px;
-    background: rgba(245, 158, 11, 0.06);
-    border: 1px solid rgba(245, 158, 11, 0.22);
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.55;
-
-    svg {
-        width: 15px;
-        height: 15px;
-        color: #d97706;
-        flex-shrink: 0;
-        margin-top: 1px;
     }
 `;
 
@@ -761,8 +738,6 @@ export const VisitDetailView = () => {
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { showSuccess, showWarning } = useToast();
     const { pendingReminder } = useSmsReminder(visitId!);
-    const { config: smsConfig } = useAutomationConfig();
-    const smsPreVisitDisabled = smsConfig !== null && !smsConfig.preVisit.enabled;
 
     const { can } = usePermissions();
     const isKeyboardOpen = useVirtualKeyboard();
@@ -1165,10 +1140,12 @@ export const VisitDetailView = () => {
                         )}
                         {!pendingReminder && visit.status === 'COMPLETED' && (() => {
                             const hasPhone = !!visit.customer.phone?.trim();
+                            // The button always opens something. Disabling it with a note
+                            // was a dead end: it stated the problem and offered no way out,
+                            // so the modal now owns the explanation and the fix.
                             return (
                                 <>
                                     <ScheduleSmsBtn
-                                        disabled={!hasPhone}
                                         onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}
                                     >
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1178,7 +1155,7 @@ export const VisitDetailView = () => {
                                     </ScheduleSmsBtn>
                                     {!hasPhone && (
                                         <ScheduleSmsNoPhone>
-                                            Klient nie ma przypisanego numeru telefonu
+                                            Klient nie ma numeru telefonu — uzupełnij go w kartotece
                                         </ScheduleSmsNoPhone>
                                     )}
                                 </>

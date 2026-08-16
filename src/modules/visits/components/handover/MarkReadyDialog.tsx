@@ -17,6 +17,8 @@ import { LockedSection } from '@/common/components/LockedSection';
 import { useCapability } from '@/modules/subscription';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useMarkReady } from '../../hooks/useMarkReady';
+import { useSmsReadiness } from '../../hooks/useSmsReadiness';
+import { SmsActivationWizard } from '../SmsActivationWizard';
 import { Box, Section, SectionLabel } from './HandoverKit';
 import type { Visit } from '../../types';
 import type { NotificationChannels } from '../../types/stateTransitions';
@@ -181,6 +183,20 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
         onClose();
     });
 
+    // The module lock above is only the first requirement. A disabled or empty
+    // "pojazd gotowy" template is the quiet one: the transition succeeds, the SMS
+    // box stays ticked, and the customer is simply never told.
+    const smsReadiness = useSmsReadiness({
+        enabled: isOpen,
+        customerPhone: visit.customer.phone,
+        templateKey: 'visitReadyForPickup',
+    });
+    const [wizardOpen, setWizardOpen] = useState(false);
+
+    // Module gaps are already covered by the LockedSection below; this surfaces what
+    // it cannot see.
+    const smsGaps = smsReadiness.blocking.filter(r => r.id !== 'module' && r.id !== 'phone');
+
     const toggle = (channel: keyof NotificationChannels) => {
         if (!comms.enabled) return;
         setChannels(prev => ({ ...prev, [channel]: !prev[channel] }));
@@ -226,6 +242,20 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
 
                     <Section>
                         <SectionLabel>Powiadom klienta</SectionLabel>
+
+                        {channels.sms && smsGaps.length > 0 && (
+                            <SmsGapBar>
+                                <SmsGapText>
+                                    <strong>SMS nie wyjdzie</strong>
+                                    {' — '}
+                                    {smsGaps.map(g => `${g.label.toLowerCase()}: ${g.detail}`).join('; ')}.
+                                </SmsGapText>
+                                <SmsGapAction type="button" onClick={() => setWizardOpen(true)}>
+                                    Napraw teraz
+                                </SmsGapAction>
+                            </SmsGapBar>
+                        )}
+
                         <LockedSection
                             locked={!comms.enabled}
                             message="Twój abonament nie obsługuje powiadomień SMS."
@@ -307,6 +337,56 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                           : 'Oznacz jako gotowe'}
                 </SharedButton>
             </ModalFooterSplit>
+
+            {/* Mounted only while open — the wizard freezes its step list on mount. */}
+            {wizardOpen && <SmsActivationWizard
+                isOpen={wizardOpen}
+                readiness={smsReadiness}
+                templateKey="visitReadyForPickup"
+                contextLabel={[visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate]
+                    .filter(Boolean)
+                    .join(' · ')}
+                onClose={() => setWizardOpen(false)}
+                onReady={() => setWizardOpen(false)}
+            />}
         </ModalShell>
     );
 };
+
+const SmsGapBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    border-radius: ${st.radiusSm};
+`;
+
+const SmsGapText = styled.p`
+    flex: 1;
+    min-width: 180px;
+    margin: 0;
+    font-size: ${st.fontXs};
+    color: #78350f;
+    line-height: 1.5;
+
+    strong { font-weight: 700; }
+`;
+
+const SmsGapAction = styled.button`
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: #92400e;
+    background: white;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover { background: rgba(245, 158, 11, 0.12); }
+`;

@@ -9,13 +9,12 @@ import {
   ModalTitleGroup,
   ModalTitle,
   ModalSubtitle,
-  ModalContent,
   ModalFooter,
   CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { LockedSection } from '@/common/components/LockedSection';
-import { useCapability } from '@/modules/subscription';
+import { useSmsReadiness } from '../hooks/useSmsReadiness';
+import { SmsActivationWizard } from './SmsActivationWizard';
 
 // ── Inner components ──────────────────────────────────────────────────────────
 
@@ -269,6 +268,92 @@ const SubmitError = styled.div`
     svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
 `;
 
+const SetupPanel = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bg};
+`;
+
+const SetupTitle = styled.h4`
+    margin: 0;
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+`;
+
+const SetupList = styled.ul`
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+`;
+
+const SetupItem = styled.li`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+    line-height: 1.5;
+
+    strong { color: ${st.text}; font-weight: 600; }
+`;
+
+const SetupDot = styled.span`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    flex-shrink: 0;
+    margin-top: 7px;
+`;
+
+const SetupHint = styled.p`
+    margin: 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    line-height: 1.5;
+`;
+
+const LowBalance = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid rgba(245,158,11,0.35);
+    background: rgba(245,158,11,0.08);
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    color: #78350f;
+    line-height: 1.5;
+
+    strong { font-weight: 700; }
+`;
+
+const LowBalanceAction = styled.button`
+    margin-left: auto;
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: #92400e;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover { text-decoration: underline; }
+`;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const DAY_PRESETS = [7, 14, 30, 60, 90];
@@ -307,7 +392,12 @@ interface SmsReminderModalProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, onClose }: SmsReminderModalProps) => {
-    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
+    // The whole set of prerequisites at once. The body of this modal used to be blurred
+    // behind a single "you need the module" lock, which was true but only ever the first
+    // of three things standing in the way.
+    const readiness = useSmsReadiness({ enabled: isOpen, customerPhone: customer.phone });
+    const [wizardOpen, setWizardOpen] = useState(false);
+
     const isEditMode = !!existingReminder;
 
     const [message, setMessage] = useState(existingReminder?.messageContent ?? '');
@@ -352,11 +442,21 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
             }
             onClose();
         } catch (err: unknown) {
-            const apiMessage =
-                (err as any)?.response?.data?.message ??
-                (err instanceof Error ? err.message : null) ??
-                'Nie udało się zaplanować SMS-a. Spróbuj ponownie.';
-            setSubmitError(apiMessage);
+            const body = (err as { response?: { data?: { code?: string; message?: string } } })
+                ?.response?.data;
+
+            // A credit shortfall is a state the studio can fix in ten seconds, so it
+            // opens the top-up step rather than printing the backend's dead-end text.
+            if (body?.code === 'INSUFFICIENT_CREDITS') {
+                setWizardOpen(true);
+                return;
+            }
+
+            setSubmitError(
+                body?.message
+                ?? (err instanceof Error ? err.message : null)
+                ?? 'Nie udało się zaplanować SMS-a. Spróbuj ponownie.',
+            );
         }
     };
 
@@ -384,10 +484,41 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
             </ModalHeader>
 
             <Body>
-                <LockedSection
-                    locked={!comms.enabled}
-                    message="Zaplanowane SMS-y wymagają modułu Automatyzacja kontaktu z klientem."
-                >
+                {readiness.blocking.length > 0 ? (
+                    <SetupPanel>
+                        <SetupTitle>Zanim wyślesz — brakuje jeszcze kilku rzeczy</SetupTitle>
+                        <SetupList>
+                            {readiness.blocking.map(req => (
+                                <SetupItem key={req.id}>
+                                    <SetupDot />
+                                    <span><strong>{req.label}</strong> — {req.detail}</span>
+                                </SetupItem>
+                            ))}
+                        </SetupList>
+                        <SetupHint>
+                            {readiness.blocking.every(r => r.fixable)
+                                ? 'Możemy to ustawić teraz, bez opuszczania tej wizyty.'
+                                : 'Część z tego uzupełnisz w kartotece klienta — resztę ustawimy tutaj.'}
+                        </SetupHint>
+                        <SharedButton
+                            $variant="primary"
+                            onClick={() => setWizardOpen(true)}
+                            disabled={!readiness.blocking.some(r => r.fixable)}
+                        >
+                            Skonfiguruj wysyłkę SMS
+                        </SharedButton>
+                    </SetupPanel>
+                ) : (
+                <>
+                {readiness.warnings.map(warn => (
+                    <LowBalance key={warn.id}>
+                        <strong>Zostało {warn.detail} kredytów SMS</strong> — ta wiadomość zużyje 1.
+                        Możesz dokończyć wysyłkę i doładować później.
+                        <LowBalanceAction type="button" onClick={() => setWizardOpen(true)}>
+                            Doładuj teraz
+                        </LowBalanceAction>
+                    </LowBalance>
+                ))}
                 <CustomerRow>
                     <CustomerAvatar>
                         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -474,7 +605,8 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                         SMS zostanie wysłany: <strong>{formatPreviewDate(days)} o 16:00</strong>
                     </DatePreview>
                 </div>
-                </LockedSection>
+                </>
+                )}
             </Body>
 
             <ModalFooter>
@@ -507,13 +639,22 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                     <SharedButton
                         $variant="primary"
                         onClick={handleSubmit}
-                        disabled={!message.trim() || isBusy || !comms.enabled}
-                        title={comms.enabled ? undefined : (comms.lockReason ?? undefined)}
+                        disabled={!message.trim() || isBusy || readiness.blocking.length > 0}
                     >
                         {(isScheduling || isUpdating) ? 'Zapisywanie...' : isEditMode ? 'Zapisz zmiany' : 'Zaplanuj SMS'}
                     </SharedButton>
                 </FooterRight>
             </ModalFooter>
+
+            {/* Mounted only while open: the wizard freezes its step list on mount, so a
+                permanently mounted copy would capture an empty, still-loading readiness. */}
+            {wizardOpen && <SmsActivationWizard
+                isOpen={wizardOpen}
+                readiness={readiness}
+                contextLabel={`${customer.firstName} ${customer.lastName}`.trim() || undefined}
+                onClose={() => setWizardOpen(false)}
+                onReady={() => setWizardOpen(false)}
+            />}
         </ModalShell>
     );
 };
