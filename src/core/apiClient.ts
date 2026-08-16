@@ -1,6 +1,20 @@
 import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
 
+/**
+ * Per-request opt-out from the global error toast.
+ *
+ * Set `skipErrorToast: true` on any call whose failure is already shown in context —
+ * an inline error, a wizard step, a form field. The interceptor stays the safety net
+ * for everything else, which is what it was for. Without it the user saw the same
+ * sentence twice: once bare from the interceptor, once with a title from the caller.
+ */
+declare module 'axios' {
+    export interface AxiosRequestConfig {
+        skipErrorToast?: boolean;
+    }
+}
+
 export const apiClient = axios.create({
     baseURL: '/api',
     withCredentials: true,
@@ -76,7 +90,16 @@ apiClient.interceptors.response.use(
             }
         }
 
-        if (status !== undefined && status >= 400 && status < 500 && status !== 401 && status !== 403) {
+        // Generic 4xx fallback toast — for errors NOBODY handles. A call site that
+        // renders its own message passes `skipErrorToast` (declared at the top);
+        // without it the user saw the same sentence twice, once bare from here and
+        // once with a title from the call site.
+        const handledLocally = error.config?.skipErrorToast === true;
+        if (
+            !handledLocally
+            && status !== undefined && status >= 400 && status < 500
+            && status !== 401 && status !== 403
+        ) {
             const message: string = error.response?.data?.message ?? 'Wystąpił nieoczekiwany błąd';
             window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
         }
