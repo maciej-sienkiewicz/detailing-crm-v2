@@ -57,6 +57,19 @@ apiClient.interceptors.response.use(
             }
         }
 
+        if (status === 402) {
+            // Paywall contract: every 402 body carries a machine-readable `code`.
+            // MODULE_REQUIRED → global upsell dialog (PaywallListener); this is the
+            // safety net for any action the UI failed to gate — the user sees a
+            // purchase path, never a raw error. Other codes (INSUFFICIENT_CREDITS)
+            // fall through to the generic toast unless a call site handles them.
+            const body = error.response?.data;
+            if (body?.code === 'MODULE_REQUIRED') {
+                window.dispatchEvent(new CustomEvent('api:paywall', { detail: body }));
+                return Promise.reject(error);
+            }
+        }
+
         if (status !== undefined && status >= 400 && status < 500 && status !== 401 && status !== 403) {
             const message: string = error.response?.data?.message ?? 'Wystąpił nieoczekiwany błąd';
             window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));

@@ -49,6 +49,47 @@ export interface FeatureStatus {
     upsell: FeatureUpsell | null;
 }
 
+// ─── Capability gating ────────────────────────────────────────────────────────
+
+/**
+ * Capability = an atomic business action resolved by the BACKEND, including
+ * cross-module rules (e.g. SIGNATURE_REMOTE_REQUEST = E_SIGNATURES ∧ SMS_EMAIL).
+ * The frontend must never re-evaluate these expressions — it only renders the
+ * decision it receives from GET /v1/me/entitlements.
+ */
+export type CapabilityKey =
+    | 'COMM_SEND_TRANSACTIONAL'
+    | 'COMM_SEND_CAMPAIGN'
+    | 'SIGNATURE_LOCAL'
+    | 'SIGNATURE_REMOTE_REQUEST'
+    | 'FINANCE_ACCESS'
+    | 'FINANCE_INVOICE_ISSUE'
+    | 'FINANCE_KSEF'
+    | 'AI_LEAD_ASSIST'
+    | 'INSTAGRAM_MONITOR'
+    | 'STATS_VIEW';
+
+export interface CapabilityMissingFeature {
+    key: FeatureKey;
+    displayName: string;
+}
+
+export interface CapabilityUpsellOption {
+    addOnKey: AddOnKey;
+    addOnName: string;
+    monthlyPriceGrossCents: number | null;
+    isAvailable: boolean;
+}
+
+export interface CapabilityStatus {
+    enabled: boolean;
+    displayName: string;
+    /** Exactly which features are missing — drives the "requires module X" copy. */
+    missingFeatures: CapabilityMissingFeature[];
+    /** Purchasable add-ons that provide the missing features. */
+    upsell: CapabilityUpsellOption[];
+}
+
 export interface EntitlementsResponse {
     plan: {
         key: PlanKey;
@@ -56,7 +97,24 @@ export interface EntitlementsResponse {
         monthlyPriceGrossCents: number;
     };
     features: Record<FeatureKey, FeatureStatus>;
+    capabilities: Record<CapabilityKey, CapabilityStatus>;
     activeAddOns: AddOnKey[];
+}
+
+// ─── Paywall (HTTP 402 contract) ──────────────────────────────────────────────
+
+/** Machine-readable codes carried by every HTTP 402 body. Branch on code, never on message. */
+export const PAYWALL_CODE_MODULE_REQUIRED = 'MODULE_REQUIRED';
+export const PAYWALL_CODE_INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
+
+export interface PaywallErrorResponse {
+    code: string;
+    error: string;
+    message: string;
+    capability: CapabilityKey | null;
+    capabilityDisplayName: string | null;
+    missingFeatures: CapabilityMissingFeature[];
+    upsell: CapabilityUpsellOption[];
 }
 
 // ─── My Plan ──────────────────────────────────────────────────────────────────

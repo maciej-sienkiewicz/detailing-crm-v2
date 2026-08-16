@@ -132,7 +132,7 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
                                 Odblokuj moduł
                             </UnlockButton>
                             <FullHint>
-                                Lub przejdź na pakiet <a href="/settings?tab=subscription">FULL</a> i
+                                Lub przejdź na pakiet <a href="/settings?tab=plan">FULL</a> i
                                 zyskaj dostęp do wszystkich modułów w niższej cenie niż suma pojedynczych.
                             </FullHint>
                         </>
