@@ -16,6 +16,7 @@ import { useHandover } from '../../hooks/useHandover';
 import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
 import { SettlementSection } from './SettlementSection';
+import { FinanceUpsellPanel } from './FinanceUpsellPanel';
 import { ProtocolSection } from './ProtocolSection';
 import { HandoverResultView } from './HandoverResultView';
 import type { Visit } from '../../types';
@@ -37,8 +38,9 @@ const HandoverFooter = styled(ModalFooter)`
     }
 `;
 
-const submitLabel = (documentType: string, isFreeVisit: boolean): string => {
+const submitLabel = (documentType: string, isFreeVisit: boolean, canIssueDocuments: boolean): string => {
     if (isFreeVisit) return 'Wydaj pojazd';
+    if (!canIssueDocuments) return 'Wydaj pojazd bez faktury';
     if (documentType === 'INVOICE') return 'Wydaj pojazd i wystaw fakturę';
     if (documentType === 'RECEIPT') return 'Wydaj pojazd i wystaw paragon';
     return 'Wydaj pojazd';
@@ -119,18 +121,30 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                     <Body>
                         <CustomerNotesSection comments={customerComments} />
 
-                        <SettlementSection
-                            state={handover.state}
-                            patch={handover.patch}
-                            totals={handover.totals}
-                            currency={handover.currency}
-                            isFreeVisit={handover.isFreeVisit}
-                            invoiceGross={handover.invoiceGross}
-                            remainder={handover.remainder}
-                            sellerComplete={handover.sellerComplete}
-                            company={handover.company}
-                            problemsIn={handover.problemsIn}
-                        />
+                        {handover.canIssueDocuments ? (
+                            <SettlementSection
+                                state={handover.state}
+                                patch={handover.patch}
+                                totals={handover.totals}
+                                currency={handover.currency}
+                                isFreeVisit={handover.isFreeVisit}
+                                invoiceGross={handover.invoiceGross}
+                                remainder={handover.remainder}
+                                sellerComplete={handover.sellerComplete}
+                                company={handover.company}
+                                problemsIn={handover.problemsIn}
+                            />
+                        ) : (
+                            // Moment wysokiej intencji: zamiast sekcji rozliczenia —
+                            // propozycja modułu finansowego, z zachowaną ścieżką
+                            // „wydaj pojazd bez faktury" (operacja rdzeniowa BASIC).
+                            !handover.isFreeVisit && (
+                                <FinanceUpsellPanel
+                                    grossAmount={handover.totals.gross}
+                                    currency={handover.currency}
+                                />
+                            )
+                        )}
 
                         <ProtocolSection
                             visitId={visit.id}
@@ -153,7 +167,11 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                     >
                         {handover.isSubmitting
                             ? 'Wydawanie…'
-                            : submitLabel(handover.state.documentType, handover.isFreeVisit)}
+                            : submitLabel(
+                                handover.state.documentType,
+                                handover.isFreeVisit,
+                                handover.canIssueDocuments
+                            )}
                     </SharedButton>
                 </HandoverFooter>
             )}

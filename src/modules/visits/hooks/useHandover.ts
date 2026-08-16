@@ -1,3 +1,4 @@
+import { useCapability } from '@/modules/subscription';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
@@ -187,6 +188,11 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     });
     const [result, setResult] = useState<CompleteVisitResponse | null>(null);
 
+    // Wystawianie dokumentów (paragon/faktura/KSeF) to moduł finansowy. Bez niego
+    // wydanie pojazdu nadal działa — w trybie uproszczonym, bez dokumentu; backend
+    // egzekwuje tę samą regułę (jawna faktura -> 402, paragon pomijany).
+    const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
+
     // ── Draft: zamknięcie okna nie kasuje pracy ──────────────────────────────
     useEffect(() => {
         if (!isOpen || result) return;
@@ -216,10 +222,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
 
     const problems: HandoverProblem[] = useMemo(
         () =>
-            isFreeVisit
+            isFreeVisit || !canIssueDocuments
                 ? []
                 : validateHandover({ state, visitGross: totals.gross, sellerComplete }),
-        [state, totals.gross, sellerComplete, isFreeVisit]
+        [state, totals.gross, sellerComplete, isFreeVisit, canIssueDocuments]
     );
 
     const problemsIn = useCallback(
@@ -230,7 +236,11 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // ── Zapis ────────────────────────────────────────────────────────────────
     const { mutate: submit, isPending: isSubmitting } = useMutation({
         mutationFn: () => {
-            const documentType = isFreeVisit ? 'other' : state.documentType;
+            const documentType = isFreeVisit
+                ? 'other'
+                : canIssueDocuments
+                    ? state.documentType
+                    : 'RECEIPT'; // backend pomija dokument bez modułu; jawna faktura dałaby 402
             return stateTransitionApi.complete(visit.id, {
                 signatureObtained: state.protocolSigned,
                 payment: {
@@ -240,7 +250,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                     dueDate: state.paymentMethod === 'TRANSFER' ? defaultDueDate() : undefined,
                 },
                 invoice:
-                    documentType === 'INVOICE' ? toInvoicePayload(state, totals.gross) : undefined,
+                    documentType === 'INVOICE' && canIssueDocuments
+                        ? toInvoicePayload(state, totals.gross)
+                        : undefined,
             });
         },
         onSuccess: response => {
@@ -271,6 +283,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         problems,
         problemsIn,
         canSubmit: problems.length === 0 && !isSubmitting,
+        canIssueDocuments,
         // zapis
         submit,
         isSubmitting,
