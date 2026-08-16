@@ -59,13 +59,19 @@ apiClient.interceptors.response.use(
 
         if (status === 402) {
             // Paywall contract: every 402 body carries a machine-readable `code`.
-            // MODULE_REQUIRED → global upsell dialog (PaywallListener); this is the
-            // safety net for any action the UI failed to gate — the user sees a
-            // purchase path, never a raw error. Other codes (INSUFFICIENT_CREDITS)
-            // fall through to the generic toast unless a call site handles them.
+            // Same soft-UX rule as 403 below: background READS the user did not
+            // trigger (config prefetches on calendar/check-in views) fail SILENTLY —
+            // the view's own gates render the locked state. Only a deliberate
+            // MUTATION opens the global upsell dialog (PaywallListener) — the user
+            // clicked something and gets a purchase path instead of a raw error.
+            // Other codes (INSUFFICIENT_CREDITS) fall through to the generic toast
+            // unless a call site handles them.
             const body = error.response?.data;
             if (body?.code === 'MODULE_REQUIRED') {
-                window.dispatchEvent(new CustomEvent('api:paywall', { detail: body }));
+                const method = (error.config?.method ?? 'get').toLowerCase();
+                if (method !== 'get' && method !== 'head') {
+                    window.dispatchEvent(new CustomEvent('api:paywall', { detail: body }));
+                }
                 return Promise.reject(error);
             }
         }

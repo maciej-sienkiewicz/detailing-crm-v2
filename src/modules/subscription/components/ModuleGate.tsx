@@ -46,6 +46,86 @@ const ZapSvg = () => (
     </svg>
 );
 
+// ─── Reusable sales card ──────────────────────────────────────────────────────
+
+export interface ModuleGateCardProps {
+    /** Big heading — module or capability name. */
+    title: string;
+    /** One-paragraph explanation of what is locked and why. */
+    subtitle: React.ReactNode;
+    /** Optional checklist of what the module offers. */
+    benefits?: string[];
+    addOnKey: AddOnKey | null;
+    priceCents: number | null;
+    isAvailable: boolean;
+    isOwner: boolean;
+    onUnlock: () => void;
+}
+
+/**
+ * THE one styled paywall card of the application. Used full-page by [ModuleGate]
+ * and inside the global 402 dialog by PaywallListener — every "module missing"
+ * surface must look identical, so new variants should reuse this component
+ * instead of building their own.
+ */
+export function ModuleGateCard({
+    title,
+    subtitle,
+    benefits,
+    addOnKey,
+    priceCents,
+    isAvailable,
+    isOwner,
+    onUnlock,
+}: ModuleGateCardProps) {
+    return (
+        <GateCard>
+            <LockBadge><LockSvg /></LockBadge>
+            <GateEyebrow>Moduł dodatkowy</GateEyebrow>
+            <GateTitle>{title}</GateTitle>
+            <GateSubtitle>{subtitle}</GateSubtitle>
+
+            {benefits && benefits.length > 0 && (
+                <BenefitList>
+                    {benefits.map(benefit => (
+                        <BenefitItem key={benefit}>
+                            <CheckSvg />
+                            {benefit}
+                        </BenefitItem>
+                    ))}
+                </BenefitList>
+            )}
+
+            {priceCents != null && (
+                <PriceRow>
+                    <PriceAmount>{formatCents(priceCents)}</PriceAmount>
+                    <PricePer>/ miesiąc</PricePer>
+                </PriceRow>
+            )}
+
+            {isOwner ? (
+                <>
+                    <UnlockButton onClick={onUnlock} disabled={!addOnKey || !isAvailable}>
+                        <ZapSvg />
+                        Odblokuj moduł
+                    </UnlockButton>
+                    <FullHint>
+                        Lub przejdź na pakiet <a href="/settings?tab=plan">FULL</a> i
+                        zyskaj dostęp do wszystkich modułów w niższej cenie niż suma pojedynczych.
+                    </FullHint>
+                </>
+            ) : (
+                <OwnerOnlyNote>
+                    Moduły może dokupić wyłącznie właściciel studia.
+                    Poproś właściciela o odblokowanie tej funkcji.
+                </OwnerOnlyNote>
+            )}
+        </GateCard>
+    );
+}
+
+// ─── Full-page gate ───────────────────────────────────────────────────────────
+
 interface Props {
     /** Feature the wrapped view belongs to. */
     featureKey: FeatureKey;
@@ -83,14 +163,14 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
     // Prefer the entitlements upsell (already mapped server-side); fall back to
     // the add-on catalog in case the upsell payload is missing.
     const catalogAddOn = addOns?.find(a => a.features.includes(featureKey));
-    const addOnKey = feature.upsell?.addOnKey ?? catalogAddOn?.key ?? null;
+    const addOnKey = (feature.upsell?.addOnKey ?? catalogAddOn?.key ?? null) as AddOnKey | null;
     const addOnName = feature.upsell?.addOnName ?? catalogAddOn?.name ?? title ?? '';
     const priceCents = feature.upsell?.monthlyPriceGrossCents ?? catalogAddOn?.monthlyPriceGrossCents ?? null;
     const isAvailable = feature.upsell?.isAvailable ?? catalogAddOn?.isAvailable ?? false;
 
     const handleUnlock = () => {
         if (!addOnKey || !isAvailable) return;
-        unlock.openUnlockDialog(addOnKey as AddOnKey, addOnName);
+        unlock.openUnlockDialog(addOnKey, addOnName);
     };
 
     return (
@@ -100,49 +180,21 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
             </DemoLayer>
 
             <GateOverlay>
-                <GateCard>
-                    <LockBadge><LockSvg /></LockBadge>
-                    <GateEyebrow>Moduł dodatkowy</GateEyebrow>
-                    <GateTitle>{title ?? addOnName}</GateTitle>
-                    <GateSubtitle>
-                        Ten widok jest częścią modułu <strong>{addOnName}</strong>, który nie jest
-                        aktywny w Twoim pakiecie. Poniżej podgląd tego, co zyskasz po odblokowaniu:
-                    </GateSubtitle>
-
-                    <BenefitList>
-                        {benefits.map(benefit => (
-                            <BenefitItem key={benefit}>
-                                <CheckSvg />
-                                {benefit}
-                            </BenefitItem>
-                        ))}
-                    </BenefitList>
-
-                    {priceCents != null && (
-                        <PriceRow>
-                            <PriceAmount>{formatCents(priceCents)}</PriceAmount>
-                            <PricePer>/ miesiąc</PricePer>
-                        </PriceRow>
-                    )}
-
-                    {isOwner ? (
+                <ModuleGateCard
+                    title={title ?? addOnName}
+                    subtitle={
                         <>
-                            <UnlockButton onClick={handleUnlock} disabled={!addOnKey || !isAvailable}>
-                                <ZapSvg />
-                                Odblokuj moduł
-                            </UnlockButton>
-                            <FullHint>
-                                Lub przejdź na pakiet <a href="/settings?tab=plan">FULL</a> i
-                                zyskaj dostęp do wszystkich modułów w niższej cenie niż suma pojedynczych.
-                            </FullHint>
+                            Ten widok jest częścią modułu <strong>{addOnName}</strong>, który nie jest
+                            aktywny w Twoim pakiecie. Poniżej podgląd tego, co zyskasz po odblokowaniu:
                         </>
-                    ) : (
-                        <OwnerOnlyNote>
-                            Moduły może dokupić wyłącznie właściciel studia.
-                            Poproś właściciela o odblokowanie tej funkcji.
-                        </OwnerOnlyNote>
-                    )}
-                </GateCard>
+                    }
+                    benefits={benefits}
+                    addOnKey={addOnKey}
+                    priceCents={priceCents}
+                    isAvailable={isAvailable}
+                    isOwner={isOwner}
+                    onUnlock={handleUnlock}
+                />
             </GateOverlay>
 
             {unlock.dialogOpen && unlock.pendingKey && (
