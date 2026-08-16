@@ -1,14 +1,33 @@
 export type ProtocolStage = 'CHECK_IN' | 'CHECK_OUT';
 export type ProtocolTriggerType = 'GLOBAL_ALWAYS' | 'SERVICE_SPECIFIC' | 'CUSTOMER_CONSENT_REQUIRED';
 
+export type ProtocolTemplateFormat = 'PDF' | 'HTML';
+export type ProtocolTemplateVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
 export interface ProtocolTemplate {
   id: string;
   name: string;
   description?: string;
-  templateUrl?: string; // URL to the PDF template
+  templateUrl?: string; // URL to the template file (PDF or HTML)
+  fileFormat: ProtocolTemplateFormat;
+  /** Systemowy szablon domyślny — przywracany automatycznie, gdy studio nie ma żadnego szablonu przyjęcia. */
+  isDefault: boolean;
+  verificationStatus: ProtocolTemplateVerificationStatus;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Wynik weryfikacji pól szablonu (POST /protocol-templates/{id}/verify). */
+export interface ProtocolTemplateVerification {
+  templateId: string;
+  fileFormat: ProtocolTemplateFormat;
+  verificationStatus: ProtocolTemplateVerificationStatus;
+  requiredFields: string[];
+  foundFields: string[];
+  missingFields: string[];
+  optionalFieldsFound: string[];
+  problems: string[];
 }
 
 export interface ProtocolRule {
@@ -44,6 +63,8 @@ export interface VisitProtocol {
 export interface CreateProtocolTemplateDto {
   name: string;
   description?: string;
+  /** Format pliku szablonu: 'PDF' (domyślny) lub 'HTML'. */
+  fileFormat?: ProtocolTemplateFormat;
 }
 
 export interface UpdateProtocolTemplateDto {

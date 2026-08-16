@@ -7,7 +7,6 @@ import {
     ModalTitle,
     ModalContent,
     ModalFooter,
-    ModalSectionTitle,
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
@@ -81,11 +80,40 @@ const TemplateInfo = styled.div`
 `;
 
 const TemplateName = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     font-size: 1rem;
     font-weight: 600;
     color: rgb(15, 23, 42);
     margin-bottom: 0.25rem;
     letter-spacing: -0.01em;
+`;
+
+const Badge = styled.span<{ $tone?: 'neutral' | 'success' | 'danger' | 'info' }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border-radius: 999px;
+    white-space: nowrap;
+
+    ${props => props.$tone === 'success' ? `
+        background: rgb(220, 252, 231);
+        color: rgb(22, 101, 52);
+    ` : props.$tone === 'danger' ? `
+        background: rgb(254, 226, 226);
+        color: rgb(153, 27, 27);
+    ` : props.$tone === 'info' ? `
+        background: rgb(219, 234, 254);
+        color: rgb(30, 64, 175);
+    ` : `
+        background: rgb(241, 245, 249);
+        color: rgb(71, 85, 105);
+    `}
 `;
 
 const TemplateDescription = styled.div`
@@ -401,6 +429,45 @@ const formatFileSize = (bytes: number): string => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const detectFileFormat = (file: File): 'PDF' | 'HTML' | null => {
+    const name = file.name.toLowerCase();
+    if (file.type === 'application/pdf' || name.endsWith('.pdf')) return 'PDF';
+    if (file.type === 'text/html' || name.endsWith('.html') || name.endsWith('.htm')) return 'HTML';
+    return null;
+};
+
+const validateTemplateFile = (file: File): string | null => {
+    if (!detectFileFormat(file)) return 'Dozwolone są tylko pliki PDF lub HTML';
+    if (file.size > MAX_FILE_SIZE) return 'Plik jest za duży. Maksymalny rozmiar to 10 MB';
+    return null;
+};
+
+/** Polskie etykiety pól szablonu — do czytelnego raportu braków po weryfikacji. */
+const FIELD_LABELS: Record<string, string> = {
+    brand: 'Marka pojazdu',
+    model: 'Model pojazdu',
+    licenseplate: 'Nr rejestracyjny',
+    mileage: 'Przebieg',
+    services: 'Zakres usługi',
+    remarks: 'Uwagi',
+    fullname: 'Imię i nazwisko',
+    companyname: 'Nazwa firmy',
+    phonenumber: 'Nr telefonu',
+    email: 'E-mail',
+    tax: 'NIP',
+    date: 'Data i godzina przyjęcia',
+    price: 'Łączny koszt usług',
+    keys: 'Przekazano kluczyk (checkbox)',
+    documents: 'Przekazano dokumenty (checkbox)',
+    signature: 'Podpis zleceniodawcy (obszar podpisu)',
+    company_signature: 'Podpis zleceniobiorcy (obszar podpisu)',
+};
+
+const fieldLabel = (fieldName: string): string =>
+    FIELD_LABELS[fieldName] ? `${fieldName} (${FIELD_LABELS[fieldName]})` : fieldName;
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface ProtocolTemplateModalProps {
@@ -461,12 +528,9 @@ export const ProtocolTemplateModal = ({
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        if (file.type !== 'application/pdf') {
-            setErrors({ file: 'Tylko pliki PDF są dozwolone' });
-            return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            setErrors({ file: 'Plik jest za duży. Maksymalny rozmiar to 10 MB' });
+        const validationError = validateTemplateFile(file);
+        if (validationError) {
+            setErrors({ file: validationError });
             return;
         }
         setSelectedFile(file);
@@ -485,12 +549,9 @@ export const ProtocolTemplateModal = ({
         e.stopPropagation();
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
-        if (file.type !== 'application/pdf') {
-            setErrors({ file: 'Tylko pliki PDF są dozwolone' });
-            return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            setErrors({ file: 'Plik jest za duży. Maksymalny rozmiar to 10 MB' });
+        const validationError = validateTemplateFile(file);
+        if (validationError) {
+            setErrors({ file: validationError });
             return;
         }
         setSelectedFile(file);
@@ -503,7 +564,7 @@ export const ProtocolTemplateModal = ({
             newErrors.name = 'Nazwa musi mieć co najmniej 3 znaki';
         }
         if (!editingTemplate && !selectedFile) {
-            newErrors.file = 'Plik PDF szablonu jest wymagany';
+            newErrors.file = 'Plik szablonu (PDF lub HTML) jest wymagany';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -519,10 +580,36 @@ export const ProtocolTemplateModal = ({
                     data: { name: name.trim(), description: description.trim() || undefined },
                 });
             } else {
-                await createMutation.mutateAsync({
-                    data: { name: name.trim(), description: description.trim() || undefined },
+                const fileFormat = selectedFile ? detectFileFormat(selectedFile) ?? 'PDF' : 'PDF';
+                const result = await createMutation.mutateAsync({
+                    data: {
+                        name: name.trim(),
+                        description: description.trim() || undefined,
+                        fileFormat,
+                    },
                     file: selectedFile,
                 });
+
+                // Weryfikacja pól nie przeszła — szablon nie nadaje się do użycia.
+                // Usuwamy go, pokazujemy czego brakuje i zostawiamy formularz,
+                // żeby użytkownik mógł poprawić plik i wgrać ponownie.
+                const verification = result.verification;
+                if (verification && verification.verificationStatus === 'REJECTED') {
+                    try {
+                        await deleteMutation.mutateAsync(result.template.id);
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup rejected template:', cleanupError);
+                    }
+                    const details = [
+                        ...verification.missingFields.map(f => `brakujące pole: ${fieldLabel(f)}`),
+                        ...verification.problems,
+                    ];
+                    setErrors({
+                        submit: `Plik nie przeszedł weryfikacji — ${details.join('; ')}. ` +
+                            'Popraw plik zgodnie z instrukcją (przycisk „Dowiedz się więcej") i wgraj go ponownie.',
+                    });
+                    return;
+                }
             }
             resetForm();
             onSuccess?.();
@@ -568,7 +655,17 @@ export const ProtocolTemplateModal = ({
                                     <TemplateCard key={template.id}>
                                         <TemplateCardHeader>
                                             <TemplateInfo>
-                                                <TemplateName>{template.name}</TemplateName>
+                                                <TemplateName>
+                                                    {template.name}
+                                                    <Badge $tone="neutral">{template.fileFormat ?? 'PDF'}</Badge>
+                                                    {template.isDefault && <Badge $tone="info">Domyślny</Badge>}
+                                                    {template.verificationStatus === 'VERIFIED' && (
+                                                        <Badge $tone="success">Zweryfikowany</Badge>
+                                                    )}
+                                                    {template.verificationStatus === 'REJECTED' && (
+                                                        <Badge $tone="danger">Odrzucony</Badge>
+                                                    )}
+                                                </TemplateName>
                                                 {template.description && (
                                                     <TemplateDescription>{template.description}</TemplateDescription>
                                                 )}
@@ -633,11 +730,11 @@ export const ProtocolTemplateModal = ({
                             </FieldGroup>
 
                             <FieldGroup>
-                                <Label>Plik PDF szablonu</Label>
+                                <Label>Plik szablonu (PDF lub HTML)</Label>
                                 <FileInputHidden
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".pdf,application/pdf"
+                                    accept=".pdf,.html,.htm,application/pdf,text/html"
                                     onChange={handleFileSelect}
                                 />
                                 {!selectedFile && !editingTemplate?.templateUrl ? (
@@ -647,8 +744,8 @@ export const ProtocolTemplateModal = ({
                                         onDrop={handleDrop}
                                     >
                                         <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                                        <UploadText>Kliknij aby wybrać plik PDF</UploadText>
-                                        <UploadHint>lub przeciągnij i upuść (maks. 10 MB)</UploadHint>
+                                        <UploadText>Kliknij aby wybrać plik PDF lub HTML</UploadText>
+                                        <UploadHint>lub przeciągnij i upuść (maks. 10 MB). Po wgraniu plik zostanie zweryfikowany pod kątem wymaganych pól.</UploadHint>
                                     </FileUploadArea>
                                 ) : selectedFile ? (
                                     <FilePreview>
@@ -665,7 +762,9 @@ export const ProtocolTemplateModal = ({
                                     <FilePreview>
                                         <FileIconWrap><FilePdfIcon /></FileIconWrap>
                                         <FileInfo>
-                                            <FileName>{editingTemplate.name}.pdf</FileName>
+                                            <FileName>
+                                                {editingTemplate.name}.{(editingTemplate.fileFormat ?? 'PDF').toLowerCase()}
+                                            </FileName>
                                             <FileSize>
                                                 <span>Szablon zapisany</span>
                                                 <DownloadLink

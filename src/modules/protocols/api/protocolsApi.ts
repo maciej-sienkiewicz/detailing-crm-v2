@@ -2,6 +2,7 @@ import axios from 'axios';
 import { apiClient } from '../../../core/apiClient';
 import type {
   ProtocolTemplate,
+  ProtocolTemplateVerification,
   ProtocolRule,
   VisitProtocol,
   CreateProtocolTemplateDto,
@@ -9,6 +10,12 @@ import type {
   CreateProtocolRuleDto,
   SignProtocolDto,
 } from '../types';
+
+export interface CreateProtocolTemplateResult {
+  template: ProtocolTemplate;
+  /** Wynik weryfikacji pól — obecny, gdy plik został wgrany. */
+  verification?: ProtocolTemplateVerification;
+}
 
 class ProtocolsApi {
   // Protocol Templates
@@ -22,37 +29,52 @@ class ProtocolsApi {
     return response.data;
   }
 
-  async createProtocolTemplate(data: CreateProtocolTemplateDto, file?: File): Promise<ProtocolTemplate> {
-    // Step 1: Create template and get presigned upload URL
+  async createProtocolTemplate(data: CreateProtocolTemplateDto, file?: File): Promise<CreateProtocolTemplateResult> {
+    // Step 1: Create template and get presigned upload URL (format-aware)
     const response = await apiClient.post<ProtocolTemplate>('/v1/protocol-templates', data);
     const template = response.data;
 
-    // Step 2: Upload file to S3 if provided
-    // The templateUrl contains the presigned URL for uploading
-    if (file && template.templateUrl) {
-      try {
-        await axios.put(template.templateUrl, file, {
-          headers: {
-            'Content-Type': file.type,
-          },
-        });
-      } catch (uploadError) {
-        // CRITICAL: If upload fails, delete the template to prevent orphaned records
-        // This is a temporary frontend solution. Ideally, backend should handle this
-        // via a two-phase commit (uploadConfirmed flag + cleanup job).
-        console.error('S3 upload failed, cleaning up template:', uploadError);
-        try {
-          await this.deleteProtocolTemplate(template.id);
-        } catch (deleteError) {
-          console.error('Failed to cleanup template after upload failure:', deleteError);
-        }
-        // Re-throw the original upload error
-        throw new Error(`Upload pliku nie powiódł się: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
-      }
+    if (!file || !template.templateUrl) {
+      return { template };
     }
 
-    // Step 3: Return the created template
-    return template;
+    // Step 2: Upload file to S3 — the presigned URL is signed for the declared
+    // content type, so send the canonical one for the chosen format.
+    const contentType = data.fileFormat === 'HTML' ? 'text/html' : 'application/pdf';
+    try {
+      await axios.put(template.templateUrl, file, {
+        headers: {
+          'Content-Type': contentType,
+        },
+      });
+    } catch (uploadError) {
+      // CRITICAL: If upload fails, delete the template to prevent orphaned records
+      // This is a temporary frontend solution. Ideally, backend should handle this
+      // via a two-phase commit (uploadConfirmed flag + cleanup job).
+      console.error('S3 upload failed, cleaning up template:', uploadError);
+      try {
+        await this.deleteProtocolTemplate(template.id);
+      } catch (deleteError) {
+        console.error('Failed to cleanup template after upload failure:', deleteError);
+      }
+      // Re-throw the original upload error
+      throw new Error(`Upload pliku nie powiódł się: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+    }
+
+    // Step 3: Verify the uploaded file contains every field required by the
+    // visit pipeline. The verdict (VERIFIED/REJECTED) is persisted backend-side.
+    const verification = await this.verifyProtocolTemplate(template.id);
+    return {
+      template: { ...template, verificationStatus: verification.verificationStatus },
+      verification,
+    };
+  }
+
+  async verifyProtocolTemplate(id: string): Promise<ProtocolTemplateVerification> {
+    const response = await apiClient.post<ProtocolTemplateVerification>(
+      `/v1/protocol-templates/${id}/verify`
+    );
+    return response.data;
   }
 
   async updateProtocolTemplate(id: string, data: UpdateProtocolTemplateDto): Promise<ProtocolTemplate> {
