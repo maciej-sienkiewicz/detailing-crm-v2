@@ -6,12 +6,16 @@ import { CHANNEL_LABEL, TIMING_LABEL, type MessageSpec } from '../catalog';
 import { channelStatus, formatOffset, resolveTemplate } from '../utils/template';
 import type { Channel, ChannelDraft } from '../types';
 
-const Row = styled.tr`
+const Row = styled.tr<{ $accent?: string }>`
   border-bottom: 1px solid ${st.border};
   cursor: pointer;
+  transition: background ${st.transition};
+
+  /* Keeps a row tied to the journey stage above it once the header scrolls away. */
+  td:first-child { box-shadow: inset 3px 0 0 ${p => p.$accent ?? 'transparent'}; }
 
   &:last-child { border-bottom: 0; }
-  &:hover td { background: #FAFCFE; }
+  &:hover td { background: ${st.bg}; }
   &:focus-visible { outline: 2px solid ${st.borderFocus}; outline-offset: -2px; }
 `;
 
@@ -62,6 +66,8 @@ const Chevron = styled.td`
 export interface RuleRowProps {
   spec: MessageSpec;
   drafts: Partial<Record<Channel, ChannelDraft>>;
+  /** Colour of the journey stage this message belongs to. */
+  accent?: string;
   onOpen: () => void;
   onToggle: (channel: Channel) => void;
 }
@@ -73,7 +79,7 @@ export interface RuleRowProps {
  * description of it — "Dziękujemy za wizytę, Jan!" tells an operator more than a sentence
  * explaining what a post-visit rule is. The explanation moves to the drawer.
  */
-export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, onOpen, onToggle }) => {
+export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, accent, onOpen, onToggle }) => {
   const primaryChannel: Channel = spec.sms ? 'sms' : 'email';
   const primary = drafts[primaryChannel];
   const snippetSource = primaryChannel === 'email'
@@ -85,6 +91,7 @@ export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, onOpen, onToggle
 
   return (
     <Row
+      $accent={accent}
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={e => {
