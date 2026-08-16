@@ -17,8 +17,6 @@ import { useRoles } from '../hooks/useRoles';
  */
 export type TeamSubView = 'employees' | 'roles';
 
-export const TEAM_SUB_VIEWS: TeamSubView[] = ['employees', 'roles'];
-
 const UsersIcon = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3M8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M18 21v-2a4 4 0 0 0-3-3.87" />

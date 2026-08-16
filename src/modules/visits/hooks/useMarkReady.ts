@@ -30,9 +30,12 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
         },
         onError: (error: unknown) => {
             if (apiErrorStatus(error) === 402) {
+                // The dialog now pre-checks credits, so this is the narrow race where the
+                // balance ran out between opening it and confirming. Name the exact place
+                // rather than "the management panel", which was nowhere in particular.
                 showError(
                     'Brak kredytów SMS',
-                    apiErrorMessage(error, 'Doładuj konto w panelu zarządzania.')
+                    apiErrorMessage(error, 'Status zmieniony bez SMS-a. Doładuj kredyty w Ustawienia → Kredyty SMS i AI.')
                 );
             } else {
                 showError('Błąd', 'Nie udało się zmienić statusu wizyty.');
