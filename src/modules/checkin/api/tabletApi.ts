@@ -32,6 +32,9 @@ export const tabletApi = {
         const response = await apiClient.post(
             `/v1/visits/${visitId}/protocols/${protocolId}/signature-requests`,
             { tabletId: tabletId ?? null, signerName },
+            // Both callers render the failure on the document row and in their own
+            // toast; the global fallback would just repeat it.
+            { skipErrorToast: true },
         );
         return response.data;
     },
@@ -45,6 +48,7 @@ export const tabletApi = {
         const response = await apiClient.post(
             `/v1/visits/${visitId}/protocols/${protocolId}/signature-requests`,
             { deliveryChannel: 'SMS', signerName },
+            { skipErrorToast: true },
         );
         return response.data;
     },
