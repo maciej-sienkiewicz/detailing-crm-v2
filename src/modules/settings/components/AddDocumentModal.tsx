@@ -17,6 +17,11 @@ import {
     useCreateProtocolRule,
 } from '@/modules/protocols/api/useProtocols';
 import type { ProtocolStage } from '@/modules/protocols/types';
+import {
+    buildRejectionMessage,
+    detectFileFormat,
+    validateTemplateFile,
+} from '@/modules/protocols/templateFileUtils';
 
 // ─── Styled components ───────────────────────────────────────────────────────
 
@@ -237,41 +242,30 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
 
     const handleClose = () => { reset(); onClose(); };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const f = e.target.files?.[0];
+    const acceptFile = (f: File | undefined) => {
         if (!f) return;
-        if (f.type !== 'application/pdf') {
-            setErrors(prev => ({ ...prev, file: 'Tylko pliki PDF są dozwolone' }));
-            return;
-        }
-        if (f.size > 10 * 1024 * 1024) {
-            setErrors(prev => ({ ...prev, file: 'Plik jest za duży (max 10 MB)' }));
+        const validationError = validateTemplateFile(f);
+        if (validationError) {
+            setErrors(prev => ({ ...prev, file: validationError }));
             return;
         }
         setFile(f);
         setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        acceptFile(e.target.files?.[0]);
+    };
+
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
-        const f = e.dataTransfer.files?.[0];
-        if (!f) return;
-        if (f.type !== 'application/pdf') {
-            setErrors(prev => ({ ...prev, file: 'Tylko pliki PDF są dozwolone' }));
-            return;
-        }
-        if (f.size > 10 * 1024 * 1024) {
-            setErrors(prev => ({ ...prev, file: 'Plik jest za duży (max 10 MB)' }));
-            return;
-        }
-        setFile(f);
-        setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
+        acceptFile(e.dataTransfer.files?.[0]);
     };
 
     const validate = () => {
         const errs: Record<string, string> = {};
         if (!name.trim() || name.trim().length < 3) errs.name = 'Nazwa musi mieć co najmniej 3 znaki';
-        if (!file) errs.file = 'Plik PDF szablonu jest wymagany';
+        if (!file) errs.file = 'Plik szablonu (PDF lub HTML) jest wymagany';
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -280,12 +274,26 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
         e.preventDefault();
         if (!validate()) return;
 
-        let template: Awaited<ReturnType<typeof createTemplate.mutateAsync>> | undefined;
+        let templateId: string | undefined;
         try {
-            template = await createTemplate.mutateAsync({ data: { name: name.trim(), description: description.trim() || undefined }, file });
+            const fileFormat = file ? detectFileFormat(file) ?? 'PDF' : 'PDF';
+            const result = await createTemplate.mutateAsync({
+                data: { name: name.trim(), description: description.trim() || undefined, fileFormat },
+                file,
+            });
+            templateId = result.template.id;
+
+            // Plik nie zawiera wymaganych pól — sprzątamy szablon i pokazujemy
+            // dokładny raport braków, zostawiając formularz do poprawy.
+            if (result.verification && result.verification.verificationStatus === 'REJECTED') {
+                try { await deleteTemplate.mutateAsync(templateId); } catch { /* best-effort */ }
+                templateId = undefined;
+                setErrors(prev => ({ ...prev, submit: buildRejectionMessage(result.verification!) }));
+                return;
+            }
 
             await createRule.mutateAsync({
-                protocolTemplateId: template.id,
+                protocolTemplateId: templateId,
                 triggerType: 'GLOBAL_ALWAYS',
                 stage,
                 displayOrder: 999,
@@ -295,8 +303,8 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
             onSuccess?.();
             onClose();
         } catch (err) {
-            if (template && !createRule.isSuccess) {
-                try { await deleteTemplate.mutateAsync(template.id); } catch { /* best-effort */ }
+            if (templateId && !createRule.isSuccess) {
+                try { await deleteTemplate.mutateAsync(templateId); } catch { /* best-effort */ }
             }
             const msg = err instanceof Error ? err.message : 'Wystąpił błąd podczas zapisywania';
             setErrors(prev => ({ ...prev, submit: msg }));
@@ -317,11 +325,11 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
             <ModalContent>
                 <Form id="add-document-form" onSubmit={handleSubmit}>
                     <Field>
-                        <Label>Plik PDF *</Label>
+                        <Label>Plik szablonu (PDF lub HTML) *</Label>
                         <HiddenInput
                             ref={fileInputRef}
                             type="file"
-                            accept=".pdf,application/pdf"
+                            accept=".pdf,.html,.htm,application/pdf,text/html"
                             onChange={handleFileChange}
                         />
                         {file ? (
@@ -346,8 +354,8 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                                 onDrop={handleDrop}
                             >
                                 <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                                <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
-                                <UploadHint>Maksymalny rozmiar: 10 MB</UploadHint>
+                                <UploadTitle>Kliknij lub przeciągnij plik PDF lub HTML</UploadTitle>
+                                <UploadHint>Maksymalny rozmiar: 10 MB. Po wgraniu plik zostanie zweryfikowany pod kątem wymaganych pól.</UploadHint>
                             </UploadArea>
                         )}
                         {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
