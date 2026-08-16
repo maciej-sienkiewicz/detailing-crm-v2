@@ -60,6 +60,7 @@ export interface FeatureStatus {
 export type CapabilityKey =
     | 'COMM_SEND_TRANSACTIONAL'
     | 'COMM_SEND_CAMPAIGN'
+    | 'COMM_SMS_CREDITS'
     | 'SIGNATURE_LOCAL'
     | 'SIGNATURE_REMOTE_REQUEST'
     | 'FINANCE_ACCESS'

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '@/core/context/AuthContext';
 import { LockedSection } from '@/common/components/LockedSection';
-import { useFeature } from '@/modules/subscription';
+import { useCapability } from '@/modules/subscription';
 import {
     useSmsCreditBalance,
     useSmsCreditPackages,
@@ -547,13 +547,15 @@ const CheckSvg = () => (
 
 export function SmsCreditSection() {
     const { user } = useAuth();
-    const smsFeature = useFeature('SMS_EMAIL');
+    // Kredyty SMS to wspólna infrastruktura każdego modułu wysyłającego SMS-y
+    // (komunikacja, kampanie, podpisy) — backend rozstrzyga to jako COMM_SMS_CREDITS.
+    const credits = useCapability('COMM_SMS_CREDITS');
     const isOwner = user?.role?.toLowerCase() === 'owner';
 
     return (
         <LockedSection
-            locked={!smsFeature.enabled}
-            message="Twój abonament nie obsługuje powiadomień SMS."
+            locked={!credits.enabled}
+            message="Kredyty SMS wymagają modułu wysyłającego SMS-y (komunikacja, kampanie lub podpisy)."
         >
             <>
                 <BalanceCard />
