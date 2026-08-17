@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
 import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
+import { VisitNumberingSection } from '../components/VisitNumberingSection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
 import { TeamAndRolesSection } from '../components/TeamAndRolesSection';
@@ -30,7 +31,7 @@ import {
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
 type SectionId =
-    | 'company' | 'services' | 'team'
+    | 'company' | 'visit-numbering' | 'services' | 'team'
     | 'templates' | 'documents'
     | 'tablets' | 'visit-card'
     | 'plan' | 'credits' | 'invoices' | 'security';
@@ -62,6 +63,7 @@ const FileSignIcon   = () => <Icon d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a
 const CrownIcon      = () => <Icon d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />;
 const WalletIcon     = () => <Icon d="M20 12V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M20 12h-6a2 2 0 0 0 0 4h6" />;
 const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2zM8 10h8M8 14h4" />;
+const HashIcon        = () => <Icon d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18" />;
 const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
 const TabletIcon     = () => <Icon d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 15h.01" />;
 const CardIcon       = () => <Icon d="M2 6h20v12H2zM2 10h20M6 15h4" />;
@@ -78,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
         group: 'Studio',
         items: [
             { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
+            { id: 'visit-numbering', label: 'Numeracja wizyt', icon: <HashIcon /> },
             { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon /> },
         ],
     },
@@ -230,7 +233,7 @@ const BreadcrumbSep = styled.span`
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 const VALID_SECTIONS = new Set<SectionId>([
-    'company', 'services', 'team',
+    'company', 'visit-numbering', 'services', 'team',
     'templates', 'documents',
     'tablets', 'visit-card',
     'plan', 'credits', 'invoices', 'security',
@@ -255,6 +258,7 @@ const TEAM_VIEW_PARAM = 'view';
 const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // Company data (NIP, address, branding) is studio configuration — owner's call.
     company: 'OWNER_ONLY',
+    'visit-numbering': 'OWNER_ONLY',
     services: 'VISITS_CREATE',
     team: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
@@ -323,6 +327,8 @@ export function SettingsView() {
     let content: React.ReactNode;
     if (section === 'company') {
         content = <CompanySection />;
+    } else if (section === 'visit-numbering') {
+        content = <VisitNumberingSection />;
     } else if (section === 'documents') {
         content = <DocumentsSection />;
     } else if (section === 'templates') {

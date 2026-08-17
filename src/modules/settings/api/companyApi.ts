@@ -2,7 +2,9 @@ import { apiClient } from '@/core';
 import type {
     CompanySettings,
     UpdateCompanySettingsRequest,
+    UpdateVisitNumberingConfigRequest,
     UploadLogoResponse,
+    VisitNumberingConfig,
 } from '../types';
 
 const BASE_PATH = '/v1/company';
@@ -76,5 +78,15 @@ export const companyApi = {
             );
         }
         await apiClient.delete(`${BASE_PATH}/logo`);
+    },
+
+    getVisitNumberingConfig: async (): Promise<VisitNumberingConfig> => {
+        const response = await apiClient.get<VisitNumberingConfig>(`${BASE_PATH}/visit-numbering-config`);
+        return response.data;
+    },
+
+    updateVisitNumberingConfig: async (data: UpdateVisitNumberingConfigRequest): Promise<VisitNumberingConfig> => {
+        const response = await apiClient.patch<VisitNumberingConfig>(`${BASE_PATH}/visit-numbering-config`, data);
+        return response.data;
     },
 };
