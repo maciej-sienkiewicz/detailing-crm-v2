@@ -52,7 +52,15 @@ export interface QuickEventFormData {
     startDateTime: string;
     endDateTime: string;
     isAllDay: boolean;
+    /**
+     * Line-item instance ids — NOT necessarily catalog service ids. Adding the same
+     * service twice creates two distinct entries here so each can carry its own
+     * price/adjustment/notes. Resolve the underlying catalog (or temp) service id
+     * via `serviceRefs`.
+     */
     serviceIds: string[];
+    /** Maps a line-item instance id (see `serviceIds`) back to its catalog/temp service id. */
+    serviceRefs?: { [lineId: string]: string };
     servicePrices?: { [key: string]: number };
     serviceAdjustments?: { [key: string]: ServiceAdjustment };
     serviceNotes?: { [key: string]: string };

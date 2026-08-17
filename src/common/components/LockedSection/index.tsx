@@ -26,6 +26,12 @@ interface Props {
     message: string;
     upgradeHint?: string;
     settingsTab?: string;
+    /**
+     * Called when the lock badge/message is clicked, instead of navigating to
+     * /settings?tab=... — use to open an UpsellModal in place so the purchase
+     * flow starts right where the user hit the wall.
+     */
+    onLockedClick?: () => void;
     children: React.ReactNode;
 }
 
@@ -34,6 +40,7 @@ export function LockedSection({
     message,
     upgradeHint = 'Rozszerz abonament',
     settingsTab = 'plan',
+    onLockedClick,
     children,
 }: Props) {
     const navigate = useNavigate();
@@ -59,13 +66,20 @@ export function LockedSection({
             <Overlay>
                 <LockBadge
                     type="button"
-                    onClick={() => navigate(`/settings?tab=${settingsTab}`)}
-                    title="Przejdź do ustawień abonamentu"
+                    onClick={() => onLockedClick ? onLockedClick() : navigate(`/settings?tab=${settingsTab}`)}
+                    title="Kup dostęp do tej funkcji"
                 >
                     <IconClosed><ClosedLockIcon /></IconClosed>
                     <IconOpen><OpenLockIcon /></IconOpen>
                 </LockBadge>
-                <Message>{message}</Message>
+                <Message
+                    as={onLockedClick ? 'button' : 'span'}
+                    type={onLockedClick ? 'button' : undefined}
+                    onClick={onLockedClick}
+                    $clickable={!!onLockedClick}
+                >
+                    {message}
+                </Message>
                 {showHint && <UpgradeHint>{upgradeHint}</UpgradeHint>}
             </Overlay>
         </Wrap>

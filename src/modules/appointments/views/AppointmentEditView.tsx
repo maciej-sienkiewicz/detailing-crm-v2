@@ -165,7 +165,8 @@ export const AppointmentEditView = () => {
             technicalState: {
                 mileage: 0,
                 deposit: { keys: false, registrationDocument: false, other: false },
-                inspectionNotes: appointment.note || '',
+                inspectionNotes: appointment.internalNote || appointment.note || '',
+                protocolNotes: appointment.protocolNote || '',
             },
             photos: [],
             damagePoints: [],
@@ -220,6 +221,7 @@ export const AppointmentEditView = () => {
                     mileage: 0,
                     deposit: { keys: false, registrationDocument: false, other: false },
                     inspectionNotes: '',
+                    protocolNotes: '',
                 },
                 photos: initialData.photos || [],
                 damagePoints: initialData.damagePoints || [],
@@ -271,6 +273,16 @@ export const AppointmentEditView = () => {
     const handleServicesChange = (services: CheckInServiceLineItem[]) => {
         setFormData(prev => (prev ? { ...prev, services } : prev));
     };
+
+    // State mapping: CheckInFormData.technicalState (edited in VerificationStep) -> the
+    // note fields the API actually persists. Kept as a pure function so the mapping — and
+    // the bug of silently dropping it — is visible and testable on its own.
+    const mapTechnicalNotesToPayload = (technicalState: CheckInFormData['technicalState']) => ({
+        // Legacy single-field consumers (calendar tooltips, reminders) still read `note`.
+        note: technicalState.inspectionNotes || undefined,
+        internalNote: technicalState.inspectionNotes || undefined,
+        protocolNote: technicalState.protocolNotes || undefined,
+    });
 
     const buildPayload = (): AppointmentCreateRequest | null => {
         if (!formData) return null;
@@ -359,6 +371,7 @@ export const AppointmentEditView = () => {
             },
             appointmentTitle: formData.title || undefined,
             appointmentColorId: formData.appointmentColorId,
+            ...mapTechnicalNotesToPayload(formData.technicalState),
             doorToDoor: formData.doorToDoor?.enabled
                 ? {
                     pickupCity: formData.doorToDoor.pickupAddress.city,

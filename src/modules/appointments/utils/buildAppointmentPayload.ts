@@ -95,24 +95,28 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
   }
 
   // ── Services ───────────────────────────────────────────────────────────────
-  const services: ServiceLineItemPayload[] = data.serviceIds.map((serviceId, index) => {
-    const temp = data.tempServices?.[serviceId];
+  // `lineId` is the per-line-item instance id (the same catalog service can be
+  // added more than once); `catalogId` is the underlying catalog/temp service id
+  // used to resolve its name/price and to send as `serviceId` to the API.
+  const services: ServiceLineItemPayload[] = data.serviceIds.map((lineId, index) => {
+    const catalogId = data.serviceRefs?.[lineId] ?? lineId;
+    const temp = data.tempServices?.[catalogId];
     const isTempService = !!temp;
 
-    const catalogBasePriceNet = data.serviceBasePrices?.[serviceId] ?? temp?.basePriceNet ?? 0;
+    const catalogBasePriceNet = data.serviceBasePrices?.[lineId] ?? temp?.basePriceNet ?? 0;
     const catalogVatRate = temp?.vatRate ?? 23;
-    const overriddenVatRate = data.serviceVatRates?.[serviceId] ?? catalogVatRate;
+    const overriddenVatRate = data.serviceVatRates?.[lineId] ?? catalogVatRate;
     const adjustment: ServiceLineItemPayload['adjustment'] =
-      data.serviceAdjustments?.[serviceId] ?? { type: 'PERCENT', value: 0 };
+      data.serviceAdjustments?.[lineId] ?? { type: 'PERCENT', value: 0 };
 
     return {
       id: `${Date.now()}-${index}`,
-      serviceId: isTempService ? null : serviceId,
-      serviceName: temp?.name ?? serviceId,
+      serviceId: isTempService ? null : catalogId,
+      serviceName: temp?.name ?? catalogId,
       basePriceNet: catalogBasePriceNet,
       vatRate: overriddenVatRate,
       adjustment,
-      note: data.serviceNotes?.[serviceId] || '',
+      note: data.serviceNotes?.[lineId] || '',
     };
   });
 

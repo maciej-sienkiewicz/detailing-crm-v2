@@ -24,7 +24,7 @@ import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
 } from './icons';
-import { useFeature } from '@/modules/subscription';
+import { useFeature, UpsellModal } from '@/modules/subscription';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { RecurrenceSidePanel, SidePanelWrapper, SidePanelInner } from './RecurrenceSidePanel';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, ServiceAdjustment } from './types';
@@ -234,6 +234,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
     const queryClient = useQueryClient();
     const smsFeature = useFeature('SMS_EMAIL');
+    const [upsellOpen, setUpsellOpen] = useState(false);
     const { isCollapsed } = useSidebar();
     const sidebarWidth = isCollapsed ? 64 : 240;
 
@@ -270,9 +271,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const servicesAsLineItems = useMemo((): ServiceLineItem[] => {
         return form.selectedServiceIds.map(id => {
-            let svc = form.services.find((s: Service) => s.id === id);
-            if (!svc && form.tempServices[id]) {
-                svc = { id, ...form.tempServices[id] } as Service;
+            const catalogId = form.serviceRefs[id] ?? id;
+            let svc = form.services.find((s: Service) => s.id === catalogId);
+            if (!svc && form.tempServices[catalogId]) {
+                svc = { id: catalogId, ...form.tempServices[catalogId] } as Service;
             }
             if (!svc) return null;
             const baseGross = form.servicePrices[id] ?? 0;
@@ -280,7 +282,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             const basePriceNet = Math.round((baseGross / (1 + vatRate / 100)) * 100);
             return {
                 id,
-                serviceId: svc.id || id,
+                serviceId: svc.id || catalogId,
                 serviceName: svc.name,
                 basePriceNet,
                 vatRate,
@@ -290,11 +292,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 packageItems: svc.packageItems ?? null,
             } as ServiceLineItem;
         }).filter((x): x is ServiceLineItem => x !== null);
-    }, [form.selectedServiceIds, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]);
+    }, [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]);
 
     const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {
         const newIds = new Set(newItems.map(i => i.id));
         form.setSelectedServiceIds(newItems.map(i => i.id));
+        form.setServiceRefs(() => {
+            const next: { [lineId: string]: string } = {};
+            newItems.forEach(item => { next[item.id] = item.serviceId || item.id; });
+            return next;
+        });
         form.setServiceAdjustments(() => {
             const next: { [id: string]: ServiceAdjustment } = {};
             newItems.forEach(item => { next[item.id] = item.adjustment as ServiceAdjustment; });
@@ -316,8 +323,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 if (item.basePriceGross != null) {
                     next[item.id] = item.basePriceNet;
                 } else {
-                    const catalogSvc = form.services.find((s: Service) => s.id === item.id);
-                    next[item.id] = catalogSvc?.basePriceNet ?? form.tempServices[item.id]?.basePriceNet ?? item.basePriceNet;
+                    const catalogId = item.serviceId || item.id;
+                    const catalogSvc = form.services.find((s: Service) => s.id === catalogId);
+                    next[item.id] = catalogSvc?.basePriceNet ?? form.tempServices[catalogId]?.basePriceNet ?? item.basePriceNet;
                 }
             });
             return next;
@@ -1761,6 +1769,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <LockedSection
                                         locked={!smsFeature.enabled}
                                         message="Twój abonament nie obsługuje powiadomień SMS."
+                                        onLockedClick={() => setUpsellOpen(true)}
                                     >
                                         <SmsCheckList>
                                             <SmsCheckItem $disabled={!form.bookingConfirmationEnabled}>
@@ -1945,6 +1954,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onClose={() => form.setIsQuickColorModalOpen(false)}
                 onColorCreate={form.handleQuickColorCreate}
             />
+
+            {upsellOpen && <UpsellModal feature="SMS_EMAIL" onClose={() => setUpsellOpen(false)} />}
 
         </>
     );

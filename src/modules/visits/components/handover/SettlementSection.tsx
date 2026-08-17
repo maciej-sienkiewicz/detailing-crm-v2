@@ -21,10 +21,17 @@ const AmountLabel = styled.span`
     color: ${st.text};
 `;
 
-const SubRow = styled.div`
+// Right-aligned value stack: each amount sits directly next to its own
+// "brutto"/"netto" label (law of proximity) instead of the label living in a
+// separate column on the far left of the row.
+const ValueStack = styled.div`
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+`;
+
+const SubValue = styled.span`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
     font-variant-numeric: tabular-nums;
@@ -96,13 +103,12 @@ export const SettlementSection = ({
 
             <AmountBox>
                 <BoxRow>
-                    <AmountLabel>Do zapłaty · brutto</AmountLabel>
-                    <Money $strong>{fmt(totals.gross)}</Money>
+                    <AmountLabel>Do zapłaty</AmountLabel>
+                    <ValueStack>
+                        <Money $strong>{fmt(totals.gross)} brutto</Money>
+                        <SubValue>{fmt(totals.net)} netto</SubValue>
+                    </ValueStack>
                 </BoxRow>
-                <SubRow>
-                    <span>netto</span>
-                    <span>{fmt(totals.net)}</span>
-                </SubRow>
             </AmountBox>
 
             <Box>

@@ -12,7 +12,7 @@ import { ServiceInlineRow } from './ServiceInlineRow';
 import type { NewRow } from './ServiceInlineRow';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { LockedSection } from '@/common/components/LockedSection';
-import { useFeature } from '@/modules/subscription';
+import { useFeature, UpsellModal } from '@/modules/subscription';
 
 const BRAND = '#0ea5e9';
 const BRAND_DARK = '#0284c7';
@@ -1563,6 +1563,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const { calculateServicePrice } = useServicePricing();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
     const smsFeature = useFeature('SMS_EMAIL');
+    const [upsellOpen, setUpsellOpen] = useState(false);
 
     /* ── Row / header menus ── */
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -2326,6 +2327,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         <LockedSection
                             locked={!smsFeature.enabled}
                             message="Twój abonament nie obsługuje powiadomień SMS."
+                            onLockedClick={() => setUpsellOpen(true)}
                         >
                             <DraftBarCheckboxes>
                                 <DraftBarLabel>
@@ -2890,6 +2892,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </ModalCard>
             </ModalOverlay>
         )}
+        {upsellOpen && <UpsellModal feature="SMS_EMAIL" onClose={() => setUpsellOpen(false)} />}
         </FocusWrapper>
         </>
     );
