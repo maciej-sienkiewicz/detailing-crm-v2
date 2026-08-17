@@ -3,11 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Car, Link2, Pencil, TriangleAlert, Undo2, Unlink, X } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
 import { PiiValue } from '@/common/pii';
+import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { appointmentApi } from '../../api/appointmentApi';
 import type { EntityEvent, VehicleDraft, VehicleOwnershipAction, VehicleSectionState, VehicleSummary } from './types';
 import {
     ActionBtn, ActionsRow, Card, CardActions, CardBody, CardHead, CardTitle, CollisionBox,
-    CollisionMeta, CollisionTitle, EmptyHint, EntityMeta, EntityName, EntityTile, Field,
+    CollisionMeta, CollisionTitle, EmptyHint, EntityMeta, EntityName, Field,
     FormGrid, HeadIcon, IdentityRow, IdentityText, InlineLink, MetaRow, MutationNotice,
     OptionList, OptionMeta, OptionRow, OptionTitle, PlateChip, QuietBtn, RadioRow, StateTag,
     TextInput,
@@ -95,7 +96,7 @@ const SelectedView = ({
     return (
         <>
             <IdentityRow>
-                <EntityTile aria-hidden><Car /></EntityTile>
+                <CarLogoImage brand={shown.brand} size="md" />
                 <IdentityText>
                     <EntityName>{vehicleLabel(shown)}</EntityName>
                     {shown.licensePlate && (
@@ -131,7 +132,7 @@ const LinkedView = ({
 }) => (
     <>
         <IdentityRow>
-            <EntityTile aria-hidden><Car /></EntityTile>
+            <CarLogoImage brand={state.vehicle.brand} size="md" />
             <IdentityText>
                 <EntityName>{vehicleLabel(state.vehicle)}</EntityName>
                 {state.vehicle.licensePlate && (
@@ -207,7 +208,10 @@ const GarageChooser = ({
                                 vehicle: { id: v.id, brand: v.brand, model: v.model, year: v.year, licensePlate: v.licensePlate },
                             })}
                         >
-                            <OptionTitle>{vehicleLabel(v)}</OptionTitle>
+                            <OptionTitle style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                <CarLogoImage brand={v.brand} size="sm" />
+                                {vehicleLabel(v)}
+                            </OptionTitle>
                             {v.licensePlate && <OptionMeta><Plate value={v.licensePlate} /></OptionMeta>}
                         </OptionRow>
                     ))}
