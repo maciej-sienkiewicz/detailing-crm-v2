@@ -645,6 +645,7 @@ const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownPro
 
     const selected = colors.find(c => c.id === value);
 
+
     return (
         <ColorDropdownContainer ref={containerRef}>
             <ColorTrigger ref={triggerRef} type="button" onClick={handleOpen} aria-haspopup="listbox" aria-expanded={open}>
@@ -1309,6 +1310,166 @@ export const VerificationStep = ({
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
+    // Przebieg — dane wizyty wpisywane razem z danymi pojazdu; w trybie kart
+    // widoczny wewnątrz formularza edycji/nowego pojazdu (VehicleCard.editExtras).
+    const vehicleRecordExtras = !hideMileage ? (
+        <FormGrid $columns={3}>
+            <FieldGroup>
+                <Label>{t.checkin.technical.mileage}</Label>
+                <Input
+                    type="number"
+                    value={formData.technicalState.mileage || ''}
+                    onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
+                    placeholder={t.checkin.technical.mileagePlaceholder}
+                />
+                {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+            </FieldGroup>
+        </FormGrid>
+    ) : null;
+
+    // Adres domowy + dane firmowe klienta — nierozłączna część kartoteki klienta.
+    // W trybie kart renderowane WYŁĄCZNIE wewnątrz formularza edycji/nowego klienta
+    // (CustomerCard.editExtras); w trybie legacy — w dotychczasowym miejscu sekcji 2.
+    const customerRecordExtras = (
+        <>
+        {/* Adres domowy */}
+        <CollapsibleWrap>
+            <CollapsibleBtn
+                type="button"
+                $open={isHomeAddressOpen}
+                onClick={() => setIsHomeAddressOpen(!isHomeAddressOpen)}
+            >
+                <CollapsibleBtnLeft>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Adres domowy
+                    {homeAddressHasData && <FilledBadge>Uzupełniony</FilledBadge>}
+                </CollapsibleBtnLeft>
+                <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isHomeAddressOpen}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </ChevronSvg>
+            </CollapsibleBtn>
+            <CollapsibleContent $open={isHomeAddressOpen}>
+                <FormGrid>
+                    <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                        <Label>Ulica</Label>
+                        <Input
+                            value={formData.homeAddress?.street || ''}
+                            onChange={(e) => onChange({ homeAddress: { street: e.target.value, city: formData.homeAddress?.city || '', postalCode: formData.homeAddress?.postalCode || '', country: formData.homeAddress?.country || 'Polska' } })}
+                            placeholder="np. ul. Główna 123"
+                        />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Miasto</Label>
+                        <Input
+                            value={formData.homeAddress?.city || ''}
+                            onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: e.target.value, postalCode: formData.homeAddress?.postalCode || '', country: formData.homeAddress?.country || 'Polska' } })}
+                            placeholder="np. Warszawa"
+                        />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Kod pocztowy</Label>
+                        <Input
+                            value={formData.homeAddress?.postalCode || ''}
+                            onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: formData.homeAddress?.city || '', postalCode: e.target.value, country: formData.homeAddress?.country || 'Polska' } })}
+                            placeholder="np. 00-001"
+                        />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Kraj</Label>
+                        <Input
+                            value={formData.homeAddress?.country || 'Polska'}
+                            onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: formData.homeAddress?.city || '', postalCode: formData.homeAddress?.postalCode || '', country: e.target.value } })}
+                            placeholder="np. Polska"
+                        />
+                    </FieldGroup>
+                </FormGrid>
+            </CollapsibleContent>
+        </CollapsibleWrap>
+
+        {/* Dane firmowe */}
+        <CollapsibleWrap>
+            <CollapsibleBtn
+                type="button"
+                $open={isCompanyOpen}
+                onClick={() => setIsCompanyOpen(!isCompanyOpen)}
+            >
+                <CollapsibleBtnLeft>
+                    Dane firmowe
+                    {companyHasData && <FilledBadge>Uzupełniony</FilledBadge>}
+                </CollapsibleBtnLeft>
+                <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isCompanyOpen}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </ChevronSvg>
+            </CollapsibleBtn>
+            <CollapsibleContent $open={isCompanyOpen}>
+                <FormGrid>
+                    <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                        <Label>Nazwa firmy</Label>
+                        <Input value={formData.company?.name || ''} onChange={(e) => onChange({ company: { name: e.target.value, nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. ABC Sp. z o.o." />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>NIP</Label>
+                        <NipInputWrap>
+                            <NipBareInput
+                                value={formData.company?.nip || ''}
+                                onChange={(e) => {
+                                    setGusError(null);
+                                    onChange({ company: { name: formData.company?.name || '', nip: e.target.value, regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } });
+                                }}
+                                placeholder="np. 1234567890"
+                            />
+                            <GusBtn
+                                type="button"
+                                disabled={isGusLoading}
+                                onClick={handleFetchGusData}
+                            >
+                                {isGusLoading ? (
+                                    <>
+                                        <GusBtnSpinner xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                            <path d="M12 2a10 10 0 0 1 10 10" />
+                                        </GusBtnSpinner>
+                                        Pobieranie…
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 5v14M5 12l7 7 7-7" />
+                                        </svg>
+                                        Pobierz z GUS
+                                    </>
+                                )}
+                            </GusBtn>
+                        </NipInputWrap>
+                        {gusError && <GusErrorMsg>{gusError}</GusErrorMsg>}
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>REGON</Label>
+                        <Input value={formData.company?.regon || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: e.target.value, address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 123456789" />
+                    </FieldGroup>
+                    <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                        <Label>Ulica (firma)</Label>
+                        <Input value={formData.company?.address.street || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: e.target.value, city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. ul. Biznesowa 456" />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Miasto</Label>
+                        <Input value={formData.company?.address.city || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: e.target.value, postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. Warszawa" />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Kod pocztowy</Label>
+                        <Input value={formData.company?.address.postalCode || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: e.target.value, country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 00-001" />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Kraj</Label>
+                        <Input value={formData.company?.address.country || 'Polska'} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: e.target.value } } })} placeholder="np. Polska" />
+                    </FieldGroup>
+                </FormGrid>
+            </CollapsibleContent>
+        </CollapsibleWrap>
+        </>
+    );
+
     return (
         <StepContainer>
 
@@ -1441,7 +1602,11 @@ export const VerificationStep = ({
 
                     {useEntityCards && (
                         <>
-                            <CustomerCard state={entities.customer} dispatch={dispatchEntities} />
+                            <CustomerCard
+                                state={entities.customer}
+                                dispatch={dispatchEntities}
+                                editExtras={customerRecordExtras}
+                            />
                             {(errors.firstName || errors.lastName || errors.phone || errors.email) && (
                                 <ErrorMessage>
                                     {[errors.firstName, errors.lastName, errors.phone, errors.email]
@@ -1523,141 +1688,7 @@ export const VerificationStep = ({
 
                     {errors.contact && <ErrorMessage>{errors.contact}</ErrorMessage>}
 
-                    {/* Adres domowy */}
-                    <CollapsibleWrap>
-                        <CollapsibleBtn
-                            type="button"
-                            $open={isHomeAddressOpen}
-                            onClick={() => setIsHomeAddressOpen(!isHomeAddressOpen)}
-                        >
-                            <CollapsibleBtnLeft>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                </svg>
-                                Adres domowy
-                                {homeAddressHasData && <FilledBadge>Uzupełniony</FilledBadge>}
-                            </CollapsibleBtnLeft>
-                            <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isHomeAddressOpen}>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </ChevronSvg>
-                        </CollapsibleBtn>
-                        <CollapsibleContent $open={isHomeAddressOpen}>
-                            <FormGrid>
-                                <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                    <Label>Ulica</Label>
-                                    <Input
-                                        value={formData.homeAddress?.street || ''}
-                                        onChange={(e) => onChange({ homeAddress: { street: e.target.value, city: formData.homeAddress?.city || '', postalCode: formData.homeAddress?.postalCode || '', country: formData.homeAddress?.country || 'Polska' } })}
-                                        placeholder="np. ul. Główna 123"
-                                    />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Miasto</Label>
-                                    <Input
-                                        value={formData.homeAddress?.city || ''}
-                                        onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: e.target.value, postalCode: formData.homeAddress?.postalCode || '', country: formData.homeAddress?.country || 'Polska' } })}
-                                        placeholder="np. Warszawa"
-                                    />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Kod pocztowy</Label>
-                                    <Input
-                                        value={formData.homeAddress?.postalCode || ''}
-                                        onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: formData.homeAddress?.city || '', postalCode: e.target.value, country: formData.homeAddress?.country || 'Polska' } })}
-                                        placeholder="np. 00-001"
-                                    />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Kraj</Label>
-                                    <Input
-                                        value={formData.homeAddress?.country || 'Polska'}
-                                        onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: formData.homeAddress?.city || '', postalCode: formData.homeAddress?.postalCode || '', country: e.target.value } })}
-                                        placeholder="np. Polska"
-                                    />
-                                </FieldGroup>
-                            </FormGrid>
-                        </CollapsibleContent>
-                    </CollapsibleWrap>
-
-                    {/* Dane firmowe */}
-                    <CollapsibleWrap>
-                        <CollapsibleBtn
-                            type="button"
-                            $open={isCompanyOpen}
-                            onClick={() => setIsCompanyOpen(!isCompanyOpen)}
-                        >
-                            <CollapsibleBtnLeft>
-                                Dane firmowe
-                                {companyHasData && <FilledBadge>Uzupełniony</FilledBadge>}
-                            </CollapsibleBtnLeft>
-                            <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isCompanyOpen}>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </ChevronSvg>
-                        </CollapsibleBtn>
-                        <CollapsibleContent $open={isCompanyOpen}>
-                            <FormGrid>
-                                <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                    <Label>Nazwa firmy</Label>
-                                    <Input value={formData.company?.name || ''} onChange={(e) => onChange({ company: { name: e.target.value, nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. ABC Sp. z o.o." />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>NIP</Label>
-                                    <NipInputWrap>
-                                        <NipBareInput
-                                            value={formData.company?.nip || ''}
-                                            onChange={(e) => {
-                                                setGusError(null);
-                                                onChange({ company: { name: formData.company?.name || '', nip: e.target.value, regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } });
-                                            }}
-                                            placeholder="np. 1234567890"
-                                        />
-                                        <GusBtn
-                                            type="button"
-                                            disabled={isGusLoading}
-                                            onClick={handleFetchGusData}
-                                        >
-                                            {isGusLoading ? (
-                                                <>
-                                                    <GusBtnSpinner xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                        <path d="M12 2a10 10 0 0 1 10 10" />
-                                                    </GusBtnSpinner>
-                                                    Pobieranie…
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M12 5v14M5 12l7 7 7-7" />
-                                                    </svg>
-                                                    Pobierz z GUS
-                                                </>
-                                            )}
-                                        </GusBtn>
-                                    </NipInputWrap>
-                                    {gusError && <GusErrorMsg>{gusError}</GusErrorMsg>}
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>REGON</Label>
-                                    <Input value={formData.company?.regon || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: e.target.value, address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 123456789" />
-                                </FieldGroup>
-                                <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                    <Label>Ulica (firma)</Label>
-                                    <Input value={formData.company?.address.street || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: e.target.value, city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. ul. Biznesowa 456" />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Miasto</Label>
-                                    <Input value={formData.company?.address.city || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: e.target.value, postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. Warszawa" />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Kod pocztowy</Label>
-                                    <Input value={formData.company?.address.postalCode || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: e.target.value, country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 00-001" />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Kraj</Label>
-                                    <Input value={formData.company?.address.country || 'Polska'} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: e.target.value } } })} placeholder="np. Polska" />
-                                </FieldGroup>
-                            </FormGrid>
-                        </CollapsibleContent>
-                    </CollapsibleWrap>
+                    {!useEntityCards && customerRecordExtras}
 
                     {/* Vehicle handoff */}
                     {!hideVehicleHandoff && formData.vehicleHandoff && (
@@ -1743,30 +1774,15 @@ export const VerificationStep = ({
                     {errors.vehicle && <ErrorMessage>{errors.vehicle}</ErrorMessage>}
 
                     {useEntityCards && (
-                        <>
-                            <VehicleCard
-                                state={entities.vehicle}
-                                dispatch={dispatchEntities}
-                                customerId={cardCustomerId}
-                                customerLabel={cardCustomerLabel}
-                                showColorField={!hideVehicleColorAndPaint}
-                                allowOwnershipActions={false}
-                            />
-                            {!hideMileage && (
-                                <FormGrid $columns={3}>
-                                    <FieldGroup>
-                                        <Label>{t.checkin.technical.mileage}</Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.technicalState.mileage || ''}
-                                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
-                                            placeholder={t.checkin.technical.mileagePlaceholder}
-                                        />
-                                        {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
-                                    </FieldGroup>
-                                </FormGrid>
-                            )}
-                        </>
+                        <VehicleCard
+                            state={entities.vehicle}
+                            dispatch={dispatchEntities}
+                            customerId={cardCustomerId}
+                            customerLabel={cardCustomerLabel}
+                            showColorField={!hideVehicleColorAndPaint}
+                            allowOwnershipActions={false}
+                            editExtras={vehicleRecordExtras}
+                        />
                     )}
 
                     {!useEntityCards && selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
