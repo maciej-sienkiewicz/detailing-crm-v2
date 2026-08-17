@@ -1,20 +1,25 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeftRight, Mail, Pencil, Phone, TriangleAlert, Undo2, User } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
 import { PiiValue, joinPiiName } from '@/common/pii';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { appointmentApi } from '../../api/appointmentApi';
 import type { CustomerDraft, CustomerSectionState, EntityEvent } from './types';
 import {
-    ActionBtn, ActionsRow, Card, CardBody, CardHead, CardTitle, EmptyHint, EntityMeta,
-    EntityName, Field, FormGrid, InlineLink, ModeBadge, MutationNotice, OptionList,
-    OptionRow, OptionTitle, TextInput,
+    ActionBtn, ActionsRow, Avatar, Card, CardActions, CardBody, CardHead, CardTitle,
+    EmptyHint, EntityName, Field, FormGrid, HeadIcon, IdentityRow, IdentityText,
+    InlineLink, MetaItem, MetaRow, MutationNotice, OptionList, OptionRow, OptionTitle,
+    QuietBtn, StateTag, TextInput,
 } from './EntityCardKit';
 
 interface CustomerCardProps {
     state: CustomerSectionState;
     dispatch: (event: EntityEvent) => void;
 }
+
+const initialsOf = (firstName: string, lastName: string) =>
+    `${firstName.trim().charAt(0)}${lastName.trim().charAt(0)}`.toUpperCase() || '?';
 
 const draftLabel = (draft: CustomerDraft) =>
     [draft.firstName, draft.lastName].filter(Boolean).join(' ') || 'Nowy klient';
@@ -23,37 +28,27 @@ const draftLabel = (draft: CustomerDraft) =>
  * Summary card for the visit's customer. Read-only by default — the entity is a
  * reference, not a form — with explicit, intent-named actions. See entity-cards/types.ts.
  */
-export const CustomerCard = ({ state, dispatch }: CustomerCardProps) => {
-    const badge =
-        state.kind === 'NEW' ? <ModeBadge $tone="new">nowy — zostanie utworzony</ModeBadge> :
-        state.kind === 'SELECTED_MODIFIED' ? <ModeBadge $tone="modified">edytowany — zmiany zapiszą się w bazie</ModeBadge> :
-        state.kind === 'SELECTED' ? <ModeBadge $tone="neutral">istniejący</ModeBadge> :
-        null;
-
-    return (
-        <Card>
-            <CardHead>
-                <CardTitle>Dane klienta</CardTitle>
-                {badge}
-            </CardHead>
-            <CardBody>
-                {state.kind === 'SELECTED' && (
-                    <SelectedView snapshot={state.snapshot} modified={false} dispatch={dispatch} />
-                )}
-                {state.kind === 'SELECTED_MODIFIED' && (
-                    <SelectedView
-                        snapshot={{ ...state.snapshot, ...state.draft }}
-                        modified
-                        dispatch={dispatch}
-                    />
-                )}
-                {state.kind === 'NEW' && <NewView draft={state.draft} dispatch={dispatch} />}
-                {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} />}
-                {state.kind === 'CHOOSING' && <SearchView dispatch={dispatch} />}
-            </CardBody>
-        </Card>
-    );
-};
+export const CustomerCard = ({ state, dispatch }: CustomerCardProps) => (
+    <Card>
+        <CardHead>
+            <HeadIcon><User /></HeadIcon>
+            <CardTitle>Klient</CardTitle>
+            {state.kind === 'NEW' && <StateTag $tone="new">Nowy</StateTag>}
+            {state.kind === 'SELECTED_MODIFIED' && <StateTag $tone="modified">Zmienione dane</StateTag>}
+        </CardHead>
+        <CardBody>
+            {state.kind === 'SELECTED' && (
+                <SelectedView snapshot={state.snapshot} modified={false} dispatch={dispatch} />
+            )}
+            {state.kind === 'SELECTED_MODIFIED' && (
+                <SelectedView snapshot={{ ...state.snapshot, ...state.draft }} modified dispatch={dispatch} />
+            )}
+            {state.kind === 'NEW' && <NewView draft={state.draft} dispatch={dispatch} />}
+            {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} />}
+            {state.kind === 'CHOOSING' && <SearchView dispatch={dispatch} />}
+        </CardBody>
+    </Card>
+);
 
 // ─── Read-only card ───────────────────────────────────────────────────────────
 
@@ -65,25 +60,37 @@ const SelectedView = ({
     dispatch: CustomerCardProps['dispatch'];
 }) => (
     <>
-        <div>
-            <EntityName>
-                <PiiValue value={joinPiiName(snapshot.firstName, snapshot.lastName)} kind="name" />
-            </EntityName>
-            <EntityMeta>
-                <PiiValue value={snapshot.phone} kind="phone" emptyFallback="brak telefonu" />
-                {' · '}
-                <PiiValue value={snapshot.email} kind="email" emptyFallback="brak e-maila" />
-            </EntityMeta>
-        </div>
-        <ActionsRow>
-            <ActionBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_EDIT' })}>Edytuj dane</ActionBtn>
-            <ActionBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_SEARCH' })}>Zmień klienta</ActionBtn>
+        <IdentityRow>
+            <Avatar aria-hidden>{initialsOf(snapshot.firstName, snapshot.lastName)}</Avatar>
+            <IdentityText>
+                <EntityName>
+                    <PiiValue value={joinPiiName(snapshot.firstName, snapshot.lastName)} kind="name" />
+                </EntityName>
+                <MetaRow>
+                    <MetaItem>
+                        <Phone aria-hidden />
+                        <PiiValue value={snapshot.phone} kind="phone" emptyFallback="brak telefonu" />
+                    </MetaItem>
+                    <MetaItem>
+                        <Mail aria-hidden />
+                        <PiiValue value={snapshot.email} kind="email" emptyFallback="brak e-maila" />
+                    </MetaItem>
+                </MetaRow>
+            </IdentityText>
+        </IdentityRow>
+        <CardActions>
+            <QuietBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_EDIT' })}>
+                <Pencil aria-hidden /> Edytuj dane
+            </QuietBtn>
+            <QuietBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_SEARCH' })}>
+                <ArrowLeftRight aria-hidden /> Zmień klienta
+            </QuietBtn>
             {modified && (
-                <ActionBtn $danger onClick={() => dispatch({ type: 'CUSTOMER_DISCARD_CHANGES' })}>
-                    Wycofaj zmiany
-                </ActionBtn>
+                <QuietBtn $danger onClick={() => dispatch({ type: 'CUSTOMER_DISCARD_CHANGES' })}>
+                    <Undo2 aria-hidden /> Wycofaj zmiany
+                </QuietBtn>
             )}
-        </ActionsRow>
+        </CardActions>
     </>
 );
 
@@ -96,11 +103,11 @@ const NewView = ({ draft, dispatch }: { draft: CustomerDraft; dispatch: Customer
     return (
         <>
             <CustomerFields draft={draft} onChange={set} />
-            <ActionsRow>
-                <ActionBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_SEARCH' })}>
-                    Wybierz istniejącego klienta
-                </ActionBtn>
-            </ActionsRow>
+            <CardActions>
+                <QuietBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_SEARCH' })}>
+                    <ArrowLeftRight aria-hidden /> Wybierz istniejącego klienta
+                </QuietBtn>
+            </CardActions>
         </>
     );
 };
@@ -120,7 +127,7 @@ const EditView = ({
         <>
             {isExisting && (
                 <MutationNotice>
-                    <span aria-hidden>⚠️</span>
+                    <TriangleAlert aria-hidden />
                     <span>
                         Edytujesz dane klienta <strong>{draftLabel(draft)}</strong>.
                         Zmiany zapiszą się w jego kartotece i będą widoczne we wszystkich wizytach.
@@ -222,9 +229,10 @@ const SearchView = ({ dispatch }: { dispatch: CustomerCardProps['dispatch'] }) =
                             <OptionTitle>
                                 <PiiValue value={joinPiiName(customer.firstName ?? '', customer.lastName ?? '')} kind="name" />
                             </OptionTitle>
-                            <EntityMeta>
+                            <MetaItem>
+                                <Phone aria-hidden />
                                 <PiiValue value={customer.phone ?? ''} kind="phone" emptyFallback="—" />
-                            </EntityMeta>
+                            </MetaItem>
                         </OptionRow>
                     ))}
                     {!isFetching && results.length === 0 && (
@@ -232,14 +240,12 @@ const SearchView = ({ dispatch }: { dispatch: CustomerCardProps['dispatch'] }) =
                     )}
                 </OptionList>
             )}
-            <ActionsRow>
-                <InlineLink type="button" onClick={() => dispatch({ type: 'CUSTOMER_CREATE_NEW' })}>
-                    + Dodaj nowego klienta
-                </InlineLink>
-            </ActionsRow>
-            <ActionsRow>
-                <ActionBtn onClick={() => dispatch({ type: 'CUSTOMER_CANCEL_SEARCH' })}>Anuluj</ActionBtn>
-            </ActionsRow>
+            <InlineLink type="button" onClick={() => dispatch({ type: 'CUSTOMER_CREATE_NEW' })}>
+                + Dodaj nowego klienta
+            </InlineLink>
+            <CardActions>
+                <QuietBtn onClick={() => dispatch({ type: 'CUSTOMER_CANCEL_SEARCH' })}>Anuluj</QuietBtn>
+            </CardActions>
         </>
     );
 };

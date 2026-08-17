@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeftRight, Car, Link2, Pencil, TriangleAlert, Undo2, Unlink, X } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
 import { PiiValue } from '@/common/pii';
 import { appointmentApi } from '../../api/appointmentApi';
 import type { EntityEvent, VehicleDraft, VehicleOwnershipAction, VehicleSectionState, VehicleSummary } from './types';
 import {
-    ActionBtn, ActionsRow, Card, CardBody, CardHead, CardTitle, CollisionBox, CollisionMeta,
-    CollisionTitle, EmptyHint, EntityMeta, EntityName, Field, FormGrid, InlineLink, ModeBadge,
-    MutationNotice, OptionList, OptionMeta, OptionRow, OptionTitle, RadioRow, TextInput,
+    ActionBtn, ActionsRow, Card, CardActions, CardBody, CardHead, CardTitle, CollisionBox,
+    CollisionMeta, CollisionTitle, EmptyHint, EntityMeta, EntityName, EntityTile, Field,
+    FormGrid, HeadIcon, IdentityRow, IdentityText, InlineLink, MetaRow, MutationNotice,
+    OptionList, OptionMeta, OptionRow, OptionTitle, PlateChip, QuietBtn, RadioRow, StateTag,
+    TextInput,
 } from './EntityCardKit';
 
 interface VehicleCardProps {
@@ -22,59 +25,59 @@ interface VehicleCardProps {
 const vehicleLabel = (v: { brand: string; model: string; year?: number | null }) =>
     [v.brand, v.model, v.year ? `(${v.year})` : null].filter(Boolean).join(' ');
 
+const Plate = ({ value }: { value: string }) => (
+    <PlateChip><PiiValue value={value} kind="text" /></PlateChip>
+);
+
 /**
  * Summary card for the visit's vehicle. Auto-progresses after a customer change:
  * empty garage → new-vehicle form, one vehicle → auto-select, more → inline picker.
  * The new-vehicle form runs live plate-collision detection (see PlateCollisionProbe).
  */
-export const VehicleCard = ({ state, dispatch, customerId, customerLabel }: VehicleCardProps) => {
-    const badge =
-        state.kind === 'NEW' ? <ModeBadge $tone="new">nowy — zostanie dodany do garażu</ModeBadge> :
-        state.kind === 'SELECTED_MODIFIED' ? <ModeBadge $tone="modified">edytowany — zmiany zapiszą się w bazie</ModeBadge> :
-        state.kind === 'LINKED_EXISTING' ? <ModeBadge $tone="modified">istniejący — zmiana właściciela przy zapisie</ModeBadge> :
-        state.kind === 'SELECTED' ? <ModeBadge $tone="neutral">istniejący</ModeBadge> :
-        null;
+export const VehicleCard = ({ state, dispatch, customerId, customerLabel }: VehicleCardProps) => (
+    <Card>
+        <CardHead>
+            <HeadIcon><Car /></HeadIcon>
+            <CardTitle>Pojazd</CardTitle>
+            {state.kind === 'NEW' && <StateTag $tone="new">Nowy</StateTag>}
+            {state.kind === 'SELECTED_MODIFIED' && <StateTag $tone="modified">Zmienione dane</StateTag>}
+            {state.kind === 'LINKED_EXISTING' && <StateTag $tone="modified">Zmiana właściciela</StateTag>}
+        </CardHead>
+        <CardBody>
+            {state.kind === 'NONE' && (
+                <>
+                    <EmptyHint>Brak pojazdu przypisanego do tej wizyty.</EmptyHint>
+                    <CardActions>
+                        <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })} disabled={!customerId}>
+                            <ArrowLeftRight aria-hidden /> Wybierz z garażu
+                        </QuietBtn>
+                        <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_ADD_NEW' })}>
+                            + Dodaj nowy pojazd
+                        </QuietBtn>
+                    </CardActions>
+                </>
+            )}
 
-    return (
-        <Card>
-            <CardHead>
-                <CardTitle>Dane pojazdu</CardTitle>
-                {badge}
-            </CardHead>
-            <CardBody>
-                {state.kind === 'NONE' && (
-                    <>
-                        <EmptyHint>Brak pojazdu przypisanego do tej wizyty.</EmptyHint>
-                        <ActionsRow>
-                            <ActionBtn $primary onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })} disabled={!customerId}>
-                                Wybierz z garażu
-                            </ActionBtn>
-                            <ActionBtn onClick={() => dispatch({ type: 'VEHICLE_ADD_NEW' })}>+ Dodaj nowy pojazd</ActionBtn>
-                        </ActionsRow>
-                    </>
-                )}
+            {(state.kind === 'SELECTED' || state.kind === 'SELECTED_MODIFIED') && (
+                <SelectedView state={state} dispatch={dispatch} customerId={customerId} />
+            )}
 
-                {(state.kind === 'SELECTED' || state.kind === 'SELECTED_MODIFIED') && (
-                    <SelectedView state={state} dispatch={dispatch} customerId={customerId} />
-                )}
+            {state.kind === 'LINKED_EXISTING' && (
+                <LinkedView state={state} dispatch={dispatch} customerLabel={customerLabel} />
+            )}
 
-                {state.kind === 'LINKED_EXISTING' && (
-                    <LinkedView state={state} dispatch={dispatch} customerLabel={customerLabel} />
-                )}
+            {state.kind === 'CHOOSING' && (
+                <GarageChooser state={state} dispatch={dispatch} customerId={customerId} customerLabel={customerLabel} />
+            )}
 
-                {state.kind === 'CHOOSING' && (
-                    <GarageChooser state={state} dispatch={dispatch} customerId={customerId} customerLabel={customerLabel} />
-                )}
+            {state.kind === 'NEW' && (
+                <NewVehicleForm state={state} dispatch={dispatch} customerId={customerId} customerLabel={customerLabel} />
+            )}
 
-                {state.kind === 'NEW' && (
-                    <NewVehicleForm state={state} dispatch={dispatch} customerId={customerId} customerLabel={customerLabel} />
-                )}
-
-                {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} />}
-            </CardBody>
-        </Card>
-    );
-};
+            {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} />}
+        </CardBody>
+    </Card>
+);
 
 // ─── Read-only reference ──────────────────────────────────────────────────────
 
@@ -91,23 +94,28 @@ const SelectedView = ({
 
     return (
         <>
-            <div>
-                <EntityName>{vehicleLabel(shown)}</EntityName>
-                {shown.licensePlate && (
-                    <EntityMeta><PiiValue value={shown.licensePlate} kind="text" /></EntityMeta>
-                )}
-            </div>
-            <ActionsRow>
-                <ActionBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_EDIT' })}>Edytuj dane</ActionBtn>
-                <ActionBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })} disabled={!customerId}>
-                    Zmień pojazd
-                </ActionBtn>
+            <IdentityRow>
+                <EntityTile aria-hidden><Car /></EntityTile>
+                <IdentityText>
+                    <EntityName>{vehicleLabel(shown)}</EntityName>
+                    {shown.licensePlate && (
+                        <MetaRow><Plate value={shown.licensePlate} /></MetaRow>
+                    )}
+                </IdentityText>
+            </IdentityRow>
+            <CardActions>
+                <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_EDIT' })}>
+                    <Pencil aria-hidden /> Edytuj dane
+                </QuietBtn>
+                <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })} disabled={!customerId}>
+                    <ArrowLeftRight aria-hidden /> Zmień pojazd
+                </QuietBtn>
                 {state.kind === 'SELECTED_MODIFIED' && (
-                    <ActionBtn $danger onClick={() => dispatch({ type: 'VEHICLE_DISCARD_CHANGES' })}>
-                        Wycofaj zmiany
-                    </ActionBtn>
+                    <QuietBtn $danger onClick={() => dispatch({ type: 'VEHICLE_DISCARD_CHANGES' })}>
+                        <Undo2 aria-hidden /> Wycofaj zmiany
+                    </QuietBtn>
                 )}
-            </ActionsRow>
+            </CardActions>
         </>
     );
 };
@@ -122,14 +130,17 @@ const LinkedView = ({
     customerLabel: string;
 }) => (
     <>
-        <div>
-            <EntityName>{vehicleLabel(state.vehicle)}</EntityName>
-            {state.vehicle.licensePlate && (
-                <EntityMeta><PiiValue value={state.vehicle.licensePlate} kind="text" /></EntityMeta>
-            )}
-        </div>
+        <IdentityRow>
+            <EntityTile aria-hidden><Car /></EntityTile>
+            <IdentityText>
+                <EntityName>{vehicleLabel(state.vehicle)}</EntityName>
+                {state.vehicle.licensePlate && (
+                    <MetaRow><Plate value={state.vehicle.licensePlate} /></MetaRow>
+                )}
+            </IdentityText>
+        </IdentityRow>
         <MutationNotice>
-            <span aria-hidden>🔗</span>
+            <Link2 aria-hidden />
             <span>
                 {state.ownership === 'ADD_CO_OWNER' ? (
                     <>Przy zapisie <strong>{customerLabel}</strong> zostanie dopisany(-a) jako współwłaściciel tego pojazdu. Historia wizyt pojazdu pozostaje ciągła.</>
@@ -138,9 +149,11 @@ const LinkedView = ({
                 )}
             </span>
         </MutationNotice>
-        <ActionsRow>
-            <ActionBtn $danger onClick={() => dispatch({ type: 'VEHICLE_CLEAR' })}>Odepnij pojazd</ActionBtn>
-        </ActionsRow>
+        <CardActions>
+            <QuietBtn $danger onClick={() => dispatch({ type: 'VEHICLE_CLEAR' })}>
+                <Unlink aria-hidden /> Odepnij pojazd
+            </QuietBtn>
+        </CardActions>
     </>
 );
 
@@ -181,7 +194,7 @@ const GarageChooser = ({
 
     return (
         <>
-            <EntityMeta>Garaż: {customerLabel}</EntityMeta>
+            <EntityMeta>Garaż: <strong>{customerLabel}</strong></EntityMeta>
             {isLoading && <EmptyHint>Wczytywanie garażu…</EmptyHint>}
             {garage && garage.length > 0 && (
                 <OptionList>
@@ -195,9 +208,7 @@ const GarageChooser = ({
                             })}
                         >
                             <OptionTitle>{vehicleLabel(v)}</OptionTitle>
-                            {v.licensePlate && (
-                                <OptionMeta><PiiValue value={v.licensePlate} kind="text" /></OptionMeta>
-                            )}
+                            {v.licensePlate && <OptionMeta><Plate value={v.licensePlate} /></OptionMeta>}
                         </OptionRow>
                     ))}
                 </OptionList>
@@ -205,14 +216,14 @@ const GarageChooser = ({
             {garage && garage.length === 0 && !state.auto && (
                 <EmptyHint>Ten klient nie ma jeszcze żadnego pojazdu w garażu.</EmptyHint>
             )}
-            <ActionsRow>
-                <InlineLink type="button" onClick={() => dispatch({ type: 'VEHICLE_ADD_NEW' })}>
-                    + Dodaj nowy pojazd
-                </InlineLink>
-            </ActionsRow>
-            <ActionsRow>
-                <ActionBtn onClick={() => dispatch({ type: 'VEHICLE_CANCEL_CHOOSER' })}>Anuluj</ActionBtn>
-            </ActionsRow>
+            <InlineLink type="button" onClick={() => dispatch({ type: 'VEHICLE_ADD_NEW' })}>
+                + Dodaj nowy pojazd
+            </InlineLink>
+            <CardActions>
+                <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_CANCEL_CHOOSER' })}>
+                    <X aria-hidden /> Anuluj
+                </QuietBtn>
+            </CardActions>
         </>
     );
 };
@@ -241,14 +252,14 @@ const NewVehicleForm = ({
                 customerId={customerId}
                 customerLabel={customerLabel}
             />
-            <ActionsRow>
-                <ActionBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })}>
-                    Wybierz z garażu
-                </ActionBtn>
-                <ActionBtn $danger onClick={() => dispatch({ type: 'VEHICLE_CLEAR' })}>
-                    Wizyta bez pojazdu
-                </ActionBtn>
-            </ActionsRow>
+            <CardActions>
+                <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })} disabled={!customerId}>
+                    <ArrowLeftRight aria-hidden /> Wybierz z garażu
+                </QuietBtn>
+                <QuietBtn $danger onClick={() => dispatch({ type: 'VEHICLE_CLEAR' })}>
+                    <X aria-hidden /> Wizyta bez pojazdu
+                </QuietBtn>
+            </CardActions>
         </>
     );
 };
@@ -297,7 +308,7 @@ const PlateCollisionProbe = ({
                 <CollisionTitle>Ten pojazd jest już w garażu tego klienta</CollisionTitle>
                 <CollisionMeta>
                     {vehicleLabel(collision)}
-                    {collision.licensePlate && <> · <PiiValue value={collision.licensePlate} kind="text" /></>}
+                    {collision.licensePlate && <> · <Plate value={collision.licensePlate} /></>}
                 </CollisionMeta>
                 <ActionsRow>
                     <ActionBtn $primary onClick={() => dispatch({ type: 'VEHICLE_SELECTED', vehicle: summary })}>
@@ -321,7 +332,7 @@ const PlateCollisionProbe = ({
             <CollisionTitle>Ten pojazd już istnieje w bazie</CollisionTitle>
             <CollisionMeta>
                 {vehicleLabel(collision)}
-                {collision.licensePlate && <> · <PiiValue value={collision.licensePlate} kind="text" /></>}
+                {collision.licensePlate && <> · <Plate value={collision.licensePlate} /></>}
                 {primaryOwner && (
                     <> · właściciel: <PiiValue value={primaryOwner.name} kind="name" /></>
                 )}
@@ -384,7 +395,7 @@ const EditView = ({
         <>
             {isExisting && (
                 <MutationNotice>
-                    <span aria-hidden>⚠️</span>
+                    <TriangleAlert aria-hidden />
                     <span>
                         Edytujesz dane pojazdu <strong>{vehicleLabel(draft)}</strong>.
                         Zmiany zapiszą się w kartotece pojazdu i będą widoczne we wszystkich wizytach.

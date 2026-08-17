@@ -737,6 +737,22 @@ export const VerificationStep = ({
     initialIsNewVehicle,
 }: VerificationStepProps) => {
     const queryClient = useQueryClient();
+
+    // Continuous section numbering regardless of which sections are hidden —
+    // hardcoded numbers drift the moment a section is conditionally skipped.
+    const sectionNum = (() => {
+        let n = 0;
+        const next = () => ++n;
+        return {
+            schedule: next(),
+            customer: hideCustomerAndVehicleSections ? 0 : next(),
+            vehicle: hideCustomerAndVehicleSections ? 0 : next(),
+            technical: showTechnicalSection ? next() : 0,
+            services: next(),
+            notes: next(),
+            doorToDoor: next(),
+        };
+    })();
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -1285,7 +1301,7 @@ export const VerificationStep = ({
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
-                        <SectionNum>1</SectionNum>
+                        <SectionNum>{sectionNum.schedule}</SectionNum>
                         <SectionLabel>
                             Termin wizyty
                         </SectionLabel>
@@ -1362,7 +1378,7 @@ export const VerificationStep = ({
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
-                        <SectionNum>2</SectionNum>
+                        <SectionNum>{sectionNum.customer}</SectionNum>
                         <SectionLabel>
                             {t.checkin.verification.customerSection}
                             {customerChoiceMade && customerBadge && (
@@ -1648,7 +1664,7 @@ export const VerificationStep = ({
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
-                        <SectionNum>3</SectionNum>
+                        <SectionNum>{sectionNum.vehicle}</SectionNum>
                         <SectionLabel>
                             {t.checkin.verification.vehicleSection}
                             {(vehicleChoiceMade || formData.isNewVehicle) && vehicleBadge && (
@@ -1763,7 +1779,7 @@ export const VerificationStep = ({
                 <SectionCard>
                     <SectionHead>
                         <SectionTitleRow>
-                            <SectionNum>4</SectionNum>
+                            <SectionNum>{sectionNum.technical}</SectionNum>
                             <SectionLabel>
                                 Depozyt
                             </SectionLabel>
@@ -1794,7 +1810,7 @@ export const VerificationStep = ({
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
-                        <SectionNum>{showTechnicalSection ? 5 : 4}</SectionNum>
+                        <SectionNum>{sectionNum.services}</SectionNum>
                         <SectionLabel>
                             Usługi
                         </SectionLabel>
@@ -1813,7 +1829,7 @@ export const VerificationStep = ({
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
-                        <SectionNum>{showTechnicalSection ? 6 : 5}</SectionNum>
+                        <SectionNum>{sectionNum.notes}</SectionNum>
                         <SectionLabel>Notatki</SectionLabel>
                     </SectionTitleRow>
                 </SectionHead>
@@ -1847,7 +1863,7 @@ export const VerificationStep = ({
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow $keepInline>
-                        <SectionNum>{showTechnicalSection ? 7 : 6}</SectionNum>
+                        <SectionNum>{sectionNum.doorToDoor}</SectionNum>
                         <SectionLabel>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
