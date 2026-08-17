@@ -4,6 +4,7 @@ import { ArrowLeftRight, Car, Link2, Pencil, TriangleAlert, Undo2, Unlink, X } f
 import { useDebounce } from '@/common/hooks';
 import { PiiValue } from '@/common/pii';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { appointmentApi } from '../../api/appointmentApi';
 import type { EntityEvent, VehicleDraft, VehicleOwnershipAction, VehicleSectionState, VehicleSummary } from './types';
 import {
@@ -21,6 +22,14 @@ interface VehicleCardProps {
     customerId: string | null;
     /** "Anna Nowak" — used in garage/ownership copy. */
     customerLabel: string;
+    /** Check-in variant: also edit the vehicle color in the new/edit forms. */
+    showColorField?: boolean;
+    /**
+     * False for flows whose backend cannot change vehicle ownership (check-in):
+     * the plate-collision card then offers "attach as-is" instead of the
+     * co-owner/transfer decision.
+     */
+    allowOwnershipActions?: boolean;
 }
 
 const vehicleLabel = (v: { brand: string; model: string; year?: number | null }) =>
@@ -35,7 +44,10 @@ const Plate = ({ value }: { value: string }) => (
  * empty garage → new-vehicle form, one vehicle → auto-select, more → inline picker.
  * The new-vehicle form runs live plate-collision detection (see PlateCollisionProbe).
  */
-export const VehicleCard = ({ state, dispatch, customerId, customerLabel }: VehicleCardProps) => (
+export const VehicleCard = ({
+    state, dispatch, customerId, customerLabel,
+    showColorField = false, allowOwnershipActions = true,
+}: VehicleCardProps) => (
     <Card>
         <CardHead>
             <HeadIcon><Car /></HeadIcon>
@@ -72,10 +84,19 @@ export const VehicleCard = ({ state, dispatch, customerId, customerLabel }: Vehi
             )}
 
             {state.kind === 'NEW' && (
-                <NewVehicleForm state={state} dispatch={dispatch} customerId={customerId} customerLabel={customerLabel} />
+                <NewVehicleForm
+                    state={state}
+                    dispatch={dispatch}
+                    customerId={customerId}
+                    customerLabel={customerLabel}
+                    showColorField={showColorField}
+                    allowOwnershipActions={allowOwnershipActions}
+                />
             )}
 
-            {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} />}
+            {state.kind === 'EDITING' && (
+                <EditView state={state} dispatch={dispatch} showColorField={showColorField} />
+            )}
         </CardBody>
     </Card>
 );
@@ -235,12 +256,14 @@ const GarageChooser = ({
 // ─── New vehicle form + live plate-collision detection ────────────────────────
 
 const NewVehicleForm = ({
-    state, dispatch, customerId, customerLabel,
+    state, dispatch, customerId, customerLabel, showColorField, allowOwnershipActions,
 }: {
     state: Extract<VehicleSectionState, { kind: 'NEW' }>;
     dispatch: VehicleCardProps['dispatch'];
     customerId: string | null;
     customerLabel: string;
+    showColorField: boolean;
+    allowOwnershipActions: boolean;
 }) => {
     const set = (updates: Partial<VehicleDraft>) =>
         dispatch({ type: 'VEHICLE_NEW_DRAFT_CHANGED', draft: { ...state.draft, ...updates } });
@@ -248,13 +271,14 @@ const NewVehicleForm = ({
     return (
         <>
             <EntityMeta>Pojazd zostanie dodany do garażu: <strong>{customerLabel}</strong></EntityMeta>
-            <VehicleFields draft={state.draft} onChange={set} />
+            <VehicleFields draft={state.draft} onChange={set} showColorField={showColorField} />
             <PlateCollisionProbe
                 licensePlate={state.draft.licensePlate ?? ''}
                 overriddenVehicleId={state.duplicateOverrideVehicleId}
                 dispatch={dispatch}
                 customerId={customerId}
                 customerLabel={customerLabel}
+                allowOwnershipActions={allowOwnershipActions}
             />
             <CardActions>
                 <QuietBtn onClick={() => dispatch({ type: 'VEHICLE_OPEN_CHOOSER' })} disabled={!customerId}>
@@ -274,13 +298,14 @@ const NewVehicleForm = ({
  * instead of silently creating a duplicate vehicle.
  */
 const PlateCollisionProbe = ({
-    licensePlate, overriddenVehicleId, dispatch, customerId, customerLabel,
+    licensePlate, overriddenVehicleId, dispatch, customerId, customerLabel, allowOwnershipActions,
 }: {
     licensePlate: string;
     overriddenVehicleId?: string;
     dispatch: VehicleCardProps['dispatch'];
     customerId: string | null;
     customerLabel: string;
+    allowOwnershipActions: boolean;
 }) => {
     const debounced = useDebounce(licensePlate.trim(), 400);
     const [decision, setDecision] = useState<VehicleOwnershipAction | 'DIFFERENT'>('ADD_CO_OWNER');
@@ -317,6 +342,31 @@ const PlateCollisionProbe = ({
                 <ActionsRow>
                     <ActionBtn $primary onClick={() => dispatch({ type: 'VEHICLE_SELECTED', vehicle: summary })}>
                         Podepnij ten pojazd
+                    </ActionBtn>
+                </ActionsRow>
+            </CollisionBox>
+        );
+    }
+
+    // Ownership changes are an appointment-flow capability; check-in can only
+    // attach the vehicle as-is or knowingly create a duplicate.
+    if (!allowOwnershipActions) {
+        return (
+            <CollisionBox role="alert">
+                <CollisionTitle>Ten pojazd już istnieje w bazie</CollisionTitle>
+                <CollisionMeta>
+                    {vehicleLabel(collision)}
+                    {collision.licensePlate && <> · <Plate value={collision.licensePlate} /></>}
+                    {primaryOwner && (
+                        <> · właściciel: <PiiValue value={primaryOwner.name} kind="name" /></>
+                    )}
+                </CollisionMeta>
+                <ActionsRow>
+                    <ActionBtn $primary onClick={() => dispatch({ type: 'VEHICLE_SELECTED', vehicle: summary })}>
+                        Podepnij ten pojazd
+                    </ActionBtn>
+                    <ActionBtn onClick={() => dispatch({ type: 'VEHICLE_DUPLICATE_OVERRIDE', vehicleId: collision.id })}>
+                        To inny pojazd
                     </ActionBtn>
                 </ActionsRow>
             </CollisionBox>
@@ -387,10 +437,11 @@ const PlateCollisionProbe = ({
 // ─── Edit form (deliberate mutation of the vehicle record) ────────────────────
 
 const EditView = ({
-    state, dispatch,
+    state, dispatch, showColorField,
 }: {
     state: Extract<VehicleSectionState, { kind: 'EDITING' }>;
     dispatch: VehicleCardProps['dispatch'];
+    showColorField: boolean;
 }) => {
     const [draft, setDraft] = useState<VehicleDraft>(state.draft);
     const isExisting = state.base.kind === 'SELECTED' || state.base.kind === 'SELECTED_MODIFIED';
@@ -406,7 +457,11 @@ const EditView = ({
                     </span>
                 </MutationNotice>
             )}
-            <VehicleFields draft={draft} onChange={updates => setDraft(prev => ({ ...prev, ...updates }))} />
+            <VehicleFields
+                draft={draft}
+                onChange={updates => setDraft(prev => ({ ...prev, ...updates }))}
+                showColorField={showColorField}
+            />
             <ActionsRow>
                 <ActionBtn $primary onClick={() => dispatch({ type: 'VEHICLE_COMMIT_EDIT', draft })}>
                     Zatwierdź
@@ -418,19 +473,27 @@ const EditView = ({
 };
 
 const VehicleFields = ({
-    draft, onChange,
+    draft, onChange, showColorField = false,
 }: {
     draft: VehicleDraft;
     onChange: (updates: Partial<VehicleDraft>) => void;
+    showColorField?: boolean;
 }) => (
     <FormGrid>
-        <Field>
+        <Field as="div">
             Marka
-            <TextInput value={draft.brand} onChange={e => onChange({ brand: e.target.value })} autoComplete="off" />
+            <BrandSelect
+                value={draft.brand}
+                onChange={val => onChange({ brand: val, model: '' })}
+            />
         </Field>
-        <Field>
+        <Field as="div">
             Model
-            <TextInput value={draft.model} onChange={e => onChange({ model: e.target.value })} autoComplete="off" />
+            <ModelSelect
+                brand={draft.brand}
+                value={draft.model}
+                onChange={val => onChange({ model: val })}
+            />
         </Field>
         <Field>
             Rocznik
@@ -452,5 +515,15 @@ const VehicleFields = ({
                 autoComplete="off"
             />
         </Field>
+        {showColorField && (
+            <Field>
+                Kolor
+                <TextInput
+                    value={draft.color ?? ''}
+                    onChange={e => onChange({ color: e.target.value })}
+                    autoComplete="off"
+                />
+            </Field>
+        )}
     </FormGrid>
 );

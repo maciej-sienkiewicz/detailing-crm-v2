@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useReducer, useRef, useCallback } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -26,6 +26,8 @@ import { QuickColorModal } from '@/modules/calendar/components/QuickColorModal';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { useDebounce } from '@/common/hooks';
+import { CustomerCard, VehicleCard, entitySectionsReducer } from '@/modules/appointments/components/entity-cards';
+import { entitiesToFormData, initEntitiesFromFormData } from './entityCardsBridge';
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 
@@ -701,6 +703,13 @@ interface VerificationStepProps {
      * selection/mutation intent is declared there, not inferred from hot inputs.
      */
     hideCustomerAndVehicleSections?: boolean;
+    /**
+     * Renders the entity summary cards INSIDE sections 2 and 3 (check-in wizard),
+     * replacing the hot identity inputs while keeping the wizard-only extras
+     * (home address, company/GUS, vehicle handoff, mileage). Card state is synced
+     * back into formData, so validation and the submit payload work unchanged.
+     */
+    useEntityCards?: boolean;
     hideVehicleColorAndPaint?: boolean;
     hideLicensePlate?: boolean;
     hideVehicleHandoff?: boolean;
@@ -724,6 +733,7 @@ export const VerificationStep = ({
     colors,
     showTechnicalSection = true,
     hideCustomerAndVehicleSections = false,
+    useEntityCards = false,
     hideVehicleColorAndPaint = false,
     hideLicensePlate = false,
     hideVehicleHandoff = false,
@@ -737,6 +747,33 @@ export const VerificationStep = ({
     initialIsNewVehicle,
 }: VerificationStepProps) => {
     const queryClient = useQueryClient();
+
+    // ── Entity summary cards (useEntityCards mode) ──────────────────────────
+    // Card state is the UI source of truth; every transition is projected back
+    // onto formData so the wizard's validation/submit keep reading what they
+    // always did. Transient states project their base (see entityCardsBridge).
+    const [entities, dispatchEntities] = useReducer(entitySectionsReducer, formData, initEntitiesFromFormData);
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+    useEffect(() => {
+        if (!useEntityCards) return;
+        onChangeRef.current(entitiesToFormData(entities));
+    }, [entities, useEntityCards]);
+
+    const resolvedCardCustomer = entities.customer.kind === 'EDITING' || entities.customer.kind === 'CHOOSING'
+        ? entities.customer.base
+        : entities.customer;
+    const cardCustomerId =
+        resolvedCardCustomer.kind === 'SELECTED' || resolvedCardCustomer.kind === 'SELECTED_MODIFIED'
+            ? resolvedCardCustomer.snapshot.id
+            : null;
+    const cardCustomerLabel = (() => {
+        const source =
+            resolvedCardCustomer.kind === 'SELECTED' ? resolvedCardCustomer.snapshot :
+            resolvedCardCustomer.kind === 'SELECTED_MODIFIED' ? resolvedCardCustomer.draft :
+            resolvedCardCustomer.draft;
+        return [source.firstName, source.lastName].filter(Boolean).join(' ') || 'klienta';
+    })();
 
     // Continuous section numbering regardless of which sections are hidden —
     // hardcoded numbers drift the moment a section is conditionally skipped.
@@ -881,7 +918,9 @@ export const VerificationStep = ({
     }, [showCustomerAutocomplete]);
 
     // Auto-select vehicle when customer has exactly one vehicle
+    // (legacy inline mode only — in card mode the GarageChooser owns auto-progression)
     useEffect(() => {
+        if (useEntityCards) return;
         if (!selectedCustomerIdForVehicles || vehicleAutoSelectedRef.current) return;
         if (customerVehicles.length !== 1) return;
         vehicleAutoSelectedRef.current = true;
@@ -1381,23 +1420,39 @@ export const VerificationStep = ({
                         <SectionNum>{sectionNum.customer}</SectionNum>
                         <SectionLabel>
                             {t.checkin.verification.customerSection}
-                            {customerChoiceMade && customerBadge && (
+                            {!useEntityCards && customerChoiceMade && customerBadge && (
                                 <StatusPill>{customerBadge}</StatusPill>
                             )}
                         </SectionLabel>
                     </SectionTitleRow>
-                    <SectionActions>
-                        <ActionBtn onClick={handleResetCustomer} disabled={!hasCustomerChanges}>
-                            Wycofaj zmiany
-                        </ActionBtn>
-                        <ActionBtn $primary onClick={() => setIsCustomerModalOpen(true)}>
-                            Wyszukaj klienta
-                        </ActionBtn>
-                    </SectionActions>
+                    {!useEntityCards && (
+                        <SectionActions>
+                            <ActionBtn onClick={handleResetCustomer} disabled={!hasCustomerChanges}>
+                                Wycofaj zmiany
+                            </ActionBtn>
+                            <ActionBtn $primary onClick={() => setIsCustomerModalOpen(true)}>
+                                Wyszukaj klienta
+                            </ActionBtn>
+                        </SectionActions>
+                    )}
                 </SectionHead>
                 <SectionBody>
                     {errors.customer && <ErrorMessage>{errors.customer}</ErrorMessage>}
 
+                    {useEntityCards && (
+                        <>
+                            <CustomerCard state={entities.customer} dispatch={dispatchEntities} />
+                            {(errors.firstName || errors.lastName || errors.phone || errors.email) && (
+                                <ErrorMessage>
+                                    {[errors.firstName, errors.lastName, errors.phone, errors.email]
+                                        .filter(Boolean)
+                                        .join(' ')}
+                                </ErrorMessage>
+                            )}
+                        </>
+                    )}
+
+                    {!useEntityCards && (
                     <FormGrid>
                         <div ref={firstNameFieldRef}>
                         <FieldGroup>
@@ -1464,6 +1519,7 @@ export const VerificationStep = ({
                             {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                         </FieldGroup>
                     </FormGrid>
+                    )}
 
                     {errors.contact && <ErrorMessage>{errors.contact}</ErrorMessage>}
 
@@ -1667,24 +1723,53 @@ export const VerificationStep = ({
                         <SectionNum>{sectionNum.vehicle}</SectionNum>
                         <SectionLabel>
                             {t.checkin.verification.vehicleSection}
-                            {(vehicleChoiceMade || formData.isNewVehicle) && vehicleBadge && (
+                            {!useEntityCards && (vehicleChoiceMade || formData.isNewVehicle) && vehicleBadge && (
                                 <StatusPill>{vehicleBadge}</StatusPill>
                             )}
                         </SectionLabel>
                     </SectionTitleRow>
-                    <SectionActions>
-                        <ActionBtn onClick={handleResetVehicle} disabled={!hasVehicleChanges}>
-                            Wycofaj zmiany
-                        </ActionBtn>
-                        <ActionBtn $primary onClick={() => setIsVehicleModalOpen(true)}>
-                            Wyszukaj pojazd
-                        </ActionBtn>
-                    </SectionActions>
+                    {!useEntityCards && (
+                        <SectionActions>
+                            <ActionBtn onClick={handleResetVehicle} disabled={!hasVehicleChanges}>
+                                Wycofaj zmiany
+                            </ActionBtn>
+                            <ActionBtn $primary onClick={() => setIsVehicleModalOpen(true)}>
+                                Wyszukaj pojazd
+                            </ActionBtn>
+                        </SectionActions>
+                    )}
                 </SectionHead>
                 <SectionBody>
                     {errors.vehicle && <ErrorMessage>{errors.vehicle}</ErrorMessage>}
 
-                    {selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
+                    {useEntityCards && (
+                        <>
+                            <VehicleCard
+                                state={entities.vehicle}
+                                dispatch={dispatchEntities}
+                                customerId={cardCustomerId}
+                                customerLabel={cardCustomerLabel}
+                                showColorField={!hideVehicleColorAndPaint}
+                                allowOwnershipActions={false}
+                            />
+                            {!hideMileage && (
+                                <FormGrid $columns={3}>
+                                    <FieldGroup>
+                                        <Label>{t.checkin.technical.mileage}</Label>
+                                        <Input
+                                            type="number"
+                                            value={formData.technicalState.mileage || ''}
+                                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
+                                            placeholder={t.checkin.technical.mileagePlaceholder}
+                                        />
+                                        {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+                                    </FieldGroup>
+                                </FormGrid>
+                            )}
+                        </>
+                    )}
+
+                    {!useEntityCards && selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
                         <VehicleSuggestionsWrap>
                             <VehicleSuggestionLabel>Pojazdy klienta — kliknij aby wybrać:</VehicleSuggestionLabel>
                             {customerVehicles.map((v) => (
@@ -1707,6 +1792,7 @@ export const VerificationStep = ({
                         </VehicleSuggestionsWrap>
                     )}
 
+                    {!useEntityCards && (
                     <FormGrid $columns={3}>
                         <FieldGroup>
                             <Label>{t.checkin.verification.brand}</Label>
@@ -1770,6 +1856,7 @@ export const VerificationStep = ({
                             </FieldGroup>
                         )}
                     </FormGrid>
+                    )}
                 </SectionBody>
             </SectionCard>
             </>)}

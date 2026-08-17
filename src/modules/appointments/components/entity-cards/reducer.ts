@@ -107,7 +107,14 @@ export function entitySectionsReducer(state: EntitySectionsState, event: EntityE
             const base = resolvedVehicle(state.vehicle);
             if (base.kind === 'NONE' || base.kind === 'LINKED_EXISTING') return state;
             const draft = base.kind === 'SELECTED'
-                ? { brand: base.snapshot.brand, model: base.snapshot.model, year: base.snapshot.year, licensePlate: base.snapshot.licensePlate ?? '' }
+                ? {
+                    brand: base.snapshot.brand,
+                    model: base.snapshot.model,
+                    year: base.snapshot.year,
+                    licensePlate: base.snapshot.licensePlate ?? '',
+                    vin: base.snapshot.vin,
+                    color: base.snapshot.color,
+                }
                 : { ...base.draft };
             return { ...state, vehicle: { kind: 'EDITING', base, draft } };
         }
@@ -124,8 +131,8 @@ export function entitySectionsReducer(state: EntitySectionsState, event: EntityE
             if (base.kind !== 'SELECTED' && base.kind !== 'SELECTED_MODIFIED') return state;
             const snapshot = base.snapshot;
             const unchanged = draftsEqual(
-                { brand: event.draft.brand, model: event.draft.model, year: event.draft.year ?? '', licensePlate: event.draft.licensePlate ?? '' },
-                { brand: snapshot.brand, model: snapshot.model, year: snapshot.year ?? '', licensePlate: snapshot.licensePlate ?? '' },
+                { brand: event.draft.brand, model: event.draft.model, year: event.draft.year ?? '', licensePlate: event.draft.licensePlate ?? '', vin: event.draft.vin ?? '', color: event.draft.color ?? '' },
+                { brand: snapshot.brand, model: snapshot.model, year: snapshot.year ?? '', licensePlate: snapshot.licensePlate ?? '', vin: snapshot.vin ?? '', color: snapshot.color ?? '' },
             );
             return {
                 ...state,
