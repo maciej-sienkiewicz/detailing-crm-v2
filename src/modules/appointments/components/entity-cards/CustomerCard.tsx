@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Mail, Pencil, Phone, TriangleAlert, Undo2, User } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
@@ -16,6 +16,12 @@ import {
 interface CustomerCardProps {
     state: CustomerSectionState;
     dispatch: (event: EntityEvent) => void;
+    /**
+     * Extra form content (e.g. check-in's home address / company collapsibles)
+     * shown ONLY inside the new-customer and edit forms — these fields belong to
+     * the customer record, so they surface exactly when the record is being edited.
+     */
+    editExtras?: ReactNode;
 }
 
 const initialsOf = (firstName: string, lastName: string) =>
@@ -28,7 +34,7 @@ const draftLabel = (draft: CustomerDraft) =>
  * Summary card for the visit's customer. Read-only by default — the entity is a
  * reference, not a form — with explicit, intent-named actions. See entity-cards/types.ts.
  */
-export const CustomerCard = ({ state, dispatch }: CustomerCardProps) => (
+export const CustomerCard = ({ state, dispatch, editExtras }: CustomerCardProps) => (
     <Card>
         <CardHead>
             <HeadIcon><User /></HeadIcon>
@@ -43,8 +49,8 @@ export const CustomerCard = ({ state, dispatch }: CustomerCardProps) => (
             {state.kind === 'SELECTED_MODIFIED' && (
                 <SelectedView snapshot={{ ...state.snapshot, ...state.draft }} modified dispatch={dispatch} />
             )}
-            {state.kind === 'NEW' && <NewView draft={state.draft} dispatch={dispatch} />}
-            {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} />}
+            {state.kind === 'NEW' && <NewView draft={state.draft} dispatch={dispatch} editExtras={editExtras} />}
+            {state.kind === 'EDITING' && <EditView state={state} dispatch={dispatch} editExtras={editExtras} />}
             {state.kind === 'CHOOSING' && <SearchView dispatch={dispatch} />}
         </CardBody>
     </Card>
@@ -96,13 +102,20 @@ const SelectedView = ({
 
 // ─── New-customer inline form ─────────────────────────────────────────────────
 
-const NewView = ({ draft, dispatch }: { draft: CustomerDraft; dispatch: CustomerCardProps['dispatch'] }) => {
+const NewView = ({
+    draft, dispatch, editExtras,
+}: {
+    draft: CustomerDraft;
+    dispatch: CustomerCardProps['dispatch'];
+    editExtras?: ReactNode;
+}) => {
     const set = (updates: Partial<CustomerDraft>) =>
         dispatch({ type: 'CUSTOMER_NEW_DRAFT_CHANGED', draft: { ...draft, ...updates } });
 
     return (
         <>
             <CustomerFields draft={draft} onChange={set} />
+            {editExtras}
             <CardActions>
                 <QuietBtn onClick={() => dispatch({ type: 'CUSTOMER_OPEN_SEARCH' })}>
                     <ArrowLeftRight aria-hidden /> Wybierz istniejącego klienta
@@ -115,10 +128,11 @@ const NewView = ({ draft, dispatch }: { draft: CustomerDraft; dispatch: Customer
 // ─── Edit form (deliberate mutation) ──────────────────────────────────────────
 
 const EditView = ({
-    state, dispatch,
+    state, dispatch, editExtras,
 }: {
     state: Extract<CustomerSectionState, { kind: 'EDITING' }>;
     dispatch: CustomerCardProps['dispatch'];
+    editExtras?: ReactNode;
 }) => {
     const [draft, setDraft] = useState<CustomerDraft>(state.draft);
     const isExisting = state.base.kind !== 'NEW';
@@ -135,6 +149,7 @@ const EditView = ({
                 </MutationNotice>
             )}
             <CustomerFields draft={draft} onChange={updates => setDraft(prev => ({ ...prev, ...updates }))} />
+            {editExtras}
             <ActionsRow>
                 <ActionBtn $primary onClick={() => dispatch({ type: 'CUSTOMER_COMMIT_EDIT', draft })}>
                     Zatwierdź

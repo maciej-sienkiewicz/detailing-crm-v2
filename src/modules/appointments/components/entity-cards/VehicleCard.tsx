@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Car, Link2, Pencil, TriangleAlert, Undo2, Unlink, X } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
@@ -30,6 +30,11 @@ interface VehicleCardProps {
      * co-owner/transfer decision.
      */
     allowOwnershipActions?: boolean;
+    /**
+     * Extra form content (e.g. check-in's mileage field) shown ONLY inside the
+     * new-vehicle and edit forms, right under the vehicle fields.
+     */
+    editExtras?: ReactNode;
 }
 
 const vehicleLabel = (v: { brand: string; model: string; year?: number | null }) =>
@@ -46,7 +51,7 @@ const Plate = ({ value }: { value: string }) => (
  */
 export const VehicleCard = ({
     state, dispatch, customerId, customerLabel,
-    showColorField = false, allowOwnershipActions = true,
+    showColorField = false, allowOwnershipActions = true, editExtras,
 }: VehicleCardProps) => (
     <Card>
         <CardHead>
@@ -91,11 +96,12 @@ export const VehicleCard = ({
                     customerLabel={customerLabel}
                     showColorField={showColorField}
                     allowOwnershipActions={allowOwnershipActions}
+                    editExtras={editExtras}
                 />
             )}
 
             {state.kind === 'EDITING' && (
-                <EditView state={state} dispatch={dispatch} showColorField={showColorField} />
+                <EditView state={state} dispatch={dispatch} showColorField={showColorField} editExtras={editExtras} />
             )}
         </CardBody>
     </Card>
@@ -256,7 +262,7 @@ const GarageChooser = ({
 // ─── New vehicle form + live plate-collision detection ────────────────────────
 
 const NewVehicleForm = ({
-    state, dispatch, customerId, customerLabel, showColorField, allowOwnershipActions,
+    state, dispatch, customerId, customerLabel, showColorField, allowOwnershipActions, editExtras,
 }: {
     state: Extract<VehicleSectionState, { kind: 'NEW' }>;
     dispatch: VehicleCardProps['dispatch'];
@@ -264,6 +270,7 @@ const NewVehicleForm = ({
     customerLabel: string;
     showColorField: boolean;
     allowOwnershipActions: boolean;
+    editExtras?: ReactNode;
 }) => {
     const set = (updates: Partial<VehicleDraft>) =>
         dispatch({ type: 'VEHICLE_NEW_DRAFT_CHANGED', draft: { ...state.draft, ...updates } });
@@ -272,6 +279,7 @@ const NewVehicleForm = ({
         <>
             <EntityMeta>Pojazd zostanie dodany do garażu: <strong>{customerLabel}</strong></EntityMeta>
             <VehicleFields draft={state.draft} onChange={set} showColorField={showColorField} />
+            {editExtras}
             <PlateCollisionProbe
                 licensePlate={state.draft.licensePlate ?? ''}
                 overriddenVehicleId={state.duplicateOverrideVehicleId}
@@ -437,11 +445,12 @@ const PlateCollisionProbe = ({
 // ─── Edit form (deliberate mutation of the vehicle record) ────────────────────
 
 const EditView = ({
-    state, dispatch, showColorField,
+    state, dispatch, showColorField, editExtras,
 }: {
     state: Extract<VehicleSectionState, { kind: 'EDITING' }>;
     dispatch: VehicleCardProps['dispatch'];
     showColorField: boolean;
+    editExtras?: ReactNode;
 }) => {
     const [draft, setDraft] = useState<VehicleDraft>(state.draft);
     const isExisting = state.base.kind === 'SELECTED' || state.base.kind === 'SELECTED_MODIFIED';
@@ -462,6 +471,7 @@ const EditView = ({
                 onChange={updates => setDraft(prev => ({ ...prev, ...updates }))}
                 showColorField={showColorField}
             />
+            {editExtras}
             <ActionsRow>
                 <ActionBtn $primary onClick={() => dispatch({ type: 'VEHICLE_COMMIT_EDIT', draft })}>
                     Zatwierdź
