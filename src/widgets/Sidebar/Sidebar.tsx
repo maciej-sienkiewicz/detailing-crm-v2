@@ -6,11 +6,9 @@ import {
     CalendarCheck,
     Users,
     Car,
-    BarChart3,
     TrendingUp,
     MessageSquare,
     FileText,
-    UserCog,
     PanelLeftClose,
     PanelLeftOpen,
     X,
@@ -18,8 +16,8 @@ import {
     Camera,
     Settings,
     LogOut,
-    Search,
     Inbox,
+    Mail,
     Layers,
     Clock,
     UserRoundCog,
@@ -36,6 +34,7 @@ import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
 import { useMyTasksUnreadCount } from '@/modules/notifications';
 import { useLeadSocket } from '@/modules/leads/hooks/useLeadSocket';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
+import type { MenuItem } from './SidebarMenuItem';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import {
     Overlay,
@@ -86,6 +85,7 @@ const buildMenuSections = (
                 { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
                 { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
+                { path: '/communication', label: 'Zapytania', icon: Mail, requires: 'LEADS_MANAGE' },
             ],
         },
         {

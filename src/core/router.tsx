@@ -38,6 +38,9 @@ import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSet
 const GalleryView = lazy(() =>
     import("@/modules/gallery/views/GalleryView").then(m => ({ default: m.GalleryView }))
 );
+// Lazy — moduł komunikacji i zapytań mailowych
+const InquiriesView = lazy(() => import('@/modules/communication/views/InquiriesView'));
+const MailboxConnectView = lazy(() => import('@/modules/communication/views/MailboxConnectView'));
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
@@ -242,6 +245,26 @@ export const router = createBrowserRouter([
     {
         path: '/leads',
         element: page(<LeadListView />, 'LEADS_MANAGE'),
+    },
+
+    // ── Komunikacja: zapytania z maila ───────────────────────────────────
+    {
+        path: '/communication',
+        element: page(
+            <Suspense fallback={null}>
+                <InquiriesView />
+            </Suspense>,
+            'LEADS_MANAGE'
+        ),
+    },
+    {
+        path: '/communication/mailboxes',
+        element: page(
+            <Suspense fallback={null}>
+                <MailboxConnectView />
+            </Suspense>,
+            'LEADS_MANAGE'
+        ),
     },
 
     // ── Finanse ──────────────────────────────────────────────────────────
