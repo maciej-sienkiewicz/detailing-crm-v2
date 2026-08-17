@@ -85,12 +85,10 @@ const IconTile = styled.div<{ $edge: string; $solid: string }>`
 `;
 
 // Imię i nazwisko aktora — przy prawej krawędzi, widoczne tylko na hover.
-// Kotwiczone do góry wiersza (na wysokości tytułu), a nie do środka — przy
-// rozwiniętych szczegółach środek wiersza wypada na tabeli zmian.
-const HoverActor = styled.span`
+// Zawsze pozycjonowane absolutnie, więc pojawienie się na hover nie przesuwa
+// niczego w wierszu.
+const hoverActor = css`
     position: absolute;
-    top: 18px;
-    right: 18px;
     font-size: 12px;
     font-weight: 500;
     color: ${p => p.theme.colors.textMuted};
@@ -108,21 +106,48 @@ const HoverActor = styled.span`
     }
 `;
 
+// Wiersz bez kwoty: nazwisko na wysokości tytułu, przy prawej krawędzi.
+// Kotwiczone do góry wiersza, a nie do środka — przy rozwiniętych szczegółach
+// środek wiersza wypada na tabeli zmian.
+const HoverActor = styled.span`
+    ${hoverActor}
+    top: 18px;
+    right: 18px;
+`;
+
+// Wiersz z kwotą: nazwisko ląduje POD plakietką, obie przy prawej krawędzi.
+// Wcześniej dzieliły tę samą linię, więc plakietka musiała ustąpić im miejsca
+// i odjeżdżała od krawędzi w stronę środka — wyglądało to jak błąd wyrównania,
+// bo powód (nazwisko) był widoczny dopiero po najechaniu.
+const StackedActor = styled.span`
+    ${hoverActor}
+    top: calc(100% + 5px);
+    right: 0;
+    /* Ląduje nad linią opisu — własne tło trzyma czytelność bez rezerwowania
+       miejsca w układzie (na wierszach bez podświetlenia jest niewidoczne). */
+    padding: 1px 6px;
+    margin-right: -6px;
+    border-radius: 7px;
+    background: ${p => p.theme.colors.surface};
+`;
+
+// Kotwica dla StackedActor — pozycjonuje nazwisko dokładnie pod plakietką,
+// niezależnie od jej szerokości.
+const AmountSlot = styled.div`
+    position: relative;
+    margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+`;
+
 // ─── body ─────────────────────────────────────────────────────────────────────
 
-// $reserveRight: reserves right-side space for the HoverActor label when an
-// Amount badge is present — both otherwise land on the same right-edge pixel.
-const Body = styled.div<{ $reserveRight?: boolean }>`
+const Body = styled.div`
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding-top: 2px;
-    ${p => p.$reserveRight && css`
-        @media (min-width: 721px) {
-            padding-right: 130px;
-        }
-    `}
 `;
 
 const TopLine = styled.div`
@@ -144,7 +169,6 @@ const Title = styled.h3`
 
 const Amount = styled.span`
     flex-shrink: 0;
-    margin-left: auto;
     font-size: 13px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
@@ -162,28 +186,6 @@ const Description = styled.p`
     font-size: 13px;
     line-height: 1.45;
     color: ${p => p.theme.colors.textSecondary};
-`;
-
-const DescriptionLink = styled(Link)`
-    display: block;
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.45;
-    color: ${p => p.theme.colors.textSecondary};
-    text-decoration: none;
-    transition: color 150ms ease;
-
-    &:hover {
-        color: var(--brand-primary);
-        text-decoration: underline;
-        text-underline-offset: 2px;
-    }
-
-    &:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
-        border-radius: 3px;
-    }
 `;
 
 const MetaLine = styled.div`
@@ -401,6 +403,10 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
         ? item.actor.displayName  // PiiText handles rendering below
         : item.actor.displayName;
 
+    const actorContent = item.actor.type === 'CUSTOMER'
+        ? <PiiText value={actorLabel} kind="name" />
+        : actorLabel;
+
     return (
         <Row $bar={flag.bar} $wash={flag.wash}>
             <Time>{formatTime(item.occurredAt)}</Time>
@@ -409,10 +415,15 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 <ActivityIcon icon={item.icon} />
             </IconTile>
 
-            <Body $reserveRight={!!item.amount}>
+            <Body>
                 <TopLine>
                     <Title><PiiText value={item.title} /></Title>
-                    {item.amount && <Amount>{item.amount.display}</Amount>}
+                    {item.amount && (
+                        <AmountSlot>
+                            <Amount>{item.amount.display}</Amount>
+                            <StackedActor aria-hidden="true">{actorContent}</StackedActor>
+                        </AmountSlot>
+                    )}
                 </TopLine>
 
                 {item.description && (
@@ -466,11 +477,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 )}
             </Body>
 
-            <HoverActor aria-hidden="true">
-                {item.actor.type === 'CUSTOMER'
-                    ? <PiiText value={actorLabel} kind="name" />
-                    : actorLabel}
-            </HoverActor>
+            {!item.amount && <HoverActor aria-hidden="true">{actorContent}</HoverActor>}
         </Row>
     );
 };
