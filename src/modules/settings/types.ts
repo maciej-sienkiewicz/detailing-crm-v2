@@ -35,17 +35,24 @@ export interface UploadLogoResponse {
 // ─── Numeracja wizyt ──────────────────────────────────────────────────────────
 
 export interface VisitNumberingConfig {
-    /** Szablon numeru, np. "VIS-{YYYY}-{SEQ}". Dostępne znaczniki: {YYYY} {YY} {MM} {DD} {SEQ}. */
+    /**
+     * Szablon numeru, np. "VIS-{YYYY}-{SEQ}". Dostępne znaczniki: {YYYY} {YY} {MM} {DD}
+     * i dokładnie jeden z {SEQ} (rosnący licznik) albo {RAND} (losowe cyfry — numer nie
+     * zdradza liczby zrealizowanych wizyt).
+     */
     format: string;
     /** Szerokość zerowego dopełnienia numeru porządkowego {SEQ}. */
     sequenceLength: number;
-    /** Przykładowy numer dla dzisiejszej daty i numeru porządkowego 1. */
+    /** Liczba losowych cyfr {RAND}. */
+    randomLength: number;
+    /** Przykładowy numer — dla {SEQ} zawsze z numerem 1, dla {RAND} świeżo wylosowany. */
     preview: string;
 }
 
 export interface UpdateVisitNumberingConfigRequest {
     format: string;
     sequenceLength: number;
+    randomLength: number;
 }
 
 // ─── SMS Credits ──────────────────────────────────────────────────────────────

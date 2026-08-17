@@ -2,12 +2,15 @@
 //
 // Ustawienia → Dane firmy → Numeracja wizyt.
 //
-// Format is a small template language: {YYYY} {YY} {MM} {DD} {SEQ}. Exactly one
-// {SEQ} is required. The reset period isn't a separate setting — it falls out of
-// which date tokens are used (a template with {MM} resets every month because its
-// rendered prefix changes with the month; {YYYY} only resets yearly; no date token
-// never resets). The preview mirrors the backend's NumberingTemplate so typos show
-// up before saving, but the backend re-validates on save regardless.
+// Format is a small template language: {YYYY} {YY} {MM} {DD} and exactly one of
+// {SEQ} (rosnący licznik) or {RAND} (losowe cyfry). The reset period for {SEQ}
+// isn't a separate setting — it falls out of which date tokens are used (a
+// template with {MM} resets every month because its rendered prefix changes with
+// the month; {YYYY} only resets yearly; no date token never resets). {RAND} draws
+// fresh random digits every time instead of counting, so studios that don't want
+// a visit number to reveal how many visits they've done can use it. The preview
+// mirrors the backend's NumberingTemplate so typos show up before saving, but the
+// backend re-validates on save regardless.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -15,36 +18,51 @@ import { useToast } from '@/common/components/Toast';
 import { useVisitNumberingConfig, useUpdateVisitNumberingConfig } from '../hooks/useCompany';
 import { UnsavedChangesBanner } from './shared/SettingsLayout';
 
-const KNOWN_TOKENS = new Set(['YYYY', 'YY', 'MM', 'DD', 'SEQ']);
+const KNOWN_TOKENS = new Set(['YYYY', 'YY', 'MM', 'DD', 'SEQ', 'RAND']);
 const TOKEN_RE = /\{([A-Za-z]*)\}/g;
 
 const validateFormat = (format: string): string | null => {
     if (!format.trim()) return 'Format numeru nie może być pusty';
     if (format.length > 100) return 'Format numeru jest za długi (maks. 100 znaków)';
     const seqCount = (format.match(/\{SEQ\}/g) ?? []).length;
-    if (seqCount !== 1) return 'Format musi zawierać dokładnie jeden znacznik {SEQ}';
+    const randCount = (format.match(/\{RAND\}/g) ?? []).length;
+    if (seqCount + randCount !== 1) {
+        return 'Format musi zawierać dokładnie jeden znacznik {SEQ} albo {RAND} (nie oba naraz)';
+    }
     for (const match of format.matchAll(TOKEN_RE)) {
         if (!KNOWN_TOKENS.has(match[1])) return `Nieznany znacznik: {${match[1]}}`;
     }
     return null;
 };
 
-const renderPreview = (format: string, sequenceLength: number): string | null => {
+const usesRandom = (format: string): boolean => format.includes('{RAND}');
+
+const randomDigits = (length: number): string => {
+    const len = Math.min(Math.max(length, 1), 12);
+    let out = '';
+    for (let i = 0; i < len; i++) out += Math.floor(Math.random() * 10).toString();
+    return out;
+};
+
+const renderPreview = (format: string, sequenceLength: number, randomLength: number): string | null => {
     if (validateFormat(format)) return null;
     const now = new Date();
-    const seq = '1'.padStart(Math.min(Math.max(sequenceLength, 1), 10), '0');
+    const filler = usesRandom(format)
+        ? { token: '{RAND}', value: randomDigits(randomLength) }
+        : { token: '{SEQ}', value: '1'.padStart(Math.min(Math.max(sequenceLength, 1), 10), '0') };
     return format
         .replace('{YYYY}', String(now.getFullYear()))
         .replace('{YY}', String(now.getFullYear() % 100).padStart(2, '0'))
         .replace('{MM}', String(now.getMonth() + 1).padStart(2, '0'))
         .replace('{DD}', String(now.getDate()).padStart(2, '0'))
-        .replace('{SEQ}', seq);
+        .replace(filler.token, filler.value);
 };
 
 const PRESETS = [
     { format: 'VIS-{YYYY}-{SEQ}', hint: 'domyślny, reset co rok' },
     { format: 'VIS/{YYYY}/{MM}/{SEQ}', hint: 'reset co miesiąc' },
     { format: 'W/{SEQ}/{YY}', hint: 'bez resetu, krótki' },
+    { format: 'VIS-{YYYY}-{RAND}', hint: 'losowy — nie zdradza liczby wizyt' },
 ];
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -210,7 +228,8 @@ export const VisitNumberingSection = () => {
 
     const [format, setFormat] = useState('');
     const [sequenceLength, setSequenceLength] = useState(5);
-    const [saved, setSaved] = useState<{ format: string; sequenceLength: number } | null>(null);
+    const [randomLength, setRandomLength] = useState(6);
+    const [saved, setSaved] = useState<{ format: string; sequenceLength: number; randomLength: number } | null>(null);
     const [formatError, setFormatError] = useState<string | null>(null);
 
     // Seeding local editable state from the loaded query result, once — guarded on
@@ -219,11 +238,15 @@ export const VisitNumberingSection = () => {
     if (config && saved === null) {
         setFormat(config.format);
         setSequenceLength(config.sequenceLength);
-        setSaved({ format: config.format, sequenceLength: config.sequenceLength });
+        setRandomLength(config.randomLength);
+        setSaved({ format: config.format, sequenceLength: config.sequenceLength, randomLength: config.randomLength });
     }
 
-    const dirty = !!saved && (format !== saved.format || sequenceLength !== saved.sequenceLength);
-    const preview = renderPreview(format, sequenceLength);
+    const dirty =
+        !!saved &&
+        (format !== saved.format || sequenceLength !== saved.sequenceLength || randomLength !== saved.randomLength);
+    const preview = renderPreview(format, sequenceLength, randomLength);
+    const isRandom = usesRandom(format);
 
     const applyPreset = (presetFormat: string) => {
         setFormat(presetFormat);
@@ -237,10 +260,11 @@ export const VisitNumberingSection = () => {
             return;
         }
         try {
-            const result = await updateMutation.mutateAsync({ format: format.trim(), sequenceLength });
+            const result = await updateMutation.mutateAsync({ format: format.trim(), sequenceLength, randomLength });
             setFormat(result.format);
             setSequenceLength(result.sequenceLength);
-            setSaved({ format: result.format, sequenceLength: result.sequenceLength });
+            setRandomLength(result.randomLength);
+            setSaved({ format: result.format, sequenceLength: result.sequenceLength, randomLength: result.randomLength });
             showSuccess('Zapisano', 'Format numeracji wizyt został zaktualizowany.');
         } catch {
             showError('Błąd', 'Nie udało się zapisać formatu numeracji. Spróbuj ponownie.');
@@ -251,6 +275,7 @@ export const VisitNumberingSection = () => {
         if (saved) {
             setFormat(saved.format);
             setSequenceLength(saved.sequenceLength);
+            setRandomLength(saved.randomLength);
             setFormatError(null);
         }
     };
@@ -264,9 +289,12 @@ export const VisitNumberingSection = () => {
                 <Description>
                     Numer nadawany każdej rozpoczynanej wizycie (np. „VIS-2026-00072"). Zmiana
                     formatu dotyczy tylko nowych wizyt — istniejące numery pozostają bez zmian.
-                    Numer porządkowy resetuje się automatycznie wtedy, gdy zmienia się część daty
-                    użyta w formacie: format z <code>{'{MM}'}</code> resetuje licznik co miesiąc,
-                    sam <code>{'{YYYY}'}</code> — co rok, a format bez daty liczy w sposób ciągły.
+                    Numer porządkowy <code>{'{SEQ}'}</code> resetuje się automatycznie wtedy, gdy
+                    zmienia się część daty użyta w formacie: format z <code>{'{MM}'}</code> resetuje
+                    licznik co miesiąc, sam <code>{'{YYYY}'}</code> — co rok, a format bez daty liczy
+                    w sposób ciągły. Zamiast <code>{'{SEQ}'}</code> można użyć{' '}
+                    <code>{'{RAND}'}</code> — losowe cyfry zamiast rosnącego licznika, dla firm,
+                    które nie chcą, aby numer wizyty zdradzał klientom liczbę zrealizowanych wizyt.
                 </Description>
 
                 <Row>
@@ -285,25 +313,50 @@ export const VisitNumberingSection = () => {
                         {formatError && <ErrorMsg>{formatError}</ErrorMsg>}
                     </Field>
 
-                    <Field>
-                        <Label>Cyfry numeru porządkowego</Label>
-                        <Input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={sequenceLength}
-                            onChange={e => {
-                                const parsed = parseInt(e.target.value, 10);
-                                setSequenceLength(Number.isNaN(parsed) ? 1 : Math.min(Math.max(parsed, 1), 10));
-                            }}
-                        />
-                    </Field>
+                    {isRandom ? (
+                        <Field>
+                            <Label>Cyfry numeru losowego</Label>
+                            <Input
+                                type="number"
+                                min={1}
+                                max={12}
+                                value={randomLength}
+                                onChange={e => {
+                                    const parsed = parseInt(e.target.value, 10);
+                                    setRandomLength(Number.isNaN(parsed) ? 1 : Math.min(Math.max(parsed, 1), 12));
+                                }}
+                            />
+                        </Field>
+                    ) : (
+                        <Field>
+                            <Label>Cyfry numeru porządkowego</Label>
+                            <Input
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={sequenceLength}
+                                onChange={e => {
+                                    const parsed = parseInt(e.target.value, 10);
+                                    setSequenceLength(Number.isNaN(parsed) ? 1 : Math.min(Math.max(parsed, 1), 10));
+                                }}
+                            />
+                        </Field>
+                    )}
                 </Row>
+
+                {isRandom && randomLength <= 3 && (
+                    <ErrorMsg style={{ marginTop: 8 }}>
+                        Przy tak małej liczbie cyfr rośnie ryzyko losowania numeru, który już
+                        istnieje — system w takim wypadku po prostu losuje ponownie, ale przy
+                        dużym ruchu warto ustawić więcej cyfr.
+                    </ErrorMsg>
+                )}
 
                 <TokensHint>
                     Dostępne znaczniki: <code>{'{YYYY}'}</code> rok (4 cyfry), <code>{'{YY}'}</code> rok
-                    (2 cyfry), <code>{'{MM}'}</code> miesiąc, <code>{'{DD}'}</code> dzień,{' '}
-                    <code>{'{SEQ}'}</code> numer porządkowy (wymagany, dokładnie jeden raz).
+                    (2 cyfry), <code>{'{MM}'}</code> miesiąc, <code>{'{DD}'}</code> dzień, oraz dokładnie
+                    jeden z: <code>{'{SEQ}'}</code> rosnący numer porządkowy, albo{' '}
+                    <code>{'{RAND}'}</code> losowe cyfry (nie zdradzają liczby wizyt).
                 </TokensHint>
 
                 <PresetList>
