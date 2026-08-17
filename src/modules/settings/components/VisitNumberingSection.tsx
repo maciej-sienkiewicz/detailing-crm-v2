@@ -2,10 +2,13 @@
 //
 // Ustawienia → Dane firmy → Numeracja wizyt.
 //
-// Format is a small template language: {YYYY} {YY} {MM} {DD} and exactly one of
-// {SEQ} (rosnący licznik) or {RAND} (losowe cyfry). The reset period for {SEQ}
-// falls out of which date tokens are used, not a separate setting. Validation
-// mirrors the backend's NumberingTemplate so typos show up before saving.
+// UX model: the user picks a numbering STYLE from visual cards showing concrete
+// example numbers (yearly / monthly / continuous / random), not a template
+// syntax. The template language ({YYYY} {MM} {DD} {SEQ} {RAND}) only surfaces
+// when they explicitly choose "Własny format". A hero preview at the top always
+// shows the resulting number plus a plain-language caption of how it behaves
+// (when the counter resets, or that digits are random). Validation mirrors the
+// backend's NumberingTemplate; the backend re-validates on save regardless.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -13,16 +16,9 @@ import { useToast } from '@/common/components/Toast';
 import { useVisitNumberingConfig, useUpdateVisitNumberingConfig } from '../hooks/useCompany';
 import { UnsavedChangesBanner } from './shared/SettingsLayout';
 
-const PLACEHOLDERS: { token: string; label: string; required?: boolean }[] = [
-    { token: '{YYYY}', label: 'rok, 4 cyfry' },
-    { token: '{YY}', label: 'rok, 2 cyfry' },
-    { token: '{MM}', label: 'miesiąc' },
-    { token: '{DD}', label: 'dzień' },
-    { token: '{SEQ}', label: 'licznik rosnący', required: true },
-    { token: '{RAND}', label: 'cyfry losowe', required: true },
-];
+// ─── Template logic (mirrors backend NumberingTemplate) ──────────────────────
 
-const KNOWN_TOKENS = new Set(PLACEHOLDERS.map(p => p.token.slice(1, -1)));
+const KNOWN_TOKENS = new Set(['YYYY', 'YY', 'MM', 'DD', 'SEQ', 'RAND']);
 const TOKEN_RE = /\{([A-Za-z]*)\}/g;
 
 const validateFormat = (format: string): string | null => {
@@ -30,7 +26,7 @@ const validateFormat = (format: string): string | null => {
     if (format.length > 100) return 'Format jest za długi (maks. 100 znaków)';
     const seqCount = (format.match(/\{SEQ\}/g) ?? []).length;
     const randCount = (format.match(/\{RAND\}/g) ?? []).length;
-    if (seqCount + randCount !== 1) return 'Wymagany dokładnie jeden znacznik: {SEQ} albo {RAND}';
+    if (seqCount + randCount !== 1) return 'Użyj dokładnie jednego znacznika {SEQ} albo {RAND}';
     for (const match of format.matchAll(TOKEN_RE)) {
         if (!KNOWN_TOKENS.has(match[1])) return `Nieznany znacznik: {${match[1]}}`;
     }
@@ -39,18 +35,14 @@ const validateFormat = (format: string): string | null => {
 
 const usesRandom = (format: string): boolean => format.includes('{RAND}');
 
-const randomDigits = (length: number): string => {
-    const len = Math.min(Math.max(length, 1), 12);
-    let out = '';
-    for (let i = 0; i < len; i++) out += Math.floor(Math.random() * 10).toString();
-    return out;
-};
+// Deterministic "random-looking" digits so previews don't jitter on re-renders.
+const SAMPLE_RANDOM = '739284615037';
 
-const renderPreview = (format: string, sequenceLength: number, randomLength: number): string | null => {
+const sampleNumber = (format: string, sequenceLength: number, randomLength: number): string | null => {
     if (validateFormat(format)) return null;
     const now = new Date();
     const filler = usesRandom(format)
-        ? { token: '{RAND}', value: randomDigits(randomLength) }
+        ? { token: '{RAND}', value: SAMPLE_RANDOM.slice(0, Math.min(Math.max(randomLength, 1), 12)) }
         : { token: '{SEQ}', value: '1'.padStart(Math.min(Math.max(sequenceLength, 1), 10), '0') };
     return format
         .replace('{YYYY}', String(now.getFullYear()))
@@ -60,11 +52,31 @@ const renderPreview = (format: string, sequenceLength: number, randomLength: num
         .replace(filler.token, filler.value);
 };
 
-const PRESETS = [
-    { format: 'VIS-{YYYY}-{SEQ}', hint: 'reset co rok' },
-    { format: 'VIS/{YYYY}/{MM}/{SEQ}', hint: 'reset co miesiąc' },
-    { format: 'W/{SEQ}/{YY}', hint: 'bez resetu' },
-    { format: 'VIS-{YYYY}-{RAND}', hint: 'losowy' },
+// Plain-language explanation of how the chosen format behaves.
+const behaviorOf = (format: string): string => {
+    if (usesRandom(format)) return 'Cyfry są losowane przy każdej wizycie — numer nie zdradza liczby wizyt.';
+    if (format.includes('{DD}')) return 'Licznik rośnie o 1 i resetuje się każdego dnia.';
+    if (format.includes('{MM}')) return 'Licznik rośnie o 1 i resetuje się co miesiąc.';
+    if (format.includes('{YYYY}') || format.includes('{YY}')) return 'Licznik rośnie o 1 i resetuje się co rok.';
+    return 'Licznik rośnie o 1 bez resetowania.';
+};
+
+// ─── Styles the user picks from ──────────────────────────────────────────────
+
+const STYLES = [
+    { id: 'yearly', name: 'Roczna', format: 'VIS-{YYYY}-{SEQ}', desc: 'reset licznika co rok' },
+    { id: 'monthly', name: 'Miesięczna', format: 'VIS/{YYYY}/{MM}/{SEQ}', desc: 'reset licznika co miesiąc' },
+    { id: 'continuous', name: 'Ciągła', format: 'W/{SEQ}/{YY}', desc: 'licznik bez resetu' },
+    { id: 'random', name: 'Losowa', format: 'VIS-{YYYY}-{RAND}', desc: 'nie zdradza liczby wizyt' },
+] as const;
+
+const CUSTOM_TOKENS: { token: string; label: string }[] = [
+    { token: '{YYYY}', label: 'rok' },
+    { token: '{YY}', label: 'rok 2-cyfrowy' },
+    { token: '{MM}', label: 'miesiąc' },
+    { token: '{DD}', label: 'dzień' },
+    { token: '{SEQ}', label: 'licznik' },
+    { token: '{RAND}', label: 'cyfry losowe' },
 ];
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -92,43 +104,129 @@ const Title = styled.h3`
 const Subtitle = styled.p`
     font-size: 12.5px;
     color: ${p => p.theme.colors.textSecondary};
-    margin: 0 0 16px;
+    margin: 0 0 20px;
 `;
 
-const PlaceholderRow = styled.div`
+// Hero preview — the single source of truth for "what will my numbers look like".
+const Hero = styled.div<{ $invalid?: boolean }>`
+    border: 1px solid ${p => (p.$invalid ? '#fecaca' : '#e2e8f0')};
+    background: ${p => (p.$invalid ? '#fef2f2' : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)')};
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+`;
+
+const HeroLabel = styled.div`
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+`;
+
+const HeroNumber = styled.div`
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: 0.02em;
+    word-break: break-all;
+`;
+
+const HeroCaption = styled.div`
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: #64748b;
+`;
+
+const HeroError = styled.div`
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: #dc2626;
+    font-weight: 500;
+`;
+
+const GroupLabel = styled.div`
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 8px;
+`;
+
+// Style cards — radio-group semantics, concrete examples instead of syntax.
+const CardGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+`;
+
+const StyleCard = styled.button<{ $selected: boolean }>`
+    position: relative;
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid ${p => (p.$selected ? '#0ea5e9' : '#e2e8f0')};
+    background: ${p => (p.$selected ? '#f0f9ff' : 'white')};
+    cursor: pointer;
+    transition: border-color 150ms, background 150ms, box-shadow 150ms;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 18px;
-`;
+    flex-direction: column;
+    gap: 4px;
 
-const Chip = styled.span<{ $required?: boolean }>`
-    display: inline-flex;
-    align-items: baseline;
-    gap: 5px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    border: 1px solid ${p => (p.$required ? '#bae6fd' : '#e2e8f0')};
-    background: ${p => (p.$required ? '#f0f9ff' : '#f8fafc')};
-    font-size: 11.5px;
-    color: #475569;
+    &:hover {
+        border-color: ${p => (p.$selected ? '#0ea5e9' : '#bae6fd')};
+    }
 
-    code {
-        font-family: 'JetBrains Mono', ui-monospace, monospace;
-        font-weight: 700;
-        color: ${p => (p.$required ? '#0369a1' : '#334155')};
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
     }
 `;
 
-const RequiredNote = styled.div`
-    font-size: 11.5px;
-    color: #94a3b8;
-    margin: -12px 0 18px;
+const CardName = styled.div<{ $selected: boolean }>`
+    font-size: 12.5px;
+    font-weight: 700;
+    color: ${p => (p.$selected ? '#0369a1' : '#334155')};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 `;
 
-const Row = styled.div`
+const CardCheck = styled.span<{ $selected: boolean }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid ${p => (p.$selected ? '#0ea5e9' : '#cbd5e1')};
+    background: ${p => (p.$selected ? '#0ea5e9' : 'white')};
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 10px;
+    line-height: 1;
+`;
+
+const CardExample = styled.div`
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-all;
+`;
+
+const CardDesc = styled.div`
+    font-size: 11.5px;
+    color: #94a3b8;
+`;
+
+// Contextual settings row (digit stepper + custom format editor).
+const SettingsRow = styled.div`
     display: flex;
-    gap: 20px;
+    gap: 24px;
     flex-wrap: wrap;
     align-items: flex-start;
 `;
@@ -137,7 +235,7 @@ const Field = styled.div<{ $grow?: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 6px;
-    ${p => (p.$grow ? 'flex: 1; min-width: 260px;' : 'width: 140px;')}
+    ${p => (p.$grow ? 'flex: 1; min-width: 260px;' : '')}
 `;
 
 const Label = styled.label`
@@ -146,13 +244,57 @@ const Label = styled.label`
     color: #334155;
 `;
 
-const Input = styled.input<{ $mono?: boolean; $error?: boolean }>`
+const FieldHint = styled.div`
+    font-size: 11.5px;
+    color: #94a3b8;
+`;
+
+// Stepper for digit counts — no free-text quirks, one obvious way to change it.
+const Stepper = styled.div`
+    display: inline-flex;
+    align-items: stretch;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    overflow: hidden;
+    background: white;
+    height: 38px;
+    width: fit-content;
+`;
+
+const StepBtn = styled.button`
+    width: 38px;
+    border: none;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms;
+
+    &:hover:not(:disabled) { background: #e0f2fe; color: #0369a1; }
+    &:disabled { color: #cbd5e1; cursor: default; }
+`;
+
+const StepValue = styled.div`
+    width: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+`;
+
+const Input = styled.input<{ $error?: boolean }>`
     width: 100%;
     height: 38px;
     padding: 0 12px;
     border-radius: 9px;
     border: 1.5px solid ${p => (p.$error ? '#ef4444' : '#e2e8f0')};
-    font-family: ${p => (p.$mono ? "'JetBrains Mono', ui-monospace, monospace" : 'inherit')};
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 13px;
     color: #0f172a;
     background: white;
@@ -166,131 +308,71 @@ const Input = styled.input<{ $mono?: boolean; $error?: boolean }>`
     }
 `;
 
-const ErrorMsg = styled.div`
-    font-size: 12px;
-    color: #ef4444;
+const TokenRow = styled.div`
     display: flex;
-    align-items: center;
-    gap: 5px;
-`;
-
-const PreviewBox = styled.div`
-    margin-top: 18px;
-    padding: 14px 16px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
     flex-wrap: wrap;
-`;
-
-const PreviewLabel = styled.span`
-    font-size: 12px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.textSecondary};
-`;
-
-const PreviewValue = styled.span`
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-`;
-
-const PresetList = styled.div`
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
     gap: 6px;
 `;
 
-const PresetLabel = styled.div`
-    font-size: 12px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 2px;
-`;
-
-const PresetRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-`;
-
-const PresetBtn = styled.button`
+const TokenChip = styled.button`
     display: inline-flex;
     align-items: baseline;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 8px;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
     border: 1px solid #e2e8f0;
-    background: white;
-    font-size: 12.5px;
-    color: #334155;
-    cursor: pointer;
-    transition: all 150ms ease;
-
-    &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
-`;
-
-const PresetFormat = styled.span`
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-`;
-
-const PresetHint = styled.span`
-    color: #94a3b8;
+    background: #f8fafc;
     font-size: 11.5px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 120ms;
+
+    code {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    &:hover {
+        border-color: #0ea5e9;
+        background: #f0f9ff;
+        color: #0369a1;
+
+        code { color: #0369a1; }
+    }
 `;
 
-// ─── Digit-length field ─────────────────────────────────────────────────────
-//
-// A plain <input type="number"> re-derives its displayed value from the
-// numeric state on every keystroke, so clearing "1" to type "2" never actually
-// shows empty — the old value snaps back before the new digit lands, and you
-// get "12". This keeps a raw text buffer while the field is focused and only
-// commits/clamps the parsed number on blur, so backspace-then-type works like
-// any normal input.
+// ─── Digit stepper component ─────────────────────────────────────────────────
 
-const DigitLengthField = ({
+const DigitStepper = ({
     label,
+    hint,
     value,
     min,
     max,
-    onCommit,
+    onChange,
 }: {
     label: string;
+    hint: string;
     value: number;
     min: number;
     max: number;
-    onCommit: (n: number) => void;
-}) => {
-    const [draft, setDraft] = useState<string | null>(null);
-
-    const commit = (raw: string) => {
-        const parsed = parseInt(raw, 10);
-        const clamped = Number.isNaN(parsed) ? min : Math.min(Math.max(parsed, min), max);
-        onCommit(clamped);
-        setDraft(null);
-    };
-
-    return (
-        <Field>
-            <Label>{label}</Label>
-            <Input
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={draft ?? String(value)}
-                onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                onBlur={e => commit(e.target.value)}
-                onKeyDown={e => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                }}
-            />
-        </Field>
-    );
-};
+    onChange: (n: number) => void;
+}) => (
+    <Field>
+        <Label>{label}</Label>
+        <Stepper role="group" aria-label={label}>
+            <StepBtn type="button" aria-label="Mniej" disabled={value <= min} onClick={() => onChange(value - 1)}>
+                −
+            </StepBtn>
+            <StepValue>{value}</StepValue>
+            <StepBtn type="button" aria-label="Więcej" disabled={value >= max} onClick={() => onChange(value + 1)}>
+                +
+            </StepBtn>
+        </Stepper>
+        <FieldHint>{hint}</FieldHint>
+    </Field>
+);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -302,8 +384,8 @@ export const VisitNumberingSection = () => {
     const [format, setFormat] = useState('');
     const [sequenceLength, setSequenceLength] = useState(5);
     const [randomLength, setRandomLength] = useState(6);
+    const [customSelected, setCustomSelected] = useState(false);
     const [saved, setSaved] = useState<{ format: string; sequenceLength: number; randomLength: number } | null>(null);
-    const [formatError, setFormatError] = useState<string | null>(null);
 
     // Seeding local editable state from the loaded query result, once — guarded on
     // `saved` (state, not a ref) so this stays the React-sanctioned "adjust state
@@ -312,32 +394,37 @@ export const VisitNumberingSection = () => {
         setFormat(config.format);
         setSequenceLength(config.sequenceLength);
         setRandomLength(config.randomLength);
+        setCustomSelected(!STYLES.some(s => s.format === config.format));
         setSaved({ format: config.format, sequenceLength: config.sequenceLength, randomLength: config.randomLength });
     }
+
+    const matchedStyle = STYLES.find(s => s.format === format);
+    const isCustom = customSelected || !matchedStyle;
+    const isRandom = usesRandom(format);
+    const error = validateFormat(format);
+    const preview = sampleNumber(format, sequenceLength, randomLength);
 
     const dirty =
         !!saved &&
         (format !== saved.format || sequenceLength !== saved.sequenceLength || randomLength !== saved.randomLength);
-    const preview = renderPreview(format, sequenceLength, randomLength);
-    const isRandom = usesRandom(format);
-    const liveError = format ? validateFormat(format) : null;
 
-    const applyPreset = (presetFormat: string) => {
-        setFormat(presetFormat);
-        setFormatError(null);
+    const pickStyle = (styleFormat: string) => {
+        setFormat(styleFormat);
+        setCustomSelected(false);
     };
 
+    const pickCustom = () => setCustomSelected(true);
+
+    const appendToken = (token: string) => setFormat(f => f + token);
+
     const handleSave = async () => {
-        const err = validateFormat(format);
-        if (err) {
-            setFormatError(err);
-            return;
-        }
+        if (error) return;
         try {
             const result = await updateMutation.mutateAsync({ format: format.trim(), sequenceLength, randomLength });
             setFormat(result.format);
             setSequenceLength(result.sequenceLength);
             setRandomLength(result.randomLength);
+            setCustomSelected(!STYLES.some(s => s.format === result.format));
             setSaved({ format: result.format, sequenceLength: result.sequenceLength, randomLength: result.randomLength });
             showSuccess('Zapisano', 'Format numeracji wizyt został zaktualizowany.');
         } catch {
@@ -350,7 +437,7 @@ export const VisitNumberingSection = () => {
             setFormat(saved.format);
             setSequenceLength(saved.sequenceLength);
             setRandomLength(saved.randomLength);
-            setFormatError(null);
+            setCustomSelected(!STYLES.some(s => s.format === saved.format));
         }
     };
 
@@ -360,69 +447,94 @@ export const VisitNumberingSection = () => {
         <Wrapper>
             <Panel>
                 <Title>Numeracja wizyt</Title>
-                <Subtitle>Numer nadawany każdej wizycie. Zmiana dotyczy tylko nowych wizyt.</Subtitle>
+                <Subtitle>Wybierz, jak mają wyglądać numery nowych wizyt. Istniejące numery pozostają bez zmian.</Subtitle>
 
-                <PlaceholderRow>
-                    {PLACEHOLDERS.map(p => (
-                        <Chip key={p.token} $required={p.required}>
-                            <code>{p.token}</code>
-                            {p.label}
-                        </Chip>
-                    ))}
-                </PlaceholderRow>
-                <RequiredNote>Wymagany dokładnie jeden z: {'{SEQ}'} albo {'{RAND}'}.</RequiredNote>
+                <Hero $invalid={!!error}>
+                    <HeroLabel>Tak będzie wyglądał numer wizyty</HeroLabel>
+                    <HeroNumber>{preview ?? '—'}</HeroNumber>
+                    {error ? <HeroError>{error}</HeroError> : <HeroCaption>{behaviorOf(format)}</HeroCaption>}
+                </Hero>
 
-                <PresetList>
-                    <PresetLabel>Szablon</PresetLabel>
-                    <PresetRow>
-                        {PRESETS.map(p => (
-                            <PresetBtn key={p.format} type="button" onClick={() => applyPreset(p.format)}>
-                                <PresetFormat>{p.format}</PresetFormat>
-                                <PresetHint>{p.hint}</PresetHint>
-                            </PresetBtn>
-                        ))}
-                    </PresetRow>
-                </PresetList>
+                <GroupLabel>Styl numeracji</GroupLabel>
+                <CardGrid role="radiogroup" aria-label="Styl numeracji">
+                    {STYLES.map(s => {
+                        const selected = !isCustom && s.format === format;
+                        return (
+                            <StyleCard
+                                key={s.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                $selected={selected}
+                                onClick={() => pickStyle(s.format)}
+                            >
+                                <CardName $selected={selected}>
+                                    {s.name}
+                                    <CardCheck $selected={selected}>{selected ? '✓' : ''}</CardCheck>
+                                </CardName>
+                                <CardExample>{sampleNumber(s.format, sequenceLength, randomLength)}</CardExample>
+                                <CardDesc>{s.desc}</CardDesc>
+                            </StyleCard>
+                        );
+                    })}
+                    <StyleCard
+                        type="button"
+                        role="radio"
+                        aria-checked={isCustom}
+                        $selected={isCustom}
+                        onClick={pickCustom}
+                    >
+                        <CardName $selected={isCustom}>
+                            Własny format
+                            <CardCheck $selected={isCustom}>{isCustom ? '✓' : ''}</CardCheck>
+                        </CardName>
+                        <CardExample>{isCustom && preview ? preview : '…'}</CardExample>
+                        <CardDesc>zbuduj z dostępnych znaczników</CardDesc>
+                    </StyleCard>
+                </CardGrid>
 
-                <Row style={{ marginTop: 18 }}>
-                    <Field $grow>
-                        <Label>Format numeru</Label>
-                        <Input
-                            $mono
-                            $error={!!(formatError || liveError)}
-                            value={format}
-                            onChange={e => {
-                                setFormat(e.target.value);
-                                setFormatError(null);
-                            }}
-                            placeholder="VIS-{YYYY}-{SEQ}"
-                        />
-                        {(formatError || liveError) && <ErrorMsg>⚠ {formatError || liveError}</ErrorMsg>}
-                    </Field>
+                <SettingsRow>
+                    {isCustom && (
+                        <Field $grow>
+                            <Label>Własny format</Label>
+                            <Input
+                                $error={!!error}
+                                value={format}
+                                onChange={e => setFormat(e.target.value)}
+                                placeholder="VIS-{YYYY}-{SEQ}"
+                            />
+                            <TokenRow>
+                                {CUSTOM_TOKENS.map(t => (
+                                    <TokenChip key={t.token} type="button" onClick={() => appendToken(t.token)}>
+                                        <code>{t.token}</code>
+                                        {t.label}
+                                    </TokenChip>
+                                ))}
+                            </TokenRow>
+                            <FieldHint>Kliknij znacznik, aby dodać go do formatu. Wymagany jest {'{SEQ}'} albo {'{RAND}'}.</FieldHint>
+                        </Field>
+                    )}
 
                     {isRandom ? (
-                        <DigitLengthField
-                            label="Cyfry losowe"
+                        <DigitStepper
+                            label="Liczba losowych cyfr"
+                            hint={randomLength <= 3 ? 'Mało cyfr = częstsze powtórki losowań' : 'Więcej cyfr = mniejsze ryzyko powtórek'}
                             value={randomLength}
                             min={1}
                             max={12}
-                            onCommit={setRandomLength}
+                            onChange={setRandomLength}
                         />
                     ) : (
-                        <DigitLengthField
-                            label="Cyfry licznika"
+                        <DigitStepper
+                            label="Liczba cyfr licznika"
+                            hint={`Numer 1 zapisze się jako ${'1'.padStart(Math.min(Math.max(sequenceLength, 1), 10), '0')}`}
                             value={sequenceLength}
                             min={1}
                             max={10}
-                            onCommit={setSequenceLength}
+                            onChange={setSequenceLength}
                         />
                     )}
-                </Row>
-
-                <PreviewBox>
-                    <PreviewLabel>Podgląd:</PreviewLabel>
-                    <PreviewValue>{preview ?? '—'}</PreviewValue>
-                </PreviewBox>
+                </SettingsRow>
             </Panel>
 
             <UnsavedChangesBanner
