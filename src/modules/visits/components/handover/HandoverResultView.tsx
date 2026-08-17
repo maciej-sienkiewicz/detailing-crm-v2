@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import styled from 'styled-components';
-import { CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Clock, Download } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
+import { useToast } from '@/common/components/Toast';
+import { useKsefAutomation } from '@/modules/finance/hooks';
+import { ksefRevenueApi } from '@/modules/finance/api/ksefRevenueApi';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Box, BoxRow, Money, Muted } from './HandoverKit';
@@ -89,7 +93,7 @@ export const isDuplicateRejection = (error?: string | null): boolean =>
  * zakończona, ale faktura wymaga poprawy — dotąd użytkownik dostawał w tym
  * miejscu komunikat sukcesu i odesłanie do innego modułu.
  */
-const present = (result: CompleteVisitResponse): Presentation => {
+const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Presentation => {
     if (!result.ksefInvoiceNumber) {
         return {
             tone: 'ok',
@@ -99,6 +103,17 @@ const present = (result: CompleteVisitResponse): Presentation => {
                 : 'Wizyta została zakończona.',
         };
     }
+    // Without a token the send failed at authentication, which the dispatcher records
+    // as a transient failure and queues for offline24 retry. That retry can never
+    // succeed, so promising it would be a lie — say what actually has to happen.
+    if (ksefMisconfigured && result.ksefStatus !== 'ACCEPTED' && result.ksefStatus !== 'REJECTED') {
+        return {
+            tone: 'warn',
+            title: 'Pojazd wydany — faktura czeka na wysyłkę',
+            lead: 'Faktura została wystawiona i zapisana, ale nie trafiła do KSeF, bo studio nie ma skonfigurowanego tokenu. Pobierz plik XML i wgraj go ręcznie w KSeF albo skonfiguruj token w Finanse → KSeF i ponów wysyłkę przy fakturze.',
+        };
+    }
+
     switch (result.ksefStatus) {
         case 'ACCEPTED':
             return { tone: 'ok', title: 'Pojazd wydany', lead: 'Faktura została przyjęta przez KSeF.' };
@@ -150,7 +165,34 @@ export const HandoverResultView = ({
     const status = result.ksefStatus ?? null;
     const error = result.ksefError ?? null;
 
-    const view = present(result);
+    const ksef = useKsefAutomation({ enabled: !!result.ksefInvoiceId });
+    const { showError } = useToast();
+    const [downloading, setDownloading] = useState(false);
+
+    // `configured` is false while the answer is still loading, and treating that as
+    // "no token" would flash the wrong explanation at studios that have one.
+    const view = present(result, !ksef.isLoading && ksef.moduleEnabled && !ksef.configured);
+
+    // The XML is worth offering whenever the invoice exists but KSeF has not taken
+    // it — the studio can upload it by hand. Not for REJECTED: that document failed
+    // validation, so the same file would be rejected again.
+    const canDownloadXml =
+        !!result.ksefInvoiceId && status !== 'ACCEPTED' && status !== 'REJECTED';
+
+    const handleDownload = async () => {
+        if (!result.ksefInvoiceId) return;
+        setDownloading(true);
+        try {
+            await ksefRevenueApi.downloadInvoiceXml(
+                result.ksefInvoiceId,
+                result.ksefInvoiceNumber ?? 'faktura',
+            );
+        } catch {
+            showError('Nie udało się pobrać pliku', 'Spróbuj ponownie w module Finanse → Dokumenty przychodowe.');
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     const icon =
         view.tone === 'ok' ? <CheckCircle2 /> : view.tone === 'warn' ? <Clock /> : <AlertTriangle />;
@@ -194,6 +236,17 @@ export const HandoverResultView = ({
             </Details>
 
             <Actions>
+                {canDownloadXml && (
+                    <SharedButton
+                        $variant="secondary"
+                        type="button"
+                        onClick={handleDownload}
+                        disabled={downloading}
+                    >
+                        <Download size={15} />
+                        {downloading ? 'Pobieranie…' : 'Pobierz plik'}
+                    </SharedButton>
+                )}
                 <SharedButton $variant="primary" type="button" onClick={onClose}>
                     Wróć do wizyty
                 </SharedButton>
