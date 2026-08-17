@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useKsefCredentials, useSaveKsefCredentials, useDeleteKsefCredentials } from '../hooks/useKsef';
+import {
+  useKsefCredentials,
+  useSaveKsefCredentials,
+  useDeleteKsefCredentials,
+  useVerifyKsefToken,
+} from '../hooks/useKsef';
+import type { KsefTokenVerification } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -225,6 +231,108 @@ const Spinner = styled.span`
   display: inline-block;
 `;
 
+// ─── Token permissions block ──────────────────────────────────────────────────
+
+const PermsBox = styled.div`
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+const PermsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  flex-wrap: wrap;
+`;
+
+const PermsTitle = styled.div`
+  font-size: 13px;
+  font-weight: 700;
+  color: ${(p) => p.theme.colors.text};
+`;
+
+const PermsChecked = styled.div`
+  font-size: 11.5px;
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
+const PermsBody = styled.div`
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const PermRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: ${(p) => p.theme.colors.text};
+`;
+
+const PermIcon = styled.span<{ $state: 'ok' | 'missing' | 'unknown' }>`
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: ${(p) =>
+    p.$state === 'ok' ? '#10b981' : p.$state === 'missing' ? st.accentRed : '#94a3b8'};
+`;
+
+const PermHint = styled.span`
+  font-size: 11.5px;
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
+const PermsFootnote = styled.div`
+  padding: 10px 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #b45309;
+  line-height: 1.5;
+`;
+
+const VerifyBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: transparent;
+  color: ${st.accentBlue};
+  border: 1px solid ${st.accentBlue}55;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  &:hover:not(:disabled) { background: ${st.accentBlueDim}; border-color: ${st.accentBlue}; }
+  &:disabled { opacity: 0.6; cursor: default; }
+`;
+
+const BlueSpinner = styled.span`
+  width: 12px;
+  height: 12px;
+  border: 2px solid ${st.accentBlue}44;
+  border-top-color: ${st.accentBlue};
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+  display: inline-block;
+`;
+
 // ─── Error message ────────────────────────────────────────────────────────────
 
 const ErrorMsg = styled.div`
@@ -237,12 +345,105 @@ const ErrorMsg = styled.div`
   font-weight: 500;
 `;
 
+// ─── Token permissions checklist ──────────────────────────────────────────────
+
+const formatCheckedAt = (iso: string | null): string | null => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const TokenPermissionsBlock: React.FC<{
+  verification: KsefTokenVerification | null;
+  isVerifying: boolean;
+  onVerify: () => void;
+}> = ({ verification, isVerifying, onVerify }) => {
+  const verifyButton = (
+    <VerifyBtn onClick={onVerify} disabled={isVerifying}>
+      {isVerifying && <BlueSpinner />}
+      {isVerifying ? 'Weryfikacja w KSeF…' : verification ? 'Sprawdź ponownie' : 'Sprawdź uprawnienia'}
+    </VerifyBtn>
+  );
+
+  const checkedAt = formatCheckedAt(verification?.checkedAt ?? null);
+
+  // Row state: before any verification (or when the list couldn't be read)
+  // everything is "unknown" — we never show a false ✓ or ✗.
+  const rowState = (granted: boolean): 'ok' | 'missing' | 'unknown' => {
+    if (!verification || !verification.tokenValid || !verification.permissionsKnown) return 'unknown';
+    return granted ? 'ok' : 'missing';
+  };
+
+  const rows: { label: string; state: 'ok' | 'missing' | 'unknown'; hint?: string }[] = [
+    { label: 'Wystawianie faktur', state: rowState(verification?.canIssueInvoices ?? false) },
+    { label: 'Przeglądanie faktur', state: rowState(verification?.canReadInvoices ?? false) },
+    {
+      label: 'Generowanie UPO',
+      state: rowState(verification?.canGenerateUpo ?? false),
+      hint: 'dostępne razem z uprawnieniem do wystawiania faktur',
+    },
+  ];
+
+  const missingAny =
+    !!verification?.tokenValid &&
+    verification.permissionsKnown &&
+    (!verification.canIssueInvoices || !verification.canReadInvoices);
+
+  return (
+    <PermsBox>
+      <PermsHeader>
+        <div>
+          <PermsTitle>Uprawnienia tokenu</PermsTitle>
+          {checkedAt && <PermsChecked>Ostatnia weryfikacja: {checkedAt}</PermsChecked>}
+          {!verification && <PermsChecked>Uprawnienia nie zostały jeszcze sprawdzone.</PermsChecked>}
+        </div>
+        {verifyButton}
+      </PermsHeader>
+      <PermsBody>
+        {verification && !verification.tokenValid ? (
+          <ErrorMsg>
+            {verification.errorMessage ??
+              'KSeF odrzucił zapisany token. Sprawdź, czy token nie wygasł lub nie został odwołany, i zapisz nowy.'}
+          </ErrorMsg>
+        ) : (
+          <>
+            {rows.map((row) => (
+              <PermRow key={row.label}>
+                <PermIcon $state={row.state}>
+                  {row.state === 'ok' ? '✓' : row.state === 'missing' ? '✕' : '?'}
+                </PermIcon>
+                {row.label}
+                {row.hint && <PermHint>{row.hint}</PermHint>}
+              </PermRow>
+            ))}
+            {verification?.tokenValid && !verification.permissionsKnown && (
+              <PermsFootnote>
+                Token jest poprawny, ale nie udało się odczytać listy jego uprawnień. Spróbuj ponownie
+                za chwilę.
+              </PermsFootnote>
+            )}
+            {missingAny && (
+              <PermsFootnote>
+                Token działa, ale nie ma wszystkich uprawnień. Wygeneruj nowy token w portalu KSeF,
+                zaznaczając uprawnienia „Wystawianie faktur" i „Przeglądanie faktur", a następnie
+                zapisz go tutaj ponownie.
+              </PermsFootnote>
+            )}
+          </>
+        )}
+      </PermsBody>
+    </PermsBox>
+  );
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const KsefCredentialsPanel: React.FC = () => {
   const { credentials, isLoading } = useKsefCredentials();
   const saveCredentials   = useSaveKsefCredentials();
   const deleteCredentials = useDeleteKsefCredentials();
+  const verifyToken       = useVerifyKsefToken();
 
   const [nip, setNip]         = useState('');
   const [token, setToken]     = useState('');
@@ -259,6 +460,10 @@ export const KsefCredentialsPanel: React.FC = () => {
       setNip('');
       setToken('');
       setEditMode(false);
+      // Verify the freshly saved token right away, so the owner immediately sees
+      // whether it carries the needed permissions (fire-and-forget — the
+      // checklist below shows the progress and result).
+      verifyToken.mutate();
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? err?.message ?? 'Błąd zapisu konfiguracji KSeF';
       setErrorMsg(msg);
@@ -328,6 +533,13 @@ export const KsefCredentialsPanel: React.FC = () => {
                 <HelpText>Token jest maskowany ze względów bezpieczeństwa.</HelpText>
               </FormGroup>
             </FormRow>
+
+            <TokenPermissionsBlock
+              verification={credentials.verification}
+              isVerifying={verifyToken.isPending}
+              onVerify={() => verifyToken.mutate()}
+            />
+
             <BtnRow>
               <SecondaryBtn
                 onClick={() => {

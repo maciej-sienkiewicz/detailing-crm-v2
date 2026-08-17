@@ -1,6 +1,7 @@
 import { apiClient } from '@/core';
 import type {
   KsefCredentials,
+  KsefTokenVerification,
   SaveKsefCredentialsRequest,
   KsefSyncStatus,
   KsefSyncRangeRequest,
@@ -38,6 +39,15 @@ export const ksefApi = {
 
   deleteCredentials: async (): Promise<void> => {
     await apiClient.delete(`${BASE}/credentials`);
+  },
+
+  /**
+   * Weryfikuje zapisany token w KSeF (świeże uwierzytelnienie + odczyt uprawnień).
+   * Wywołanie trwa kilka sekund — KSeF przetwarza uwierzytelnienie asynchronicznie.
+   */
+  verifyCredentials: async (): Promise<KsefTokenVerification> => {
+    const response = await apiClient.post(`${BASE}/credentials/verify`, {});
+    return response.data;
   },
 
   // ── Sync ───────────────────────────────────────────────────────────────────

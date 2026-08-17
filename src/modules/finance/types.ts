@@ -214,11 +214,28 @@ export interface PaymentMethodReportParams {
 
 // ─── KSeF: Dane dostępowe ─────────────────────────────────────────────────────
 
+export interface KsefTokenVerification {
+  /** Czy KSeF w ogóle zaakceptował token podczas uwierzytelnienia. */
+  tokenValid: boolean;
+  /** false = token poprawny, ale nie udało się odczytać listy uprawnień. */
+  permissionsKnown: boolean;
+  canIssueInvoices: boolean;
+  canReadInvoices: boolean;
+  /** UPO nie ma osobnego uprawnienia w KSeF — wynika z InvoiceWrite. */
+  canGenerateUpo: boolean;
+  /** Surowe nazwy uprawnień KSeF, np. ["InvoiceRead", "InvoiceWrite"]. */
+  permissions: string[];
+  checkedAt: string | null;
+  errorMessage: string | null;
+}
+
 export interface KsefCredentials {
   nip:          string;
   tokenMasked:  string;
   createdAt:    string;
   updatedAt:    string;
+  /** Wynik ostatniej weryfikacji tokenu; null = nigdy nie weryfikowano. */
+  verification: KsefTokenVerification | null;
 }
 
 export interface SaveKsefCredentialsRequest {
