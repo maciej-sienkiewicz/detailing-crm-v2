@@ -3,7 +3,7 @@
 import styled from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { appointmentApi } from '../api/appointmentApi';
@@ -17,6 +17,11 @@ import { t } from '@/common/i18n';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
+import {
+    CustomerCard, VehicleCard, entitySectionsReducer, hasUnresolvedSection,
+    toCustomerIdentity, toVehicleIdentity,
+} from '../components/entity-cards';
+import type { EntityEvent, EntitySectionsState } from '../components/entity-cards';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
 import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -25,6 +30,20 @@ const SmsSeparator = styled.div`
     height: 1px;
     background: ${st.border};
     margin: 8px 0;
+`;
+
+const EntityCardsStack = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+
+    /* One column on phones — cards stacked, full width. */
+    @media (max-width: 720px) {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
 `;
 
 const RecurrenceBanner = styled.div<{ $detached?: boolean }>`
@@ -188,6 +207,68 @@ export const AppointmentEditView = () => {
     const [formData, setFormData] = useState<CheckInFormData | null>(null);
     const initialFormDataRef = useRef<CheckInFormData | null>(null);
 
+    // Entity summary-card state (customer/vehicle). Selection, mutation and creation
+    // are separate states — the payload mode is read off the state kind, never
+    // inferred from which inputs the user happened to touch.
+    const [entityState, setEntityState] = useState<EntitySectionsState | null>(null);
+    const initialEntityStateRef = useRef<EntitySectionsState | null>(null);
+
+    const dispatchEntity = useCallback((event: EntityEvent) => {
+        setEntityState(prev => (prev ? entitySectionsReducer(prev, event) : prev));
+    }, []);
+
+    useEffect(() => {
+        if (!appointment || entityState) return;
+        const initial: EntitySectionsState = {
+            customer: {
+                kind: 'SELECTED',
+                snapshot: {
+                    id: appointment.customerId,
+                    firstName: appointment.customer?.firstName || '',
+                    lastName: appointment.customer?.lastName || '',
+                    phone: appointment.customer?.phone || '',
+                    email: appointment.customer?.email || '',
+                },
+            },
+            vehicle: appointment.vehicle && appointment.vehicleId
+                ? {
+                    kind: 'SELECTED',
+                    snapshot: {
+                        id: appointment.vehicleId,
+                        brand: appointment.vehicle.brand,
+                        model: appointment.vehicle.model,
+                        year: appointment.vehicle.year ?? undefined,
+                        licensePlate: appointment.vehicle.licensePlate || undefined,
+                    },
+                }
+                : { kind: 'NONE' },
+        };
+        initialEntityStateRef.current = initial;
+        setEntityState(initial);
+    }, [appointment, entityState]);
+
+    // The vehicle card needs the resolved customer id (garage queries) and a label
+    // for ownership copy ("garaż Anny Nowak").
+    const resolvedCustomer = entityState
+        ? (entityState.customer.kind === 'EDITING' || entityState.customer.kind === 'CHOOSING'
+            ? entityState.customer.base
+            : entityState.customer)
+        : null;
+    const resolvedCustomerId =
+        resolvedCustomer && (resolvedCustomer.kind === 'SELECTED' || resolvedCustomer.kind === 'SELECTED_MODIFIED')
+            ? resolvedCustomer.snapshot.id
+            : null;
+    const customerLabel = (() => {
+        if (!resolvedCustomer) return 'klienta';
+        const source = resolvedCustomer.kind === 'SELECTED'
+            ? resolvedCustomer.snapshot
+            : resolvedCustomer.kind === 'SELECTED_MODIFIED' || resolvedCustomer.kind === 'NEW'
+                ? resolvedCustomer.draft
+                : null;
+        const label = source ? [source.firstName, source.lastName].filter(Boolean).join(' ') : '';
+        return label || 'klienta';
+    })();
+
 
     useEffect(() => {
         if (initialData && !formData) {
@@ -285,7 +366,7 @@ export const AppointmentEditView = () => {
     });
 
     const buildPayload = (): AppointmentCreateRequest | null => {
-        if (!formData) return null;
+        if (!formData || !entityState) return null;
 
         let startInstant = '';
         let endInstant = '';
@@ -297,72 +378,29 @@ export const AppointmentEditView = () => {
             return null;
         }
 
+        // Transient card states (open edit form / open picker) must be resolved first —
+        // there is no defensible payload for "the user is mid-decision".
+        if (hasUnresolvedSection(entityState)) {
+            showInfo('Zatwierdź lub anuluj edycję w karcie klienta/pojazdu przed zapisem wizyty.');
+            return null;
+        }
+
+        const companyPayload = formData.company
+            ? {
+                name: formData.company.name,
+                nip: formData.company.nip,
+                regon: formData.company.regon,
+                address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
+            }
+            : undefined;
+
+        const customerIdentity = toCustomerIdentity(entityState.customer, companyPayload);
+        const vehicleIdentity = toVehicleIdentity(entityState.vehicle);
+        if (!customerIdentity || !vehicleIdentity) return null;
+
         const payload: AppointmentCreateRequest = {
-            customer: formData.isNewCustomer
-                ? {
-                    mode: 'NEW',
-                    newData: {
-                        firstName: formData.customerData.firstName,
-                        lastName: formData.customerData.lastName,
-                        phone: formData.customerData.phone,
-                        email: formData.customerData.email,
-                        company: formData.company
-                            ? {
-                                name: formData.company.name,
-                                nip: formData.company.nip,
-                                regon: formData.company.regon,
-                                address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
-                              }
-                            : undefined,
-                    },
-                }
-                : formData.customerData.id
-                    ? {
-                        mode: 'UPDATE',
-                        id: formData.customerData.id,
-                        updateData: {
-                            firstName: formData.customerData.firstName,
-                            lastName: formData.customerData.lastName,
-                            phone: formData.customerData.phone,
-                            email: formData.customerData.email,
-                            company: formData.company
-                                ? {
-                                    name: formData.company.name,
-                                    nip: formData.company.nip,
-                                    regon: formData.company.regon,
-                                    address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
-                                  }
-                                : undefined,
-                        },
-                    }
-                    : {
-                        mode: 'EXISTING',
-                        id: formData.customerData.id,
-                    },
-            vehicle: !formData.vehicleData
-                ? { mode: 'NONE' }
-                : formData.isNewVehicle || !formData.vehicleData.id
-                    ? {
-                        mode: 'NEW',
-                        newData: {
-                            brand: formData.vehicleData.brand,
-                            model: formData.vehicleData.model,
-                            yearOfProduction: formData.vehicleData.yearOfProduction,
-                            licensePlate: formData.vehicleData.licensePlate || undefined,
-                            color: formData.vehicleData.color,
-                        },
-                    }
-                    : {
-                        mode: 'UPDATE',
-                        id: formData.vehicleData.id,
-                        updateData: {
-                            brand: formData.vehicleData.brand,
-                            model: formData.vehicleData.model,
-                            yearOfProduction: formData.vehicleData.yearOfProduction,
-                            licensePlate: formData.vehicleData.licensePlate || undefined,
-                            color: formData.vehicleData.color,
-                        },
-                    },
+            customer: customerIdentity,
+            vehicle: vehicleIdentity,
             services: formData.services.map(toApiServiceLineItem),
             schedule: {
                 isAllDay: formData.isAllDay ?? false,
@@ -389,9 +427,11 @@ export const AppointmentEditView = () => {
     };
 
     const handleSave = () => {
-        if (!formData) return;
+        if (!formData || !entityState) return;
 
-        if (JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current)) {
+        const formUnchanged = JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current);
+        const entitiesUnchanged = JSON.stringify(entityState) === JSON.stringify(initialEntityStateRef.current);
+        if (formUnchanged && entitiesUnchanged) {
             showInfo('Nie wprowadzono żadnych zmian.');
             return;
         }
@@ -462,6 +502,18 @@ export const AppointmentEditView = () => {
                     </RecurrenceBanner>
                 )}
 
+                {entityState && (
+                    <EntityCardsStack>
+                        <CustomerCard state={entityState.customer} dispatch={dispatchEntity} />
+                        <VehicleCard
+                            state={entityState.vehicle}
+                            dispatch={dispatchEntity}
+                            customerId={resolvedCustomerId}
+                            customerLabel={customerLabel}
+                        />
+                    </EntityCardsStack>
+                )}
+
                 <VerificationStep
                     formData={formData}
                     errors={{}}
@@ -469,15 +521,11 @@ export const AppointmentEditView = () => {
                     onServicesChange={handleServicesChange}
                     colors={colors || []}
                     showTechnicalSection={false}
+                    hideCustomerAndVehicleSections={true}
                     hideVehicleColorAndPaint={true}
                     hideLicensePlate={true}
                     hideVehicleHandoff={true}
                     hideMileage={true}
-                    initialCustomerData={initialData?.customerData}
-                    initialHasFullCustomerData={initialData?.hasFullCustomerData}
-                    initialIsNewCustomer={initialData?.isNewCustomer}
-                    initialVehicleData={initialData?.vehicleData === undefined ? undefined : (initialData?.vehicleData ?? null)}
-                    initialIsNewVehicle={initialData?.isNewVehicle}
                 />
 
                 {appointment?.smsInfo && (

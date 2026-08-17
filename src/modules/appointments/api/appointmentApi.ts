@@ -6,6 +6,24 @@ import type {
 } from '../types';
 import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/customers/types';
 
+export interface VehiclePlateLookupOwner {
+    customerId: string;
+    name: string;
+    role: string;
+}
+
+export interface VehiclePlateLookup {
+    found: boolean;
+    vehicle: {
+        id: string;
+        brand: string;
+        model: string;
+        year: number | null;
+        licensePlate: string | null;
+        owners: VehiclePlateLookupOwner[];
+    } | null;
+}
+
 const USE_MOCKS = false
 
 const mockServices: Service[] = [
@@ -111,6 +129,17 @@ export const appointmentApi = {
             phone: customer.contact.phone,
             email: customer.contact.email,
         }));
+    },
+
+    /**
+     * Live duplicate detection for the "add new vehicle" form — matches an active
+     * vehicle by normalized license plate and returns its owners for the collision card.
+     */
+    lookupVehicleByPlate: async (licensePlate: string): Promise<VehiclePlateLookup> => {
+        const response = await apiClient.get<VehiclePlateLookup>('/v1/vehicles/lookup', {
+            params: { licensePlate },
+        });
+        return response.data;
     },
 
     getCustomerVehicles: async (customerId: string): Promise<Vehicle[]> => {
