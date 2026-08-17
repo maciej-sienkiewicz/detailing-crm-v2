@@ -32,6 +32,22 @@ export interface UploadLogoResponse {
     logoUrl: string;
 }
 
+// ─── Numeracja wizyt ──────────────────────────────────────────────────────────
+
+export interface VisitNumberingConfig {
+    /** Szablon numeru, np. "VIS-{YYYY}-{SEQ}". Dostępne znaczniki: {YYYY} {YY} {MM} {DD} {SEQ}. */
+    format: string;
+    /** Szerokość zerowego dopełnienia numeru porządkowego {SEQ}. */
+    sequenceLength: number;
+    /** Przykładowy numer dla dzisiejszej daty i numeru porządkowego 1. */
+    preview: string;
+}
+
+export interface UpdateVisitNumberingConfigRequest {
+    format: string;
+    sequenceLength: number;
+}
+
 // ─── SMS Credits ──────────────────────────────────────────────────────────────
 
 export type SmsCreditTransactionType = 'PURCHASE' | 'USAGE' | 'REFUND' | 'BONUS' | 'EXPIRY';
