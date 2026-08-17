@@ -4,13 +4,8 @@
 //
 // Format is a small template language: {YYYY} {YY} {MM} {DD} and exactly one of
 // {SEQ} (rosnący licznik) or {RAND} (losowe cyfry). The reset period for {SEQ}
-// isn't a separate setting — it falls out of which date tokens are used (a
-// template with {MM} resets every month because its rendered prefix changes with
-// the month; {YYYY} only resets yearly; no date token never resets). {RAND} draws
-// fresh random digits every time instead of counting, so studios that don't want
-// a visit number to reveal how many visits they've done can use it. The preview
-// mirrors the backend's NumberingTemplate so typos show up before saving, but the
-// backend re-validates on save regardless.
+// falls out of which date tokens are used, not a separate setting. Validation
+// mirrors the backend's NumberingTemplate so typos show up before saving.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -18,17 +13,24 @@ import { useToast } from '@/common/components/Toast';
 import { useVisitNumberingConfig, useUpdateVisitNumberingConfig } from '../hooks/useCompany';
 import { UnsavedChangesBanner } from './shared/SettingsLayout';
 
-const KNOWN_TOKENS = new Set(['YYYY', 'YY', 'MM', 'DD', 'SEQ', 'RAND']);
+const PLACEHOLDERS: { token: string; label: string; required?: boolean }[] = [
+    { token: '{YYYY}', label: 'rok, 4 cyfry' },
+    { token: '{YY}', label: 'rok, 2 cyfry' },
+    { token: '{MM}', label: 'miesiąc' },
+    { token: '{DD}', label: 'dzień' },
+    { token: '{SEQ}', label: 'licznik rosnący', required: true },
+    { token: '{RAND}', label: 'cyfry losowe', required: true },
+];
+
+const KNOWN_TOKENS = new Set(PLACEHOLDERS.map(p => p.token.slice(1, -1)));
 const TOKEN_RE = /\{([A-Za-z]*)\}/g;
 
 const validateFormat = (format: string): string | null => {
-    if (!format.trim()) return 'Format numeru nie może być pusty';
-    if (format.length > 100) return 'Format numeru jest za długi (maks. 100 znaków)';
+    if (!format.trim()) return 'Format nie może być pusty';
+    if (format.length > 100) return 'Format jest za długi (maks. 100 znaków)';
     const seqCount = (format.match(/\{SEQ\}/g) ?? []).length;
     const randCount = (format.match(/\{RAND\}/g) ?? []).length;
-    if (seqCount + randCount !== 1) {
-        return 'Format musi zawierać dokładnie jeden znacznik {SEQ} albo {RAND} (nie oba naraz)';
-    }
+    if (seqCount + randCount !== 1) return 'Wymagany dokładnie jeden znacznik: {SEQ} albo {RAND}';
     for (const match of format.matchAll(TOKEN_RE)) {
         if (!KNOWN_TOKENS.has(match[1])) return `Nieznany znacznik: {${match[1]}}`;
     }
@@ -59,10 +61,10 @@ const renderPreview = (format: string, sequenceLength: number, randomLength: num
 };
 
 const PRESETS = [
-    { format: 'VIS-{YYYY}-{SEQ}', hint: 'domyślny, reset co rok' },
+    { format: 'VIS-{YYYY}-{SEQ}', hint: 'reset co rok' },
     { format: 'VIS/{YYYY}/{MM}/{SEQ}', hint: 'reset co miesiąc' },
-    { format: 'W/{SEQ}/{YY}', hint: 'bez resetu, krótki' },
-    { format: 'VIS-{YYYY}-{RAND}', hint: 'losowy — nie zdradza liczby wizyt' },
+    { format: 'W/{SEQ}/{YY}', hint: 'bez resetu' },
+    { format: 'VIS-{YYYY}-{RAND}', hint: 'losowy' },
 ];
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -84,21 +86,51 @@ const Title = styled.h3`
     font-size: 15px;
     font-weight: 700;
     color: ${p => p.theme.colors.text};
-    margin: 0 0 6px;
+    margin: 0 0 4px;
 `;
 
-const Description = styled.p`
-    font-size: 13px;
+const Subtitle = styled.p`
+    font-size: 12.5px;
     color: ${p => p.theme.colors.textSecondary};
-    margin: 0 0 22px;
-    line-height: 1.55;
-    max-width: 680px;
+    margin: 0 0 16px;
+`;
+
+const PlaceholderRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 18px;
+`;
+
+const Chip = styled.span<{ $required?: boolean }>`
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid ${p => (p.$required ? '#bae6fd' : '#e2e8f0')};
+    background: ${p => (p.$required ? '#f0f9ff' : '#f8fafc')};
+    font-size: 11.5px;
+    color: #475569;
+
+    code {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-weight: 700;
+        color: ${p => (p.$required ? '#0369a1' : '#334155')};
+    }
+`;
+
+const RequiredNote = styled.div`
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin: -12px 0 18px;
 `;
 
 const Row = styled.div`
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
+    align-items: flex-start;
 `;
 
 const Field = styled.div<{ $grow?: boolean }>`
@@ -137,6 +169,9 @@ const Input = styled.input<{ $mono?: boolean; $error?: boolean }>`
 const ErrorMsg = styled.div`
     font-size: 12px;
     color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 `;
 
 const PreviewBox = styled.div`
@@ -164,26 +199,11 @@ const PreviewValue = styled.span`
     color: #0f172a;
 `;
 
-const TokensHint = styled.div`
-    margin-top: 14px;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textSecondary};
-    line-height: 1.6;
-
-    code {
-        font-family: 'JetBrains Mono', ui-monospace, monospace;
-        background: #f1f5f9;
-        border-radius: 4px;
-        padding: 1px 5px;
-        margin: 0 1px;
-    }
-`;
-
 const PresetList = styled.div`
     margin-top: 18px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 `;
 
 const PresetLabel = styled.div`
@@ -193,8 +213,13 @@ const PresetLabel = styled.div`
     margin-bottom: 2px;
 `;
 
+const PresetRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+`;
+
 const PresetBtn = styled.button`
-    align-self: flex-start;
     display: inline-flex;
     align-items: baseline;
     gap: 8px;
@@ -218,6 +243,54 @@ const PresetHint = styled.span`
     color: #94a3b8;
     font-size: 11.5px;
 `;
+
+// ─── Digit-length field ─────────────────────────────────────────────────────
+//
+// A plain <input type="number"> re-derives its displayed value from the
+// numeric state on every keystroke, so clearing "1" to type "2" never actually
+// shows empty — the old value snaps back before the new digit lands, and you
+// get "12". This keeps a raw text buffer while the field is focused and only
+// commits/clamps the parsed number on blur, so backspace-then-type works like
+// any normal input.
+
+const DigitLengthField = ({
+    label,
+    value,
+    min,
+    max,
+    onCommit,
+}: {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    onCommit: (n: number) => void;
+}) => {
+    const [draft, setDraft] = useState<string | null>(null);
+
+    const commit = (raw: string) => {
+        const parsed = parseInt(raw, 10);
+        const clamped = Number.isNaN(parsed) ? min : Math.min(Math.max(parsed, min), max);
+        onCommit(clamped);
+        setDraft(null);
+    };
+
+    return (
+        <Field>
+            <Label>{label}</Label>
+            <Input
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={draft ?? String(value)}
+                onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                onBlur={e => commit(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                }}
+            />
+        </Field>
+    );
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -247,6 +320,7 @@ export const VisitNumberingSection = () => {
         (format !== saved.format || sequenceLength !== saved.sequenceLength || randomLength !== saved.randomLength);
     const preview = renderPreview(format, sequenceLength, randomLength);
     const isRandom = usesRandom(format);
+    const liveError = format ? validateFormat(format) : null;
 
     const applyPreset = (presetFormat: string) => {
         setFormat(presetFormat);
@@ -286,23 +360,36 @@ export const VisitNumberingSection = () => {
         <Wrapper>
             <Panel>
                 <Title>Numeracja wizyt</Title>
-                <Description>
-                    Numer nadawany każdej rozpoczynanej wizycie (np. „VIS-2026-00072"). Zmiana
-                    formatu dotyczy tylko nowych wizyt — istniejące numery pozostają bez zmian.
-                    Numer porządkowy <code>{'{SEQ}'}</code> resetuje się automatycznie wtedy, gdy
-                    zmienia się część daty użyta w formacie: format z <code>{'{MM}'}</code> resetuje
-                    licznik co miesiąc, sam <code>{'{YYYY}'}</code> — co rok, a format bez daty liczy
-                    w sposób ciągły. Zamiast <code>{'{SEQ}'}</code> można użyć{' '}
-                    <code>{'{RAND}'}</code> — losowe cyfry zamiast rosnącego licznika, dla firm,
-                    które nie chcą, aby numer wizyty zdradzał klientom liczbę zrealizowanych wizyt.
-                </Description>
+                <Subtitle>Numer nadawany każdej wizycie. Zmiana dotyczy tylko nowych wizyt.</Subtitle>
 
-                <Row>
+                <PlaceholderRow>
+                    {PLACEHOLDERS.map(p => (
+                        <Chip key={p.token} $required={p.required}>
+                            <code>{p.token}</code>
+                            {p.label}
+                        </Chip>
+                    ))}
+                </PlaceholderRow>
+                <RequiredNote>Wymagany dokładnie jeden z: {'{SEQ}'} albo {'{RAND}'}.</RequiredNote>
+
+                <PresetList>
+                    <PresetLabel>Szablon</PresetLabel>
+                    <PresetRow>
+                        {PRESETS.map(p => (
+                            <PresetBtn key={p.format} type="button" onClick={() => applyPreset(p.format)}>
+                                <PresetFormat>{p.format}</PresetFormat>
+                                <PresetHint>{p.hint}</PresetHint>
+                            </PresetBtn>
+                        ))}
+                    </PresetRow>
+                </PresetList>
+
+                <Row style={{ marginTop: 18 }}>
                     <Field $grow>
                         <Label>Format numeru</Label>
                         <Input
                             $mono
-                            $error={!!formatError}
+                            $error={!!(formatError || liveError)}
                             value={format}
                             onChange={e => {
                                 setFormat(e.target.value);
@@ -310,64 +397,27 @@ export const VisitNumberingSection = () => {
                             }}
                             placeholder="VIS-{YYYY}-{SEQ}"
                         />
-                        {formatError && <ErrorMsg>{formatError}</ErrorMsg>}
+                        {(formatError || liveError) && <ErrorMsg>⚠ {formatError || liveError}</ErrorMsg>}
                     </Field>
 
                     {isRandom ? (
-                        <Field>
-                            <Label>Cyfry numeru losowego</Label>
-                            <Input
-                                type="number"
-                                min={1}
-                                max={12}
-                                value={randomLength}
-                                onChange={e => {
-                                    const parsed = parseInt(e.target.value, 10);
-                                    setRandomLength(Number.isNaN(parsed) ? 1 : Math.min(Math.max(parsed, 1), 12));
-                                }}
-                            />
-                        </Field>
+                        <DigitLengthField
+                            label="Cyfry losowe"
+                            value={randomLength}
+                            min={1}
+                            max={12}
+                            onCommit={setRandomLength}
+                        />
                     ) : (
-                        <Field>
-                            <Label>Cyfry numeru porządkowego</Label>
-                            <Input
-                                type="number"
-                                min={1}
-                                max={10}
-                                value={sequenceLength}
-                                onChange={e => {
-                                    const parsed = parseInt(e.target.value, 10);
-                                    setSequenceLength(Number.isNaN(parsed) ? 1 : Math.min(Math.max(parsed, 1), 10));
-                                }}
-                            />
-                        </Field>
+                        <DigitLengthField
+                            label="Cyfry licznika"
+                            value={sequenceLength}
+                            min={1}
+                            max={10}
+                            onCommit={setSequenceLength}
+                        />
                     )}
                 </Row>
-
-                {isRandom && randomLength <= 3 && (
-                    <ErrorMsg style={{ marginTop: 8 }}>
-                        Przy tak małej liczbie cyfr rośnie ryzyko losowania numeru, który już
-                        istnieje — system w takim wypadku po prostu losuje ponownie, ale przy
-                        dużym ruchu warto ustawić więcej cyfr.
-                    </ErrorMsg>
-                )}
-
-                <TokensHint>
-                    Dostępne znaczniki: <code>{'{YYYY}'}</code> rok (4 cyfry), <code>{'{YY}'}</code> rok
-                    (2 cyfry), <code>{'{MM}'}</code> miesiąc, <code>{'{DD}'}</code> dzień, oraz dokładnie
-                    jeden z: <code>{'{SEQ}'}</code> rosnący numer porządkowy, albo{' '}
-                    <code>{'{RAND}'}</code> losowe cyfry (nie zdradzają liczby wizyt).
-                </TokensHint>
-
-                <PresetList>
-                    <PresetLabel>Gotowe formaty</PresetLabel>
-                    {PRESETS.map(p => (
-                        <PresetBtn key={p.format} type="button" onClick={() => applyPreset(p.format)}>
-                            <PresetFormat>{p.format}</PresetFormat>
-                            <PresetHint>{p.hint}</PresetHint>
-                        </PresetBtn>
-                    ))}
-                </PresetList>
 
                 <PreviewBox>
                     <PreviewLabel>Podgląd:</PreviewLabel>
