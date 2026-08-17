@@ -108,21 +108,6 @@ export const Avatar = styled.span`
     user-select: none;
 `;
 
-/** Vehicle icon tile — same footprint as Avatar so both cards align. */
-export const EntityTile = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: ${st.bgCardAlt};
-    color: ${st.textSecondary};
-    flex-shrink: 0;
-
-    svg { width: 19px; height: 19px; }
-`;
-
 export const IdentityText = styled.div`
     display: flex;
     flex-direction: column;
