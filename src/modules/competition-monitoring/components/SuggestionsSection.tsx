@@ -106,6 +106,9 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                         </strong>
                         <span>
                             {suggestion.fullName ? `${suggestion.fullName} · ` : ''}
+                            {suggestion.followerCount != null
+                                ? `${new Intl.NumberFormat('pl-PL', { notation: 'compact', maximumFractionDigits: 1 }).format(suggestion.followerCount)} obs. · `
+                                : ''}
                             {suggestion.recommendedByCount > 1
                                 ? `podobny do ${suggestion.recommendedByCount} obserwowanych profili`
                                 : `podobny do @${suggestion.similarTo}`}

@@ -12,6 +12,7 @@ import { useOverview, useBenchmark } from '../hooks/useAnalytics';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { OverviewTab } from '../components/OverviewTab';
 import { BenchmarkTab } from '../components/BenchmarkTab';
+import { SyncStatusBar } from '../components/SyncStatusBar';
 import { ContentTab } from '../components/ContentTab';
 import { ReportTab } from '../components/ReportTab';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
@@ -177,6 +178,14 @@ export const CompetitionMonitoringView = () => {
                     </>
                 }
             />
+
+            {overviewQuery.data && (
+                <SyncStatusBar
+                    lastSyncAt={overviewQuery.data.lastSyncAt}
+                    nextDailySyncAt={overviewQuery.data.nextDailySyncAt}
+                    nextDeepSyncAt={overviewQuery.data.nextDeepSyncAt}
+                />
+            )}
 
             <TabBar>
                 {TABS.map(item => (

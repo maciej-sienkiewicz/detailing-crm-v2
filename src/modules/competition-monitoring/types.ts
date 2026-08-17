@@ -71,6 +71,10 @@ export interface Overview {
     /** Liczebność obserwowanej grupy – wszystkie porównania dotyczą tylko tej grupy. */
     comparisonGroupSize: number;
     lastSyncAt: string | null;
+    /** Najbliższa lekka synchronizacja (codzienna). */
+    nextDailySyncAt: string | null;
+    /** Najbliższa pełna synchronizacja (tygodniowa). */
+    nextDeepSyncAt: string | null;
     profilesCount: number;
     hasSelf: boolean;
     selfUsername: string | null;
@@ -194,8 +198,35 @@ export interface ProfileSuggestion {
     username: string;
     fullName: string | null;
     isVerified: boolean;
+    /** Liczba obserwujących sugerowanego konta; null gdy nie udało się jej pobrać. */
+    followerCount: number | null;
     recommendedByCount: number;
     similarTo: string;
+}
+
+// ─── Wyjaśnienie tygodnia (klik w słupek przyrostu obserwujących) ────────────
+
+export interface WeekDetailPost {
+    postId: string;
+    permalink: string;
+    takenAt: string;
+    format: ContentFormat;
+    caption: string | null;
+    likeCount: number;
+    commentCount: number;
+    viewCount: number | null;
+    engagement: number;
+}
+
+export interface WeekDetail {
+    profileId: string;
+    username: string;
+    weekStart: string;
+    followerDelta: number | null;
+    medianEngagement: number | null;
+    medianViews: number | null;
+    posts: WeekDetailPost[];
+    insights: { type: string; title: string }[];
 }
 
 // ─── Raport tygodnia ─────────────────────────────────────────────────────────

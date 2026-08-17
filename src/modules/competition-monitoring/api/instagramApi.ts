@@ -12,6 +12,7 @@ import type {
     InstagramPostResult,
     InstagramProfile,
     Overview,
+    WeekDetail,
     WeeksOption,
 } from '../types';
 
@@ -68,6 +69,14 @@ export const instagramApi = {
 
     getBenchmark: async (weeks: WeeksOption): Promise<Benchmark> => {
         const response = await apiClient.get<Benchmark>(`${ANALYTICS_PATH}/benchmark`, { params: { weeks } });
+        return response.data;
+    },
+
+    /** Wyjaśnienie tygodnia: publikacje i zdarzenia stojące za przyrostem obserwujących. */
+    getWeekDetail: async (profileId: string, weekStart: string): Promise<WeekDetail> => {
+        const response = await apiClient.get<WeekDetail>(`${ANALYTICS_PATH}/benchmark/week-detail`, {
+            params: { profileId, weekStart },
+        });
         return response.data;
     },
 
