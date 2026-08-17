@@ -21,6 +21,9 @@ export interface VehicleSummary {
     model: string;
     year?: number;
     licensePlate?: string;
+    /** Check-in extras — carried through so the wizard round-trips them losslessly. */
+    vin?: string;
+    color?: string;
 }
 
 export type VehicleDraft = Omit<VehicleSummary, 'id'>;

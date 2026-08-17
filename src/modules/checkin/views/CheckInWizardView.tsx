@@ -564,6 +564,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                 onChange={updateFormData}
                                 onServicesChange={handleServicesChange}
                                 colors={colors}
+                                useEntityCards={true}
                                 initialCustomerData={initialData.customerData}
                                 initialHasFullCustomerData={initialData.hasFullCustomerData}
                                 initialIsNewCustomer={initialData.isNewCustomer}
