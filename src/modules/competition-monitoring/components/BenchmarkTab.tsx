@@ -9,6 +9,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Benchmark, BenchmarkRow } from '../types';
 import { PROFILE_COLORS } from '../types';
 import { Card, CardTitle, CardHint, MetricCell, SelfTag, formatNumber } from './MetricBits';
+import { WeekExplainPanel } from './WeekExplainPanel';
 
 /**
  * Porównanie: jedna tabela z pełnym kontekstem (delty + "typowe studio")
@@ -149,6 +150,8 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     }, [benchmark.rows]);
 
     const [selected, setSelected] = useState<string[]>(defaultSelection);
+    /** Kliknięty słupek przyrostu obserwujących → panel wyjaśnienia tygodnia. */
+    const [explain, setExplain] = useState<{ profileId: string; weekStart: string } | null>(null);
 
     const toggleProfile = (profileId: string) => {
         setSelected(prev => {
@@ -361,6 +364,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         Słupek = o ile zmieniła się liczba obserwujących w danym{' '}
                         {followerDeltaWeekly ? 'tygodniu' : 'dniu'}. Dzięki temu małe i duże profile
                         czyta się tak samo dobrze – liczy się zmiana, nie wielkość konta.
+                        {' '}Kliknij słupek, aby zobaczyć, co w tym tygodniu wydarzyło się na profilu.
                     </CardHint>
                     {followerDeltas.length === 0 ? (
                         <HintNote>
@@ -419,10 +423,23 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                         fill={colorFor(profileId)}
                                         radius={[3, 3, 0, 0]}
                                         maxBarSize={16}
+                                        cursor="pointer"
+                                        onClick={(entry: { payload?: Record<string, number | string> }) => {
+                                            const date = String(entry?.payload?.date ?? '');
+                                            if (date) setExplain({ profileId, weekStart: date });
+                                        }}
                                     />
                                 ))}
                             </BarChart>
                         </ResponsiveContainer>
+                    )}
+                    {explain && (
+                        <WeekExplainPanel
+                            profileId={explain.profileId}
+                            username={usernameFor(explain.profileId)}
+                            weekStart={explain.weekStart}
+                            onClose={() => setExplain(null)}
+                        />
                     )}
                 </Card>
             </ChartsGrid>

@@ -171,13 +171,6 @@ const InsightsGrid = styled.div`
     gap: 12px;
 `;
 
-const SyncNote = styled.p`
-    margin: 0;
-    text-align: center;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
 export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
     const dismiss = useDismissInsight();
 
@@ -346,16 +339,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                 </div>
             </Card>
 
-            {overview.lastSyncAt && (
-                <SyncNote>
-                    Dane z{' '}
-                    {new Date(overview.lastSyncAt).toLocaleDateString('pl-PL', {
-                        day: 'numeric',
-                        month: 'long',
-                    })}
-                    {' '}· odświeżamy codziennie rano, pełna analiza w każdą niedzielę
-                </SyncNote>
-            )}
+            {/* Status synchronizacji przeniesiony do SyncStatusBar nad zakładkami. */}
         </Layout>
     );
 };

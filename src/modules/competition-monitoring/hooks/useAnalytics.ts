@@ -65,6 +65,14 @@ export const useHashtags = (weeks: WeeksOption, enabled = true) =>
         enabled,
     });
 
+export const useWeekDetail = (profileId: string | null, weekStart: string | null) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.benchmark, 'week-detail', profileId, weekStart],
+        queryFn: () => instagramApi.getWeekDetail(profileId!, weekStart!),
+        staleTime: STALE_TIME,
+        enabled: !!profileId && !!weekStart,
+    });
+
 export const useSuggestions = (enabled = true) =>
     useQuery({
         queryKey: [ANALYTICS_KEYS.suggestions],
