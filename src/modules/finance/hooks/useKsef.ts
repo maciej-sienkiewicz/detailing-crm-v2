@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ksefApi } from '../api/ksefApi';
+import { useCapability } from '@/modules/subscription';
 import { FINANCE_SUMMARY_KEY } from './useFinance';
 import type {
   KsefExpenseListFilters,
@@ -24,6 +25,37 @@ export const useKsefCredentials = () => {
   });
 
   return { credentials: data ?? null, isLoading, isError };
+};
+
+/**
+ * Whether invoices can reach KSeF on their own.
+ *
+ * Without a token the send fails at authentication, which the dispatcher reports as
+ * a transient failure and queues for offline24 retry — a retry that can never
+ * succeed. Call sites use this to tell the studio the truth instead, and to offer
+ * the XML for manual upload.
+ *
+ * The credentials endpoint is gated on the KSeF module, so it is only queried for
+ * studios that have it.
+ */
+export const useKsefAutomation = (options?: { enabled?: boolean }) => {
+  const ksefModule = useCapability('FINANCE_KSEF');
+  const enabled = (options?.enabled ?? true) && ksefModule.enabled;
+
+  const { data, isLoading } = useQuery({
+    queryKey: KSEF_CREDENTIALS_KEY,
+    queryFn:  () => ksefApi.getCredentials(),
+    enabled,
+  });
+
+  return {
+    /** The studio bought the KSeF module. */
+    moduleEnabled: ksefModule.enabled,
+    /** A token is saved, so invoices are sent automatically. */
+    configured: !!data?.nip,
+    /** True while the answer is still unknown — do not render a warning yet. */
+    isLoading: ksefModule.isLoading || (enabled && isLoading),
+  };
 };
 
 export const useSaveKsefCredentials = () => {
