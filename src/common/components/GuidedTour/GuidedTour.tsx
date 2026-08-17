@@ -252,7 +252,11 @@ export interface TourStep {
 interface GuidedTourProps {
   steps: TourStep[];
   onClose: () => void;
-  /** Runs when the last step is confirmed — before the tour closes itself. */
+  /**
+   * Runs when the last step is confirmed, and TAKES OVER from there — the tour does
+   * not close itself. That is what lets a tour hand off to something else, such as
+   * the purchase dialog it introduces. Without it, the last step just closes.
+   */
   onFinish?: () => void;
   /** Label of the primary button on the last step. */
   finishLabel?: string;
@@ -267,12 +271,15 @@ export function GuidedTour({ steps, onClose, onFinish, finishLabel = 'Zaczynam' 
   if (!current) return null;
 
   const next = () => {
-    if (isLast) {
-      onFinish?.();
-      onClose();
-    } else {
+    if (!isLast) {
       setStep(s => s + 1);
+      return;
     }
+    // Whoever passed onFinish owns what happens next. Calling onClose as well would
+    // tear down the caller along with the tour — which is exactly what made
+    // "Rozumiem i kontynuuję zakup" close the purchase dialog instead of opening it.
+    if (onFinish) onFinish();
+    else onClose();
   };
 
   return createPortal(
