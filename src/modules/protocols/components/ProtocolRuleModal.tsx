@@ -217,8 +217,7 @@ export const ProtocolRuleModal = ({
 
             onSuccess?.();
             onClose();
-        } catch (error) {
-            console.error(`Failed to ${editingRule ? 'update' : 'create'} protocol rule:`, error);
+        } catch {
             setErrors({ submit: `Wystąpił błąd podczas ${editingRule ? 'aktualizacji' : 'tworzenia'} reguły` });
         }
     };

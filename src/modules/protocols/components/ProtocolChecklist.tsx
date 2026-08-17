@@ -293,8 +293,8 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
             });
 
             refetch();
-        } catch (error) {
-            console.error('Failed to sign protocol:', error);
+        } catch {
+            // TODO: handled error silently
         } finally {
             setSigningProtocol(null);
         }
@@ -302,7 +302,6 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
 
     const handleSignAll = () => {
         // Open signature flow for all unsigned protocols
-        console.log('Opening signature flow for all protocols...');
     };
 
     if (isLoading) {

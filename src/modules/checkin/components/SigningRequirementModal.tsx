@@ -298,8 +298,8 @@ export const SigningRequirementModal = ({
                 try {
                     const request = await tabletApi.getSignatureRequest(requestId);
                     applySignatureOutcome(protocolId, requestId, `SIGNATURE_${request.status}`, request.failureReason);
-                } catch (err) {
-                    console.error('[SigningRequirementModal] Failed to re-sync signature request:', err);
+                } catch {
+                    // TODO: handled error silently
                 }
             });
         },

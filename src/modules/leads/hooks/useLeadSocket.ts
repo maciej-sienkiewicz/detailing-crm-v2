@@ -193,15 +193,10 @@ export function useLeadSocket(): void {
             handleLeadClientReplied(event as LeadEvent<LeadClientRepliedPayload>);
             break;
           default:
-            console.warn('[LeadSocket] Unknown event type:', event.type);
+            break;
         }
-      } catch (err) {
-        console.error(
-          '[LeadSocket] Failed to parse message:',
-          err,
-          'Raw body:',
-          message.body
-        );
+      } catch {
+        // TODO: handled error silently
       }
     },
     [handleNewInboundCall, handleLeadUpdated, handleReplyAppended, handleLeadClientReplied]

@@ -404,7 +404,6 @@ export const dashboardApi = {
     if (USE_MOCKS) {
       return new Promise((resolve) => {
         setTimeout(() => {
-          console.log(`[Mock] Accepted call: ${callId}`);
           resolve();
         }, 500);
       });
@@ -423,7 +422,6 @@ export const dashboardApi = {
     if (USE_MOCKS) {
       return new Promise((resolve) => {
         setTimeout(() => {
-          console.log(`[Mock] Rejected call: ${callId}`);
           resolve();
         }, 500);
       });
@@ -446,7 +444,6 @@ export const dashboardApi = {
     if (USE_MOCKS) {
       return new Promise((resolve) => {
         setTimeout(() => {
-          console.log(`[Mock] Updated call ${callId}:`, data);
           resolve();
         }, 500);
       });

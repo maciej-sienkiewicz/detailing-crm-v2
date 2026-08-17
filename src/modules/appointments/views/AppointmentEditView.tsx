@@ -373,8 +373,7 @@ export const AppointmentEditView = () => {
         try {
             startInstant = toInstant(formData.visitStartAt || '');
             endInstant = toInstant(formData.visitEndAt || '');
-        } catch (e) {
-            console.error('Błąd konwersji daty do Instant (edit):', e);
+        } catch {
             return null;
         }
 

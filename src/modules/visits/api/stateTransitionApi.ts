@@ -17,7 +17,6 @@ export const stateTransitionApi = {
     ): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock: Transition to READY_FOR_PICKUP', { visitId, payload });
             return;
         }
         await apiClient.post(
@@ -32,7 +31,6 @@ export const stateTransitionApi = {
     ): Promise<CompleteVisitResponse> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock: Transition to COMPLETED', { visitId, payload });
             return {
                 visitId, newStatus: 'completed', message: 'mock',
                 financialDocumentId: null, financialDocumentNumber: null,
@@ -48,7 +46,6 @@ export const stateTransitionApi = {
     reject: async (visitId: string): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock: Transition to REJECTED', { visitId });
             return;
         }
         await apiClient.post(`${BASE_PATH}/${visitId}/reject`);
@@ -57,7 +54,6 @@ export const stateTransitionApi = {
     archive: async (visitId: string): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock: Transition to ARCHIVED', { visitId });
             return;
         }
         await apiClient.post(`${BASE_PATH}/${visitId}/archive`);
@@ -75,7 +71,6 @@ export const stateTransitionApi = {
                 },
                 failed: [],
             };
-            console.log('Mock: Notifications sent', result);
             return result;
         }
         const response = await apiClient.post(

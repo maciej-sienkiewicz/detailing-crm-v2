@@ -62,8 +62,8 @@ export function useSignatureRequestsSocket(
                 try {
                     const event = JSON.parse(msg.body) as SignatureRequestSocketEvent;
                     handlersRef.current.onEvent(event);
-                } catch (err) {
-                    console.error('[SignatureRequestsSocket] Failed to parse message:', err);
+                } catch {
+                    // TODO: handled error silently
                 }
             })
         );

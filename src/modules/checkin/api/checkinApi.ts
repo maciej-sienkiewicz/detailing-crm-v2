@@ -49,7 +49,6 @@ const mockCreateVisitFromReservation = async (
     payload: ReservationToVisitPayload
 ): Promise<CreateVisitFromReservationResponse> => {
     await new Promise(resolve => setTimeout(resolve, 1200));
-    console.log('Mock: Creating visit from reservation', payload);
     return {
         visitId: `visit_${Date.now()}`,
         protocols: [

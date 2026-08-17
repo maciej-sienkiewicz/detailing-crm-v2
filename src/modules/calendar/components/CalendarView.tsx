@@ -1606,8 +1606,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             setPopoverOpen(false);
             showSuccess('Rezerwacja porzucona', 'Rezerwacja została oznaczona jako porzucona.');
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-        } catch (error) {
-            console.error('Failed to cancel reservation:', error);
+        } catch {
+            // TODO: handled error silently
         }
     }, [popoverEvent, showSuccess, queryClient]);
 
@@ -1622,8 +1622,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             setPopoverOpen(false);
             showSuccess('Rezerwacja przywrócona', 'Rezerwacja została przywrócona.');
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-        } catch (error) {
-            console.error('Failed to restore appointment:', error);
+        } catch {
+            // TODO: handled error silently
         }
     }, [popoverEvent, showSuccess, queryClient]);
 
@@ -1693,8 +1693,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             setPopoverOpen(false);
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
-        } catch (error) {
-            console.error('Failed to delete:', error);
+        } catch {
+            // TODO: handled error silently
         } finally {
             setIsConfirmDeleting(false);
         }

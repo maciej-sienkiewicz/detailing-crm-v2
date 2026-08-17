@@ -281,8 +281,8 @@ export const AppointmentColorListView = () => {
             await deleteMutation.mutateAsync(deletingColor.id);
             setDeletingColor(null);
             refetch();
-        } catch (error) {
-            console.error('Failed to delete color:', error);
+        } catch {
+            // TODO: handled error silently
         }
     };
 

@@ -30,8 +30,8 @@ export function useTabletsSocket(handlers: TabletSocketHandlers): void {
                 } else if (event.type === 'TABLET_REVOKED') {
                     handlersRef.current.onRevoked(event);
                 }
-            } catch (err) {
-                console.error('[TabletsSocket] Failed to parse message:', err);
+            } catch {
+                // TODO: handled error silently
             }
         });
 

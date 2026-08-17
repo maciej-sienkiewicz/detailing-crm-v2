@@ -37,8 +37,8 @@ export const SidebarProvider = ({ children }: SidebarProviderProps) => {
     useEffect(() => {
         try {
             localStorage.setItem(STORAGE_KEY, String(isCollapsed));
-        } catch (error) {
-            console.error('Failed to save sidebar state:', error);
+        } catch {
+            // TODO: handled error silently
         }
     }, [isCollapsed]);
 

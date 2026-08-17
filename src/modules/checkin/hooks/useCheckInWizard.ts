@@ -70,8 +70,8 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 setFormData(draft.formData);
                 setCurrentStep(draft.currentStep);
                 setCompletedSteps(draft.completedSteps);
-            } catch (error) {
-                console.error('Failed to load draft:', error);
+            } catch {
+                // TODO: handled error silently
             }
         }
     }, [reservationId]);
@@ -109,11 +109,8 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
     });
 
     const updateFormData = (updates: Partial<CheckInFormData>) => {
-        console.log('[DEBUG useCheckInWizard] updateFormData called with:', updates);
-        console.log('[DEBUG useCheckInWizard] Previous formData:', formData);
         setFormData(prev => {
             const newData = { ...prev, ...updates };
-            console.log('[DEBUG useCheckInWizard] New formData after merge:', newData);
             return newData;
         });
     };
@@ -157,8 +154,8 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 const { toInstant } = await import('@/common/dateTime');
                 endInstant = toInstant(formData.visitEndAt);
             }
-        } catch (e) {
-            console.error('Błąd konwersji daty do Instant:', e);
+        } catch {
+            // TODO: handled error silently
         }
 
         // Build unified Customer/Vehicle Identity (EXISTING/NEW/UPDATE)

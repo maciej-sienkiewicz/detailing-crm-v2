@@ -913,7 +913,6 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             queryClient.invalidateQueries({ queryKey: ['appointment-colors'] });
             setSelectedColorId(newColor.id);
         } catch (error: any) {
-            console.error('Failed to create color:', error);
             showError('Błąd tworzenia koloru', error?.message || 'Nie udało się utworzyć koloru. Spróbuj ponownie.');
         }
     };

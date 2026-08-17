@@ -57,8 +57,8 @@ export function useCheckinSocket({
                     };
                     onDamageUpdatedRef.current?.(normalised);
                 }
-            } catch (err) {
-                console.error('[CheckinSocket] Failed to parse message:', err);
+            } catch {
+                // TODO: handled error silently
             }
         };
 

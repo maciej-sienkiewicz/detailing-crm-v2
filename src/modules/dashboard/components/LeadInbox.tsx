@@ -255,7 +255,6 @@ export const LeadInbox = ({ calls, onAccept, onEdit, onReject }: LeadInboxProps)
   const handleEdit = (callId: string) => {
     // TODO: Implement modal or inline editing
     // For now, just log the action
-    console.log('Edit call:', callId);
     setEditingCallId(callId);
     // Example: onEdit(callId, { contactName: 'Updated Name' });
   };

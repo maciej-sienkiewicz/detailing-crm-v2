@@ -109,8 +109,7 @@ export const useAppointmentCreation = () => {
                     : startDateTime,
             );
             endInstant = toInstant(endDateTime);
-        } catch (e) {
-            console.error('Błąd konwersji daty do Instant:', e);
+        } catch {
             return;
         }
 

@@ -144,8 +144,8 @@ export const useProtocolSigning = ({
                     try {
                         const request = await tabletApi.getSignatureRequest(requestId);
                         applyOutcome(protocolId, requestId, `SIGNATURE_${request.status}`, request.failureReason);
-                    } catch (error) {
-                        console.error('[useProtocolSigning] Nie udało się odświeżyć stanu podpisu:', error);
+                    } catch {
+                        // TODO: handled error silently
                     }
                 });
             },
