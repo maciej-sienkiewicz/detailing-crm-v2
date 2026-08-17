@@ -695,6 +695,12 @@ interface VerificationStepProps {
     onServicesChange: (services: ServiceLineItem[]) => void;
     colors: AppointmentColor[];
     showTechnicalSection?: boolean;
+    /**
+     * Hides the built-in customer (2) and vehicle (3) sections. Used by the visit
+     * edit view, which renders the entity summary cards (entity-cards/) instead —
+     * selection/mutation intent is declared there, not inferred from hot inputs.
+     */
+    hideCustomerAndVehicleSections?: boolean;
     hideVehicleColorAndPaint?: boolean;
     hideLicensePlate?: boolean;
     hideVehicleHandoff?: boolean;
@@ -717,6 +723,7 @@ export const VerificationStep = ({
     onServicesChange,
     colors,
     showTechnicalSection = true,
+    hideCustomerAndVehicleSections = false,
     hideVehicleColorAndPaint = false,
     hideLicensePlate = false,
     hideVehicleHandoff = false,
@@ -1351,6 +1358,7 @@ export const VerificationStep = ({
             </SectionCard>
 
             {/* ── 2. Dane klienta ───────────────────────────────────────── */}
+            {!hideCustomerAndVehicleSections && (<>
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
@@ -1748,6 +1756,7 @@ export const VerificationStep = ({
                     </FormGrid>
                 </SectionBody>
             </SectionCard>
+            </>)}
 
             {/* ── 4. Stan techniczny (conditional) ─────────────────────── */}
             {showTechnicalSection && (
