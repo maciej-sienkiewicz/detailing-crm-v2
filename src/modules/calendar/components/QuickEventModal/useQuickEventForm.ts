@@ -104,6 +104,15 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
     // ─── Service state ─────────────────────────────────────────────────────────
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+    // Line-item instance id -> catalog/temp service id. The same service can be added
+    // more than once; each addition gets its own instance id so price/adjustment/notes
+    // stay independent per line instead of colliding on a shared catalog id.
+    const [serviceRefs, setServiceRefs] = useState<{ [lineId: string]: string }>({});
+    const lineIdSeqRef = useRef(0);
+    const nextLineId = (catalogId: string) => {
+        lineIdSeqRef.current += 1;
+        return `${catalogId}::${lineIdSeqRef.current}`;
+    };
     const [servicePrices, setServicePrices] = useState<{ [key: string]: number }>({});
     const [servicePriceInputs, setServicePriceInputs] = useState<{ [id: string]: { net: string; gross: string } }>({});
     const [serviceAdjustments, setServiceAdjustments] = useState<{ [key: string]: ServiceAdjustment }>({});
@@ -346,6 +355,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setSelectedCustomer(null);
         setSelectedVehicle(null);
         setSelectedServiceIds([]);
+        setServiceRefs({});
+        lineIdSeqRef.current = 0;
         setServicePrices({});
         setServiceAdjustments({});
         setServiceNotes({});
@@ -570,6 +581,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 endDateTime,
                 isAllDay,
                 serviceIds: selectedServiceIds,
+                serviceRefs,
                 servicePrices,
                 serviceAdjustments,
                 serviceNotes,
@@ -835,7 +847,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const addService = (service: Service) => {
-        if (selectedServiceIds.includes(service.id)) return;
+        // Adding the same service more than once is allowed — each addition is its
+        // own line item with its own price/adjustment/notes (see `serviceRefs`).
         if (service.requireManualPrice) {
             setPendingService(service);
             setIsPriceInputModalOpen(true);
@@ -843,13 +856,15 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setShowServiceDropdown(false);
             return;
         }
-        setSelectedServiceIds(prev => [...prev, service.id]);
+        const lineId = nextLineId(service.id);
+        setSelectedServiceIds(prev => [...prev, lineId]);
+        setServiceRefs(prev => ({ ...prev, [lineId]: service.id }));
         // Prefer the catalog's stored gross — re-deriving from net drifts by 1 gr for gross-entered prices
         const grossPrice = service.basePriceGross != null
             ? roundTo2(service.basePriceGross / 100)
             : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
-        setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
-        initPriceInputs(service.id, grossPrice, service.vatRate);
+        setServicePrices(prev => ({ ...prev, [lineId]: grossPrice }));
+        initPriceInputs(lineId, grossPrice, service.vatRate);
         setServiceSearch('');
         setShowServiceDropdown(false);
     };
@@ -858,9 +873,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (!pendingService) return;
         const vatRate = pendingService.vatRate || 23;
         const gross = roundTo2((priceNet / 100) * (100 + vatRate) / 100);
-        setSelectedServiceIds(prev => [...prev, pendingService.id]);
-        setServicePrices(prev => ({ ...prev, [pendingService.id]: gross }));
-        initPriceInputs(pendingService.id, gross, vatRate);
+        const lineId = nextLineId(pendingService.id);
+        setSelectedServiceIds(prev => [...prev, lineId]);
+        setServiceRefs(prev => ({ ...prev, [lineId]: pendingService.id }));
+        setServicePrices(prev => ({ ...prev, [lineId]: gross }));
+        initPriceInputs(lineId, gross, vatRate);
         setPendingService(null);
     };
 
@@ -952,6 +969,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
         // Services
         selectedServiceIds, setSelectedServiceIds,
+        serviceRefs, setServiceRefs,
         servicePrices, setServicePrices,
         servicePriceInputs, setServicePriceInputs,
         serviceAdjustments, setServiceAdjustments,

@@ -6,7 +6,7 @@
 // (e-mail / SMS). If the card has already been delivered, a clear banner
 // says so, to avoid sending the same card twice by accident.
 
-import { useCapability } from '@/modules/subscription';
+import { useCapability, UpsellModal } from '@/modules/subscription';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -89,6 +89,42 @@ const SentBannerText = styled.div`
     font-size: 12.5px;
     line-height: 1.5;
     color: #065f46;
+
+    strong { font-weight: 700; }
+`;
+
+/* ── "wysyłka niedostępna" banner — replaces a tooltip on the disabled send
+   button, which only tells the user why AFTER they've already tried. ── */
+
+const LockedBanner = styled.button`
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(217, 119, 6, 0.08);
+    border: 1px solid rgba(217, 119, 6, 0.3);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+
+    &:hover { background: rgba(217, 119, 6, 0.13); }
+
+    svg {
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+        color: #b45309;
+        margin-top: 1px;
+    }
+`;
+
+const LockedBannerText = styled.div`
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #92400e;
 
     strong { font-weight: 700; }
 `;
@@ -177,6 +213,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
     const [copied, setCopied] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [upsellOpen, setUpsellOpen] = useState(false);
 
     const target: UpsellTarget = visitId
         ? { kind: 'visit', id: visitId }
@@ -260,6 +297,19 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
             <ModalContent>
+                {!comms.enabled && (
+                    <LockedBanner type="button" onClick={() => setUpsellOpen(true)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <LockedBannerText>
+                            <strong>Wysyłka niedostępna</strong> — {comms.lockReason ?? 'brak modułu automatyzacji'}.
+                            Kliknij, aby rozszerzyć abonament.
+                        </LockedBannerText>
+                    </LockedBanner>
+                )}
+
                 {loadError && <ErrorText>Nie udało się pobrać linku Karty Wizyty.</ErrorText>}
 
                 {!loadError && (
@@ -306,7 +356,6 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     $variant="primary"
                     onClick={() => setIsPickingChannel(true)}
                     disabled={!link || isSending || isPickingChannel || !comms.enabled}
-                    title={comms.enabled ? undefined : (comms.lockReason ?? 'Wymaga modułu komunikacji')}
                 >
                     {isSending
                         ? 'Wysyłanie…'
@@ -353,6 +402,10 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>
+
+            {upsellOpen && (
+                <UpsellModal capability="COMM_SEND_TRANSACTIONAL" onClose={() => setUpsellOpen(false)} />
+            )}
         </ModalShell>
     );
 };

@@ -6,5 +6,6 @@ export { useFeature } from './hooks/useFeature';
 export { useCapability } from './hooks/useCapability';
 export { RequireCapability } from './components/RequireCapability';
 export { PaywallListener } from './components/PaywallListener';
+export { UpsellModal } from './components/UpsellModal';
 export { useEntitlements, useStartTrial } from './api/subscriptionQueries';
 export type { FeatureKey, FeatureStatus, CapabilityKey, CapabilityStatus } from './types';

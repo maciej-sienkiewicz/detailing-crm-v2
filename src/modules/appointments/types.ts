@@ -99,6 +99,10 @@ export interface AppointmentCreateRequest {
     };
     appointmentTitle?: string;
     note?: string;
+    /** Visible only inside the CRM, never printed on the pickup protocol. */
+    internalNote?: string;
+    /** Printed on the vehicle pickup protocol. */
+    protocolNote?: string;
     appointmentColorId: string;
     sendConfirmationSms?: boolean;
     sendReminderSms?: boolean;

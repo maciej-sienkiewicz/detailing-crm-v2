@@ -14,7 +14,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { PiiValue, joinPiiName } from '@/common/pii';
 import { LockedSection } from '@/common/components/LockedSection';
-import { useCapability } from '@/modules/subscription';
+import { useCapability, UpsellModal } from '@/modules/subscription';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useMarkReady } from '../../hooks/useMarkReady';
 import { useSmsReadiness } from '../../hooks/useSmsReadiness';
@@ -192,6 +192,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
         templateKey: 'visitReadyForPickup',
     });
     const [wizardOpen, setWizardOpen] = useState(false);
+    const [upsellOpen, setUpsellOpen] = useState(false);
 
     // Module gaps are already covered by the LockedSection below; this surfaces what
     // it cannot see.
@@ -258,7 +259,8 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
 
                         <LockedSection
                             locked={!comms.enabled}
-                            message="Twój abonament nie obsługuje powiadomień SMS."
+                            message="Twój abonament nie obsługuje powiadomień SMS ani e-mail."
+                            onLockedClick={() => setUpsellOpen(true)}
                         >
                             <Channel $checked={channels.sms}>
                                 <input
@@ -276,29 +278,29 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                                     </ChannelDetail>
                                 </ChannelText>
                             </Channel>
-                        </LockedSection>
 
-                        <Channel $checked={channels.email} $disabled={!hasEmail || !comms.enabled}>
-                            <input
-                                type="checkbox"
-                                checked={channels.email}
-                                disabled={!hasEmail || !comms.enabled}
-                                onChange={() => toggle('email')}
-                            />
-                            <ChannelIcon>
-                                <Mail />
-                            </ChannelIcon>
-                            <ChannelText>
-                                <ChannelLabel>E-mail</ChannelLabel>
-                                <ChannelDetail>
-                                    <PiiValue
-                                        value={visit.customer.email}
-                                        kind="email"
-                                        emptyFallback="Brak adresu e-mail"
-                                    />
-                                </ChannelDetail>
-                            </ChannelText>
-                        </Channel>
+                            <Channel $checked={channels.email} $disabled={!hasEmail}>
+                                <input
+                                    type="checkbox"
+                                    checked={channels.email}
+                                    disabled={!hasEmail}
+                                    onChange={() => toggle('email')}
+                                />
+                                <ChannelIcon>
+                                    <Mail />
+                                </ChannelIcon>
+                                <ChannelText>
+                                    <ChannelLabel>E-mail</ChannelLabel>
+                                    <ChannelDetail>
+                                        <PiiValue
+                                            value={visit.customer.email}
+                                            kind="email"
+                                            emptyFallback="Brak adresu e-mail"
+                                        />
+                                    </ChannelDetail>
+                                </ChannelText>
+                            </Channel>
+                        </LockedSection>
                     </Section>
 
                     <Box>
@@ -349,6 +351,9 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                 onClose={() => setWizardOpen(false)}
                 onReady={() => setWizardOpen(false)}
             />}
+            {upsellOpen && (
+                <UpsellModal capability="COMM_SEND_TRANSACTIONAL" onClose={() => setUpsellOpen(false)} />
+            )}
         </ModalShell>
     );
 };

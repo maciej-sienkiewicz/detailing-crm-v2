@@ -91,12 +91,26 @@ export const IconOpen = styled.span`
     }
 `;
 
-export const Message = styled.span`
+export const Message = styled.span<{ $clickable?: boolean }>`
     font-size: 12px;
     font-weight: 500;
     color: #64748b;
     text-align: center;
     line-height: 1.45;
+
+    ${p => p.$clickable && `
+        border: none;
+        background: none;
+        padding: 0;
+        font-family: inherit;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+
+        &:hover {
+            color: #334155;
+        }
+    `}
 `;
 
 export const UpgradeHint = styled.span`
