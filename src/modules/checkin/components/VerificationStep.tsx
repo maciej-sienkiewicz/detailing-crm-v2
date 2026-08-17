@@ -881,8 +881,6 @@ export const VerificationStep = ({
     }, [formData.company, onChange]);
 
     useEffect(() => {
-        console.log('[DEBUG VerificationStep] formData.homeAddress changed:', formData.homeAddress);
-        console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
     }, [formData.homeAddress, formData.company]);
 
     // Position the customer autocomplete dropdown below (or above) the focused input field
@@ -1230,7 +1228,6 @@ export const VerificationStep = ({
     };
 
     const handleCustomerSelect = async (customer: SelectedCustomer) => {
-        console.log('[DEBUG VerificationStep] handleCustomerSelect called with:', customer);
         const baseCustomerData = {
             customerData: {
                 id: customer.id || '',
@@ -1261,8 +1258,7 @@ export const VerificationStep = ({
                     } : null,
                 };
                 onChange(updateData);
-            } catch (error) {
-                console.error('Failed to fetch customer details:', error);
+            } catch {
                 onChange(baseCustomerData);
             }
         } else {

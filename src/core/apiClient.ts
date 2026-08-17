@@ -37,23 +37,14 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
     response => {
-        console.log('[apiClient] Response:', response.config.url, response.status);
         // Presentational signal: does this session see real personal data or masks?
         setPiiAccessFromHeader(response.headers?.['x-pii-access']);
         return response;
     },
     error => {
-        console.error('[apiClient] Request failed:', {
-            url: error.config?.url,
-            status: error.response?.status,
-            data: error.response?.data,
-            headers: error.response?.headers
-        });
-
         const status = error.response?.status;
 
         if (status === 401) {
-            console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
             const currentPath = window.location.pathname;
             const requestUrl = error.config?.url ?? '';
             const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice'];
@@ -66,7 +57,6 @@ apiClient.interceptors.response.use(
             const isPinEndpoint = requestUrl.includes('/v1/pin');
 
             if (!isPublicPath && !isPinEndpoint) {
-                console.warn('[apiClient] Przekierowanie na /login');
                 window.location.href = '/login';
             }
         }
@@ -111,7 +101,6 @@ apiClient.interceptors.response.use(
             // Only a deliberate action (mutation) gets a toast, because the user
             // clicked something and needs to know why nothing happened.
             // Either way, re-sync the permission set so the UI hides the capability.
-            console.warn('[apiClient] Access forbidden:', error.config?.url);
             const method = (error.config?.method ?? 'get').toLowerCase();
             if (method !== 'get' && method !== 'head') {
                 const message: string =
@@ -119,10 +108,6 @@ apiClient.interceptors.response.use(
                 window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
             }
             window.dispatchEvent(new CustomEvent('auth:permissions-stale'));
-        }
-
-        if (status !== undefined && status >= 500) {
-            console.error('Server error occurred');
         }
 
         return Promise.reject(error);

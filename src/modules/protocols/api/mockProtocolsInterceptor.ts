@@ -91,8 +91,6 @@ export const setupProtocolMockInterceptor = (apiClient: AxiosInstance) => {
         return;
     }
 
-    console.log('[Mock] Protocol mock interceptor enabled');
-
     apiClient.interceptors.request.use(
         async (config) => {
             const url = config.url || '';

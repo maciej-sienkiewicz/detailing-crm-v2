@@ -50,9 +50,7 @@ const topicRegistry = new Set<TopicRegistration>();
 const connectListeners = new Set<SocketConnectListener>();
 
 function log(...args: unknown[]): void {
-  if (import.meta.env.DEV) {
-    console.info('[STOMP]', ...args);
-  }
+  void args;
 }
 
 function resubscribeAll(client: Client): void {
@@ -82,10 +80,7 @@ function ensureClient(): Client {
     // Web-Worker heartbeats keep the session alive in throttled background tabs
     heartbeatStrategy: TickerStrategy.Worker,
 
-    debug: (msg) => {
-      if (import.meta.env.DEV) {
-        console.debug('[STOMP debug]', msg);
-      }
+    debug: () => {
     },
 
     onConnect: () => {
@@ -98,14 +93,13 @@ function ensureClient(): Client {
       for (const listener of connectListeners) {
         try {
           listener({ isReconnect });
-        } catch (err) {
-          console.error('[STOMP] Connect listener failed:', err);
+        } catch {
+          // TODO: handled error silently
         }
       }
     },
 
-    onStompError: (frame) => {
-      console.error('[STOMP] Broker error:', frame.headers['message'], frame.body);
+    onStompError: () => {
     },
 
     onWebSocketClose: (event) => {

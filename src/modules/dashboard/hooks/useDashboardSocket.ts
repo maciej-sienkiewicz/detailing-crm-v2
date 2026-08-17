@@ -64,10 +64,10 @@ export function useDashboardSocket(): void {
           handleNewInboundCall(event as DashboardEvent<InboundCallPayload>);
           break;
         default:
-          console.warn('[DashboardSocket] Unknown event type:', event.type);
+          break;
       }
-    } catch (err) {
-      console.error('[DashboardSocket] Failed to parse message:', err, 'Raw body:', message.body);
+    } catch {
+      // TODO: handled error silently
     }
   };
 

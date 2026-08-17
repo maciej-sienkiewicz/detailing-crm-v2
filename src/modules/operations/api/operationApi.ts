@@ -307,7 +307,6 @@ const mockGetVisits = async (filters: OperationFilters): Promise<OperationListRe
 
 const mockDeleteOperation = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log(`Soft delete operation: ${id}`);
 };
 
 export const operationApi = {

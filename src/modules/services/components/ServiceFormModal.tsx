@@ -290,8 +290,8 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
             }
             onSuccess?.();
             onClose();
-        } catch (error) {
-            console.error('Failed to save service:', error);
+        } catch {
+            // TODO: handled error silently
         }
     };
 

@@ -142,8 +142,7 @@ export const AppointmentColorFormModal = ({
             }
             onSuccess?.();
             onClose();
-        } catch (error) {
-            console.error('Failed to save appointment color:', error);
+        } catch {
             setErrors({ submit: 'Wystąpił błąd podczas zapisywania koloru' });
         }
     };

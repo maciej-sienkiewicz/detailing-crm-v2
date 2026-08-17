@@ -483,8 +483,8 @@ export const ProtocolTemplateModal = ({
         try {
             await deleteMutation.mutateAsync(template.id);
             onSuccess?.();
-        } catch (error) {
-            console.error('Failed to delete template:', error);
+        } catch {
+            // TODO: handled error silently
         }
     };
 
@@ -560,8 +560,8 @@ export const ProtocolTemplateModal = ({
                 if (verification && verification.verificationStatus === 'REJECTED') {
                     try {
                         await deleteMutation.mutateAsync(result.template.id);
-                    } catch (cleanupError) {
-                        console.error('Failed to cleanup rejected template:', cleanupError);
+                    } catch {
+                        // TODO: handled error silently
                     }
                     setErrors({ submit: buildRejectionMessage(verification) });
                     return;
@@ -570,7 +570,6 @@ export const ProtocolTemplateModal = ({
             resetForm();
             onSuccess?.();
         } catch (error) {
-            console.error('Failed to save template:', error);
             const errorMessage = error instanceof Error ? error.message : 'Wystąpił błąd podczas zapisywania szablonu';
             setErrors({ submit: errorMessage });
         }

@@ -100,7 +100,6 @@ export const CarLogoImage = ({ brand, size = 'md', className }: CarLogoImageProp
                 decoding="async"
                 onLoad={() => setImgState('loaded')}
                 onError={() => {
-                    console.warn(`[CarLogo] failed to load logo for brand "${brand}": ${logoUrl}`);
                     setImgState('error');
                 }}
             />

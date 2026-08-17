@@ -51,11 +51,10 @@ class ProtocolsApi {
       // CRITICAL: If upload fails, delete the template to prevent orphaned records
       // This is a temporary frontend solution. Ideally, backend should handle this
       // via a two-phase commit (uploadConfirmed flag + cleanup job).
-      console.error('S3 upload failed, cleaning up template:', uploadError);
       try {
         await this.deleteProtocolTemplate(template.id);
-      } catch (deleteError) {
-        console.error('Failed to cleanup template after upload failure:', deleteError);
+      } catch {
+        // TODO: handled error silently
       }
       // Re-throw the original upload error
       throw new Error(`Upload pliku nie powiódł się: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);

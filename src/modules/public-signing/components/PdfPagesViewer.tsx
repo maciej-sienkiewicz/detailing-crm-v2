@@ -100,7 +100,6 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
 
                 setState('done');
             } catch (err) {
-                console.error('[PdfPagesViewer] Failed to render PDF:', err);
                 if (cancelled) return;
                 if (retriesLeft > 0) {
                     // A failed dynamic import of pdf.js or its worker chunk (flaky

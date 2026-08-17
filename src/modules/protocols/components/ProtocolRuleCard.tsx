@@ -253,8 +253,8 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
         try {
             await deleteMutation.mutateAsync(rule.id);
             onRefresh?.();
-        } catch (error) {
-            console.error('Failed to delete protocol rule:', error);
+        } catch {
+            // TODO: handled error silently
         }
     };
 

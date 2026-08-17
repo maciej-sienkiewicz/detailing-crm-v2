@@ -335,10 +335,6 @@ export const PublicSigningView = () => {
                 } catch (error) {
                     if (cancelled) return;
                     const status = (error as { response?: { status?: number } })?.response?.status;
-                    console.error(
-                        `[PublicSigningView] Load attempt ${attempt + 1} failed (status=${status ?? 'network'}):`,
-                        error,
-                    );
                     if (status === 404) {
                         setPhase({ kind: 'invalid' });
                         return;

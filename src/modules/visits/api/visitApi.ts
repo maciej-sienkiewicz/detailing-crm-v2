@@ -559,7 +559,6 @@ export const visitApi = {
     cancelDraftVisit: async (visitId: string): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('Mock: Cancelling draft visit', visitId);
             return;
         }
         await apiClient.delete(`${BASE_PATH}/${visitId}`);
@@ -592,7 +591,6 @@ export const visitApi = {
     confirmDraftVisit: async (visitId: string, options?: ConfirmVisitOptions): Promise<{ visitId: string; message: string }> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 600));
-            console.log('Mock: Confirming draft visit', visitId, options);
             return {
                 visitId,
                 message: 'Visit confirmed successfully'
