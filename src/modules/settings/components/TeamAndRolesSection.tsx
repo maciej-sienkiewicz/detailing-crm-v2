@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import styled from 'styled-components';
-import { Container, Segmented, SegmentedBtn, SegmentedCount } from './rbacShared.styles';
+import { TabBar, type TabDefinition } from '@/common/components/TabBar';
+import { Container } from './rbacShared.styles';
 import { TeamSection, TEAM_PAGE_SIZE } from './TeamSection';
 import { RolesSection } from './RolesSection';
 import { useEmployees } from '../hooks/useTeam';
@@ -43,35 +43,19 @@ export function TeamAndRolesSection({ subView, onSubViewChange }: TeamAndRolesSe
     const employeeCount = pagination?.totalItems;
     const roleCount = roles.length;
 
-    const segments = useMemo(() => ([
-        { id: 'employees' as const, label: 'Pracownicy', icon: <UsersIcon />, count: employeeCount },
-        { id: 'roles' as const, label: 'Role i uprawnienia', icon: <ShieldIcon />, count: roleCount },
+    const tabs = useMemo<TabDefinition<TeamSubView>[]>(() => ([
+        { key: 'employees', label: 'Pracownicy', icon: <UsersIcon />, count: employeeCount },
+        { key: 'roles', label: 'Role i uprawnienia', icon: <ShieldIcon />, count: roleCount },
     ]), [employeeCount, roleCount]);
 
     return (
         <Container>
-            <SubNav>
-                <Segmented role="tablist" aria-label="Widok zespołu">
-                    {segments.map(seg => {
-                        const active = subView === seg.id;
-                        return (
-                            <SegmentedBtn
-                                key={seg.id}
-                                role="tab"
-                                aria-selected={active}
-                                $active={active}
-                                onClick={() => onSubViewChange(seg.id)}
-                            >
-                                {seg.icon}
-                                {seg.label}
-                                {seg.count !== undefined && (
-                                    <SegmentedCount $active={active}>{seg.count}</SegmentedCount>
-                                )}
-                            </SegmentedBtn>
-                        );
-                    })}
-                </Segmented>
-            </SubNav>
+            <TabBar
+                tabs={tabs}
+                activeKey={subView}
+                onChange={onSubViewChange}
+                ariaLabel="Widok zespołu"
+            />
 
             {subView === 'roles'
                 ? <RolesSection onGoToEmployees={() => onSubViewChange('employees')} />
@@ -79,11 +63,3 @@ export function TeamAndRolesSection({ subView, onSubViewChange }: TeamAndRolesSe
         </Container>
     );
 }
-
-const SubNav = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-`;

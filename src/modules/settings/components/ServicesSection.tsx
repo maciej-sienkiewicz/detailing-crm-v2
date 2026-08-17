@@ -17,6 +17,8 @@ import {
   parseMoneyInput,
 } from '@/modules/services/utils/priceCalculator';
 import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
+import { ServicesTableRow } from './services/ServicesTableRow';
+import { SERVICES_TABLE_GRID } from './services/servicesTable.helpers';
 
 // ─── Animations ───────────────────────────────────────────────────────────────────────────────
 
@@ -317,19 +319,6 @@ const ErrorMsg = styled.span`
   color: #ef4444;
 `;
 
-const GrossPreview = styled.div`
-  height: 38px;
-  padding: 0 12px;
-  font-size: 13px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 9px;
-  background: #f8fafc;
-  color: #475569;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-`;
-
 const ManualRow = styled.label`
   display: flex;
   align-items: flex-start;
@@ -438,7 +427,7 @@ const ServiceList = styled.div`
 
 const ListHeader = styled.div`
   display: grid;
-  grid-template-columns: 1fr 64px 160px 90px 72px;
+  grid-template-columns: ${SERVICES_TABLE_GRID};
   gap: 8px;
   padding: 10px 20px;
   border-bottom: 1px solid #f1f5f9;
@@ -451,130 +440,6 @@ const ColLabel = styled.span`
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-`;
-
-const ServiceRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 64px 160px 90px 72px;
-  gap: 8px;
-  align-items: center;
-  padding: 13px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  transition: background 150ms;
-
-  &:last-child { border-bottom: none; }
-  &:hover { background: #fafbfc; }
-`;
-
-const RowNameCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-`;
-
-const ServiceName = styled.span<{ $muted?: boolean }>`
-  font-size: 13px;
-  font-weight: 600;
-  color: ${p => p.$muted ? '#94a3b8' : '#0f172a'};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const ManualBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-  border-radius: 9999px;
-  white-space: nowrap;
-  flex-shrink: 0;
-`;
-
-const VatBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 9px;
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(14, 165, 233, 0.1);
-  color: #0ea5e9;
-  border-radius: 9999px;
-  white-space: nowrap;
-`;
-
-const PriceCell = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-`;
-
-const PriceNet = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-  white-space: nowrap;
-`;
-
-const PriceGross = styled.span`
-  font-size: 11px;
-  color: #94a3b8;
-  white-space: nowrap;
-`;
-
-const StatusCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding-left: 14px;
-`;
-
-const StatusDot = styled.div<{ $active: boolean }>`
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: ${p => p.$active ? '#10b981' : '#94a3b8'};
-`;
-
-const StatusLabel = styled.span<{ $active: boolean }>`
-  font-size: 11px;
-  font-weight: 600;
-  color: ${p => p.$active ? '#10b981' : '#94a3b8'};
-`;
-
-const ActionsCell = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-`;
-
-const ActionBtn = styled.button<{ $danger?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: ${p => p.$danger ? '#ef4444' : '#94a3b8'};
-  cursor: pointer;
-  transition: all 150ms;
-
-  &:hover:not(:disabled) {
-    background: ${p => p.$danger ? 'rgba(239,68,68,0.08)' : '#f1f5f9'};
-    border-color: ${p => p.$danger ? 'rgba(239,68,68,0.2)' : '#e2e8f0'};
-    color: ${p => p.$danger ? '#ef4444' : '#334155'};
-  }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────────────────
@@ -590,7 +455,7 @@ const SkeletonBox = styled.div<{ $w?: string }>`
 
 const SkeletonRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 64px 160px 90px 72px;
+  grid-template-columns: ${SERVICES_TABLE_GRID};
   gap: 8px;
   align-items: center;
   padding: 16px 20px;
@@ -734,32 +599,6 @@ const DangerBtn = styled.button`
 
 // ─── Package-specific styles ────────────────────────────────────────────────────────────────
 
-const PackageBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(37,99,235,0.08);
-  color: #2563eb;
-  border: 1px solid rgba(37,99,235,0.18);
-  border-radius: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-`;
-
-const PackageItemsHint = styled.div`
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 340px;
-`;
-
 const AddPackageButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -882,21 +721,11 @@ const VAT_OPTIONS: { value: VatRate; label: string }[] = [
   { value: -1, label: 'zw.' },
 ];
 
-const formatPLN = (grosze: number): string => {
-  const formatted = formatMoneyAmount(grosze);
-  return `${parseFloat(formatted).toLocaleString('pl-PL', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} zł`;
-};
-
 const formatDecimalInput = (grosze: number): string =>
   formatMoneyAmount(grosze).replace('.', ',');
 
 const isValidPriceInput = (raw: string): boolean =>
   raw === '' || /^\d*[,.]?\d{0,2}$/.test(raw);
-
-const vatLabel = (rate: VatRate): string => (rate === -1 ? 'zw.' : `${rate}%`);
 
 function buildPageNumbers(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -1755,82 +1584,15 @@ export const ServicesSection: React.FC = () => {
             </EmptyDesc>
           </EmptyWrap>
         ) : (
-          services.map(service => {
-            const calc = !service.requireManualPrice
-              ? {
-                  ...calculateGrossFromNet(service.basePriceNet, service.vatRate),
-                  priceGross: service.basePriceGross
-                      ?? calculateGrossFromNet(service.basePriceNet, service.vatRate).priceGross,
-                }
-              : null;
-
-            return (
-              <ServiceRow key={service.id}>
-                <RowNameCell style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ServiceName $muted={!service.isActive}>{service.name}</ServiceName>
-                    {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
-                    {service.requireManualPrice && <ManualBadge>Wycena ręczna</ManualBadge>}
-                  </div>
-                  {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
-                    <PackageItemsHint>
-                      {service.packageItems.map(i => i.serviceName).join(' · ')}
-                    </PackageItemsHint>
-                  )}
-                </RowNameCell>
-
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <VatBadge>{vatLabel(service.vatRate)}</VatBadge>
-                </div>
-
-                {service.requireManualPrice ? (
-                  <PriceCell>
-                    <PriceNet style={{ color: '#94a3b8' }}>–</PriceNet>
-                  </PriceCell>
-                ) : (
-                  <PriceCell>
-                    <PriceNet>{formatPLN(service.basePriceNet)}</PriceNet>
-                    {calc && <PriceGross>{formatPLN(calc.priceGross)} brutto</PriceGross>}
-                  </PriceCell>
-                )}
-
-                <StatusCell>
-                  <StatusDot $active={service.isActive} />
-                  <StatusLabel $active={service.isActive}>
-                    {service.isActive ? 'Aktywna' : 'Archiwalna'}
-                  </StatusLabel>
-                </StatusCell>
-
-                <ActionsCell>
-                  {service.isActive && (
-                    <>
-                      <ActionBtn
-                        title="Edytuj"
-                        disabled={anyFormOpen}
-                        onClick={() => openEdit(service)}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      </ActionBtn>
-                      <ActionBtn
-                        $danger
-                        title="Archiwizuj"
-                        onClick={() => setArchiveTarget(service)}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="21 8 21 21 3 21 3 8"/>
-                          <rect x="1" y="3" width="22" height="5"/>
-                          <line x1="10" y1="12" x2="14" y2="12"/>
-                        </svg>
-                      </ActionBtn>
-                    </>
-                  )}
-                </ActionsCell>
-              </ServiceRow>
-            );
-          })
+          services.map(service => (
+            <ServicesTableRow
+              key={service.id}
+              service={service}
+              actionsDisabled={anyFormOpen}
+              onEdit={openEdit}
+              onArchive={setArchiveTarget}
+            />
+          ))
         )}
 
         {/* ── Pagination ── */}
