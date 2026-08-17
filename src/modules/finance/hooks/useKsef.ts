@@ -69,6 +69,21 @@ export const useSaveKsefCredentials = () => {
   });
 };
 
+/**
+ * Weryfikuje token w KSeF. Wynik ląduje też w GET /credentials (backend go
+ * zapisuje), więc po sukcesie wystarczy unieważnić query poświadczeń.
+ */
+export const useVerifyKsefToken = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => ksefApi.verifyCredentials(),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: KSEF_CREDENTIALS_KEY });
+    },
+  });
+};
+
 export const useDeleteKsefCredentials = () => {
   const queryClient = useQueryClient();
 
