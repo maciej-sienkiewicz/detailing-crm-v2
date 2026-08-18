@@ -415,7 +415,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
 
                                 <Td>
                                     <DateMain>
-                                        {vehicle.stats.lastVisitDate ? formatDate(vehicle.stats.lastVisitDate) : '—'}
+                                        {vehicle.stats.lastVisitDate ? formatDate(vehicle.stats.lastVisitDate) : '-'}
                                     </DateMain>
                                 </Td>
 

@@ -258,12 +258,12 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                                 <AmountCell>{formatCents(e.totalGrossCents)}</AmountCell>
                                             </Td>
                                             <TdMuted>
-                                                {e.totalNetCents != null ? formatCents(e.totalNetCents) : '—'}
+                                                {e.totalNetCents != null ? formatCents(e.totalNetCents) : '-'}
                                             </TdMuted>
                                             <TdMuted>
                                                 {e.employerCostTotalCents != null
                                                     ? formatCents(e.employerCostTotalCents)
-                                                    : '—'}
+                                                    : '-'}
                                             </TdMuted>
                                             <TdMuted>{Number(e.totalHoursWorked).toFixed(1)} h</TdMuted>
                                             <Td>

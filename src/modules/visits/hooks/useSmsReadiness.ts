@@ -18,7 +18,7 @@ import type { CapabilityUpsellOption } from '@/modules/subscription/types';
  *
  * Order matters on the wire, not in the result: the credits and template endpoints
  * are themselves gated on the module, so they are only queried once it is active.
- * Until then those requirements read as `unknown` rather than `missing` — we have
+ * Until then those requirements read as `unknown` rather than `missing`: we have
  * not checked them, and saying otherwise would just be a different wrong answer.
  */
 export type SmsRequirementId = 'module' | 'template' | 'credits' | 'phone';
@@ -28,7 +28,7 @@ export type SmsRequirementStatus =
     | 'ok'
     /** Blocks sending and can be resolved from the wizard. */
     | 'missing'
-    /** Satisfied for now, but about to bite — low credit balance. */
+    /** Satisfied for now, but about to bite: low credit balance. */
     | 'warning'
     /** Not checked yet, because an earlier requirement gates the check. */
     | 'unknown';
@@ -38,7 +38,7 @@ export interface SmsRequirement {
     status: SmsRequirementStatus;
     /** Short name of the thing that is needed. */
     label: string;
-    /** The current state, in the studio's terms — "0 szt.", "39 zł/mies.". */
+    /** The current state, in the studio's terms: "0 szt.", "39 zł/mies.". */
     detail: string;
     /** Whether the activation wizard can fix this itself. */
     fixable: boolean;
@@ -47,7 +47,7 @@ export interface SmsRequirement {
 export interface SmsReadiness {
     /** True when nothing blocks sending. */
     ready: boolean;
-    /** True while the answer is still being assembled — render nothing, not a lock. */
+    /** True while the answer is still being assembled: render nothing, not a lock. */
     isLoading: boolean;
     requirements: SmsRequirement[];
     /** Blocking requirements, in the order the wizard should resolve them. */
@@ -62,7 +62,7 @@ export interface SmsReadiness {
 }
 
 export interface UseSmsReadinessOptions {
-    /** Skips every query — for modals that are closed. */
+    /** Skips every query: for modals that are closed. */
     enabled?: boolean;
     /** The recipient's number; absent means this particular send cannot happen. */
     customerPhone?: string | null;
@@ -136,7 +136,7 @@ export function useSmsReadiness({
                 detail: !moduleEnabled
                     ? 'sprawdzimy po aktywacji modułu'
                     : sendable ? 'włączony'
-                    : rule?.enabled ? 'włączony, ale pusty — nic nie wyśle'
+                    : rule?.enabled ? 'włączony, ale pusty: nic nie wyśle'
                     : 'wyłączony',
                 fixable: true,
             });
@@ -153,13 +153,13 @@ export function useSmsReadiness({
                 : 'ok',
             label: 'Kredyty SMS',
             detail: !moduleEnabled ? 'sprawdzimy po aktywacji modułu'
-                : credits === null ? '—'
+                : credits === null ? '-'
                 : `${credits} szt.`,
             fixable: true,
         });
 
         // ── Recipient ─────────────────────────────────────────────────────────
-        // Not a studio setting — nothing here can buy a phone number, so the wizard
+        // Not a studio setting: nothing here can buy a phone number, so the wizard
         // sends the user to the customer instead of pretending to fix it.
         if (customerPhone !== undefined) {
             const hasPhone = !!customerPhone && customerPhone.trim().length > 0;

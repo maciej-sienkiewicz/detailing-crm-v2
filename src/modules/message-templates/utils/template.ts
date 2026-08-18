@@ -2,7 +2,7 @@ import type { ChannelDraft, ChannelStatus } from '../types';
 
 /**
  * Sample values used only for the preview. Every key is something we cannot know when the
- * template is written — the studio's own name, phone and address are deliberately absent,
+ * template is written: the studio's own name, phone and address are deliberately absent,
  * because the studio types those straight into the text.
  */
 export const PREVIEW_VALUES: Record<string, string> = {
@@ -19,7 +19,7 @@ export const PREVIEW_VALUES: Record<string, string> = {
   kwota: '1200.00',
   dokument: 'Protokół przyjęcia pojazdu',
   kontrahent: 'Auto Flota Sp. z o.o.',
-  okres: '01.06.2026 – 30.06.2026',
+  okres: '01.06.2026 - 30.06.2026',
   kwota_brutto: '12 480,00 zł',
   liczba_wpisow: '18',
 };
@@ -52,7 +52,7 @@ export function resolveTemplate(template: string): string {
   );
 }
 
-/** Tokens the studio typed that this message cannot fill — the backend rejects these. */
+/** Tokens the studio typed that this message cannot fill: the backend rejects these. */
 export function unknownPlaceholders(template: string, allowed: string[]): string[] {
   const used = Array.from(template.matchAll(TOKEN)).map(m => m[1]);
   return Array.from(new Set(used.filter(key => !allowed.includes(key))));

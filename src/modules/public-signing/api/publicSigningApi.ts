@@ -1,7 +1,7 @@
 // src/modules/public-signing/api/publicSigningApi.ts
 //
 // Public, tokenized endpoints for signing a document on the customer's own
-// phone (route /sign/:token — no login). The link token from the SMS is the
+// phone (route /sign/:token, no login). The link token from the SMS is the
 // sole credential; the backend enforces TTL and single-use challenges.
 
 import { apiClient } from '@/core/apiClient';
@@ -20,7 +20,7 @@ export interface PublicSigningSession {
     documentName: string;
     signerName: string;
     declarationText: string;
-    /** Expected SHA-256 of the PDF — must match what we compute over the downloaded bytes. */
+    /** Expected SHA-256 of the PDF; must match what we compute over the downloaded bytes. */
     documentSha256: string;
     /** Single-use anti-replay nonce; null once the session is terminal. */
     challenge: string | null;
@@ -49,7 +49,7 @@ export const publicSigningApi = {
         return response.data;
     },
 
-    /** The EXACT PDF bytes awaiting signature (WYSIWYS — hash them client-side). */
+    /** The EXACT PDF bytes awaiting signature (WYSIWYS: hash them client-side). */
     getDocument: async (token: string): Promise<ArrayBuffer> => {
         const response = await apiClient.get<ArrayBuffer>(
             `/public/signing/${encodeURIComponent(token)}/document`,

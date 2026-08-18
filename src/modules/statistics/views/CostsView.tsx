@@ -68,7 +68,7 @@ import type {
 
 // ─── Stats-exclusion eye toggle ───────────────────────────────────────────────
 
-/** Przełącznik „Nie uwzględniaj w statystykach" — mocno czerwone przekreślone
+/** Przełącznik „Nie uwzględniaj w statystykach": mocno czerwone przekreślone
     oko, gdy kategoria jest pomijana w KPI/wykresach. */
 const EyeToggleBtn = styled(IconBtn)<{ $excluded?: boolean }>`
     ${p => p.$excluded && css`
@@ -845,7 +845,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>
-                        {head?.invoiceNumber ? `Faktura ${head.invoiceNumber}` : `Faktura (ID …${invoiceId.slice(-8)})`}
+                        {head?.invoiceNumber ? `Faktura ${head.invoiceNumber}` : `Faktura (ID ...${invoiceId.slice(-8)})`}
                     </ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -891,16 +891,16 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
                         <tbody>
                             {items.map(item => (
                                 <tr key={item.id}>
-                                    <InvTd style={{ textAlign: 'left', color: undefined }}>{item.name ?? '—'}</InvTd>
-                                    <InvTd>{item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '—'}</InvTd>
-                                    <InvTd>{item.unitPriceNet != null ? fmtPLN(item.unitPriceNet) : '—'}</InvTd>
-                                    <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '—'}</InvTd>
-                                    <InvTd>{item.vatRate ?? '—'}</InvTd>
+                                    <InvTd style={{ textAlign: 'left', color: undefined }}>{item.name ?? '-'}</InvTd>
+                                    <InvTd>{item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '-'}</InvTd>
+                                    <InvTd>{item.unitPriceNet != null ? fmtPLN(item.unitPriceNet) : '-'}</InvTd>
+                                    <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '-'}</InvTd>
+                                    <InvTd>{item.vatRate ?? '-'}</InvTd>
                                     <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                     <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
                                         {item.costCategoryName
                                             ? <span style={{ fontSize: '11px', fontWeight: 600, color: st.accentBlue }}>{item.costCategoryName}</span>
-                                            : <span style={{ fontSize: '11px', color: st.textMuted }}>—</span>}
+                                            : <span style={{ fontSize: '11px', color: st.textMuted }}>-</span>}
                                     </InvTd>
                                 </tr>
                             ))}
@@ -1071,7 +1071,7 @@ const AutoRuleFormModal = ({
                             <Label>Kategoria kosztów</Label>
                             {categories.length === 0 ? (
                                 <div style={{ fontSize: st.fontSm, color: st.textMuted }}>
-                                    Brak kategorii — najpierw dodaj kategorię kosztów.
+                                    Brak kategorii: najpierw dodaj kategorię kosztów.
                                 </div>
                             ) : (
                                 <RuleCatSelector>
@@ -1222,15 +1222,15 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
                                     {grp.items.map(item => (
                                         <tr key={item.id}>
                                             <InvTd style={{ textAlign: 'left', color: undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {item.name ?? '—'}
+                                                {item.name ?? '-'}
                                             </InvTd>
-                                            <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '—'}</InvTd>
-                                            <InvTd>{item.vatRate ?? '—'}</InvTd>
+                                            <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '-'}</InvTd>
+                                            <InvTd>{item.vatRate ?? '-'}</InvTd>
                                             <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                             <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
                                                 {item.costCategoryName
                                                     ? <CatBadge>{item.costCategoryName}</CatBadge>
-                                                    : <span style={{ fontSize: '11px', color: st.textMuted }}>—</span>}
+                                                    : <span style={{ fontSize: '11px', color: st.textMuted }}>-</span>}
                                             </InvTd>
                                         </tr>
                                     ))}
@@ -1307,7 +1307,7 @@ export const CostsView = () => {
 
     const catColorMap = useMemo(() => categoryColorById(categories), [categories]);
 
-    // ── Kategorie pomijane w statystykach (np. „Własne" — przelewy między spółkami).
+    // ── Kategorie pomijane w statystykach (np. „Własne": przelewy między spółkami).
     // Ich pozycje nie wchodzą do KPI, wykresu czasowego ani diagramu kołowego,
     // ale pozostają widoczne na listach i w sumach po lewej stronie.
     const excludedCategoryIds = useMemo(
@@ -1322,7 +1322,7 @@ export const CostsView = () => {
         [allItems, excludedCategoryIds]
     );
 
-    // Unique sellers from already-loaded items — used for NIP autocomplete in the rule form
+    // Unique sellers from already-loaded items, used for NIP autocomplete in the rule form
     const sellerSuggestions = useMemo(() => {
         const seen = new Map<string, string>();
         allItems.forEach(i => {
@@ -1361,8 +1361,8 @@ export const CostsView = () => {
     const totalItems     = statsItems.length;
 
     // Źródło wykresu trendu: po wybraniu kategorii pokazujemy jej pozycje
-    // (także gdy jest wykluczona ze statystyk — użytkownik świadomie ją ogląda),
-    // bez wyboru — pozycje liczone do statystyk.
+    // (także gdy jest wykluczona ze statystyk, użytkownik świadomie ją ogląda),
+    // bez wyboru: pozycje liczone do statystyk.
     const chartSourceItems = useMemo(
         () => selectedCategoryId
             ? allItems.filter(i => i.costCategoryId === selectedCategoryId)
@@ -1417,7 +1417,7 @@ export const CostsView = () => {
         });
     }, [statsItems, categories]);
 
-    // Category totals map — computed client-side from allItems so that the same
+    // Category totals map, computed client-side from allItems so that the same
     // effectiveGross fallback (grossValue ?? netValue*(1+rate)) is used everywhere,
     // including items where grossValue is null (e.g. vatRate="zw" exempt invoices).
     // The server's breakdown.totalCostGross sums only grossValue and returns 0 for
@@ -1445,12 +1445,12 @@ export const CostsView = () => {
         if (!category) return;
 
         if (type === 'ITEM') {
-            // Single item — assign immediately
+            // Single item: assign immediately
             assignMut.mutate({ categoryId, itemIds: [value] });
             return;
         }
 
-        // Multi-item — show confirmation modal
+        // Multi-item: show confirmation modal
         let itemIds: string[] = [];
         if (type === 'INVOICE') {
             itemIds = allItems.filter(i => i.invoiceId === value).map(i => i.id);
@@ -1812,12 +1812,12 @@ export const CostsView = () => {
                                     >
                                         <CatDot $color={cat.color ?? '#94A3B8'} />
                                         <CatName>{cat.name}</CatName>
-                                        <CatMeta>{totals ? fmtPLN(totals.totalCostGross) : '—'}</CatMeta>
+                                        <CatMeta>{totals ? fmtPLN(totals.totalCostGross) : '-'}</CatMeta>
                                         <CatActions onClick={e => e.stopPropagation()}>
                                             <EyeToggleBtn
                                                 $excluded={cat.excludeFromStats}
                                                 title={cat.excludeFromStats
-                                                    ? 'Kategoria pomijana w statystykach — kliknij, aby ją uwzględnić'
+                                                    ? 'Kategoria pomijana w statystykach: kliknij, aby ją uwzględnić'
                                                     : 'Nie uwzględniaj w statystykach'}
                                                 onClick={() => handleToggleStatsExclusion(cat)}
                                             >
@@ -1900,7 +1900,7 @@ export const CostsView = () => {
                                                             ? <CatBadge $color={catColor}>{catName}</CatBadge>
                                                             : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                     ) : (
-                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>-</span>
                                                     )}
                                                     <IconBtn
                                                         title="Podgląd faktury"
@@ -1936,7 +1936,7 @@ export const CostsView = () => {
                                                                         </ItemName>
                                                                     </div>
                                                                     <ItemMeta>
-                                                                        {item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '—'}
+                                                                        {item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '-'}
                                                                     </ItemMeta>
                                                                     <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
                                                                     {item.costCategoryId ? (
@@ -1944,7 +1944,7 @@ export const CostsView = () => {
                                                                             ? <CatBadge $color={itemCatColor}>{item.costCategoryName}</CatBadge>
                                                                             : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                                     ) : (
-                                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                                        <span style={{ fontSize: st.fontXs, color: st.textMuted }}>-</span>
                                                                     )}
                                                                     <KebabBtn
                                                                         title="Opcje"
@@ -1995,14 +1995,14 @@ export const CostsView = () => {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <ItemMeta>{item.quantity ?? '—'} {item.unit ?? ''}</ItemMeta>
+                                                <ItemMeta>{item.quantity ?? '-'} {item.unit ?? ''}</ItemMeta>
                                                 <ItemMeta>{fmtPLN(effectiveGross(item))}</ItemMeta>
                                                 {item.costCategoryId ? (
                                                     item.costCategoryName
                                                         ? <CatBadge $color={catColor}>{item.costCategoryName}</CatBadge>
                                                         : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                 ) : (
-                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>-</span>
                                                 )}
                                                 <KebabBtn
                                                     title="Opcje"
@@ -2054,7 +2054,7 @@ export const CostsView = () => {
                                                         ? <CatBadge $color={catColor}>{catName}</CatBadge>
                                                         : <CatBadge style={{ background: '#FEF2F2', color: '#EF4444' }}>Usunięta</CatBadge>
                                                 ) : (
-                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                    <span style={{ fontSize: st.fontXs, color: st.textMuted }}>-</span>
                                                 )}
                                                 <KebabBtn
                                                     title="Opcje"

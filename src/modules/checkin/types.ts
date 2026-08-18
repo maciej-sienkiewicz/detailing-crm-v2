@@ -51,12 +51,12 @@ export interface AnnotationStroke {
 export interface DamagePointPhoto {
     photoId: string;
     strokes: AnnotationStroke[];
-    /** Presigned or local preview URL — display only, never persisted */
+    /** Presigned or local preview URL, display only, never persisted */
     thumbnailUrl?: string;
-    /** Client-side upload state — never persisted */
+    /** Client-side upload state, never persisted */
     status?: 'uploading' | 'done' | 'failed';
     /**
-     * Stable client-side identifier assigned at capture time — never persisted.
+     * Stable client-side identifier assigned at capture time, never persisted.
      * photoId changes from a local placeholder to the server id once the upload
      * finishes, so UI interactions (e.g. the annotation editor opened right after
      * taking the photo) target photos via localId.

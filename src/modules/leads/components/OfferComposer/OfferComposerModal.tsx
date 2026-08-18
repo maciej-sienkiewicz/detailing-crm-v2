@@ -149,7 +149,7 @@ export function OfferComposerModal({ lead, onClose }: Props) {
               <TrafficLight $color="yellow" onClick={() => {}} title="" />
               <TrafficLight $color="green" onClick={() => {}} title="" />
             </TrafficLights>
-            <TitleBarText>Nowa wiadomość — Asystent AI</TitleBarText>
+            <TitleBarText>Nowa wiadomość: Asystent AI</TitleBarText>
           </TitleBar>
           <FeatureGate featureKey="AI_LEADS">
             <div style={{ minHeight: 380 }} />
@@ -211,7 +211,7 @@ export function OfferComposerModal({ lead, onClose }: Props) {
             </FormArea>
 
             <Footer>
-              {isTyping && <LoadingDots>Przygotowywanie treści…</LoadingDots>}
+              {isTyping && <LoadingDots>Przygotowywanie treści...</LoadingDots>}
               <SaveExampleBtn
                 $saved={saved}
                 disabled={!canSave || saveMutation.isPending}
@@ -219,7 +219,7 @@ export function OfferComposerModal({ lead, onClose }: Props) {
                 title={examples.length >= MAX_EXAMPLES ? `Osiągnięto limit ${MAX_EXAMPLES} przykładów` : 'Zapisz tę wersję jako wzorzec stylu dla AI'}
               >
                 <BookmarkPlus />
-                {saved ? 'Zapisano!' : saveMutation.isPending ? 'Zapisywanie…' : 'Zapisz jako przykład'}
+                {saved ? 'Zapisano!' : saveMutation.isPending ? 'Zapisywanie...' : 'Zapisz jako przykład'}
               </SaveExampleBtn>
 
               <ManageBtn onClick={() => setShowExamples(true)} title="Zarządzaj przykładami">

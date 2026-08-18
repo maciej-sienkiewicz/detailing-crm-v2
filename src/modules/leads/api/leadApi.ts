@@ -360,7 +360,7 @@ const sharedEstimation: LeadEstimation = {
     { id: '61c11352-1b06-48fa-96e2-33ffee44873e', title: 'Sienkiewicz na full body' },
     { id: 'c5200a4a-8e2a-4ac7-b509-f46b9368739e', title: 'Folia + detailing' },
   ],
-  aiSummary: 'Klient pyta o Full Body PPF na Nissana NV200 oraz odświeżenie wnętrza. Wycena PPF bazuje na podobnych realizacjach dla pojazdów dostawczych. Odświeżenie wnętrza wymaga wyceny indywidualnej — brak standardowej pozycji w cenniku.',
+  aiSummary: 'Klient pyta o Full Body PPF na Nissana NV200 oraz odświeżenie wnętrza. Wycena PPF bazuje na podobnych realizacjach dla pojazdów dostawczych. Odświeżenie wnętrza wymaga wyceny indywidualnej, brak standardowej pozycji w cenniku.',
   createdAt: '2026-05-12T13:58:26.345383Z',
   updatedAt: '2026-05-12T13:58:26.345383Z',
 };
@@ -511,7 +511,7 @@ export const leadApi = {
   },
 
   /**
-   * Get a single lead by ID — includes AI estimation breakdown if available
+   * Get a single lead by ID; includes AI estimation breakdown if available
    */
   getLead: async (id: LeadId): Promise<LeadDetail> => {
     if (USE_MOCKS) {
@@ -832,7 +832,7 @@ export const leadApi = {
   },
 
   /**
-   * Acknowledge new activity on a lead — clears newActivityAt.
+   * Acknowledge new activity on a lead; clears newActivityAt.
    * POST /v1/leads/{leadId}/acknowledge → 204
    */
   acknowledgeLead: async (leadId: LeadId): Promise<void> => {

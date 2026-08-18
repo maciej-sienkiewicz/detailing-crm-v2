@@ -337,7 +337,7 @@ export const SmsCampaignsView: React.FC = () => {
                 <DialogActions>
                   <CancelBtn onClick={() => setConfirm(null)}>Anuluj</CancelBtn>
                   <ConfirmBtn onClick={handleConfirm} disabled={sendMutation.isPending}>
-                    {sendMutation.isPending ? 'Wysyłanie…' : 'Wyślij'}
+                    {sendMutation.isPending ? 'Wysyłanie...' : 'Wyślij'}
                   </ConfirmBtn>
                 </DialogActions>
               </>
@@ -351,7 +351,7 @@ export const SmsCampaignsView: React.FC = () => {
                 <DialogActions>
                   <CancelBtn onClick={() => setConfirm(null)}>Anuluj</CancelBtn>
                   <ConfirmBtn $danger onClick={handleConfirm} disabled={deleteMutation.isPending}>
-                    {deleteMutation.isPending ? 'Usuwanie…' : 'Usuń'}
+                    {deleteMutation.isPending ? 'Usuwanie...' : 'Usuń'}
                   </ConfirmBtn>
                 </DialogActions>
               </>

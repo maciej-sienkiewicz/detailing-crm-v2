@@ -30,7 +30,7 @@ export const initEntitiesFromFormData = (fd: CheckInFormData): EntitySectionsSta
         }
         : hasCustomerDraft
             ? { kind: 'NEW', draft: { firstName: c.firstName, lastName: c.lastName, phone: c.phone, email: c.email } }
-            // Walk-in cold start: search-first — returning customers are the fast path,
+            // Walk-in cold start: search-first, returning customers are the fast path,
             // "+ Dodaj nowego klienta" is one tap away.
             : {
                 kind: 'CHOOSING',

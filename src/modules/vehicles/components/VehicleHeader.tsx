@@ -330,7 +330,7 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
                         <HeaderLogoWrapper>
                             <CarLogoImage brand={vehicle.brand} size="lg" />
                         </HeaderLogoWrapper>
-                        <LicensePlateBadge>{vehicle.licensePlate || '—'}</LicensePlateBadge>
+                        <LicensePlateBadge>{vehicle.licensePlate || '-'}</LicensePlateBadge>
                         <VehicleTitle>{vehicleName}{yearSuffix}</VehicleTitle>
                         <StatusBadge $status={vehicle.status}>
                             <StatusDot $status={vehicle.status} />

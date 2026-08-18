@@ -99,7 +99,7 @@ export interface MessageTemplatesState {
 
 /**
  * Holds the whole screen's editable state. The two backend configs are fetched together
- * and saved together, but only the channel the studio actually touched is written — a PUT
+ * and saved together, but only the channel the studio actually touched is written: a PUT
  * replaces the entire config, so writing both would broadcast edits nobody made.
  */
 export function useMessageTemplates(): MessageTemplatesState {

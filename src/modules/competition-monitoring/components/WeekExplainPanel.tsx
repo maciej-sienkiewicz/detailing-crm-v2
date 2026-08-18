@@ -9,7 +9,7 @@ import { formatNumber } from './MetricBits';
 /**
  * Panel pod wykresem "Przyrost obserwujących": po kliknięciu słupka tłumaczy,
  * co wydarzyło się na profilu w tym tygodniu (publikacje, skoki oglądalności,
- * wykryte promocje/konkursy). Korelacja, nie dowód przyczynowości — copy mówi
+ * wykryte promocje/konkursy). Korelacja, nie dowód przyczynowości: copy mówi
  * "prawdopodobnie", nigdy "na pewno".
  */
 
@@ -147,7 +147,7 @@ const buildNarrative = (
     followerDelta: number | null,
 ): string => {
     if (posts.length === 0) {
-        return 'W tym tygodniu profil nie opublikował nic nowego — przyrost prawdopodobnie przyszedł ' +
+        return 'W tym tygodniu profil nie opublikował nic nowego, przyrost prawdopodobnie przyszedł ' +
             'z zewnątrz (oznaczenia u innych, prasa, reklama) albo ze starszych treści.';
     }
     const reels = posts.filter(p => p.format === 'REELS').length;
@@ -178,7 +178,7 @@ interface WeekExplainPanelProps {
 export const WeekExplainPanel: React.FC<WeekExplainPanelProps> = ({ profileId, username, weekStart, onClose }) => {
     const { data, isLoading, isError } = useWeekDetail(profileId, weekStart);
 
-    // Backend normalizuje kliknięty dzień do poniedziałku ISO — preferuj jego wartość.
+    // Backend normalizuje kliknięty dzień do poniedziałku ISO, preferuj jego wartość.
     const weekLabel = new Date(`${data?.weekStart ?? weekStart}T00:00:00Z`).toLocaleDateString('pl-PL', {
         day: 'numeric',
         month: 'long',
@@ -194,7 +194,7 @@ export const WeekExplainPanel: React.FC<WeekExplainPanelProps> = ({ profileId, u
                 <CloseBtn onClick={onClose} aria-label="Zamknij"><X /></CloseBtn>
             </PanelHead>
 
-            {isLoading && <Narrative>Analizuję tydzień…</Narrative>}
+            {isLoading && <Narrative>Analizuję tydzień...</Narrative>}
             {isError && <Narrative>Nie udało się pobrać szczegółów tego tygodnia.</Narrative>}
 
             {data && (

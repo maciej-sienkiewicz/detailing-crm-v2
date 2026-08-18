@@ -305,7 +305,7 @@ export const ActivityView = () => {
     const [filters, setFilters] = useState<ActivityFilters>(DEFAULT_ACTIVITY_FILTERS);
     const [preset, setPreset] = useState<DateRangePreset>('ALL');
 
-    // Kept apart from `filters` so typing does not fire a request per keystroke —
+    // Kept apart from `filters` so typing does not fire a request per keystroke:
     // the whole filter object is the react-query key, so every change is a refetch.
     const [searchInput, setSearchInput] = useState('');
 
@@ -389,7 +389,7 @@ export const ActivityView = () => {
                             </HeroEyebrow>
                             <HeroTitle>Aktywność</HeroTitle>
                             <HeroSubtitle>
-                                Wszystko, co dzieje się w studiu — kto co zrobił, kiedy i na jaką
+                                Wszystko, co dzieje się w studiu: kto co zrobił, kiedy i na jaką
                                 kwotę. Razem z tym, co robią klienci na swoich Kartach Wizyty.
                             </HeroSubtitle>
                         </HeroText>

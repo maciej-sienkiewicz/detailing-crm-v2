@@ -384,7 +384,7 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
                     <Field>
                         <FieldLabel>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></FieldLabel>
                         <TextareaEl
-                            placeholder="Krótki opis zakresu zgody…"
+                            placeholder="Krótki opis zakresu zgody..."
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             rows={2}
@@ -424,7 +424,7 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
                     Anuluj
                 </SharedButton>
                 <SharedButton type="submit" form="add-consent-form" $variant="primary" $size="sm" disabled={isSubmitting}>
-                    {isSubmitting ? 'Tworzenie…' : 'Utwórz zgodę'}
+                    {isSubmitting ? 'Tworzenie...' : 'Utwórz zgodę'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

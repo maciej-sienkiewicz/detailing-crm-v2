@@ -107,7 +107,7 @@ const RefreshIcon = () => (
 const syncStatusLabel = (status: KsefSyncStatusValue): string => {
   switch (status) {
     case 'SUCCESS':      return 'Synchronizacja OK';
-    case 'RUNNING':      return 'Synchronizacja trwa…';
+    case 'RUNNING':      return 'Synchronizacja trwa...';
     case 'FAILED':       return 'Błąd synchronizacji';
     case 'NEVER_SYNCED': return 'Nigdy nie synchronizowano';
   }
@@ -131,7 +131,7 @@ export const KsefSyncWidget: React.FC = () => {
     return (
       <Widget>
         <StatusDot $status="NEVER_SYNCED" />
-        <StatusText>Ładowanie statusu synchronizacji…</StatusText>
+        <StatusText>Ładowanie statusu synchronizacji...</StatusText>
       </Widget>
     );
   }
@@ -140,7 +140,7 @@ export const KsefSyncWidget: React.FC = () => {
     <Widget>
       <StatusDot $status={triggerSync.isPending ? 'RUNNING' : syncStatus.syncStatus} />
       <StatusText>
-        {triggerSync.isPending ? 'Synchronizacja trwa…' : syncStatusLabel(syncStatus.syncStatus)}
+        {triggerSync.isPending ? 'Synchronizacja trwa...' : syncStatusLabel(syncStatus.syncStatus)}
       </StatusText>
       {syncStatus.lastExpenseSync && !triggerSync.isPending && (
         <StatusText style={{ opacity: 0.6 }}>
@@ -160,7 +160,7 @@ export const KsefSyncWidget: React.FC = () => {
         title="Synchronizuj faktury z KSeF teraz"
       >
         {triggerSync.isPending ? <SpinnerIcon /> : <RefreshIcon />}
-        {triggerSync.isPending ? 'Synchronizuję…' : 'Synchronizuj teraz'}
+        {triggerSync.isPending ? 'Synchronizuję...' : 'Synchronizuj teraz'}
       </SyncBtn>
     </Widget>
   );

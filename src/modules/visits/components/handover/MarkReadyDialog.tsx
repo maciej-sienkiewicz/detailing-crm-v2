@@ -151,11 +151,11 @@ interface MarkReadyDialogProps {
 }
 
 /**
- * Oznaczenie pojazdu jako gotowego do odbioru — jedno potwierdzenie.
+ * Oznaczenie pojazdu jako gotowego do odbioru: jedno potwierdzenie.
  *
  * Poprzednio był to dwustopniowy kreator, w którym pierwszy krok („weryfikacja
  * jakości") nie zapisywał żadnych danych i miał wszystkie checkboxy zaznaczone
- * domyślnie. Został usunięty; realna bramka — usługi wymagające potwierdzenia —
+ * domyślnie. Został usunięty; realna bramka (usługi wymagające potwierdzenia)
  * działa w widoku wizyty i blokuje otwarcie tego okna.
  */
 export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReadyDialogProps) => {
@@ -164,7 +164,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
 
     // Okno jest montowane dopiero przy otwarciu i odmontowywane po zamknięciu,
     // więc stan startowy wystarczy ustawić raz. Bez modułu komunikacji kanały
-    // startują wyłączone — blur na sekcji nie zeruje stanu, więc domyślne
+    // startują wyłączone: blur na sekcji nie zeruje stanu, więc domyślne
     // sms:true poszłoby do API mimo blokady (backend odrzuciłby je z 402).
     const [channels, setChannels] = useState<NotificationChannels>(() => ({
         sms: false,
@@ -248,7 +248,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                             <SmsGapBar>
                                 <SmsGapText>
                                     <strong>SMS nie wyjdzie</strong>
-                                    {' — '}
+                                    {': '}
                                     {smsGaps.map(g => `${g.label.toLowerCase()}: ${g.detail}`).join('; ')}.
                                 </SmsGapText>
                                 <SmsGapAction type="button" onClick={() => setWizardOpen(true)}>
@@ -333,14 +333,14 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                     })}
                 >
                     {isMarkingReady
-                        ? 'Zapisywanie…'
+                        ? 'Zapisywanie...'
                         : willNotify
                           ? 'Powiadom i oznacz jako gotowe'
                           : 'Oznacz jako gotowe'}
                 </SharedButton>
             </ModalFooterSplit>
 
-            {/* Mounted only while open — the wizard freezes its step list on mount. */}
+            {/* Mounted only while open: the wizard freezes its step list on mount. */}
             {wizardOpen && <SmsActivationWizard
                 isOpen={wizardOpen}
                 readiness={smsReadiness}

@@ -22,7 +22,7 @@ export interface MyTasksSummary {
 }
 
 /**
- * Self-service task API ("Powiadomienia") — no permission required; the backend
+ * Self-service task API ("Powiadomienia"): no permission required; the backend
  * returns only tasks visible to the caller (targeted at them, their role, or
  * the whole studio).
  */

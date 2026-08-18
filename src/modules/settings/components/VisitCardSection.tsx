@@ -7,7 +7,7 @@
 //  - "Czy domyślnie wysyłać Kartę Wizyty?" (default of the send checkbox at
 //    booking / check-in; only meaningful when the card is enabled)
 //
-// The Visit Card requires the purchased SMS module — without it the whole
+// The Visit Card requires the purchased SMS module: without it the whole
 // section is locked with an upsell message.
 
 import styled, { keyframes } from 'styled-components';

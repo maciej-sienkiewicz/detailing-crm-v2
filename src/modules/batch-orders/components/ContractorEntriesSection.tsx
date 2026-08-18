@@ -591,7 +591,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 </Td>
                                                 <Td>
                                                     <VehicleCell>
-                                                        {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '—'}
+                                                        {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '-'}
                                                     </VehicleCell>
                                                     {(entry.vehicleLicensePlate || entry.vehicleVin) && (
                                                         <div>
@@ -616,7 +616,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                                 </li>
                                                             ))}
                                                         </ServiceList>
-                                                    ) : '—'}
+                                                    ) : '-'}
                                                 </Td>
                                                 <Td $align="right">
                                                     <Money>{formatMoney(entry.netAmountCents)}</Money>
@@ -626,7 +626,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 </Td>
                                                 <Td>
                                                     <NoteText title={entry.notes ?? undefined}>
-                                                        {entry.notes || '—'}
+                                                        {entry.notes || '-'}
                                                     </NoteText>
                                                 </Td>
                                                 <Td style={{ width: 40, paddingLeft: 4 }}>
@@ -672,7 +672,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 )}
             </Section>
 
-            {/* Portal dropdown — renders into document.body, escapes all overflow:hidden parents */}
+            {/* Portal dropdown: renders into document.body, escapes all overflow:hidden parents */}
             {openEntry && menuPosition && createPortal(
                 <DropdownMenu
                     style={{ top: menuPosition.top, right: menuPosition.right }}

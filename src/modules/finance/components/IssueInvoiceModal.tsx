@@ -164,8 +164,8 @@ interface IssueInvoiceModalProps {
 }
 
 /**
- * Wystawianie faktury przychodowej — dokument trafia bezpośrednio do KSeF.
- * B2B (NIP) lub B2C (konsument, bez NIP — poza obowiązkiem KSeF, ale wysyłana
+ * Wystawianie faktury przychodowej: dokument trafia bezpośrednio do KSeF.
+ * B2B (NIP) lub B2C (konsument, bez NIP, poza obowiązkiem KSeF, ale wysyłana
  * dobrowolnie, żeby ledger był kompletny).
  */
 export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, onClose }) => {
@@ -448,7 +448,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
           Anuluj
         </SharedButton>
         <SharedButton $variant="primary" onClick={handleSubmit} disabled={issueMutation.isPending}>
-          {issueMutation.isPending ? 'Wysyłanie do KSeF…' : 'Wystaw i wyślij do KSeF'}
+          {issueMutation.isPending ? 'Wysyłanie do KSeF...' : 'Wystaw i wyślij do KSeF'}
         </SharedButton>
       </ModalFooter>
     </ModalShell>

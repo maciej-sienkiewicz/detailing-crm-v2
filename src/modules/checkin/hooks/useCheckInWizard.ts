@@ -174,7 +174,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                     },
                 };
             }
-            // Existing customer – send UPDATE so server can recognize changes
+            // Existing customer, send UPDATE so server can recognize changes
             return {
                 mode: 'UPDATE' as const,
                 id: formData.customerData.id,

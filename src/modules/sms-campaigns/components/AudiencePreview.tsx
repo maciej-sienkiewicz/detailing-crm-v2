@@ -201,7 +201,7 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
@@ -299,7 +299,7 @@ export const AudiencePreview: React.FC<Props> = ({
               <ColCell $muted $hideOnMobile={false}>
                 {c.vehicleBrand
                   ? `${c.vehicleBrand}${c.vehicleModel ? ' ' + c.vehicleModel : ''}`
-                  : '—'}
+                  : '-'}
               </ColCell>
               <ColCell $muted $hideOnMobile>{formatDate(c.lastVisitDate)}</ColCell>
               <ColCell>

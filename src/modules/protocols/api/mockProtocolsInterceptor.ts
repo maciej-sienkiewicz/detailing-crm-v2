@@ -123,7 +123,7 @@ export const setupProtocolMockInterceptor = (apiClient: AxiosInstance) => {
                 }
             }
 
-            // Template verification — mock always verifies successfully
+            // Template verification: mock always verifies successfully
             if (url.match(/^\/api\/v1\/protocol-templates\/[^/]+\/verify$/) && config.method === 'post') {
                 const id = url.split('/')[4];
                 const template = mockProtocolTemplatesData.find(t => t.id === id);

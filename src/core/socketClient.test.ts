@@ -90,7 +90,7 @@ describe('socketClient', () => {
 
     const client = lastClient();
     expect(client.activate).toHaveBeenCalledTimes(1);
-    // Not connected yet — subscription happens in onConnect
+    // Not connected yet: subscription happens in onConnect
     expect(client.subscribe).not.toHaveBeenCalled();
 
     client.fireConnect();
@@ -120,7 +120,7 @@ describe('socketClient', () => {
     client.fireConnect();
     expect(client.subscribe).toHaveBeenCalledTimes(2);
 
-    // Connection drops and comes back — both topics must be resubscribed
+    // Connection drops and comes back, both topics must be resubscribed
     client.fireWebSocketClose();
     client.fireConnect();
 

@@ -119,7 +119,7 @@ const CustomerRow = styled.div`
     margin-bottom: 12px;
     min-width: 0;
 
-    /* The name/company block is the only flexible child — let it shrink. */
+    /* The name/company block is the only flexible child, so let it shrink. */
     > div:last-child { min-width: 0; }
 `;
 
@@ -208,7 +208,7 @@ const CompanyRow = styled.div`
     svg { flex-shrink: 0; color: ${st.textMuted}; }
 `;
 
-/* Dyskretna linia historii współpracy — kontekst, nie dashboard */
+/* Dyskretna linia historii współpracy: kontekst, nie dashboard */
 const HistoryLine = styled.div`
     display: flex;
     align-items: center;
@@ -237,7 +237,7 @@ const HistoryDot = styled.span`
     flex-shrink: 0;
 `;
 
-/* Karta Wizyty — główna akcja sekcji klienta */
+/* Karta Wizyty: główna akcja sekcji klienta */
 const VisitCardButton = styled.button`
     display: flex;
     align-items: center;
@@ -316,8 +316,8 @@ const StatusPill = styled.span<{ $ok: boolean }>`
     font-weight: 700;
     width: fit-content;
 
-    /* Not handing over keys or documents is a normal outcome, not a failure — red would
-       read as something went wrong. Only the positive state gets a colour. */
+    /* Not handing over keys or documents is a normal outcome, not a failure:
+       red would read as something went wrong. Only the positive state gets a colour. */
     ${props => props.$ok ? `
         background: ${st.accentGreenDim};
         color: ${st.accentGreen};
@@ -489,7 +489,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                     )}
                 </ContactLinks>
 
-                {/* Historia współpracy — subtelny kontekst */}
+                {/* Historia współpracy: subtelny kontekst */}
                 <HistoryLine title="Historia współpracy z klientem">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
@@ -512,10 +512,10 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                     )}
                 </HistoryLine>
 
-                {/* Karta Wizyty — widok dla klienta */}
+                {/* Karta Wizyty: widok dla klienta */}
                 {visitId && can('VISITS_CREATE') && (
                     <>
-                        <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty — widok dla klienta">
+                        <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty: widok dla klienta">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="2" y="4" width="20" height="16" rx="2" />
                                 <line x1="2" y1="9" x2="22" y2="9" />

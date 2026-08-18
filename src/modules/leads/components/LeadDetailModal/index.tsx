@@ -1471,7 +1471,7 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
                 )}
                 <VHeroMetaItem>
                   <VHeroMetaLabel><FileText />Numer</VHeroMetaLabel>
-                  <VHeroMetaValue>{visit.visitNumber ?? '—'}</VHeroMetaValue>
+                  <VHeroMetaValue>{visit.visitNumber ?? '-'}</VHeroMetaValue>
                 </VHeroMetaItem>
               </VHeroMeta>
             </VHero>
@@ -1570,7 +1570,7 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
                 <VPartyCard>
                   <VPartyAvatar>{custInitials}</VPartyAvatar>
                   <VPartyInfo>
-                    <VPartyName><PiiValue value={customerName} kind="name" emptyFallback="—" /></VPartyName>
+                    <VPartyName><PiiValue value={customerName} kind="name" emptyFallback="-" /></VPartyName>
                     <VPartyMeta>
                       {visit.customer.phone && <span><PiiValue value={visit.customer.phone} kind="phone" /></span>}
                       {visit.customer.email && <span><PiiValue value={visit.customer.email} kind="email" /></span>}
@@ -1739,7 +1739,7 @@ const RelatedVisitCard: React.FC<RelatedVisitCardProps> = ({ visitId, fallbackTi
         <RVFooter>
           <div>
             <RVPriceLabel>Wartość realizacji</RVPriceLabel>
-            <RVPrice>{visit.totalCost ? formatCurrency(visit.totalCost.grossAmount) : '—'}</RVPrice>
+            <RVPrice>{visit.totalCost ? formatCurrency(visit.totalCost.grossAmount) : '-'}</RVPrice>
           </div>
           <RVCta>Zobacz <ArrowRight /></RVCta>
         </RVFooter>
@@ -2029,7 +2029,7 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
                   value={item.priceNet}
                   onChange={e => syncFromNet(item._key, e.target.value)}
                   onBlur={() => normalizeItem(item._key)}
-                  title="Cena netto — kliknij aby edytować"
+                  title="Cena netto, kliknij aby edytować"
                 />
                 <span style={{ fontSize: 10, color: st.textMuted }}>PLN netto · VAT {item.vatRate}%</span>
               </div>
@@ -2054,12 +2054,12 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
         </QuoteAddBtn>
         {hasChanges && (
           <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
-            {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
+            {saveQuote.isPending ? 'Zapisywanie...' : 'Zapisz kosztorys'}
           </QuoteSaveBtn>
         )}
         {existingQuote && (
           <QuoteDeleteBtn onClick={handleDelete} disabled={deleteQuote.isPending}>
-            {deleteQuote.isPending ? 'Usuwanie…' : 'Usuń kosztorys'}
+            {deleteQuote.isPending ? 'Usuwanie...' : 'Usuń kosztorys'}
           </QuoteDeleteBtn>
         )}
       </QuoteActions>
@@ -2311,7 +2311,7 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
 
         <MergeList>
           {isLoading ? (
-            <MergeEmpty>Ładowanie…</MergeEmpty>
+            <MergeEmpty>Ładowanie...</MergeEmpty>
           ) : candidates.length === 0 ? (
             <MergeEmpty>Brak innych leadów dla tego klienta</MergeEmpty>
           ) : (
@@ -2348,7 +2348,7 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
             onClick={() => selectedId && onConfirm(selectedId)}
           >
             <GitMerge />
-            {isPending ? 'Scalanie…' : 'Scal leady'}
+            {isPending ? 'Scalanie...' : 'Scal leady'}
           </MergeConfirmBtn>
         </MergeFooter>
       </MergeBox>
@@ -2758,7 +2758,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const hasQuote      = !!userQuote;
   const aiDimmed      = hasQuote;
 
-  // Price breakdown — prefer user quote, fall back to AI estimation, then lead value
+  // Price breakdown: prefer user quote, fall back to AI estimation, then lead value
   const activeQuote  = userQuote ?? estimation;
   const headerGross  = activeQuote?.totalGross ?? lead.estimatedValue;
   const headerNet    = activeQuote?.totalNet ?? null;
@@ -2813,7 +2813,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="860px">
         <ModalBody>
 
-          {/* Header card — source icon | name+contact+date | price+assign chip */}
+          {/* Header card: source icon | name+contact+date | price+assign chip */}
           <HeaderCard>
             <SourceIcon $source={lead.source}>{sourceIcon}</SourceIcon>
 
@@ -2883,7 +2883,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             </HeaderRight>
           </HeaderCard>
 
-          {/* Unified action bar — assign, offer, merge, delete */}
+          {/* Unified action bar: assign, offer, merge, delete */}
           <ActionBar>
             <ActionBtn
               onClick={() => setIsEmployeePickerOpen(true)}
@@ -2952,12 +2952,12 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                     autoFocus
                     value={lostReasonDraft}
                     onChange={e => setLostReasonDraft(e.target.value)}
-                    placeholder="Dlaczego klient odpadł? (np. zbyt wysoka cena, wybrał konkurencję…)"
+                    placeholder="Dlaczego klient odpadł? (np. zbyt wysoka cena, wybrał konkurencję...)"
                     maxLength={500}
                   />
                   <LostReasonActions>
                     <SaveBtn onClick={handleSaveLostReason} disabled={setLostReason.isPending}>
-                      {setLostReason.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                      {setLostReason.isPending ? 'Zapisywanie...' : 'Zapisz'}
                     </SaveBtn>
                     <CancelBtn onClick={() => setIsEditingLostReason(false)}>Anuluj</CancelBtn>
                   </LostReasonActions>
@@ -3048,7 +3048,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             </EstColumnWrapper>
           </EstimationsGrid>
 
-          {/* Related visits — reference realisations */}
+          {/* Related visits: reference realisations */}
           {!isDetailLoading && (
             <PanelSection>
               <RelatedVisitsHeader>
@@ -3146,7 +3146,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
         title="Usuń leada"
         message={`Czy na pewno chcesz usunąć leada „${lead.customerName || lead.contactIdentifier}"? Tej operacji nie można cofnąć.`}
         variant="danger"
-        confirmText={deleteLead.isPending ? 'Usuwanie…' : 'Usuń'}
+        confirmText={deleteLead.isPending ? 'Usuwanie...' : 'Usuń'}
         cancelText="Anuluj"
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteConfirmOpen(false)}
@@ -3158,7 +3158,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             <SCHeader>
               <div>
                 <SCTitle>Zmiana statusu</SCTitle>
-                <SCDesc>Dodaj komentarz wyjaśniający zmianę — trafi do historii leada.</SCDesc>
+                <SCDesc>Dodaj komentarz wyjaśniający zmianę, trafi do historii leada.</SCDesc>
               </div>
               <SCCloseBtn onClick={() => { setPendingStatus(null); setStatusChangeComment(''); }}><X /></SCCloseBtn>
             </SCHeader>
@@ -3176,7 +3176,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
               </SCStatusArrow>
               <SCTextarea
                 autoFocus
-                placeholder="Komentarz do zmiany statusu (opcjonalny)…"
+                placeholder="Komentarz do zmiany statusu (opcjonalny)..."
                 value={statusChangeComment}
                 onChange={e => setStatusChangeComment(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleStatusChangeConfirm(); }}
@@ -3185,7 +3185,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             <SCFooter>
               <SCCancelBtn onClick={() => { setPendingStatus(null); setStatusChangeComment(''); }}>Anuluj</SCCancelBtn>
               <SCConfirmBtn onClick={handleStatusChangeConfirm} disabled={updateStatus.isPending}>
-                {updateStatus.isPending ? 'Zapisywanie…' : 'Zmień status'}
+                {updateStatus.isPending ? 'Zapisywanie...' : 'Zmień status'}
               </SCConfirmBtn>
             </SCFooter>
           </SCBox>

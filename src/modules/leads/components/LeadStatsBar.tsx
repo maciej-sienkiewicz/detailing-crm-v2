@@ -244,7 +244,7 @@ export const LeadStatsBar: React.FC<LeadStatsBarProps> = ({ sourceFilter }) => {
           <StatSubValue>{formatCurrency(summary.convertedThisWeekValue)}</StatSubValue>
           <StatTrend $positive={isPositiveTrend} $neutral={isNeutralTrend}>
             {!isNeutralTrend && (isPositiveTrend ? <TrendUpIcon /> : <TrendDownIcon />)}
-            {isNeutralTrend ? '—' : `${isPositiveTrend ? '+' : ''}${countDiff}`}
+            {isNeutralTrend ? '-' : `${isPositiveTrend ? '+' : ''}${countDiff}`}
             <TrendText>vs poprzedni tydzień</TrendText>
           </StatTrend>
         </StatContent>

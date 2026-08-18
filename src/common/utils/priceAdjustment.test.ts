@@ -16,11 +16,11 @@ describe('netToGross', () => {
         expect(netToGross(10000, 8)).toBe(10800);
     });
 
-    it('VAT 0% — gross equals net', () => {
+    it('VAT 0%: gross equals net', () => {
         expect(netToGross(10000, 0)).toBe(10000);
     });
 
-    it('VAT ZW (-1) — gross equals net', () => {
+    it('VAT ZW (-1): gross equals net', () => {
         expect(netToGross(100000, -1)).toBe(100000);
     });
 
@@ -44,11 +44,11 @@ describe('grossToNet', () => {
         expect(grossToNet(10800, 8)).toBe(10000);
     });
 
-    it('VAT 0% — net equals gross', () => {
+    it('VAT 0%: net equals gross', () => {
         expect(grossToNet(10000, 0)).toBe(10000);
     });
 
-    it('VAT ZW (-1) — net equals gross', () => {
+    it('VAT ZW (-1): net equals gross', () => {
         expect(grossToNet(100000, -1)).toBe(100000);
     });
 
@@ -67,11 +67,11 @@ describe('netPlnToGrossPln', () => {
         expect(netPlnToGrossPln(1000, 23)).toBe(1230);
     });
 
-    it('VAT ZW (-1) — gross equals net', () => {
+    it('VAT ZW (-1): gross equals net', () => {
         expect(netPlnToGrossPln(1260, -1)).toBe(1260);
     });
 
-    it('VAT 0% — gross equals net', () => {
+    it('VAT 0%: gross equals net', () => {
         expect(netPlnToGrossPln(500, 0)).toBe(500);
     });
 });
@@ -83,11 +83,11 @@ describe('grossPlnToNetPln', () => {
         expect(grossPlnToNetPln(1230, 23)).toBeCloseTo(1000, 5);
     });
 
-    it('VAT ZW (-1) — net equals gross', () => {
+    it('VAT ZW (-1): net equals gross', () => {
         expect(grossPlnToNetPln(1260, -1)).toBe(1260);
     });
 
-    it('VAT 0% — net equals gross', () => {
+    it('VAT 0%: net equals gross', () => {
         expect(grossPlnToNetPln(500, 0)).toBe(500);
     });
 });
@@ -113,7 +113,7 @@ describe('applyAdjustment', () => {
             const result = applyAdjustment(BASE_NET, VAT, { type: 'PERCENT', value: 10 });
             expect(result.finalNetCents).toBe(11000);
             expect(result.finalGrossCents).toBe(13530);
-            // hasDiscount means "price differs from base" — true for markup too
+            // hasDiscount means "price differs from base": true for markup too
             expect(result.hasDiscount).toBe(true);
         });
 

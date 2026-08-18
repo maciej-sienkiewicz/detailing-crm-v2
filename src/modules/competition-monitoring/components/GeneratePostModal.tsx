@@ -805,9 +805,9 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         <Dot $delay="0.18s" />
                         <Dot $delay="0.36s" />
                     </DotsRow>
-                    <LoadingText>Generuję post na Instagram…</LoadingText>
+                    <LoadingText>Generuję post na Instagram...</LoadingText>
                     {topic && <LoadingEcho>„{topic}"</LoadingEcho>}
-                    <LoadingHint>Model AI analizuje styl i tworzy treść. Chwilę…</LoadingHint>
+                    <LoadingHint>Model AI analizuje styl i tworzy treść. Chwilę...</LoadingHint>
                 </LoadingWrap>
             );
         }
@@ -858,7 +858,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     <FieldLabel htmlFor="gp-context">Dodatkowy kontekst</FieldLabel>
                     <ContextTextarea
                         id="gp-context"
-                        placeholder="Np. Klient przywiózł auto z zagranicy, zależało mu na ochronie całego przodu. Użyliśmy XPEL Ultimate Plus…"
+                        placeholder="Np. Klient przywiózł auto z zagranicy, zależało mu na ochronie całego przodu. Użyliśmy XPEL Ultimate Plus..."
                         value={context}
                         onChange={e => setContext(e.target.value)}
                         maxLength={800}
@@ -927,7 +927,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                             </Tag>
                         ))}
                         <TagInput
-                            placeholder={styleNotes.length === 0 ? 'Np. Nie używaj emoji · Enter aby dodać' : 'Dodaj regułę…'}
+                            placeholder={styleNotes.length === 0 ? 'Np. Nie używaj emoji · Enter aby dodać' : 'Dodaj regułę...'}
                             value={noteInput}
                             onChange={e => setNoteInput(e.target.value)}
                             onKeyDown={handleNoteKeyDown}

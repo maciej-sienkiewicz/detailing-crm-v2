@@ -371,7 +371,7 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
             await checkinApi.deleteCheckinPhoto(tokenData.checkinId, photoId);
             setPhotos(prev => prev.filter(p => p.photoId !== photoId));
         } catch {
-            // Silent fail — photo stays in list
+            // Silent fail: photo stays in list
         } finally {
             setDeletingId(null);
         }
@@ -383,7 +383,7 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
         <Wrap>
             <QrCard>
                 <QrBox>
-                    {isLoading && <QrSkeleton>Generowanie kodu QR…</QrSkeleton>}
+                    {isLoading && <QrSkeleton>Generowanie kodu QR...</QrSkeleton>}
                     {!isLoading && error && <QrSkeleton>Błąd</QrSkeleton>}
                     {!isLoading && !error && qrUrl && !isExpired && (
                         <QRCodeSVG value={qrUrl} size={144} level="M" />
@@ -427,7 +427,7 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
                                 <polyline points="23 4 23 10 17 10" />
                                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                             </svg>
-                            {isLoading ? 'Generowanie…' : 'Odśwież kod QR'}
+                            {isLoading ? 'Generowanie...' : 'Odśwież kod QR'}
                         </RefreshBtn>
                     )}
 

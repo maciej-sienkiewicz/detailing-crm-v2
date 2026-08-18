@@ -36,7 +36,7 @@ interface BuyerEditorProps {
 }
 
 /**
- * Edycja nabywcy faktury. Otwiera się wypełniona danymi z kartoteki klienta —
+ * Edycja nabywcy faktury. Otwiera się wypełniona danymi z kartoteki klienta:
  * NIP i adres firmy przychodzą teraz w detalu wizyty, więc w typowym wydaniu
  * nie ma tu nic do wpisania. Przycisk „Pobierz z GUS" uzupełnia nazwę i adres
  * po samym numerze NIP.
@@ -59,7 +59,7 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
     return (
         <Wrap>
             <FormField>
-                <FieldLabel htmlFor="handover-buyer-nip">NIP — puste oznacza konsumenta</FieldLabel>
+                <FieldLabel htmlFor="handover-buyer-nip">NIP: puste oznacza konsumenta</FieldLabel>
                 <NipInputWithGus
                     id="handover-buyer-nip"
                     value={buyer.nip}
@@ -72,7 +72,7 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
 
             {!buyer.nip.trim() && (
                 <ConsumerNote>
-                    Bez numeru NIP faktura zostanie wystawiona dla konsumenta — na imię i nazwisko
+                    Bez numeru NIP faktura zostanie wystawiona dla konsumenta, na imię i nazwisko
                     podane niżej.
                 </ConsumerNote>
             )}
@@ -126,7 +126,7 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
             </FormGrid>
 
             <Muted>
-                Dane pochodzą z kartoteki klienta. Zmiana dotyczy wyłącznie tej faktury — kartoteka
+                Dane pochodzą z kartoteki klienta. Zmiana dotyczy wyłącznie tej faktury, kartoteka
                 zostaje bez zmian.
             </Muted>
         </Wrap>

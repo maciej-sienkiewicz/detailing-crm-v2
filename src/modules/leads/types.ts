@@ -91,10 +91,10 @@ export interface Lead {
 
   /**
    * LLM processing status for this lead's estimation.
-   * null  — manual lead, no LLM analysis
-   * PENDING — LLM is still processing
-   * COMPLETED — estimation ready
-   * FAILED — LLM analysis failed
+   * null: manual lead, no LLM analysis
+   * PENDING: LLM is still processing
+   * COMPLETED: estimation ready
+   * FAILED: LLM analysis failed
    */
   estimationStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | null;
 
@@ -210,7 +210,7 @@ export interface LeadEvent<T = unknown> {
 }
 
 /**
- * Payload for LEAD_CLIENT_REPLIED WebSocket event —
+ * Payload for LEAD_CLIENT_REPLIED WebSocket event:
  * a client replied to an existing open lead via email.
  */
 export interface LeadClientRepliedPayload {
@@ -351,7 +351,7 @@ export interface SaveUserQuoteRequest {
   items: SaveUserQuoteItemRequest[];
 }
 
-/** Full lead detail — extends Lead with AI estimation and user quote */
+/** Full lead detail: extends Lead with AI estimation and user quote */
 export interface LeadDetail extends Lead {
   estimation: LeadEstimation | null;
   userQuote: LeadUserQuote | null;

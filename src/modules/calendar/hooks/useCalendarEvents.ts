@@ -8,8 +8,8 @@ import type { DateRange, VisitStatus, AppointmentStatus } from '../types';
 /**
  * Hook to fetch calendar events for a given date range with status and color filters.
  * Color filtering is applied client-side as a blacklist (hiddenColorIds): events
- * whose color the user hid are dropped, everything else — including events with
- * no color or with a newly created color — stays visible.
+ * whose color the user hid are dropped; everything else (including events with
+ * no color or with a newly created color) stays visible.
  */
 export const useCalendarEvents = (
     dateRange: DateRange | null,

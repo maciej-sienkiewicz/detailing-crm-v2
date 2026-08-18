@@ -1,5 +1,5 @@
 /**
- * Shared form primitives — Stitch-inspired design system
+ * Shared form primitives: Stitch-inspired design system
  *
  * Used across all quick-entry modals in the calendar module
  * and available for reuse throughout the app.

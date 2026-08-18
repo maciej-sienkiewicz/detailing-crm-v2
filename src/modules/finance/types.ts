@@ -221,7 +221,7 @@ export interface KsefTokenVerification {
   permissionsKnown: boolean;
   canIssueInvoices: boolean;
   canReadInvoices: boolean;
-  /** UPO nie ma osobnego uprawnienia w KSeF — wynika z InvoiceWrite. */
+  /** UPO nie ma osobnego uprawnienia w KSeF, wynika z InvoiceWrite. */
   canGenerateUpo: boolean;
   /** Surowe nazwy uprawnień KSeF, np. ["InvoiceRead", "InvoiceWrite"]. */
   permissions: string[];
@@ -321,7 +321,7 @@ export interface KsefExpenseItem {
   vatRate:      string | null;
 }
 
-/** Pełne dane dokumentu kosztowego — podstawa wizualizacji faktury. */
+/** Pełne dane dokumentu kosztowego, podstawa wizualizacji faktury. */
 export interface KsefExpenseDetail {
   id:                 string;
   source:             ExpenseSource;

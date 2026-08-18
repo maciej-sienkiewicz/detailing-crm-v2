@@ -6,7 +6,7 @@ import { generatePiiFake, type PiiKind } from './piiFake';
 // Presentational blur for personal data the backend already masked ("***").
 // Instead of rendering the bare mask, we render a blurred random fake so the
 // UI looks like real data sits underneath. Un-blurring via devtools reveals
-// random noise, nothing more — the real value never left the backend.
+// random noise, nothing more: the real value never left the backend.
 
 const Masked = styled.span.attrs({ 'aria-label': 'Dane osobowe ukryte' })`
     display: inline-block;
@@ -23,7 +23,7 @@ const Masked = styled.span.attrs({ 'aria-label': 'Dane osobowe ukryte' })`
 `;
 
 export interface PiiValueProps {
-    /** Raw value from the API — either real data or the "***" mask. */
+    /** Raw value from the API: either real data or the "***" mask. */
     value: string | null | undefined;
     /** Shape of the random fake rendered (blurred) when the value is masked. */
     kind?: PiiKind;
@@ -63,7 +63,7 @@ export interface PiiTextProps {
 /**
  * Renders a composite string (title, label) in which masked personal data may
  * be embedded among regular text. Every embedded mask is replaced by a blurred
- * fake, the rest of the string renders as-is — so mixed strings never show
+ * fake, the rest of the string renders as-is, so mixed strings never show
  * bare "***".
  */
 export const PiiText: React.FC<PiiTextProps> = ({ value, kind = 'name' }) => {

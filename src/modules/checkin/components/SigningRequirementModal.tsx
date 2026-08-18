@@ -292,7 +292,7 @@ export const SigningRequirementModal = ({
             if (!awaited) return;
             applySignatureOutcome(awaited.protocolId, event.requestId, event.type, event.errorMessage);
         },
-        // Events may have been missed while the socket was down — poll the final state
+        // Events may have been missed while the socket was down, so poll the final state
         onReconnect: () => {
             awaitedRequests.forEach(async ({ protocolId, requestId }) => {
                 try {
@@ -306,7 +306,7 @@ export const SigningRequirementModal = ({
     });
 
     // Tablet = moduł podpisów; telefon klienta to reguła krzyżowa
-    // (podpisy ∧ komunikacja) rozstrzygana przez backend — patrz ProtocolSection.
+    // (podpisy ∧ komunikacja) rozstrzygana przez backend, patrz ProtocolSection.
     const sigLocal = useCapability('SIGNATURE_LOCAL');
     const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
 
@@ -385,7 +385,7 @@ export const SigningRequirementModal = ({
                                                 </IconButton>
 
                                                 {!needsRetry && (
-                                                    // span carries the tooltip — a disabled button swallows hover events
+                                                    // span carries the tooltip: a disabled button swallows hover events
                                                     <span title={phoneButtonTitle(protocol)} style={{ display: 'inline-flex' }}>
                                                         <IconButton
                                                             onClick={() => handleSendToPhone(protocol.id)}

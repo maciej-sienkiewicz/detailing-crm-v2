@@ -56,7 +56,7 @@ interface PaymentMethodPickerProps {
  *
  * Pięć równorzędnych pigułek zmuszało do czytania wszystkich za każdym razem,
  * choć w praktyce niemal zawsze wybierana jest jedna z dwóch pierwszych.
- * Rzadsze metody nie znikają — schodzą o jedno kliknięcie niżej, a wybrana
+ * Rzadsze metody nie znikają, schodzą o jedno kliknięcie niżej, a wybrana
  * z nich zostaje na przycisku, więc widać, co jest zaznaczone.
  */
 export const PaymentMethodPicker = ({ value, onChange }: PaymentMethodPickerProps) => {

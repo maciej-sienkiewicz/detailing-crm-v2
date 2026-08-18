@@ -391,7 +391,7 @@ const mockAddVehicle = async (
     const newVehicle: Vehicle = {
         id: `v${Date.now()}`,
         ...payload,
-        vin: '—',
+        vin: '-',
         engineType: 'GASOLINE',
         nextInspectionDate: null,
         nextServiceDate: null,

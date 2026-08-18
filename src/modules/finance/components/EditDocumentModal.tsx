@@ -457,7 +457,7 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
                     form="edit-document-form"
                     disabled={updateDoc.isPending}
                 >
-                    {updateDoc.isPending ? 'Zapisywanie…' : 'Zapisz zmiany'}
+                    {updateDoc.isPending ? 'Zapisywanie...' : 'Zapisz zmiany'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

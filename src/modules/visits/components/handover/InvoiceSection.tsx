@@ -76,11 +76,11 @@ interface InvoiceSectionProps {
 }
 
 /**
- * Konfiguracja faktury — w tym samym oknie, nie w modalu nad modalem.
+ * Konfiguracja faktury: w tym samym oknie, nie w modalu nad modalem.
  *
  * Nabywca i pozycje są domyślnie zwinięte do jednej linijki, bo w typowym
  * wydaniu są poprawne. Wiersz nabywcy pokazuje dokładnie to, co pójdzie do
- * KSeF — łącznie z NIP-em z kartoteki, który wcześniej backend doklejał po
+ * KSeF, łącznie z NIP-em z kartoteki, który wcześniej backend doklejał po
  * cichu, gdy pole zostało puste.
  */
 export const InvoiceSection = ({
@@ -176,7 +176,7 @@ export const InvoiceSection = ({
 
                 {balanceState === 'over' && (
                     <span>
-                        Faktura przekracza kwotę wizyty o <strong>{fmt(-remainder)}</strong> — obniż
+                        Faktura przekracza kwotę wizyty o <strong>{fmt(-remainder)}</strong>, obniż
                         pozycje.
                     </span>
                 )}
@@ -198,7 +198,7 @@ export const InvoiceSection = ({
                             <>
                                 <span>
                                     Reszta <strong>{fmt(remainder)}</strong> zostanie ujęta na
-                                    paragonie — osobnym dokumentem przychodowym (przy gotówce
+                                    paragonie, osobnym dokumentem przychodowym (przy gotówce
                                     z wpisem do kasy). Czym klient zapłacił resztę?
                                 </span>
                                 <PaymentMethodPicker
@@ -209,7 +209,7 @@ export const InvoiceSection = ({
                                     type="button"
                                     onClick={() => patch({ splitRemainder: false })}
                                 >
-                                    Anuluj podział — faktura na całość
+                                    Anuluj podział, faktura na całość
                                 </GhostAction>
                             </>
                         )}

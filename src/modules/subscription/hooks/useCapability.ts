@@ -8,7 +8,7 @@ export interface UseCapabilityResult extends CapabilityStatus {
      * can render a skeleton/nothing while this is true instead.
      */
     isLoading: boolean;
-    /** "Wymaga modułu: X" — ready-made reason line for tooltips and disabled hints. */
+    /** "Wymaga modułu: X", ready-made reason line for tooltips and disabled hints. */
     lockReason: string | null;
 }
 
@@ -23,7 +23,7 @@ const FALLBACK: CapabilityStatus = {
  * The ONLY sanctioned way to gate UI on purchased modules.
  *
  * Returns the backend-resolved decision for a business action, including
- * cross-module rules — never combine multiple `useFeature` calls to emulate
+ * cross-module rules; never combine multiple `useFeature` calls to emulate
  * this (that re-implements the expression and will drift from the backend).
  *
  * Fail-closed: while loading or on error the capability reads as disabled.

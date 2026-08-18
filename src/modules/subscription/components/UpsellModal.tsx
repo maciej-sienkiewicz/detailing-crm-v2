@@ -8,14 +8,14 @@ import { ModuleGateCard } from './ModuleGate';
 import type { AddOnKey, CapabilityKey, FeatureKey } from '../types';
 
 type UpsellModalProps = { onClose: () => void } & (
-    /** A capability locked per useCapability — the sanctioned gate for business actions. */
+    /** A capability locked per useCapability: the sanctioned gate for business actions. */
     | { capability: CapabilityKey; feature?: never }
     /** A whole feature/module locked per useFeature (e.g. SMS_EMAIL). */
     | { feature: FeatureKey; capability?: never }
 );
 
 /**
- * The one modal every "click the lock" surface should open — QuickEventModal,
+ * The one modal every "click the lock" surface should open: QuickEventModal,
  * visit editing, the pickup-ready dialog, the visit card modal, etc. Reuses the
  * same ModuleGateCard as the full-page ModuleGate and the global 402 dialog, so
  * every "module missing" surface still looks identical, just reachable earlier

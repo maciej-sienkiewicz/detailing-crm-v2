@@ -76,7 +76,7 @@ export interface RuleRowProps {
  * One situation in which we contact the customer.
  *
  * The secondary line shows the message itself with sample data substituted, not a
- * description of it — "Dziękujemy za wizytę, Jan!" tells an operator more than a sentence
+ * description of it: "Dziękujemy za wizytę, Jan!" tells an operator more than a sentence
  * explaining what a post-visit rule is. The explanation moves to the drawer.
  */
 export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, accent, onOpen, onToggle }) => {
@@ -104,7 +104,7 @@ export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, accent, onOpen, 
       <Cell>
         <Name>{spec.name}</Name>
         <Snippet $empty={empty}>
-          {empty ? 'Brak treści — nic nie zostanie wysłane' : resolveTemplate(snippetSource)}
+          {empty ? 'Brak treści: nic nie zostanie wysłane' : resolveTemplate(snippetSource)}
         </Snippet>
       </Cell>
 

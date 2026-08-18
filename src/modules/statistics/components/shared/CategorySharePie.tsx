@@ -1,5 +1,5 @@
 // src/modules/statistics/components/shared/CategorySharePie.tsx
-// Diagram kołowy (donut) udziału kategorii — wspólny dla zakładek Przychody i Koszty.
+// Diagram kołowy (donut) udziału kategorii, wspólny dla zakładek Przychody i Koszty.
 import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '../StatisticsTheme';
@@ -83,7 +83,7 @@ const PieSlicePath = styled.path<{ $dimmed: boolean; $clickable: boolean }>`
 `;
 
 function donutSlicePath(cx: number, cy: number, rOut: number, rIn: number, a0: number, a1: number): string {
-    // Clamp a hair below full circle — an arc where start == end renders nothing
+    // Clamp a hair below full circle: an arc where start == end renders nothing
     const span = Math.min(a1 - a0, Math.PI * 2 - 0.0001);
     const end = a0 + span;
     const large = span > Math.PI ? 1 : 0;
@@ -103,7 +103,7 @@ const SWEEP_DURATION_MS = 700;
 const easeOutCubic = (p: number) => 1 - Math.pow(1 - p, 3);
 
 /**
- * Postęp 0→1 animowany raz po zamontowaniu — donut "rysuje się" ruchem
+ * Postęp 0→1 animowany raz po zamontowaniu, donut "rysuje się" ruchem
  * wskazówek zegara. Przy prefers-reduced-motion od razu zwraca 1.
  */
 const useSweepProgress = (): number => {
@@ -156,7 +156,7 @@ export const CategorySharePie = ({
     if (total <= 0) return <ChartEmpty style={{ height: 220 }}>Brak danych dla wybranego okresu</ChartEmpty>;
 
     const size = 220, cx = size / 2, cy = size / 2, rOut = 104, rIn = 66;
-    // Kąty przemnożone przez sweep — przy wejściu donut rysuje się od godziny 12.
+    // Kąty przemnożone przez sweep: przy wejściu donut rysuje się od godziny 12.
     const { arcs } = slices.reduce<{ angle: number; arcs: (PieSliceDatum & { a0: number; a1: number })[] }>(
         (acc, s) => {
             const a1 = acc.angle + (s.value / total) * Math.PI * 2 * sweep;
@@ -205,7 +205,7 @@ export const CategorySharePie = ({
                         </text>
                         <text x={cx} y={cy + 14} textAnchor="middle"
                               style={{ fontSize: 11, fontWeight: 600, fill: st.textMuted }}>
-                            {active.name.length > 22 ? `${active.name.slice(0, 21)}…` : active.name}
+                            {active.name.length > 22 ? `${active.name.slice(0, 21)}...` : active.name}
                         </text>
                     </g>
                 ) : (

@@ -727,14 +727,14 @@ const formatDecimalInput = (grosze: number): string =>
 const isValidPriceInput = (raw: string): boolean =>
   raw === '' || /^\d*[,.]?\d{0,2}$/.test(raw);
 
-function buildPageNumbers(current: number, total: number): (number | '…')[] {
+function buildPageNumbers(current: number, total: number): (number | '...')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | '…')[] = [1];
-  if (current > 3) pages.push('…');
+  const pages: (number | '...')[] = [1];
+  if (current > 3) pages.push('...');
   for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
     pages.push(p);
   }
-  if (current < total - 2) pages.push('…');
+  if (current < total - 2) pages.push('...');
   pages.push(total);
   return pages;
 }
@@ -1236,7 +1236,7 @@ export const ServicesSection: React.FC = () => {
             </svg>
           </SearchIconWrap>
           <SearchInput
-            placeholder="Szukaj usługi…"
+            placeholder="Szukaj usługi..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -1380,7 +1380,7 @@ export const ServicesSection: React.FC = () => {
             <CancelBtn onClick={closeForm}>Anuluj</CancelBtn>
             <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
               {isSaving
-                ? (formMode === 'add' ? 'Dodawanie…' : 'Zapisywanie…')
+                ? (formMode === 'add' ? 'Dodawanie...' : 'Zapisywanie...')
                 : (formMode === 'add' ? 'Dodaj usługę' : 'Zapisz zmiany')}
             </SubmitBtn>
           </FormFooter>
@@ -1481,7 +1481,7 @@ export const ServicesSection: React.FC = () => {
                 <FieldLabel>Dodaj usługę</FieldLabel>
                 <ServicePickerWrap ref={pkgDropdownRef}>
                   <FieldInput
-                    placeholder="Wpisz nazwę usługi…"
+                    placeholder="Wpisz nazwę usługi..."
                     value={pkgServiceSearch}
                     onChange={e => { setPkgServiceSearch(e.target.value); setPkgDropdownOpen(true); }}
                     onFocus={() => setPkgDropdownOpen(true)}
@@ -1541,7 +1541,7 @@ export const ServicesSection: React.FC = () => {
             <CancelBtn onClick={closePkgForm}>Anuluj</CancelBtn>
             <SubmitBtn onClick={handlePkgSubmit} disabled={isPkgSaving} style={{ background: '#2563eb' }}>
               {isPkgSaving
-                ? (pkgFormMode === 'add' ? 'Tworzenie…' : 'Zapisywanie…')
+                ? (pkgFormMode === 'add' ? 'Tworzenie...' : 'Zapisywanie...')
                 : (pkgFormMode === 'add' ? 'Utwórz pakiet' : 'Zapisz pakiet')}
             </SubmitBtn>
           </FormFooter>
@@ -1599,7 +1599,7 @@ export const ServicesSection: React.FC = () => {
         {!isLoading && totalPages > 1 && (
           <Pager>
             <PagerInfo>
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
+              {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
             </PagerInfo>
             <PagerControls>
               <PagerBtn
@@ -1612,8 +1612,8 @@ export const ServicesSection: React.FC = () => {
                 </svg>
               </PagerBtn>
               {pageNumbers.map((n, i) =>
-                n === '…' ? (
-                  <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>…</PagerBtn>
+                n === '...' ? (
+                  <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>...</PagerBtn>
                 ) : (
                   <PagerBtn key={n} $active={n === page} onClick={() => setPage(n)}>
                     {n}
@@ -1642,10 +1642,10 @@ export const ServicesSection: React.FC = () => {
             <DialogText>
               Czy chcesz zapisać <strong>„{pendingCustomName}"</strong> jako osobną usługę
               w katalogu?<br /><br />
-              Jeśli tak — usługa zostanie natychmiast dodana z flagą{' '}
+              Jeśli tak, usługa zostanie natychmiast dodana z flagą{' '}
               <strong>wyceny ręcznej</strong> i będzie dostępna przy tworzeniu
               przyszłych zleceń.<br />
-              Jeśli nie — pozycja zostanie dodana tylko do tego pakietu.
+              Jeśli nie, pozycja zostanie dodana tylko do tego pakietu.
             </DialogText>
             <DialogActions>
               <CancelBtn
@@ -1663,7 +1663,7 @@ export const ServicesSection: React.FC = () => {
                 }}
                 disabled={createMutation.isPending}
               >
-                {createMutation.isPending ? 'Zapisywanie…' : 'Tak, zapisz w katalogu'}
+                {createMutation.isPending ? 'Zapisywanie...' : 'Tak, zapisz w katalogu'}
               </SubmitBtn>
             </DialogActions>
           </Dialog>
@@ -1708,7 +1708,7 @@ export const ServicesSection: React.FC = () => {
                 onClick={handleArchiveConfirm}
                 disabled={archiveMutation.isPending}
               >
-                {archiveMutation.isPending ? 'Archiwizowanie…' : 'Archiwizuj'}
+                {archiveMutation.isPending ? 'Archiwizowanie...' : 'Archiwizuj'}
               </DangerBtn>
             </DialogActions>
           </Dialog>

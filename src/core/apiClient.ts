@@ -4,7 +4,7 @@ import { setPiiAccessFromHeader } from '@/common/pii';
 /**
  * Per-request opt-out from the global error toast.
  *
- * Set `skipErrorToast: true` on any call whose failure is already shown in context —
+ * Set `skipErrorToast: true` on any call whose failure is already shown in context:
  * an inline error, a wizard step, a form field. The interceptor stays the safety net
  * for everything else, which is what it was for. Without it the user saw the same
  * sentence twice: once bare from the interceptor, once with a title from the caller.
@@ -53,7 +53,7 @@ apiClient.interceptors.response.use(
                 || currentPath.startsWith('/vc/')
                 || currentPath.startsWith('/sign/')
                 || currentPath.startsWith('/m/sig/');
-            // PIN verification endpoints return 401 for wrong PIN — caller handles retries, don't bounce to /login
+            // PIN verification endpoints return 401 for wrong PIN; caller handles retries, don't bounce to /login
             const isPinEndpoint = requestUrl.includes('/v1/pin');
 
             if (!isPublicPath && !isPinEndpoint) {
@@ -64,9 +64,9 @@ apiClient.interceptors.response.use(
         if (status === 402) {
             // Paywall contract: every 402 body carries a machine-readable `code`.
             // Same soft-UX rule as 403 below: background READS the user did not
-            // trigger (config prefetches on calendar/check-in views) fail SILENTLY —
+            // trigger (config prefetches on calendar/check-in views) fail SILENTLY:
             // the view's own gates render the locked state. Only a deliberate
-            // MUTATION opens the global upsell dialog (PaywallListener) — the user
+            // MUTATION opens the global upsell dialog (PaywallListener); the user
             // clicked something and gets a purchase path instead of a raw error.
             // Other codes (INSUFFICIENT_CREDITS) fall through to the generic toast
             // unless a call site handles them.
@@ -80,7 +80,7 @@ apiClient.interceptors.response.use(
             }
         }
 
-        // Generic 4xx fallback toast — for errors NOBODY handles. A call site that
+        // Generic 4xx fallback toast, for errors NOBODY handles. A call site that
         // renders its own message passes `skipErrorToast` (declared at the top);
         // without it the user saw the same sentence twice, once bare from here and
         // once with a title from the call site.
@@ -96,7 +96,7 @@ apiClient.interceptors.response.use(
 
         if (status === 403) {
             // The backend is the authority on permissions. Soft-UX rule: reads that the
-            // user did not explicitly trigger fail SILENTLY — the view simply shows
+            // user did not explicitly trigger fail SILENTLY: the view simply shows
             // nothing (permissions hide capabilities, they don't announce errors).
             // Only a deliberate action (mutation) gets a toast, because the user
             // clicked something and needs to know why nothing happened.

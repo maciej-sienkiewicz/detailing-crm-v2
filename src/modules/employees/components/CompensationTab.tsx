@@ -799,13 +799,13 @@ export const CompensationTab = ({ employeeId }: Props) => {
                                                 ? `${formatCents(h.hourlyRateGrossCents)}/h brutto`
                                                 : h.baseSalaryGrossCents != null
                                                     ? formatCents(h.baseSalaryGrossCents)
-                                                    : '—'}
+                                                    : '-'}
                                     {h.components.length > 0 && ` + ${h.components.length} składnik(ów)`}
                                 </span>
                             </div>
                             <HistoryPeriod>
                                 {new Date(h.effectiveFrom).toLocaleDateString('pl-PL')}
-                                {h.effectiveTo ? ` – ${new Date(h.effectiveTo).toLocaleDateString('pl-PL')}` : ''}
+                                {h.effectiveTo ? ` - ${new Date(h.effectiveTo).toLocaleDateString('pl-PL')}` : ''}
                             </HistoryPeriod>
                         </HistoryItem>
                     ))}

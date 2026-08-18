@@ -37,7 +37,7 @@ export function useMobileDamageLogic(
     const isSavingRef = useRef(false);
     const pendingSaveRef = useRef<DamagePoint[] | null>(null);
 
-    // Always-current points — photo upload callbacks resolve after state changes
+    // Always-current points: photo upload callbacks resolve after state changes
     const pointsRef = useRef<DamagePoint[]>([]);
     pointsRef.current = damagePoints;
     const vehicleTypeRef = useRef(vehicleType);

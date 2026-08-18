@@ -365,7 +365,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             vatRate: data.vatRate as VatRate,
             requireManualPrice: data.requireManualPrice,
         });
-        // Replace old service entry with new one in cache (synchronous — no refetch flicker).
+        // Replace old service entry with new one in cache (synchronous, no refetch flicker).
         queryClient.setQueryData<CatalogService[]>(['services'], (old = []) =>
             old.map(s => s.id === serviceId ? updatedService : s)
         );
@@ -451,7 +451,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             sel?.addRange(range);
         }
 
-        // Keyboard is already open (user was typing) — just transfer focus
+        // Keyboard is already open (user was typing), just transfer focus
         el.focus();
     }, [isMobile, form.showCustomerDropdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -871,7 +871,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
 
-                                                    {/* Phone + email — always visible, on every viewport */}
+                                                    {/* Phone + email: always visible, on every viewport */}
                                                     <S.CustomerInputRow>
                                                             <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
                                                                 <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
@@ -960,7 +960,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     <S.DropdownItemMeta $warning={!hasContact}>
                                                                         {hasContact
                                                                             ? [c.phone, c.email].filter(Boolean).join('  ·  ')
-                                                                            : '⚠ Brak danych kontaktowych — może to inna osoba?'
+                                                                            : '⚠ Brak danych kontaktowych, może to inna osoba?'
                                                                         }
                                                                     </S.DropdownItemMeta>
                                                                 </S.DropdownItem>
@@ -980,7 +980,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <IconPlus />
                                                             <span>
                                                                 {form.customerResults.length > 0
-                                                                    ? 'To inna osoba — dodaj jako nowego klienta'
+                                                                    ? 'To inna osoba, dodaj jako nowego klienta'
                                                                     : 'Dodaj nowego klienta'
                                                                 }
                                                             </span>
@@ -1075,7 +1075,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     type="button"
                                                                     onMouseDown={(e) => e.preventDefault()}
                                                                     onClick={() => {
-                                                                        // The sheet has no phone/email field — add the customer using
+                                                                        // The sheet has no phone/email field, add the customer using
                                                                         // whatever name was typed (skipping contact validation).
                                                                         // If nothing was typed we just close: the phone/email inputs
                                                                         // are always on screen behind the sheet.
@@ -1087,7 +1087,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     <IconPlus />
                                                                     <span>
                                                                         {form.customerResults.length > 0
-                                                                            ? 'To inna osoba — dodaj jako nowego klienta'
+                                                                            ? 'To inna osoba, dodaj jako nowego klienta'
                                                                             : 'Dodaj nowego klienta'
                                                                         }
                                                                     </span>
@@ -1197,7 +1197,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.ChipClear>
                                         </S.SelectedCustomerChip>
                                     ) : form.vehicles.length > 0 && !form.isAddingNewVehicle ? (
-                                        /* ── stan: klient ma pojazdy – wybierz z listy ── */
+                                        /* ── stan: klient ma pojazdy, wybierz z listy ── */
                                         <S.DropdownContainer>
                                             <S.VehicleSelectButton
                                                 type="button"
@@ -1911,7 +1911,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     disabled={form.isSubmitting}
                                     style={{ '--button-bg': form.accentColor, opacity: form.isSubmitting ? 0.7 : 1 } as React.CSSProperties}
                                 >
-                                    {form.isSubmitting ? 'Zapisywanie…' : 'Zapisz wizytę'}
+                                    {form.isSubmitting ? 'Zapisywanie...' : 'Zapisz wizytę'}
                                 </S.Button>
                             </S.FooterActions>
                         </S.Footer>

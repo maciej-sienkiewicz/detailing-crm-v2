@@ -3,7 +3,7 @@ import { AppointmentStatus, VisitStatus } from '../types';
 
 // v3: filtr kolorów przechowuje kolory UKRYTE (blacklist) zamiast snapshotu
 // zaznaczonych (whitelist). Whitelist z v2 psuła kalendarz po dodaniu nowego
-// koloru — nie było go w zapisanym snapshocie, więc wydarzenia z nowym kolorem
+// koloru, nie było go w zapisanym snapshocie, więc wydarzenia z nowym kolorem
 // znikały po cichu. Zmiana klucza celowo porzuca stare, przeterminowane filtry.
 const STORAGE_KEY = 'calendar-filters-v3';
 
@@ -44,7 +44,7 @@ function validateVisitStatuses(raw: unknown): VisitStatus[] {
 export function useCalendarFilters() {
     const [stored, setStored] = useLocalStorage<CalendarFiltersState>(STORAGE_KEY, DEFAULT_FILTERS);
 
-    // Validate on read – protects against stale / malformed localStorage data
+    // Validate on read: protects against stale / malformed localStorage data
     const appointmentStatuses = validateAppointmentStatuses(stored.appointmentStatuses);
     const visitStatuses = validateVisitStatuses(stored.visitStatuses);
 

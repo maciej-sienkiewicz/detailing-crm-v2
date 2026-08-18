@@ -507,7 +507,7 @@ const ReturnDialog = ({ periodLabel, isPending, onConfirm, onCancel }: ReturnDia
                 <DialogFooter>
                     <GhostBtn onClick={onCancel}>Anuluj</GhostBtn>
                     <DangerBtn onClick={() => onConfirm(note)} disabled={isPending}>
-                        {isPending ? 'Zwracanie…' : 'Zwróć kartę'}
+                        {isPending ? 'Zwracanie...' : 'Zwróć kartę'}
                     </DangerBtn>
                 </DialogFooter>
             </Dialog>

@@ -264,7 +264,7 @@ function HistoryCard({ record, contractorName }: { record: CloseHistoryRecord; c
     }
 
     const period = record.periodFrom && record.periodTo
-        ? `${formatDate(record.periodFrom)} – ${formatDate(record.periodTo)}`
+        ? `${formatDate(record.periodFrom)}-${formatDate(record.periodTo)}`
         : null;
 
     const modeLabel = record.mode === 'NEW_ONLY' ? 'Tylko nowe' : 'Wszystkie';
@@ -326,7 +326,7 @@ export function CloseHistoryModal({ contractor, onClose }: Props) {
         <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
             <Modal>
                 <ModalHeader>
-                    <Title>Historia zamknięć — {contractor.name}</Title>
+                    <Title>Historia zamknięć: {contractor.name}</Title>
                     <CloseBtn onClick={onClose} title="Zamknij">×</CloseBtn>
                 </ModalHeader>
                 <ModalBody>

@@ -85,7 +85,7 @@ const UnreadDot = styled.span`
 `;
 
 /**
- * "Powiadomienia" — the task inbox for roles without dashboard access. Shows
+ * "Powiadomienia": the task inbox for roles without dashboard access. Shows
  * every task visible to the user (assigned to them, their role, or everyone),
  * lets them tick tasks off, and marks everything as read on entry (clearing
  * the sidebar badge).

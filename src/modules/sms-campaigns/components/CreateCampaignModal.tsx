@@ -385,7 +385,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div>
             <HeaderTitle>Nowa kampania SMS</HeaderTitle>
             <HeaderSubtitle>
-              Krok {step} z 3 — {['Filtry odbiorców', 'Podgląd odbiorców', 'Treść i wysyłka'][step - 1]}
+              Krok {step} z 3 - {['Filtry odbiorców', 'Podgląd odbiorców', 'Treść i wysyłka'][step - 1]}
             </HeaderSubtitle>
           </div>
           <CloseIconBtn onClick={onClose} title="Zamknij">
@@ -458,7 +458,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <FieldLabel>Nazwa kampanii</FieldLabel>
                 <InputField
                   type="text"
-                  placeholder="np. Właściciele BMW – oferta PPF marzec 2026"
+                  placeholder="np. Właściciele BMW - oferta PPF marzec 2026"
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
                   maxLength={100}
@@ -468,7 +468,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <FormGroup>
                 <FieldLabel>Treść wiadomości SMS</FieldLabel>
                 <HintBox>
-                  Możesz użyć zmiennych dynamicznych — zostaną one zastąpione danymi klienta przy wysyłce.
+                  Możesz użyć zmiennych dynamicznych: zostaną one zastąpione danymi klienta przy wysyłce.
                 </HintBox>
                 <VariableChips>
                   {TEMPLATE_VARS.map((v) => (
@@ -476,7 +476,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   ))}
                 </VariableChips>
                 <TextareaField
-                  placeholder="Treść SMS…"
+                  placeholder="Treść SMS..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   maxLength={320}
@@ -484,7 +484,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <CharCounter $warning={message.length > 280}>
                   {message.length} / 160 znaków
                   {message.length > 160 && message.length <= 320 && ' (2 SMS)'}
-                  {message.length > 320 && ' — przekroczono limit!'}
+                  {message.length > 320 && ' - przekroczono limit!'}
                 </CharCounter>
               </FormGroup>
             </>
@@ -514,7 +514,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 onClick={handleSubmit}
                 disabled={!canSubmit || createMutation.isPending}
               >
-                {createMutation.isPending ? 'Zapisywanie…' : 'Zapisz kampanię'}
+                {createMutation.isPending ? 'Zapisywanie...' : 'Zapisz kampanię'}
               </SharedButton>
             )}
           </div>

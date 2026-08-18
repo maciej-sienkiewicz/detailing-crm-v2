@@ -125,7 +125,7 @@ export const EmployeeTable = ({ employees }: Props) => {
                             <ContactLine>
                                 {emp.email && <span>{emp.email}</span>}
                                 {emp.phone && <span>{emp.phone}</span>}
-                                {!emp.email && !emp.phone && <span>—</span>}
+                                {!emp.email && !emp.phone && <span>-</span>}
                             </ContactLine>
                         </Td>
                         <Td>

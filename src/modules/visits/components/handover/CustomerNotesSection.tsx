@@ -6,7 +6,7 @@ import { Section, SectionLabel } from './HandoverKit';
 import type { VisitComment } from '../../types';
 
 /**
- * Ciepłe tło i lewy akcent — to jedyna sekcja, której treść trzeba komuś
+ * Ciepłe tło i lewy akcent: to jedyna sekcja, której treść trzeba komuś
  * powiedzieć na głos. Na białym tle wyglądała jak reszta formularza i łatwo
  * ją było minąć wzrokiem w drodze do przycisku.
  */
@@ -76,7 +76,7 @@ interface CustomerNotesSectionProps {
 /**
  * Notatki przeznaczone dla klienta.
  *
- * To informacja, nie decyzja — dlatego sekcja, a nie krok kreatora z własnym
+ * To informacja, nie decyzja, dlatego sekcja, a nie krok kreatora z własnym
  * przyciskiem „Kontynuuj". Gdy nie ma czego przekazać, znika w całości zamiast
  * pokazywać pusty stan.
  */

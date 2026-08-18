@@ -130,7 +130,7 @@ const Container = styled.div`
     box-shadow: ${st.shadowSm};
 `;
 
-/* Header — mirrors TableHeader from ServicesTable */
+/* Header, mirrors TableHeader from ServicesTable */
 
 const AuditHeader = styled.div`
     padding: 20px 24px;
@@ -213,7 +213,7 @@ const DotRing = styled.div<{ $color: string }>`
     }
 `;
 
-/* Entry card — same border/radius pattern as rest of visit module */
+/* Entry card, same border/radius pattern as rest of visit module */
 
 const EntryCard = styled.div`
     background: ${st.bgCard};
@@ -244,7 +244,7 @@ const CardLeft = styled.div`
     min-width: 0;
 `;
 
-/* Action badge — same pattern as ServiceStatusBadge from ServicesTable */
+/* Action badge, same pattern as ServiceStatusBadge from ServicesTable */
 
 const ActionBadge = styled.span<{ $color: string }>`
     display: inline-flex;
@@ -270,7 +270,7 @@ const CardRight = styled.div`
     text-align: right;
     min-width: 0;
 
-    /* Stacked layout below 480px — meta reads left-to-right like the rest. */
+    /* Stacked layout below 480px; meta reads left-to-right like the rest. */
     @media (max-width: 480px) {
         text-align: left;
         display: flex;
@@ -611,7 +611,7 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
             <HeaderLeft>
                 <AuditTitle>Historia zmian</AuditTitle>
                 <AuditSubtitle>
-                    {isLoading ? 'Ładowanie…' : pluralEntries(total)}
+                    {isLoading ? 'Ładowanie...' : pluralEntries(total)}
                 </AuditSubtitle>
             </HeaderLeft>
         </AuditHeader>
@@ -623,7 +623,7 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
                 {header}
                 <CenterBox>
                     <Spinner />
-                    <StateHint>Ładowanie historii zmian…</StateHint>
+                    <StateHint>Ładowanie historii zmian...</StateHint>
                 </CenterBox>
             </Container>
         );
@@ -692,9 +692,9 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
                                                 {entry.changes.map((change, idx) => (
                                                     <ChangeRow key={idx}>
                                                         <FieldName>{getFieldLabel(change.field)}</FieldName>
-                                                        <FieldVal $variant="old">{change.oldValue ?? '—'}</FieldVal>
+                                                        <FieldVal $variant="old">{change.oldValue ?? '-'}</FieldVal>
                                                         <Arrow>→</Arrow>
-                                                        <FieldVal $variant="new">{change.newValue ?? '—'}</FieldVal>
+                                                        <FieldVal $variant="new">{change.newValue ?? '-'}</FieldVal>
                                                     </ChangeRow>
                                                 ))}
                                             </ChangeTable>

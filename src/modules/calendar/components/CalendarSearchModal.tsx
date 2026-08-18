@@ -309,7 +309,7 @@ function formatDayLabel(date: Date): string {
 }
 
 function formatPrice(amount: number | undefined, currency = 'PLN'): string {
-    if (!amount) return '—';
+    if (!amount) return '-';
     return `${(amount / 100).toFixed(2)} ${currency}`;
 }
 
@@ -382,7 +382,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
         ).then(events => {
             setAllEvents(events);
         }).catch(() => {
-            // silently ignore errors — user can still see empty state
+            // silently ignore errors, user can still see empty state
         }).finally(() => {
             setIsLoading(false);
         });
@@ -432,7 +432,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                         ref={inputRef}
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder="Szukaj wizyt, rezerwacji, klientów, pojazdów…"
+                        placeholder="Szukaj wizyt, rezerwacji, klientów, pojazdów..."
                     />
                     {query && (
                         <ClearBtn onClick={() => setQuery('')} aria-label="Wyczyść">
@@ -449,7 +449,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                     {isLoading ? (
                         <LoadingRow>
                             <Spinner />
-                            Ładowanie danych…
+                            Ładowanie danych...
                         </LoadingRow>
                     ) : query.trim().length < 2 ? (
                         <EmptyState>
@@ -462,7 +462,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                 </svg>
                             </EmptyIcon>
                             <EmptyText>Wyszukaj wizytę lub rezerwację</EmptyText>
-                            <HintText>Wpisz co najmniej 2 znaki — tytuł, klient, pojazd lub tablica rejestracyjna</HintText>
+                            <HintText>Wpisz co najmniej 2 znaki: tytuł, klient, pojazd lub tablica rejestracyjna</HintText>
                         </EmptyState>
                     ) : filteredResults.length === 0 ? (
                         <EmptyState>

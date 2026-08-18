@@ -264,7 +264,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     const { sendEmail, emailOptions } = options;
 
     // Neutralize, don't just blur: the section is controlled by the parent and its
-    // defaults can arrive as true — a blurred checkbox still submits its value.
+    // defaults can arrive as true; a blurred checkbox still submits its value.
     useEffect(() => {
         if (!comms.isLoading && !comms.enabled && (options.sendSms || options.sendEmail)) {
             onChange({ ...options, sendSms: false, sendEmail: false });

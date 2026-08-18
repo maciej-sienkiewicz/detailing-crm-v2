@@ -20,7 +20,7 @@ export const useUpdatePhotoTags = (options?: {
         mutationFn: ({ photoId, tags }: { photoId: string; tags: string[] }) =>
             photoTagsApi.updatePhotoTags(photoId, tags),
         onSuccess: (data, variables) => {
-            // New tags may have become suggestions — refresh
+            // New tags may have become suggestions, so refresh
             queryClient.invalidateQueries({ queryKey: ['photo-tags', 'suggestions'] });
             options?.onSuccess?.(variables.photoId, data.tags);
         },

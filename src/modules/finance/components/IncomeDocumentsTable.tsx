@@ -123,11 +123,11 @@ const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; bg: string; fg:
 
 const KSEF_STATUS: Record<KsefRevenueStatus, { label: string; bg: string; fg: string; title?: string }> = {
   PENDING:      { label: 'Oczekuje',      bg: '#f1f5f9', fg: '#475569' },
-  SENDING:      { label: 'Wysyłanie…',    bg: '#eff6ff', fg: '#1d4ed8' },
-  SUBMITTED:    { label: 'Przetwarzanie', bg: '#eff6ff', fg: '#1d4ed8', title: 'Przyjęta do sesji KSeF — oczekuje na numer' },
+  SENDING:      { label: 'Wysyłanie...',  bg: '#eff6ff', fg: '#1d4ed8' },
+  SUBMITTED:    { label: 'Przetwarzanie', bg: '#eff6ff', fg: '#1d4ed8', title: 'Przyjęta do sesji KSeF, oczekuje na numer' },
   ACCEPTED:     { label: 'W KSeF',        bg: '#f0fdf4', fg: '#15803d' },
   REJECTED:     { label: 'Odrzucona',     bg: '#fef2f2', fg: '#dc2626' },
-  QUEUED_RETRY: { label: 'Offline24',     bg: '#fffbeb', fg: '#b45309', title: 'KSeF niedostępny — faktura zostanie dosłana automatycznie' },
+  QUEUED_RETRY: { label: 'Offline24',     bg: '#fffbeb', fg: '#b45309', title: 'KSeF niedostępny: faktura zostanie dosłana automatycznie' },
 };
 
 const ORIGIN_LABEL: Record<string, string> = {
@@ -238,7 +238,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       {doc.ksefNumber && <KsefNumber title={doc.ksefNumber}>{doc.ksefNumber}</KsefNumber>}
                     </Td>
                     <Td>
-                      <PartyName>{doc.counterpartyName ?? '—'}</PartyName>
+                      <PartyName>{doc.counterpartyName ?? '-'}</PartyName>
                       <PartyNip>{doc.counterpartyNip ? `NIP ${doc.counterpartyNip}` : 'Konsument'}</PartyNip>
                     </Td>
                     <Td $align="right">
@@ -253,7 +253,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                               {' '}
                               <Badge
                                 $bg="#fef2f2" $fg="#b91c1c" $border="#fecaca"
-                                title="Możliwe podwójne fakturowanie — kliknij, aby rozstrzygnąć"
+                                title="Możliwe podwójne fakturowanie: kliknij, aby rozstrzygnąć"
                               >
                                 ⚠ Duplikat?
                               </Badge>
@@ -261,12 +261,12 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                           )}
                         </>
                       ) : (
-                        <Muted title="Dokument nie podlega wysyłce do KSeF">—</Muted>
+                        <Muted title="Dokument nie podlega wysyłce do KSeF">-</Muted>
                       )}
                     </Td>
                     <Td>
                       <Badge $bg="#f8fafc" $fg="#475569">
-                        {ORIGIN_LABEL[doc.origin ?? ''] ?? '—'}
+                        {ORIGIN_LABEL[doc.origin ?? ''] ?? '-'}
                       </Badge>
                     </Td>
                     <Td>

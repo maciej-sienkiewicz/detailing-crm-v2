@@ -409,7 +409,7 @@ export function CampaignWizardView() {
                 <HintText>
                   {trigger.serviceIds.length > 1
                     ? 'Wystarczy, że klient miał wykonaną dowolną z wybranych usług (logika LUB).'
-                    : 'Możesz wybrać kilka usług — warunek spełni każda z nich (logika LUB).'}
+                    : 'Możesz wybrać kilka usług: warunek spełni każda z nich (logika LUB).'}
                 </HintText>
               </FormField>
               <FormField>
@@ -434,14 +434,14 @@ export function CampaignWizardView() {
               <FormField>
                 <FormLabel>
                   Pomiń, jeśli klient był w międzyczasie
-                  <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane — chroni przed wysyłaniem do klientów, którzy sami wrócili." />
+                  <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane, bo chroni przed wysyłaniem do klientów, którzy sami wrócili." />
                 </FormLabel>
                 <FormSelect
                   value={trigger.onlyIfNoVisitSince ? 'yes' : 'no'}
                   onChange={(e) => setTrigger({ ...trigger, onlyIfNoVisitSince: e.target.value === 'yes' })}
                 >
                   <option value="yes">Tak (zalecane)</option>
-                  <option value="no">Nie — wyślij zawsze</option>
+                  <option value="no">Nie, wyślij zawsze</option>
                 </FormSelect>
               </FormField>
             </SectionCard>
@@ -487,13 +487,13 @@ export function CampaignWizardView() {
               <dt>Kampania</dt><dd>{name}</dd>
               <dt>Kanał</dt><dd>{content.channel === 'BOTH' ? 'SMS i e-mail' : content.channel === 'SMS' ? 'SMS' : 'E-mail'}</dd>
               <dt>Odbiorcy</dt>
-              <dd>{estimate ? `${estimate.eligible} (stan na dziś)` : '—'}</dd>
+              <dd>{estimate ? `${estimate.eligible} (stan na dziś)` : '-'}</dd>
               {estimatedCredits != null && (<><dt>Szacowany koszt</dt><dd>{estimatedCredits} kredytów SMS</dd></>)}
               {kind === 'AUTOMATIC' && (
                 <>
                   <dt>Warunek</dt>
                   <dd>
-                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '—'}
+                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '-'}
                   </dd>
                 </>
               )}
@@ -526,7 +526,7 @@ export function CampaignWizardView() {
                 </FormField>
               )}
               <ScheduleNote>
-                Listę odbiorców przeliczymy ponownie tuż przed wysyłką — obejmie klientów
+                Listę odbiorców przeliczymy ponownie tuż przed wysyłką, obejmie klientów
                 spełniających warunki w dniu wysyłki. Twoje ręczne wykluczenia zostaną zachowane.
               </ScheduleNote>
             </SectionCard>

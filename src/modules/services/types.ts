@@ -17,7 +17,7 @@ export interface Service {
     id: string;
     name: string;
     basePriceNet: number;
-    /** Exact gross as entered by the user — NOT derivable from net (1-grosz rounding gaps). */
+    /** Exact gross as entered by the user; NOT derivable from net (1-grosz rounding gaps). */
     basePriceGross: number;
     vatRate: VatRate;
     requireManualPrice: boolean;

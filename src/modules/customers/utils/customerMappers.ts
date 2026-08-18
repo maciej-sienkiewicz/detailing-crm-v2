@@ -85,7 +85,7 @@ export const formatRevenue = (revenue: CustomerRevenue): string => {
 };
 
 export const formatDate = (dateString: string | null): string => {
-    if (!dateString) return '—';
+    if (!dateString) return '-';
 
     return new Intl.DateTimeFormat('pl-PL', {
         day: '2-digit',
@@ -95,7 +95,7 @@ export const formatDate = (dateString: string | null): string => {
 };
 
 export const formatPhoneNumber = (phone: string | null): string => {
-    if (!phone) return '—';
+    if (!phone) return '-';
     const clean = phone.replace(/[\s-]/g, '').replace(/^\+48/, '');
     if (clean.length < 9) return phone;
     return `+48 ${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
@@ -128,8 +128,8 @@ export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehi
     model: backendVehicle.model,
     year: backendVehicle.year,
     licensePlate: backendVehicle.licensePlate,
-    vin: '—',
-    color: backendVehicle.color ?? '—',
+    vin: '-',
+    color: backendVehicle.color ?? '-',
     mileage: 0,
     nextInspectionDate: null,
     nextServiceDate: null,

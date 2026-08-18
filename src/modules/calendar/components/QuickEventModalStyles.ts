@@ -1,5 +1,5 @@
 /**
- * QuickEventModal styles — Stitch-inspired design
+ * QuickEventModal styles, Stitch-inspired design
  *
  * Shared primitives (overlay, inputs, buttons) are imported from
  * @/common/styles so the same tokens can be reused elsewhere.
@@ -456,7 +456,7 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     }
 
     @media (max-width: 639px) {
-        /* Stacked layout on mobile — name wraps, price below */
+        /* Stacked layout on mobile: name wraps, price below */
         flex-direction: column;
         align-items: flex-start;
         gap: 2px;
@@ -651,7 +651,7 @@ export const ChipClear = styled.button`
 // ServicesList + SummarySection live inside ServicesBlock so they share
 // a single outer border and form one cohesive component.
 
-/** Outer container — single border wraps header + rows + summary */
+/** Outer container: single border wraps header + rows + summary */
 export const ServicesBlock = styled.div`
     border: 1.5px solid #e2e8f0;
     border-radius: 14px;
@@ -681,7 +681,7 @@ export const ServicesHeaderCell = styled.span`
     text-align: right;
 
     &:first-child { text-align: left; }
-    &:last-child  { /* actions col — empty */ }
+    &:last-child  { /* actions col: empty */ }
 `;
 
 // ─── Services list ────────────────────────────────────────────────────────────
@@ -1639,7 +1639,7 @@ export const MobileBottomSheet = styled.div`
     display: flex;
     flex-direction: column;
     /* Header + search field are flex-shrink: 0, so only the list absorbs the
-       height change — they stay visible no matter how tall the keyboard is. */
+       height change, they stay visible no matter how tall the keyboard is. */
     min-height: 0;
     /* 0 in Safari (browser chrome already clears the notch); only bites when
        installed as a PWA, where the sheet really does reach the status bar. */
@@ -1670,7 +1670,7 @@ export const MobileSheetTitle = styled.div`
 `;
 
 /**
- * The sheet covers the whole screen, so the backdrop is unreachable — this is
+ * The sheet covers the whole screen, so the backdrop is unreachable; this is
  * the only way out on a phone.
  */
 export const MobileSheetClose = styled.button`
@@ -1731,7 +1731,7 @@ export const MobileSheetSearchInput = styled.input`
     &::-webkit-search-decoration { display: none; }
 `;
 
-// contenteditable variant — used on iOS mobile to avoid the ^ v ✓ accessory bar
+// contenteditable variant, used on iOS mobile to avoid the ^ v ✓ accessory bar
 // Safari only attaches inputAccessoryView to <input>/<textarea>, not contenteditable
 export const MobileSheetSearchEditable = styled.div`
     width: 100%;

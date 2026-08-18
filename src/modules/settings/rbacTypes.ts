@@ -1,16 +1,16 @@
 // ─── Roles & Permissions (RBAC, Settings) ──────────────────────────────────────
 // Types for the "Role i uprawnienia" settings tab.
 //
-// The permission catalog is a DEPENDENCY GRAPH (hardcoded on the backend): a tree —
+// The permission catalog is a DEPENDENCY GRAPH (hardcoded on the backend): a tree;
 // a node's children require the node itself, so granting a permission implies granting
-// its whole ancestor chain — plus explicit implications (`implies`), which may point at
+// its whole ancestor chain, plus explicit implications (`implies`), which may point at
 // another branch or module (e.g. creating visits implies managing customers). The editor
 // renders the tree and cascades selection along both kinds of edges; the backend closes
 // the persisted set over the same graph, so a role can never be inconsistent.
 
 /**
  * Permission modules grouping (hardcoded on the backend, `PermissionModule`).
- * Customers/vehicles are no longer a module — they are the "Klienci i pojazdy"
+ * Customers/vehicles are no longer a module: they are the "Klienci i pojazdy"
  * section inside VISITS.
  */
 export type PermissionModuleKey =
@@ -65,7 +65,7 @@ export interface Role {
     trackWorkTime: boolean;
     /**
      * Accounts currently holding this role. Surfaces the delete conflict on the role
-     * card, before anyone tries — the API used to reveal it only by refusing.
+     * card, before anyone tries; the API used to reveal it only by refusing.
      */
     assignedUserCount: number;
     createdAt: string;
@@ -83,7 +83,7 @@ export interface RoleUser {
 }
 
 /**
- * Where the holders of a deleted role land. `null` clears their role — they keep the
+ * Where the holders of a deleted role land. `null` clears their role: they keep the
  * account but lose access until someone assigns a new one.
  */
 export interface DeleteRoleOptions {

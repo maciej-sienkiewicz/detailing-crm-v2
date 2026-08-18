@@ -10,7 +10,7 @@ export interface ProtocolTemplate {
   description?: string;
   templateUrl?: string; // URL to the template file (PDF or HTML)
   fileFormat: ProtocolTemplateFormat;
-  /** Systemowy szablon domyślny — przywracany automatycznie, gdy studio nie ma żadnego szablonu przyjęcia. */
+  /** Systemowy szablon domyślny: przywracany automatycznie, gdy studio nie ma żadnego szablonu przyjęcia. */
   isDefault: boolean;
   verificationStatus: ProtocolTemplateVerificationStatus;
   isActive: boolean;

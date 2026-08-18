@@ -100,7 +100,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSyncAt, nextDa
     return (
         <Bar>
             <RefreshCw aria-hidden />
-            <span>{last ? <>Dane z: <strong>{last}</strong></> : 'Pierwsza synchronizacja w toku…'}</span>
+            <span>{last ? <>Dane z: <strong>{last}</strong></> : 'Pierwsza synchronizacja w toku...'}</span>
             {nextDaily && (
                 <>
                     <Sep>·</Sep>

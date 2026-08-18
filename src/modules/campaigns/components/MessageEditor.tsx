@@ -263,7 +263,7 @@ export function MessageEditor({ value, onChange }: Props) {
       </ChannelRow>
 
       <TokenSection>
-        <TokenLabel>Zmienne — kliknij, żeby wstawić w miejsce kursora</TokenLabel>
+        <TokenLabel>Zmienne: kliknij, żeby wstawić w miejsce kursora</TokenLabel>
         <TokenRow>
           {PLACEHOLDERS.map((p) => (
             <Token key={p.token} type="button" title={p.label} onClick={() => insertToken(p.token)}>
@@ -285,7 +285,7 @@ export function MessageEditor({ value, onChange }: Props) {
               ref={smsRef}
               value={value.smsTemplate}
               onChange={(e) => set({ smsTemplate: e.target.value })}
-              placeholder="Cześć {{imie}}! …"
+              placeholder="Cześć {{imie}}! ..."
             />
             <CounterRow $warn={meta.segments > 1}>
               <span>
@@ -318,7 +318,7 @@ export function MessageEditor({ value, onChange }: Props) {
               value={value.emailBody}
               onChange={(e) => set({ emailBody: e.target.value })}
               style={{ minHeight: 180 }}
-              placeholder="Dzień dobry {{imie}}, …"
+              placeholder="Dzień dobry {{imie}}, ..."
             />
           </Field>
         </ChannelCard>

@@ -208,7 +208,7 @@ const ArchiveRow = styled.div`
 const formatPeriod = (start: string, end: string) => {
     const fmt = (iso: string) =>
         new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
-    return `${fmt(start)} – ${fmt(end)}`;
+    return `${fmt(start)} - ${fmt(end)}`;
 };
 
 const ReportBody: React.FC<{ report: Report }> = ({ report }) => {
@@ -244,7 +244,7 @@ const ReportBody: React.FC<{ report: Report }> = ({ report }) => {
                     <CardHint style={{ margin: 0 }}>tempo publikacji</CardHint>
                 </StripBox>
                 <StripBox>
-                    <label>Aktywność (0–100)</label>
+                    <label>Aktywność (0-100)</label>
                     <MetricCell metric={p.activityIndex} decimals={0} />
                     <CardHint style={{ margin: 0 }}>tempo + regularność + reakcje</CardHint>
                 </StripBox>
@@ -256,7 +256,7 @@ const ReportBody: React.FC<{ report: Report }> = ({ report }) => {
                     <CardHint>Najważniejsze zdarzenia w Twojej grupie z minionego tygodnia.</CardHint>
                     {p.events.length === 0 ? (
                         <CardHint style={{ marginBottom: 0 }}>
-                            Spokojny tydzień – bez promocji, konkursów i nagłych zmian u konkurencji.
+                            Spokojny tydzień, bez promocji, konkursów i nagłych zmian u konkurencji.
                         </CardHint>
                     ) : (
                         p.events.map((event, index) => (

@@ -135,7 +135,7 @@ const DropItem = styled.li<{ $custom?: boolean }>`
     &:hover { background: ${st.bg}; }
 
     @media (hover: none) and (pointer: coarse) {
-        /* Comfortable tap target — these are picked with a thumb. */
+        /* Comfortable tap target: these are picked with a thumb. */
         padding: 12px;
         min-height: 46px;
     }
@@ -193,7 +193,7 @@ const MobileSheetTitle = styled.div`
 `;
 
 /**
- * The sheet covers the whole screen, so the backdrop is unreachable — this is
+ * The sheet covers the whole screen, so the backdrop is unreachable; this is
  * the only way out on a phone.
  */
 const MobileSheetClose = styled.button`
@@ -486,7 +486,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         window.addEventListener('scroll', updateDropPos, true);
         window.addEventListener('resize', updateDropPos);
         // The on-screen keyboard moves the visual viewport without ever firing a
-        // window resize on iOS — without this the panel detaches from the field.
+        // window resize on iOS, so without this the panel detaches from the field.
         window.visualViewport?.addEventListener('resize', updateDropPos);
         window.visualViewport?.addEventListener('scroll', updateDropPos);
         return () => {
@@ -526,7 +526,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         }
     }, [isMobile, open]);
 
-    // Local display strings — typed freely, never re-derived from parent on
+    // Local display strings: typed freely, never re-derived from parent on
     // every keystroke. Parent basePriceNet is updated immediately on each valid
     // change so "Zaakceptuj" always sees the current value.
     const [netStr, setNetStr] = useState(() =>
@@ -581,7 +581,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
             setNetStr(fmtPrice(net));
             setGrossStr(fmtPrice(grossFromNet(net, Number(svc.vatRate))));
         } else {
-            // Requires manual price — clear so the user must fill it in
+            // Requires manual price, so clear it and let the user fill it in
             setNetStr('');
             setGrossStr('');
         }
@@ -668,7 +668,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         onChange={e => handleQueryChange(capitalizeFirst(e.target.value))}
                         onFocus={() => query.trim().length > 0 && setOpen(true)}
                         onBlur={handleBlur}
-                        placeholder="Wyszukaj lub wpisz nazwę usługi…"
+                        placeholder="Wyszukaj lub wpisz nazwę usługi..."
                         autoFocus
                         autoComplete="off"
                         autoCorrect="off"
@@ -702,7 +702,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                             ref={sheetEditableRef}
                                             contentEditable
                                             suppressContentEditableWarning
-                                            data-placeholder="Szukaj usługi…"
+                                            data-placeholder="Szukaj usługi..."
                                             onInput={e => {
                                                 const text = (e.target as HTMLDivElement).textContent ?? '';
                                                 handleQueryChange(capitalizeFirst(text));
@@ -762,7 +762,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                 </NameWrap>
             </Cell>
 
-            {/* Cena — netto + brutto + VAT in one right-aligned group */}
+            {/* Cena: netto + brutto + VAT in one right-aligned group */}
             <Cell style={{ textAlign: 'right' }}>
                 <PriceGroup>
                     <PriceField>

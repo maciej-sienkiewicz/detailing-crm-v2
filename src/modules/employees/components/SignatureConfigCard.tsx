@@ -444,7 +444,7 @@ export function SignatureConfigCard({
                             <LinkSentBanner>
                                 <LinkSentIcon><SmartphoneIcon /></LinkSentIcon>
                                 <LinkSentBody>
-                                    <LinkSentTitle>Link wysłany — oczekiwanie na podpis</LinkSentTitle>
+                                    <LinkSentTitle>Link wysłany, oczekiwanie na podpis</LinkSentTitle>
                                     <LinkSentDesc>
                                         Otwórz SMS na swoim telefonie, narysuj podpis i wróć do tej strony.
                                         Strona odświeży się automatycznie.
@@ -474,7 +474,7 @@ export function SignatureConfigCard({
                                     disabled={isDeleting}
                                 >
                                     <TrashIcon />
-                                    {isDeleting ? 'Usuwanie…' : 'Usuń podpis'}
+                                    {isDeleting ? 'Usuwanie...' : 'Usuń podpis'}
                                 </Btn>
                             )}
                         </ButtonRow>
@@ -492,7 +492,7 @@ export function SignatureConfigCard({
                                 disabled={isSaving || !hasStrokes}
                             >
                                 <CheckIcon />
-                                {isSaving ? 'Zapisywanie…' : 'Zapisz podpis'}
+                                {isSaving ? 'Zapisywanie...' : 'Zapisz podpis'}
                             </Btn>
                             <Btn $variant="ghost" onClick={handleCancel} disabled={isSaving}>
                                 <XIcon />
@@ -534,7 +534,7 @@ export function SignatureConfigCard({
                                 onClick={handleSendLink}
                                 disabled={isSendingLink || !phoneNumber.trim()}
                             >
-                                {isSendingLink ? 'Wysyłanie…' : 'Wyślij SMS'}
+                                {isSendingLink ? 'Wysyłanie...' : 'Wyślij SMS'}
                             </Btn>
                         </ModalBtnRow>
                     </ModalCard>

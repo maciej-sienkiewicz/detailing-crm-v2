@@ -1,4 +1,4 @@
-// ─── SMS Campaigns Module — Types ─────────────────────────────────────────────
+// ─── SMS Campaigns Module: Types ─────────────────────────────────────────────
 
 export interface VehicleFilter {
   brand: string;
@@ -62,7 +62,7 @@ export interface SmsAutomationRule {
   enabled: boolean;
   offsetMinutes?: number;   // minutes before/after event (absent for immediate event-based rules)
   /**
-   * Free text with {{placeholder}} tokens. Which tokens are allowed depends on the rule —
+   * Free text with {{placeholder}} tokens. Which tokens are allowed depends on the rule;
    * see SMS_RULE_PLACEHOLDERS. There is no placeholder for the studio's own name, phone or
    * address: those are known when the template is written, so they go in as plain text.
    */

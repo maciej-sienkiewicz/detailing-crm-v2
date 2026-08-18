@@ -126,7 +126,7 @@ export const OperationPagination = ({ pagination, onPageChange }: OperationPagin
     return (
         <Container>
             <Info>
-                {startItem}–{endItem} z {totalItems} rekordów
+                {startItem}-{endItem} z {totalItems} rekordów
             </Info>
 
             <Controls>

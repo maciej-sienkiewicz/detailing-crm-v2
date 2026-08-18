@@ -1,8 +1,8 @@
 // src/modules/visit-card/views/VisitCardView.tsx
 //
-// Public, customer-facing Visit Card page (route /vc/:token — no login).
+// Public, customer-facing Visit Card page (route /vc/:token, no login).
 //
-// Design language: a functional, informational status page — neutral light
+// Design language: a functional, informational status page, neutral light
 // background, white bordered cards, compact label/value rows, one restrained
 // accent. Reads like a parcel-tracking / booking-status page, not a letter.
 // Mobile-first: customers open this from an SMS/e-mail link.
@@ -26,7 +26,7 @@ const BORDER = '#e4e7ec';
 const INK = '#101828';
 const MUTED = '#667085';
 const FAINT = '#98a2b3';
-const ACCENT = '#1d4ed8';        // single functional blue — links & primary action
+const ACCENT = '#1d4ed8';        // single functional blue: links & primary action
 const ACCENT_DARK = '#1e40af';
 const OK = '#067647';            // done states
 const OK_BG = '#ecfdf3';
@@ -459,7 +459,7 @@ const PhotoDamageBadge = styled.span`
     pointer-events: none;
 `;
 
-/** Extracts the damage number from descriptions like "Uszkodzenie nr 3 — rysa". */
+/** Extracts the damage number from descriptions like "Uszkodzenie nr 3, rysa". */
 const damageNumberFromDescription = (description: string | null): string | null => {
     if (!description) return null;
     const match = description.match(/^Uszkodzenie nr (\d+)/i);
@@ -770,7 +770,7 @@ export const VisitCardView = () => {
     }, [token]);
 
     useEffect(() => {
-        if (card) document.title = `Karta wizyty — ${card.company.name}`;
+        if (card) document.title = `Karta wizyty: ${card.company.name}`;
     }, [card]);
 
     if (!token || error) {
@@ -789,7 +789,7 @@ export const VisitCardView = () => {
         return (
             <CenterState>
                 <Spinner />
-                <StateText>Wczytywanie karty wizyty…</StateText>
+                <StateText>Wczytywanie karty wizyty...</StateText>
             </CenterState>
         );
     }
@@ -988,7 +988,7 @@ export const VisitCardView = () => {
                                     disabled={selectedUpsell.size === 0 || upsellSending}
                                 >
                                     {upsellSending
-                                        ? 'Wysyłanie…'
+                                        ? 'Wysyłanie...'
                                         : selectedUpsell.size > 1
                                             ? `Dodaj wybrane usługi (${selectedUpsell.size})`
                                             : 'Dodaj wybraną usługę'}

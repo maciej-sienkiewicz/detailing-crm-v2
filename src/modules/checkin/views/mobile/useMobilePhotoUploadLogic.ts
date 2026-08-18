@@ -150,7 +150,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
                     setSessionState('visit_created');
                 }
             } catch {
-                // network error — ignore, will retry next cycle
+                // network error: ignore, will retry next cycle
             }
         };
 

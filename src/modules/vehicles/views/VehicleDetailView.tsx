@@ -414,11 +414,11 @@ export const VehicleDetailView = () => {
                             <PanelBody>
                                 <PrefRow>
                                     <PrefKey>Marka</PrefKey>
-                                    <PrefVal>{vehicle.brand || '—'}</PrefVal>
+                                    <PrefVal>{vehicle.brand || '-'}</PrefVal>
                                 </PrefRow>
                                 <PrefRow>
                                     <PrefKey>Model</PrefKey>
-                                    <PrefVal>{vehicle.model || '—'}</PrefVal>
+                                    <PrefVal>{vehicle.model || '-'}</PrefVal>
                                 </PrefRow>
                                 {vehicle.yearOfProduction && (
                                     <PrefRow>
@@ -514,14 +514,14 @@ export const VehicleDetailView = () => {
                                 <KpiDelta>
                                     śr. {totalVisits > 0
                                         ? formatCurrency(avgCost.grossAmount, avgCost.currency)
-                                        : '—'} / wizyta
+                                        : '-'} / wizyta
                                 </KpiDelta>
                             </SumCell>
 
                             <SumCell>
                                 <KpiEyebrow>Ostatnia wizyta</KpiEyebrow>
                                 <KpiValue>
-                                    {lastVisit ? formatDate(lastVisit) : '—'}
+                                    {lastVisit ? formatDate(lastVisit) : '-'}
                                 </KpiValue>
                                 <KpiDelta>
                                     {lastVisit

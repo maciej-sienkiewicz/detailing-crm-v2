@@ -406,7 +406,7 @@ function PackagesCard({ isOwner }: { isOwner: boolean }) {
                         disabled={!selectedId || isPending}
                         onClick={() => selectedId && purchase(selectedId)}
                     >
-                        {isPending ? 'Przetwarzanie…' : 'Kup wybrany pakiet'}
+                        {isPending ? 'Przetwarzanie...' : 'Kup wybrany pakiet'}
                     </BuyButton>
 
                     {isSuccess && (
@@ -548,7 +548,7 @@ const CheckSvg = () => (
 export function SmsCreditSection() {
     const { user } = useAuth();
     // Kredyty SMS to wspólna infrastruktura każdego modułu wysyłającego SMS-y
-    // (komunikacja, kampanie, podpisy) — backend rozstrzyga to jako COMM_SMS_CREDITS.
+    // (komunikacja, kampanie, podpisy); backend rozstrzyga to jako COMM_SMS_CREDITS.
     const credits = useCapability('COMM_SMS_CREDITS');
     const isOwner = user?.role?.toLowerCase() === 'owner';
 

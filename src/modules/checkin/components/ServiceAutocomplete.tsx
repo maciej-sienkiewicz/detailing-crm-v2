@@ -157,7 +157,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
     const dropdownRef = useRef<HTMLDivElement>(null);
     const debouncedQuery = useDebounce(searchQuery, 300);
 
-    // Same breakpoint as QuickEventModal — under it the positioned dropdown is
+    // Same breakpoint as QuickEventModal; under it the positioned dropdown is
     // replaced by a full-screen bottom sheet that the keyboard can't cover.
     const [isMobile] = useState(() => window.innerWidth < 640);
     const sheetRef = useRef<HTMLDivElement>(null);
@@ -171,7 +171,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         const spaceBelow = vvHeight - rect.bottom - 12;
         const spaceAbove = rect.top - 12;
         // Open in the roomier direction and never let the list run past the
-        // viewport edge — cap its height to the space actually available.
+        // viewport edge: cap its height to the space actually available.
         if (spaceBelow < 150 && spaceAbove > spaceBelow) {
             setDropdownStyle({
                 bottom: vvHeight - rect.top + 4,
@@ -192,7 +192,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
     useEffect(() => {
         if (!isOpen || isMobile) return;
         updatePosition();
-        // Modals/popovers animate in with a transform — track the anchor for the
+        // Modals/popovers animate in with a transform, track the anchor for the
         // first moments so the list doesn't stay glued to a mid-animation position.
         let raf = 0;
         const start = performance.now();
@@ -315,7 +315,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
             {services.length > 0 ? (
                 services.map((service) => {
                     const priceNet = service.basePriceNet / 100;
-                    // Stored gross — exact, as entered when the service was created;
+                    // Stored gross: exact, as entered when the service was created;
                     // re-deriving from net can drift by 1 grosz (201.00 → 200.99).
                     const priceGross = (service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100;
 

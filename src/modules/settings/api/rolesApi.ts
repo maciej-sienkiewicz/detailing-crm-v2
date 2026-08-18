@@ -12,7 +12,7 @@ import type {
 
 const BASE = '/v1/roles';
 
-/** Mirrors RoleController.REASSIGN_TARGET_NONE — "leave the holders without a role". */
+/** Mirrors RoleController.REASSIGN_TARGET_NONE: "leave the holders without a role". */
 const REASSIGN_TARGET_NONE = 'none';
 
 // ─── Permission catalog normalization ────────────────────────────────────────
@@ -68,7 +68,7 @@ export const rolesApi = {
     },
 
     /**
-     * Without [options] a role that still has holders is refused — the guard stays in
+     * Without [options] a role that still has holders is refused; the guard stays in
      * place for callers that have not checked. Passing options hands the holders over
      * and deletes in one transaction, which is what the UI always does.
      */

@@ -56,7 +56,7 @@ const CalendarContainer = styled.div`
     }
 
     /* ===================== TOOLBAR ===================== */
-    /* Hidden — replaced by the custom DesktopPageHeader above the grid */
+    /* Hidden: replaced by the custom DesktopPageHeader above the grid */
     .fc-header-toolbar {
         display: none !important;
     }
@@ -207,7 +207,7 @@ const CalendarContainer = styled.div`
     }
 
     /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
-       Analogicznie do ludzika urlopowego — wstrzykiwany imperatywnie do
+       Analogicznie do ludzika urlopowego, wstrzykiwany imperatywnie do
        .fc-daygrid-day-frame; prawy górny róg, pozycja right ustawiana inline w JS. */
     .fc-d2d-badge {
         position: absolute;
@@ -264,7 +264,7 @@ const CalendarContainer = styled.div`
         z-index: 10;
     }
 
-    /* Daygrid chips — transparent shell; inner div carries the alpha bg + left border */
+    /* Daygrid chips: transparent shell; inner div carries the alpha bg + left border */
     .fc-daygrid-event.fc-event {
         background-color: transparent !important;
         border-color: transparent !important;
@@ -1002,7 +1002,7 @@ interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
 
-// Module-level singletons — survive React StrictMode double-mount.
+// Module-level singletons, survive React StrictMode double-mount.
 let _dashboardPendingHighlight: { id: string; date: string; openPopover?: boolean } | null = null;
 // Set when a search result is selected; used to detect the same-month case where
 // eventDidMount won't fire (event already rendered) and fall back to eventElMapRef.
@@ -1045,7 +1045,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         (3 - selectedAppointmentStatuses.length) +
         (5 - selectedVisitStatuses.length);
 
-    // Gdy sidebar się zwija/rozwija, CSS transition trwa 200ms — wywołujemy updateSize()
+    // Gdy sidebar się zwija/rozwija, CSS transition trwa 200ms, wywołujemy updateSize()
     // na każdej klatce przez czas trwania animacji, żeby kalendarz rozciągał się płynnie
     useEffect(() => {
         const start = performance.now();
@@ -1148,7 +1148,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             return;
         }
 
-        // Event hidden in "+N more" overflow — fall back to the day cell so
+        // Event hidden in "+N more" overflow: fall back to the day cell so
         // the card still flies to the correct date instead of hanging.
         _searchPendingHighlight = null;
         _dashboardPendingHighlight = null;
@@ -1227,7 +1227,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { createQuickEventAsync } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, hiddenColorIds);
 
-    // Urlopy pracowników per dzień — zasila ikonkę "ludzika" w rogu każdego dnia.
+    // Urlopy pracowników per dzień, zasila ikonkę "ludzika" w rogu każdego dnia.
     // Ludzik pojawia się TYLKO dla dni z urlopami; renderowany imperatywnie do
     // .fc-daygrid-day-frame (patrz efekt niżej), bo dayCellContent trzymałby go
     // w kontenerze .fc-daygrid-day-number i zachodziłby na numer dnia.
@@ -1243,7 +1243,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         : null;
     const { leaveDayMap } = useLeaveCalendar(leaveRangeFrom, leaveRangeTo);
 
-    // Wyjazdy Door to Door per dzień — zasila ikonkę samochodu w rogu każdego dnia
+    // Wyjazdy Door to Door per dzień, zasila ikonkę samochodu w rogu każdego dnia
     // (ten sam zakres dat co urlopy).
     const { d2dData } = useDoorToDoorCalendar(leaveRangeFrom, leaveRangeTo);
 
@@ -1283,7 +1283,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     // ── Ludzik na dniach z urlopami ──────────────────────────────────────────
     // Komórki rejestrują się w dayCellDidMount/dayCellWillUnmount (przeżywa to
-    // każdy re-render FullCalendara — wcześniejsze jednorazowe wstrzykiwanie do
+    // każdy re-render FullCalendara (wcześniejsze jednorazowe wstrzykiwanie do
     // DOM znikało, gdy FC przebudowywał siatkę po doładowaniu eventów).
     // Badge pokazuje się na KAŻDYM dniu objętym urlopem; hover otwiera tooltip
     // z listą osób.
@@ -1438,7 +1438,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setCurrentView(arg.view.type as CalendarViewType);
 
         // If we have a pending dashboard highlight, navigate to its month if not in view.
-        // IMPORTANT: use arg.view.calendar (not calendarRef) — the ref is not yet set
+        // IMPORTANT: use arg.view.calendar (not calendarRef), the ref is not yet set
         // when datesSet fires from FullCalendar's componentDidMount.
         if (_dashboardPendingHighlight?.date) {
             const targetDate = new Date(_dashboardPendingHighlight.date);
@@ -1461,7 +1461,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
      */
     const handleDateClick = useCallback((info: DateClickArg) => {
         const nativeEvent = info.jsEvent as PointerEvent | null;
-        // Skip genuine desktop mouse clicks — those are handled by the `select` callback.
+        // Skip genuine desktop mouse clicks: those are handled by the `select` callback.
         // Allow touch, pen, and iOS-synthesized MouseEvents (which have pointerType undefined).
         if (nativeEvent?.pointerType === 'mouse') return;
 
@@ -1495,13 +1495,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const handleEventClick = useCallback((clickInfo: EventClickArg) => {
         const eventData = clickInfo.event.extendedProps as AppointmentEventData | VisitEventData;
 
-        // Hand over the raw anchor rect — the popover flips and clamps itself
+        // Hand over the raw anchor rect, the popover flips and clamps itself
         // against its own measured size. Guessing the popover's dimensions here
         // is what made the header render differently per screen position.
         const rect = clickInfo.el.getBoundingClientRect();
 
         // On phones FullCalendar's "jeszcze N" overflow popover would keep
-        // covering the event popover we're about to open — dismiss it first.
+        // covering the event popover we're about to open, dismiss it first.
         // (Rect is captured above, so removing the clicked element is safe.)
         if (window.innerWidth < 640) {
             const morePopover = clickInfo.el.closest('.fc-popover');
@@ -1628,7 +1628,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [popoverEvent, showSuccess, queryClient]);
 
     /**
-     * Handle event selected from search modal — fly-in animation identical to dashboard navigation.
+     * Handle event selected from search modal: fly-in animation identical to dashboard navigation.
      * Two cases:
      *  - Different month: gotoDate → eventDidMount fires for new events → reportTargetRect
      *  - Same month: event already rendered, useEffect on navPhase==='centered' fires instead
@@ -1639,7 +1639,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const price = props.totalPrice
             ? `${(props.totalPrice / 100).toFixed(2)} ${props.currency ?? 'PLN'}`
-            : '—';
+            : '-';
 
         _dashboardPendingHighlight = { id: event.id, date: isoDate };
         _searchPendingHighlight = { id: event.id };
@@ -1712,7 +1712,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 const detail = await appointmentApi.getAppointment(appt.id);
                 recurrenceInfo = detail?.recurrenceInfo ?? null;
             } catch {
-                // ignore — will fall through to direct delete
+                // ignore, will fall through to direct delete
             }
         }
 
@@ -1745,7 +1745,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             )}
 
             <MobileHeader>
-                {/* Row 1 – view switcher */}
+                {/* Row 1: view switcher */}
                 <MobileViewSwitcher>
                     {([
                         { view: 'timeGridDay',  label: 'Dzień'   },
@@ -1762,7 +1762,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     ))}
                 </MobileViewSwitcher>
 
-                {/* Row 2 – navigation */}
+                {/* Row 2: navigation */}
                 <MobileNav>
                     <MobileNavBtn onClick={() => calendarRef.current?.getApi().prev()} aria-label="Poprzedni">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -1777,7 +1777,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     </MobileNavBtn>
                 </MobileNav>
 
-                {/* Row 3 – filter + add */}
+                {/* Row 3: filter + add */}
                 <MobileActions>
                     <MobileFilterPill
                         $active={deselectedCount > 0}
@@ -1799,7 +1799,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </MobileActions>
             </MobileHeader>
 
-            {/* Desktop page header – all views; custom week/day views suppress their internal toolbars */}
+            {/* Desktop page header: all views; custom week/day views suppress their internal toolbars */}
             <DesktopPageHeader>
                     <div>
                         <PageCrumb>Główne · Kalendarz</PageCrumb>
@@ -1882,7 +1882,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     </PageHeaderRight>
                 </DesktopPageHeader>
 
-            {/* Command-bar filter (Variant D) – desktop visible; mobile pill controls popup */}
+            {/* Command-bar filter (Variant D): desktop visible; mobile pill controls popup */}
             <CalendarFilterBar
                 selectedAppointmentStatuses={selectedAppointmentStatuses}
                 selectedVisitStatuses={selectedVisitStatuses}
@@ -1897,7 +1897,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
             <CalendarWrapper>
 
-                {/* ── Agenda list view – mobile "Lista" tab ── */}
+                {/* ── Agenda list view: mobile "Lista" tab ── */}
                 {agendaListActive && dateRange && (
                     <AgendaListView
                         events={events}
@@ -1913,7 +1913,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     />
                 )}
 
-                {/* ── Kanban week view – replaces FullCalendar's timeGridWeek ── */}
+                {/* ── Kanban week view: replaces FullCalendar's timeGridWeek ── */}
                 {currentView === 'timeGridWeek' && dateRange && (
                     <WeekKanbanView
                         events={events}
@@ -1938,7 +1938,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     />
                 )}
 
-                {/* ── Day timeline view – replaces FullCalendar's timeGridDay ── */}
+                {/* ── Day timeline view: replaces FullCalendar's timeGridDay ── */}
                 {currentView === 'timeGridDay' && dateRange && (
                     <DayTimelineView
                         events={events}
@@ -1968,7 +1968,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     />
                 )}
 
-                {/* FullCalendar – always mounted so its API & state machine stay active.
+                {/* FullCalendar: always mounted so its API & state machine stay active.
                     Hidden when custom views are active (height:0 keeps JS running).
                     opacity transition gives a smooth fade during search navigation. */}
                 <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
@@ -2079,7 +2079,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             setTimeout(() => setDashboardHighlightId(null), 7200);
 
                             // Deep-link z zakładki Aktywność: od razu otwórz podsumowanie
-                            // zdarzenia — dokładnie tak, jak zrobiłby to handleEventClick.
+                            // zdarzenia, dokładnie tak, jak zrobiłby to handleEventClick.
                             if (openPopover) {
                                 const eventData = arg.event.extendedProps as AppointmentEventData | VisitEventData;
                                 setPopoverEvent(eventData);
@@ -2106,7 +2106,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Hide event time from calendar tiles
                 displayEventTime={false}
 
-                // Leave (ludzik) + Door to Door (samochodzik) — register month-grid day cells
+                // Leave (ludzik) + Door to Door (samochodzik): register month-grid day cells
                 dayCellDidMount={(arg) => {
                     if (arg.view.type !== 'dayGridMonth') return;
                     const d = arg.date;
@@ -2336,7 +2336,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 <ModalFooter>
                     <SharedButton $variant="secondary" onClick={() => setEndDateModalOpen(false)}>Anuluj</SharedButton>
                     <SharedButton $variant="primary" onClick={handleSaveEndDate} disabled={!endDateDraft || isSavingEndDate}>
-                        {isSavingEndDate ? 'Zapisywanie…' : 'Zapisz'}
+                        {isSavingEndDate ? 'Zapisywanie...' : 'Zapisz'}
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>

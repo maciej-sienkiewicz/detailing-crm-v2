@@ -37,7 +37,7 @@ export const useAppointmentCreation = () => {
         if (!startDateTimeParam) return '';
         // When navigating from an all-day calendar slot, startDateTimeParam is a
         // date-only string ("2026-08-11"). Passing it through fromInstantToLocalInput
-        // calls new Date("2026-08-11") which JS spec treats as UTC midnight — in
+        // calls new Date("2026-08-11") which JS spec treats as UTC midnight; in
         // UTC+2 that displays as 2026-08-10T22:00, shifting the shown date back one day.
         // Keep date-only strings as-is so the date input renders the correct day.
         if (isAllDayParam && !startDateTimeParam.includes('T')) return startDateTimeParam;
@@ -46,7 +46,7 @@ export const useAppointmentCreation = () => {
     const [endDateTime, setEndDateTime] = useState(() => {
         if (!endDateTimeParam) return '';
         // endDateTime from all-day calendar slot is a local datetime string
-        // ("2026-08-11T23:59:59"), not a UTC instant — pass through as-is.
+        // ("2026-08-11T23:59:59"), not a UTC instant, pass through as-is.
         if (isAllDayParam && !endDateTimeParam.endsWith('Z')) return endDateTimeParam;
         return fromInstantToLocalInput(endDateTimeParam);
     });

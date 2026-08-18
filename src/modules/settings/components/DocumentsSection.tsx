@@ -446,7 +446,7 @@ function EditTemplateModal({ template, onClose, onSuccess }: EditTemplateModalPr
                     <EditActions>
                         <BtnSecondary type="button" onClick={onClose}>Anuluj</BtnSecondary>
                         <BtnPrimary type="submit" disabled={updateTemplate.isPending}>
-                            {updateTemplate.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                            {updateTemplate.isPending ? 'Zapisywanie...' : 'Zapisz'}
                         </BtnPrimary>
                     </EditActions>
                 </form>
@@ -485,7 +485,7 @@ function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSec
             }
             onRefresh();
         } catch {
-            // rule deletion succeeded, template deletion failed — not critical
+            // rule deletion succeeded, template deletion failed (not critical)
             onRefresh();
         }
     };
@@ -520,7 +520,7 @@ function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSec
                                 <RuleItem key={rule.id}>
                                     <FileIconWrap><FileTextIcon /></FileIconWrap>
                                     <RuleInfo>
-                                        <RuleName>{tpl?.name ?? '—'}</RuleName>
+                                        <RuleName>{tpl?.name ?? '-'}</RuleName>
                                         <RuleMeta>
                                             <PillBadge $variant={rule.triggerType === 'GLOBAL_ALWAYS' ? 'global' : 'service'}>
                                                 {rule.triggerType === 'GLOBAL_ALWAYS' ? 'Zawsze' : 'Dla usług'}
@@ -675,7 +675,7 @@ function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) 
                     <EmptyBox>
                         <EmptyFileIcon />
                         <EmptyTitle>Brak zgód</EmptyTitle>
-                        <EmptyDesc>Zgody zbierane jednorazowo — klient podpisuje tylko raz i system pamięta to między wizytami.</EmptyDesc>
+                        <EmptyDesc>Zgody zbierane jednorazowo: klient podpisuje tylko raz i system pamięta to między wizytami.</EmptyDesc>
                     </EmptyBox>
                 ) : (
                     sorted.map(def => (

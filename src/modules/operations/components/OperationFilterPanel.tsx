@@ -593,7 +593,7 @@ export const OperationFilterPanel = ({
                                 value={serviceCountMin}
                                 onChange={e => setServiceCountMin(e.target.value)}
                             />
-                            <RangeSep>–</RangeSep>
+                            <RangeSep>-</RangeSep>
                             <RangeInput
                                 type="number" min={0} placeholder="Do"
                                 value={serviceCountMax}
@@ -611,7 +611,7 @@ export const OperationFilterPanel = ({
                                 value={minAmount}
                                 onChange={e => setMinAmount(e.target.value)}
                             />
-                            <RangeSep>–</RangeSep>
+                            <RangeSep>-</RangeSep>
                             <RangeInput
                                 type="number" min={0} placeholder="Do"
                                 value={maxAmount}
@@ -628,7 +628,7 @@ export const OperationFilterPanel = ({
                                 value={dateFrom}
                                 onChange={e => setDateFrom(e.target.value)}
                             />
-                            <RangeSep>–</RangeSep>
+                            <RangeSep>-</RangeSep>
                             <RangeInputDate
                                 value={dateTo}
                                 onChange={e => setDateTo(e.target.value)}

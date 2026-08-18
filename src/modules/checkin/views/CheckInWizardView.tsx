@@ -421,7 +421,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
 
-    // "Czy wysłać Kartę Wizyty do klienta?" — visible only when the studio uses
+    // "Czy wysłać Kartę Wizyty do klienta?": visible only when the studio uses
     // the Visit Card (and has the SMS module); default comes from the settings.
     const { visitCardActive, sendByDefault: visitCardSendByDefault } = useVisitCardSettings();
     const [sendVisitCard, setSendVisitCard] = useState(false);
@@ -655,7 +655,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                     $disabled={isSubmitting}
                                 >
                                     {isSubmitting ? (
-                                        <>{t.checkin.summary.creating}…</>
+                                        <>{t.checkin.summary.creating}...</>
                                     ) : (
                                         <>{t.checkin.summary.createVisit}</>
                                     )}

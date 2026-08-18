@@ -226,7 +226,7 @@ const PinStatusBadge = styled.div<{ $configured: boolean }>`
 
 interface Props {
     employee: EmployeeDetail;
-    /** Wywoływane po każdej zmianie konta — widok powinien odświeżyć dane pracownika. */
+    /** Wywoływane po każdej zmianie konta: widok powinien odświeżyć dane pracownika. */
     onChanged: () => void;
     /** Wywoływane po usunięciu pracownika (nawigacja poza profil). */
     onEmployeeDeleted: () => void;
@@ -253,7 +253,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
     const account = employee.account;
     const tone = account ? (account.isActive ? 'active' : 'blocked') : 'none';
 
-    // Hooki z ustawień unieważniają klucze ['settings','team'] — profil żyje na
+    // Hooki z ustawień unieważniają klucze ['settings','team'], a profil żyje na
     // kluczach modułu employees, więc dokładamy własną inwalidację + refetch.
     const refreshProfile = () => {
         queryClient.invalidateQueries({ queryKey: EMPLOYEES_KEY });
@@ -379,7 +379,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
                             </Select>
                         </Field>
                         <PrimaryBtn onClick={handleCreateAccount} disabled={createAccount.isPending}>
-                            {createAccount.isPending ? 'Wysyłanie…' : 'Utwórz i wyślij zaproszenie'}
+                            {createAccount.isPending ? 'Wysyłanie...' : 'Utwórz i wyślij zaproszenie'}
                         </PrimaryBtn>
                         <CancelLink onClick={() => { setShowCreateForm(false); setEmailError(null); }}>
                             Anuluj

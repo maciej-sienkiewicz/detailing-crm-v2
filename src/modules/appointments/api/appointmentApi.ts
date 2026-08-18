@@ -132,7 +132,7 @@ export const appointmentApi = {
     },
 
     /**
-     * Live duplicate detection for the "add new vehicle" form — matches an active
+     * Live duplicate detection for the "add new vehicle" form: matches an active
      * vehicle by normalized license plate and returns its owners for the collision card.
      */
     lookupVehicleByPlate: async (licensePlate: string): Promise<VehiclePlateLookup> => {

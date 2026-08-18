@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
-// ─── Styled components — mirrors BrandModelSelectors visual language ───────────
+// ─── Styled components (mirrors BrandModelSelectors visual language) ───────────
 
 const DropdownContainer = styled.div`
   position: relative;
@@ -114,7 +114,7 @@ export const SmsSelect: React.FC<SmsSelectProps> = ({
   value,
   onChange,
   options,
-  placeholder = 'Wybierz…',
+  placeholder = 'Wybierz...',
   disabled = false,
   nullable = false,
 }) => {

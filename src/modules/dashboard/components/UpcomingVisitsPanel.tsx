@@ -96,12 +96,12 @@ const VisitRow = styled.div`
     gap: 3px 10px;
     padding: 11px 14px;
 
-    /* CalChip — spans both rows */
+    /* CalChip: spans both rows */
     & > :nth-child(1) { grid-column: 1; grid-row: 1 / 3; align-self: center; }
-    /* info div — row 1 col 2 (auto-placed) */
-    /* StatusBadge — row 2 col 2, left-aligned */
+    /* info div: row 1 col 2 (auto-placed) */
+    /* StatusBadge: row 2 col 2, left-aligned */
     & > :nth-child(3) { grid-column: 2; grid-row: 2; justify-self: start; align-self: center; }
-    /* VisitPriceWrapper — col 3, spans both rows */
+    /* VisitPriceWrapper: col 3, spans both rows */
     & > :nth-child(4) { grid-column: 3; grid-row: 1 / 3; align-self: center; }
   }
 `;

@@ -1,2 +1,2 @@
-// Merged into useCustomerActiveData — see useCustomerVisits.ts
+// Merged into useCustomerActiveData, see useCustomerVisits.ts
 export {};

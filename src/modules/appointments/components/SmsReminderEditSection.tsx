@@ -9,7 +9,7 @@ import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsA
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AppointmentSmsInfo } from '../types';
 
-// ─── Layout — identyczna z VerificationStep ────────────────────────────────────
+// ─── Layout: identyczna z VerificationStep ────────────────────────────────────
 
 const SectionCard = styled.div`
     background: ${st.bgCard};
@@ -60,7 +60,7 @@ const SectionBody = styled.div`
     padding: 0;
 `;
 
-// ─── Banner — automation disabled ─────────────────────────────────────────────
+// ─── Banner: automation disabled ─────────────────────────────────────────────
 
 const Banner = styled.div`
     display: flex;
@@ -309,7 +309,7 @@ export const SmsReminderEditSection = ({
                         <RowSub>
                             {confirmationSms
                                 ? `Wysłany ${formatDateTime(confirmationSms.sentAt)}`
-                                : 'Nie wysłano — checkbox nie był zaznaczony przy tworzeniu'}
+                                : 'Nie wysłano: checkbox nie był zaznaczony przy tworzeniu'}
                         </RowSub>
                     </RowInfo>
                     <RowRight>
@@ -359,7 +359,7 @@ export const SmsReminderEditSection = ({
                                 />
                                 <ToggleTrack $checked={canEditReminder && reminderChecked} $saving={mutation.isPending} />
                                 <ToggleText $checked={canEditReminder && reminderChecked} $saving={mutation.isPending}>
-                                    {mutation.isPending ? 'Zapisuję…' : (canEditReminder && reminderChecked) ? 'Włączone' : 'Wyłączone'}
+                                    {mutation.isPending ? 'Zapisuję...' : (canEditReminder && reminderChecked) ? 'Włączone' : 'Wyłączone'}
                                 </ToggleText>
                             </ToggleLabel>
                         )}

@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
   children: ReactNode;
   /**
    * Skip the SubscriptionGate for pages that must stay reachable when the
-   * subscription is expired — e.g. the Przelewy24 payment result page.
+   * subscription is expired (e.g. the Przelewy24 payment result page).
    */
   withSubscriptionGate?: boolean;
 }

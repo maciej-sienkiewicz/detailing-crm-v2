@@ -12,7 +12,7 @@ export const usePermissionCatalog = () => {
     const { data, isLoading, isError } = useQuery({
         queryKey: PERMISSIONS_KEY,
         queryFn: rolesApi.getPermissionCatalog,
-        staleTime: 1000 * 60 * 30, // catalog is hardcoded — cache aggressively
+        staleTime: 1000 * 60 * 30, // catalog is hardcoded, cache aggressively
     });
 
     return { catalog: data ?? [], isLoading, isError };

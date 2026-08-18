@@ -22,11 +22,11 @@ import { CenterState, Spinner } from '../components/MetricBits';
 import { WEEKS_OPTIONS, type WeeksOption } from '../types';
 
 /**
- * Analiza konkurencji na Instagramie – trzy płaskie zakładki:
- *   Przegląd   – pozycja studia + gotowe wnioski (domyślna),
- *   Porównanie – tabela benchmarkowa + 2 wykresy z adnotacjami,
- *   Treści     – najskuteczniejsze posty, pory publikacji, hasztagi.
- * Stan (zakładka, okres) trzymany w URL – widoki są linkowalne.
+ * Analiza konkurencji na Instagramie, trzy płaskie zakładki:
+ *   Przegląd:   pozycja studia + gotowe wnioski (domyślna),
+ *   Porównanie: tabela benchmarkowa + 2 wykresy z adnotacjami,
+ *   Treści:     najskuteczniejsze posty, pory publikacji, hasztagi.
+ * Stan (zakładka, okres) trzymany w URL, widoki są linkowalne.
  */
 
 const fadeUp = keyframes`
@@ -205,7 +205,7 @@ export const CompetitionMonitoringView = () => {
                 ) : overviewQuery.isError ? (
                     <CenterState>
                         <strong>Nie udało się pobrać danych</strong>
-                        <span>Spróbuj odświeżyć stronę – jeśli problem wraca, daj nam znać.</span>
+                        <span>Spróbuj odświeżyć stronę, jeśli problem wraca, daj nam znać.</span>
                     </CenterState>
                 ) : overviewQuery.data ? (
                     <OverviewTab overview={overviewQuery.data} />

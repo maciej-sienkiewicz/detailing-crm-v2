@@ -13,7 +13,7 @@ interface RequirePermissionProps {
 /**
  * Route-level permission gate. Renders children when the user holds the
  * required permission; otherwise silently redirects to the user's default
- * route — deliberately no "access denied" screen, matching the UX rule that
+ * route, deliberately with no "access denied" screen, matching the UX rule that
  * inaccessible areas simply do not exist for the user. This also covers
  * manual URL entry (e.g. typing /finances into the address bar).
  *

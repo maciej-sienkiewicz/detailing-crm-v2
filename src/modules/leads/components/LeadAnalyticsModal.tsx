@@ -433,7 +433,7 @@ const ServiceAnalyticsTab: React.FC<ServiceAnalyticsTabProps> = ({ dateFrom, dat
             </SkeletonRow>
           ))
         ) : data.length === 0 ? (
-          <EmptyBox>Brak danych — oznacz leady tagami usług, żeby zobaczyć statystyki.</EmptyBox>
+          <EmptyBox>Brak danych, oznacz leady tagami usług, żeby zobaczyć statystyki.</EmptyBox>
         ) : (
           data.map((item, i) => (
             <ServiceRow key={i}>
@@ -509,7 +509,7 @@ const EmployeeStatsTab: React.FC<EmployeeStatsTabProps> = ({ dateFrom, dateTo })
             </SkeletonRow>
           ))
         ) : data.length === 0 ? (
-          <EmptyBox>Brak danych — przypisz pracowników do leadów, żeby zobaczyć ich skuteczność.</EmptyBox>
+          <EmptyBox>Brak danych, przypisz pracowników do leadów, żeby zobaczyć ich skuteczność.</EmptyBox>
         ) : (
           data.map((emp, i) => (
             <EmpRow key={emp.userId} $rank={i}>
@@ -637,7 +637,7 @@ const CHART_COLORS = {
   rejected: '#dc2626',
 };
 
-// Deterministic mock data — used when API returns no data yet
+// Deterministic mock data, used when API returns no data yet
 const MOCK_HOUR_DATA = Array.from({ length: 24 }, (_, h) => {
   const peak = h >= 9 && h <= 12 ? 1.8 : h >= 15 && h <= 18 ? 1.4 : h >= 19 && h <= 21 ? 1.2 : 0.5;
   const base = Math.round(Math.sin((h / 24) * Math.PI * 2 + 1) * 6 + 8) * peak;
@@ -861,7 +861,7 @@ const InterpretPanel: React.FC<InterpretPanelProps> = ({ bucketType, buckets, vi
       {!result ? (
         <InterpretBtn $loading={isPending} onClick={() => !isPending && mutate()} disabled={isPending}>
           <Sparkles />
-          {isPending ? 'Analizuję dane…' : `Zinterpretuj ${chartLabel}`}
+          {isPending ? 'Analizuję dane...' : `Zinterpretuj ${chartLabel}`}
         </InterpretBtn>
       ) : (
         <InterpretCard>
@@ -1057,7 +1057,7 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
           onChange={e => setValueMinInput(limitDecimals2(e.target.value.replace(/[^0-9.,]/g, '')))}
           onKeyDown={e => e.key === 'Enter' && handleApply()}
         />
-        <TimingSep>–</TimingSep>
+        <TimingSep>-</TimingSep>
         <TimingInput
           type="text"
           inputMode="decimal"
@@ -1085,12 +1085,12 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
 
       {isMock && !isLoading && (
         <div style={{ fontSize: 11, color: st.textMuted, marginBottom: 4, fontStyle: 'italic' }}>
-          Prezentowane dane są przykładowe — brak danych dla wybranego zakresu.
+          Prezentowane dane są przykładowe, brak danych dla wybranego zakresu.
         </div>
       )}
 
       {isLoading ? (
-        <LoadingBox>Ładowanie danych…</LoadingBox>
+        <LoadingBox>Ładowanie danych...</LoadingBox>
       ) : (
         <>
           {/* By hour */}
@@ -1099,7 +1099,7 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
               <ChartTitle>
                 <Clock size={13} /> O której godzinie piszą klienci
               </ChartTitle>
-              <ChartCaption>Rozkład zapytań w ciągu doby (0–23). Pokazuje, kiedy warto być pod telefonem.</ChartCaption>
+              <ChartCaption>Rozkład zapytań w ciągu doby (0-23). Pokazuje, kiedy warto być pod telefonem.</ChartCaption>
             </ChartHeader>
             <ResponsiveContainer width="100%" height={230}>
               <LineChart data={hourData} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
@@ -1136,7 +1136,7 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
               <ChartTitle>
                 <BarChart2 size={13} /> W które dni miesiąca piszą klienci
               </ChartTitle>
-              <ChartCaption>Rozkład zapytań względem dnia miesiąca (1–31). Pomaga zaplanować kampanie i przypomnienia.</ChartCaption>
+              <ChartCaption>Rozkład zapytań względem dnia miesiąca (1-31). Pomaga zaplanować kampanie i przypomnienia.</ChartCaption>
             </ChartHeader>
             <ResponsiveContainer width="100%" height={230}>
               <LineChart data={dayData} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
@@ -1280,7 +1280,7 @@ export const LeadAnalyticsModal: React.FC<LeadAnalyticsModalProps> = ({ isOpen, 
               max={customTo || undefined}
               onChange={e => setCustomFrom(e.target.value)}
             />
-            <DateSep>–</DateSep>
+            <DateSep>-</DateSep>
             <DateLabel>Do:</DateLabel>
             <DateInput
               type="date"

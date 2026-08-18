@@ -279,7 +279,7 @@ const mockDashboardData: DashboardData = {
     { id: 't1', title: 'Wystaw fakturę dla J. Kowalski', meta: 'Wczoraj · 1 850,00 zł', done: true },
     { id: 't2', title: 'Zamów wosk ceramiczny', meta: 'Magazyn · niski stan', done: false },
     { id: 't3', title: 'Zadzwoń do A. Nowak (zaległość)', meta: 'Pilne · 3 dni po terminie', done: false },
-    { id: 't4', title: 'Przygotuj post na Instagram', meta: 'Powłoka ceramiczna — Porsche 911', done: false },
+    { id: 't4', title: 'Przygotuj post na Instagram', meta: 'Powłoka ceramiczna · Porsche 911', done: false },
     { id: 't5', title: 'Podpisz umowę flotową (Truck-Pol)', meta: 'Oczekuje od 2 dni', done: false },
   ] as DashboardTask[],
   googleReviews: {
@@ -539,7 +539,7 @@ export const dashboardApi = {
           isoDate: toLocalDay(a.schedule.startDateTime),
           serviceName: a.appointmentTitle || a.services.map(s => s.serviceName).slice(0, 2).join(', ') || 'Rezerwacja',
           customerName: joinPiiName(a.customer.firstName, a.customer.lastName) ?? '',
-          vehicleName: a.vehicle ? `${a.vehicle.brand} ${a.vehicle.model}` : '—',
+          vehicleName: a.vehicle ? `${a.vehicle.brand} ${a.vehicle.model}` : '-',
           price: (a.totalGross ?? 0) / 100,
           priceNetto: (a.totalNet ?? 0) / 100,
           statusKind,

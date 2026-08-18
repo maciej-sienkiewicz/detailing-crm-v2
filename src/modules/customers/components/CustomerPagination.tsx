@@ -123,7 +123,7 @@ export const CustomerPagination = ({
     return (
         <PaginationContainer aria-label="Pagination">
             <PaginationInfo>
-                {t.customers.pagination.showing} {startItem}–{endItem} {t.customers.pagination.of} {totalItems} {t.customers.pagination.customers}
+                {t.customers.pagination.showing} {startItem}-{endItem} {t.customers.pagination.of} {totalItems} {t.customers.pagination.customers}
             </PaginationInfo>
 
             <PaginationControls>

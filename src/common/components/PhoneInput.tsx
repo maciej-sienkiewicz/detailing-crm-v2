@@ -69,7 +69,7 @@ const COUNTRY_CODES: CountryCode[] = [
         format: (digits: string) => {
             // Format: XXX XXX XXX (extra digits beyond the standard length are
             // appended to the last group instead of being dropped, so displaying
-            // an already-saved longer number never loses digits — only typing
+            // an already-saved longer number never loses digits; only typing
             // new digits is clamped, via maxDigits in the input handlers below)
             const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;

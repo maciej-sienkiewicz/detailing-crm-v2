@@ -50,7 +50,7 @@ const ViewContainer = styled.main`
   }
 `;
 
-// ─── Hero — wyciągnięty do PageHeader w common/components ────────────────────
+// ─── Hero: wyciągnięty do PageHeader w common/components ─────────────────────
 
 // ─── Section divider ──────────────────────────────────────────────────────────
 
@@ -591,7 +591,7 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
 
           <DPRangeRow>
             <DPDateInput type="date" value={pendingFrom} max={pendingTo || undefined} onChange={e => setPendingFrom(e.target.value)} />
-            <DPSep>–</DPSep>
+            <DPSep>-</DPSep>
             <DPDateInput type="date" value={pendingTo} min={pendingFrom || undefined} onChange={e => setPendingTo(e.target.value)} />
           </DPRangeRow>
 
@@ -625,7 +625,7 @@ const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: s
   if (preset === 'week') return 'Ostatni tydzień';
   if (preset === 'month') return 'Ostatni miesiąc';
   if (preset === 'quarter') return 'Ostatni kwartał';
-  if (customFrom && customTo) return `${customFrom} – ${customTo}`;
+  if (customFrom && customTo) return `${customFrom} - ${customTo}`;
   if (customFrom) return `Od ${customFrom}`;
   if (customTo) return `Do ${customTo}`;
   return 'Zakres dat';
@@ -774,7 +774,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
     pageSize:      PAGE_SIZE,
   });
 
-  // Podejrzane duplikaty dotyczą wyłącznie faktur z ledgera KSeF — filtr działa
+  // Podejrzane duplikaty dotyczą wyłącznie faktur z ledgera KSeF, filtr działa
   // po stronie klienta, bo to zawężenie widoku, nie osobne zapytanie
   const visibleDocuments = filters.duplicates
     ? documents.filter((doc) => doc.duplicateStatus === 'SUSPECTED')
@@ -847,7 +847,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
       {totalPages > 1 && (
         <PaginationFooter>
           <PaginationInfo>
-            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}-{Math.min(filters.page * PAGE_SIZE, total)} z {total}
           </PaginationInfo>
           <PaginationBtns>
             <PageBtn
@@ -961,7 +961,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
       {totalPages > 1 && (
         <PaginationFooter>
           <PaginationInfo>
-            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}-{Math.min(filters.page * PAGE_SIZE, total)} z {total}
           </PaginationInfo>
           <PaginationBtns>
             <PageBtn
@@ -993,7 +993,7 @@ export const FinanceView: React.FC = () => {
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isIssueInvoiceModalOpen, setIssueInvoiceModalOpen] = useState(false);
   const [selectedRevenueInvoiceId, setSelectedRevenueInvoiceId] = useState<string | null>(null);
-  // Dokument z modułu finansowego (paragon / inny) wybrany do podglądu i edycji —
+  // Dokument z modułu finansowego (paragon / inny) wybrany do podglądu i edycji;
   // pełne dane dociągamy po id, bo lista zwraca tylko wspólny podzbiór pól
   const [selectedFinanceDocumentId, setSelectedFinanceDocumentId] = useState<string | null>(null);
   const { document: selectedFinanceDocument } = useFinanceDocument(selectedFinanceDocumentId ?? undefined);
@@ -1007,7 +1007,7 @@ export const FinanceView: React.FC = () => {
 
   const openIncomeModal  = useCallback(() => setIncomeModalOpen(true),  []);
   const closeIncomeModal = useCallback(() => setIncomeModalOpen(false), []);
-  /** Szczegóły zależą od źródła: faktura KSeF ma własny widok, dokument finansowy — edycję. */
+  /** Szczegóły zależą od źródła: faktura KSeF ma własny widok, dokument finansowy - edycję. */
   const handleSelectDocument = useCallback((doc: IncomeDocument) => {
     if (doc.sourceKind === 'KSEF') setSelectedRevenueInvoiceId(doc.id);
     else setSelectedFinanceDocumentId(doc.id);

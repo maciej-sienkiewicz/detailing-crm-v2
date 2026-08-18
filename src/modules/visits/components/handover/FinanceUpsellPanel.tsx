@@ -7,13 +7,13 @@ import { formatCents } from '@/modules/subscription/utils/formatters';
 import type { AddOnKey } from '@/modules/subscription/types';
 
 /**
- * The high-intent upsell moment: the user is closing a visit — the exact second
+ * The high-intent upsell moment: the user is closing a visit, the exact second
  * the finance module would save them work. Shown INSTEAD of the settlement
  * section when the module is missing; the visit can still be closed without a
- * document (core BASIC operation — blocking it would create churn, not revenue).
+ * document (core BASIC operation; blocking it would create churn, not revenue).
  */
 interface Props {
-    /** Gross amount of the visit — makes the benefit concrete, not abstract. */
+    /** Gross amount of the visit: makes the benefit concrete, not abstract. */
     grossAmount: number;
     currency: string;
 }
@@ -40,7 +40,7 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
 
                 <BenefitList>
                     <Benefit>
-                        Faktura do KSeF jednym kliknięciem — także dla tej wizyty
+                        Faktura do KSeF jednym kliknięciem, także dla tej wizyty
                         na kwotę <strong>{formatCents(grossAmount)} {currency}</strong>
                     </Benefit>
                     <Benefit>Paragony i dokumenty przychodowe wystawiane automatycznie przy wydaniu pojazdu</Benefit>
@@ -54,7 +54,7 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
                     >
                         Wykup dostęp
                         {option.monthlyPriceGrossCents != null &&
-                            ` — ${formatCents(option.monthlyPriceGrossCents)}/mies.`}
+                            ` - ${formatCents(option.monthlyPriceGrossCents)}/mies.`}
                     </BuyBtn>
                 ) : (
                     <EmployeeHint>
@@ -63,7 +63,7 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
                 )}
 
                 <ContinueHint>
-                    Możesz też wydać pojazd bez wystawiania dokumentu — przyciskiem poniżej.
+                    Możesz też wydać pojazd bez wystawiania dokumentu, przyciskiem poniżej.
                 </ContinueHint>
             </Panel>
 

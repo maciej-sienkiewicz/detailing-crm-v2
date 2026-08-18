@@ -74,7 +74,7 @@ const HeaderMeta = styled.div`
     min-width: 0;
 `;
 
-// 10px · 600 · uppercase · +0.06em — matches VisitDateLabel in dashboard
+// 10px · 600 · uppercase · +0.06em (matches VisitDateLabel in dashboard)
 const Eyebrow = styled.span`
     font-size: 10px;
     font-weight: 600;
@@ -84,7 +84,7 @@ const Eyebrow = styled.span`
     display: block;
 `;
 
-// 18px · 600 · -0.1px — matches CARD TITLE in design system
+// 18px · 600 · -0.1px (matches CARD TITLE in design system)
 const DrawerTitle = styled.h2`
     margin: 0;
     font-size: 18px;
@@ -166,7 +166,7 @@ const KpiLabel = styled.span`
     letter-spacing: 0.06em;
 `;
 
-// 20px · 700 · -0.3px — between PAGE TITLE and CARD TITLE
+// 20px · 700 · -0.3px (between PAGE TITLE and CARD TITLE)
 const KpiValue = styled.span<{ $color: string }>`
     font-size: 20px;
     font-weight: 700;
@@ -176,7 +176,7 @@ const KpiValue = styled.span<{ $color: string }>`
     font-variant-numeric: tabular-nums;
 `;
 
-// 12px · 500 — matches CAPTION
+// 12px · 500 (matches CAPTION)
 const KpiSub = styled.span`
     font-size: 12px;
     font-weight: 500;
@@ -259,7 +259,7 @@ const VisitInfo = styled.div`
     min-width: 0;
 `;
 
-// 13px · 600 — matches VisitTitle in dashboard
+// 13px · 600 (matches VisitTitle in dashboard)
 const VisitClient = styled.span`
     display: block;
     font-size: 13px;
@@ -271,7 +271,7 @@ const VisitClient = styled.span`
     margin-bottom: 2px;
 `;
 
-// 12px · 500 — matches CAPTION
+// 12px · 500 (matches CAPTION)
 const VisitMeta = styled.span`
     display: block;
     font-size: 12px;
@@ -378,7 +378,7 @@ const ServiceDot = styled.span<{ $dimmed?: boolean }>`
     background: ${p => p.$dimmed ? p.theme.colors.textMuted : p.theme.colors.success};
 `;
 
-// 13px · 400 — BODY SMALL
+// 13px · 400 (BODY SMALL)
 const ServiceName = styled.span`
     flex: 1;
     font-size: 13px;
@@ -651,7 +651,7 @@ const VisitItem = ({
                                 onClick={e => { e.stopPropagation(); setOthersOpen(o => !o); }}
                             >
                                 <OthersChevron $open={othersOpen}>▼</OthersChevron>
-                                Pozostałe usługi ({others.length}) —{' '}
+                                Pozostałe usługi ({others.length}):{' '}
                                 {PLN(others.reduce((s, sv) => s + sv.priceGross, 0))}
                             </OthersToggle>
                             <OthersPanel $open={othersOpen} $count={others.length}>
@@ -783,7 +783,7 @@ export const PeriodDetailDrawer = ({
                 {loading && (
                     <LoadingState>
                         <Spinner />
-                        <span>Ładowanie wizyt…</span>
+                        <span>Ładowanie wizyt...</span>
                     </LoadingState>
                 )}
 

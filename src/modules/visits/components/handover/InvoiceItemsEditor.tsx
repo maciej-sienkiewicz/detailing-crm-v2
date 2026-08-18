@@ -39,7 +39,7 @@ const HeaderRow = styled(Row)`
     @media (max-width: 640px) { display: none; }
 `;
 
-/** Pole pochodne — wartość wyliczona z pola wpisanego, lekko wyszarzona. */
+/** Pole pochodne: wartość wyliczona z pola wpisanego, lekko wyszarzona. */
 const DerivedShell = styled(InputShell)<{ $derived: boolean }>`
     ${p =>
         p.$derived &&
@@ -91,7 +91,7 @@ interface InvoiceItemsEditorProps {
 
 /**
  * Tabela pozycji faktury. Wpisana kwota (netto albo brutto) jest źródłem prawdy
- * i nie jest przeliczana wstecz — druga kolumna zawsze pochodna. Backend liczy
+ * i nie jest przeliczana wstecz: druga kolumna zawsze pochodna. Backend liczy
  * identycznie, więc 500,00 nie przeskoczy na 499,99.
  */
 export const InvoiceItemsEditor = ({
@@ -204,7 +204,7 @@ export const InvoiceItemsEditor = ({
                             $compact
                         />
                     </InputShell>
-                    <Muted>Wymagana przez KSeF dla stawki „zw" — trafia na fakturę jako pole P_19A.</Muted>
+                    <Muted>Wymagana przez KSeF dla stawki „zw": trafia na fakturę jako pole P_19A.</Muted>
                 </FormField>
             )}
         </Wrap>

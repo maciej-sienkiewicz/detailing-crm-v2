@@ -321,7 +321,7 @@ export function QuoteReplyExamplesPanel({ onBack, hideHeader }: Props) {
         )}
 
         <List>
-          {isLoading && <EmptyMsg>Ładowanie…</EmptyMsg>}
+          {isLoading && <EmptyMsg>Ładowanie...</EmptyMsg>}
           {!isLoading && examples.length === 0 && (
             <EmptyMsg>Brak zapisanych przykładów.<br />Wygeneruj ofertę, wprowadź poprawki i kliknij „Zapisz jako przykład".</EmptyMsg>
           )}
@@ -372,7 +372,7 @@ export function QuoteReplyExamplesPanel({ onBack, hideHeader }: Props) {
         </List>
       </Panel>
 
-      {/* Expand overlay — covers entire ComposeWindow */}
+      {/* Expand overlay: covers entire ComposeWindow */}
       {expanded && (
         <ExpandOverlay>
           <ExpandHeader>

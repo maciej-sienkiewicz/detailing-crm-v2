@@ -12,7 +12,7 @@ interface CanProps {
 
 /**
  * Component-level permission gate for buttons, table columns, tabs etc.
- * Renders nothing (or `fallback`) when the user lacks the permission —
+ * Renders nothing (or `fallback`) when the user lacks the permission:
  * the UI hides capabilities instead of showing "no access" errors.
  *
  *   <Can anyOf="VISITS_DELETE"><DeleteVisitButton /></Can>

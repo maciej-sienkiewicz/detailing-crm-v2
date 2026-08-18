@@ -46,7 +46,7 @@ export const MobilePhotoSection = ({ logic }: Props) => {
                     <line x1="1" y1="1" x2="23" y2="23" />
                     <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
                 </svg>
-                Tryb offline — zdjęcia zostaną wysłane po odzyskaniu połączenia
+                Tryb offline, zdjęcia zostaną wysłane po odzyskaniu połączenia
             </OfflineBanner>
 
             {totalCount > 0 && (
@@ -97,7 +97,7 @@ export const MobilePhotoSection = ({ logic }: Props) => {
                                 <PhotoCardTitle>Zdjęcie #{photos.length - idx}</PhotoCardTitle>
                                 <StatusBadge $status={photo.status}>
                                     {photo.status === 'done'      && '✓ Wysłane'}
-                                    {photo.status === 'uploading' && '⟳ Wysyłanie…'}
+                                    {photo.status === 'uploading' && '⟳ Wysyłanie...'}
                                     {photo.status === 'pending'   && '◷ Oczekujące'}
                                     {photo.status === 'failed'    && '✗ Błąd'}
                                 </StatusBadge>

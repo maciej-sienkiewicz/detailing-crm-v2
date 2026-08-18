@@ -12,7 +12,7 @@ import { vehicleMetadataApi } from '@/modules/vehicles/api/vehicleMetadataApi';
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            // Never retry auth/permission/paywall failures — a 401/402/403 is
+            // Never retry auth/permission/paywall failures: a 401/402/403 is
             // deterministic and a retry would only double the denied request.
             retry: (failureCount, error) => {
                 const status = (error as { response?: { status?: number } })?.response?.status;

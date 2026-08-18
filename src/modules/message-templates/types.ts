@@ -2,7 +2,7 @@ import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-campaigns/ty
 import type { EmailAutomationConfig, EmailRuleKey } from '@/modules/email-campaigns/types';
 
 /**
- * A message is one situation in which we contact the customer — "vehicle ready for
+ * A message is one situation in which we contact the customer: "vehicle ready for
  * pickup", "reservation confirmed". A situation can reach the customer over SMS, over
  * e-mail, or both, so the channel is an attribute of the message rather than a separate
  * screen. The backend still stores the two channels in separate configs; this module is

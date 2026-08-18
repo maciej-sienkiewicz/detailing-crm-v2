@@ -38,7 +38,7 @@ const defaultDueDate = (): string => {
  *
  * Pracownik bez uprawnienia do danych osobowych dostaje z backendu nieodwracalną
  * maskę `***` zamiast imienia czy e-maila. Taka wartość nigdy nie może trafić na
- * dokument — lepiej zostawić pole puste i pozwolić je uzupełnić.
+ * dokument, więc lepiej zostawić pole puste i pozwolić je uzupełnić.
  */
 const invoiceSafe = (value: string | null | undefined): string =>
     value && !isPiiMasked(value) ? value : '';
@@ -67,7 +67,7 @@ interface UseHandoverArgs {
  * Stan i zapis ekranu wydania pojazdu.
  *
  * W przeciwieństwie do starego kreatora: stan przeżywa zamknięcie okna (draft
- * w localStorage), a po udanym wydaniu okno nie znika — zwracamy [result],
+ * w localStorage), a po udanym wydaniu okno nie znika: zwracamy [result],
  * z którego widok potwierdzenia buduje akcje domykające (wysyłka do KSeF,
  * ponowna próba przy odrzuceniu).
  */
@@ -80,7 +80,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // z modułu appointments, gdzie ServiceLineItem deklaruje basePriceNet jako
     // MoneyAmount. Implementacja czyta tę wartość jak liczbę (createMoney), więc
     // model wizyty pasuje w praktyce, ale nie w typach. Rzutujemy raz, tutaj,
-    // zamiast przy każdym wywołaniu — rozbieżność typów do uporządkowania osobno.
+    // zamiast przy każdym wywołaniu; rozbieżność typów do uporządkowania osobno.
     const priceOf = useCallback(
         (service: ServiceLineItem) =>
             calculateServicePrice(service as unknown as Parameters<typeof calculateServicePrice>[0]),
@@ -88,7 +88,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     );
 
     // Dane sprzedawcy pobierane RAZEM z otwarciem ekranu, nie dopiero przy
-    // edycji faktury — brak NIP-u studia ma być widoczny zanim ktokolwiek
+    // edycji faktury: brak NIP-u studia ma być widoczny zanim ktokolwiek
     // zacznie wydawać, a nie w ostatnim kliknięciu przy kliencie u lady.
     const { data: company, isLoading: isCompanyLoading } = useQuery({
         queryKey: ['company', 'settings'],
@@ -98,7 +98,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const sellerComplete = !!company?.name?.trim() && !!company?.taxId?.trim();
 
     // ── Kwoty wizyty ─────────────────────────────────────────────────────────
-    // Usługa z oczekującą edycją liczy się po cenie sprzed zmiany — zmiana nie
+    // Usługa z oczekującą edycją liczy się po cenie sprzed zmiany: zmiana nie
     // została jeszcze zatwierdzona, więc klient płaci za to, co uzgodniono.
     const totals = useMemo(() => {
         let net = 0;
@@ -182,14 +182,14 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             const stored = window.localStorage.getItem(draftKey(visit.id));
             return stored ? { ...fresh, ...JSON.parse(stored) } : fresh;
         } catch {
-            // Uszkodzony draft nie może blokować wydania — startujemy od nowa.
+            // Uszkodzony draft nie może blokować wydania, startujemy od nowa.
             return fresh;
         }
     });
     const [result, setResult] = useState<CompleteVisitResponse | null>(null);
 
     // Wystawianie dokumentów (paragon/faktura/KSeF) to moduł finansowy. Bez niego
-    // wydanie pojazdu nadal działa — w trybie uproszczonym, bez dokumentu; backend
+    // wydanie pojazdu nadal działa, w trybie uproszczonym, bez dokumentu; backend
     // egzekwuje tę samą regułę (jawna faktura -> 402, paragon pomijany).
     const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
 
@@ -199,7 +199,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         try {
             window.localStorage.setItem(draftKey(visit.id), JSON.stringify(state));
         } catch {
-            // Brak miejsca / tryb prywatny — draft to wygoda, nie warunek działania.
+            // Brak miejsca / tryb prywatny: draft to wygoda, nie warunek działania.
         }
     }, [state, isOpen, result, visit.id]);
 

@@ -560,7 +560,7 @@ export const VehicleDamageMapper = ({
       if ((p.photos ?? []).some(ph => ph.photoId === slot.id)) return p;
       return { ...p, photos: [...(p.photos ?? []), attached] };
     }));
-    // Jump straight into annotation — marking the damage on the photo is the
+    // Jump straight into annotation: marking the damage on the photo is the
     // whole point of attaching it, so save the extra click.
     if (attached.thumbnailUrl) {
       setAnnotating({ pointId, photo: attached });
@@ -606,7 +606,7 @@ export const VehicleDamageMapper = ({
         <VehicleImage
           ref={imageRef}
           src={vehicleImageUrl(vehicleType)}
-          alt={`Schemat pojazdu — ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
+          alt={`Schemat pojazdu: ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
           draggable={false}
         />
         <OverlayLayer onClick={handleImageClick}>
@@ -775,7 +775,7 @@ export const VehicleDamageMapper = ({
         <DamagePhotoAnnotator
           imageUrl={annotating.photo.thumbnailUrl}
           initialStrokes={annotating.photo.strokes}
-          title={`Uszkodzenie nr ${getPointNumber(annotating.pointId)} — zaznacz na zdjęciu`}
+          title={`Uszkodzenie nr ${getPointNumber(annotating.pointId)}: zaznacz na zdjęciu`}
           onSave={strokes => {
             handleSaveStrokes(annotating.pointId, annotating.photo.photoId, strokes);
             setAnnotating(null);

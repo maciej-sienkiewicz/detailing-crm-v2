@@ -380,7 +380,7 @@ export function CompanySection() {
                                 disabled={logoUploading}
                             >
                                 <UploadIcon />
-                                {logoUploading ? 'Wgrywanie…' : 'Wgraj nowe'}
+                                {logoUploading ? 'Wgrywanie...' : 'Wgraj nowe'}
                             </BtnSecondary>
                             {company?.logoUrl && (
                                 <BtnDanger onClick={handleLogoDelete} disabled={logoDeleting}>

@@ -328,7 +328,7 @@ export const CustomerCommunicationList = ({ entries, isLoading }: Props) => {
             {totalPages > 1 && (
                 <PaginationBar>
                     <PaginationInfo>
-                        {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, sorted.length)} z {sorted.length}
+                        {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, sorted.length)} z {sorted.length}
                     </PaginationInfo>
                     <PaginationBtns>
                         <PaginationBtn

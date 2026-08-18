@@ -1,8 +1,8 @@
 // src/modules/activity/types.ts
 //
 // Mirrors the backend feed contract (GET /api/v1/audit/feed). The backend ships
-// every entry already rendered — title, context line, formatted amount, labelled
-// before/after values — so this module deliberately owns no dictionary of action
+// every entry already rendered: title, context line, formatted amount, labelled
+// before/after values; this module deliberately owns no dictionary of action
 // names, field labels or colours. Anything that needs translating is translated
 // server-side; here we only decide layout.
 

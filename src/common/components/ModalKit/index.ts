@@ -1,5 +1,5 @@
 /**
- * ModalKit — single import point for building consistent modals.
+ * ModalKit: single import point for building consistent modals.
  *
  * import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
  *          ModalSubtitle, ModalContent, ModalFooter,

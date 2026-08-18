@@ -289,7 +289,7 @@ export function BatchOrderPhotoSection({ entryId }: Props) {
                             </PhotoThumb>
                         ))}
                         {photos.length === 0 && uploading.length === 0 && (
-                            <EmptyText>Brak zdjęć — dodaj dokumentację pojazdu</EmptyText>
+                            <EmptyText>Brak zdjęć, dodaj dokumentację pojazdu</EmptyText>
                         )}
                     </>
                 )}

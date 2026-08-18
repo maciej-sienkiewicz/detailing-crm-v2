@@ -334,7 +334,7 @@ const getRoleLabel = (profile: StudioProfile) =>
 
 interface Props {
     onClose: () => void;
-    /** When true: session is locked — no close/escape, only PIN or password login allowed */
+    /** When true, session is locked: no close/escape, only PIN or password login allowed */
     lockMode?: boolean;
 }
 
@@ -484,7 +484,7 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
             </Subtitle>
 
             {isLoading ? (
-                <p style={{ color: '#64748b' }}>Ładowanie…</p>
+                <p style={{ color: '#64748b' }}>Ładowanie...</p>
             ) : (
                 <ProfileGrid>
                     {profiles.map(profile => (
@@ -499,9 +499,9 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                             }}
                             title={
                                 profile.pinLocked
-                                    ? 'PIN zablokowany – wymagane logowanie hasłem'
+                                    ? 'PIN zablokowany: wymagane logowanie hasłem'
                                     : !profile.hasPinConfigured
-                                    ? 'Brak kodu PIN – wymagane logowanie hasłem'
+                                    ? 'Brak kodu PIN: wymagane logowanie hasłem'
                                     : undefined
                             }
                         >

@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
  * in the viewport meta, but it reports through the same API, so one hook covers
  * both.
  *
- * Returns `true` only while a virtual keyboard is actually up — a plain address
+ * Returns `true` only while a virtual keyboard is actually up: a plain address
  * bar collapse moves the viewport by far less than the threshold.
  */
 export const useVirtualKeyboard = (): boolean => {

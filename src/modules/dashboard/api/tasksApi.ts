@@ -1,5 +1,5 @@
 /**
- * Tasks API — "Do zrobienia" CRUD
+ * Tasks API: "Do zrobienia" CRUD
  *
  * Backend contract:
  *
@@ -56,7 +56,7 @@ let mockTasks: DashboardTask[] = [
   { id: 't1', title: 'Wystaw fakturę dla J. Kowalski', meta: 'Wczoraj · 1 850,00 zł', done: true, createdAt: new Date().toISOString() },
   { id: 't2', title: 'Zamów wosk ceramiczny', meta: 'Magazyn · niski stan', done: false, createdAt: new Date().toISOString() },
   { id: 't3', title: 'Zadzwoń do A. Nowak (zaległość)', meta: 'Pilne · 3 dni po terminie', done: false, createdAt: new Date().toISOString() },
-  { id: 't4', title: 'Przygotuj post na Instagram', meta: 'Powłoka ceramiczna — Porsche 911', done: false, createdAt: new Date().toISOString() },
+  { id: 't4', title: 'Przygotuj post na Instagram', meta: 'Powłoka ceramiczna · Porsche 911', done: false, createdAt: new Date().toISOString() },
   { id: 't5', title: 'Podpisz umowę flotową (Truck-Pol)', meta: 'Oczekuje od 2 dni', done: false, createdAt: new Date().toISOString() },
 ];
 

@@ -37,7 +37,7 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                 if (!formData.customerData.id) {
                     validationErrors.customer = 'Musisz wybrać klienta';
                 } else {
-                    // Klient istnieje, ale może mieć niekompletne dane — waliduj imię i nazwisko
+                    // Klient istnieje, ale może mieć niekompletne dane: waliduj imię i nazwisko
                     if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
                         validationErrors.firstName = t.customers.validation.firstNameMin;
                     }
@@ -89,9 +89,9 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             }
         }
 
-        // Przebieg nie jest wymagany – pole opcjonalne
+        // Przebieg nie jest wymagany, pole opcjonalne
 
-        // Zdjęcia są opcjonalne – brak walidacji
+        // Zdjęcia są opcjonalne, brak walidacji
         if (currentStep === 'photos') {
             // No validation required - photos are optional
         }

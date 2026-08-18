@@ -216,7 +216,7 @@ export const ModeBadge = styled.span<{ $mode: 'lead' | 'note' }>`
     `}
 `;
 
-// ─── Screen 1: Home — two floating squircle cards ────────────────────────────
+// ─── Screen 1: Home, two floating squircle cards ────────────────────────────
 
 export const FloatLayout = styled.div`
     flex: 1;

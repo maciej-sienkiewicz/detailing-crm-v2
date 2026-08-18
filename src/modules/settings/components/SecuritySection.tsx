@@ -143,7 +143,7 @@ const IdleTimeoutCard = () => {
                     ))}
                 </Select>
                 <SaveBtn onClick={handleSave} disabled={isPending} $loading={isPending}>
-                    {isPending ? 'Zapisywanie…' : 'Zapisz'}
+                    {isPending ? 'Zapisywanie...' : 'Zapisz'}
                 </SaveBtn>
                 {saved && <SavedMsg>Zapisano</SavedMsg>}
             </Row>

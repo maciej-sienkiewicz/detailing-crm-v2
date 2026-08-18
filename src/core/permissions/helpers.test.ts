@@ -38,7 +38,7 @@ describe('hasPermission', () => {
         expect(hasPermission(user, ['FINANCE_VIEW_REPORTS', 'FINANCE_INVOICES'])).toBe(false);
     });
 
-    it('OWNER_ONLY matches exactly the owner — no permission code can grant it', () => {
+    it('OWNER_ONLY matches exactly the owner, no permission code can grant it', () => {
         expect(hasPermission(owner, 'OWNER_ONLY')).toBe(true);
         expect(hasPermission(employee('EMPLOYEES_MANAGE', 'AUDIT_VIEW'), 'OWNER_ONLY')).toBe(false);
         expect(hasPermission(employee(), 'OWNER_ONLY')).toBe(false);

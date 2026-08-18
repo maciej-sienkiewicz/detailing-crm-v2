@@ -288,7 +288,7 @@ const PreviewModal = ({ employeeId, document, onClose }: PreviewModalProps) => {
             a.download = document.fileName;
             a.click();
         } catch {
-            // silently ignore – user can retry
+            // silently ignore, user can retry
         }
     };
 

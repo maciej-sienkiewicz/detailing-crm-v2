@@ -20,9 +20,9 @@ export interface BaseSelectOption {
 
 export interface BaseSelectProps
     extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size' | 'children' | 'multiple'> {
-    /** Visible field label — required so no control ships unlabeled. */
+    /** Visible field label; required so no control ships unlabeled. */
     label: string;
-    /** Options are data, not JSX — keeps every select's markup identical. */
+    /** Options are data, not JSX: keeps every select's markup identical. */
     options: ReadonlyArray<BaseSelectOption>;
     /** Placeholder rendered as a disabled empty first option. */
     placeholder?: string;
@@ -109,7 +109,7 @@ const StyledSelect = styled.select<{ $invalid: boolean; $placeholderShown: boole
     background-position: right 12px center;
     cursor: pointer;
 
-    /* Mirror ::placeholder — selects have no native equivalent. */
+    /* Mirror ::placeholder; selects have no native equivalent. */
     color: ${p => (p.$placeholderShown ? field.placeholderColor : field.controlColor)};
 
     &:invalid {

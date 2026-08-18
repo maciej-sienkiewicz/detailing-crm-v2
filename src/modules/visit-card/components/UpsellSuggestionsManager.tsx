@@ -3,7 +3,7 @@
 // Employee-facing manager of "suggested additional services" (upselling) for a
 // single visit or reservation. Suggestions are assigned intentionally, one by
 // one, and appear on the customer's public Visit Card, where the customer can
-// request them (which triggers a consent SMS: "Odpisz TAK…").
+// request them (which triggers a consent SMS: "Odpisz TAK...").
 //
 // UI follows the app-wide patterns: the service picker is the shared
 // ServiceAutocomplete (styled suggestion dropdown), and the discount editor
@@ -27,7 +27,7 @@ const formatPln = (grosz: number): string =>
 
 const STATUS_LABEL: Record<UpsellSuggestionStatus, string> = {
     SUGGESTED: 'Widoczna na karcie',
-    REQUESTED: 'Klient wybrał — czeka na SMS „TAK”',
+    REQUESTED: 'Klient wybrał, czeka na SMS „TAK”',
     CONFIRMED: 'Potwierdzona i dodana',
 };
 
@@ -202,7 +202,7 @@ interface DiscountTypeSelectProps {
     disabled?: boolean;
 }
 
-/** App-styled replacement for the native select — options render in a white portal menu. */
+/** App-styled replacement for the native select: options render in a white portal menu. */
 const DiscountTypeSelect = ({ value, options, onChange, disabled }: DiscountTypeSelectProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
@@ -432,7 +432,7 @@ const EmptyText = styled.div`
 interface UpsellSuggestionsManagerProps {
     /** Visit or reservation the suggestions are attached to. */
     target: UpsellTarget;
-    /** Reload trigger — the parent passes its `isOpen` so data refreshes on each open. */
+    /** Reload trigger: the parent passes its `isOpen` so data refreshes on each open. */
     active: boolean;
 }
 
@@ -594,7 +594,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                         </SelectedServicePrice>
                     </SelectedServiceHeader>
 
-                    {/* Discount and note are opt-in — the default panel stays minimal. */}
+                    {/* Discount and note are opt-in; the default panel stays minimal. */}
                     {discountOpen && (
                         <DiscountGrid>
                             <FieldGroup>

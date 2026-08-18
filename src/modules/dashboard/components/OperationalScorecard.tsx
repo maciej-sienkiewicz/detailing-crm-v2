@@ -463,7 +463,7 @@ const VisitRow = ({
           <DateLine $overdue={isOverdue}>
             {isOverdue ? <AlertTriangle /> : <Clock />}
             {t.dashboard.stats.estimatedCompletion}: {formatDate(visit.estimatedCompletionDate)}
-            {isOverdue && ' — po terminie'}
+            {isOverdue && ' (po terminie)'}
           </DateLine>
         )}
       </VisitBody>

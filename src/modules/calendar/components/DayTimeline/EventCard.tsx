@@ -19,7 +19,7 @@ export const EventCard = ({ event, onClick }: EventCardProps) => {
 
     const startTime = formatTime(event.start as string);
     const endTime   = formatTime(event.end as string | undefined);
-    const timeLabel = startTime && endTime ? `${startTime} – ${endTime}` : startTime;
+    const timeLabel = startTime && endTime ? `${startTime}-${endTime}` : startTime;
 
     const serviceLabel = props.type === 'APPOINTMENT'
         ? (props as AppointmentEventData).serviceNames?.join(', ')

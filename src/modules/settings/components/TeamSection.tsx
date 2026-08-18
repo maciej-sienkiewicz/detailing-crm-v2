@@ -17,12 +17,12 @@ export const TEAM_PAGE_SIZE = 20;
 
 const PAGE_SIZE = TEAM_PAGE_SIZE;
 
-function buildPageNumbers(current: number, total: number): (number | '…')[] {
+function buildPageNumbers(current: number, total: number): (number | '...')[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const pages: (number | '…')[] = [1];
-    if (current > 3) pages.push('…');
+    const pages: (number | '...')[] = [1];
+    if (current > 3) pages.push('...');
     for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p);
-    if (current < total - 2) pages.push('…');
+    if (current < total - 2) pages.push('...');
     pages.push(total);
     return pages;
 }
@@ -64,8 +64,8 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
     const closeForm = () => setIsAddOpen(false);
 
     /**
-     * One call, one transaction. This used to be a chain of three requests — create
-     * employee, provision account, assign role — which could stop halfway and still
+     * One call, one transaction. This used to be a chain of three requests: create
+     * employee, provision account, assign role, and it could stop halfway and still
      * report success, leaving a person who could not sign in. The backend already
      * accepts the whole thing at once, so a failure now leaves nothing behind.
      */
@@ -88,7 +88,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                     } else {
                         showSuccess(
                             'Pracownik dodany',
-                            'Konto powstało bez roli — przypisz ją, żeby pracownik zobaczył jakikolwiek moduł.',
+                            'Konto powstało bez roli, przypisz ją, żeby pracownik zobaczył jakikolwiek moduł.',
                         );
                     }
                     closeForm();
@@ -109,7 +109,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                         </svg>
                     </SearchIconWrap>
                     <SearchInput
-                        placeholder="Szukaj po imieniu, nazwisku lub e-mailu…"
+                        placeholder="Szukaj po imieniu, nazwisku lub e-mailu..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -145,7 +145,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                                 ? '1 pracownik ma konto bez roli'
                                 : `${lockedOut.length} pracowników ma konto bez roli`}
                         </strong>
-                        {' — mogą się zalogować, ale nie zobaczą żadnego modułu. '}
+                        {': mogą się zalogować, ale nie zobaczą żadnego modułu. '}
                         {lockedOut.slice(0, 3).map(e => e.fullName).join(', ')}
                         {lockedOut.length > 3 ? ` i ${lockedOut.length - 3} więcej.` : '.'}
                     </NoticeText>
@@ -196,14 +196,14 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                                 <ContactCell>
                                     {emp.email && <span>{emp.email}</span>}
                                     {emp.phone && <span>{emp.phone}</span>}
-                                    {!emp.email && !emp.phone && <Muted>—</Muted>}
+                                    {!emp.email && !emp.phone && <Muted>-</Muted>}
                                 </ContactCell>
                                 <div>
                                     {emp.role
                                         ? <Badge $variant="gray">{emp.role.name}</Badge>
                                         : hasAccount
                                             ? <Badge $variant="amber">Brak roli</Badge>
-                                            : <Muted>—</Muted>}
+                                            : <Muted>-</Muted>}
                                 </div>
                                 <div>
                                     {hasAccount
@@ -218,15 +218,15 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                 {!isLoading && totalPages > 1 && (
                     <Pager>
                         <PagerInfo>
-                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
+                            {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
                         </PagerInfo>
                         <PagerControls>
                             <PagerBtn onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
                             </PagerBtn>
                             {pageNumbers.map((n, i) =>
-                                n === '…'
-                                    ? <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>…</PagerBtn>
+                                n === '...'
+                                    ? <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>...</PagerBtn>
                                     : <PagerBtn key={n} $active={n === page} onClick={() => setPage(n)}>{n}</PagerBtn>,
                             )}
                             <PagerBtn onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>

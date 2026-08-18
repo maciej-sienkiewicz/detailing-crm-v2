@@ -2,8 +2,8 @@
 //
 // Renders every page of a PDF (raw bytes) onto stacked canvases via pdf.js.
 // Mobile browsers do not reliably display PDFs in <iframe>/<embed> (Android
-// Chrome downloads the file instead), and this page is opened from an SMS —
-// rendering to canvas is the only dependable option.
+// Chrome downloads the file instead), and this page is opened from an SMS,
+// so rendering to canvas is the only dependable option.
 
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -36,7 +36,7 @@ const RetryBtn = styled.button`
 `;
 
 interface PdfPagesViewerProps {
-    /** Raw PDF bytes. The component copies them — pdf.js detaches its input buffer. */
+    /** Raw PDF bytes. The component copies them: pdf.js detaches its input buffer. */
     data: ArrayBuffer;
     onRenderError?: () => void;
 }
@@ -57,7 +57,7 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
                     import.meta.url,
                 ).toString();
 
-                // pdf.js transfers (detaches) the buffer it receives — hand it a copy
+                // pdf.js transfers (detaches) the buffer it receives, so hand it a copy
                 const doc = await pdfjs.getDocument({ data: data.slice(0) }).promise;
                 if (cancelled) return;
 
@@ -123,7 +123,7 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
 
     return (
         <PagesWrap>
-            {state === 'rendering' && <Status>Ładowanie dokumentu…</Status>}
+            {state === 'rendering' && <Status>Ładowanie dokumentu...</Status>}
             {state === 'error' && (
                 <Status>
                     Nie udało się wyświetlić dokumentu.

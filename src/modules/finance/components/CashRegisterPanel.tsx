@@ -170,7 +170,7 @@ const ErrorMsg = styled.p`
   border: 1px solid ${st.accentRed}22;
 `;
 
-// ─── Right column — History ───────────────────────────────────────────────────
+// ─── Right column: History ───────────────────────────────────────────────────
 
 const HistoryCard = styled.div`
   background: ${(p) => p.theme.colors.surface};
@@ -359,7 +359,7 @@ export const CashRegisterPanel: React.FC = () => {
             <BalanceLabel>Saldo kasy</BalanceLabel>
             <BalanceAmount>{formatMoney(cashRegister?.balance ?? 0)}</BalanceAmount>
             <BalanceSub>
-              Ostatnia aktualizacja: {cashRegister ? formatDate(cashRegister.updatedAt) : '—'}
+              Ostatnia aktualizacja: {cashRegister ? formatDate(cashRegister.updatedAt) : '-'}
             </BalanceSub>
           </BalanceCard>
         )}
@@ -450,7 +450,7 @@ export const CashRegisterPanel: React.FC = () => {
                       {formatMoney(op.balanceAfter)}
                     </HTd>
                     <HTd style={{ color: st.textSecondary, maxWidth: 240 }}>
-                      {op.comment || <span style={{ color: st.textMuted }}>—</span>}
+                      {op.comment || <span style={{ color: st.textMuted }}>-</span>}
                     </HTd>
                   </HTr>
                 ))}

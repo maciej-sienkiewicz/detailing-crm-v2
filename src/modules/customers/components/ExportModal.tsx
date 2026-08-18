@@ -148,7 +148,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
             if (status === 429) {
                 showError('Za dużo żądań', 'Poczekaj chwilę przed kolejnym eksportem');
             } else if (status === 422) {
-                showError('Za dużo wyników', 'Zawęź filtry — eksport obsługuje maks. 10 000 klientów');
+                showError('Za dużo wyników', 'Zawęź filtry, eksport obsługuje maks. 10 000 klientów');
             } else {
                 showError('Błąd eksportu', 'Nie udało się pobrać pliku CSV');
             }
@@ -204,7 +204,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                             <OptionDesc>
                                 {filtersActive
                                     ? 'Eksportuje wyniki pasujące do aktywnych filtrów i wyszukiwania'
-                                    : 'Brak aktywnych filtrów — ustaw filtry w widoku listy'}
+                                    : 'Brak aktywnych filtrów, ustaw filtry w widoku listy'}
                             </OptionDesc>
                         </OptionBody>
                     </OptionCard>
@@ -214,7 +214,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    Plik CSV jest zakodowany w&nbsp;UTF-8 z&nbsp;BOM — otwiera się poprawnie w&nbsp;Excelu i&nbsp;LibreOffice.
+                    Plik CSV jest zakodowany w&nbsp;UTF-8 z&nbsp;BOM, otwiera się poprawnie w&nbsp;Excelu i&nbsp;LibreOffice.
                     Maks. 10&nbsp;000 rekordów na eksport.
                 </InfoBox>
             </ModalContent>
@@ -230,7 +230,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}>
                                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                                 </svg>
-                                Pobieranie…
+                                Pobieranie...
                             </>
                         ) : (
                             <>

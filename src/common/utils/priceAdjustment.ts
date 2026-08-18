@@ -5,9 +5,9 @@
  * This avoids floating-point drift in multi-step calculations.
  *
  * Adjustment.value semantics:
- *   PERCENT   — signed percent; negative = discount (e.g. -10 → 10 % off)
- *   FIXED_NET / FIXED_GROSS — cents to SUBTRACT from net / gross
- *   SET_NET   / SET_GROSS   — target total net / gross in cents
+ *   PERCENT: signed percent; negative = discount (e.g. -10 → 10 % off)
+ *   FIXED_NET / FIXED_GROSS: cents to SUBTRACT from net / gross
+ *   SET_NET   / SET_GROSS:   target total net / gross in cents
  */
 
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
@@ -25,7 +25,7 @@ export interface ServicePriceBase {
     vatRate: number; // e.g. 23 for 23 %
 }
 
-// vatRate=-1 means "zwolniony" (exempt) — gross equals net, no VAT applied
+// vatRate=-1 means "zwolniony" (exempt): gross equals net, no VAT applied
 
 /** Net cents → gross cents. Safe for vatRate=-1 (ZW) and 0. */
 export const netToGross = (netCents: number, vatRate: number): number =>
@@ -57,7 +57,7 @@ export const applyAdjustment = (
     vatRate: number,
     adjustment: PriceAdjustment,
     /** Exact stored base gross (catalog value). When the adjustment flows gross-side or is
-     *  a no-op, this exact gross is preserved instead of re-deriving from net — net→gross
+     *  a no-op, this exact gross is preserved instead of re-deriving from net: net→gross
      *  rounding skips some gross values entirely (e.g. 201.00 → 200.99 at 23 % VAT). */
     basePriceGrossCents?: number,
 ): { finalNetCents: number; finalGrossCents: number; hasDiscount: boolean } => {
@@ -113,7 +113,7 @@ export const applyAdjustment = (
  * Services that require a manual price are persisted with basePriceNet = 0 and
  * their actual price carried in a SET_NET/SET_GROSS adjustment (see
  * toApiServiceLineItem and the check-in wizard). For those the discount base is
- * the resolved net — using the raw basePriceNet (0) would collapse totals to 0
+ * the resolved net: using the raw basePriceNet (0) would collapse totals to 0
  * ("Łącznie przed rabatem" shows 0) and wipe the price when a discount is
  * distributed over a zero base. Normal catalog services return basePriceNet
  * unchanged.

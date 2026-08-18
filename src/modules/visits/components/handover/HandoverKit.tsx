@@ -6,7 +6,7 @@ import type { HandoverProblem } from '../../types/handover';
 /**
  * Prymitywy wspólne dla sekcji ekranu wydania.
  *
- * Ekran jest jednym oknem złożonym z sekcji — nie ma tu kroków ani modali
+ * Ekran jest jednym oknem złożonym z sekcji, nie ma tu kroków ani modali
  * zagnieżdżonych, więc wszystkie bloki muszą wyglądać jak elementy jednej
  * powierzchni, a nie jak osobne karty konkurujące o uwagę.
  */
@@ -93,7 +93,7 @@ export const Pill = styled.button<{ $selected: boolean }>`
     svg { width: 13px; height: 13px; flex-shrink: 0; }
 `;
 
-/** Przycisk-link do rozwijania szczegółów i zmiany danych — bez wagi wizualnej. */
+/** Przycisk-link do rozwijania szczegółów i zmiany danych, bez wagi wizualnej. */
 export const GhostAction = styled.button`
     display: inline-flex;
     align-items: center;
@@ -149,7 +149,7 @@ const ProblemList = styled.div`
 
 /**
  * Lista przeszkód dotyczących jednej sekcji. Renderuje się tuż pod polem,
- * którego dotyczy — użytkownik nie musi szukać, co zablokowało przycisk.
+ * którego dotyczy: użytkownik nie musi szukać, co zablokowało przycisk.
  */
 export const SectionProblems = ({ problems }: { problems: HandoverProblem[] }) => {
     if (problems.length === 0) return null;

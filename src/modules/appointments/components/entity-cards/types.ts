@@ -1,7 +1,7 @@
 // Entity-card state machines for the visit edit form.
 //
 // The core idea: selection, mutation and creation of customer/vehicle are three
-// different operations, so they are three different states — never one set of
+// different operations, so they are three different states, never one set of
 // hot inputs whose intent the system has to guess. Illegal combinations
 // (e.g. "new" with an id) are unrepresentable by construction.
 
@@ -21,7 +21,7 @@ export interface VehicleSummary {
     model: string;
     year?: number;
     licensePlate?: string;
-    /** Check-in extras — carried through so the wizard round-trips them losslessly. */
+    /** Check-in extras, carried through so the wizard round-trips them losslessly. */
     vin?: string;
     color?: string;
 }
@@ -30,7 +30,7 @@ export type VehicleDraft = Omit<VehicleSummary, 'id'>;
 
 export type VehicleOwnershipAction = 'ADD_CO_OWNER' | 'TRANSFER_PRIMARY';
 
-/** Result of the live license-plate lookup — powers the collision card. */
+/** Result of the live license-plate lookup; powers the collision card. */
 export interface PlateCollision {
     vehicleId: string;
     brand: string;
@@ -68,7 +68,7 @@ export type VehicleSectionState =
     | VehicleSectionResolved
     /**
      * Transient: garage picker open. `auto` marks the picker as entered by the
-     * customer-changed rule — only then does it self-resolve trivial garages
+     * customer-changed rule: only then does it self-resolve trivial garages
      * (0 vehicles → new-vehicle form, 1 vehicle → auto-select). A picker opened
      * manually ("Zmień pojazd") never auto-selects under the user's hands.
      */
@@ -87,7 +87,7 @@ export type EntityEvent =
     // customer
     | { type: 'CUSTOMER_OPEN_SEARCH' }
     | { type: 'CUSTOMER_CANCEL_SEARCH' }
-    /** Re-selection. Resets the vehicle section — see reducer for the cross-section contract. */
+    /** Re-selection. Resets the vehicle section; see reducer for the cross-section contract. */
     | { type: 'CUSTOMER_SELECTED'; customer: CustomerSummary }
     | { type: 'CUSTOMER_CREATE_NEW' }
     | { type: 'CUSTOMER_OPEN_EDIT' }
@@ -108,5 +108,5 @@ export type EntityEvent =
     | { type: 'VEHICLE_CLEAR' }
     /** Collision card: attach the already-existing vehicle instead of creating a duplicate. */
     | { type: 'VEHICLE_LINK_EXISTING'; vehicle: VehicleSummary; ownership: VehicleOwnershipAction }
-    /** Collision card: "it's a different vehicle" — allow the duplicate plate knowingly. */
+    /** Collision card: "it's a different vehicle", allow the duplicate plate knowingly. */
     | { type: 'VEHICLE_DUPLICATE_OVERRIDE'; vehicleId: string };

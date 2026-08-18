@@ -9,7 +9,7 @@ const Wrap = styled.div`
 `;
 
 /**
- * KSeF credentials are technical configuration of the finance module — without
+ * KSeF credentials are technical configuration of the finance module; without
  * the module they are presented as an upsell surface instead of a working form
  * (configuring an unowned module only produces confused users; the backend
  * rejects the API calls with 402 regardless).

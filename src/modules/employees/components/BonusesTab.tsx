@@ -199,7 +199,7 @@ export const BonusesTab = ({ employeeId }: Props) => {
                                     <Td>
                                         {bonus.notes
                                             ? <NotesCell>{bonus.notes}</NotesCell>
-                                            : <TdMuted as="span">—</TdMuted>}
+                                            : <TdMuted as="span">-</TdMuted>}
                                     </Td>
                                     <Td>
                                         <AmountCell $negative={bonus.amountCents < 0}>

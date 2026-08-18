@@ -250,7 +250,7 @@ export const CatRow = styled.div<{ $dragOver?: boolean; $selected?: boolean; $ex
     &:last-child { border-bottom: none; }
     &:hover { background: ${st.bg}; }
 
-    /* Kategoria pomijana w statystykach — delikatnie wyszarzony wiersz
+    /* Kategoria pomijana w statystykach: delikatnie wyszarzony wiersz
        (spany = kropka koloru, nazwa, kwota; akcje pozostają w pełni widoczne) */
     ${p => p.$excluded && css`
         background: ${st.bgCardAlt};
@@ -335,7 +335,7 @@ export const ItemsTable = styled.div<{ $maxHeight?: string }>`
     overflow: hidden;
     box-shadow: ${st.shadowSm};
 
-    /* Ograniczona wysokość + wewnętrzny scroll — lista kategorii po lewej
+    /* Ograniczona wysokość + wewnętrzny scroll: lista kategorii po lewej
        pozostaje widoczna, więc drag&drop działa bez przewijania całej strony. */
     ${p => p.$maxHeight && css`
         max-height: ${p.$maxHeight};

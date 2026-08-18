@@ -553,7 +553,7 @@ export const ProtocolTemplateModal = ({
                     file: selectedFile,
                 });
 
-                // Weryfikacja pól nie przeszła — szablon nie nadaje się do użycia.
+                // Weryfikacja pól nie przeszła: szablon nie nadaje się do użycia.
                 // Usuwamy go, pokazujemy czego brakuje i zostawiamy formularz,
                 // żeby użytkownik mógł poprawić plik i wgrać ponownie.
                 const verification = result.verification;

@@ -528,7 +528,7 @@ const RecipientsModal: React.FC<{ campaign: SmsCampaign; onClose: () => void }> 
         <ModalHeader>
           <ModalTitleRow>
             <ModalTitle>
-              {campaign.status === 'SENT' ? 'Odbiorcy — wysłano' : 'Lista odbiorców'}
+              {campaign.status === 'SENT' ? 'Odbiorcy - wysłano' : 'Lista odbiorców'}
             </ModalTitle>
             <ModalSubtitle>
               {campaign.name} · {campaign.audienceCount} {campaign.status === 'SENT' ? 'dostarczono' : 'planowanych'}
@@ -688,14 +688,14 @@ export const CampaignList: React.FC<Props> = ({
                     </MetaChip>
                   </Td>
 
-                  <Td><DateText>{dateLabel ?? '—'}</DateText></Td>
+                  <Td><DateText>{dateLabel ?? '-'}</DateText></Td>
 
                   <TdRight style={{ paddingRight: 20 }}>
                     <Actions>
                       {c.status !== 'SENT' && (
                         <SendBtn onClick={() => onSend(c)} disabled={isSending}>
                           <Send size={12} strokeWidth={2.5} />
-                          {isSending ? 'Wysyłanie…' : 'Wyślij'}
+                          {isSending ? 'Wysyłanie...' : 'Wyślij'}
                         </SendBtn>
                       )}
                       {c.status === 'SENT' && (

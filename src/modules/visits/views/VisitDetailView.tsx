@@ -45,7 +45,7 @@ const fadeUp = keyframes`
     to   { opacity: 1; transform: translateY(0); }
 `;
 
-// Opacity-only fade for top-level containers — transform-based animations
+// Opacity-only fade for top-level containers: transform-based animations
 // on ancestors break position:fixed modals (they become the containing block).
 const fadeIn = keyframes`
     from { opacity: 0; }
@@ -632,7 +632,7 @@ const MobileBottomNav = styled.nav<{ $hidden?: boolean }>`
     transition: transform 180ms ease, opacity 180ms ease;
 
     /* While the on-screen keyboard is up, iOS keeps this pinned to the layout
-       viewport — which is now behind the keyboard — so it visibly unsticks and
+       viewport (which is now behind the keyboard), so it visibly unsticks and
        floats over the form. Slide it away instead; it comes back on blur. */
     ${p => p.$hidden && `
         transform: translateY(110%);
@@ -822,7 +822,7 @@ export const VisitDetailView = () => {
 
         const topic = [vehicleLabel, serviceNames.length > 0 ? serviceNames.join(', ') : '']
             .filter(Boolean)
-            .join(' — ');
+            .join(' · ');
 
         const statusLabel =
             status === 'COMPLETED'        ? 'Realizacja zakończona.'       :
@@ -926,7 +926,7 @@ export const VisitDetailView = () => {
                             </svg>
                             <span>
                                 <D2dBannerLabel>Door to Door</D2dBannerLabel>
-                                — {modeText}
+                                {' · '}{modeText}
                                 {pickupStr && <> · odbiór: <D2dBannerAddress>{pickupStr}</D2dBannerAddress></>}
                                 {deliveryStr && <> · dostawa: <D2dBannerAddress>{deliveryStr}</D2dBannerAddress></>}
                             </span>
@@ -1155,7 +1155,7 @@ export const VisitDetailView = () => {
                                     </ScheduleSmsBtn>
                                     {!hasPhone && (
                                         <ScheduleSmsNoPhone>
-                                            Klient nie ma numeru telefonu — uzupełnij go w kartotece
+                                            Klient nie ma numeru telefonu, uzupełnij go w kartotece
                                         </ScheduleSmsNoPhone>
                                     )}
                                 </>

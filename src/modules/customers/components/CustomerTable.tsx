@@ -372,7 +372,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                         <CellMono>
                                             {isPiiMasked(customer.contact.phone)
                                                 ? <PiiValue value={customer.contact.phone} kind="phone" />
-                                                : (formatPhoneNumber(customer.contact.phone) || '—')}
+                                                : (formatPhoneNumber(customer.contact.phone) || '-')}
                                         </CellMono>
                                         {customer.contact.email && (
                                             <CellSub><PiiValue value={customer.contact.email} kind="email" /></CellSub>

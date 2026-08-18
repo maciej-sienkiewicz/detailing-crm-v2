@@ -4,7 +4,7 @@ import { Mail, MessageSquare } from 'lucide-react';
 import { smsMeta } from '../utils/sms';
 import type { Campaign } from '../types';
 
-// Podstawiane wartości w podglądzie — dają klientowi realistyczny obraz
+// Podstawiane wartości w podglądzie, dają klientowi realistyczny obraz
 // tego, co dostanie odbiorca. Nie idą nigdzie na backend.
 const SAMPLE_VALUES: Record<string, string> = {
   '{{imie}}': 'Anna',

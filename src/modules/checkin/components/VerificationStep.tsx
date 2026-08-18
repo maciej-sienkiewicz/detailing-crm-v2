@@ -700,7 +700,7 @@ interface VerificationStepProps {
     showTechnicalSection?: boolean;
     /**
      * Hides the built-in customer (2) and vehicle (3) sections. Used by the visit
-     * edit view, which renders the entity summary cards (entity-cards/) instead —
+     * edit view, which renders the entity summary cards (entity-cards/) instead;
      * selection/mutation intent is declared there, not inferred from hot inputs.
      */
     hideCustomerAndVehicleSections?: boolean;
@@ -776,7 +776,7 @@ export const VerificationStep = ({
         return [source.firstName, source.lastName].filter(Boolean).join(' ') || 'klienta';
     })();
 
-    // Continuous section numbering regardless of which sections are hidden —
+    // Continuous section numbering regardless of which sections are hidden.
     // hardcoded numbers drift the moment a section is conditionally skipped.
     const sectionNum = (() => {
         let n = 0;
@@ -803,7 +803,7 @@ export const VerificationStep = ({
             queryClient.invalidateQueries({ queryKey: ['appointmentColors'] });
             onChange({ appointmentColorId: newColor.id });
         } catch {
-            // creation failure is silent — user can retry by opening the modal again
+            // creation failure is silent; user can retry by opening the modal again
         }
     };
 
@@ -917,7 +917,7 @@ export const VerificationStep = ({
     }, [showCustomerAutocomplete]);
 
     // Auto-select vehicle when customer has exactly one vehicle
-    // (legacy inline mode only — in card mode the GarageChooser owns auto-progression)
+    // (legacy inline mode only; in card mode the GarageChooser owns auto-progression)
     useEffect(() => {
         if (useEntityCards) return;
         if (!selectedCustomerIdForVehicles || vehicleAutoSelectedRef.current) return;
@@ -948,7 +948,7 @@ export const VerificationStep = ({
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
     const [vehiclePromptScheduled, setVehiclePromptScheduled] = useState(false);
     // Track whether the vehicle was already pre-selected on mount to skip the
-    // "edit existing vs. add new" prompt — without touching vehicleChoiceMade,
+    // "edit existing vs. add new" prompt, without touching vehicleChoiceMade,
     // so the badge is not shown until the user explicitly interacts.
     const vehicleWasPreSelected = useRef(!!formData.vehicleData?.id && !formData.isNewVehicle);
 
@@ -1306,7 +1306,7 @@ export const VerificationStep = ({
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
-    // Przebieg — dane wizyty wpisywane razem z danymi pojazdu; w trybie kart
+    // Przebieg: dane wizyty wpisywane razem z danymi pojazdu; w trybie kart
     // widoczny wewnątrz formularza edycji/nowego pojazdu (VehicleCard.editExtras).
     const vehicleRecordExtras = !hideMileage ? (
         <FormGrid $columns={3}>
@@ -1323,9 +1323,9 @@ export const VerificationStep = ({
         </FormGrid>
     ) : null;
 
-    // Adres domowy + dane firmowe klienta — nierozłączna część kartoteki klienta.
+    // Adres domowy + dane firmowe klienta: nierozłączna część kartoteki klienta.
     // W trybie kart renderowane WYŁĄCZNIE wewnątrz formularza edycji/nowego klienta
-    // (CustomerCard.editExtras); w trybie legacy — w dotychczasowym miejscu sekcji 2.
+    // (CustomerCard.editExtras); w trybie legacy w dotychczasowym miejscu sekcji 2.
     const customerRecordExtras = (
         <>
         {/* Adres domowy */}
@@ -1426,7 +1426,7 @@ export const VerificationStep = ({
                                         <GusBtnSpinner xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                             <path d="M12 2a10 10 0 0 1 10 10" />
                                         </GusBtnSpinner>
-                                        Pobieranie…
+                                        Pobieranie...
                                     </>
                                 ) : (
                                     <>
@@ -1783,7 +1783,7 @@ export const VerificationStep = ({
 
                     {!useEntityCards && selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
                         <VehicleSuggestionsWrap>
-                            <VehicleSuggestionLabel>Pojazdy klienta — kliknij aby wybrać:</VehicleSuggestionLabel>
+                            <VehicleSuggestionLabel>Pojazdy klienta, kliknij aby wybrać:</VehicleSuggestionLabel>
                             {customerVehicles.map((v) => (
                                 <VehicleSuggestionChip
                                     key={v.id}

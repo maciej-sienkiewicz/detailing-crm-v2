@@ -179,7 +179,7 @@ const EmptyState = styled.div`
 /*
  * An anchored popover cannot work on a phone: the field sits mid-form, so once
  * the keyboard opens iOS scrolls the visual viewport and the `position: fixed`
- * menu — anchored to layout-viewport coordinates — drifts off screen, taking
+ * menu (anchored to layout-viewport coordinates) drifts off screen, taking
  * the search field with it. A sheet locked to the visible region avoids the
  * whole class of problem, and matches the customer/service pickers.
  */
@@ -260,7 +260,7 @@ const SheetSearchInput = styled.input`
   height: 44px;
   padding: 0 16px;
   /* Doubled selector so this wins over any global rule. 16px is the threshold
-     below which iOS Safari zooms the page on focus — that zoom was the "weird
+     below which iOS Safari zooms the page on focus: that zoom was the "weird
      shift" that pushed the field out of sight while typing. */
   && { font-size: 16px; }
   font-family: inherit;

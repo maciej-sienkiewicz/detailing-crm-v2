@@ -47,11 +47,11 @@ interface ProtocolSectionProps {
 }
 
 /**
- * Protokół wydania pojazdu — te same akcje co w „Dokumentacji i Podpisach"
+ * Protokół wydania pojazdu: te same akcje co w „Dokumentacji i Podpisach"
  * przy przyjęciu: podgląd, wydruk, wysyłka na telefon klienta i na tablet,
  * ze statusem podpisu na żywo.
  *
- * Protokoły etapu CHECK_OUT generujemy przy otwarciu ekranu wydania — nic
+ * Protokoły etapu CHECK_OUT generujemy przy otwarciu ekranu wydania, nic
  * wcześniej ich nie tworzy, a `generate` jest idempotentne (istniejące zwraca
  * bez tworzenia nowych). Gdy studio nie ma skonfigurowanego dokumentu na
  * wydanie, lista jest pusta i mówimy o tym wprost.
@@ -76,7 +76,7 @@ export const ProtocolSection = ({
 
     const checkOutProtocols = protocols.filter((protocol: VisitProtocol) => protocol.stage === 'CHECK_OUT');
 
-    // Wygenerowanie brakujących protokołów wydania — raz, po pierwszym pobraniu.
+    // Wygenerowanie brakujących protokołów wydania: raz, po pierwszym pobraniu.
     const generate = useMutation({
         mutationFn: () => protocolsApi.generateVisitProtocols(visitId, 'CHECK_OUT'),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visit-protocols', visitId] }),
@@ -124,7 +124,7 @@ export const ProtocolSection = ({
     const hasTablets = signing.tablets.length > 0 && canSign;
 
     // Rozstrzygnięcia z backendu: tablet = moduł podpisów; telefon klienta to
-    // reguła krzyżowa (podpisy ∧ komunikacja) — link do podpisu jedzie SMS-em.
+    // reguła krzyżowa (podpisy ∧ komunikacja): link do podpisu jedzie SMS-em.
     // Kanały gatujemy OSOBNO: studio z samymi podpisami podpisuje na tablecie,
     // a przy telefonie widzi dokładnie, którego modułu brakuje.
     const sigLocal = useCapability('SIGNATURE_LOCAL');
@@ -143,12 +143,12 @@ export const ProtocolSection = ({
         if (protocol.filledPdfUrl) window.open(protocol.filledPdfUrl, '_blank');
     };
 
-    const NO_SIGNER = 'Brak dostępu do danych osobowych klienta — nie można wysłać do podpisu';
+    const NO_SIGNER = 'Brak dostępu do danych osobowych klienta, nie można wysłać do podpisu';
 
     const tabletTitle = (protocolId: string, isSigned: boolean): string => {
         const phase = signing.byProtocol[protocolId]?.phase;
         if (isSigned || phase === 'signed') return 'Klient podpisał dokument';
-        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta…';
+        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
         if (!sigLocal.enabled) return sigLocal.lockReason ?? 'Wymaga modułu Podpisy elektroniczne';
         if (!canSign) return NO_SIGNER;
         if (!hasTablets) return 'Brak sparowanego tabletu';
@@ -159,7 +159,7 @@ export const ProtocolSection = ({
     const phoneTitle = (protocolId: string, isSigned: boolean): string => {
         const phase = signing.byProtocol[protocolId]?.phase;
         if (isSigned || phase === 'signed') return 'Klient podpisał dokument';
-        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta…';
+        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
         if (!sigRemote.enabled) return sigRemote.lockReason ?? 'Wymaga modułów: Podpisy elektroniczne i Automatyzacja kontaktu';
         if (!canSign) return NO_SIGNER;
         if (!customerPhone) return 'Nie podano numeru klienta';
@@ -173,7 +173,7 @@ export const ProtocolSection = ({
             {isPending || generate.isPending ? (
                 <LoadingContainer>
                     <Spinner />
-                    <span>Przygotowuję protokół wydania…</span>
+                    <span>Przygotowuję protokół wydania...</span>
                 </LoadingContainer>
             ) : checkOutProtocols.length === 0 ? (
                 <EmptyState>
@@ -221,7 +221,7 @@ export const ProtocolSection = ({
                                     </IconButton>
 
                                     {!needsRetry && (
-                                        // span niesie tooltip — wyłączony przycisk połyka hover
+                                        // span niesie tooltip: wyłączony przycisk połyka hover
                                         <span
                                             title={phoneTitle(protocol.id, isSigned)}
                                             style={{ display: 'inline-flex' }}

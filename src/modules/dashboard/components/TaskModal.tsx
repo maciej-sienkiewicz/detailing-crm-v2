@@ -287,7 +287,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
               ref={titleRef}
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="np. Zadzwoń do klienta, Zamów materiały…"
+              placeholder="np. Zadzwoń do klienta, Zamów materiały..."
               maxLength={200}
               required
             />
@@ -302,7 +302,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
               id="task-meta"
               value={meta}
               onChange={e => setMeta(e.target.value)}
-              placeholder="np. Pilne · do piątku, Magazyn · niski stan…"
+              placeholder="np. Pilne · do piątku, Magazyn · niski stan..."
               maxLength={300}
             />
             {meta.length > 220 && (
@@ -387,7 +387,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
             Anuluj
           </BtnGhost>
           <BtnPrimary type="submit" disabled={!title.trim() || saving} $loading={saving}>
-            {saving ? 'Zapisuję…' : isEditing ? 'Zapisz zmiany' : 'Dodaj notatkę'}
+            {saving ? 'Zapisuję...' : isEditing ? 'Zapisz zmiany' : 'Dodaj notatkę'}
           </BtnPrimary>
         </ModalFooter>
       </form>

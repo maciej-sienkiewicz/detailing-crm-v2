@@ -271,7 +271,7 @@ export const SmsSenderNameCard: React.FC = () => {
     <Strip>
       <SummaryRow>
         <Term>Nadawca SMS</Term>
-        <Value>{savedName || '—'}</Value>
+        <Value>{savedName || '-'}</Value>
         {!isLoading && <Badge $status={status}>{STATUS_LABEL[status]}</Badge>}
         <LinkButton type="button" aria-expanded={open} onClick={() => setOpen(v => !v)}>
           {open ? 'Zwiń' : savedName ? 'Zmień' : 'Ustaw'}
@@ -282,7 +282,7 @@ export const SmsSenderNameCard: React.FC = () => {
         <Panel>
           <Hint>
             Do 11 znaków wyświetlanych zamiast numeru telefonu. Operator wymaga podpisanego
-            upoważnienia — do czasu jego weryfikacji SMS-y wychodzą z numeru domyślnego.
+            upoważnienia; do czasu jego weryfikacji SMS-y wychodzą z numeru domyślnego.
           </Hint>
 
           <Row>
@@ -305,14 +305,14 @@ export const SmsSenderNameCard: React.FC = () => {
               disabled={!dirty || tooLong || !name.trim() || updateMutation.isPending}
               onClick={handleSave}
             >
-              {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz'}
+              {updateMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
             </Button>
           </Row>
 
           <Links>
             <TextLink type="button" onClick={handleDownloadTemplate}>Pobierz wzór upoważnienia</TextLink>
             <TextLink type="button" onClick={() => fileRef.current?.click()}>
-              {uploadMutation.isPending ? 'Wysyłanie…' : 'Wgraj podpisane upoważnienie'}
+              {uploadMutation.isPending ? 'Wysyłanie...' : 'Wgraj podpisane upoważnienie'}
             </TextLink>
             {config?.hasAuthDocument && (
               <TextLink type="button" onClick={handleViewDoc}>

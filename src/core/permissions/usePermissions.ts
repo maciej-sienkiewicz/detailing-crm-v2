@@ -21,7 +21,7 @@ export function usePermissions() {
 
     return {
         can,
-        /** Studio owner — unrestricted access (permissions == null in /auth/me). */
+        /** Studio owner: unrestricted access (permissions == null in /auth/me). */
         isOwner: user != null && user.permissions == null,
         /** First route this user is allowed to see; used by "/" and unknown paths. */
         defaultRoute: getDefaultRoute(user),

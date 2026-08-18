@@ -283,7 +283,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 <th>Zaangażowanie</th>
                                 <th>Posty / tydz.</th>
                                 <th>Formaty i regularność</th>
-                                <th>Aktywność (0–100)</th>
+                                <th>Aktywność (0-100)</th>
                             </tr>
                         </thead>
                         <tbody>{benchmark.rows.map(renderBenchRow)}</tbody>
@@ -299,7 +299,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             <ChartsGrid>
                 <Card>
                     <CardTitle>Ile publikują tydzień po tygodniu</CardTitle>
-                    <CardHint>Pionowe linie to wykryte wydarzenia (promocje, hity) – najedź, aby zobaczyć.</CardHint>
+                    <CardHint>Pionowe linie to wykryte wydarzenia (promocje, hity), najedź, aby zobaczyć.</CardHint>
                     <ResponsiveContainer width="100%" height={280}>
                         <ComposedChart data={activityData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                             <CartesianGrid stroke={st.border} strokeDasharray="3 3" vertical={false} />
@@ -363,12 +363,12 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     <CardHint>
                         Słupek = o ile zmieniła się liczba obserwujących w danym{' '}
                         {followerDeltaWeekly ? 'tygodniu' : 'dniu'}. Dzięki temu małe i duże profile
-                        czyta się tak samo dobrze – liczy się zmiana, nie wielkość konta.
+                        czyta się tak samo dobrze, liczy się zmiana, nie wielkość konta.
                         {' '}Kliknij słupek, aby zobaczyć, co w tym tygodniu wydarzyło się na profilu.
                     </CardHint>
                     {followerDeltas.length === 0 ? (
                         <HintNote>
-                            Historia obserwujących buduje się od dnia dodania profilu – pierwsze słupki
+                            Historia obserwujących buduje się od dnia dodania profilu, pierwsze słupki
                             pojawią się po 2 dniach zbierania danych.
                         </HintNote>
                     ) : (

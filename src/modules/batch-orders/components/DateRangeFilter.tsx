@@ -84,7 +84,7 @@ const ChevronIcon = styled.svg<{ $open: boolean }>`
     transition: transform 200ms ease;
 `;
 
-/* Chip row — always visible on desktop; collapsible on mobile */
+/* Chip row: always visible on desktop, collapsible on mobile */
 const FilterOptions = styled.div<{ $open: boolean }>`
     display: flex;
     align-items: center;
@@ -193,7 +193,7 @@ export function DateRangeFilter({ onChange }: Props) {
             case 'custom':
                 if (customFrom && customTo) {
                     const fmt = (s: string) => new Date(s).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
-                    return `${fmt(customFrom)} – ${fmt(customTo)}`;
+                    return `${fmt(customFrom)}-${fmt(customTo)}`;
                 }
                 return 'Zakres niestandardowy';
         }
@@ -255,7 +255,7 @@ export function DateRangeFilter({ onChange }: Props) {
                 </ChevronIcon>
             </MobileSummaryBtn>
 
-            {/* All options — always visible on desktop; shown on mobile only when expanded */}
+            {/* All options: always visible on desktop, shown on mobile only when expanded */}
             <FilterOptions $open={mobileExpanded}>
                 <Chip $active={activePreset === 'current'} onClick={selectCurrent}>
                     Bieżący miesiąc
@@ -289,7 +289,7 @@ export function DateRangeFilter({ onChange }: Props) {
                             value={customFrom}
                             onChange={e => setCustomFrom(e.target.value)}
                         />
-                        <Dash>–</Dash>
+                        <Dash>-</Dash>
                         <DateInput
                             type="date"
                             value={customTo}

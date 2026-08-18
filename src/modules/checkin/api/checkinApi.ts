@@ -250,7 +250,7 @@ export const checkinApi = {
 
     /**
      * Fetch context info for the mobile uploader.
-     * Uses X-Upload-Token header — no session cookie needed.
+     * Uses X-Upload-Token header, no session cookie needed.
      */
     getMobileCheckinContext: async (token: string): Promise<MobileCheckinContext> => {
         const response = await apiClient.get(`${MOBILE_BASE_PATH}/context`, {
@@ -261,7 +261,7 @@ export const checkinApi = {
 
     /**
      * Upload a single photo from the mobile device.
-     * Uses X-Upload-Token header — no session cookie needed.
+     * Uses X-Upload-Token header, no session cookie needed.
      */
     uploadMobilePhoto: async (
         file: File | Blob,
@@ -296,7 +296,7 @@ export const checkinApi = {
 
     /**
      * Save (replace) damage points from mobile during a check-in session.
-     * Uses X-Upload-Token header — no session cookie needed.
+     * Uses X-Upload-Token header, no session cookie needed.
      */
     saveMobileDamagePoints: async (
         token: string,
@@ -317,7 +317,7 @@ export const checkinApi = {
 
     /**
      * Fetch damage points saved by mobile for this check-in session.
-     * Uses X-Upload-Token header — no session cookie needed.
+     * Uses X-Upload-Token header, no session cookie needed.
      */
     getMobileDamagePoints: async (token: string): Promise<MobileDamagePointsResponse> => {
         const response = await apiClient.get(

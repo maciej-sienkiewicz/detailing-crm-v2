@@ -308,7 +308,7 @@ export const PinSetupSection = () => {
 
                         <BtnRow>
                             <PrimaryBtn onClick={handleSubmit} disabled={setPin.isPending}>
-                                {setPin.isPending ? 'Zapisywanie…' : hasPinConfigured ? 'Zaktualizuj PIN' : 'Zapisz PIN'}
+                                {setPin.isPending ? 'Zapisywanie...' : hasPinConfigured ? 'Zaktualizuj PIN' : 'Zapisz PIN'}
                             </PrimaryBtn>
                             <GhostBtn onClick={reset}>Anuluj</GhostBtn>
                         </BtnRow>

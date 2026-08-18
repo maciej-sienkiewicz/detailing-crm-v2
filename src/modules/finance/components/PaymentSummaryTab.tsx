@@ -598,7 +598,7 @@ const DonutChart: React.FC<DonutChartProps> = ({
           <LegendName>{item.name}</LegendName>
           <LegendValue>{legendFormatter(item.value)}</LegendValue>
           <LegendPct>
-            {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}
+            {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '-'}
           </LegendPct>
         </LegendRow>
       ))}
@@ -750,7 +750,7 @@ export const PaymentSummaryTab: React.FC = () => {
                 <TdPeriod>{formatPeriodLabel(period.periodLabel, report!.granularity)}</TdPeriod>
                 {methods.map(m => (
                   <Td key={m}>
-                    <TdGross>{period[m].totalGross > 0 ? fmt(period[m].totalGross) : '—'}</TdGross>
+                    <TdGross>{period[m].totalGross > 0 ? fmt(period[m].totalGross) : '-'}</TdGross>
                     {period[m].totalNet > 0 && (
                       <TdNet>{fmt(period[m].totalNet)} netto</TdNet>
                     )}

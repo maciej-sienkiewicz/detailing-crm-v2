@@ -18,7 +18,7 @@ interface CustomerCardProps {
     dispatch: (event: EntityEvent) => void;
     /**
      * Extra form content (e.g. check-in's home address / company collapsibles)
-     * shown ONLY inside the new-customer and edit forms — these fields belong to
+     * shown ONLY inside the new-customer and edit forms, since these fields belong to
      * the customer record, so they surface exactly when the record is being edited.
      */
     editExtras?: ReactNode;
@@ -31,8 +31,8 @@ const draftLabel = (draft: CustomerDraft) =>
     [draft.firstName, draft.lastName].filter(Boolean).join(' ') || 'Nowy klient';
 
 /**
- * Summary card for the visit's customer. Read-only by default — the entity is a
- * reference, not a form — with explicit, intent-named actions. See entity-cards/types.ts.
+ * Summary card for the visit's customer. Read-only by default: the entity is a
+ * reference, not a form, with explicit, intent-named actions. See entity-cards/types.ts.
  */
 export const CustomerCard = ({ state, dispatch, editExtras }: CustomerCardProps) => (
     <Card>
@@ -220,7 +220,7 @@ const SearchView = ({ dispatch }: { dispatch: CustomerCardProps['dispatch'] }) =
         <>
             <TextInput
                 autoFocus
-                placeholder="Szukaj po nazwisku, telefonie lub e-mailu…"
+                placeholder="Szukaj po nazwisku, telefonie lub e-mailu..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
             />
@@ -246,7 +246,7 @@ const SearchView = ({ dispatch }: { dispatch: CustomerCardProps['dispatch'] }) =
                             </OptionTitle>
                             <MetaItem>
                                 <Phone aria-hidden />
-                                <PiiValue value={customer.phone ?? ''} kind="phone" emptyFallback="—" />
+                                <PiiValue value={customer.phone ?? ''} kind="phone" emptyFallback="-" />
                             </MetaItem>
                         </OptionRow>
                     ))}

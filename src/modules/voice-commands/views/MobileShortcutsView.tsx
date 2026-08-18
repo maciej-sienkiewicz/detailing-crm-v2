@@ -330,7 +330,7 @@ export const MobileShortcutsView = () => {
         <Page>
             <PageTitle>Skróty mobilne</PageTitle>
             <PageSubtitle>
-                Szybki dostęp do dodawania leadów i notatek głosowych z telefonu — bez logowania.
+                Szybki dostęp do dodawania leadów i notatek głosowych z telefonu, bez logowania.
             </PageSubtitle>
 
             {!mobileToken ? (
@@ -387,7 +387,7 @@ export const MobileShortcutsView = () => {
                         <InstructionsPanel>
                             <div>
                                 <InstructionsHeading>Jak dodać do ekranu głównego?</InstructionsHeading>
-                                <InstructionsDesc>Działa jak aplikacja — bez otwierania przeglądarki</InstructionsDesc>
+                                <InstructionsDesc>Działa jak aplikacja, bez otwierania przeglądarki</InstructionsDesc>
                             </div>
 
                             <PlatformTabs>
@@ -418,14 +418,14 @@ export const MobileShortcutsView = () => {
                                     <li>Zeskanuj QR kod telefonem lub otwórz link ręcznie w <strong>Chrome</strong></li>
                                     <li>Dotknij ikony <strong>⋮</strong> (menu) w prawym górnym rogu</li>
                                     <li>Wybierz <strong>„Dodaj do ekranu głównego"</strong> lub <strong>„Zainstaluj aplikację"</strong></li>
-                                    <li>Potwierdź — ikona pojawi się na ekranie głównym</li>
+                                    <li>Potwierdź, ikona pojawi się na ekranie głównym</li>
                                 </InstructionList>
                             ) : (
                                 <InstructionList>
                                     <li>Zeskanuj QR kod lub otwórz link w <strong>Safari</strong> (inne przeglądarki nie obsługują tej funkcji na iOS)</li>
                                     <li>Dotknij ikony <strong>Udostępnij</strong> <code>⎋</code> na dole ekranu</li>
                                     <li>Przewiń w dół i wybierz <strong>„Dodaj do ekranu głównego"</strong></li>
-                                    <li>Nadaj nazwę i zatwierdź — aplikacja pojawi się na pulpicie</li>
+                                    <li>Nadaj nazwę i zatwierdź, aplikacja pojawi się na pulpicie</li>
                                 </InstructionList>
                             )}
                         </InstructionsPanel>

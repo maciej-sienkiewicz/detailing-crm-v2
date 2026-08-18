@@ -21,7 +21,7 @@ const USE_MOCKS = false;
 const mockCampaigns: SmsCampaign[] = [
   {
     id: 'camp-001',
-    name: 'Właściciele BMW – oferta PPF',
+    name: 'Właściciele BMW - oferta PPF',
     message:
       'Dzień dobry {{imie}}! Mamy specjalną ofertę na oklejanie PPF dla Twojego BMW. Zadzwoń lub zarezerwuj online. AutoCRM Studio',
     filters: {
@@ -39,7 +39,7 @@ const mockCampaigns: SmsCampaign[] = [
   },
   {
     id: 'camp-002',
-    name: 'Klienci bez wizyty – reaktywacja',
+    name: 'Klienci bez wizyty - reaktywacja',
     message:
       'Cześć {{imie}}! Minął rok od ostatniej wizyty. Zapraszamy na przegląd i pielęgnację auta. Rezerwacja: autocrmstudio.pl',
     filters: {
@@ -55,7 +55,7 @@ const mockCampaigns: SmsCampaign[] = [
   },
   {
     id: 'camp-003',
-    name: 'Po PPF – pielęgnacja folii',
+    name: 'Po PPF - pielęgnacja folii',
     message:
       'Drogi {{imie}}, minęło 6 miesięcy od oklejenia PPF. Czas na profesjonalne odświeżenie powłoki. Umów się dziś!',
     filters: {

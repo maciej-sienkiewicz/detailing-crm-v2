@@ -53,8 +53,8 @@ const Chip = styled.button<{ $status: ChannelStatus }>`
 `;
 
 const TITLE: Record<ChannelStatus, string> = {
-  on: 'Włączona — wychodzi do klienta. Kliknij, żeby wyłączyć.',
-  blank: 'Włączona, ale bez treści — nic nie zostanie wysłane. Kliknij, żeby wyłączyć.',
+  on: 'Włączona: wychodzi do klienta. Kliknij, żeby wyłączyć.',
+  blank: 'Włączona, ale bez treści: nic nie zostanie wysłane. Kliknij, żeby wyłączyć.',
   off: 'Wyłączona. Kliknij, żeby włączyć.',
   absent: 'Ta wiadomość nie jest wysyłana tym kanałem.',
 };

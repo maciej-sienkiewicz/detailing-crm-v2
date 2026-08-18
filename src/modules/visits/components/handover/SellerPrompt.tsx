@@ -35,7 +35,7 @@ interface SellerPromptProps {
 /**
  * Uzupełnienie danych sprzedawcy bez wychodzenia z wydania.
  *
- * Pokazuje się od razu po otwarciu ekranu, a nie dopiero przy próbie zapisu —
+ * Pokazuje się od razu po otwarciu ekranu, a nie dopiero przy próbie zapisu:
  * brak NIP-u studia blokuje wysyłkę do KSeF, więc użytkownik ma się o tym
  * dowiedzieć zanim zacznie, a nie przy kliencie stojącym przy ladzie.
  */
@@ -58,7 +58,7 @@ export const SellerPrompt = ({ company }: SellerPromptProps) => {
     const set = (changes: Partial<CompanyDraft>) => setEdits(prev => ({ ...prev, ...changes }));
 
     const save = useMutation({
-        // Pełny obiekt aktualizacji — pola nieedytowane tutaj przechodzą bez zmian.
+        // Pełny obiekt aktualizacji: pola nieedytowane tutaj przechodzą bez zmian.
         mutationFn: () =>
             companyApi.updateCompanySettings({
                 name: draft.name.trim(),
@@ -80,7 +80,7 @@ export const SellerPrompt = ({ company }: SellerPromptProps) => {
             <h4>Uzupełnij dane swojej firmy</h4>
             <p>
                 Do wystawienia faktury w KSeF potrzebna jest nazwa i NIP. Dane zapiszą się
-                w ustawieniach studia — wpisujesz je tylko raz.
+                w ustawieniach studia, wpisujesz je tylko raz.
             </p>
             <FormGrid $columns={2}>
                 <FormField>
@@ -135,7 +135,7 @@ export const SellerPrompt = ({ company }: SellerPromptProps) => {
                 disabled={save.isPending || !draft.name.trim() || !draft.taxId.trim()}
                 onClick={() => save.mutate()}
             >
-                {save.isPending ? 'Zapisywanie…' : 'Zapisz dane firmy'}
+                {save.isPending ? 'Zapisywanie...' : 'Zapisz dane firmy'}
             </SharedButton>
         </Box>
     );

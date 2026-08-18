@@ -50,7 +50,7 @@ export const usePaymentHistory = (page = 0) => {
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-// Key used by the SubscriptionGate — must be invalidated so the gate re-evaluates
+// Key used by the SubscriptionGate; must be invalidated so the gate re-evaluates
 const STATUS_KEY = ['subscription', 'status'] as const;
 
 export const invalidateSubscriptionData = (queryClient: ReturnType<typeof useQueryClient>) => {
@@ -84,7 +84,7 @@ export const useStartTrial = () => {
     });
 };
 
-/** Downgrade only — upgrades go through useCheckout (PLAN_UPGRADE). */
+/** Downgrade only, upgrades go through useCheckout (PLAN_UPGRADE). */
 export const useChangePlan = () => {
     const queryClient = useQueryClient();
     return useMutation({

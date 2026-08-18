@@ -198,7 +198,7 @@ export const BodyTextarea = styled.textarea<{ $blurred: boolean; $revealed: bool
 export const TypewriterCursor = styled.span<{ $visible: boolean }>`
   display: ${({ $visible }) => ($visible ? 'block' : 'none')};
   position: absolute;
-  /* tracks last typed line — positioned at top-left so it floats while text grows */
+  /* tracks last typed line, positioned at top-left so it floats while text grows */
   bottom: 18px;
   left: 16px;
   width: 2px;

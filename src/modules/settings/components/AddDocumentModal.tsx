@@ -283,7 +283,7 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
             });
             templateId = result.template.id;
 
-            // Plik nie zawiera wymaganych pól — sprzątamy szablon i pokazujemy
+            // Plik nie zawiera wymaganych pól, więc sprzątamy szablon i pokazujemy
             // dokładny raport braków, zostawiając formularz do poprawy.
             if (result.verification && result.verification.verificationStatus === 'REJECTED') {
                 try { await deleteTemplate.mutateAsync(templateId); } catch { /* best-effort */ }
@@ -375,7 +375,7 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                     <Field>
                         <Label>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></Label>
                         <Textarea
-                            placeholder="Krótki opis przeznaczenia dokumentu…"
+                            placeholder="Krótki opis przeznaczenia dokumentu..."
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             rows={2}
@@ -405,7 +405,7 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                     Anuluj
                 </SharedButton>
                 <SharedButton type="submit" form="add-document-form" $variant="primary" $size="sm" disabled={isPending}>
-                    {isPending ? 'Zapisywanie…' : 'Dodaj dokument'}
+                    {isPending ? 'Zapisywanie...' : 'Dodaj dokument'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

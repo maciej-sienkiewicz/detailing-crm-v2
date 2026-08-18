@@ -14,7 +14,7 @@ import type {
 } from '../types';
 
 export const visitCardApi = {
-    /** Public, tokenized endpoint — no session required (permitAll on the backend). */
+    /** Public, tokenized endpoint: no session required (permitAll on the backend). */
     getPublicCard: async (token: string): Promise<VisitCard> => {
         const response = await apiClient.get<VisitCard>(`/public/visit-card/${encodeURIComponent(token)}`);
         return response.data;
@@ -35,7 +35,7 @@ export const visitCardApi = {
         return response.data;
     },
 
-    // ── Reservation (appointment) variants — same card, issued before check-in ──
+    // -- Reservation (appointment) variants: same card, issued before check-in --
 
     /** Employee endpoint: stable shareable link for a reservation's card. */
     getAppointmentCardLink: async (appointmentId: string): Promise<VisitCardLinkResponse> => {

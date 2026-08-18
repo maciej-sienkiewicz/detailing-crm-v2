@@ -55,7 +55,7 @@ export type VehicleIdentity =
         newData: {
             brand: string;
             model: string;
-            /** Backend contract field — NewVehicleDataRequest.year. */
+            /** Backend contract field: NewVehicleDataRequest.year. */
             year?: number;
             /** @deprecated backend reads `year`; kept for legacy call sites. */
             yearOfProduction?: number;
@@ -71,7 +71,7 @@ export type VehicleIdentity =
         updateData: {
             brand: string;
             model: string;
-            /** Backend contract field — NewVehicleDataRequest.year. */
+            /** Backend contract field: NewVehicleDataRequest.year. */
             year?: number;
             /** @deprecated backend reads `year`; kept for legacy call sites. */
             yearOfProduction?: number;

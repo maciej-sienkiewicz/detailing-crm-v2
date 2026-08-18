@@ -10,7 +10,7 @@ import type { Role } from '../../rbacTypes';
  * Role field that can produce the role it needs.
  *
  * A studio adding its first employee has no roles yet, and the old form answered
- * that with an empty dropdown — the person had to abandon the form, go to another
+ * that with an empty dropdown: the person had to abandon the form, go to another
  * tab, build a role and come back. Here the missing role is one row further down
  * the same list: a template creates it in place and selects it, and the full
  * permission editor stays one link away for anything the templates don't cover.
@@ -36,7 +36,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
     const selected = useMemo(() => roles.find(r => r.id === value) ?? null, [roles, value]);
 
     // Templates already present by name are offered as a plain pick, not a duplicate
-    // create — the backend enforces unique role names per studio.
+    // create; the backend enforces unique role names per studio.
     const templates = useMemo(() => ROLE_TEMPLATES.map(t => ({
         template: t,
         existing: roles.find(r => r.name.toLowerCase() === t.name.toLowerCase()) ?? null,
@@ -99,7 +99,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                 aria-haspopup="listbox"
                 aria-expanded={open}
             >
-                <span>{selected ? selected.name : 'Wybierz rolę…'}</span>
+                <span>{selected ? selected.name : 'Wybierz rolę...'}</span>
                 <Caret $open={open} aria-hidden="true">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
@@ -150,7 +150,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                                 </RowMain>
                                 <RowMeta>
                                     {creatingId === entry.template.id
-                                        ? 'Tworzenie…'
+                                        ? 'Tworzenie...'
                                         : entry.existing ? 'już istnieje' : 'utwórz'}
                                 </RowMeta>
                             </MenuRow>
@@ -162,7 +162,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                             type="button"
                             onClick={() => { setOpen(false); onOpenFullEditor(); }}
                         >
-                            Zbuduj rolę od zera — pełny edytor uprawnień
+                            Zbuduj rolę od zera: pełny edytor uprawnień
                         </LinkBtn>
                     </MenuFooter>
                 </Menu>
@@ -175,7 +175,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                 <Preview>
                     {moduleChips.length > 0
                         ? <>Dostęp: {moduleChips.join(' · ')}</>
-                        : <>Rola bez uprawnień — pracownik zaloguje się, ale nic nie zobaczy.</>}
+                        : <>Rola bez uprawnień, pracownik zaloguje się, ale nic nie zobaczy.</>}
                 </Preview>
             ) : (
                 <HintText>

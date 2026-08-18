@@ -181,7 +181,7 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
                         Anuluj
                     </SharedButton>
                     <SharedButton type="submit" $variant="primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'Zapisywanie…' : 'Dodaj pojazd'}
+                        {isSubmitting ? 'Zapisywanie...' : 'Dodaj pojazd'}
                     </SharedButton>
                 </ModalFooter>
             </form>

@@ -22,7 +22,7 @@ const extractApiErrorMessage = (error: unknown): string | undefined => {
 
 interface UseProtocolSigningArgs {
     visitId: string | null;
-    /** Imię i nazwisko osoby podpisującej — trafia na dokument. */
+    /** Imię i nazwisko osoby podpisującej, trafia na dokument. */
     signerName: string;
     customerPhone?: string | null;
     /** Lista tabletów pobierana tylko wtedy, gdy panel jest widoczny. */
@@ -30,7 +30,7 @@ interface UseProtocolSigningArgs {
 }
 
 /**
- * Maszyneria zbierania podpisu pod protokołem — wspólna dla przyjęcia
+ * Maszyneria zbierania podpisu pod protokołem, wspólna dla przyjęcia
  * i wydania pojazdu.
  *
  * Trzyma stan sesji podpisu per protokół, wysyła prośbę na tablet albo SMS-em
@@ -138,7 +138,7 @@ export const useProtocolSigning = ({
                 if (!awaited) return;
                 applyOutcome(awaited.protocolId, event.requestId, event.type, event.errorMessage);
             },
-            // Zdarzenia mogły przepaść przy zerwanym połączeniu — dopytujemy o stan
+            // Zdarzenia mogły przepaść przy zerwanym połączeniu, dopytujemy o stan
             onReconnect: () => {
                 awaitedRequests.forEach(async ({ protocolId, requestId }) => {
                     try {

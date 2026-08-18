@@ -13,7 +13,7 @@ import type {
 
 export interface CreateProtocolTemplateResult {
   template: ProtocolTemplate;
-  /** Wynik weryfikacji pól — obecny, gdy plik został wgrany. */
+  /** Wynik weryfikacji pól: obecny, gdy plik został wgrany. */
   verification?: ProtocolTemplateVerification;
 }
 
@@ -38,7 +38,7 @@ class ProtocolsApi {
       return { template };
     }
 
-    // Step 2: Upload file to S3 — the presigned URL is signed for the declared
+    // Step 2: Upload file to S3. The presigned URL is signed for the declared
     // content type, so send the canonical one for the chosen format.
     const contentType = data.fileFormat === 'HTML' ? 'text/html' : 'application/pdf';
     try {

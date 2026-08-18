@@ -80,7 +80,7 @@ export function PaymentHistoryTable() {
 
             {isLoading && (
                 <EmptyState>
-                    <EmptyText>Ładowanie historii…</EmptyText>
+                    <EmptyText>Ładowanie historii...</EmptyText>
                 </EmptyState>
             )}
 
@@ -122,15 +122,15 @@ export function PaymentHistoryTable() {
                                             {entry.eventTypeDisplayName}
                                         </EventBadge>
                                     </Td>
-                                    <Td>{entry.plan?.name ?? '—'}</Td>
-                                    <Td>{entry.addOn?.name ?? '—'}</Td>
+                                    <Td>{entry.plan?.name ?? '-'}</Td>
+                                    <Td>{entry.addOn?.name ?? '-'}</Td>
                                     <AmountCell $zero={entry.amountCents === 0}>
-                                        {entry.amountCents === 0 ? '—' : entry.amountFormatted}
+                                        {entry.amountCents === 0 ? '-' : entry.amountFormatted}
                                     </AmountCell>
                                     <Td>
                                         {entry.transactionId
                                             ? <TransactionId>{entry.transactionId}</TransactionId>
-                                            : '—'}
+                                            : '-'}
                                     </Td>
                                 </Tr>
                             ))}
@@ -140,7 +140,7 @@ export function PaymentHistoryTable() {
                     {totalPages > 1 && (
                         <Pagination>
                             <PaginationInfo>
-                                {from}–{to} z {data!.total} wpisów
+                                {from}-{to} z {data!.total} wpisów
                             </PaginationInfo>
                             <PaginationBtns>
                                 <PageBtn

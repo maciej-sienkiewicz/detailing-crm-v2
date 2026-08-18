@@ -62,7 +62,7 @@ export const Label = styled.label`
 
 /**
  * Visual shell for inputs: white background, 1.5px border, 10px radius.
- * Place a bare <input> or <textarea> inside — the shell owns the border and focus ring.
+ * Place a bare <input> or <textarea> inside; the shell owns the border and focus ring.
  * The inner element must have: border: none; background: transparent; outline: none.
  */
 /**
@@ -96,7 +96,7 @@ export const InputShellTextArea = styled(InputShell)`
 
 // ─── Bare input / textarea (used inside InputShell) ───────────────────────────
 
-/** Bare input: no border, transparent bg — place inside InputShell. */
+/** Bare input: no border, transparent bg; place inside InputShell. */
 export const BareInput = styled.input<{ $compact?: boolean }>`
     width: 100%;
     padding: ${props => props.$compact ? '8px 10px' : '12px 14px'};
@@ -112,7 +112,7 @@ export const BareInput = styled.input<{ $compact?: boolean }>`
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
-/** Bare textarea: no border, transparent bg — place inside InputShellTextArea. */
+/** Bare textarea: no border, transparent bg; place inside InputShellTextArea. */
 export const BareTextArea = styled.textarea`
     width: 100%;
     padding: 12px 14px;
@@ -471,7 +471,7 @@ export const FormTabBtn = styled.button<{ $active?: boolean }>`
     }
 `;
 
-/** CSS-based tab panel — always in the DOM so react-hook-form retains field values. */
+/** CSS-based tab panel, always in the DOM so react-hook-form retains field values. */
 export const FormTabPanel = styled.div<{ $active?: boolean }>`
     display: ${p => p.$active ? 'block' : 'none'};
 `;

@@ -18,9 +18,9 @@ import {
 interface VehicleCardProps {
     state: VehicleSectionState;
     dispatch: (event: EntityEvent) => void;
-    /** Id of the resolved existing customer — null while the customer is NEW/unresolved. */
+    /** Id of the resolved existing customer; null while the customer is NEW/unresolved. */
     customerId: string | null;
-    /** "Anna Nowak" — used in garage/ownership copy. */
+    /** "Anna Nowak", used in garage/ownership copy. */
     customerLabel: string;
     /** Check-in variant: also edit the vehicle color in the new/edit forms. */
     showColorField?: boolean;
@@ -173,7 +173,7 @@ const LinkedView = ({
                 {state.ownership === 'ADD_CO_OWNER' ? (
                     <>Przy zapisie <strong>{customerLabel}</strong> zostanie dopisany(-a) jako współwłaściciel tego pojazdu. Historia wizyt pojazdu pozostaje ciągła.</>
                 ) : (
-                    <>Przy zapisie pojazd zostanie <strong>przeniesiony do {customerLabel}</strong> — dotychczasowi właściciele stracą go ze swojego garażu.</>
+                    <>Przy zapisie pojazd zostanie <strong>przeniesiony do {customerLabel}</strong>, dotychczasowi właściciele stracą go ze swojego garażu.</>
                 )}
             </span>
         </MutationNotice>
@@ -223,7 +223,7 @@ const GarageChooser = ({
     return (
         <>
             <EntityMeta>Garaż: <strong>{customerLabel}</strong></EntityMeta>
-            {isLoading && <EmptyHint>Wczytywanie garażu…</EmptyHint>}
+            {isLoading && <EmptyHint>Wczytywanie garażu...</EmptyHint>}
             {garage && garage.length > 0 && (
                 <OptionList>
                     {garage.map(v => (
@@ -337,7 +337,7 @@ const PlateCollisionProbe = ({
         licensePlate: collision.licensePlate ?? undefined,
     };
 
-    // The matched vehicle already sits in THIS customer's garage — no ownership
+    // The matched vehicle already sits in THIS customer's garage: no ownership
     // decision to make, just attach the existing record instead of duplicating it.
     if (customerId && collision.owners.some(o => o.customerId === customerId)) {
         return (
@@ -408,7 +408,7 @@ const PlateCollisionProbe = ({
                 />
                 <span>
                     Podepnij ten pojazd i dodaj <strong>{customerLabel}</strong> jako współwłaściciela
-                    <small>historia wizyt pojazdu pozostaje ciągła — zalecane</small>
+                    <small>historia wizyt pojazdu pozostaje ciągła, zalecane</small>
                 </span>
             </RadioRow>
             <RadioRow>
@@ -431,7 +431,7 @@ const PlateCollisionProbe = ({
                     onChange={() => setDecision('DIFFERENT')}
                 />
                 <span>
-                    To inny pojazd — kontynuuj dodawanie
+                    To inny pojazd, kontynuuj dodawanie
                     <small>w bazie pojawią się dwa pojazdy o tej samej rejestracji</small>
                 </span>
             </RadioRow>

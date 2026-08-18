@@ -372,7 +372,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
       await navigator.clipboard.writeText(aliasAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch { /* clipboard unavailable — ignore */ }
+    } catch { /* clipboard unavailable, ignore */ }
   };
 
   return (
@@ -405,7 +405,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
             <CardTitle>Zapytania e-mail</CardTitle>
             <CardDesc>
               Klienci piszą do Ciebie e-mailem? W swojej skrzynce ustaw automatyczne
-              przekierowanie wiadomości na adres alias Twojej firmy — każdy przekierowany
+              przekierowanie wiadomości na adres alias Twojej firmy: każdy przekierowany
               e-mail stworzy wtedy nowy lead.
             </CardDesc>
             {aliasAddress ? (
@@ -421,7 +421,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
               </AliasPlaceholder>
             )}
             <CardDesc style={{ fontSize: 11.5, marginTop: 6 }}>
-              Alias to tylko pośrednik — serwer przetwarza wiadomość i od razu o niej zapomina.
+              Alias to tylko pośrednik, serwer przetwarza wiadomość i od razu o niej zapomina.
               Treści e-maili nie są przechowywane.
             </CardDesc>
           </CardBody>
@@ -439,7 +439,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
             <CardTitle>Po rozmowie telefonicznej</CardTitle>
             <CardDesc>
               Mamy osobny widok pod telefon. Po rozmowie z klientem klikasz „Lead",
-              wklejasz numer i <strong>opowiadasz głosowo</strong>, czego dotyczyła rozmowa —
+              wklejasz numer i <strong>opowiadasz głosowo</strong>, czego dotyczyła rozmowa,
               bez pisania na małej klawiaturze.
             </CardDesc>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
@@ -464,7 +464,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
             <CardTitle>Klient zapytał osobiście</CardTitle>
             <CardDesc>
               Ktoś przyszedł do firmy o coś zapytać albo napisał na komunikatorze?
-              Dodaj lead ręcznie — wystarczy numer telefonu lub e-mail i krótki opis
+              Dodaj lead ręcznie, wystarczy numer telefonu lub e-mail i krótki opis
               zapytania. Resztę uzupełnisz później.
             </CardDesc>
           </CardBody>
@@ -514,7 +514,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
         <div style={{ marginTop: 14, fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
           Status zmieniasz klikając kolorowy badge w wierszu leada. Możesz też oznaczyć lead jako
           <strong style={{ color: '#64748b' }}> Utracony</strong> lub
-          <strong style={{ color: '#64748b' }}> Porzucony</strong> — system zapyta o powód, co pozwoli
+          <strong style={{ color: '#64748b' }}> Porzucony</strong>, system zapyta o powód, co pozwoli
           Ci później analizować, skąd wycieka sprzedaż.
         </div>
       </PipelineSection>
@@ -527,7 +527,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
           <InfoCardTitle>Do obsłużenia</InfoCardTitle>
           <InfoCardDesc>
             Leady czekające na Twój <strong>pierwszy kontakt</strong>.
-            Im szybciej zareagujesz, tym wyższy wskaźnik konwersji —
+            Im szybciej zareagujesz, tym wyższy wskaźnik konwersji,
             klienci detailingu często wysyłają zapytania do kilku firm jednocześnie.
           </InfoCardDesc>
         </InfoCard>
@@ -537,7 +537,7 @@ export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Prop
           <InfoCardDesc>
             Procent leadów zamienionych w klientów w tym miesiącu,
             z trendem względem poprzedniego.
-            Jeśli spada — czas sprawdzić szybkość odpowiedzi i cennik.
+            Jeśli spada, czas sprawdzić szybkość odpowiedzi i cennik.
           </InfoCardDesc>
         </InfoCard>
         <InfoCard>

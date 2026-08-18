@@ -6,7 +6,7 @@ import type { Insight, InsightSeverity } from '../types';
 
 /**
  * Karta insightu: co się stało → dlaczego to ważne → co możesz zrobić.
- * Treść przychodzi z backendu gotowa, w prostym polskim – karta tylko ją układa.
+ * Treść przychodzi z backendu gotowa, w prostym polskim, karta tylko ją układa.
  */
 
 const SEVERITY_COLOR: Record<InsightSeverity, string> = {

@@ -519,7 +519,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                                     <polyline points="23 4 23 10 17 10" />
                                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                                 </svg>
-                                {isRefreshing ? 'Odświeżam…' : 'Odśwież'}
+                                {isRefreshing ? 'Odświeżam...' : 'Odśwież'}
                             </UploadBtn>
                         </UploadActions>
 
@@ -529,12 +529,12 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                                     <polyline points="23 4 23 10 17 10" />
                                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                                 </svg>
-                                Przesyłanie zdjęć…
+                                Przesyłanie zdjęć...
                             </UploadingLabel>
                         )}
                     </UploadZone>
 
-                    {/* QR code generator — also listens for mobile damage updates */}
+                    {/* QR code generator; also listens for mobile damage updates */}
                     <div style={{ marginTop: 16 }}>
                         <CheckinQRGenerator
                             appointmentId={qrCheckinId}

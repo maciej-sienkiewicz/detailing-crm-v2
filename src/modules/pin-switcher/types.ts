@@ -22,7 +22,7 @@ export interface SetPinRequest {
     pin: string;
 }
 
-/** Stored in localStorage — lightweight profile stub for the switcher UI. */
+/** Stored in localStorage: lightweight profile stub for the switcher UI. */
 export interface KnownProfile {
     userId: string;
     studioId: string;

@@ -46,7 +46,7 @@ const GlobalStyles = createGlobalStyle`
     min-height: 100dvh;
     width: 100%;
     max-width: 100%;
-    /* clip (not hidden) — it never turns #root into a scroll container, so
+    /* clip (not hidden): it never turns #root into a scroll container, so
        position: sticky inside the app keeps working. */
     overflow-x: clip;
   }
@@ -73,7 +73,7 @@ const GlobalStyles = createGlobalStyle`
 
   /* ─── Touch devices ────────────────────────────────────────────────────────
      iOS Safari zooms the whole viewport the moment a field smaller than 16px
-     takes focus — and never zooms back out after the field is committed, which
+     takes focus, and never zooms back out after the field is committed, which
      leaves the page stranded at 1.3x with fixed chrome floating mid-screen.
      16px is also the smallest comfortable tap-to-type size, so this is a win
      twice over.

@@ -427,7 +427,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     value={form.paymentMethod}
                                     onChange={setField('paymentMethod')}
                                     options={PAYMENT_METHODS}
-                                    placeholder="— Wybierz —"
+                                    placeholder="- Wybierz -"
                                 />
                             </FormField>
 
@@ -517,7 +517,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     form="expense-form"
                     disabled={createExpense.isPending}
                 >
-                    {createExpense.isPending ? 'Zapisywanie…' : 'Zapisz fakturę'}
+                    {createExpense.isPending ? 'Zapisywanie...' : 'Zapisz fakturę'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

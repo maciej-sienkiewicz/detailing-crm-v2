@@ -81,7 +81,7 @@ const EmptyChart = styled.div<{ $height: number }>`
     text-align: center;
 `;
 
-// Stały hint pod wykresem — nie ucieka, bo nie jest tooltipem
+// Stały hint pod wykresem, nie ucieka, bo nie jest tooltipem
 const ClickHintBar = styled.div`
     display: flex;
     align-items: center;
@@ -120,7 +120,7 @@ interface BarShapeProps {
 const ActiveBarShape = (props: BarShapeProps) => {
     const { x = 0, y = 0, width = 0, height = 0, fill, isHovered, hoverColor, glowColor } = props;
 
-    // Okres o wartości 0 — rysujemy płaski znacznik przy osi, żeby było widać,
+    // Okres o wartości 0: rysujemy płaski znacznik przy osi, żeby było widać,
     // że dane dla tego okresu istnieją (np. wizyty bez przychodu) i można w nie kliknąć.
     if (!height || height <= 0) {
         return (
@@ -228,16 +228,16 @@ const TrendTooltip = ({
 
 export interface TrendChartPoint {
     period: string;
-    /** Główna wartość (słupki) — np. przychód lub koszt brutto */
+    /** Główna wartość (słupki), np. przychód lub koszt brutto */
     value: number;
-    /** Liczność (linia) — np. liczba zleceń lub pozycji */
+    /** Liczność (linia), np. liczba zleceń lub pozycji */
     count: number;
 }
 
 // Recharts 3 przekazuje do handlerów wykresu MouseHandlerDataParam, w którym NIE ma
-// activePayload (to było API recharts 2 — rzutowanie na nie zwracało undefined i klik
-// nigdy nie odpalał). Okres odzyskujemy z activeLabel — wartości osi X, bo XAxis ma
-// dataKey="period" — z awaryjnym zejściem do indeksu w tablicy danych.
+// activePayload (to było API recharts 2, rzutowanie na nie zwracało undefined i klik
+// nigdy nie odpalał). Okres odzyskujemy z activeLabel: wartości osi X, bo XAxis ma
+// dataKey="period", z awaryjnym zejściem do indeksu w tablicy danych.
 type ChartMouseState = {
     activeLabel?: string | number;
     activeTooltipIndex?: number | string | null;
@@ -323,7 +323,7 @@ export const TrendChart = ({
                             onMouseLeave={() => setHoveredPeriod(null)}
                             // Drill-down obsługujemy na poziomie wykresu, nie słupka.
                             // Słupek o wartości 0 nie ma wysokości, więc nie renderuje żadnego
-                            // elementu SVG i nie da się w niego kliknąć — a to właśnie okresy
+                            // elementu SVG i nie da się w niego kliknąć, a to właśnie okresy
                             // "N wizyt, 0 zł" są najczęściej tym, co użytkownik chce rozwinąć.
                             onClick={state => {
                                 if (!onBarClick) return;

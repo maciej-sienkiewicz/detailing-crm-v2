@@ -73,7 +73,7 @@ interface CategoryAssignMenuProps {
     y: number;
     categories: AssignMenuCategory[];
     onAssign: (categoryId: string) => void;
-    /** Gdy podane — renderuje pozycję „Usuń przypisanie" */
+    /** Gdy podane, renderuje pozycję „Usuń przypisanie" */
     onUnassign?: () => void;
     unassignLabel?: string;
     onClose: () => void;

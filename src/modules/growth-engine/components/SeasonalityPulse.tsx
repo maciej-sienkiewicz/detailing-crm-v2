@@ -292,7 +292,7 @@ export const SeasonalityPulse = ({
         <TitleGroup>
           <SectionTitle>Trendy Wyszukiwań</SectionTitle>
           <SectionSubtitle>
-            Indeks popularności zapytań Google (0–100 = relatywny szczyt w wybranym zakresie)
+            Indeks popularności zapytań Google (0-100 = relatywny szczyt w wybranym zakresie)
           </SectionSubtitle>
         </TitleGroup>
 

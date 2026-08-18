@@ -188,7 +188,7 @@ export const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({
           <PickerSearchIcon><Search /></PickerSearchIcon>
           <PickerSearchInput
             autoFocus
-            placeholder="Szukaj pracownika…"
+            placeholder="Szukaj pracownika..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -209,7 +209,7 @@ export const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({
             </PickerRow>
           )}
           {isLoading ? (
-            <PickerEmpty>Ładowanie…</PickerEmpty>
+            <PickerEmpty>Ładowanie...</PickerEmpty>
           ) : employees.length === 0 ? (
             <PickerEmpty>Brak pracowników</PickerEmpty>
           ) : employees.map(emp => (

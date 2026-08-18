@@ -93,7 +93,7 @@ export const NipInputWithGus = ({
                     $compact={compact}
                 >
                     <Building2 size={compact ? 12 : 13} />
-                    {isLoading ? 'Pobieranie…' : 'Pobierz z GUS'}
+                    {isLoading ? 'Pobieranie...' : 'Pobierz z GUS'}
                 </GusBtn>
             </InputShell>
             {gusError && <FormErrorMsg>{gusError}</FormErrorMsg>}

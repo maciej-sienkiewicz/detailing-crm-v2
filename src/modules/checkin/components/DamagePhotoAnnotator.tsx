@@ -27,7 +27,7 @@ const WIDTHS = [
     { value: 1.8, label: 'Gruby' },
 ];
 
-// Minimum distance (in %) between captured points — keeps strokes light
+// Minimum distance (in %) between captured points, keeps strokes light
 const MIN_POINT_DISTANCE = 0.6;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'ghost' }>`
 
 interface StrokesOverlayProps {
     strokes: AnnotationStroke[];
-    /** Rendered width of the underlying image in px — used to scale stroke width */
+    /** Rendered width of the underlying image in px, used to scale stroke width */
     renderWidth: number;
     current?: AnnotationStroke | null;
 }

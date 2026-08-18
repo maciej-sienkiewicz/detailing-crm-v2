@@ -13,7 +13,7 @@ import {
 
 export interface BaseInputProps
     extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
-    /** Visible field label — required so no control ships unlabeled. */
+    /** Visible field label; required so no control ships unlabeled. */
     label: string;
     /** Validation message; its presence switches the control into the error state. */
     error?: string;
@@ -27,7 +27,7 @@ export interface BaseInputProps
  * The one text input. Label, placeholder, margins and font sizes are fixed in
  * `baseField.styles.ts` and not overridable via props. Plays with both
  * controlled usage (`value`/`onChange` or `onValueChange`) and react-hook-form
- * (`{...register('name')}` — the ref is forwarded).
+ * (`{...register('name')}`, the ref is forwarded).
  */
 export const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
     function BaseInput({ label, error, hint, onValueChange, required, id, onChange, ...inputProps }, ref) {

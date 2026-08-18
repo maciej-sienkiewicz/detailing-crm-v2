@@ -17,7 +17,7 @@ export const FINANCE_REPORT_KEY   = ['finance', 'payment-method-report'] as cons
  * Unieważnia wszystko, co pokazuje dokumenty przychodowe albo liczy z nich kwoty.
  *
  * Lista dokumentów jest zunifikowana (moduł finansowy + ledger KSeF), a kafle
- * podsumowania sumują obie strony naraz — zmiana po dowolnej z nich musi odświeżyć
+ * podsumowania sumują obie strony naraz, więc zmiana po dowolnej z nich musi odświeżyć
  * jedno i drugie. Rozjazd tych kluczy sprawiał, że po wystawieniu korekty kafel
  * „Przychody" pokazywał kwotę sprzed korekty aż do przeładowania strony.
  */

@@ -624,7 +624,7 @@ export const VehicleFilterPanel = ({
                                 placeholder="Od" value={yearFrom}
                                 onChange={e => setYearFrom(e.target.value)}
                             />
-                            <RangeSep>–</RangeSep>
+                            <RangeSep>-</RangeSep>
                             <RangeInput
                                 type="number" min={1900} max={new Date().getFullYear()}
                                 placeholder="Do" value={yearTo}
@@ -641,7 +641,7 @@ export const VehicleFilterPanel = ({
                                 type="number" min={0} placeholder="Od" value={minVisits}
                                 onChange={e => setMinVisits(e.target.value)}
                             />
-                            <RangeSep>–</RangeSep>
+                            <RangeSep>-</RangeSep>
                             <RangeInput
                                 type="number" min={0} placeholder="Do" value={maxVisits}
                                 onChange={e => setMaxVisits(e.target.value)}
@@ -657,7 +657,7 @@ export const VehicleFilterPanel = ({
                                 type="number" min={0} placeholder="Od" value={minRevenue}
                                 onChange={e => setMinRevenue(e.target.value)}
                             />
-                            <RangeSep>–</RangeSep>
+                            <RangeSep>-</RangeSep>
                             <RangeInput
                                 type="number" min={0} placeholder="Do" value={maxRevenue}
                                 onChange={e => setMaxRevenue(e.target.value)}
@@ -676,7 +676,7 @@ export const VehicleFilterPanel = ({
                             <InputRow>
                                 <InputLabel>Wykonano w przeciągu</InputLabel>
                                 <NumberInput
-                                    type="number" min={1} placeholder="—"
+                                    type="number" min={1} placeholder="-"
                                     value={lastServiceWithinDays}
                                     onChange={e => {
                                         setLastServiceWithinDays(e.target.value);
@@ -688,7 +688,7 @@ export const VehicleFilterPanel = ({
                             <InputRow>
                                 <InputLabel>Nie wykonano od ponad</InputLabel>
                                 <NumberInput
-                                    type="number" min={1} placeholder="—"
+                                    type="number" min={1} placeholder="-"
                                     value={notServicedSinceDays}
                                     onChange={e => {
                                         setNotServicedSinceDays(e.target.value);

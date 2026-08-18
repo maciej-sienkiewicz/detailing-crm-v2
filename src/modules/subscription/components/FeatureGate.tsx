@@ -115,7 +115,7 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                         ) : (
                             <WaitlistBtn
                                 onClick={() => {
-                                    window.location.href = `mailto:hello@detailboost.pl?subject=Lista oczekujących — ${upsell?.addOnName ?? 'moduł'}`;
+                                    window.location.href = `mailto:hello@detailboost.pl?subject=Lista oczekujących - ${upsell?.addOnName ?? 'moduł'}`;
                                 }}
                             >
                                 Zapisz się na listę oczekujących

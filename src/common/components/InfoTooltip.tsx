@@ -34,7 +34,7 @@ const Icon = styled.span`
   }
 `;
 
-// Rendered via portal into document.body — lives outside any transformed ancestor.
+// Rendered via portal into document.body: lives outside any transformed ancestor.
 const PopupBox = styled.div`
   position: fixed;
   background: #1e293b;

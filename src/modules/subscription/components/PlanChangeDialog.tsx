@@ -70,7 +70,7 @@ export function PlanChangeDialog({
                 onClose();
                 return;
             }
-            // Upgrade — paid operation, goes through Przelewy24.
+            // Upgrade: paid operation, goes through Przelewy24.
             const order = await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey });
             if (order.paymentUrl) {
                 window.location.assign(order.paymentUrl);
@@ -104,7 +104,7 @@ export function PlanChangeDialog({
                 {isLoadingPreview || !preview ? (
                     <LoadingRow>
                         <Spinner />
-                        Ładowanie szczegółów…
+                        Ładowanie szczegółów...
                     </LoadingRow>
                 ) : (
                     <>
@@ -193,7 +193,7 @@ export function AddOnActivationDialog({
 
     // The communication module is the one add-on whose price is not the whole
     // commitment: it needs message texts and it needs credits. Explaining that here
-    // covers every entry point at once — module gate, paywall, settings, the visit.
+    // covers every entry point at once: module gate, paywall, settings, the visit.
     const [guideDone, setGuideDone] = useState(!ADD_ONS_WITH_GUIDE.has(addOnKey));
 
     const handleConfirm = async () => {
@@ -235,7 +235,7 @@ export function AddOnActivationDialog({
                 {isLoadingPreview || !preview ? (
                     <LoadingRow>
                         <Spinner />
-                        Ładowanie szczegółów…
+                        Ładowanie szczegółów...
                     </LoadingRow>
                 ) : (
                     <>
@@ -249,7 +249,7 @@ export function AddOnActivationDialog({
                                 <InfoValue $highlight={!isTrial}>
                                     {isTrial
                                         ? 'Bezpłatnie w ramach trialu'
-                                        : (preview.proratedAmountFormatted ?? '—')}
+                                        : (preview.proratedAmountFormatted ?? '-')}
                                 </InfoValue>
                             </InfoRow>
                             <InfoRow>

@@ -30,7 +30,7 @@ export interface SignatureRequestSocketEvent {
 interface SignatureRequestsSocketHandlers {
     onEvent: (event: SignatureRequestSocketEvent) => void;
     /**
-     * Called after the socket reconnects — events may have been missed while
+     * Called after the socket reconnects: events may have been missed while
      * offline, so callers should re-fetch the state of every awaited request.
      */
     onReconnect?: () => void;

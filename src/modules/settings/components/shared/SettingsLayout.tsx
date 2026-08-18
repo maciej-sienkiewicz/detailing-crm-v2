@@ -428,7 +428,7 @@ export function HelpModal({ content, onClose }: { content: HelpContent; onClose:
                     <div>
                         <ModalTitle>
                             {content.title}
-                            <ModalSubtitle>— przewodnik</ModalSubtitle>
+                            <ModalSubtitle>przewodnik</ModalSubtitle>
                         </ModalTitle>
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
@@ -642,7 +642,7 @@ export function UnsavedChangesBanner({ visible, onSave, onDiscard, isSaving, sec
                         Odrzuć
                     </BannerDiscardBtn>
                     <BannerSaveBtn onClick={onSave} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
+                        {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
                     </BannerSaveBtn>
                 </BannerActions>
             </BannerCard>

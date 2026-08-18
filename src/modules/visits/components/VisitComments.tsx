@@ -511,7 +511,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                 <HeaderLeft>
                     <PanelTitle>Komentarze</PanelTitle>
                     <PanelSubtitle>
-                        {isLoading ? 'Ładowanie…' : pluralComments(visibleCount)}
+                        {isLoading ? 'Ładowanie...' : pluralComments(visibleCount)}
                     </PanelSubtitle>
                 </HeaderLeft>
                 {!isLoading && <CountBadge>{visibleCount}</CountBadge>}
@@ -541,8 +541,8 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                     onChange={e => setNewContent(e.target.value)}
                     placeholder={
                         newType === 'INTERNAL'
-                            ? 'Notatka widoczna tylko dla personelu…'
-                            : 'Treść wiadomości dla klienta…'
+                            ? 'Notatka widoczna tylko dla personelu...'
+                            : 'Treść wiadomości dla klienta...'
                     }
                     disabled={isAdding}
                 />
@@ -558,7 +558,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                         onClick={handleAdd}
                         disabled={isAdding || !newContent.trim()}
                     >
-                        {isAdding ? 'Dodawanie…' : 'Dodaj komentarz'}
+                        {isAdding ? 'Dodawanie...' : 'Dodaj komentarz'}
                     </PrimaryBtn>
                 </FormFooter>
             </FormArea>
@@ -566,7 +566,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
             {/* ── List ── */}
             <CommentsList>
                 {isLoading ? (
-                    <EmptyState>Ładowanie komentarzy…</EmptyState>
+                    <EmptyState>Ładowanie komentarzy...</EmptyState>
                 ) : sortedComments.length === 0 ? (
                     <EmptyState>Brak komentarzy. Dodaj pierwszy powyżej.</EmptyState>
                 ) : (
@@ -613,7 +613,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                                 disabled={isUpdating || !editingContent.trim()}
                                                 style={{ padding: '4px 12px', fontSize: st.fontXs }}
                                             >
-                                                {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
+                                                {isUpdating ? 'Zapisywanie...' : 'Zapisz'}
                                             </PrimaryBtn>
                                         </ActionRow>
                                     </>

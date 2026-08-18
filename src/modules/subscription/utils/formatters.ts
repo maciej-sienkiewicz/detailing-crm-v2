@@ -9,7 +9,7 @@ export function formatCents(cents: number | null | undefined): string {
 }
 
 export function formatDate(iso: string | null | undefined): string {
-    if (!iso) return '—';
+    if (!iso) return '-';
     return new Intl.DateTimeFormat('pl-PL', {
         day: 'numeric',
         month: 'long',
@@ -18,7 +18,7 @@ export function formatDate(iso: string | null | undefined): string {
 }
 
 export function formatDateShort(iso: string | null | undefined): string {
-    if (!iso) return '—';
+    if (!iso) return '-';
     return new Intl.DateTimeFormat('pl-PL', {
         day: 'numeric',
         month: 'short',
@@ -27,7 +27,7 @@ export function formatDateShort(iso: string | null | undefined): string {
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
-    if (!iso) return '—';
+    if (!iso) return '-';
     return new Intl.DateTimeFormat('pl-PL', {
         day: 'numeric',
         month: 'short',

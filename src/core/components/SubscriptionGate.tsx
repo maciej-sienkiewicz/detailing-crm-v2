@@ -231,7 +231,7 @@ function ExpiredModal() {
 
                 <PurchaseBtn onClick={handleRenew} disabled={!isOwner || checkout.isPending}>
                     {checkout.isPending && <BtnSpinner />}
-                    {checkout.isPending ? 'Przekierowywanie do Przelewy24…' : 'Odnów subskrypcję i zapłać'}
+                    {checkout.isPending ? 'Przekierowywanie do Przelewy24...' : 'Odnów subskrypcję i zapłać'}
                 </PurchaseBtn>
 
                 {!isOwner && (
@@ -256,7 +256,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
 
     // While auth or subscription status is loading, block rendering children.
     // Rendering children here would cause every mounted component to fire its
-    // API queries immediately — all returning 403 for NO_PLAN/EXPIRED studios.
+    // API queries immediately, all returning 403 for NO_PLAN/EXPIRED studios.
     if (authLoading || statusLoading) {
         return (
             <GateLoadingScreen>
@@ -265,19 +265,19 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         );
     }
 
-    // No plan yet — new studio on first login.
+    // No plan yet: new studio on first login.
     // Block children entirely: the modal handles everything from here.
     // No children = no protected API calls fire.
     if (!status || status.status === 'NO_PLAN') {
         return <FirstLoginModal trialUsed={status?.trialUsed ?? false} />;
     }
 
-    // Active plan — normal render.
+    // Active plan: normal render.
     if (status.isAccessible) {
         return <>{children}</>;
     }
 
-    // Expired / blocked — show renewal overlay on top of the (blurred) app shell
+    // Expired / blocked: show renewal overlay on top of the (blurred) app shell
     // so users still see their data context while being prompted to renew.
     return (
         <>

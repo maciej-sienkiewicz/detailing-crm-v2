@@ -32,4 +32,4 @@ export const fmtPLNFromGrosz = (grosz: number) =>
 export const fmtPct = (value: number, total: number) =>
     total > 0
         ? `${(value / total * 100).toLocaleString('pl-PL', { maximumFractionDigits: 1 })}%`
-        : '—';
+        : '-';

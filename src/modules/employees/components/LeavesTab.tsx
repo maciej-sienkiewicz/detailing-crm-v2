@@ -40,7 +40,7 @@ const fmtRange = (start: string, end: string) => {
     if (start === end) {
         return new Date(start + 'T00:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
     }
-    return `${fmtDay(start)} – ${fmtDay(end)} ${end.slice(0, 4)}`;
+    return `${fmtDay(start)} - ${fmtDay(end)} ${end.slice(0, 4)}`;
 };
 
 const daysLabel = (n: number) => (n === 1 ? '1 dzień' : `${n} dni`);
@@ -626,7 +626,7 @@ export const LeavesTab = ({ employeeId }: Props) => {
                             <ComposerActions>
                                 <GhostBtn onClick={closeComposer}>Anuluj</GhostBtn>
                                 <SaveBtn onClick={handleAdd} disabled={addMutation.isPending}>
-                                    {addMutation.isPending ? 'Zapisywanie…' : 'Zapisz urlop'}
+                                    {addMutation.isPending ? 'Zapisywanie...' : 'Zapisz urlop'}
                                 </SaveBtn>
                             </ComposerActions>
                         </ComposerFooter>

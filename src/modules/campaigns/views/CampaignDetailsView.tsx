@@ -198,10 +198,10 @@ function metricTiles(c: Campaign, estimate?: { eligible: number; estimatedCredit
   switch (c.status) {
     case 'SCHEDULED':
       return [
-        { style: TILE_STYLES.sent, icon: Users, value: estimate?.eligible ?? c.recipientsTotal ?? '—', label: 'Prognozowani odbiorcy' },
+        { style: TILE_STYLES.sent, icon: Users, value: estimate?.eligible ?? c.recipientsTotal ?? '-', label: 'Prognozowani odbiorcy' },
         { style: TILE_STYLES.scheduled, icon: CalendarClock, value: c.scheduledAt ? fmt(c.scheduledAt)! : 'natychmiast', label: 'Termin wysyłki' },
         { style: TILE_STYLES.credits, icon: Radio, value: CHANNEL_LABELS[c.channel], label: 'Kanał' },
-        { style: TILE_STYLES.credits, icon: Coins, value: estimate?.estimatedCredits ?? '—', label: 'Szacowany koszt (kredyty)' },
+        { style: TILE_STYLES.credits, icon: Coins, value: estimate?.estimatedCredits ?? '-', label: 'Szacowany koszt (kredyty)' },
       ];
     case 'SENDING':
       return [
@@ -269,7 +269,7 @@ export function CampaignDetailsView() {
     return recipients.filter((r) => r.address.toLowerCase().includes(q));
   }, [recipients, search]);
 
-  if (!campaign) return <Page><MutedText>Wczytywanie…</MutedText></Page>;
+  if (!campaign) return <Page><MutedText>Wczytywanie...</MutedText></Page>;
   const c = campaign;
   const chips = audienceChips(c.audience, serviceNames);
   const isProjection = c.status === 'DRAFT' || c.status === 'SCHEDULED';
@@ -363,7 +363,7 @@ export function CampaignDetailsView() {
         </RecipientsSectionHeader>
         {isProjection && (
           <MutedText style={{ display: 'block', marginBottom: 10 }}>
-            Stan na dziś — ostateczna lista zostanie wyliczona w dniu wysyłki. Ręczne wykluczenia
+            Stan na dziś: ostateczna lista zostanie wyliczona w dniu wysyłki. Ręczne wykluczenia
             zostaną zachowane.
           </MutedText>
         )}
@@ -373,7 +373,7 @@ export function CampaignDetailsView() {
         {recipients.length > 0 ? (
           <>
             <SearchInput
-              placeholder="Szukaj po numerze lub adresie…"
+              placeholder="Szukaj po numerze lub adresie..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -388,9 +388,9 @@ export function CampaignDetailsView() {
                     <td>{r.address}</td>
                     <td>
                       {RECIPIENT_STATUS_LABELS[r.status]}
-                      {r.errorMessage && <MutedText> — {r.errorMessage}</MutedText>}
+                      {r.errorMessage && <MutedText>: {r.errorMessage}</MutedText>}
                     </td>
-                    <td><MutedText>{fmt(r.sentAt) ?? '—'}</MutedText></td>
+                    <td><MutedText>{fmt(r.sentAt) ?? '-'}</MutedText></td>
                     <td style={{ width: 36, padding: '6px 8px' }}>
                       {isRetryable(r.status) && (
                         <RetryRowBtn
@@ -418,7 +418,7 @@ export function CampaignDetailsView() {
                 {estimate.sample.map((s) => (
                   <tr key={s.customerId}>
                     <td>{[s.firstName, s.lastName].filter(Boolean).join(' ') || 'Klient'}</td>
-                    <td>{(projectionChannel === 'SMS' ? s.phone : s.email) ?? '—'}</td>
+                    <td>{(projectionChannel === 'SMS' ? s.phone : s.email) ?? '-'}</td>
                     <td>
                       <MutedText>
                         {s.eligibility === 'ELIGIBLE' ? 'Otrzyma' :

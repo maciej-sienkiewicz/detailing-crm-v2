@@ -425,7 +425,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     form="create-document-form"
                     disabled={createDoc.isPending}
                 >
-                    {createDoc.isPending ? 'Zapisywanie…' : 'Zapisz dokument'}
+                    {createDoc.isPending ? 'Zapisywanie...' : 'Zapisz dokument'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

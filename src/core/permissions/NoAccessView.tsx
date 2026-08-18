@@ -10,7 +10,7 @@ const Container = styled.div`
 /**
  * Landing page for an authenticated user whose role grants no permissions
  * (and who does not track work time). getDefaultRoute sends them here instead
- * of bouncing between gated routes. Deliberately calm — this is a
+ * of bouncing between gated routes. Deliberately calm, since this is a
  * configuration state, not an error: the administrator simply has not
  * assigned them a role yet.
  */

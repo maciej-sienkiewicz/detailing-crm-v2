@@ -122,7 +122,7 @@ export const DayTimelineView = ({
 
                                 <CardList>
                                     {colEvents.length === 0 ? (
-                                        <EmptyCol>—</EmptyCol>
+                                        <EmptyCol>-</EmptyCol>
                                     ) : (
                                         colEvents.map(ev => (
                                             <EventCard

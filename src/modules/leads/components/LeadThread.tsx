@@ -489,7 +489,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, leadI
                     });
                   }}
                 >
-                  {splitMutation.isPending ? '…' : 'Tak, wydziel'}
+                  {splitMutation.isPending ? '...' : 'Tak, wydziel'}
                 </SplitConfirmBtn>
                 <SplitConfirmBtn onClick={() => setConfirmSplit(false)}>Anuluj</SplitConfirmBtn>
               </SplitConfirm>
@@ -560,7 +560,7 @@ const CommentsTab: React.FC<CommentsTabProps> = ({ leadId, currentUserId, onSpli
             <SkeletonPulse $h="52px" $w="80%" />
           </>
         ) : comments.length === 0 ? (
-          <EmptyThread>Brak komentarzy — zacznij wewnętrzną rozmowę o tym leadzie</EmptyThread>
+          <EmptyThread>Brak komentarzy, zacznij wewnętrzną rozmowę o tym leadzie</EmptyThread>
         ) : (
           comments.map(c => (
             <CommentItem
@@ -576,7 +576,7 @@ const CommentsTab: React.FC<CommentsTabProps> = ({ leadId, currentUserId, onSpli
 
       <Composer>
         <ComposerTextarea
-          placeholder="Napisz notatkę lub komentarz… (Ctrl+Enter aby wysłać)"
+          placeholder="Napisz notatkę lub komentarz... (Ctrl+Enter aby wysłać)"
           value={draft}
           onChange={e => setDraft(capitalizeFirst(e.target.value))}
           onKeyDown={handleKeyDown}
@@ -842,7 +842,7 @@ const translateValue = (field: string, value: string | null): string | null => {
 
 const truncate = (s: string | null, max = 60): string => {
   if (!s) return '(brak)';
-  return s.length > max ? s.slice(0, max) + '…' : s;
+  return s.length > max ? s.slice(0, max) + '...' : s;
 };
 
 interface HistoryTabProps {
@@ -850,7 +850,7 @@ interface HistoryTabProps {
 }
 
 const renderChangeField = (c: FieldChange, i: number) => {
-  // status field — render colored pills FROM → TO
+  // status field: render colored pills FROM → TO
   if (c.field === 'status') {
     const fromColor = STATUS_COLORS[c.oldValue as LeadStatus] ?? '#64748b';
     const toColor   = STATUS_COLORS[c.newValue as LeadStatus] ?? '#64748b';
@@ -865,7 +865,7 @@ const renderChangeField = (c: FieldChange, i: number) => {
     );
   }
 
-  // items field (LEAD_QUOTE_UPDATED) — backend-formatted list, show in full
+  // items field (LEAD_QUOTE_UPDATED): backend-formatted list, show in full
   if (c.field === 'items') {
     return (
       <ChangeRow key={i} style={{ alignItems: 'flex-start' }}>
@@ -877,7 +877,7 @@ const renderChangeField = (c: FieldChange, i: number) => {
     );
   }
 
-  // content field (LEAD_COMMENT_UPDATED) — show full text, wrap
+  // content field (LEAD_COMMENT_UPDATED): show full text, wrap
   if (c.field === 'content') {
     return (
       <ChangeRow key={i} style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 3 }}>
@@ -961,7 +961,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
               <TlContent>
                 <TlAction>{ACTION_LABELS[entry.action] ?? entry.action}</TlAction>
 
-                {/* All changes (status pills, field diffs) — driven by changes[] */}
+                {/* All changes (status pills, field diffs): driven by changes[] */}
                 {renderChanges(entry.changes)}
 
                 {/* Fallback: legacy fromStatus/toStatus when no changes array */}

@@ -11,8 +11,8 @@ import { SERVICES_TABLE_GRID, formatPLN, vatLabel } from './servicesTable.helper
  * so the row contract is typed and the section file stays orchestration-only.
  *
  * Pricing rule: a service without a fixed price (`requireManualPrice`) shows a
- * "Wycena ręczna" badge in the PRICE column — pricing mode is a fact about the
- * price, not about the name — and the name column stays clean.
+ * "Wycena ręczna" badge in the PRICE column: pricing mode is a fact about the
+ * price, not about the name, so the name column stays clean.
  */
 
 export interface ServicesTableRowProps {

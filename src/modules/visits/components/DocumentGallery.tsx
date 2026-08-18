@@ -166,7 +166,7 @@ const PhotoOverlay = styled.div`
     gap: 6px;
     min-width: 0;
 
-    /* Two-up grid on a phone leaves ~140px per tile — the caption and the three
+    /* Two-up grid on a phone leaves ~140px per tile: the caption and the three
        icon buttons cannot share a line there, so the buttons get their own. */
     @media (max-width: 480px) {
         flex-direction: column;
@@ -235,7 +235,7 @@ const DeleteIconButton = styled(IconButton)`
     }
 `;
 
-// Tags strip — shown below the image box
+// Tags strip: shown below the image box
 const PhotoTagsStrip = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -348,7 +348,7 @@ const DocumentName = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
 
-    /* On a phone the name gets a whole line — wrap it instead of hiding half. */
+    /* On a phone the name gets a whole line, wrap it instead of hiding half. */
     @media (max-width: 640px) {
         white-space: normal;
         overflow-wrap: anywhere;
@@ -519,7 +519,7 @@ export const DocumentGallery = ({
         },
     });
 
-    // Memoized — this feeds the allPhotos/allTags/filteredPhotos memos below,
+    // Memoized: this feeds the allPhotos/allTags/filteredPhotos memos below,
     // which were recomputing on every render when this array got a new identity.
     const documentPhotos = useMemo(() => documents.filter(doc =>
         (doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP') && !isPdfFile(doc.fileName)

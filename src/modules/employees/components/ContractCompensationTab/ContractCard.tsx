@@ -155,7 +155,7 @@ export const ContractCard = ({
     // ── Salary display helpers ──
     const renderSalaryAmount = () => {
         const sb = contract.salaryBasis;
-        if (!sb) return <SalaryAmountValue>—</SalaryAmountValue>;
+        if (!sb) return <SalaryAmountValue>-</SalaryAmountValue>;
         if (sb.monthlySalaryGrossCents != null) {
             return (
                 <>
@@ -180,7 +180,7 @@ export const ContractCard = ({
                 </>
             );
         }
-        return <SalaryAmountValue>—</SalaryAmountValue>;
+        return <SalaryAmountValue>-</SalaryAmountValue>;
     };
 
     // ── Inactive summary salary text ──
@@ -197,7 +197,7 @@ export const ContractCard = ({
         if (a.monthlySalaryGrossCents != null) return formatCents(a.monthlySalaryGrossCents) + '/mies.';
         if (a.hourlyRateNetCents != null) return formatCents(a.hourlyRateNetCents) + '/h netto';
         if (a.hourlyRateGrossCents != null) return formatCents(a.hourlyRateGrossCents) + '/h brutto';
-        return '—';
+        return '-';
     };
 
     // ── Header date range ──
@@ -232,7 +232,7 @@ export const ContractCard = ({
                 )}
             </ContractCardHeader>
 
-            {/* ── Active contract – full body ── */}
+            {/* ── Active contract: full body ── */}
             {contract.isActive ? (
                 <ContractBody>
                     {/* Left: salary */}
@@ -294,7 +294,7 @@ export const ContractCard = ({
                     </ComponentsSection>
                 </ContractBody>
             ) : (
-                /* ── Inactive contract – compact summary ── */
+                /* ── Inactive contract: compact summary ── */
                 <InactiveSummary>
                     {contract.salaryBasis && (
                         <InactiveSalarySummary>{inactiveSalarySummary()}</InactiveSalarySummary>

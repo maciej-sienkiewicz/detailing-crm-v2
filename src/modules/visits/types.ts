@@ -106,7 +106,7 @@ export interface CustomerInfo {
     email: string;
     phone: string;
     companyName?: string;
-    /** NIP z kartoteki — wypełnia nabywcę faktury przy wydaniu pojazdu. */
+    /** NIP z kartoteki: wypełnia nabywcę faktury przy wydaniu pojazdu. */
     companyNip?: string | null;
     companyAddress?: CustomerCompanyAddress | null;
     stats: {

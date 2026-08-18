@@ -254,7 +254,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
           <div>
             {draft.enabled
               ? 'Wychodzi do klienta automatycznie.'
-              : 'Możesz edytować szablon — nic nie zostanie wysłane.'}
+              : 'Możesz edytować szablon, nic nie zostanie wysłane.'}
           </div>
         </SwitchText>
         <Track
@@ -316,7 +316,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
           <TextInput
             type="text"
             value={subject}
-            placeholder="Wpisz temat wiadomości…"
+            placeholder="Wpisz temat wiadomości..."
             onChange={e => onPatch({ subject: e.target.value })}
           />
         </Field>
@@ -335,7 +335,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
         <TextArea
           $over={isSms && segments > 2}
           value={draft.body}
-          placeholder={isSms ? 'Wpisz treść wiadomości SMS…' : 'Wpisz treść wiadomości email…'}
+          placeholder={isSms ? 'Wpisz treść wiadomości SMS...' : 'Wpisz treść wiadomości email...'}
           onChange={e => onPatch({ body: e.target.value })}
         />
         <Meter>
@@ -348,7 +348,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
         <Warn>
           <span aria-hidden="true">△</span>
           <span>
-            Ta wiadomość nie zna zmiennych {unknown.map(v => `{{${v}}}`).join(', ')} — usuń je lub
+            Ta wiadomość nie zna zmiennych {unknown.map(v => `{{${v}}}`).join(', ')}: usuń je lub
             wpisz wartość wprost. Zapis zostanie odrzucony.
           </span>
         </Warn>

@@ -7,7 +7,7 @@ import type { CreateRoleRequest } from './rbacTypes';
  * picking a template is one click inside the employee form, and the full permission
  * editor stays available for the studios whose structure doesn't match any of these.
  *
- * Only the meaningful permissions are listed — the backend closes the set over the
+ * Only the meaningful permissions are listed; the backend closes the set over the
  * permission dependency graph, so implied parents don't need spelling out.
  */
 export interface RoleTemplate {
@@ -23,7 +23,7 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
     {
         id: 'detailer',
         name: 'Detailer',
-        summary: 'Wykonuje wizyty — bez cen, finansów i ustawień',
+        summary: 'Wykonuje wizyty, bez cen, finansów i ustawień',
         permissions: ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'TASKS_VIEW'],
         trackWorkTime: true,
     },
@@ -40,7 +40,7 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
     {
         id: 'manager',
         name: 'Menedżer',
-        summary: 'Prowadzi studio — zespół, raporty i marketing',
+        summary: 'Prowadzi studio: zespół, raporty i marketing',
         permissions: [
             'VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'VISITS_SERVICE_PRICES_VIEW',
             'BATCH_ORDERS', 'COMMUNICATION_SEND', 'MARKETING_MANAGE',

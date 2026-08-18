@@ -111,7 +111,7 @@ const EntryCard = styled.button`
     @media (max-width: 480px) {
         flex-direction: column;
         /* stretch, not flex-start: in a column the cross axis is horizontal, and
-           flex-start lets the children size to max-content — which is how a long
+           flex-start lets the children size to max-content, which is how a long
            recipient address used to drag the card past the screen edge. */
         align-items: stretch;
         gap: 8px;
@@ -145,7 +145,7 @@ const EntryMeta = styled.span`
     flex-wrap: wrap;
     row-gap: 2px;
     min-width: 0;
-    /* Recipient is an e-mail address — one long unbreakable token. */
+    /* Recipient is an e-mail address: one long unbreakable token. */
     overflow-wrap: anywhere;
 `;
 
