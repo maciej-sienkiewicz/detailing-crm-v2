@@ -343,6 +343,43 @@ export const HiddenInput = styled.input`
     display: none;
 `;
 
+/** Camera + gallery side by side — one tap each, no hidden picker menu. */
+export const CaptureRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+
+    > * {
+        margin-bottom: 0;
+        padding: 16px 10px;
+        font-size: 15px;
+        text-align: center;
+    }
+
+    @media (max-width: 330px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+/** Secondary variant of [CameraBtn] used for the gallery picker. */
+export const GalleryBtn = styled(CameraBtn)`
+    background: rgba(255, 255, 255, 0.07);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: none;
+`;
+
+export const PreparingLabel = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+`;
+
 // ─── Loading / expired ────────────────────────────────────────────────────────
 
 export const ExpiredScreen = styled.div`

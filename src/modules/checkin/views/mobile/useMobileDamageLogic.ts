@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { checkinApi } from '../../api/checkinApi';
+import { prepareImageOrExplain } from '../../services/imageUploadPrep';
+import { describeUploadError } from './uploadErrors';
 import type { AnnotationStroke, DamagePoint, DamagePointPhoto } from '../../types';
 import type { SaveStatus } from './MobilePhotoUpload.styles';
 
 const DEBOUNCE_MS = 1_800;
 const LS_KEY = (token: string) => `mobile-damage-${token}`;
-
-const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
-const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 export interface MobileDamageLogic {
     damagePoints: DamagePoint[];
@@ -171,15 +170,6 @@ export function useMobileDamageLogic(
         const created: DamagePointPhoto[] = [];
 
         for (const file of files) {
-            if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
-                alert(`Nieobsługiwany format: ${file.type}. Używaj JPEG, PNG lub WebP.`);
-                continue;
-            }
-            if (file.size > MAX_PHOTO_SIZE_BYTES) {
-                alert(`Plik "${file.name}" przekracza 10 MB.`);
-                continue;
-            }
-
             const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
             const previewUrl = URL.createObjectURL(file);
             const placeholder: DamagePointPhoto = {
@@ -195,20 +185,32 @@ export function useMobileDamageLogic(
                 p.id === pointId ? { ...p, photos: [...(p.photos ?? []), placeholder] } : p
             ));
 
-            checkinApi.uploadMobilePhoto(file, file.name, token)
-                .then(res => {
-                    updatePoints(mutatePhoto(pointsRef.current, pointId, localId, ph => ({
-                        ...ph,
-                        photoId: res.photoId,
-                        status: 'done',
-                    })));
+            const markFailed = () => updatePoints(
+                mutatePhoto(pointsRef.current, pointId, localId, ph => ({ ...ph, status: 'failed' }))
+            );
+
+            // Gallery picks are raw originals (HEIC, >10 MB) — normalise before uploading
+            prepareImageOrExplain(file)
+                .then(prepared => {
+                    if (!prepared.file) {
+                        markFailed();
+                        alert(prepared.error);
+                        return;
+                    }
+                    return checkinApi.uploadMobilePhoto(prepared.file, prepared.file.name, token)
+                        .then(res => {
+                            updatePoints(mutatePhoto(pointsRef.current, pointId, localId, ph => ({
+                                ...ph,
+                                photoId: res.photoId,
+                                status: 'done',
+                            })));
+                        })
+                        .catch(err => {
+                            markFailed();
+                            console.warn('[mobile-damage] photo upload failed:', describeUploadError(err));
+                        });
                 })
-                .catch(() => {
-                    updatePoints(mutatePhoto(pointsRef.current, pointId, localId, ph => ({
-                        ...ph,
-                        status: 'failed',
-                    })));
-                });
+                .catch(markFailed);
         }
 
         return created;

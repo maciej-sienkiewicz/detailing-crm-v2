@@ -424,7 +424,8 @@ export interface PendingPhoto {
     mimeType: string;
     fileData: ArrayBuffer;
     queuedAt: number;
-    status: 'pending' | 'uploading' | 'failed';
+    /** 'done' records stay in the queue so a reopened page can show what was sent. */
+    status: 'pending' | 'uploading' | 'failed' | 'done';
     error?: string;
     uploadedPhotoId?: string;
 }

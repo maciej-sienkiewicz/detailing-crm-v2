@@ -8,7 +8,10 @@ import {
     ProgressFill,
     ProgressLabel,
     CameraBtn,
+    CaptureRow,
+    GalleryBtn,
     HiddenInput,
+    PreparingLabel,
     PhotoList,
     PhotoCard,
     PhotoImg,
@@ -34,6 +37,7 @@ export const MobilePhotoSection = ({ logic }: Props) => {
         totalCount,
         progressPct,
         hasPending,
+        preparingCount,
         handleFileChange,
         handleRetry,
         handleRemove,
@@ -69,16 +73,29 @@ export const MobilePhotoSection = ({ logic }: Props) => {
             )}
 
             <InfoCard>
-                Naciśnij przycisk poniżej, aby otworzyć aparat. Możesz dodać dowolną liczbę zdjęć.
+                Zrób zdjęcie aparatem lub wybierz gotowe z galerii telefonu.
+                Możesz dodać dowolną liczbę zdjęć.
             </InfoCard>
 
-            <CameraBtn htmlFor="camera-input-mobile">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                </svg>
-                Zrób zdjęcie / Dodaj z galerii
-            </CameraBtn>
+            {/* Two separate inputs: `capture` forces the camera, so the gallery needs its
+                own input without it — a single combined button never offers the gallery. */}
+            <CaptureRow>
+                <CameraBtn htmlFor="camera-input-mobile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    Zrób zdjęcie
+                </CameraBtn>
+                <GalleryBtn htmlFor="gallery-input-mobile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    Dodaj z galerii
+                </GalleryBtn>
+            </CaptureRow>
             <HiddenInput
                 id="camera-input-mobile"
                 type="file"
@@ -87,6 +104,19 @@ export const MobilePhotoSection = ({ logic }: Props) => {
                 multiple
                 onChange={handleFileChange}
             />
+            <HiddenInput
+                id="gallery-input-mobile"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+            />
+
+            {preparingCount > 0 && (
+                <PreparingLabel>
+                    Przygotowywanie {preparingCount === 1 ? 'zdjęcia' : 'zdjęć'}…
+                </PreparingLabel>
+            )}
 
             <PhotoList>
                 {photos.map((photo, idx) => (
