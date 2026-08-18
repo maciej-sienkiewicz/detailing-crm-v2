@@ -20,7 +20,10 @@ import {
     Inbox,
     Mail,
     MailOpen,
+    Maximize2,
     Paperclip,
+    PanelLeftClose,
+    PanelLeftOpen,
     PanelRightClose,
     PanelRightOpen,
     RefreshCw,
@@ -51,6 +54,7 @@ import { MessageBody } from '../components/MessageBody';
 import { ReplyComposer } from '../components/ReplyComposer';
 import { InsightsPanel } from '../components/InsightsPanel';
 import { MarkAsLeadPopover } from '../components/MarkAsLeadPopover';
+import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import {
     EmptyHint,
     FilterChip,
@@ -95,6 +99,7 @@ const Screen = styled.div`
 `;
 
 const AppCard = styled(SurfaceCard)`
+    position: relative;
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -110,7 +115,7 @@ const AppCard = styled(SurfaceCard)`
 
 // ── Panel folderów (desktop ≥1024) ───────────────────────────────────────────
 
-const FolderRail = styled.nav`
+const FolderRail = styled.nav<{ $open: boolean }>`
     width: 208px;
     flex-shrink: 0;
     border-right: 1px solid ${p => p.theme.colors.border};
@@ -122,7 +127,9 @@ const FolderRail = styled.nav`
     overflow-y: auto;
     min-height: 0;
 
-    @media (min-width: ${p => p.theme.breakpoints.lg}) { display: flex; }
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
+        display: ${({ $open }) => ($open ? 'flex' : 'none')};
+    }
 `;
 
 const FolderButton = styled.button<{ $active: boolean }>`
@@ -246,7 +253,34 @@ const MobileChipsRow = styled.div`
     @media (min-width: ${p => p.theme.breakpoints.lg}) { display: none; }
 `;
 
+const SearchRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const RailToggle = styled.button`
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
+    border-radius: ${p => p.theme.radii.full};
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+
+    @media (min-width: ${p => p.theme.breakpoints.lg}) { display: inline-flex; }
+`;
+
 const SearchInput = styled.div`
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -466,6 +500,22 @@ const MessageHeader = styled.header`
     }
 `;
 
+const ExpandIconButton = styled.button`
+    border: none;
+    background: none;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: ${p => p.theme.radii.sm};
+
+    &:hover {
+        color: ${p => p.theme.colors.textSecondary};
+        background: ${p => p.theme.colors.surfaceAlt};
+    }
+`;
+
 const MessagePadding = styled.div`
     padding: 0 14px 12px;
 `;
@@ -541,11 +591,24 @@ export default function MailView() {
     const [insightsOpen, setInsightsOpen] = useState(
         () => window.matchMedia('(min-width: 1440px)').matches
     );
+    // Panel folderów zwijany na życzenie; wybór pamiętany między sesjami.
+    const [railOpen, setRailOpen] = useState(
+        () => window.localStorage.getItem('comms.railOpen') !== 'false'
+    );
+    const [fullMessageId, setFullMessageId] = useState<string | null>(null);
     const { showInfo } = useToast();
+
+    const toggleRail = () => {
+        setRailOpen((open) => {
+            window.localStorage.setItem('comms.railOpen', String(!open));
+            return !open;
+        });
+    };
 
     const selectedThreadId = searchParams.get('thread');
     const selectThread = useCallback(
         (threadId: string | null) => {
+            setFullMessageId(null);
             setSearchParams(threadId ? { thread: threadId } : {}, { replace: true });
         },
         [setSearchParams]
@@ -627,6 +690,7 @@ export default function MailView() {
 
     const knownClient = insights?.customer ?? null;
     const conversationOpen = Boolean(detail);
+    const fullMessage = detail?.messages.find((message) => message.id === fullMessageId) ?? null;
 
     if (accounts && accountsConnected.length === 0) {
         return (
@@ -654,7 +718,7 @@ export default function MailView() {
     return (
         <Screen>
             <AppCard>
-                <FolderRail>
+                <FolderRail $open={railOpen}>
                     <FolderButton $active={folder.kind === 'inbox'} onClick={() => changeFolder({ kind: 'inbox' })}>
                         <Inbox size={15} /> Odebrane
                         {threadPage && threadPage.totalUnread > 0 && (
@@ -754,14 +818,23 @@ export default function MailView() {
                                 </FilterChip>
                             ))}
                         </MobileChipsRow>
-                        <SearchInput>
-                            <Search size={14} />
-                            <input
-                                placeholder="Szukaj po adresie, nazwie, temacie…"
-                                value={query}
-                                onChange={(event) => { setQuery(event.target.value); setPage(0); }}
-                            />
-                        </SearchInput>
+                        <SearchRow>
+                            <RailToggle
+                                onClick={toggleRail}
+                                aria-label={railOpen ? 'Ukryj foldery' : 'Pokaż foldery'}
+                                title={railOpen ? 'Ukryj foldery' : 'Pokaż foldery'}
+                            >
+                                {railOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+                            </RailToggle>
+                            <SearchInput>
+                                <Search size={14} />
+                                <input
+                                    placeholder="Szukaj po adresie, nazwie, temacie…"
+                                    value={query}
+                                    onChange={(event) => { setQuery(event.target.value); setPage(0); }}
+                                />
+                            </SearchInput>
+                        </SearchRow>
                     </ListHeader>
                     <ThreadListScroll>
                         {threadPage && threadPage.items.length === 0 && (
@@ -935,7 +1008,18 @@ export default function MailView() {
                                                 <small>{message.fromEmail}</small>
                                             </span>
                                             <span className="meta">
-                                                {formatDateTime(message.sentAt)}
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                    {formatDateTime(message.sentAt)}
+                                                    {message.bodyHtml && (
+                                                        <ExpandIconButton
+                                                            onClick={() => setFullMessageId(message.id)}
+                                                            aria-label="Wyświetl w pełnym widoku"
+                                                            title="Wyświetl w pełnym widoku"
+                                                        >
+                                                            <Maximize2 size={13} />
+                                                        </ExpandIconButton>
+                                                    )}
+                                                </span>
                                                 {message.direction === 'INBOUND' && message.isRead
                                                     && message.readSource === 'EXTERNAL' && (
                                                     <div>przeczytano w innym kliencie</div>
@@ -944,7 +1028,12 @@ export default function MailView() {
                                         </MessageHeader>
                                         <MessagePadding>
                                             {message.bodyHtml
-                                                ? <MessageBody html={message.bodyHtml} />
+                                                ? (
+                                                    <MessageBody
+                                                        html={message.bodyHtml}
+                                                        onOpenFull={() => setFullMessageId(message.id)}
+                                                    />
+                                                )
                                                 : <EmptyHint>(pusta wiadomość)</EmptyHint>}
                                         </MessagePadding>
                                         {message.attachments.length > 0 && (
@@ -977,6 +1066,15 @@ export default function MailView() {
                     <InsightsPanel
                         email={detail?.thread.participantEmail ?? null}
                         threadId={detail?.thread.id}
+                        participantName={detail?.thread.participantName}
+                        onSelectThread={selectThread}
+                    />
+                )}
+                {fullMessage && (
+                    <MessageReaderOverlay
+                        message={fullMessage}
+                        onClose={() => setFullMessageId(null)}
+                        onDownloadAttachment={downloadAttachment}
                     />
                 )}
             </AppCard>
