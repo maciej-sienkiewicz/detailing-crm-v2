@@ -1,12 +1,27 @@
 // src/modules/comms/components/InsightsPanel.tsx
 // Kontekst CRM dla otwartej konwersacji: czy znamy ten adres, ile razy klient
 // u nas był i ile zostawił, o co pytał wcześniej, jakie ma rezerwacje i leady.
-// Panel jest sterowany z zewnątrz (chowany na mniejszych ekranach).
+// Panel jest interaktywny: karta klienta prowadzi do jego profilu, nowy kontakt
+// można od razu założyć w kartotece, a wcześniejsze rozmowy otwierają się kliknięciem.
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import styled from 'styled-components';
-import { CalendarClock, History, Mail, Phone, UserCheck, UserPlus, Wallet } from 'lucide-react';
-import { useContactInsights } from '../hooks/useComms';
+import {
+    CalendarClock,
+    ChevronRight,
+    History,
+    Mail,
+    Phone,
+    UserCheck,
+    UserPlus,
+    Wallet,
+} from 'lucide-react';
+import { AddCustomerModal } from '@/modules/customers';
+import { useToast } from '@/common/components/Toast';
+import { COMMS_INSIGHTS_KEY, useContactInsights } from '../hooks/useComms';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS } from '../types';
-import { EmptyHint, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
+import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
 const Panel = styled.aside`
     width: 300px;
@@ -39,10 +54,41 @@ const SectionTitle = styled.h4`
     gap: 6px;
 `;
 
-const CustomerName = styled.div`
-    font-size: 14px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${p => p.theme.colors.text};
+/** Cała wizytówka znanego klienta jest klikalna — prowadzi do jego profilu. */
+const CustomerCardButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    border-radius: ${p => p.theme.radii.md};
+    padding: 10px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        border-color: ${p => p.theme.colors.primary};
+        box-shadow: ${p => p.theme.shadows.sm};
+    }
+
+    .grow { flex: 1; min-width: 0; }
+    .name {
+        font-size: 14px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .hint {
+        font-size: 11px;
+        color: ${p => p.theme.colors.primary};
+        font-weight: ${p => p.theme.fontWeights.medium};
+    }
+    svg.chev { color: ${p => p.theme.colors.textMuted}; flex-shrink: 0; }
 `;
 
 const Muted = styled.div`
@@ -51,6 +97,7 @@ const Muted = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
+    overflow-wrap: anywhere;
 `;
 
 /** Dwie liczby, które zmieniają ton odpowiedzi: ile wizyt i ile pieniędzy. */
@@ -58,7 +105,6 @@ const ClientStats = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    margin-top: 4px;
 `;
 
 const StatBox = styled.div`
@@ -100,7 +146,7 @@ const HighlightCard = styled.div<{ $tone: 'green' | 'blue' }>`
     strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
 `;
 
-const ThreadRow = styled.div`
+const RowCard = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -125,7 +171,21 @@ const ThreadRow = styled.div`
     }
 `;
 
-const LeadRow = styled(ThreadRow)`
+/** Wariant klikalny — wcześniejsza rozmowa otwiera się w liście wątków. */
+const ClickableRow = styled(RowCard).attrs({ as: 'button' })`
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        border-color: ${p => p.theme.colors.primary};
+        background: ${p => p.theme.colors.surfaceHover};
+    }
+`;
+
+const LeadRow = styled(ClickableRow)`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -135,46 +195,76 @@ const LeadRow = styled(ThreadRow)`
 interface InsightsPanelProps {
     email: string | null;
     threadId?: string;
+    /** Nazwa nadawcy z wątku — podpowiedź przy zakładaniu kartoteki. */
+    participantName?: string | null;
+    /** Otwiera wskazany wątek w liście — używane przez „wcześniejsze rozmowy". */
+    onSelectThread?: (threadId: string) => void;
 }
 
-export function InsightsPanel({ email, threadId }: InsightsPanelProps) {
+export function InsightsPanel({
+    email,
+    threadId,
+    participantName,
+    onSelectThread,
+}: InsightsPanelProps) {
     const { data, isLoading } = useContactInsights(email, threadId);
+    const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { showSuccess } = useToast();
 
     if (!email) return null;
+
+    const customer = data?.customer ?? null;
 
     return (
         <Panel>
             <Section>
                 <SectionTitle>
-                    {data?.customer ? <UserCheck size={13} /> : <UserPlus size={13} />}
-                    Kontakt
+                    {customer ? <UserCheck size={13} /> : <UserPlus size={13} />}
+                    Klient
                 </SectionTitle>
                 {isLoading && <Muted>Wczytywanie…</Muted>}
-                {data && data.customer && (
+
+                {customer && (
                     <>
-                        <CustomerName>{data.customer.name ?? email}</CustomerName>
+                        <CustomerCardButton
+                            onClick={() => navigate(`/customers/${customer.id}`)}
+                            title="Otwórz profil klienta"
+                        >
+                            <div className="grow">
+                                <div className="name">{customer.name ?? email}</div>
+                                <div className="hint">Otwórz profil klienta</div>
+                            </div>
+                            <ChevronRight className="chev" size={16} />
+                        </CustomerCardButton>
                         <Muted><Mail size={12} /> {email}</Muted>
-                        {data.customer.phone && (
-                            <Muted><Phone size={12} /> {data.customer.phone}</Muted>
-                        )}
+                        {customer.phone && <Muted><Phone size={12} /> {customer.phone}</Muted>}
                         <ClientStats>
                             <StatBox>
-                                <div className="value">{data.customer.completedVisitCount}</div>
+                                <div className="value">{customer.completedVisitCount}</div>
                                 <div className="label"><CalendarClock size={10} /> wizyt</div>
                             </StatBox>
                             <StatBox>
-                                <div className="value">{formatGrosze(data.customer.totalSpentGross)}</div>
+                                <div className="value">{formatGrosze(customer.totalSpentGross)}</div>
                                 <div className="label"><Wallet size={10} /> wydał u nas</div>
                             </StatBox>
                         </ClientStats>
                     </>
                 )}
-                {data && !data.customer && (
+
+                {data && !customer && (
                     <>
-                        <CustomerName>{email}</CustomerName>
+                        <Muted><Mail size={12} /> {email}</Muted>
                         <div>
                             <Pill $bg="#eff6ff" $fg="#1d4ed8">Nowy kontakt</Pill>
                         </div>
+                        <IconButton
+                            style={{ alignSelf: 'flex-start' }}
+                            onClick={() => setAddCustomerOpen(true)}
+                        >
+                            <UserPlus /> Dodaj do kartoteki
+                        </IconButton>
                     </>
                 )}
             </Section>
@@ -197,7 +287,11 @@ export function InsightsPanel({ email, threadId }: InsightsPanelProps) {
                     {data.leads.map((lead) => {
                         const colors = LEAD_STATUS_COLORS[lead.status];
                         return (
-                            <LeadRow key={lead.id}>
+                            <LeadRow
+                                key={lead.id}
+                                onClick={() => navigate(`/leads?lead=${lead.id}`)}
+                                title="Otwórz lead"
+                            >
                                 <div>
                                     <strong>{formatGrosze(lead.estimatedValue)}</strong>
                                     <span> · {formatRelativeTime(lead.createdAt)}</span>
@@ -218,11 +312,15 @@ export function InsightsPanel({ email, threadId }: InsightsPanelProps) {
                         <EmptyHint>To pierwsza rozmowa z tym adresem</EmptyHint>
                     )}
                     {data.previousThreads.map((thread) => (
-                        <ThreadRow key={thread.id}>
+                        <ClickableRow
+                            key={thread.id}
+                            onClick={() => onSelectThread?.(thread.id)}
+                            title="Otwórz tę rozmowę"
+                        >
                             <strong>{thread.subject ?? '(bez tematu)'}</strong>
                             {thread.snippet && <p>{thread.snippet}</p>}
                             <span>{formatRelativeTime(thread.lastMessageAt)}</span>
-                        </ThreadRow>
+                        </ClickableRow>
                     ))}
                 </Section>
             )}
@@ -231,13 +329,30 @@ export function InsightsPanel({ email, threadId }: InsightsPanelProps) {
                 <Section>
                     <SectionTitle>Poprzednie wizyty</SectionTitle>
                     {data.pastAppointments.map((appointment) => (
-                        <ThreadRow key={appointment.id}>
+                        <RowCard key={appointment.id}>
                             <strong>{appointment.title ?? 'Wizyta'}</strong>
                             <span>{formatDateTime(appointment.startDateTime)}</span>
-                        </ThreadRow>
+                        </RowCard>
                     ))}
                 </Section>
             )}
+
+            <AddCustomerModal
+                isOpen={addCustomerOpen}
+                onClose={() => setAddCustomerOpen(false)}
+                onSuccess={() => {
+                    setAddCustomerOpen(false);
+                    // Panel natychmiast pokazuje klienta z kartoteki zamiast „nowy kontakt".
+                    queryClient.invalidateQueries({ queryKey: COMMS_INSIGHTS_KEY });
+                    showSuccess('Klient dodany do kartoteki');
+                }}
+                initialValues={{
+                    email,
+                    // Nazwa z nagłówka maila jako podpowiedź — użytkownik i tak ją potwierdza.
+                    firstName: participantName?.trim().split(/\s+/)[0],
+                    lastName: participantName?.trim().split(/\s+/).slice(1).join(' ') || undefined,
+                }}
+            />
         </Panel>
     );
 }
