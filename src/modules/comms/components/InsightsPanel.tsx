@@ -1,8 +1,9 @@
 // src/modules/comms/components/InsightsPanel.tsx
-// Kontekst CRM dla otwartej konwersacji: czy znamy ten adres, o co pytał wcześniej,
-// jakie ma rezerwacje i leady. Wypełnia się sam — zero klikania.
+// Kontekst CRM dla otwartej konwersacji: czy znamy ten adres, ile razy klient
+// u nas był i ile zostawił, o co pytał wcześniej, jakie ma rezerwacje i leady.
+// Panel jest sterowany z zewnątrz (chowany na mniejszych ekranach).
 import styled from 'styled-components';
-import { CalendarClock, History, Mail, Phone, UserCheck, UserPlus } from 'lucide-react';
+import { CalendarClock, History, Mail, Phone, UserCheck, UserPlus, Wallet } from 'lucide-react';
 import { useContactInsights } from '../hooks/useComms';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS } from '../types';
 import { EmptyHint, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
@@ -10,18 +11,17 @@ import { EmptyHint, Pill, formatDateTime, formatGrosze, formatRelativeTime } fro
 const Panel = styled.aside`
     width: 300px;
     flex-shrink: 0;
-    border-left: 1px solid #e5e7eb;
-    background: #fafafa;
+    border-left: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surfaceAlt};
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-
-    @media (max-width: 1200px) { display: none; }
+    min-height: 0;
 `;
 
 const Section = styled.section`
     padding: 14px 16px;
-    border-bottom: 1px solid #eef0f2;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -30,10 +30,10 @@ const Section = styled.section`
 const SectionTitle = styled.h4`
     margin: 0;
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #9ca3af;
+    color: ${p => p.theme.colors.textMuted};
     display: flex;
     align-items: center;
     gap: 6px;
@@ -41,27 +41,63 @@ const SectionTitle = styled.h4`
 
 const CustomerName = styled.div`
     font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.text};
 `;
 
 const Muted = styled.div`
     font-size: 12px;
-    color: #6b7280;
+    color: ${p => p.theme.colors.textSecondary};
     display: flex;
     align-items: center;
     gap: 6px;
 `;
 
+/** Dwie liczby, które zmieniają ton odpowiedzi: ile wizyt i ile pieniędzy. */
+const ClientStats = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+`;
+
+const StatBox = styled.div`
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    padding: 8px 10px;
+
+    .value {
+        font-size: 15px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+        line-height: 1.2;
+    }
+    .label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: ${p => p.theme.colors.textMuted};
+        margin-top: 2px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+`;
+
 const HighlightCard = styled.div<{ $tone: 'green' | 'blue' }>`
-    border-radius: 8px;
+    border-radius: ${p => p.theme.radii.md};
     padding: 10px 12px;
     font-size: 13px;
-    background: ${({ $tone }) => ($tone === 'green' ? '#f0fdf4' : '#eff6ff')};
-    color: ${({ $tone }) => ($tone === 'green' ? '#166534' : '#1e40af')};
+    background: ${({ $tone, theme }) =>
+        $tone === 'green' ? theme.colors.successLight : '#eff6ff'};
+    color: ${({ $tone, theme }) => ($tone === 'green' ? theme.colors.success : '#1e40af')};
     display: flex;
     flex-direction: column;
     gap: 2px;
+
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
 `;
 
 const ThreadRow = styled.div`
@@ -69,13 +105,24 @@ const ThreadRow = styled.div`
     flex-direction: column;
     gap: 2px;
     padding: 8px 10px;
-    background: #ffffff;
-    border: 1px solid #eef0f2;
-    border-radius: 8px;
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
 
-    strong { font-size: 12px; color: #374151; font-weight: 600; }
-    span { font-size: 12px; color: #9ca3af; }
-    p { margin: 0; font-size: 12px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    strong {
+        font-size: 12px;
+        color: ${p => p.theme.colors.textSecondary};
+        font-weight: ${p => p.theme.fontWeights.semibold};
+    }
+    span { font-size: 12px; color: ${p => p.theme.colors.textMuted}; }
+    p {
+        margin: 0;
+        font-size: 12px;
+        color: ${p => p.theme.colors.textSecondary};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 `;
 
 const LeadRow = styled(ThreadRow)`
@@ -110,13 +157,24 @@ export function InsightsPanel({ email, threadId }: InsightsPanelProps) {
                         {data.customer.phone && (
                             <Muted><Phone size={12} /> {data.customer.phone}</Muted>
                         )}
-                        <Pill $bg="#f0fdf4" $fg="#15803d">Znany klient</Pill>
+                        <ClientStats>
+                            <StatBox>
+                                <div className="value">{data.customer.completedVisitCount}</div>
+                                <div className="label"><CalendarClock size={10} /> wizyt</div>
+                            </StatBox>
+                            <StatBox>
+                                <div className="value">{formatGrosze(data.customer.totalSpentGross)}</div>
+                                <div className="label"><Wallet size={10} /> wydał u nas</div>
+                            </StatBox>
+                        </ClientStats>
                     </>
                 )}
                 {data && !data.customer && (
                     <>
                         <CustomerName>{email}</CustomerName>
-                        <Pill $bg="#eff6ff" $fg="#1d4ed8">Nowy kontakt</Pill>
+                        <div>
+                            <Pill $bg="#eff6ff" $fg="#1d4ed8">Nowy kontakt</Pill>
+                        </div>
                     </>
                 )}
             </Section>
