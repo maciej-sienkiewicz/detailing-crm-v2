@@ -30,9 +30,8 @@ import { useAuth } from '@/core/context/AuthContext';
 import { usePermissions, ANY_FINANCE, ANY_DASHBOARD } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
-import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
+import { useNewLeadsCount, useUnreadMailCount, useCommsSocket } from '@/modules/comms';
 import { useMyTasksUnreadCount } from '@/modules/notifications';
-import { useLeadSocket } from '@/modules/leads/hooks/useLeadSocket';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import type { MenuItem } from './SidebarMenuItem';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
@@ -67,6 +66,7 @@ type GuardedMenuSection = { title?: string; items: GuardedMenuItem[] };
 
 const buildMenuSections = (
     newLeadsCount: number,
+    unreadMailCount: number,
     unreadNotifications: number,
     can: (required: PermissionRequirement) => boolean,
     trackWorkTime: boolean,
@@ -84,8 +84,8 @@ const buildMenuSections = (
                 { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
                 { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
                 { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
+                { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
-                { path: '/communication', label: 'Zapytania', icon: Mail, requires: 'LEADS_MANAGE' },
             ],
         },
         {
@@ -155,12 +155,13 @@ export const Sidebar = () => {
 
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
+    const unreadMailCount = useUnreadMailCount({ enabled: can('LEADS_MANAGE') });
     // Badge for the task inbox, only fetched by users who actually see the tab.
     const unreadNotifications = useMyTasksUnreadCount({ enabled: !can(ANY_DASHBOARD) });
 
     // Persistent WebSocket connection for the entire CRM session
-    useLeadSocket();
-    const menuSections = buildMenuSections(newLeadsCount, unreadNotifications, can, user?.trackWorkTime ?? false);
+    useCommsSocket();
+    const menuSections = buildMenuSections(newLeadsCount, unreadMailCount, unreadNotifications, can, user?.trackWorkTime ?? false);
 
     // Register the current user in localStorage so the switcher can list them.
     // Runs whenever the logged-in user changes (login / PIN switch).
