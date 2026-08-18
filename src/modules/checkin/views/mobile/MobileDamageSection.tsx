@@ -56,10 +56,10 @@ interface Props {
 }
 
 const SAVE_LABELS: Record<string, string> = {
-    saving:  '⟳ Zapisywanie...',
+    saving:  '⟳ Zapisywanie…',
     saved:   '✓ Zapisano',
-    error:   '✗ Błąd zapisu, spróbuj ponownie',
-    offline: '◷ Offline, zostanie zapisane po połączeniu',
+    error:   '✗ Błąd zapisu — spróbuj ponownie',
+    offline: '◷ Offline — zostanie zapisane po połączeniu',
 };
 
 export const MobileDamageSection = ({ logic }: Props) => {
@@ -79,6 +79,24 @@ export const MobileDamageSection = ({ logic }: Props) => {
     // Guard against touch→click double-fire on mobile browsers
     const touchJustFiredRef = useRef(false);
 
+    /** Shared by the camera and the gallery input of a damage point. */
+    const handleDamagePhotoPick = useCallback((
+        pointId: number,
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const files = Array.from(e.target.files ?? []);
+        // Reset first so picking the same file again still fires onChange
+        e.target.value = '';
+        if (files.length === 0) return;
+
+        const created = attachPhotos(pointId, files);
+        // Open the annotation editor straight away for the first photo — no extra tap
+        // needed to start drawing.
+        if (created.length > 0) {
+            setAnnotating({ pointId, photo: created[0] });
+        }
+    }, [attachPhotos]);
+
     // ─── Point management (Moved up to fix TDZ / "Cannot access before initialization") ─────
 
     const addPoint = useCallback((x: number, y: number) => {
@@ -97,7 +115,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
         }, 80);
     }, [damagePoints, updatePoints]);
 
-    // Always-current ref: stable event handlers call this to avoid stale closure
+    // Always-current ref — stable event handlers call this to avoid stale closure
     // Now safely initialized after addPoint is defined
     const addPointRef = useRef(addPoint);
     addPointRef.current = addPoint;
@@ -216,7 +234,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 <VehicleImage
                     ref={imageRef}
                     src={`/assets/${vehicleType}.webp`}
-                    alt={`Schemat pojazdu: ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
+                    alt={`Schemat pojazdu — ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
                     draggable={false}
                     onContextMenu={e => e.preventDefault()}
                 />
@@ -295,7 +313,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                 </DamageDeleteBtn>
                             </DamageItemHeader>
                             <DamageNoteInput
-                                placeholder={`Opisz uszkodzenie #${getNumber(point.id)} (np. rysa, wgniecenie, odprysk lakieru...)`}
+                                placeholder={`Opisz uszkodzenie #${getNumber(point.id)} (np. rysa, wgniecenie, odprysk lakieru…)`}
                                 value={point.note}
                                 onChange={e => handleUpdateNote(point.id, e.target.value)}
                                 onFocus={() => setActivePointId(point.id)}
@@ -313,14 +331,14 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                                 removePhoto(point.id, photo.localId ?? photo.photoId);
                                                 return;
                                             }
-                                            // Drawing while the upload is still in progress is fine,
+                                            // Drawing while the upload is still in progress is fine —
                                             // strokes are matched to the photo via its stable localId.
                                             if (photo.thumbnailUrl) {
                                                 setAnnotating({ pointId: point.id, photo });
                                             }
                                         }}
                                         title={photo.status === 'failed'
-                                            ? 'Błąd przesyłania, dotknij, aby usunąć'
+                                            ? 'Błąd przesyłania — dotknij, aby usunąć'
                                             : 'Dotknij, aby zaznaczyć uszkodzenie na zdjęciu'}
                                     >
                                         {photo.thumbnailUrl && (
@@ -365,28 +383,35 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                     </DamagePhotoThumb>
                                 ))}
 
-                                <DamageAddPhotoBtn title="Dodaj zdjęcie uszkodzenia">
+                                {/* `capture` forces the camera, so the gallery needs an input
+                                    of its own — one control can never offer both. */}
+                                <DamageAddPhotoBtn title="Zrób zdjęcie uszkodzenia">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                         <circle cx="12" cy="13" r="4" />
                                     </svg>
-                                    Dodaj zdjęcie
+                                    Zrób zdjęcie
                                     <HiddenInput
                                         type="file"
                                         accept="image/*"
                                         capture="environment"
                                         multiple
-                                        onChange={e => {
-                                            const files = Array.from(e.target.files ?? []);
-                                            e.target.value = '';
-                                            if (files.length === 0) return;
-                                            const created = attachPhotos(point.id, files);
-                                            // Open the annotation editor straight away for the captured
-                                            // photo, no extra tap needed to start drawing.
-                                            if (created.length > 0) {
-                                                setAnnotating({ pointId: point.id, photo: created[0] });
-                                            }
-                                        }}
+                                        onChange={e => handleDamagePhotoPick(point.id, e)}
+                                    />
+                                </DamageAddPhotoBtn>
+
+                                <DamageAddPhotoBtn title="Dodaj zdjęcie uszkodzenia z galerii">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                        <circle cx="8.5" cy="8.5" r="1.5" />
+                                        <polyline points="21 15 16 10 5 21" />
+                                    </svg>
+                                    Z galerii
+                                    <HiddenInput
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={e => handleDamagePhotoPick(point.id, e)}
                                     />
                                 </DamageAddPhotoBtn>
                             </DamagePhotoRow>
@@ -405,7 +430,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 <DamagePhotoAnnotator
                     imageUrl={annotating.photo.thumbnailUrl}
                     initialStrokes={annotating.photo.strokes}
-                    title={`Uszkodzenie #${getNumber(annotating.pointId)}: zaznacz na zdjęciu`}
+                    title={`Uszkodzenie #${getNumber(annotating.pointId)} — zaznacz na zdjęciu`}
                     onSave={strokes => {
                         setPhotoStrokes(
                             annotating.pointId,

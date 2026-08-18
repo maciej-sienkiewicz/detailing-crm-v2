@@ -236,12 +236,20 @@ export const checkinApi = {
     // ─── QR Upload Token ─────────────────────────────────────────────────────
 
     /**
-     * Generate a QR upload token for an appointment.
-     * Calling this twice replaces the previous token.
+     * Get the QR upload token for an appointment, creating one if needed.
+     *
+     * Repeat calls return the SAME token with a refreshed TTL, so re-entering the photo
+     * step does not invalidate a QR code that a phone has already scanned. Pass
+     * `rotate: true` only to deliberately invalidate the previous code.
      */
-    generateQRToken: async (appointmentId: string): Promise<QRTokenResponse> => {
+    generateQRToken: async (
+        appointmentId: string,
+        options?: { rotate?: boolean },
+    ): Promise<QRTokenResponse> => {
         const response = await apiClient.post(
-            `${BASE_PATH}/${appointmentId}/upload-token`
+            `${BASE_PATH}/${appointmentId}/upload-token`,
+            null,
+            { params: { rotate: options?.rotate ?? false } },
         );
         return response.data;
     },

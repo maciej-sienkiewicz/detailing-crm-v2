@@ -13,9 +13,21 @@ export interface UseCheckinQRTokenResult {
     isExpired: boolean;
     isLoading: boolean;
     error: string | null;
+    /** Extends the current session — keeps a QR code that a phone already scanned alive. */
     refresh: () => Promise<void>;
+    /** Issues a brand-new code and invalidates the previous one on purpose. */
+    rotate: () => Promise<void>;
 }
 
+/**
+ * Supplies the QR upload token for a check-in.
+ *
+ * The backend deliberately returns the SAME token on every call (refreshing its TTL):
+ * this hook runs on every mount of the photo step, and issuing a new token there used to
+ * revoke the code a phone had already scanned — so after leaving and re-entering the step
+ * the phone could no longer upload ("Błąd podczas przesyłania zdjęcia"). Only [rotate]
+ * replaces the code.
+ */
 export function useCheckinQRToken(appointmentId: string | undefined): UseCheckinQRTokenResult {
     const [tokenData, setTokenData] = useState<QRTokenResponse | null>(null);
     const [secondsLeft, setSecondsLeft] = useState(Number.MAX_SAFE_INTEGER);
@@ -25,7 +37,7 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
     const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     // Always holds the latest fetchToken without creating a circular dep with startCountdown
-    const fetchTokenRef = useRef<() => Promise<void>>(async () => {});
+    const fetchTokenRef = useRef<(rotate?: boolean) => Promise<void>>(async () => {});
 
     const clearTimers = () => {
         if (refreshTimerRef.current) {
@@ -57,12 +69,12 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
         }, refreshIn);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const fetchToken = useCallback(async () => {
+    const fetchToken = useCallback(async (rotateToken = false) => {
         if (!appointmentId) return;
         setIsLoading(true);
         setError(null);
         try {
-            const data = await checkinApi.generateQRToken(appointmentId);
+            const data = await checkinApi.generateQRToken(appointmentId, { rotate: rotateToken });
             setTokenData(data);
             startCountdown(data.expiresAt);
         } catch (err) {
@@ -72,6 +84,9 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
             setIsLoading(false);
         }
     }, [appointmentId, startCountdown]);
+
+    const refresh = useCallback(() => fetchToken(false), [fetchToken]);
+    const rotate = useCallback(() => fetchToken(true), [fetchToken]);
 
     // Keep ref in sync so startCountdown's setTimeout always calls the current fetchToken
     useEffect(() => {
@@ -99,6 +114,7 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
         isExpired,
         isLoading,
         error,
-        refresh: fetchToken,
+        refresh,
+        rotate,
     };
 }
