@@ -1,11 +1,13 @@
 // src/modules/comms/views/LeadsView.tsx
-// Pipeline leadów: filtry statusów jako zakładki, lista, szczegóły w wysuwanym
-// panelu. Zamknięcie jako „przegrany" wymusza wybór powodu ze słownika — to jedyne
-// obowiązkowe pole w całym module i warunek działania analityki porażek.
+// Pipeline leadów w języku wizualnym reszty aplikacji: wspólny PageHeader,
+// karty-powierzchnie, Badge, tokeny motywu. Szczegóły w wysuwanym panelu;
+// zamknięcie jako „przegrany" wymusza wybór powodu ze słownika.
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { BarChart3, Check, Mail, Minus, Phone, Plus, Search, User, X } from 'lucide-react';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { Badge } from '@/common/components/Badge';
 import { useServices } from '@/modules/services';
 import { useToast } from '@/common/components/Toast';
 import {
@@ -17,7 +19,6 @@ import {
     useUpdateLeadServices,
 } from '../hooks/useLeads';
 import {
-    LEAD_STATUS_COLORS,
     LEAD_STATUS_FLOW,
     LEAD_STATUS_LABELS,
     type Lead,
@@ -26,66 +27,92 @@ import {
 } from '../types';
 import {
     EmptyHint,
+    FilterChip,
     IconButton,
-    Pill,
     PrimaryButton,
+    SurfaceCard,
     formatDateTime,
     formatGrosze,
     formatRelativeTime,
 } from '../components/shared';
 
-const Screen = styled.div`
-    padding: 20px 24px;
+const STATUS_BADGE_VARIANT: Record<LeadStatus, 'success' | 'error' | 'warning' | 'info' | 'primary'> = {
+    NEW: 'primary',
+    IN_PROGRESS: 'warning',
+    CONFIRMED: 'success',
+    COMPLETED: 'success',
+    LOST: 'error',
+    NO_SHOW: 'error',
+};
+
+// ── Layout strony (jak ViewContainer w statystykach) ─────────────────────────
+
+const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    max-width: 1200px;
+    gap: 20px;
+    padding: ${p => p.theme.spacing.md};
+    max-width: 1400px;
     margin: 0 auto;
+    width: 100%;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
+    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
-const HeaderRow = styled.div`
+const FiltersRow = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-
-    h2 { margin: 0; font-size: 20px; font-weight: 700; color: #111827; }
-`;
-
-const Tabs = styled.div`
-    display: flex;
-    gap: 6px;
     flex-wrap: wrap;
-`;
-
-const TabChip = styled.button<{ $active: boolean }>`
-    border: 1px solid ${({ $active }) => ($active ? '#111827' : '#e5e7eb')};
-    background: ${({ $active }) => ($active ? '#111827' : '#ffffff')};
-    color: ${({ $active }) => ($active ? '#ffffff' : '#4b5563')};
-    border-radius: 999px;
-    font-size: 13px;
-    padding: 6px 14px;
-    cursor: pointer;
+    align-items: center;
+    gap: 8px;
 `;
 
 const SearchBox = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 7px 12px;
-    color: #9ca3af;
-    max-width: 320px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 7px 14px;
+    color: ${p => p.theme.colors.textMuted};
+    background: ${p => p.theme.colors.surface};
+    flex: 1 1 220px;
+    max-width: 340px;
+    transition: border-color ${p => p.theme.transitions.fast};
 
-    input { border: none; outline: none; flex: 1; font-size: 13px; }
+    &:focus-within { border-color: ${p => p.theme.colors.primary}; }
+
+    input {
+        border: none;
+        outline: none;
+        flex: 1;
+        font-size: 13px;
+        min-width: 0;
+        background: transparent;
+        color: ${p => p.theme.colors.text};
+        font-family: inherit;
+    }
 `;
 
-const Table = styled.div`
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    overflow: hidden;
+// ── Tabela / lista ───────────────────────────────────────────────────────────
+
+const TableScroll = styled.div`
+    overflow-x: auto;
+`;
+
+const HeadRow = styled.div`
+    display: grid;
+    grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: ${p => p.theme.colors.textMuted};
+    background: ${p => p.theme.colors.surfaceAlt};
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    min-width: 640px;
 `;
 
 const Row = styled.button<{ $active?: boolean }>`
@@ -94,35 +121,44 @@ const Row = styled.button<{ $active?: boolean }>`
     gap: 10px;
     align-items: center;
     width: 100%;
+    min-width: 640px;
     text-align: left;
-    padding: 12px 16px;
+    padding: 12px 20px;
     border: none;
-    border-bottom: 1px solid #f3f4f6;
-    background: ${({ $active }) => ($active ? '#f8fafc' : '#ffffff')};
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
     cursor: pointer;
     font-size: 13px;
-    color: #374151;
+    color: ${p => p.theme.colors.textSecondary};
+    font-family: inherit;
+    transition: background ${p => p.theme.transitions.fast};
 
-    &:hover { background: #f9fafb; }
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
     &:last-child { border-bottom: none; }
 
-    .who { font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px; }
-    .sub { font-size: 12px; color: #9ca3af; font-weight: 400; }
-    .value { font-weight: 600; color: #111827; }
-`;
-
-const HeadRow = styled.div`
-    display: grid;
-    grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr;
-    gap: 10px;
-    padding: 10px 16px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #9ca3af;
-    background: #fafafa;
-    border-bottom: 1px solid #eef0f2;
+    .who {
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+    .who > span { min-width: 0; }
+    .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sub {
+        font-size: 12px;
+        color: ${p => p.theme.colors.textMuted};
+        font-weight: ${p => p.theme.fontWeights.normal};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .value {
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+    }
 `;
 
 // ── Panel szczegółów ─────────────────────────────────────────────────────────
@@ -130,7 +166,7 @@ const HeadRow = styled.div`
 const DrawerOverlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(17, 24, 39, 0.35);
+    background: rgba(15, 23, 42, 0.4);
     z-index: 70;
 `;
 
@@ -140,31 +176,51 @@ const Drawer = styled.aside`
     right: 0;
     bottom: 0;
     width: 440px;
-    max-width: 96vw;
-    background: #ffffff;
+    max-width: 100vw;
+    background: ${p => p.theme.colors.surface};
     z-index: 71;
-    box-shadow: -12px 0 40px rgba(17, 24, 39, 0.16);
+    box-shadow: ${p => p.theme.shadows.xl};
     display: flex;
     flex-direction: column;
     overflow-y: auto;
 `;
 
 const DrawerHeader = styled.div`
-    padding: 16px 20px;
-    border-bottom: 1px solid #eef0f2;
+    padding: 18px 20px;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
+    background: ${p => p.theme.colors.surfaceAlt};
 
-    h3 { margin: 0 0 2px; font-size: 16px; color: #111827; }
-    .sub { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
-    button.close { border: none; background: none; color: #9ca3af; cursor: pointer; padding: 4px; }
+    h3 {
+        margin: 0 0 2px;
+        font-size: 16px;
+        color: ${p => p.theme.colors.text};
+        overflow-wrap: anywhere;
+    }
+    .sub {
+        font-size: 13px;
+        color: ${p => p.theme.colors.textSecondary};
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    button.close {
+        border: none;
+        background: none;
+        color: ${p => p.theme.colors.textMuted};
+        cursor: pointer;
+        padding: 4px;
+        &:hover { color: ${p => p.theme.colors.textSecondary}; }
+    }
 `;
 
 const DrawerSection = styled.section`
     padding: 14px 20px;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -172,10 +228,10 @@ const DrawerSection = styled.section`
     h4 {
         margin: 0;
         font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: #9ca3af;
+        color: ${p => p.theme.colors.textMuted};
     }
 `;
 
@@ -185,38 +241,78 @@ const StatusGrid = styled.div`
     gap: 6px;
 `;
 
+const StatusOption = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.border)};
+    background: ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.surface)};
+    color: ${({ $active, theme }) => ($active ? '#ffffff' : theme.colors.textSecondary)};
+    border-radius: ${p => p.theme.radii.full};
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        ${({ $active, theme }) => !$active && `background: ${theme.colors.surfaceHover};`}
+    }
+`;
+
 const ServiceLine = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    color: #374151;
+    color: ${p => p.theme.colors.textSecondary};
 
-    .grow { flex: 1; }
-    .qty { display: inline-flex; align-items: center; gap: 4px; color: #6b7280; }
-    .qty button {
-        border: 1px solid #e5e7eb; background: #fff; border-radius: 4px;
-        width: 18px; height: 18px; display: inline-flex; align-items: center;
-        justify-content: center; cursor: pointer; color: #6b7280; padding: 0;
+    .grow { flex: 1; min-width: 0; }
+    .qty {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: ${p => p.theme.colors.textMuted};
     }
-    button.remove { border: none; background: none; color: #d1d5db; cursor: pointer; padding: 2px; }
+    .qty button {
+        border: 1px solid ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surface};
+        border-radius: ${p => p.theme.radii.sm};
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: ${p => p.theme.colors.textMuted};
+        padding: 0;
+    }
+    button.remove {
+        border: none;
+        background: none;
+        color: ${p => p.theme.colors.textMuted};
+        cursor: pointer;
+        padding: 2px;
+    }
 `;
 
 const TotalLine = styled.div`
     display: flex;
     justify-content: space-between;
     font-size: 14px;
-    font-weight: 700;
-    color: #111827;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    color: ${p => p.theme.colors.text};
     padding-top: 6px;
-    border-top: 1px dashed #e5e7eb;
+    border-top: 1px dashed ${p => p.theme.colors.border};
+    font-variant-numeric: tabular-nums;
 `;
 
 const HistoryLine = styled.div`
     font-size: 12px;
-    color: #6b7280;
+    color: ${p => p.theme.colors.textSecondary};
 
-    strong { color: #374151; }
+    strong { color: ${p => p.theme.colors.text}; }
 `;
 
 // ── Dialog powodu przegranej ─────────────────────────────────────────────────
@@ -228,41 +324,54 @@ const LostDialog = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(17, 24, 39, 0.4);
+    background: rgba(15, 23, 42, 0.45);
+    padding: 16px;
 `;
 
 const LostCard = styled.div`
-    background: #ffffff;
-    border-radius: 12px;
+    background: ${p => p.theme.colors.surface};
+    border-radius: ${p => p.theme.radii.xl};
+    box-shadow: ${p => p.theme.shadows.xl};
     padding: 20px;
     width: 380px;
-    max-width: 92vw;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     gap: 12px;
 
-    h4 { margin: 0; font-size: 15px; color: #111827; }
+    h4 { margin: 0; font-size: 15px; color: ${p => p.theme.colors.text}; }
     textarea {
-        border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px;
-        font-size: 13px; font-family: inherit; resize: vertical; min-height: 60px;
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.md};
+        padding: 8px 10px;
+        font-size: 13px;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 60px;
+        outline: none;
+        &:focus { border-color: ${p => p.theme.colors.primary}; }
     }
 `;
 
 const ReasonOption = styled.button<{ $active: boolean }>`
-    border: 1px solid ${({ $active }) => ($active ? '#111827' : '#e5e7eb')};
-    background: ${({ $active }) => ($active ? '#f8fafc' : '#ffffff')};
-    color: #374151;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
+    background: ${({ $active }) => ($active ? 'rgba(14, 165, 233, 0.06)' : 'transparent')};
+    color: ${p => p.theme.colors.textSecondary};
+    border-radius: ${p => p.theme.radii.md};
+    padding: 9px 12px;
     font-size: 13px;
     text-align: left;
     cursor: pointer;
+    font-family: inherit;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
 function SourceIcon({ source }: { source: Lead['source'] }) {
-    if (source === 'PHONE') return <Phone size={13} color="#9ca3af" />;
-    if (source === 'EMAIL') return <Mail size={13} color="#9ca3af" />;
-    return <User size={13} color="#9ca3af" />;
+    if (source === 'PHONE') return <Phone size={13} color="#94a3b8" />;
+    if (source === 'EMAIL') return <Mail size={13} color="#94a3b8" />;
+    return <User size={13} color="#94a3b8" />;
 }
 
 interface EditableServiceItem {
@@ -355,57 +464,64 @@ export default function LeadsView() {
     };
 
     return (
-        <Screen>
-            <HeaderRow>
-                <h2>Leady</h2>
-                <Link to="/leads/analytics">
-                    <IconButton as="span"><BarChart3 size={14} /> Analityka</IconButton>
-                </Link>
-            </HeaderRow>
+        <ViewContainer>
+            <PageHeader
+                title="Leady"
+                subtitle={
+                    leadPage
+                        ? `${leadPage.total} ${leadPage.total === 1 ? 'zapytanie' : 'zapytań'} w tym widoku`
+                        : 'Zapytania od potencjalnych klientów'
+                }
+                actions={
+                    <Link to="/leads/analytics">
+                        <PageHeaderGhostButton as="span">
+                            <BarChart3 /> Analityka
+                        </PageHeaderGhostButton>
+                    </Link>
+                }
+            />
 
-            <Tabs>
-                <TabChip $active={!statusFilter} onClick={() => { setStatusFilter(undefined); setPage(0); }}>
+            <FiltersRow>
+                <FilterChip $active={!statusFilter} onClick={() => { setStatusFilter(undefined); setPage(0); }}>
                     Wszystkie
-                </TabChip>
+                </FilterChip>
                 {LEAD_STATUS_FLOW.map((status) => (
-                    <TabChip
+                    <FilterChip
                         key={status}
                         $active={statusFilter === status}
                         onClick={() => { setStatusFilter(status); setPage(0); }}
                     >
                         {LEAD_STATUS_LABELS[status]}
-                    </TabChip>
+                    </FilterChip>
                 ))}
-            </Tabs>
+                <SearchBox>
+                    <Search size={14} />
+                    <input
+                        placeholder="Szukaj po adresie, telefonie, nazwisku…"
+                        value={query}
+                        onChange={(event) => { setQuery(event.target.value); setPage(0); }}
+                    />
+                </SearchBox>
+            </FiltersRow>
 
-            <SearchBox>
-                <Search size={14} />
-                <input
-                    placeholder="Szukaj po adresie, telefonie, nazwisku…"
-                    value={query}
-                    onChange={(event) => { setQuery(event.target.value); setPage(0); }}
-                />
-            </SearchBox>
-
-            <Table>
-                <HeadRow>
-                    <span>Kontakt</span>
-                    <span>Kategoria</span>
-                    <span>Wartość</span>
-                    <span>Status</span>
-                    <span>Utworzony</span>
-                </HeadRow>
-                {leadPage && leadPage.items.length === 0 && (
-                    <EmptyHint>Brak leadów w tym widoku</EmptyHint>
-                )}
-                {(leadPage?.items ?? []).map((item) => {
-                    const colors = LEAD_STATUS_COLORS[item.status];
-                    return (
+            <SurfaceCard>
+                <TableScroll>
+                    <HeadRow>
+                        <span>Kontakt</span>
+                        <span>Kategoria</span>
+                        <span>Wartość</span>
+                        <span>Status</span>
+                        <span>Utworzony</span>
+                    </HeadRow>
+                    {leadPage && leadPage.items.length === 0 && (
+                        <EmptyHint>Brak leadów w tym widoku</EmptyHint>
+                    )}
+                    {(leadPage?.items ?? []).map((item) => (
                         <Row key={item.id} $active={item.id === selectedLeadId} onClick={() => selectLead(item.id)}>
                             <span className="who">
                                 <SourceIcon source={item.source} />
                                 <span>
-                                    {item.customerName ?? item.contactIdentifier}
+                                    <span className="name">{item.customerName ?? item.contactIdentifier}</span>
                                     {item.customerName && <div className="sub">{item.contactIdentifier}</div>}
                                 </span>
                             </span>
@@ -414,13 +530,15 @@ export default function LeadsView() {
                                 {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '—'}
                             </span>
                             <span>
-                                <Pill $bg={colors.bg} $fg={colors.fg}>{LEAD_STATUS_LABELS[item.status]}</Pill>
+                                <Badge $variant={STATUS_BADGE_VARIANT[item.status]}>
+                                    {LEAD_STATUS_LABELS[item.status]}
+                                </Badge>
                             </span>
                             <span>{formatRelativeTime(item.createdAt)}</span>
                         </Row>
-                    );
-                })}
-            </Table>
+                    ))}
+                </TableScroll>
+            </SurfaceCard>
 
             {lead && (
                 <>
@@ -434,9 +552,9 @@ export default function LeadsView() {
                                     {lead.contactIdentifier}
                                     {lead.threadId && (
                                         <Link to={`/communication?thread=${lead.threadId}`}>
-                                            <Pill $bg="#eff6ff" $fg="#1d4ed8" style={{ cursor: 'pointer' }}>
+                                            <Badge $variant="info" style={{ cursor: 'pointer' }}>
                                                 Zobacz korespondencję
-                                            </Pill>
+                                            </Badge>
                                         </Link>
                                     )}
                                 </div>
@@ -450,24 +568,16 @@ export default function LeadsView() {
                             <h4>Status</h4>
                             <StatusGrid>
                                 {LEAD_STATUS_FLOW.map((status) => {
-                                    const colors = LEAD_STATUS_COLORS[status];
                                     const active = lead.status === status;
                                     return (
-                                        <Pill
+                                        <StatusOption
                                             key={status}
-                                            as="button"
-                                            $bg={active ? colors.bg : '#ffffff'}
-                                            $fg={active ? colors.fg : '#9ca3af'}
-                                            style={{
-                                                border: `1px solid ${active ? colors.fg : '#e5e7eb'}`,
-                                                cursor: 'pointer',
-                                                padding: '5px 10px',
-                                            }}
+                                            $active={active}
                                             onClick={() => !active && requestStatus(lead.id, status)}
                                         >
                                             {active && <Check size={11} />}
                                             {LEAD_STATUS_LABELS[status]}
-                                        </Pill>
+                                        </StatusOption>
                                     );
                                 })}
                             </StatusGrid>
@@ -577,7 +687,8 @@ export default function LeadsView() {
                                                         className="grow"
                                                         style={{
                                                             border: 'none', background: 'none', textAlign: 'left',
-                                                            cursor: 'pointer', color: '#2563eb', fontSize: 13, padding: '2px 0',
+                                                            cursor: 'pointer', color: '#0ea5e9', fontSize: 13,
+                                                            padding: '2px 0', fontFamily: 'inherit',
                                                         }}
                                                         onClick={() => {
                                                             setEditingServices([
@@ -661,6 +772,6 @@ export default function LeadsView() {
                     </LostCard>
                 </LostDialog>
             )}
-        </Screen>
+        </ViewContainer>
     );
 }

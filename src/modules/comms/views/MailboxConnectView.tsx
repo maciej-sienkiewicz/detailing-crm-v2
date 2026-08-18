@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft, CheckCircle2, Mail, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Trash2 } from 'lucide-react';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useToast } from '@/common/components/Toast';
 import {
     useConnectAccount,
@@ -17,29 +18,30 @@ import type { ProviderDetectResult } from '../types';
 import { IconButton, PrimaryButton, formatDateTime } from '../components/shared';
 
 const Screen = styled.div`
-    max-width: 640px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 24px 16px;
+    padding: ${p => p.theme.spacing.md};
     display: flex;
     flex-direction: column;
     gap: 20px;
+    width: 100%;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
 `;
 
-const Title = styled.h2`
+const CardTitle = styled.h3`
     margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: #111827;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-size: 14px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.text};
 `;
 
 const Card = styled.section`
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 18px;
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.xl};
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+    padding: 18px 20px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -169,13 +171,17 @@ export default function MailboxConnectView() {
 
     return (
         <Screen>
-            <Title>
-                <Link to="/communication" aria-label="Wróć do skrzynki" style={{ color: '#6b7280', display: 'inline-flex' }}>
-                    <ArrowLeft size={18} />
-                </Link>
-                <Mail size={18} />
-                Skrzynki pocztowe
-            </Title>
+            <PageHeader
+                title="Skrzynki pocztowe"
+                subtitle="Podłącz pocztę firmową — wykrywamy serwer automatycznie"
+                actions={
+                    <Link to="/communication">
+                        <PageHeaderGhostButton as="span">
+                            <ArrowLeft /> Wróć do skrzynki
+                        </PageHeaderGhostButton>
+                    </Link>
+                }
+            />
 
             <Card>
                 <Helper>
@@ -281,7 +287,7 @@ export default function MailboxConnectView() {
             </Card>
 
             <Card>
-                <Title as="h3" style={{ fontSize: 14 }}>Podłączone skrzynki</Title>
+                <CardTitle>Podłączone skrzynki</CardTitle>
                 {(accounts ?? []).filter((account) => account.status !== 'DISABLED').length === 0 && (
                     <Helper>Nie podłączono jeszcze żadnej skrzynki.</Helper>
                 )}

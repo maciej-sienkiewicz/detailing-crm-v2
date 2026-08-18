@@ -1,45 +1,27 @@
 // src/modules/comms/views/LeadAnalyticsView.tsx
 // Trzy pytania właściciela: ile zapytań zamieniam w zlecenia, o co ludzie pytają,
-// dlaczego przegrywam. Duże liczby na górze, rozkłady niżej — bez choinki wykresów.
+// dlaczego przegrywam. Wspólny PageHeader i kafle KPI (StatTile) jak na Tablicy.
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Banknote, Clock3, Inbox, Target, TrendingUp } from 'lucide-react';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { StatTile } from '@/common/components/StatTile';
 import { useLeadAnalytics } from '../hooks/useLeads';
 import { LEAD_STATUS_LABELS, type LeadStatus } from '../types';
-import { EmptyHint, formatGrosze } from '../components/shared';
+import { EmptyHint, FilterChip, SurfaceCard, formatGrosze } from '../components/shared';
 
-const Screen = styled.div`
-    padding: 20px 24px;
-    max-width: 1000px;
-    margin: 0 auto;
+const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
     gap: 20px;
-`;
+    padding: ${p => p.theme.spacing.md};
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
 
-const HeaderRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    h2 { margin: 0; font-size: 20px; font-weight: 700; color: #111827; }
-    a { color: #6b7280; display: inline-flex; }
-`;
-
-const RangeTabs = styled.div`
-    display: flex;
-    gap: 6px;
-`;
-
-const RangeChip = styled.button<{ $active: boolean }>`
-    border: 1px solid ${({ $active }) => ($active ? '#111827' : '#e5e7eb')};
-    background: ${({ $active }) => ($active ? '#111827' : '#ffffff')};
-    color: ${({ $active }) => ($active ? '#ffffff' : '#4b5563')};
-    border-radius: 999px;
-    font-size: 13px;
-    padding: 6px 14px;
-    cursor: pointer;
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
+    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
 const TileRow = styled.div`
@@ -48,38 +30,39 @@ const TileRow = styled.div`
     gap: 12px;
 `;
 
-const Tile = styled.div`
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 16px;
+const Card = styled(SurfaceCard)`
+    padding: 16px 20px;
 
-    .label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
-    .value { font-size: 24px; font-weight: 700; color: #111827; font-variant-numeric: tabular-nums; }
-    .hint { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-`;
-
-const Card = styled.section`
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 16px 18px;
-
-    h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #111827; }
+    h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+    }
 `;
 
 const BarLine = styled.div`
     display: grid;
-    grid-template-columns: 160px 1fr 90px;
+    grid-template-columns: minmax(110px, 160px) 1fr minmax(80px, auto);
     align-items: center;
     gap: 10px;
     font-size: 13px;
-    color: #374151;
+    color: ${p => p.theme.colors.textSecondary};
     padding: 5px 0;
 
-    .track { background: #f3f4f6; border-radius: 4px; height: 10px; overflow: hidden; }
-    .fill { height: 100%; border-radius: 4px; }
-    .meta { text-align: right; color: #6b7280; font-variant-numeric: tabular-nums; }
+    .track {
+        background: ${p => p.theme.colors.surfaceAlt};
+        border-radius: ${p => p.theme.radii.sm};
+        height: 10px;
+        overflow: hidden;
+    }
+    .fill { height: 100%; border-radius: ${p => p.theme.radii.sm}; }
+    .meta {
+        text-align: right;
+        color: ${p => p.theme.colors.textMuted};
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
 `;
 
 const RANGES = [
@@ -101,60 +84,86 @@ export default function LeadAnalyticsView() {
     const maxLost = Math.max(1, ...(data?.lostReasons.map((entry) => entry.count) ?? [1]));
 
     return (
-        <Screen>
-            <HeaderRow>
-                <Link to="/leads" aria-label="Wróć do leadów"><ArrowLeft size={18} /></Link>
-                <h2>Analityka leadów</h2>
-                <div style={{ marginLeft: 'auto' }}>
-                    <RangeTabs>
-                        {RANGES.map((entry) => (
-                            <RangeChip
-                                key={entry.key}
-                                $active={rangeKey === entry.key}
-                                onClick={() => setRangeKey(entry.key)}
-                            >
-                                {entry.label}
-                            </RangeChip>
-                        ))}
-                    </RangeTabs>
-                </div>
-            </HeaderRow>
+        <ViewContainer>
+            <PageHeader
+                title="Analityka leadów"
+                subtitle={`Ostatnie ${range.label.toLowerCase() === 'rok' ? '12 miesięcy' : range.label}`}
+                actions={
+                    <Link to="/leads">
+                        <PageHeaderGhostButton as="span">
+                            <ArrowLeft /> Wróć do leadów
+                        </PageHeaderGhostButton>
+                    </Link>
+                }
+            />
+
+            <div style={{ display: 'flex', gap: 8 }}>
+                {RANGES.map((entry) => (
+                    <FilterChip
+                        key={entry.key}
+                        $active={rangeKey === entry.key}
+                        onClick={() => setRangeKey(entry.key)}
+                    >
+                        {entry.label}
+                    </FilterChip>
+                ))}
+            </div>
 
             {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
 
             {data && (
                 <>
                     <TileRow>
-                        <Tile>
-                            <div className="label">Zapytania</div>
-                            <div className="value">{data.totalCreated}</div>
-                            <div className="hint">nowych leadów w okresie</div>
-                        </Tile>
-                        <Tile>
-                            <div className="label">Konwersja</div>
-                            <div className="value">{percent(data.conversionRate)}</div>
-                            <div className="hint">zrealizowane / wszystkie zamknięte</div>
-                        </Tile>
-                        <Tile>
-                            <div className="label">Wartość wygranych</div>
-                            <div className="value">{formatGrosze(data.wonValue)}</div>
-                        </Tile>
-                        <Tile>
-                            <div className="label">W pipeline</div>
-                            <div className="value">{formatGrosze(data.pipelineValue)}</div>
-                            <div className="hint">wartość otwartych leadów</div>
-                        </Tile>
-                        <Tile>
-                            <div className="label">Pierwsza odpowiedź</div>
-                            <div className="value">
-                                {data.medianFirstResponseMinutes === null
+                        <StatTile
+                            icon={Inbox}
+                            value={data.totalCreated}
+                            label="Zapytania"
+                            accentColor="#0ea5e9"
+                            bgGradient="linear-gradient(180deg, rgba(14,165,233,0.06) 0%, #ffffff 55%)"
+                            iconBg="rgba(14,165,233,0.12)"
+                            subContent="nowych leadów w okresie"
+                        />
+                        <StatTile
+                            icon={Target}
+                            value={percent(data.conversionRate)}
+                            label="Konwersja"
+                            accentColor="#16a34a"
+                            bgGradient="linear-gradient(180deg, rgba(22,163,74,0.06) 0%, #ffffff 55%)"
+                            iconBg="rgba(22,163,74,0.12)"
+                            subContent="zrealizowane / zamknięte"
+                        />
+                        <StatTile
+                            icon={Banknote}
+                            value={formatGrosze(data.wonValue)}
+                            label="Wartość wygranych"
+                            accentColor="#16a34a"
+                            bgGradient="linear-gradient(180deg, rgba(22,163,74,0.06) 0%, #ffffff 55%)"
+                            iconBg="rgba(22,163,74,0.12)"
+                        />
+                        <StatTile
+                            icon={TrendingUp}
+                            value={formatGrosze(data.pipelineValue)}
+                            label="W pipeline"
+                            accentColor="#d97706"
+                            bgGradient="linear-gradient(180deg, rgba(217,119,6,0.06) 0%, #ffffff 55%)"
+                            iconBg="rgba(217,119,6,0.12)"
+                            subContent="wartość otwartych leadów"
+                        />
+                        <StatTile
+                            icon={Clock3}
+                            value={
+                                data.medianFirstResponseMinutes === null
                                     ? '—'
                                     : data.medianFirstResponseMinutes < 60
                                         ? `${data.medianFirstResponseMinutes} min`
-                                        : `${Math.round(data.medianFirstResponseMinutes / 60)} h`}
-                            </div>
-                            <div className="hint">mediana czasu reakcji</div>
-                        </Tile>
+                                        : `${Math.round(data.medianFirstResponseMinutes / 60)} h`
+                            }
+                            label="Pierwsza odpowiedź"
+                            accentColor="#7c3aed"
+                            bgGradient="linear-gradient(180deg, rgba(124,58,237,0.06) 0%, #ffffff 55%)"
+                            iconBg="rgba(124,58,237,0.12)"
+                            subContent="mediana czasu reakcji"
+                        />
                     </TileRow>
 
                     <Card>
@@ -167,7 +176,7 @@ export default function LeadAnalyticsView() {
                                         className="fill"
                                         style={{
                                             width: `${Math.round((count / Math.max(1, data.totalCreated)) * 100)}%`,
-                                            background: '#111827',
+                                            background: '#0f172a',
                                         }}
                                     />
                                 </div>
@@ -187,7 +196,7 @@ export default function LeadAnalyticsView() {
                                         className="fill"
                                         style={{
                                             width: `${Math.round((entry.count / maxCategory) * 100)}%`,
-                                            background: '#2563eb',
+                                            background: '#0ea5e9',
                                         }}
                                     />
                                 </div>
@@ -223,6 +232,6 @@ export default function LeadAnalyticsView() {
                     </Card>
                 </>
             )}
-        </Screen>
+        </ViewContainer>
     );
 }

@@ -126,7 +126,13 @@ export interface SendMailRequest {
 
 export interface ContactInsights {
     email: string;
-    customer: { id: string; name: string | null; phone: string | null } | null;
+    customer: {
+        id: string;
+        name: string | null;
+        phone: string | null;
+        completedVisitCount: number;
+        totalSpentGross: number;
+    } | null;
     previousThreads: {
         id: string;
         subject: string | null;
