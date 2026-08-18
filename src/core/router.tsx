@@ -21,7 +21,6 @@ import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
-import { LeadListView } from "@/modules/leads";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
@@ -38,9 +37,11 @@ import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSet
 const GalleryView = lazy(() =>
     import("@/modules/gallery/views/GalleryView").then(m => ({ default: m.GalleryView }))
 );
-// Lazy — moduł komunikacji i zapytań mailowych
-const InquiriesView = lazy(() => import('@/modules/communication/views/InquiriesView'));
-const MailboxConnectView = lazy(() => import('@/modules/communication/views/MailboxConnectView'));
+// Lazy — moduł komunikacji (webmail) i leadów
+const MailView = lazy(() => import('@/modules/comms/views/MailView'));
+const MailboxConnectView = lazy(() => import('@/modules/comms/views/MailboxConnectView'));
+const LeadsView = lazy(() => import('@/modules/comms/views/LeadsView'));
+const LeadAnalyticsView = lazy(() => import('@/modules/comms/views/LeadAnalyticsView'));
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
@@ -244,15 +245,29 @@ export const router = createBrowserRouter([
     // ── Leady ────────────────────────────────────────────────────────────
     {
         path: '/leads',
-        element: page(<LeadListView />, 'LEADS_MANAGE'),
+        element: page(
+            <Suspense fallback={null}>
+                <LeadsView />
+            </Suspense>,
+            'LEADS_MANAGE'
+        ),
+    },
+    {
+        path: '/leads/analytics',
+        element: page(
+            <Suspense fallback={null}>
+                <LeadAnalyticsView />
+            </Suspense>,
+            'LEADS_MANAGE'
+        ),
     },
 
-    // ── Komunikacja: zapytania z maila ───────────────────────────────────
+    // ── Komunikacja: skrzynka pocztowa ───────────────────────────────────
     {
         path: '/communication',
         element: page(
             <Suspense fallback={null}>
-                <InquiriesView />
+                <MailView />
             </Suspense>,
             'LEADS_MANAGE'
         ),
