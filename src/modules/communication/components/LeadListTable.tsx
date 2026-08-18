@@ -93,16 +93,16 @@ const AccentDot = styled.span`
 
 interface LeadListTableProps {
     leads: LeadCardData[];
-    onOpenLead: (id: number) => void;
-    onStageChange: (leadId: number, stage: LeadStage) => void;
+    onOpenLead: (id: string) => void;
+    onStageChange: (leadId: string, stage: LeadStage) => void;
 }
 
 /** Sortowanie listy: piłka u nas → najstarsze pierwsze. */
 const listSort = (a: LeadCardData, b: LeadCardData): number => {
-    const aOurs = a.lastDirection === 'INBOUND' ? 0 : 1;
-    const bOurs = b.lastDirection === 'INBOUND' ? 0 : 1;
+    const aOurs = a.hasNewActivity ? 0 : 1;
+    const bOurs = b.hasNewActivity ? 0 : 1;
     if (aOurs !== bOurs) return aOurs - bOurs;
-    return new Date(a.lastMessageAt).getTime() - new Date(b.lastMessageAt).getTime();
+    return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime();
 };
 
 export const LeadListTable = ({ leads, onOpenLead, onStageChange }: LeadListTableProps) => (
@@ -114,13 +114,13 @@ export const LeadListTable = ({ leads, onOpenLead, onStageChange }: LeadListTabl
                     <Th>Klient</Th>
                     <Th>Etap</Th>
                     <Th>Wycena</Th>
-                    <Th>Ostatnia wiadomość</Th>
+                    <Th>Ostatnia aktywność</Th>
                     <Th>Piłka</Th>
                 </tr>
             </thead>
             <tbody>
                 {[...leads].sort(listSort).map((lead) => {
-                    const ballOurs = lead.lastDirection === 'INBOUND';
+                    const ballOurs = lead.hasNewActivity;
                     return (
                         <Tr key={lead.id} onClick={() => onOpenLead(lead.id)}>
                             <Td>
@@ -130,8 +130,8 @@ export const LeadListTable = ({ leads, onOpenLead, onStageChange }: LeadListTabl
                                 )}
                             </Td>
                             <Td>
-                                {lead.customerName ?? lead.contactEmail}
-                                {lead.returningCustomer && <Muted> · ↩ Stały klient</Muted>}
+                                {lead.customerName ?? lead.contactIdentifier}
+                                {lead.requiresVerification && <Muted> · do sprawdzenia</Muted>}
                             </Td>
                             <Td>
                                 <StageSelect
@@ -142,15 +142,15 @@ export const LeadListTable = ({ leads, onOpenLead, onStageChange }: LeadListTabl
                                 />
                             </Td>
                             <Td>
-                                {lead.quoteTotal != null
-                                    ? <Amount>{formatPln(lead.quoteTotal)}</Amount>
+                                {lead.estimatedValue > 0
+                                    ? <Amount>{formatPln(lead.estimatedValue)}</Amount>
                                     : <Muted>—</Muted>}
                             </Td>
-                            <Td><Muted>{formatDateTime(lead.lastMessageAt)}</Muted></Td>
+                            <Td><Muted>{formatDateTime(lead.lastActivityAt)}</Muted></Td>
                             <Td>
                                 <BallCell $ours={ballOurs}>
                                     {ballOurs ? <AccentDot /> : <span aria-hidden>◷</span>}
-                                    {formatAge(lead.lastMessageAt)}
+                                    {formatAge(lead.lastActivityAt)}
                                 </BallCell>
                             </Td>
                         </Tr>

@@ -43,36 +43,43 @@ export const formatDateTime = (iso: string): string =>
 /** Klucz dnia do grupowania separatorów dat. */
 export const dayKey = (iso: string): string => new Date(iso).toDateString();
 
+/** Etykiety statusów leada (backendowy enum LeadStatus). */
 export const STAGE_LABELS: Record<LeadStage, string> = {
     NEW: 'NOWE',
-    QUOTED: 'WYCENIONE',
-    TO_CONFIRM: 'DO POTWIERDZENIA',
-    SCHEDULED: 'UMÓWIONE',
-    WON: 'WYGRANE',
+    IN_PROGRESS: 'W TOKU',
+    CONFIRMED: 'UMÓWIONE',
+    COMPLETED: 'ZREALIZOWANE',
     LOST: 'PRZEGRANE',
+    NO_SHOW: 'NIE POJAWIŁ SIĘ',
 };
 
-/** Kolumny kanbanu — WYGRANE nie ma kolumny, wygrane znikają z tablicy. */
-export const BOARD_STAGES: LeadStage[] = ['NEW', 'QUOTED', 'TO_CONFIRM', 'SCHEDULED', 'LOST'];
+/** Kolumny kanbanu — pełny cykl życia leada, żaden status nie ginie z widoku. */
+export const BOARD_STAGES: LeadStage[] = [
+    'NEW',
+    'IN_PROGRESS',
+    'CONFIRMED',
+    'COMPLETED',
+    'LOST',
+    'NO_SHOW',
+];
 
-/** Kolejność etapów do wykrywania ruchu "wstecz". */
+/** Kolejność etapów do wykrywania ruchu „wstecz" (ten pyta o powód). */
 export const STAGE_ORDER: Record<LeadStage, number> = {
     NEW: 0,
-    QUOTED: 1,
-    TO_CONFIRM: 2,
-    SCHEDULED: 3,
-    WON: 4,
-    LOST: 5,
+    IN_PROGRESS: 1,
+    CONFIRMED: 2,
+    COMPLETED: 3,
+    LOST: 4,
+    NO_SHOW: 5,
 };
 
-/** Nagłówek karty: "BMW X5 · 2021" albo fallback na e-mail. */
+/** Nagłówek karty: pojazd, bo detailer myśli autami; fallback na klienta lub kontakt. */
 export const vehicleTitle = (card: {
     vehicleBrand?: string | null;
     vehicleModel?: string | null;
-    vehicleYear?: number | null;
-    contactEmail: string;
+    customerName?: string | null;
+    contactIdentifier: string;
 }): string => {
-    const name = [card.vehicleBrand, card.vehicleModel].filter(Boolean).join(' ');
-    if (!name) return card.contactEmail;
-    return card.vehicleYear ? `${name} · ${card.vehicleYear}` : name;
+    const vehicle = [card.vehicleBrand, card.vehicleModel].filter(Boolean).join(' ');
+    return vehicle || card.customerName || card.contactIdentifier;
 };

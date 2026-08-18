@@ -156,7 +156,7 @@ const itemDate = (item: TimelineItem): string => {
     switch (item.type) {
         case 'MESSAGE': return item.sentAt;
         case 'NOTE': return item.createdAt;
-        case 'EVENT': return item.at;
+
         case 'QUOTE': return item.sentAt;
     }
 };
@@ -169,13 +169,14 @@ const MessageBubble = ({ message }: { message: MessageTimelineItem }) => {
         ? message.bodyText
         : lines.slice(0, LONG_MESSAGE_LINES).join('\n').slice(0, LONG_MESSAGE_CHARS) + '…';
     const outbound = message.direction === 'OUTBOUND';
-    const pending = message.id < 0;
+    const pending = message.sendStatus === 'OUTBOX_PENDING';
     return (
         <BubbleRow $outbound={outbound}>
             <Bubble $outbound={outbound} $pending={pending}>
                 <BubbleMeta>
                     {outbound ? 'Ty' : (message.fromName ?? 'Klient')} · {formatDateTime(message.sentAt)}
                     {pending && ' · wysyłanie…'}
+                    {message.sendStatus === 'FAILED' && ' · nie wysłano'}
                 </BubbleMeta>
                 {shown}
                 {isLong && !expanded && (
@@ -227,12 +228,7 @@ const TimelineEntry = ({ item }: { item: TimelineItem }) => {
                     notatka — „{item.text}”{item.author ? ` · ${item.author}` : ''} · {formatDayLabel(item.createdAt)}
                 </NarrowSeparator>
             );
-        case 'EVENT':
-            return (
-                <NarrowSeparator>
-                    {item.text} · {formatDayLabel(item.at)}
-                </NarrowSeparator>
-            );
+
         case 'QUOTE':
             return <QuoteRow quote={item} />;
     }

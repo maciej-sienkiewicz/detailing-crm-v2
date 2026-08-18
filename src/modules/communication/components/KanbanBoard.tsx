@@ -109,7 +109,7 @@ const ReasonInput = styled.input`
 const QUICK_REASONS = ['Za drogo', 'Brak odpowiedzi', 'Termin'];
 
 interface PendingMove {
-    leadId: number;
+    leadId: string;
     stage: LeadStage;
     x: number;
     y: number;
@@ -117,16 +117,16 @@ interface PendingMove {
 
 interface KanbanBoardProps {
     leads: LeadCardData[];
-    onOpenLead: (id: number) => void;
-    onStageChange: (leadId: number, stage: LeadStage, reason?: string) => void;
+    onOpenLead: (id: string) => void;
+    onStageChange: (leadId: string, stage: LeadStage, reason?: string) => void;
 }
 
-/** Sortowanie kolumny: piłka u nas najpierw, w obrębie grupy najstarsza wiadomość pierwsza (kolejka, nie stos). */
+/** Sortowanie kolumny: piłka u nas najpierw, w obrębie grupy najstarsza pierwsza (kolejka, nie stos). */
 const columnSort = (a: LeadCardData, b: LeadCardData): number => {
-    const aOurs = a.lastDirection === 'INBOUND' ? 0 : 1;
-    const bOurs = b.lastDirection === 'INBOUND' ? 0 : 1;
+    const aOurs = a.hasNewActivity ? 0 : 1;
+    const bOurs = b.hasNewActivity ? 0 : 1;
     if (aOurs !== bOurs) return aOurs - bOurs;
-    return new Date(a.lastMessageAt).getTime() - new Date(b.lastMessageAt).getTime();
+    return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime();
 };
 
 export const KanbanBoard = ({ leads, onOpenLead, onStageChange }: KanbanBoardProps) => {
@@ -144,7 +144,7 @@ export const KanbanBoard = ({ leads, onOpenLead, onStageChange }: KanbanBoardPro
     const handleDrop = (e: React.DragEvent, stage: LeadStage) => {
         e.preventDefault();
         setDropStage(null);
-        const leadId = Number(e.dataTransfer.getData('text/plain'));
+        const leadId = e.dataTransfer.getData('text/plain');
         if (!leadId) return;
         const lead = leads.find((l) => l.id === leadId);
         if (!lead || lead.stage === stage) return;

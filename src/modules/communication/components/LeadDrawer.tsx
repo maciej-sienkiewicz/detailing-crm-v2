@@ -5,12 +5,11 @@ import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import type { LeadStage, QuoteItem } from '../types';
 import {
+    useAcknowledgeLead,
     useAddNote,
     useLeadDetail,
-    useReply,
+    useSendReply,
     useStageChange,
-    useUpdateFact,
-    useVerifyFacts,
 } from '../hooks';
 import { vehicleTitle } from '../utils/format';
 import { Composer } from './Composer';
@@ -75,12 +74,6 @@ const ContactInfo = styled.span`
     color: #6b7280;
 `;
 
-const CallLink = styled.a`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${({ theme }) => theme.colors.primary};
-    text-decoration: none;
-`;
 
 const CloseButton = styled.button`
     margin-left: auto;
@@ -106,15 +99,6 @@ const FactsRow = styled.div`
     flex-wrap: wrap;
 `;
 
-const VerifyAllButton = styled.button`
-    height: 28px;
-    padding: 0 8px;
-    background: none;
-    border: none;
-    font-size: 12px;
-    color: ${({ theme }) => theme.colors.primary};
-    cursor: pointer;
-`;
 
 const StageRow = styled.div`
     display: flex;
@@ -198,17 +182,16 @@ const SkeletonBlock = styled.div`
 `;
 
 interface LeadDrawerProps {
-    leadId: number;
+    leadId: string;
     onClose: () => void;
 }
 
 export const LeadDrawer = ({ leadId, onClose }: LeadDrawerProps) => {
     const { data: lead, isLoading, isError } = useLeadDetail(leadId);
-    const replyMutation = useReply(leadId);
+    const replyMutation = useSendReply(leadId);
     const stageMutation = useStageChange();
     const noteMutation = useAddNote(leadId);
-    const factMutation = useUpdateFact(leadId);
-    const verifyMutation = useVerifyFacts(leadId);
+    const acknowledgeMutation = useAcknowledgeLead();
 
     const [noteOpen, setNoteOpen] = useState(false);
     const [noteText, setNoteText] = useState('');
@@ -221,11 +204,39 @@ export const LeadDrawer = ({ leadId, onClose }: LeadDrawerProps) => {
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
 
+    // Otwarcie leada z nową odpowiedzią klienta zdejmuje znacznik aktywności.
+    const acknowledge = acknowledgeMutation.mutate;
+    useEffect(() => {
+        if (lead?.hasNewActivity) acknowledge(leadId);
+    }, [acknowledge, lead?.hasNewActivity, leadId]);
+
+    const threadId = lead?.threadId ?? null;
+    const currentStage = lead?.stage;
+
     const handleSend = useCallback(
         (bodyText: string, quote: { items: QuoteItem[] } | undefined, nextStage: LeadStage | undefined) => {
-            replyMutation.mutate({ bodyText, quote, nextStage });
+            if (!threadId) return;
+            const escaped = bodyText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            const quoteHtml = quote?.items.length
+                ? `<table>${quote.items
+                      .map((item) => `<tr><td>${item.name}</td><td>${(item.price / 100).toFixed(2)} zł</td></tr>`)
+                      .join('')}</table>`
+                : '';
+            replyMutation.mutate(
+                { threadId, bodyHtml: `<div>${escaped.replace(/\n/g, '<br/>')}</div>${quoteHtml}` },
+                {
+                    onSuccess: () => {
+                        if (nextStage && nextStage !== currentStage) {
+                            stageMutation.mutate({ id: leadId, stage: nextStage });
+                        }
+                    },
+                },
+            );
         },
-        [replyMutation],
+        [threadId, currentStage, leadId, replyMutation, stageMutation],
     );
 
     const saveNote = () => {
@@ -239,8 +250,6 @@ export const LeadDrawer = ({ leadId, onClose }: LeadDrawerProps) => {
         });
     };
 
-    const hasUnverified = lead?.facts.some((f) => !f.verified) ?? false;
-
     return (
         <>
             <Overlay onClick={onClose} />
@@ -248,29 +257,14 @@ export const LeadDrawer = ({ leadId, onClose }: LeadDrawerProps) => {
                 <Header>
                     <HeaderTop>
                         <CustomerName>{lead ? (lead.customerName ?? vehicleTitle(lead)) : '…'}</CustomerName>
-                        {lead?.phone && (
-                            <>
-                                <ContactInfo>{lead.phone}</ContactInfo>
-                                <CallLink href={`tel:${lead.phone.replace(/\s/g, '')}`}>Zadzwoń</CallLink>
-                            </>
-                        )}
-                        {lead && <ContactInfo>{lead.contactEmail}</ContactInfo>}
+                        {lead && <ContactInfo>{lead.contactIdentifier}</ContactInfo>}
                         <CloseButton onClick={onClose} aria-label="Zamknij">✕</CloseButton>
                     </HeaderTop>
                     {lead && lead.facts.length > 0 && (
                         <FactsRow>
                             {lead.facts.map((fact) => (
-                                <FactChip
-                                    key={fact.id}
-                                    fact={fact}
-                                    onSave={(factId, value) => factMutation.mutate({ factId, value })}
-                                />
+                                <FactChip key={fact.id} fact={fact} />
                             ))}
-                            {hasUnverified && (
-                                <VerifyAllButton onClick={() => verifyMutation.mutate()}>
-                                    Zatwierdź wszystkie
-                                </VerifyAllButton>
-                            )}
                         </FactsRow>
                     )}
                     {lead && (
@@ -278,7 +272,7 @@ export const LeadDrawer = ({ leadId, onClose }: LeadDrawerProps) => {
                             Etap:
                             <StageSelect
                                 value={lead.stage}
-                                onChange={(stage) => stageMutation.mutate({ leadId, stage })}
+                                onChange={(stage) => stageMutation.mutate({ id: leadId, stage })}
                             />
                         </StageRow>
                     )}
@@ -317,9 +311,16 @@ export const LeadDrawer = ({ leadId, onClose }: LeadDrawerProps) => {
                         )}
                         <Composer
                             customerName={lead.customerName}
-                            contactEmail={lead.contactEmail}
+                            contactIdentifier={lead.contactIdentifier}
                             currentStage={lead.stage}
                             sending={replyMutation.isPending}
+                            availableQuote={lead.quoteItems}
+                            disabled={!lead.threadId || !lead.canReplyFromCrm}
+                            disabledReason={
+                                !lead.threadId
+                                    ? 'Ten lead nie ma powiązanego wątku e-mail'
+                                    : 'Podłącz skrzynkę studia, aby odpowiadać z CRM'
+                            }
                             onSend={handleSend}
                         />
                     </>

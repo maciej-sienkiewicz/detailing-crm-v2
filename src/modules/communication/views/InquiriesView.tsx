@@ -203,7 +203,7 @@ export const InquiriesView = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const view = searchParams.get('widok') === 'lista' ? 'lista' : 'tablica';
     const leadParam = searchParams.get('lead');
-    const openLeadId = leadParam ? Number(leadParam) : null;
+    const openLeadId = leadParam || null;
 
     const [query, setQuery] = useState('');
     const [reviewOpen, setReviewOpen] = useState(false);
@@ -220,7 +220,7 @@ export const InquiriesView = () => {
         }, { replace: true });
     }, [setSearchParams]);
 
-    const openLead = useCallback((id: number) => {
+    const openLead = useCallback((id: string) => {
         setSearchParams((params) => {
             params.set('lead', String(id));
             return params;
@@ -234,7 +234,7 @@ export const InquiriesView = () => {
         });
     }, [setSearchParams]);
 
-    const allLeads = useMemo(() => leadsQuery.data?.leads ?? [], [leadsQuery.data]);
+    const allLeads = useMemo(() => leadsQuery.data ?? [], [leadsQuery.data]);
 
     const filteredLeads = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -242,22 +242,22 @@ export const InquiriesView = () => {
         return allLeads.filter((lead) =>
             vehicleTitle(lead).toLowerCase().includes(q)
             || (lead.customerName ?? '').toLowerCase().includes(q)
-            || lead.contactEmail.toLowerCase().includes(q)
+            || lead.contactIdentifier.toLowerCase().includes(q)
             || lead.services.some((s) => s.toLowerCase().includes(q)));
     }, [allLeads, query]);
 
-    // Tablica: wygrane znikają (WON nie ma kolumny).
-    const boardLeads = useMemo(() => filteredLeads.filter((l) => l.stage !== 'WON'), [filteredLeads]);
+    // Tablica pokazuje pełen cykl życia — każdy status ma swoją kolumnę.
+    const boardLeads = filteredLeads;
 
-    const reviewCount = reviewQueue.data?.items.length ?? 0;
+    const reviewCount = reviewQueue.data?.length ?? 0;
     const failedAccount = mailAccounts.data?.find((a) => a.status === 'AUTH_FAILED');
 
     const firstLoad = leadsQuery.isLoading && !leadsQuery.data;
     const showEmpty = !firstLoad && !leadsQuery.isError && allLeads.length === 0;
     const showNetworkError = leadsQuery.isError;
 
-    const handleStageChange = (leadId: number, stage: LeadStage, reason?: string) => {
-        stageMutation.mutate({ leadId, stage, reason });
+    const handleStageChange = (leadId: string, stage: LeadStage, reason?: string) => {
+        stageMutation.mutate({ id: leadId, stage, reason });
     };
 
     return (
@@ -338,7 +338,7 @@ export const InquiriesView = () => {
                 )}
             </Master>
 
-            {openLeadId !== null && !Number.isNaN(openLeadId) && (
+            {openLeadId && (
                 <LeadDrawer leadId={openLeadId} onClose={closeLead} />
             )}
 

@@ -241,13 +241,27 @@ const parseGrosze = (priceZl: string): number => {
 
 interface ComposerProps {
     customerName?: string | null;
-    contactEmail: string;
+    contactIdentifier: string;
     currentStage: LeadStage;
     sending: boolean;
+    /** Pozycje zapisanej wyceny leada — podstawiane po kliknięciu „Wycena". */
+    availableQuote?: QuoteItem[];
+    /** Odpowiadanie wymaga wątku i podpiętej skrzynki. */
+    disabled?: boolean;
+    disabledReason?: string;
     onSend: (bodyText: string, quote: { items: QuoteItem[] } | undefined, nextStage: LeadStage | undefined) => void;
 }
 
-export const Composer = ({ customerName, contactEmail, currentStage, sending, onSend }: ComposerProps) => {
+export const Composer = ({
+    customerName,
+    contactIdentifier,
+    currentStage,
+    sending,
+    availableQuote,
+    disabled,
+    disabledReason,
+    onSend,
+}: ComposerProps) => {
     const [expanded, setExpanded] = useState(false);
     const [body, setBody] = useState('');
     const [quoteItems, setQuoteItems] = useState<DraftQuoteItem[] | null>(null);
@@ -257,9 +271,9 @@ export const Composer = ({ customerName, contactEmail, currentStage, sending, on
 
     const hasQuote = quoteItems !== null;
 
-    // Preselekcja etapu: wstawiona wycena → WYCENIONE; sama odpowiedź → bez zmiany.
+    // Preselekcja etapu: wysłanie wyceny przesuwa leada w tok obsługi.
     // Dopóki użytkownik nie dotknął dropdownu, etap wynika z zawartości composera.
-    const effectiveNextStage: LeadStage | null = stageTouched ? nextStage : (hasQuote ? 'QUOTED' : null);
+    const effectiveNextStage: LeadStage | null = stageTouched ? nextStage : (hasQuote ? 'IN_PROGRESS' : null);
 
     useEffect(() => {
         if (expanded) textareaRef.current?.focus();
@@ -270,10 +284,20 @@ export const Composer = ({ customerName, contactEmail, currentStage, sending, on
         [quoteItems],
     );
 
-    const canSend = !sending && (body.trim().length > 0 || (hasQuote && (quoteItems?.length ?? 0) > 0));
+    const canSend = !sending && !disabled
+        && (body.trim().length > 0 || (hasQuote && (quoteItems?.length ?? 0) > 0));
 
     const insertQuote = () => {
-        setQuoteItems((items) => items ?? [{ name: '', priceZl: '' }]);
+        setQuoteItems((items) => {
+            if (items) return items;
+            if (availableQuote?.length) {
+                return availableQuote.map((item) => ({
+                    name: item.name,
+                    priceZl: (item.price / 100).toFixed(2).replace('.', ','),
+                }));
+            }
+            return [{ name: '', priceZl: '' }];
+        });
         setExpanded(true);
     };
 
@@ -321,7 +345,11 @@ export const Composer = ({ customerName, contactEmail, currentStage, sending, on
     return (
         <Wrapper onKeyDown={handleKeyDown}>
             <Expanded>
-                <AddressRow>Do: {contactEmail} · Temat: Re: (automatyczny)</AddressRow>
+                <AddressRow>
+                    {disabled
+                        ? disabledReason
+                        : `Do: ${contactIdentifier} · Temat: Re: (automatyczny)`}
+                </AddressRow>
                 <BodyTextarea
                     ref={textareaRef}
                     value={body}

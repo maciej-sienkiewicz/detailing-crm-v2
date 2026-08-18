@@ -155,7 +155,7 @@ export const ReviewQueueDrawer = ({ onClose }: { onClose: () => void }) => {
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
 
-    const items = data?.items ?? [];
+    const items = data ?? [];
 
     return (
         <>

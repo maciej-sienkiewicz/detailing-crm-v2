@@ -100,16 +100,17 @@ const QuoteAmount = styled.span`
 
 interface LeadCardProps {
     lead: LeadCardData;
-    onOpen: (id: number) => void;
+    onOpen: (id: string) => void;
     draggable?: boolean;
-    onDragStart?: (e: React.DragEvent, id: number) => void;
+    onDragStart?: (e: React.DragEvent, id: string) => void;
 }
 
 export const LeadCard = ({ lead, onOpen, draggable, onDragStart }: LeadCardProps) => {
-    const ballOurs = lead.lastDirection === 'INBOUND';
+    // „Piłka u nas" = klient odezwał się i nikt jeszcze tego nie odczytał.
+    const ballOurs = lead.hasNewActivity;
     return (
         <Card
-            $unread={lead.unread}
+            $unread={lead.hasNewActivity}
             tabIndex={0}
             draggable={draggable}
             onDragStart={(e) => onDragStart?.(e, lead.id)}
@@ -122,19 +123,19 @@ export const LeadCard = ({ lead, onOpen, draggable, onDragStart }: LeadCardProps
                 <Vehicle>{vehicleTitle(lead)}</Vehicle>
                 <BallIndicator $ours={ballOurs} title={ballOurs ? 'Klient czeka na odpowiedź' : 'Czekamy na klienta'}>
                     {ballOurs ? <AccentDot /> : <ClockGlyph aria-hidden>◷</ClockGlyph>}
-                    {formatAge(lead.lastMessageAt)}
+                    {formatAge(lead.lastActivityAt)}
                 </BallIndicator>
             </TopRow>
             {lead.services.length > 0 && <Services>{lead.services.join(', ')}</Services>}
             <CustomerRow>
-                {lead.customerName ?? lead.contactEmail}
-                {lead.returningCustomer && <Returning> · ↩ Stały klient</Returning>}
+                {lead.customerName ?? lead.contactIdentifier}
+                {lead.requiresVerification && <Returning> · do sprawdzenia</Returning>}
             </CustomerRow>
-            {lead.quoteTotal != null && (
+            {lead.estimatedValue > 0 && (
                 <QuoteRow>
-                    <QuoteAmount>{formatPln(lead.quoteTotal)}</QuoteAmount>
+                    <QuoteAmount>{formatPln(lead.estimatedValue)}</QuoteAmount>
                     {' · '}
-                    {formatSentAgo(lead.lastMessageAt)}
+                    {formatSentAgo(lead.lastActivityAt)}
                 </QuoteRow>
             )}
         </Card>
