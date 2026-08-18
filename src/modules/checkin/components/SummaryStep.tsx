@@ -241,7 +241,7 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
         };
     };
 
-    // Calculate totals
+    // Calculate totalss
     const calculateTotals = () => {
         let totalNet = 0;
         let totalVat = 0;
