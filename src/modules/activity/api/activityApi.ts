@@ -38,7 +38,7 @@ export const activityApi = {
         return res.data;
     },
 
-    /** Filter options with their labels — the UI ships no translation table of its own. */
+    /** Filter options with their labels; the UI ships no translation table of its own. */
     getFilterOptions: async (): Promise<ActivityFilterOptions> => {
         const res = await apiClient.get<ActivityFilterOptions>(`${BASE}/filters`);
         return res.data;

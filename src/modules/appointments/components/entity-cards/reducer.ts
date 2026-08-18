@@ -75,7 +75,7 @@ export function entitySectionsReducer(state: EntitySectionsState, event: EntityE
             const unchanged = draftsEqual(event.draft, {
                 firstName: snapshot.firstName, lastName: snapshot.lastName, phone: snapshot.phone, email: snapshot.email,
             });
-            // A no-op edit degrades back to a pure reference — no empty UPDATE reported.
+            // A no-op edit degrades back to a pure reference: no empty UPDATE reported.
             return {
                 ...state,
                 customer: unchanged
@@ -156,7 +156,7 @@ export function entitySectionsReducer(state: EntitySectionsState, event: EntityE
     }
 }
 
-/** True while any card is in a transient state — the visit must not be saved yet. */
+/** True while any card is in a transient state; the visit must not be saved yet. */
 export const hasUnresolvedSection = (state: EntitySectionsState): boolean =>
     state.customer.kind === 'EDITING' || state.customer.kind === 'CHOOSING' ||
     state.vehicle.kind === 'EDITING' || state.vehicle.kind === 'CHOOSING';

@@ -284,7 +284,7 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
     const [sendEmail, setSendEmail] = useState(false);
     const [email, setEmail] = useState(contractor.email ?? '');
 
-    const periodLabel = `${new Date(from).toLocaleDateString('pl-PL')} – ${new Date(to).toLocaleDateString('pl-PL')}`;
+    const periodLabel = `${new Date(from).toLocaleDateString('pl-PL')}-${new Date(to).toLocaleDateString('pl-PL')}`;
 
     async function handleConfirm() {
         await onConfirm({

@@ -1,8 +1,8 @@
 /**
- * Modal primitives — canonical design system
+ * Modal primitives: canonical design system
  *
  * Every modal in the app imports from here (via @/common/components/ModalKit).
- * Do not define local Overlay / ModalBox / Header / Footer / CloseButton — use these.
+ * Do not define local Overlay / ModalBox / Header / Footer / CloseButton, use these.
  */
 import styled, { keyframes } from 'styled-components';
 
@@ -24,7 +24,7 @@ export const modalScaleIn = keyframes`
  * The overlay owns the available space; the box only fills it.
  *
  * `inset: 0` on a fixed element resolves against the LARGE viewport on mobile
- * Safari — i.e. the height the page would have if the address bar were hidden.
+ * Safari, i.e. the height the page would have if the address bar were hidden.
  * With the bar visible, the bottom of the overlay (and the centred box inside
  * it) sits underneath browser chrome, which is exactly why modal footers used
  * to be unreachable on a phone. `100dvh` tracks the viewport that is actually
@@ -77,7 +77,7 @@ export const ModalBox = styled.div<{ $isOpen: boolean; $maxWidth?: string }>`
         0 16px 40px -8px rgba(0, 0, 0, 0.16);
     width: 100%;
     max-width: ${p => p.$maxWidth ?? '520px'};
-    /* 100% of the overlay's content box — i.e. viewport minus padding and safe
+    /* 100% of the overlay's content box, i.e. viewport minus padding and safe
        areas. Header and footer are flex-shrink:0, so whatever is left goes to
        ModalContent, which scrolls. The footer can never be pushed off-screen. */
     max-height: 100%;
@@ -132,7 +132,7 @@ export const ModalTitle = styled.h2`
     color: #0f172a;
     letter-spacing: -0.3px;
     line-height: 1.2;
-    /* Titles are sometimes file names — break them rather than blow out the box. */
+    /* Titles are sometimes file names, break them rather than blow out the box. */
     overflow-wrap: anywhere;
 
     @media (max-width: 640px) {
@@ -219,7 +219,7 @@ export const ModalContent = styled.div`
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 `;
 
-// ─── Footer — always visible above scrollable content ─────────────────────────
+// ─── Footer, always visible above scrollable content ─────────────────────────
 
 export const ModalFooter = styled.div`
     padding: 16px 28px;
@@ -240,7 +240,7 @@ export const ModalFooter = styled.div`
            wrap inside the pill rather than spill past the modal edge. */
         button { white-space: normal; }
 
-        /* Share the row when they fit, fill the row when they wrap — so a
+        /* Share the row when they fit, fill the row when they wrap, so a
            stacked footer never leaves a stray half-width pill floating right. */
         > button { flex: 1 1 auto; min-width: 0; }
     }

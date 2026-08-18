@@ -49,7 +49,7 @@ export const useCreateAmendment = (employeeId: string, contractId: string) => {
             employeeApi.createAmendment(employeeId, contractId, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: amendmentsKey(employeeId, contractId) });
-            // Compensation tab reads from this key — refresh it too
+            // Compensation tab reads from this key too, so refresh it
             queryClient.invalidateQueries({ queryKey: ['employees', 'compensation', employeeId] });
         },
     });

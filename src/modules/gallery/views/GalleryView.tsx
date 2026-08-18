@@ -388,15 +388,15 @@ const CardTag = styled.span`
 
 const PAGE_SIZE = 12;
 
-function buildPageNumbers(current: number, total: number): (number | '…')[] {
+function buildPageNumbers(current: number, total: number): (number | '...')[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const result: (number | '…')[] = [];
+    const result: (number | '...')[] = [];
     result.push(1);
-    if (current > 3) result.push('…');
+    if (current > 3) result.push('...');
     for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
         result.push(p);
     }
-    if (current < total - 2) result.push('…');
+    if (current < total - 2) result.push('...');
     result.push(total);
     return result;
 }
@@ -613,8 +613,8 @@ export const GalleryView = () => {
                         </PageBtn>
 
                         {pageNumbers.map((p, idx) =>
-                            p === '…' ? (
-                                <Ellipsis key={`ell-${idx}`}>…</Ellipsis>
+                            p === '...' ? (
+                                <Ellipsis key={`ell-${idx}`}>...</Ellipsis>
                             ) : (
                                 <PageBtn
                                     key={p}

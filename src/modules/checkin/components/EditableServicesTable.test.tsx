@@ -119,7 +119,7 @@ describe('EditableServicesTable', () => {
 
     // ── autocomplete: add-new option ─────────────────────────────────────────
 
-    describe('autocomplete – opcja "dodaj nową usługę"', () => {
+    describe('autocomplete: opcja "dodaj nową usługę"', () => {
         it('pojawia się po wpisaniu tekstu gdy brak wyników', async () => {
             const user = userEvent.setup();
             renderTable([]);
@@ -227,7 +227,7 @@ describe('EditableServicesTable', () => {
 
     // ── modal ceny NIESTANDARDOWEJ ────────────────────────────────────────────
 
-    describe('usługa NIESTANDARDOWA – modal wpisania ceny', () => {
+    describe('usługa NIESTANDARDOWA: modal wpisania ceny', () => {
         it('otwiera modal zamiast od razu dodawać usługę', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
@@ -275,7 +275,7 @@ describe('EditableServicesTable', () => {
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            // domyślnie tryb Brutto — wpisujemy 123 PLN brutto (VAT 23% → netto 100)
+            // domyślnie tryb Brutto, wpisujemy 123 PLN brutto (VAT 23% → netto 100)
             const priceInput = screen.getByPlaceholderText('0.00');
             await user.type(priceInput, '123');
 

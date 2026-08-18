@@ -84,13 +84,13 @@ interface Presentation {
     lead: string;
 }
 
-/** KSeF 440 — numer dokumentu jest już zajęty pod tym NIP-em. */
+/** KSeF 440: numer dokumentu jest już zajęty pod tym NIP-em. */
 export const isDuplicateRejection = (error?: string | null): boolean =>
     !!error && (error.includes('440') || /duplikat/i.test(error));
 
 /**
  * Status KSeF → co pokazać. REJECTED jest wprost nazwane błędem: wizyta jest
- * zakończona, ale faktura wymaga poprawy — dotąd użytkownik dostawał w tym
+ * zakończona, ale faktura wymaga poprawy, a dotąd użytkownik dostawał w tym
  * miejscu komunikat sukcesu i odesłanie do innego modułu.
  */
 const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Presentation => {
@@ -105,11 +105,11 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
     }
     // Without a token the send failed at authentication, which the dispatcher records
     // as a transient failure and queues for offline24 retry. That retry can never
-    // succeed, so promising it would be a lie — say what actually has to happen.
+    // succeed, so promising it would be a lie: say what actually has to happen.
     if (ksefMisconfigured && result.ksefStatus !== 'ACCEPTED' && result.ksefStatus !== 'REJECTED') {
         return {
             tone: 'warn',
-            title: 'Pojazd wydany — faktura czeka na wysyłkę',
+            title: 'Pojazd wydany, faktura czeka na wysyłkę',
             lead: 'Faktura została wystawiona i zapisana, ale nie trafiła do KSeF, bo studio nie ma skonfigurowanego tokenu. Pobierz plik XML i wgraj go ręcznie w KSeF albo skonfiguruj token w Finanse → KSeF i ponów wysyłkę przy fakturze.',
         };
     }
@@ -121,19 +121,19 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
             return {
                 tone: 'warn',
                 title: 'Pojazd wydany',
-                lead: 'KSeF jest chwilowo niedostępny — faktura zostanie dosłana automatycznie w trybie offline24.',
+                lead: 'KSeF jest chwilowo niedostępny, faktura zostanie dosłana automatycznie w trybie offline24.',
             };
         case 'REJECTED':
             // Odrzucona faktura nie istnieje w KSeF i nie da się jej „dosłać":
             // jej numer jest spalony, a XML zamrożony w chwili wystawienia. Backend
-            // świadomie odmawia ponowienia — jedyną drogą jest nowy dokument.
+            // świadomie odmawia ponowienia: jedyną drogą jest nowy dokument.
             // Duplikat (kod 440) wyróżniamy, bo tam dane są poprawne: zajęty jest
             // wyłącznie numer i wystawienie od nowa wystarczy.
             return isDuplicateRejection(result.ksefError)
                 ? {
                       tone: 'bad',
-                      title: 'Faktura odrzucona — duplikat numeru',
-                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w module Finanse → Dokumenty przychodowe — dostanie kolejny numer w serii.',
+                      title: 'Faktura odrzucona: duplikat numeru',
+                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w module Finanse → Dokumenty przychodowe, dostanie kolejny numer w serii.',
                   }
                 : {
                       tone: 'bad',
@@ -174,7 +174,7 @@ export const HandoverResultView = ({
     const view = present(result, !ksef.isLoading && ksef.moduleEnabled && !ksef.configured);
 
     // The XML is worth offering whenever the invoice exists but KSeF has not taken
-    // it — the studio can upload it by hand. Not for REJECTED: that document failed
+    // it, so the studio can upload it by hand. Not for REJECTED: that document failed
     // validation, so the same file would be rejected again.
     const canDownloadXml =
         !!result.ksefInvoiceId && status !== 'ACCEPTED' && status !== 'REJECTED';
@@ -244,7 +244,7 @@ export const HandoverResultView = ({
                         disabled={downloading}
                     >
                         <Download size={15} />
-                        {downloading ? 'Pobieranie…' : 'Pobierz plik'}
+                        {downloading ? 'Pobieranie...' : 'Pobierz plik'}
                     </SharedButton>
                 )}
                 <SharedButton $variant="primary" type="button" onClick={onClose}>

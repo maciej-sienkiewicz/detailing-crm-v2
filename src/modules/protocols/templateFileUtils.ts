@@ -15,7 +15,7 @@ export const validateTemplateFile = (file: File): string | null => {
     return null;
 };
 
-/** Polskie etykiety pól szablonu — do czytelnego raportu braków po weryfikacji. */
+/** Polskie etykiety pól szablonu: do czytelnego raportu braków po weryfikacji. */
 const FIELD_LABELS: Record<string, string> = {
     brand: 'Marka pojazdu',
     model: 'Model pojazdu',
@@ -48,6 +48,6 @@ export const buildRejectionMessage = (verification: ProtocolTemplateVerification
         ...verification.missingFields.map(f => `brakujące pole: ${fieldLabel(f)}`),
         ...verification.problems,
     ];
-    return `Plik nie przeszedł weryfikacji — ${details.join('; ')}. ` +
+    return `Plik nie przeszedł weryfikacji: ${details.join('; ')}. ` +
         'Popraw plik zgodnie z instrukcją (przycisk „Dowiedz się więcej”) i wgraj go ponownie.';
 };

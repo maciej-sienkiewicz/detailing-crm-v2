@@ -1,5 +1,5 @@
 // src/modules/checkin/services/offlinePhotoDb.ts
-// IndexedDB wrapper for offline photo queue (no localStorage — multi-tenant safe)
+// IndexedDB wrapper for offline photo queue (no localStorage, multi-tenant safe)
 
 import type { PendingPhoto } from '../types';
 

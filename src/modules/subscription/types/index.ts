@@ -54,7 +54,7 @@ export interface FeatureStatus {
 /**
  * Capability = an atomic business action resolved by the BACKEND, including
  * cross-module rules (e.g. SIGNATURE_REMOTE_REQUEST = E_SIGNATURES ∧ SMS_EMAIL).
- * The frontend must never re-evaluate these expressions — it only renders the
+ * The frontend must never re-evaluate these expressions; it only renders the
  * decision it receives from GET /v1/me/entitlements.
  */
 export type CapabilityKey =
@@ -85,7 +85,7 @@ export interface CapabilityUpsellOption {
 export interface CapabilityStatus {
     enabled: boolean;
     displayName: string;
-    /** Exactly which features are missing — drives the "requires module X" copy. */
+    /** Exactly which features are missing; drives the "requires module X" copy. */
     missingFeatures: CapabilityMissingFeature[];
     /** Purchasable add-ons that provide the missing features. */
     upsell: CapabilityUpsellOption[];
@@ -233,9 +233,9 @@ export interface CheckoutRequest {
 }
 
 /**
- * paymentUrl — Przelewy24 payment page to redirect the buyer to.
+ * paymentUrl: Przelewy24 payment page to redirect the buyer to.
  * Null when the order needed no payment (trial / zero amount) and was fulfilled
- * immediately — in that case status is already PAID.
+ * immediately; in that case status is already PAID.
  */
 export interface CheckoutResponse {
     orderId: string;

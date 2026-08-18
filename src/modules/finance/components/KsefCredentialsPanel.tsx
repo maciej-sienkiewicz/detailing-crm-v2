@@ -362,14 +362,14 @@ const TokenPermissionsBlock: React.FC<{
   const verifyButton = (
     <VerifyBtn onClick={onVerify} disabled={isVerifying}>
       {isVerifying && <BlueSpinner />}
-      {isVerifying ? 'Weryfikacja w KSeF…' : verification ? 'Sprawdź ponownie' : 'Sprawdź uprawnienia'}
+      {isVerifying ? 'Weryfikacja w KSeF...' : verification ? 'Sprawdź ponownie' : 'Sprawdź uprawnienia'}
     </VerifyBtn>
   );
 
   const checkedAt = formatCheckedAt(verification?.checkedAt ?? null);
 
-  // Row state: before any verification (or when the list couldn't be read)
-  // everything is "unknown" — we never show a false ✓ or ✗.
+  // Row state: before any verification (or when the list couldn't be read),
+  // everything is "unknown"; we never show a false ✓ or ✗.
   const rowState = (granted: boolean): 'ok' | 'missing' | 'unknown' => {
     if (!verification || !verification.tokenValid || !verification.permissionsKnown) return 'unknown';
     return granted ? 'ok' : 'missing';
@@ -461,7 +461,7 @@ export const KsefCredentialsPanel: React.FC = () => {
       setToken('');
       setEditMode(false);
       // Verify the freshly saved token right away, so the owner immediately sees
-      // whether it carries the needed permissions (fire-and-forget — the
+      // whether it carries the needed permissions (fire-and-forget; the
       // checklist below shows the progress and result).
       verifyToken.mutate();
     } catch (err: any) {
@@ -488,7 +488,7 @@ export const KsefCredentialsPanel: React.FC = () => {
         <PanelHeader>
           <HeaderLeft>
             <PanelTitle>Integracja z KSeF</PanelTitle>
-            <PanelSubtitle>Ładowanie konfiguracji…</PanelSubtitle>
+            <PanelSubtitle>Ładowanie konfiguracji...</PanelSubtitle>
           </HeaderLeft>
         </PanelHeader>
         <PanelBody>
@@ -577,7 +577,7 @@ export const KsefCredentialsPanel: React.FC = () => {
                 <Label>Token API KSeF</Label>
                 <Input
                   type="password"
-                  placeholder="Wklej token z systemu KSeF…"
+                  placeholder="Wklej token z systemu KSeF..."
                   value={token}
                   onChange={(e) => { setToken(e.target.value); setErrorMsg(null); }}
                   autoComplete="off"
@@ -594,7 +594,7 @@ export const KsefCredentialsPanel: React.FC = () => {
                 $loading={saveCredentials.isPending}
               >
                 {saveCredentials.isPending && <Spinner />}
-                {saveCredentials.isPending ? 'Zapisywanie…' : 'Zapisz konfigurację'}
+                {saveCredentials.isPending ? 'Zapisywanie...' : 'Zapisz konfigurację'}
               </PrimaryBtn>
               {editMode && (
                 <SecondaryBtn onClick={() => { setEditMode(false); setErrorMsg(null); }}>

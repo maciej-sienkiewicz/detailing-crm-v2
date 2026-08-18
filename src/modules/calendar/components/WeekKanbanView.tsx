@@ -479,7 +479,7 @@ const EventCard = ({ slot, onClick }: EventCardProps) => {
     // Show time only on the first day; continuation days show a ▶ indicator
     const startTime = (isAllDay || dayIndex > 1) ? '' : formatTime(event.start as string);
     const endTime   = (isAllDay || dayIndex > 1) ? '' : formatTime(event.end as string | undefined);
-    const timeLabel = startTime ? (endTime ? `${startTime} – ${endTime}` : startTime) : '';
+    const timeLabel = startTime ? (endTime ? `${startTime}-${endTime}` : startTime) : '';
 
     const serviceLabel = props.type === 'APPOINTMENT'
         ? props.serviceNames?.join(', ')
@@ -639,7 +639,7 @@ export const WeekKanbanView = ({
 
                                 <CardList>
                                     {dayEvents.length === 0 ? (
-                                        <EmptySlot>—</EmptySlot>
+                                        <EmptySlot>-</EmptySlot>
                                     ) : (
                                         dayEvents.map(slot => (
                                             <EventCard

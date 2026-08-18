@@ -59,7 +59,7 @@ interface SettlementSectionProps {
 /**
  * Rozliczenie wizyty: kwota, forma zapłaty, dokument.
  *
- * Wizyta bezpłatna nie ma czego rozliczać — sekcja zwija się wtedy do jednej
+ * Wizyta bezpłatna nie ma czego rozliczać: sekcja zwija się wtedy do jednej
  * informacji, zamiast pokazywać wybory bez znaczenia.
  */
 export const SettlementSection = ({
@@ -87,7 +87,7 @@ export const SettlementSection = ({
                 <Box>
                     <BoxRow>
                         <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
-                            Wizyta bezpłatna — łączna wartość usług wynosi 0 zł.
+                            Wizyta bezpłatna, łączna wartość usług wynosi 0 zł.
                         </span>
                         <Money $strong>{fmt(0)}</Money>
                     </BoxRow>
@@ -147,7 +147,7 @@ export const SettlementSection = ({
                         </svg>
                     </KsefNoticeIcon>
                     <div>
-                        <KsefNoticeTitle>Brak tokenu KSeF — wysyłka nie będzie automatyczna</KsefNoticeTitle>
+                        <KsefNoticeTitle>Brak tokenu KSeF: wysyłka nie będzie automatyczna</KsefNoticeTitle>
                         Fakturę wystawimy i zapiszemy normalnie, ale nie trafi sama do KSeF.
                         Po wydaniu pojazdu pobierzesz plik XML i wgrasz go ręcznie. Token
                         skonfigurujesz w <strong>Finanse → KSeF</strong>; od tego momentu

@@ -28,7 +28,7 @@ interface Props {
     settingsTab?: string;
     /**
      * Called when the lock badge/message is clicked, instead of navigating to
-     * /settings?tab=... — use to open an UpsellModal in place so the purchase
+     * /settings?tab=...; use to open an UpsellModal in place so the purchase
      * flow starts right where the user hit the wall.
      */
     onLockedClick?: () => void;

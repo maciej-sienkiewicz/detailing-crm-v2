@@ -1,5 +1,5 @@
 // src/modules/calendar/components/AgendaListView.tsx
-// Mobile list view — shows upcoming days with their events, Google Calendar style.
+// Mobile list view: shows upcoming days with their events, Google Calendar style.
 
 import React, { useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
@@ -267,9 +267,9 @@ const STATUS_LABEL: Record<string, string> = {
 
 export interface AgendaListViewProps {
     events: CalendarEvent[];
-    /** ISO date string — the range start from dateRange.start */
+    /** ISO date string, the range start from dateRange.start */
     rangeStart: string;
-    /** ISO date string — the range end from dateRange.end */
+    /** ISO date string, the range end from dateRange.end */
     rangeEnd: string;
     /** The currently selected/focused date (dateRange.start for navigated month) */
     focusDate?: string;
@@ -349,7 +349,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                                         {isAllDay
                                                             ? 'Cały dzień'
                                                             : endTime
-                                                                ? `${startTime} – ${endTime}`
+                                                                ? `${startTime}-${endTime}`
                                                                 : startTime
                                                         }
                                                         <TypeBadge $isVisit={isVisit}>

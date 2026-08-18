@@ -143,7 +143,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
             const result = await newSubscriptionApi.calculatePrice({ addOnKeys: Array.from(keys) });
             setCustomPrice(result);
         } catch {
-            // silently ignore — price display falls back
+            // silently ignore, price display falls back
         } finally {
             setPriceLoading(false);
         }
@@ -238,23 +238,23 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         <LogoWrap><LogoIcon /></LogoWrap>
                         <WelcomeTitle>Witaj w DetailBoost!</WelcomeTitle>
                         <WelcomeSub>
-                            Twoje konto jest gotowe. Wybierz jak chcesz zacząć — możesz wypróbować system bezpłatnie lub od razu wybrać plan dopasowany do potrzeb studia.
+                            Twoje konto jest gotowe. Wybierz jak chcesz zacząć: możesz wypróbować system bezpłatnie lub od razu wybrać plan dopasowany do potrzeb studia.
                         </WelcomeSub>
                     </CardHeader>
 
                     {isPending && (
                         <LoadingOverlay>
                             <Spinner />
-                            {phase === 'pending-trial' && 'Aktywowanie okresu próbnego…'}
-                            {phase === 'pending-plan' && 'Przekierowywanie do płatności…'}
-                            {phase === 'pending-custom' && 'Przekierowywanie do płatności…'}
+                            {phase === 'pending-trial' && 'Aktywowanie okresu próbnego...'}
+                            {phase === 'pending-plan' && 'Przekierowywanie do płatności...'}
+                            {phase === 'pending-custom' && 'Przekierowywanie do płatności...'}
                         </LoadingOverlay>
                     )}
 
                     {!isPending && plansLoading && (
                         <LoadingOverlay>
                             <Spinner />
-                            Ładowanie planów…
+                            Ładowanie planów...
                         </LoadingOverlay>
                     )}
 
@@ -273,7 +273,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                     <TrialCard $disabled={false} onClick={handleStartTrial}>
                                         <TrialIconWrap><GiftIcon /></TrialIconWrap>
                                         <TrialInfo>
-                                            <TrialTitle>Wypróbuj przez 60 dni — bezpłatnie</TrialTitle>
+                                            <TrialTitle>Wypróbuj przez 60 dni, bezpłatnie</TrialTitle>
                                             <TrialDesc>
                                                 Pełny dostęp do wszystkich funkcji. Bez karty kredytowej, bez zobowiązań.
                                             </TrialDesc>
@@ -385,7 +385,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                     </SummaryLabel>
                                                     <SummaryAmount>
                                                         {priceLoading
-                                                            ? '…'
+                                                            ? '...'
                                                             : totalPriceCents != null
                                                                 ? formatCents(totalPriceCents)
                                                                 : 'Cena do ustalenia'}

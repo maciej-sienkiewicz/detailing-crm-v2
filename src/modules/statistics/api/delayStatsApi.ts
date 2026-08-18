@@ -40,7 +40,7 @@ const ALL_SERVICES = [
     },
     {
         serviceId: 's3',
-        serviceName: 'Folia ochronna PPF – maska',
+        serviceName: 'Folia ochronna PPF - maska',
         isActive: true,
         occurrences: 11,
         totalOccurrences: 22,
@@ -49,7 +49,7 @@ const ALL_SERVICES = [
     },
     {
         serviceId: 's4',
-        serviceName: 'Detailing wnętrza – pełny',
+        serviceName: 'Detailing wnętrza - pełny',
         isActive: true,
         occurrences: 8,
         totalOccurrences: 41,
@@ -105,7 +105,7 @@ function buildOverview(
     const excluded = ALL_SERVICES.filter(s => excludedIds.has(s.serviceId));
 
     // Reduce delayed visit count by the sum of unique delayed occurrences removed.
-    // (approximate — assumes each excluded service contributes independently)
+    // (approximate: assumes each excluded service contributes independently)
     const removedOccurrences = excluded.reduce((sum, s) => sum + s.occurrences, 0);
     const baseDelayed = 47;
     const newVisitsWithDelay = Math.max(0, baseDelayed - removedOccurrences);

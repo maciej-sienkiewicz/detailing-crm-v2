@@ -578,7 +578,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                     <ServiceNameInput
                                         value={svc.name}
                                         onChange={e => updateService(idx, { name: capitalizeFirst(e.target.value) })}
-                                        placeholder={`Nazwa usługi ${idx + 1}…`}
+                                        placeholder={`Nazwa usługi ${idx + 1}...`}
                                     />
                                     {services.length > 1 && (
                                         <RemoveBtn type="button" onClick={() => removeService(idx)}>✕</RemoveBtn>
@@ -632,7 +632,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                             id="entry-notes"
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            placeholder="Dodatkowe uwagi…"
+                            placeholder="Dodatkowe uwagi..."
                             style={{ minHeight: 64 }}
                         />
                     </InputShellTextArea>

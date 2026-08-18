@@ -101,7 +101,7 @@ export const Table = styled.table`
  *
  * The stage bands, not the row backgrounds, are what carry structure here: the
  * table is read as "what does the customer get, and when", so the eye needs to
- * land on the journey step first. Warm amber on `inWork` is deliberate — that is
+ * land on the journey step first. Warm amber on `inWork` is deliberate: that is
  * the only stage where the message asks the customer to decide something.
  */
 export const STAGE_ACCENT: Record<string, { base: string; deep: string; tint: string }> = {

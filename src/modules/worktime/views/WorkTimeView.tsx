@@ -95,7 +95,7 @@ function isWeekend(d: Date): boolean {
 
 const STATUS_LABELS: Record<PeriodStatus, string> = {
     DRAFT: 'Szkic',
-    SUBMITTED: 'Złożona — czeka na zatwierdzenie',
+    SUBMITTED: 'Złożona, czeka na zatwierdzenie',
     APPROVED: 'Zaakceptowana',
     RETURNED: 'Zwrócona do poprawy',
 };
@@ -141,7 +141,7 @@ export function WorkTimeView() {
     const [editValue, setEditValue] = useState('');
     const [editError, setEditError] = useState<string | null>(null);
 
-    // Saved scroll position before the sheet opened – restored on close
+    // Saved scroll position before the sheet opened; restored on close
     const savedScrollY = useRef(0);
 
     // Guard: redirect if user doesn't have time tracking
@@ -323,7 +323,7 @@ export function WorkTimeView() {
                         <QuickBtn
                             onClick={() => setShowFillConfirm(true)}
                             disabled={fillMonth.isPending}
-                            title="Uzupełnij każdy pn–pt w miesiącu po 8h (tylko puste dni)"
+                            title="Uzupełnij każdy pn-pt w miesiącu po 8h (tylko puste dni)"
                         >
                             <CalendarIcon />
                             Uzupełnij miesiąc
@@ -359,7 +359,7 @@ export function WorkTimeView() {
                                         {entry ? (
                                             <HoursChip $filled>{entry.hours}</HoursChip>
                                         ) : (
-                                            <HoursChip $filled={false}>—</HoursChip>
+                                            <HoursChip $filled={false}>-</HoursChip>
                                         )}
                                         {!isApproved && <ChevronIcon dir="right" small />}
                                     </DayRight>
@@ -369,14 +369,14 @@ export function WorkTimeView() {
                 </DayList>
             </Container>
 
-            {/* Sticky submit bar — always visible at bottom when applicable */}
+            {/* Sticky submit bar: always visible at bottom when applicable */}
             {canSubmit && (
                 <StickySubmitBar>
                     <SubmitBtn
                         onClick={handleSubmit}
                         disabled={submitPeriod.isPending}
                     >
-                        {submitPeriod.isPending ? 'Składanie…' : 'Złóż kartę do zatwierdzenia'}
+                        {submitPeriod.isPending ? 'Składanie...' : 'Złóż kartę do zatwierdzenia'}
                     </SubmitBtn>
                 </StickySubmitBar>
             )}
@@ -384,7 +384,7 @@ export function WorkTimeView() {
             <ConfirmationModal
                 isOpen={showFillConfirm}
                 title="Uzupełnić miesiąc?"
-                message={`Wszystkie puste dni robocze (pn–pt) w ${periodLabel(period)} zostaną uzupełnione po 8 godzin. Dni z wpisem pozostaną bez zmian.`}
+                message={`Wszystkie puste dni robocze (pn-pt) w ${periodLabel(period)} zostaną uzupełnione po 8 godzin. Dni z wpisem pozostaną bez zmian.`}
                 variant="info"
                 confirmText="Uzupełnij"
                 onConfirm={handleFillMonth}
@@ -424,7 +424,7 @@ export function WorkTimeView() {
                                 onClick={handleSave}
                                 disabled={upsertEntry.isPending || deleteEntry.isPending}
                             >
-                                {(upsertEntry.isPending || deleteEntry.isPending) ? 'Zapisuję…' : 'Zapisz'}
+                                {(upsertEntry.isPending || deleteEntry.isPending) ? 'Zapisuję...' : 'Zapisz'}
                             </SheetSaveBtn>
                         </SheetFooter>
                     </BottomSheet>

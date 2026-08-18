@@ -1,6 +1,6 @@
 // ─── Personal-data (PII) access state ───────────────────────────────────────
 //
-// The backend masks personal data irreversibly at serialization time — the real
+// The backend masks personal data irreversibly at serialization time: the real
 // values NEVER reach the browser without the CUSTOMERS_VIEW_PERSONAL_DATA
 // permission. Everything in this module is therefore purely presentational:
 // it detects that data is masked and lets the UI render a blur state instead

@@ -157,7 +157,7 @@ export const MessageTemplatesSection: React.FC = () => {
             <SearchInput
               type="text"
               value={query}
-              placeholder="Szukaj po nazwie lub treści wiadomości…"
+              placeholder="Szukaj po nazwie lub treści wiadomości..."
               aria-label="Szukaj szablonu"
               onChange={e => setQuery(e.target.value)}
             />
@@ -190,8 +190,8 @@ export const MessageTemplatesSection: React.FC = () => {
         />
 
         <Legend>
-          <span><i style={{ background: st.accentGreen }} /> włączona — wychodzi do klienta</span>
-          <span><i style={{ background: st.accentAmber }} /> włączona, ale bez treści — nic nie wyjdzie</span>
+          <span><i style={{ background: st.accentGreen }} /> włączona: wychodzi do klienta</span>
+          <span><i style={{ background: st.accentAmber }} /> włączona, ale bez treści: nic nie wyjdzie</span>
           <span><i style={{ background: st.borderHover }} /> wyłączona</span>
         </Legend>
       </Container>

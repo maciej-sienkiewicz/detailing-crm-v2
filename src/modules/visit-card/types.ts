@@ -139,7 +139,7 @@ export interface VisitCardLinkResponse {
     token: string;
     path: string;
     url: string;
-    /** Last successful delivery per channel — null when never sent that way. */
+    /** Last successful delivery per channel, null when never sent that way. */
     lastEmailSentAt: string | null;
     lastSmsSentAt: string | null;
 }
@@ -149,9 +149,9 @@ export type VisitCardSendChannel = 'EMAIL' | 'SMS';
 
 /** Studio-level Visit Card configuration (settings → Karta Wizyty). */
 export interface VisitCardSettings {
-    /** "Czy korzystać z Karty Wizyty?" — master switch. */
+    /** "Czy korzystać z Karty Wizyty?": master switch. */
     enabled: boolean;
-    /** "Czy domyślnie wysyłać Kartę Wizyty?" — default for the send checkbox. */
+    /** "Czy domyślnie wysyłać Kartę Wizyty?": default for the send checkbox. */
     sendByDefault: boolean;
     /** Whether the studio's subscription currently includes the SMS module. */
     smsModuleActive: boolean;

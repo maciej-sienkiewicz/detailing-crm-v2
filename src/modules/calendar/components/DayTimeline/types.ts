@@ -13,7 +13,7 @@ export interface DayStats {
 
 export interface DayTimelineViewProps {
     events: CalendarEvent[];
-    dayStart: string;           // ISO string – the day being displayed
+    dayStart: string;           // ISO string, the day being displayed
     calendarTitle: string;
     currentView: CalendarViewType;
     isToday: boolean;

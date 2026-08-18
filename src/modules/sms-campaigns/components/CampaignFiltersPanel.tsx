@@ -298,7 +298,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
             <Row>
               {filters.vehicles.map((v, i) => (
                 <Tag key={i}>
-                  {v.brand}{v.model ? ` ${v.model}` : ' – wszystkie modele'}
+                  {v.brand}{v.model ? ` ${v.model}` : ' - wszystkie modele'}
                   <TagRemove onClick={() => removeVehicle(i)} title="Usuń">✕</TagRemove>
                 </Tag>
               ))}
@@ -310,7 +310,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
                 value={pendingBrand}
                 onChange={(val) => { setPendingBrand(val); setPendingModel(''); }}
                 options={brandOptions}
-                placeholder="Wybierz markę…"
+                placeholder="Wybierz markę..."
                 nullable
               />
             </SelectWrap>
@@ -332,7 +332,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
             </AddBtn>
           </Row>
           {filters.vehicles.length === 0 && (
-            <EmptyHint>Brak filtrów — kampania nie będzie filtrować po marce</EmptyHint>
+            <EmptyHint>Brak filtrów: kampania nie będzie filtrować po marce</EmptyHint>
           )}
         </SectionBody>
       </FilterSection>
@@ -361,7 +361,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
                 value={pendingService}
                 onChange={setPendingService}
                 options={serviceOptions}
-                placeholder="Wybierz usługę…"
+                placeholder="Wybierz usługę..."
                 nullable
               />
             </SelectWrap>
@@ -370,7 +370,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
             </AddBtn>
           </Row>
           {filters.services.length === 0 && (
-            <EmptyHint>Brak filtrów — kampania nie będzie filtrować po historii usług</EmptyHint>
+            <EmptyHint>Brak filtrów: kampania nie będzie filtrować po historii usług</EmptyHint>
           )}
         </SectionBody>
       </FilterSection>
@@ -388,10 +388,10 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
               Bez filtra
             </RadioChip>
             <RadioChip $active={lastVisitMode === 'older'} onClick={() => handleLastVisitMode('older')}>
-              Ostatnia wizyta dawniej niż…
+              Ostatnia wizyta dawniej niż...
             </RadioChip>
             <RadioChip $active={lastVisitMode === 'newer'} onClick={() => handleLastVisitMode('newer')}>
-              Ostatnia wizyta w ciągu…
+              Ostatnia wizyta w ciągu...
             </RadioChip>
           </RadioGroup>
 
@@ -422,7 +422,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
           )}
 
           {lastVisitMode === 'none' && (
-            <EmptyHint>Brak filtra — obejmuje wszystkich klientów</EmptyHint>
+            <EmptyHint>Brak filtra: obejmuje wszystkich klientów</EmptyHint>
           )}
         </SectionBody>
       </FilterSection>

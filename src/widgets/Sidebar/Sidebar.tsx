@@ -61,7 +61,7 @@ import {
 } from './SidebarStyles';
 
 // Each menu entry may declare a permission requirement (single code or ANY-OF
-// list). Entries the user cannot access are removed entirely — inaccessible
+// list). Entries the user cannot access are removed entirely: inaccessible
 // modules simply do not exist in the UI. Sections left empty are dropped.
 type GuardedMenuItem = MenuItem & { requires?: PermissionRequirement; showWhen?: boolean };
 type GuardedMenuSection = { title?: string; items: GuardedMenuItem[] };
@@ -155,7 +155,7 @@ export const Sidebar = () => {
 
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
-    // Badge for the task inbox — only fetched by users who actually see the tab.
+    // Badge for the task inbox, only fetched by users who actually see the tab.
     const unreadNotifications = useMyTasksUnreadCount({ enabled: !can(ANY_DASHBOARD) });
 
     // Persistent WebSocket connection for the entire CRM session

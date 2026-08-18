@@ -71,7 +71,7 @@ export function EmployeeFormModal({
     const { catalog, isLoading: catalogLoading } = usePermissionCatalog();
     const createRole = useCreateRole();
 
-    // A role built here is selected straight away — the point of the inline editor is
+    // A role built here is selected straight away: the point of the inline editor is
     // that the half-filled employee form survives the detour.
     const handleCreateRole = (payload: CreateRoleRequest) => {
         createRole.mutate(payload, {
@@ -184,7 +184,7 @@ export function EmployeeFormModal({
                         </FormField>
                     </FormGrid>
 
-                    {/* Account creation — only when adding */}
+                    {/* Account creation, only when adding */}
                     {mode === 'add' && (
                         <AccountBox>
                             <CheckRow onClick={() => set('createAccount', !values.createAccount)}>
@@ -219,7 +219,7 @@ export function EmployeeFormModal({
                     <CancelBtn onClick={onClose} disabled={isSaving}>Anuluj</CancelBtn>
                     <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
                         {isSaving
-                            ? 'Zapisywanie…'
+                            ? 'Zapisywanie...'
                             : mode === 'add' ? 'Dodaj pracownika' : 'Zapisz zmiany'}
                     </SubmitBtn>
                 </ModalFooter>

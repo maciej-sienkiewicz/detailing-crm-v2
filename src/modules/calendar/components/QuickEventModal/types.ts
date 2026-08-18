@@ -53,7 +53,7 @@ export interface QuickEventFormData {
     endDateTime: string;
     isAllDay: boolean;
     /**
-     * Line-item instance ids — NOT necessarily catalog service ids. Adding the same
+     * Line-item instance ids, NOT necessarily catalog service ids. Adding the same
      * service twice creates two distinct entries here so each can carry its own
      * price/adjustment/notes. Resolve the underlying catalog (or temp) service id
      * via `serviceRefs`.
@@ -72,7 +72,7 @@ export interface QuickEventFormData {
     doorToDoor?: DoorToDoorInfo;
     sendConfirmationSms: boolean;
     sendReminderSms: boolean;
-    /** "Czy wysłać Kartę Wizyty do klienta?" — send the card link right after booking. */
+    /** "Czy wysłać Kartę Wizyty do klienta?": send the card link right after booking. */
     sendVisitCard: boolean;
     recurrence?: RecurrenceRuleRequest | null;
 }

@@ -324,9 +324,9 @@ export function RoleEditorModal({
 
     /**
      * The cascade rule of the dependency graph:
-     * - checking a node also checks everything it requires — its whole ancestor
+     * - checking a node also checks everything it requires: its whole ancestor
      *   chain and its implications, transitively (possibly in other modules),
-     * - unchecking a node also unchecks everything that requires it — its subtree
+     * - unchecking a node also unchecks everything that requires it: its subtree
      *   and the permissions implying it, transitively.
      * The backend closes the persisted set over the same graph, so what is shown
      * checked is exactly what gets saved and enforced.
@@ -432,7 +432,7 @@ export function RoleEditorModal({
                         <ModalSubtitle>
                             {mode === 'edit'
                                 ? 'Zmiana uprawnień natychmiast dotyczy wszystkich użytkowników z tą rolą.'
-                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie — opcje wymagające innego uprawnienia są wyszarzone, dopóki uprawnienie nadrzędne nie jest zaznaczone.'}
+                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie: opcje wymagające innego uprawnienia są wyszarzone, dopóki uprawnienie nadrzędne nie jest zaznaczone.'}
                         </ModalSubtitle>
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
@@ -519,7 +519,7 @@ export function RoleEditorModal({
                 <ModalFooter>
                     <CancelBtn onClick={onClose} disabled={isSaving}>Anuluj</CancelBtn>
                     <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie…' : mode === 'add' ? 'Utwórz rolę' : 'Zapisz rolę'}
+                        {isSaving ? 'Zapisywanie...' : mode === 'add' ? 'Utwórz rolę' : 'Zapisz rolę'}
                     </SubmitBtn>
                 </ModalFooter>
             </ModalCard>

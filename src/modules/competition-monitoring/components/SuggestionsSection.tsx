@@ -6,7 +6,7 @@ import { useSuggestions } from '../hooks/useAnalytics';
 import { useAddProfile } from '../hooks/useAddProfile';
 
 /**
- * "Zaobserwuj podobne profile" – sugestie z algorytmu Instagrama (related-profiles),
+ * "Zaobserwuj podobne profile": sugestie z algorytmu Instagrama (related-profiles),
  * ranking wg liczby obserwowanych profili, które je polecają. Klik "Dodaj" przechodzi
  * przez normalny flow moderacji (profil trafia do oczekujących).
  */

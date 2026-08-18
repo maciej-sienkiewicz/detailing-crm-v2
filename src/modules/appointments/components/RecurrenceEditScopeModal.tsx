@@ -128,7 +128,7 @@ export const RecurrenceEditScopeModal = ({
 
                 {isDateChanged && (
                     <InfoBanner>
-                        ⚠ Zmiana daty/godziny dotyczy tylko tej jednej wizyty — pozostałe opcje są niedostępne.
+                        ⚠ Zmiana daty/godziny dotyczy tylko tej jednej wizyty. Pozostałe opcje są niedostępne.
                     </InfoBanner>
                 )}
 

@@ -53,7 +53,7 @@ export const tabletApi = {
         return response.data;
     },
 
-    /** Polling fallback — used to re-sync after a lost WebSocket connection. */
+    /** Polling fallback: used to re-sync after a lost WebSocket connection. */
     getSignatureRequest: async (requestId: string): Promise<SignatureRequestResponse> => {
         const response = await apiClient.get(`/v1/signature-requests/${requestId}`);
         return response.data;

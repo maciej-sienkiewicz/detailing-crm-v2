@@ -1,4 +1,4 @@
-// Liczenie segmentów SMS — te same reguły co backendowy SmsSegmentCalculator
+// Liczenie segmentów SMS: te same reguły co backendowy SmsSegmentCalculator
 // (GSM-7: 160/153, UCS-2 przy polskich znakach: 70/67).
 
 const GSM7 = new Set(

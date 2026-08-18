@@ -39,7 +39,7 @@ export function useCampaign(id: string | undefined) {
     queryKey: KEYS.one(id ?? ''),
     queryFn: () => api.fetchCampaign(id!),
     enabled: !!id,
-    // Kampania w trakcie wysyłki — odświeżaj licznik na żywo
+    // Kampania w trakcie wysyłki: odświeżaj licznik na żywo
     refetchInterval: (query) => (query.state.data?.status === 'SENDING' ? 5000 : false),
   });
   return { campaign: data, isLoading, isError };
@@ -85,7 +85,7 @@ export const useArchiveCampaign = () => useInvalidatingMutation(api.archiveCampa
 export const useDuplicateCampaign = () => useInvalidatingMutation(api.duplicateCampaign);
 
 /**
- * Estymacja odbiorców z debounce 500 ms — licznik w kreatorze przelicza się
+ * Estymacja odbiorców z debounce 500 ms: licznik w kreatorze przelicza się
  * podczas edycji filtrów, poprzednia wartość zostaje na czas przeliczania
  * (placeholderData), więc liczba nie znika ani nie skacze.
  */

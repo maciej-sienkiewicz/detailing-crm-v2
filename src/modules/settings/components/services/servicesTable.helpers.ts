@@ -2,7 +2,7 @@
 import { formatMoneyAmount } from '@/modules/services/utils/priceCalculator';
 import type { VatRate } from '@/modules/services/types';
 
-/** Shared column template — header, skeleton and data rows must all use it. */
+/** Shared column template: header, skeleton and data rows must all use it. */
 export const SERVICES_TABLE_GRID = '1fr 64px 160px 90px 72px';
 
 export const formatPLN = (grosze: number): string => {

@@ -589,7 +589,7 @@ export const CustomerConsentsSection = ({ customerId, noCard }: CustomerConsents
                     {isLoading && (
                         <LoadingRow>
                             <Spinner />
-                            Ładowanie zgód…
+                            Ładowanie zgód...
                         </LoadingRow>
                     )}
 

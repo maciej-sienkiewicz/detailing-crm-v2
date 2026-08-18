@@ -1,5 +1,5 @@
 /**
- * StatTile — shared KPI card component
+ * StatTile: shared KPI card component
  * Exact visual style from OperationalScorecard (Dashboard):
  * - 3px top border accent
  * - light gradient bg (tinted → white)

@@ -2,7 +2,7 @@
  * Typy modułu analizy konkurencji na Instagramie (API v2).
  *
  * Reguła kontraktu: każda metryka przychodzi jako MetricTriple
- * (wartość + poprzedni okres + delta % + mediana konkurencji) –
+ * (wartość + poprzedni okres + delta % + mediana konkurencji);
  * UI nigdy nie pokazuje liczby bez kontekstu.
  */
 
@@ -68,7 +68,7 @@ export interface MiniRankRow {
 
 export interface Overview {
     weeks: number;
-    /** Liczebność obserwowanej grupy – wszystkie porównania dotyczą tylko tej grupy. */
+    /** Liczebność obserwowanej grupy, wszystkie porównania dotyczą tylko tej grupy. */
     comparisonGroupSize: number;
     lastSyncAt: string | null;
     /** Najbliższa lekka synchronizacja (codzienna). */
@@ -131,7 +131,7 @@ export interface ChartAnnotation {
 
 export interface Benchmark {
     weeks: number;
-    /** Liczebność obserwowanej grupy – wszystkie porównania dotyczą tylko tej grupy. */
+    /** Liczebność obserwowanej grupy, wszystkie porównania dotyczą tylko tej grupy. */
     comparisonGroupSize: number;
     rows: BenchmarkRow[];
     weekly: WeeklyChartPoint[];
@@ -173,8 +173,8 @@ export interface ContentPage {
 }
 
 export interface HeatmapCell {
-    dayOfWeek: number; // 1 = poniedziałek … 7 = niedziela
-    daypart: number;   // 0: 6–11, 1: 11–16, 2: 16–21, 3: 21–6
+    dayOfWeek: number; // 1 = poniedziałek ... 7 = niedziela
+    daypart: number;   // 0: 6-11, 1: 11-16, 2: 16-21, 3: 21-6
     posts: number;
     avgEngagement: number;
 }
@@ -315,6 +315,6 @@ export const FORMAT_LABELS: Record<ContentFormat, string> = {
     CAROUSEL: 'Karuzela',
 };
 
-export const DAYPART_LABELS = ['Rano (6–11)', 'Południe (11–16)', 'Wieczór (16–21)', 'Noc (21–6)'];
+export const DAYPART_LABELS = ['Rano (6-11)', 'Południe (11-16)', 'Wieczór (16-21)', 'Noc (21-6)'];
 
 export const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];

@@ -35,7 +35,7 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-// Sibling overlay that fades out — the content itself is never animated,
+// Sibling overlay that fades out: the content itself is never animated,
 // so no compositing layer is created and backdrop-filter works everywhere.
 const fadeOut = keyframes`
     from { opacity: 1; }

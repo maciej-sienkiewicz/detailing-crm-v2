@@ -1,7 +1,7 @@
 import type { CampaignStatus, RecipientStatus } from './types';
 
 // ─── Słownik statusów (język rozdziela światy: jednorazowe "zaplanowane/wysłane",
-//     automatyczne "działa/wstrzymana" — patrz docs/campaigns-module-views.md §2) ──
+//     automatyczne "działa/wstrzymana", patrz docs/campaigns-module-views.md §2) ──
 
 export const STATUS_LABELS: Record<CampaignStatus, string> = {
   DRAFT: 'Szkic',
@@ -33,8 +33,8 @@ export const KIND_LABELS = {
 } as const;
 
 export const KIND_DESCRIPTIONS = {
-  ONE_TIME: 'Wysyłana raz — teraz albo w wybranym terminie.',
-  AUTOMATIC: 'Działa stale — sama wysyła wiadomość każdemu klientowi, gdy spełni warunek, np. 180 dni po usłudze.',
+  ONE_TIME: 'Wysyłana raz: teraz albo w wybranym terminie.',
+  AUTOMATIC: 'Działa stale: sama wysyła wiadomość każdemu klientowi, gdy spełni warunek, np. 180 dni po usłudze.',
 } as const;
 
 export const CHANNEL_LABELS = {
@@ -58,7 +58,7 @@ export const RECIPIENT_STATUS_LABELS: Record<RecipientStatus, string> = {
 
 /**
  * Only values we cannot know when the campaign is written. The studio's own name,
- * phone and website are not here — type them straight into the message.
+ * phone and website are not here; type them straight into the message.
  */
 export const PLACEHOLDERS: { token: string; label: string }[] = [
   { token: '{{imie}}', label: 'Imię' },

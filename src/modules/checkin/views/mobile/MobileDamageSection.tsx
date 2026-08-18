@@ -56,10 +56,10 @@ interface Props {
 }
 
 const SAVE_LABELS: Record<string, string> = {
-    saving:  '⟳ Zapisywanie…',
+    saving:  '⟳ Zapisywanie...',
     saved:   '✓ Zapisano',
-    error:   '✗ Błąd zapisu — spróbuj ponownie',
-    offline: '◷ Offline — zostanie zapisane po połączeniu',
+    error:   '✗ Błąd zapisu, spróbuj ponownie',
+    offline: '◷ Offline, zostanie zapisane po połączeniu',
 };
 
 export const MobileDamageSection = ({ logic }: Props) => {
@@ -97,7 +97,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
         }, 80);
     }, [damagePoints, updatePoints]);
 
-    // Always-current ref — stable event handlers call this to avoid stale closure
+    // Always-current ref: stable event handlers call this to avoid stale closure
     // Now safely initialized after addPoint is defined
     const addPointRef = useRef(addPoint);
     addPointRef.current = addPoint;
@@ -216,7 +216,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 <VehicleImage
                     ref={imageRef}
                     src={`/assets/${vehicleType}.webp`}
-                    alt={`Schemat pojazdu — ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
+                    alt={`Schemat pojazdu: ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
                     draggable={false}
                     onContextMenu={e => e.preventDefault()}
                 />
@@ -295,7 +295,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                 </DamageDeleteBtn>
                             </DamageItemHeader>
                             <DamageNoteInput
-                                placeholder={`Opisz uszkodzenie #${getNumber(point.id)} (np. rysa, wgniecenie, odprysk lakieru…)`}
+                                placeholder={`Opisz uszkodzenie #${getNumber(point.id)} (np. rysa, wgniecenie, odprysk lakieru...)`}
                                 value={point.note}
                                 onChange={e => handleUpdateNote(point.id, e.target.value)}
                                 onFocus={() => setActivePointId(point.id)}
@@ -313,14 +313,14 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                                 removePhoto(point.id, photo.localId ?? photo.photoId);
                                                 return;
                                             }
-                                            // Drawing while the upload is still in progress is fine —
+                                            // Drawing while the upload is still in progress is fine,
                                             // strokes are matched to the photo via its stable localId.
                                             if (photo.thumbnailUrl) {
                                                 setAnnotating({ pointId: point.id, photo });
                                             }
                                         }}
                                         title={photo.status === 'failed'
-                                            ? 'Błąd przesyłania — dotknij, aby usunąć'
+                                            ? 'Błąd przesyłania, dotknij, aby usunąć'
                                             : 'Dotknij, aby zaznaczyć uszkodzenie na zdjęciu'}
                                     >
                                         {photo.thumbnailUrl && (
@@ -382,7 +382,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                                             if (files.length === 0) return;
                                             const created = attachPhotos(point.id, files);
                                             // Open the annotation editor straight away for the captured
-                                            // photo — no extra tap needed to start drawing.
+                                            // photo, no extra tap needed to start drawing.
                                             if (created.length > 0) {
                                                 setAnnotating({ pointId: point.id, photo: created[0] });
                                             }
@@ -405,7 +405,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 <DamagePhotoAnnotator
                     imageUrl={annotating.photo.thumbnailUrl}
                     initialStrokes={annotating.photo.strokes}
-                    title={`Uszkodzenie #${getNumber(annotating.pointId)} — zaznacz na zdjęciu`}
+                    title={`Uszkodzenie #${getNumber(annotating.pointId)}: zaznacz na zdjęciu`}
                     onSave={strokes => {
                         setPhotoStrokes(
                             annotating.pointId,

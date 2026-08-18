@@ -3,7 +3,7 @@ import styled, { css } from 'styled-components';
 
 /**
  * Single source of truth for form-control anatomy: label, control, hint and
- * error typography, spacing and states. Values are intentionally hardcoded —
+ * error typography, spacing and states. Values are intentionally hardcoded:
  * these controls exist to end the per-view drift in label sizes, placeholder
  * colors and margins, so no prop and no theme override can change them.
  */

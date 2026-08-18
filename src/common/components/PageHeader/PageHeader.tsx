@@ -85,7 +85,7 @@ const HeroActions = styled.div`
   }
 `;
 
-// ─── Primary action button — matches Dashboard "Nowa wizyta" style ────────────
+// ─── Primary action button, matches Dashboard "Nowa wizyta" style ────────────
 
 export const PageHeaderPrimaryButton = styled.button`
   background: #0ea5e9;

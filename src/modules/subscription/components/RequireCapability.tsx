@@ -8,16 +8,16 @@ import type { CapabilityKey } from '../types';
  * The single sanctioned wrapper for capability-gating UI fragments.
  *
  * Modes (per the product policy for missing-module UX):
- *  - 'hide'    — technical configuration of a module the studio does not own
+ *  - 'hide':    technical configuration of a module the studio does not own
  *                (configuring the invisible only confuses users),
- *  - 'disable' — inline actions inside a workflow: visible, inert, with a
+ *  - 'disable': inline actions inside a workflow: visible, inert, with a
  *                tooltip naming the missing module (a precise sales signal),
- *  - 'upsell'  — section-level sales surface (blur + lock overlay linking to
+ *  - 'upsell':  section-level sales surface (blur + lock overlay linking to
  *                the plan settings), for content worth advertising.
  *
  * IMPORTANT: 'disable' makes children inert but does NOT rewrite their state.
  * Form values that could be submitted (e.g. a default-true checkbox) must be
- * neutralized by the owning component — see MarkReadyDialog for the pattern.
+ * neutralized by the owning component; see MarkReadyDialog for the pattern.
  * The backend rejects such requests with 402 anyway; this is UX, not security.
  *
  * Fail-closed: while entitlements load, content renders in its locked mode.

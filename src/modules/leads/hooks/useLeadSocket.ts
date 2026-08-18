@@ -221,7 +221,7 @@ export function useLeadSocket(): void {
       handleMessageRef.current(message)
     );
 
-    // Events sent while the connection was down are gone — after every
+    // Events sent while the connection was down are gone: after every
     // reconnect refetch lead data so the UI catches up without a page reload
     const removeConnectListener = onSocketConnect(({ isReconnect }) => {
       if (!isReconnect) return;

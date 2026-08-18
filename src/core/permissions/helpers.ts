@@ -22,13 +22,13 @@ export function hasPermission(user: User | null, required: AccessRequirement): b
 /**
  * Where "/" (and any unknown path) should land for this user. Mirrors the
  * pre-permissions behaviour for owners (customers first), and silently picks
- * the first area the user can access otherwise — never a "no access" screen
+ * the first area the user can access otherwise, never a "no access" screen
  * for anyone with at least one permission.
  *
  * Every permission in the catalog implies VISITS_VIEW through the dependency
  * graph, so the /dashboard fallback is reachable for any non-empty permission
  * set. A user with an empty set (no role, or a role with nothing enabled)
- * lands on /worktime when they track work time, otherwise on /no-access —
+ * lands on /worktime when they track work time, otherwise on /no-access;
  * never in a redirect loop.
  */
 export function getDefaultRoute(user: User | null): string {
@@ -42,7 +42,7 @@ export function getDefaultRoute(user: User | null): string {
     const match = candidates.find(({ requires }) => hasPermission(user, requires));
     if (match) return match.path;
     if (hasPermission(user, 'VISITS_VIEW')) return '/dashboard';
-    // No permissions at all: the task inbox ("Powiadomienia") is their home —
-    // it is self-service on the backend and shows work assigned to them.
+    // No permissions at all: the task inbox ("Powiadomienia") is their home,
+    // since it is self-service on the backend and shows work assigned to them.
     return '/notifications';
 }

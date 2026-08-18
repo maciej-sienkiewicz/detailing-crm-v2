@@ -69,7 +69,7 @@ export function TabletPairingModal({ onClose }: Props) {
                     {generateCode.isPending && (
                         <LoadingWrap>
                             <Spinner />
-                            <LoadingText>Generowanie kodu…</LoadingText>
+                            <LoadingText>Generowanie kodu...</LoadingText>
                         </LoadingWrap>
                     )}
 

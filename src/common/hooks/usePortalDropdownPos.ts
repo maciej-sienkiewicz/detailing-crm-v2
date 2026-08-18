@@ -25,7 +25,7 @@ interface OpenOpts {
  * Usage:
  *   const { menuRef, pos, open } = usePortalDropdownPos();
  *   // trigger: onClick={e => { open(e); setIsOpen(true); }}
- *   // portal:  isOpen && pos && createPortal(<Menu ref={menuRef} style={pos.style}>…</Menu>, body)
+ *   // portal:  isOpen && pos && createPortal(<Menu ref={menuRef} style={pos.style}>...</Menu>, body)
  */
 export function usePortalDropdownPos() {
     const menuRef = useRef<HTMLDivElement>(null);

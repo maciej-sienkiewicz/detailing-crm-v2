@@ -77,8 +77,8 @@ export interface SeverityFlag {
  * Importance is a single warm accent, deliberately neutral about good and bad.
  *
  * Only the top two steps are marked at all. If every row carried a flag the flags
- * would stop meaning anything, so the quiet majority — photos, comments, routine
- * edits — is left completely plain and the eye lands on what is left.
+ * would stop meaning anything, so the quiet majority (photos, comments, routine
+ * edits) is left completely plain and the eye lands on what is left.
  */
 export const severityFlag = (code: string): SeverityFlag => {
     if (code === 'CRITICAL') return { bar: '#f59e0b', wash: 'rgba(245, 158, 11, 0.045)' };
@@ -90,7 +90,7 @@ export const severityFlag = (code: string): SeverityFlag => {
  * Actor type colours the avatar and nothing else.
  *
  * The point is a single glance answering "was this us, the customer, or an
- * automation?" — the question an owner scanning the feed asks first. Customers
+ * automation?": the question an owner scanning the feed asks first. Customers
  * get the one hue that appears nowhere else in a row.
  */
 export const ACTOR_ACCENT: Record<ActivityActorType, { fg: string; bg: string }> = {
@@ -111,7 +111,7 @@ const weekdayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'long' });
 
 export const formatTime = (iso: string): string => timeFormat.format(new Date(iso));
 
-/** Calendar day key in local time — the basis for the day separators. */
+/** Calendar day key in local time; the basis for the day separators. */
 const dayKey = (date: Date): string =>
     `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 

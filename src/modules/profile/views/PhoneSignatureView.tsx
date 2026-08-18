@@ -1,6 +1,6 @@
 // Public, mobile-first page for drawing a personal signature on the user's own phone.
 // Opened from the SMS link sent by "Wyślij link na telefon" in Settings → Dokumenty i podpisy.
-// No login required — the unguessable token in the URL is the credential.
+// No login required: the unguessable token in the URL is the credential.
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -422,7 +422,7 @@ export function PhoneSignatureView() {
     const [pageState, setPageState] = useState<PageState>('loading');
     const [inkPx, setInkPx] = useState(0);
 
-    // Block scroll gestures while drawing — palm resting outside the canvas
+    // Block scroll gestures while drawing: palm resting outside the canvas
     // must not pan the page (mirrors the tablet app's global touchmove guard)
     useEffect(() => {
         const block = (e: TouchEvent) => e.preventDefault();
@@ -524,7 +524,7 @@ export function PhoneSignatureView() {
                         onClick={handleSave}
                         disabled={inkPx < MIN_INK_PX || pageState === 'submitting'}
                     >
-                        {pageState === 'submitting' ? 'Zapisywanie…' : 'Zapisz podpis'}
+                        {pageState === 'submitting' ? 'Zapisywanie...' : 'Zapisz podpis'}
                     </Btn>
                     <Btn onClick={handleClear} disabled={pageState === 'submitting'}>
                         Wyczyść

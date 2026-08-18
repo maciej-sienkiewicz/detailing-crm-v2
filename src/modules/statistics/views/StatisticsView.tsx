@@ -149,7 +149,7 @@ export const StatisticsView = () => {
 
     const unassignedCount = breakdown?.unassignedServices.length ?? 0;
 
-    // ── KPI (podąża za wyborem kategorii — baner wyjaśnia kontekst) ──────────
+    // ── KPI (podąża za wyborem kategorii, baner wyjaśnia kontekst) ──────────
     const totals = displayData?.totals;
     const avgOrderGross = totals && totals.orderCount > 0
         ? totals.totalRevenueGross / totals.orderCount
@@ -472,7 +472,7 @@ export const StatisticsView = () => {
                     <TableColumn>
                         {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
-                                ⚠ {unassignedCount} usług bez kategorii — przeciągnij na wybraną kategorię po lewej
+                                ⚠ {unassignedCount} usług bez kategorii, przeciągnij na wybraną kategorię po lewej
                                 lub użyj menu ⋮ w wierszu.
                             </DragHint>
                         )}
@@ -523,7 +523,7 @@ export const StatisticsView = () => {
                                                     {row.categoryName}
                                                 </CatBadge>
                                             ) : (
-                                                <span style={{ fontSize: st.fontXs, color: st.textMuted }}>—</span>
+                                                <span style={{ fontSize: st.fontXs, color: st.textMuted }}>-</span>
                                             )}
                                             <KebabBtn title="Opcje" onClick={e => openServiceMenu(e, row)}>⋮</KebabBtn>
                                         </ItemRow>

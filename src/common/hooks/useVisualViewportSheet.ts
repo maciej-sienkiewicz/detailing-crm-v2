@@ -9,7 +9,7 @@ type SheetRef = RefObject<HTMLElement | null>;
  *
  * Why this is not just `top: 0; bottom: 0`:
  * `position: fixed` resolves against the **layout** viewport. iOS Safari never
- * resizes the layout viewport when the keyboard opens — it shrinks the
+ * resizes the layout viewport when the keyboard opens; it shrinks the
  * **visual** viewport and scrolls it down inside the layout viewport. So a
  * sheet pinned to `top: 0` gets parked `vv.offsetTop` pixels *above* the first
  * visible pixel (its header and search field disappear off the top edge) while
@@ -26,7 +26,7 @@ type SheetRef = RefObject<HTMLElement | null>;
  */
 export const useVisualViewportSheet = (active: boolean, ...refs: SheetRef[]): void => {
     // Refs are stable objects but the rest-args array is a new identity every
-    // render — keep it out of the effect deps so we bind listeners once.
+    // render, so keep it out of the effect deps to bind listeners once.
     const refsRef = useRef(refs);
     refsRef.current = refs;
 

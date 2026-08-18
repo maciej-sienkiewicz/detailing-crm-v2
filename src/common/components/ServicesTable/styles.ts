@@ -61,17 +61,17 @@ export const ServiceItemRow = styled.div`
         gap: 4px 8px;
         padding: 10px 12px;
 
-        /* net price – hide on mobile */
+        /* net price: hide on mobile */
         & > :nth-child(2) { display: none; }
-        /* VAT cell – hide on mobile */
+        /* VAT cell: hide on mobile */
         & > :nth-child(3) { display: none; }
-        /* gross price – top-right */
+        /* gross price: top-right */
         & > :nth-child(4) {
             grid-column: 2;
             grid-row: 1;
             align-self: center;
         }
-        /* actions – bottom-right */
+        /* actions: bottom-right */
         & > :nth-child(5) {
             grid-column: 2;
             grid-row: 2;

@@ -9,7 +9,7 @@ export const KSEF_REVENUE_STATISTICS_KEY = ['ksef', 'revenue', 'statistics'] as 
 /**
  * Zmiana w ledgerze KSeF (nowa faktura, korekta, status płatności, duplikat)
  * przestawia też zunifikowaną listę dokumentów przychodowych i kafle
- * podsumowania — one liczą z tych samych rekordów, więc muszą lecieć razem.
+ * podsumowania: one liczą z tych samych rekordów, więc muszą lecieć razem.
  */
 const useInvalidateRevenue = () => {
   const queryClient = useQueryClient();

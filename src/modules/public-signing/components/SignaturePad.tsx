@@ -1,7 +1,7 @@
 // src/modules/public-signing/components/SignaturePad.tsx
 //
 // Touch/stylus/mouse signature canvas. Strokes are drawn on a TRANSPARENT
-// canvas — the exported PNG carries an alpha channel and never a white
+// canvas, so the exported PNG carries an alpha channel and never a white
 // background (backend contract, see SignatureImageProcessor).
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';

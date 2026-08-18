@@ -214,14 +214,14 @@ export const DoorToDoorModal = ({ isOpen, initialData, onClose, onConfirm }: Doo
         setPhase('confirm');
     };
 
-    const pickupDisplay = [data.pickupAddress.street, data.pickupAddress.city].filter(Boolean).join(', ') || '—';
+    const pickupDisplay = [data.pickupAddress.street, data.pickupAddress.city].filter(Boolean).join(', ') || '-';
 
     if (phase === 'confirm') {
         return (
             <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Door to Door — dostarczenie</ModalTitle>
+                        <ModalTitle>Door to Door: dostarczenie</ModalTitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={onClose} />
                 </ModalHeader>
@@ -247,7 +247,7 @@ export const DoorToDoorModal = ({ isOpen, initialData, onClose, onConfirm }: Doo
                                 Dostarczenie
                             </CardLabel>
                             <CardValue>
-                                {[data.deliveryAddress.street, data.deliveryAddress.city].filter(Boolean).join(', ') || '—'}
+                                {[data.deliveryAddress.street, data.deliveryAddress.city].filter(Boolean).join(', ') || '-'}
                             </CardValue>
                         </AddressCard>
 
@@ -279,7 +279,7 @@ export const DoorToDoorModal = ({ isOpen, initialData, onClose, onConfirm }: Doo
         <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Door to Door — dostarczenie pojazdu</ModalTitle>
+                    <ModalTitle>Door to Door: dostarczenie pojazdu</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>

@@ -57,7 +57,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
             <MobileContainer>
                 <LoadingWrap>
                     <Spinner />
-                    <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0 }}>Weryfikacja sesji…</p>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0 }}>Weryfikacja sesji...</p>
                 </LoadingWrap>
             </MobileContainer>
         );
@@ -153,7 +153,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                 </Logo>
                 <Title>Dokumentacja pojazdu</Title>
                 {context && (
-                    <Subtitle>Sesja: {context.checkinId.slice(0, 8)}…</Subtitle>
+                    <Subtitle>Sesja: {context.checkinId.slice(0, 8)}...</Subtitle>
                 )}
             </Header>
 
@@ -189,7 +189,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                         <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
-                    {hasPending ? 'Przesyłanie w toku…' : 'Gotowe'}
+                    {hasPending ? 'Przesyłanie w toku...' : 'Gotowe'}
                 </GotowBtn>
             </GotowFooter>
         </MobileContainer>

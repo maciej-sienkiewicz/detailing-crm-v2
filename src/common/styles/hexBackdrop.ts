@@ -3,7 +3,7 @@ import { css } from 'styled-components';
 /**
  * Subtelna, transparentna tekstura heksagonów (plaster miodu) kojarząca się
  * z dachem studia detailingowego. Nakładana na tło widoków, żeby przełamać
- * "szpitalną", płaską biel — w tle zawsze delikatnie coś się dzieje.
+ * "szpitalną", płaską biel: w tle zawsze delikatnie coś się dzieje.
  *
  * Wzór został wygenerowany jako bezszwowo kafelkujący się honeycomb
  * (flat-top), kafel 48 × 27.71px. Krycie i kolor trzymamy bardzo nisko,
@@ -13,9 +13,9 @@ import { css } from 'styled-components';
  * = wyraźniejsze heksagony.
  */
 
-// slate-900 — chłodna, neutralna linia, która ładnie siada na jasnych tłach
+// slate-900, chłodna, neutralna linia, która ładnie siada na jasnych tłach
 const HEX_STROKE = '#0f172a';
-// jak mocno widać siatkę (0–1). Celowo bardzo nisko, dla subtelnego efektu.
+// jak mocno widać siatkę (0-1). Celowo bardzo nisko, dla subtelnego efektu.
 const HEX_OPACITY = 0.05;
 
 // Ścieżka bezszwowo kafelkującego się honeycombu (patrz opis wyżej).
@@ -34,13 +34,13 @@ const HEX_SVG =
     `<path d="${HEX_PATH}" fill="none" stroke="${HEX_STROKE}" stroke-width="1" stroke-opacity="${HEX_OPACITY}"/>` +
     `</svg>`;
 
-/** Gotowy `url(...)` z teksturą — przydatny np. do warstwowych teł. */
+/** Gotowy `url(...)` z teksturą, przydatny np. do warstwowych teł. */
 export const HEX_PATTERN_URL = `url("data:image/svg+xml,${encode(HEX_SVG)}")`;
 
 /**
  * Mixin nakładający teksturę heksagonów jako warstwę `background-image`.
  * Ustawia wyłącznie własności `background-image/-size/-repeat/-position/
- * -attachment`, więc nie nadpisuje koloru tła kontenera — wystarczy wstawić
+ * -attachment`, więc nie nadpisuje koloru tła kontenera: wystarczy wstawić
  * go PO deklaracji `background`/`background-color` danego kontenera.
  *
  * `background-attachment: fixed` zakotwicza wzór w viewporcie, dzięki czemu

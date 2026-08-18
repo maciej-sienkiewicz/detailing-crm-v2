@@ -1,5 +1,5 @@
 // src/modules/photos/components/PhotoTagEditModal.tsx
-// Modal for editing tags of a single photo – used in both check-in and visit views
+// Modal for editing tags of a single photo, used in both check-in and visit views
 
 import { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
@@ -173,7 +173,7 @@ export const PhotoTagEditModal = ({
                 <Section>
                     <SectionLabel>Przypisane tagi</SectionLabel>
                     {localTags.length === 0 && (
-                        <EmptyTagsHint style={{ marginBottom: 8 }}>Brak tagów — dodaj je poniżej</EmptyTagsHint>
+                        <EmptyTagsHint style={{ marginBottom: 8 }}>Brak tagów: dodaj je poniżej</EmptyTagsHint>
                     )}
                     <TagInput
                         tags={localTags}
@@ -236,7 +236,7 @@ export const PhotoTagEditModal = ({
                     onClick={handleClose}
                     disabled={isSaving}
                 >
-                    {isSaving ? 'Zapisuję…' : 'Gotowe'}
+                    {isSaving ? 'Zapisuję...' : 'Gotowe'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

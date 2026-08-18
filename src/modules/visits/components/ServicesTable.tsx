@@ -267,7 +267,7 @@ const ContextMenuItem = styled.button<{ $variant?: 'danger' }>`
  * Shared geometry for every dialog this file owns.
  *
  * `100dvh` (not `inset: 0`) so the box is sized against the viewport that is
- * actually visible on a phone — with `inset: 0` alone the bottom of a centred
+ * actually visible on a phone: with `inset: 0` alone the bottom of a centred
  * dialog sits under Safari's address bar and its buttons become unreachable.
  * z-index sits above the visit view's mobile tab bar (1000), which is portalled
  * to <body> after #root and would otherwise paint over these overlays.
@@ -427,14 +427,14 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
         gap: 10px;
         padding: 14px 16px;
 
-        /* Usługa — grows */
+        /* Usługa: grows */
         td:nth-child(1) {
             flex: 1;
             padding: 0;
             min-width: 0;
         }
 
-        /* Cena — right */
+        /* Cena: right */
         td:nth-child(2) {
             flex: 0 0 auto;
             padding: 0;
@@ -449,7 +449,7 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
         }
     }
 
-    /* Below ~480px the name and the "netto … · VAT …" line cannot share a row
+    /* Below ~480px the name and the "netto ... · VAT ..." line cannot share a row
        without one of them being squeezed to a few characters. Give the name the
        full width and let price + kebab settle underneath, right-aligned. */
     @media (max-width: 480px) {
@@ -554,7 +554,7 @@ const PackageBadge = styled.span`
     flex-shrink: 0;
 `;
 
-/* Status shown only by exception — pending states */
+/* Status shown only by exception: pending states */
 const PendingChip = styled.span`
     display: inline-flex;
     align-items: center;
@@ -594,7 +594,7 @@ const EditedChip = styled.span`
     flex-shrink: 0;
 `;
 
-/* ─── Price cell — one column, one story ─── */
+/* ─── Price cell: one column, one story ─── */
 
 const PriceMain = styled.div`
     display: flex;
@@ -739,7 +739,7 @@ const DiscountModalSubtitle = styled.p`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    /* Was a hard 320px — on a 360px phone that alone overflowed the card. */
+    /* Was a hard 320px, but on a 360px phone that alone overflowed the card. */
     max-width: 100%;
 `;
 
@@ -1405,7 +1405,7 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'SET_GROSS', label: '=Brutto' },
 ];
 
-/* Editor uses only the true discount types — setting a price is done via the price fields */
+/* Editor uses only the true discount types; setting a price is done via the price fields */
 const EDITOR_DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'PERCENT', label: '%' },
     { type: 'FIXED_NET', label: '−Netto' },
@@ -1768,7 +1768,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
         if (bulkDiscountUseEdited) {
             // Distribute against current effective prices (respecting manual edits),
-            // but preserve original basePriceNet — store result as SET_NET.
+            // but preserve original basePriceNet: store result as SET_NET.
             const effectiveBases = eligible.map(s => {
                 const ep = editedPrices[s.id];
                 if (ep) {
@@ -2116,13 +2116,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                         disabled={bulkEligibleCount === 0}
                                         onClick={() => { setOpenMenuId(null); openBulkDiscountModal(); }}
                                     >
-                                        Rabatuj całość…
+                                        Rabatuj całość...
                                     </ContextMenuItem>
                                     <ContextMenuItem
                                         disabled={bulkEligibleCount === 0}
                                         onClick={() => { setOpenMenuId(null); setBulkVatOpen(true); }}
                                     >
-                                        VAT dla wszystkich usług…
+                                        VAT dla wszystkich usług...
                                     </ContextMenuItem>
                                 </ContextMenu>
                             )}
@@ -2158,9 +2158,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             && (service.previousPriceGross ?? null) !== null;
 
                         const pendingLabel = isPendingRow
-                            ? (service.pendingOperation === 'ADD' ? 'Nowa — oczekuje'
-                                : service.pendingOperation === 'EDIT' ? 'Edycja — oczekuje'
-                                : service.pendingOperation === 'DELETE' ? 'Usunięcie — oczekuje'
+                            ? (service.pendingOperation === 'ADD' ? 'Nowa: oczekuje'
+                                : service.pendingOperation === 'EDIT' ? 'Edycja: oczekuje'
+                                : service.pendingOperation === 'DELETE' ? 'Usunięcie: oczekuje'
                                 : 'Oczekuje')
                             : null;
 
@@ -2355,7 +2355,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             Odrzuć
                         </DiscardBtn>
                         <AcceptBtn onClick={acceptDraft} disabled={isSaving} $highlighting={isHighlighting}>
-                            {isSaving ? 'Zapisywanie…' : 'Zaakceptuj'}
+                            {isSaving ? 'Zapisywanie...' : 'Zaakceptuj'}
                         </AcceptBtn>
                     </DraftBarActions>
                 </DraftBar>

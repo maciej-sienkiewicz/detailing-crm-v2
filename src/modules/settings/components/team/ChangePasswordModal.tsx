@@ -93,7 +93,7 @@ export function ChangePasswordModal({ employeeName, isSaving, onClose, onSubmit 
                 <ModalFooter>
                     <CancelBtn onClick={onClose} disabled={isSaving}>Anuluj</CancelBtn>
                     <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie…' : 'Zmień hasło'}
+                        {isSaving ? 'Zapisywanie...' : 'Zmień hasło'}
                     </SubmitBtn>
                 </ModalFooter>
             </ModalCard>

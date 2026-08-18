@@ -820,7 +820,7 @@ export const CustomerDetailView = () => {
                                               lifetimeValue.grossAmount / customer.totalVisits,
                                               lifetimeValue.currency,
                                           )
-                                        : '—'} / wizyta
+                                        : '-'} / wizyta
                                 </KpiDelta>
                             </SumCell>
 
@@ -829,7 +829,7 @@ export const CustomerDetailView = () => {
                                 <KpiValue>
                                     {customer.lastVisitDate
                                         ? formatDate(customer.lastVisitDate)
-                                        : '—'}
+                                        : '-'}
                                 </KpiValue>
                                 <KpiDelta>
                                     {customer.lastVisitDate
@@ -932,7 +932,7 @@ export const CustomerDetailView = () => {
                                                     <UpcomingInfo>
                                                         <UpcomingTitle>{r.vehicleName}</UpcomingTitle>
                                                         <UpcomingSub>
-                                                            {r.licensePlate ?? '—'}
+                                                            {r.licensePlate ?? '-'}
                                                             {' · '}
                                                             {formatCurrency(r.totalCost.grossAmount, r.totalCost.currency)}
                                                         </UpcomingSub>
@@ -1030,7 +1030,7 @@ export const CustomerDetailView = () => {
                             {visitsTotalPages > 1 && (
                                 <PaginationBar>
                                     <PaginationInfo>
-                                        {visitsPage * VISITS_PAGE_SIZE + 1}–{Math.min((visitsPage + 1) * VISITS_PAGE_SIZE, visits.length)} z {visits.length}
+                                        {visitsPage * VISITS_PAGE_SIZE + 1}-{Math.min((visitsPage + 1) * VISITS_PAGE_SIZE, visits.length)} z {visits.length}
                                     </PaginationInfo>
                                     <PaginationBtns>
                                         <PaginationBtn

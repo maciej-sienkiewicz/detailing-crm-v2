@@ -21,7 +21,7 @@ export interface TeamEmployeeListItem {
     phone: string | null;
     hasAccount: boolean;
     /**
-     * Null means three different things — read it together with `hasAccount`: no
+     * Null means three different things; read it together with `hasAccount`: no
      * account, an account with no role (signed in but locked out), or a caller
      * without permission to see roles.
      */
@@ -84,7 +84,7 @@ export interface CreateAccountResponse {
     userId: string;
 }
 
-/** Data collected by the "add employee" form — maps to a 3-step API flow. */
+/** Data collected by the "add employee" form: maps to a 3-step API flow. */
 export interface CreateEmployeeFormOutput {
     firstName: string;
     lastName: string;

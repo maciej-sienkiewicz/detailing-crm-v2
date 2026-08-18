@@ -243,7 +243,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
         {open === 'visits' && (
           <SectionBody>
             <FieldRow>
-              <FieldLabel>Liczba wizyt (od–do)</FieldLabel>
+              <FieldLabel>Liczba wizyt (od-do)</FieldLabel>
               <NumInput type="number" min={0} placeholder="od" value={value.visitCountMin ?? ''}
                 onChange={(e) => set({ visitCountMin: num(e.target.value) })} />
               <NumInput type="number" min={0} placeholder="do" value={value.visitCountMax ?? ''}
@@ -297,7 +297,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             <FieldRow>
               <FieldLabel>
                 Korzystał z usługi
-                <InfoTooltip text="Klient musi mieć w historii co najmniej jedną wizytę z tą usługą. Przy kilku usługach wystarczy jedna z nich — kampania trafi do klientów, którzy mieli dowolną z zaznaczonych (logika LUB)." />
+                <InfoTooltip text="Klient musi mieć w historii co najmniej jedną wizytę z tą usługą. Przy kilku usługach wystarczy jedna z nich, kampania trafi do klientów, którzy mieli dowolną z zaznaczonych (logika LUB)." />
               </FieldLabel>
               <SelectWrap style={{ width: 260 }}>
                 <ServiceMultiSelect
@@ -323,7 +323,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             <FieldRow>
               <FieldLabel>
                 Nigdy nie korzystał z
-                <InfoTooltip text="Wyklucza klientów, którzy mieli w historii którąkolwiek z wybranych usług (logika LUB). Przy kilku usługach — wystarczy jedna, żeby klient został wykluczony." />
+                <InfoTooltip text="Wyklucza klientów, którzy mieli w historii którąkolwiek z wybranych usług (logika LUB). Przy kilku usługach wystarczy jedna, żeby klient został wykluczony." />
               </FieldLabel>
               <SelectWrap style={{ width: 260 }}>
                 <ServiceMultiSelect
@@ -386,7 +386,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
               </>
             )}
             <FieldRow>
-              <FieldLabel>Rocznik (od–do)</FieldLabel>
+              <FieldLabel>Rocznik (od-do)</FieldLabel>
               <NumInput type="number" placeholder="od" value={value.vehicleYearMin ?? ''}
                 onChange={(e) => set({ vehicleYearMin: num(e.target.value) })} />
               <NumInput type="number" placeholder="do" value={value.vehicleYearMax ?? ''}

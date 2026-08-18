@@ -43,7 +43,7 @@ export const ksefApi = {
 
   /**
    * Weryfikuje zapisany token w KSeF (świeże uwierzytelnienie + odczyt uprawnień).
-   * Wywołanie trwa kilka sekund — KSeF przetwarza uwierzytelnienie asynchronicznie.
+   * Wywołanie trwa kilka sekund: KSeF przetwarza uwierzytelnienie asynchronicznie.
    */
   verifyCredentials: async (): Promise<KsefTokenVerification> => {
     const response = await apiClient.post(`${BASE}/credentials/verify`, {});

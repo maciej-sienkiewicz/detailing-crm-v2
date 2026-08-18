@@ -117,7 +117,7 @@ export const VisitList = styled.div`
     overflow-y: auto;
 `;
 
-/** Outer wrapper — provides hover context for RowActions. */
+/** Outer wrapper, provides hover context for RowActions. */
 export const EntryWrapper = styled.div<{ $isAbandoned?: boolean }>`
     border-bottom: 1px solid ${props => props.theme.colors.border};
     background: ${props => props.$isAbandoned ? '#fff5f5' : 'transparent'};
@@ -169,7 +169,7 @@ export const VisitTitleRow = styled.div`
     flex-wrap: wrap;
 `;
 
-/** "Wizyta" / "Rezerwacja" kind badge — same style in both history views. */
+/** "Wizyta" / "Rezerwacja" kind badge, same style in both history views. */
 export const VisitTypeBadge = styled.span<{ $isReservation?: boolean }>`
     display: inline-flex;
     padding: 2px 8px;

@@ -104,7 +104,7 @@ const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: s
   if (preset === 'week') return 'Ostatni tydzień';
   if (preset === 'month') return 'Ostatni miesiąc';
   if (preset === 'quarter') return 'Ostatni kwartał';
-  if (customFrom && customTo) return `${customFrom} – ${customTo}`;
+  if (customFrom && customTo) return `${customFrom} - ${customTo}`;
   if (customFrom) return `Od ${customFrom}`;
   if (customTo) return `Do ${customTo}`;
   return 'Zakres dat';
@@ -114,8 +114,8 @@ const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: s
 // Active leads (NEW / IN_PROGRESS) waiting too long get a visible urgency badge,
 // turning the table into a prioritized worklist.
 
-const AGING_WARN_MINUTES   = 4 * 60;   // 4h — needs attention
-const AGING_URGENT_MINUTES = 24 * 60;  // 24h — at risk of being lost
+const AGING_WARN_MINUTES   = 4 * 60;   // 4h: needs attention
+const AGING_URGENT_MINUTES = 24 * 60;  // 24h: at risk of being lost
 
 const getLeadAging = (lead: Lead): { urgent: boolean; label: string } | null => {
   if (lead.status !== LeadStatus.NEW && lead.status !== LeadStatus.IN_PROGRESS) return null;
@@ -184,7 +184,7 @@ const rowActivityFlash = keyframes`
   }
 `;
 
-// ─── Page layout — identical to CustomerListView ──────────────────────────────
+// ─── Page layout (identical to CustomerListView) ─────────────────────────────
 
 const ViewContainer = styled.main`
   display: flex;
@@ -452,7 +452,7 @@ const StatsGrid = styled.div`
   }
 `;
 
-// ─── Content section — identical to CustomerListView ─────────────────────────
+// ─── Content section (identical to CustomerListView) ────────────────────────
 
 const ContentSection = styled.section`
   background: ${st.bgCard};
@@ -575,7 +575,7 @@ const SearchIcon = styled.div`
 
 const Spacer = styled.div` flex: 1; `;
 
-// ─── Tab groups — same as CustomerListView ────────────────────────────────────
+// ─── Tab groups (same as CustomerListView) ───────────────────────────────────
 
 const TabGroup = styled.div`
   display: inline-flex;
@@ -745,7 +745,7 @@ const ClearAllBtn = styled.button`
   &:hover { background: #f1f5f9; color: ${st.textSecondary}; }
 `;
 
-// ─── Table — same structure as CustomerTable ──────────────────────────────────
+// ─── Table (same structure as CustomerTable) ─────────────────────────────────
 
 const TableWrapper = styled.div`
   width: 100%;
@@ -859,7 +859,7 @@ const NewIndicator = styled.span`
   animation: ${pulseDot} 1.8s ease-in-out infinite;
 `;
 
-// ─── Cell helpers — same as CustomerTable ────────────────────────────────────
+// ─── Cell helpers (same as CustomerTable) ───────────────────────────────────
 
 const CellStack = styled.div`
   display: flex;
@@ -987,7 +987,7 @@ const StatusMenuItem = styled.button<{ $active: boolean; $color: string }>`
   & + & { border-top: 1px solid #f1f5f9; }
 `;
 
-// ─── Icon action button — same as CustomerTable ───────────────────────────────
+// ─── Icon action button (same as CustomerTable) ──────────────────────────────
 
 const IconBtn = styled.button<{ $rotated?: boolean; $danger?: boolean }>`
   width: 28px;
@@ -1665,7 +1665,7 @@ export const LeadListView: React.FC = () => {
   // Navigate to the calendar with the fly-to-cell animation (for appointmentId / relatedVisits)
   const handleGoToCalendarBooking = async (lead: Lead, eventId: string, e: React.MouseEvent) => {
     if (calNavLoadingId) return;
-    // Capture DOM ref BEFORE any await — currentTarget is nulled after event dispatch
+    // Capture DOM ref BEFORE any await: currentTarget is nulled after event dispatch
     const btnEl = e.currentTarget as HTMLElement;
     setCalNavLoadingId(eventId);
     try {
@@ -1709,7 +1709,7 @@ export const LeadListView: React.FC = () => {
     }
   };
 
-  // ─── (removed useLead-based effect — now using imperative fetch in handleStartBooking)
+  // ─── (removed useLead-based effect; now using imperative fetch in handleStartBooking)
   useEffect(() => {
     if (!statusMenuLeadId) return;
     const close = () => setStatusMenuLeadId(null);
@@ -1934,85 +1934,85 @@ export const LeadListView: React.FC = () => {
         id: 'tiles',
         label: 'Kafelki statystyk',
         group: 'Wstęp',
-        description: 'Cztery kafelki na górze strony dają Ci szybki obraz tego, co dzieje się z Twoimi leadami — bez wchodzenia w szczegóły.\n\n• Do obsłużenia — tyle leadów czeka na Twój pierwszy kontakt. Kliknięcie w tę kafelkę odfiltrowuje tabelę do statusu „Nowy", żebyś od razu wiedział, z kim trzeba się odezwać. Wróć do pełnego widoku czyszcząc filtry nad tabelą.\n\n• Konwersja (ten miesiąc) — jaki procent leadów zamienił się w klientów w tym miesiącu. Strzałka obok pokazuje, czy wynik jest lepszy, czy gorszy niż w poprzednim miesiącu.\n\n• Zrealizowane (ten miesiąc) — łączna wartość leadów zakończonych sukcesem. Kliknięcie filtruje tabelę do statusu „Zakończony" — zobaczysz wszystko, co już przyniosło przychód.\n\n• Ryzyko utraty — wartość leadów, przy których nie było żadnej aktywności od ponad 24 godzin. Kliknięcie sortuje tabelę po czasie ostatniej aktualizacji i zawęża ją do statusów „Nowy" i „W kontakcie" — czyli tych, z którymi trzeba działać najszybciej.',
-        usedIn: ['Strona główna leadów — górna część widoku'],
+        description: 'Cztery kafelki na górze strony dają Ci szybki obraz tego, co dzieje się z Twoimi leadami, bez wchodzenia w szczegóły.\n\n• Do obsłużenia: tyle leadów czeka na Twój pierwszy kontakt. Kliknięcie w tę kafelkę odfiltrowuje tabelę do statusu „Nowy", żebyś od razu wiedział, z kim trzeba się odezwać. Wróć do pełnego widoku czyszcząc filtry nad tabelą.\n\n• Konwersja (ten miesiąc): jaki procent leadów zamienił się w klientów w tym miesiącu. Strzałka obok pokazuje, czy wynik jest lepszy, czy gorszy niż w poprzednim miesiącu.\n\n• Zrealizowane (ten miesiąc): łączna wartość leadów zakończonych sukcesem. Kliknięcie filtruje tabelę do statusu „Zakończony": zobaczysz wszystko, co już przyniosło przychód.\n\n• Ryzyko utraty: wartość leadów, przy których nie było żadnej aktywności od ponad 24 godzin. Kliknięcie sortuje tabelę po czasie ostatniej aktualizacji i zawęża ją do statusów „Nowy" i „W kontakcie", czyli tych, z którymi trzeba działać najszybciej.',
+        usedIn: ['Strona główna leadów (górna część widoku)'],
       },
       {
         id: 'statuses',
         label: 'Statusy leadów',
         group: 'Wstęp',
-        description: 'Status mówi Ci, na jakim etapie jest dany lead. Żeby go zmienić, kliknij kolorowy badge w wierszu — pojawi się menu z opcjami dostępnymi dla tego etapu.\n\n• Nowy — zapytanie dopiero wpłynęło, jeszcze nikt się nie odezwał.\n• W kontakcie — trwa rozmowa z klientem.\n• Zarezerwowany — klient chce skorzystać z usługi, termin jest lub będzie ustalony.\n• Zakończony — usługa została wykonana.\n• Utracony — klient zrezygnował. Przy zmianie na ten status system zapyta Cię o powód — to przydatne do analizy, skąd wycieka sprzedaż.\n• Porzucony — klient przestał odpowiadać lub nie pojawił się.\n\nFiltr statusów nad tabelą pozwala Ci zawęzić widok do wybranych etapów. Domyślnie widoczne są leady „Nowe" i „W kontakcie" — czyli te, które wymagają działania.',
-        usedIn: ['Tabela leadów — kolumna Status', 'Filtr statusów w pasku filtrów', 'Kafelki statystyk'],
+        description: 'Status mówi Ci, na jakim etapie jest dany lead. Żeby go zmienić, kliknij kolorowy badge w wierszu: pojawi się menu z opcjami dostępnymi dla tego etapu.\n\n• Nowy: zapytanie dopiero wpłynęło, jeszcze nikt się nie odezwał.\n• W kontakcie: trwa rozmowa z klientem.\n• Zarezerwowany: klient chce skorzystać z usługi, termin jest lub będzie ustalony.\n• Zakończony: usługa została wykonana.\n• Utracony: klient zrezygnował. Przy zmianie na ten status system zapyta Cię o powód: to przydatne do analizy, skąd wycieka sprzedaż.\n• Porzucony: klient przestał odpowiadać lub nie pojawił się.\n\nFiltr statusów nad tabelą pozwala Ci zawęzić widok do wybranych etapów. Domyślnie widoczne są leady „Nowe" i „W kontakcie", czyli te, które wymagają działania.',
+        usedIn: ['Tabela leadów (kolumna Status)', 'Filtr statusów w pasku filtrów', 'Kafelki statystyk'],
       },
       {
         id: 'date-filter',
         label: 'Filtrowanie po czasie',
         group: 'Wstęp',
-        description: 'Przycisk z kalendarzem w nagłówku strony (domyślnie „Cały czas") ogranicza widok do leadów z wybranego okresu. To wpływa jednocześnie na tabelę i na kafelki statystyk u góry — wszystkie liczby przeliczają się dla tego zakresu.\n\nDo wyboru masz gotowe zakresy:\n• Cały czas — bez ograniczeń.\n• Ostatni tydzień — 7 dni.\n• Ostatni miesiąc — 30 dni.\n• Ostatni kwartał — 90 dni.\n\nJeśli potrzebujesz innego okresu, wpisz daty „od" i „do" w sekcji „Niestandardowy zakres" i kliknij „Zastosuj zakres". Gdy filtr jest aktywny, przycisk podświetla się i pokazuje wybrany okres — kliknij go ponownie i wybierz „Cały czas", żeby wrócić do pełnego widoku.',
-        usedIn: ['Nagłówek strony — przycisk z kalendarzem', 'Kafelki statystyk', 'Tabela leadów'],
+        description: 'Przycisk z kalendarzem w nagłówku strony (domyślnie „Cały czas") ogranicza widok do leadów z wybranego okresu. To wpływa jednocześnie na tabelę i na kafelki statystyk u góry: wszystkie liczby przeliczają się dla tego zakresu.\n\nDo wyboru masz gotowe zakresy:\n• Cały czas: bez ograniczeń.\n• Ostatni tydzień: 7 dni.\n• Ostatni miesiąc: 30 dni.\n• Ostatni kwartał: 90 dni.\n\nJeśli potrzebujesz innego okresu, wpisz daty „od" i „do" w sekcji „Niestandardowy zakres" i kliknij „Zastosuj zakres". Gdy filtr jest aktywny, przycisk podświetla się i pokazuje wybrany okres; kliknij go ponownie i wybierz „Cały czas", żeby wrócić do pełnego widoku.',
+        usedIn: ['Nagłówek strony (przycisk z kalendarzem)', 'Kafelki statystyk', 'Tabela leadów'],
       },
       {
         id: 'customer',
         label: 'Przypisywanie klienta',
         group: 'Przypisywanie',
-        description: 'Przypisanie klienta łączy lead z jego kartoteką w CRM — zobaczysz wtedy pełną historię: poprzednie wizyty, przychód, pojazdy. To też ułatwia późniejsze tworzenie rezerwacji, bo dane klienta są już w systemie.\n\nKliknij „Przypisz klienta" i wyszukaj po imieniu, nazwisku lub numerze telefonu. Jeśli klient jeszcze nie istnieje w bazie, wybierz „Dodaj nowego klienta" — formularz uzupełni się automatycznie danymi z leada (imię, nazwisko, e-mail, telefon), więc nie musisz nic przepisywać.\n\nPo przypisaniu imię klienta w tabeli staje się klikalnym linkiem — kliknięcie przenosi Cię prosto na jego kartę. Żeby zmienić przypisanie, użyj szarego przycisku „Zmień przypisanie".',
-        usedIn: ['Tabela leadów — kolumna Klient', 'Modal szczegółów leada'],
+        description: 'Przypisanie klienta łączy lead z jego kartoteką w CRM, zobaczysz wtedy pełną historię: poprzednie wizyty, przychód, pojazdy. To też ułatwia późniejsze tworzenie rezerwacji, bo dane klienta są już w systemie.\n\nKliknij „Przypisz klienta" i wyszukaj po imieniu, nazwisku lub numerze telefonu. Jeśli klient jeszcze nie istnieje w bazie, wybierz „Dodaj nowego klienta": formularz uzupełni się automatycznie danymi z leada (imię, nazwisko, e-mail, telefon), więc nie musisz nic przepisywać.\n\nPo przypisaniu imię klienta w tabeli staje się klikalnym linkiem: kliknięcie przenosi Cię prosto na jego kartę. Żeby zmienić przypisanie, użyj szarego przycisku „Zmień przypisanie".',
+        usedIn: ['Tabela leadów (kolumna Klient)', 'Modal szczegółów leada'],
       },
       {
         id: 'employee',
         label: 'Przypisywanie pracownika',
         group: 'Przypisywanie',
-        description: 'Przypisanie pracownika do leada określa, kto jest odpowiedzialny za ten kontakt. Dzięki temu wiadomo, do kogo należy lead i kto ma się odezwać do klienta.\n\nKliknij „Przypisz pracownika" i wybierz osobę z listy. Jeśli to Twój lead, szybciej jest kliknąć „Przypisz siebie" — to jeden krok zamiast przeszukiwania listy. Gdy pracownik jest już przypisany, widać jego imię z zielonym ptaszkiem. Zmiana jest możliwa przez szary przycisk „Zmień przypisanie".\n\nUżywaj filtra „Pracownik" nad tabelą, żeby zobaczyć tylko leady przypisane do konkretnej osoby — przydatne na spotkaniach zespołu albo gdy chcesz sprawdzić swoje własne zapytania.',
-        usedIn: ['Tabela leadów — kolumna Obsługuje', 'Modal szczegółów leada', 'Filtr pracownika'],
+        description: 'Przypisanie pracownika do leada określa, kto jest odpowiedzialny za ten kontakt. Dzięki temu wiadomo, do kogo należy lead i kto ma się odezwać do klienta.\n\nKliknij „Przypisz pracownika" i wybierz osobę z listy. Jeśli to Twój lead, szybciej jest kliknąć „Przypisz siebie": to jeden krok zamiast przeszukiwania listy. Gdy pracownik jest już przypisany, widać jego imię z zielonym ptaszkiem. Zmiana jest możliwa przez szary przycisk „Zmień przypisanie".\n\nUżywaj filtra „Pracownik" nad tabelą, żeby zobaczyć tylko leady przypisane do konkretnej osoby, przydatne na spotkaniach zespołu albo gdy chcesz sprawdzić swoje własne zapytania.',
+        usedIn: ['Tabela leadów (kolumna Obsługuje)', 'Modal szczegółów leada', 'Filtr pracownika'],
       },
       {
         id: 'appointment',
         label: 'Przypisywanie rezerwacji i wizyty',
         group: 'Przypisywanie',
-        description: 'Gdy lead jest na etapie „Zarezerwowany", możesz przypiąć do niego konkretną rezerwację z kalendarza. Gdy jest „Zakończony" — możesz przypiąć wizytę, czyli zrealizowaną usługę. Dzięki temu każde zapytanie ma swój ślad w systemie od początku do końca.\n\nKliknij „Przypisz rez." lub „Przypisz wizytę" i wybierz wpis z listy. Po przypisaniu pojawia się zielony przycisk — kliknięcie w „Rezerwacja" przeniesie Cię do kalendarza z podświetlonym terminem, kliknięcie w „Wizyta" otworzy szczegóły tej usługi. Zmiana jest możliwa przez ikonkę ołówka obok przycisku.\n\nJeśli lead ma przypisane i rezerwację, i wizytę, w tabeli zobaczysz tylko przycisk „Wizyta" — to finalny etap, więc on ma wyższy priorytet.\n\nJedna rezerwacja lub wizyta może być przypisana tylko do jednego leada. Jeśli spróbujesz przypiąć coś, co jest już zajęte, system wyświetli ostrzeżenie i powie, do którego leada ta pozycja należy.',
-        usedIn: ['Tabela leadów — kolumna akcji', 'Modal szczegółów leada'],
+        description: 'Gdy lead jest na etapie „Zarezerwowany", możesz przypiąć do niego konkretną rezerwację z kalendarza. Gdy jest „Zakończony", możesz przypiąć wizytę, czyli zrealizowaną usługę. Dzięki temu każde zapytanie ma swój ślad w systemie od początku do końca.\n\nKliknij „Przypisz rez." lub „Przypisz wizytę" i wybierz wpis z listy. Po przypisaniu pojawia się zielony przycisk: kliknięcie w „Rezerwacja" przeniesie Cię do kalendarza z podświetlonym terminem, kliknięcie w „Wizyta" otworzy szczegóły tej usługi. Zmiana jest możliwa przez ikonkę ołówka obok przycisku.\n\nJeśli lead ma przypisane i rezerwację, i wizytę, w tabeli zobaczysz tylko przycisk „Wizyta": to finalny etap, więc on ma wyższy priorytet.\n\nJedna rezerwacja lub wizyta może być przypisana tylko do jednego leada. Jeśli spróbujesz przypiąć coś, co jest już zajęte, system wyświetli ostrzeżenie i powie, do którego leada ta pozycja należy.',
+        usedIn: ['Tabela leadów (kolumna akcji)', 'Modal szczegółów leada'],
       },
       {
         id: 'estimation',
         label: 'Kosztorys',
         group: 'Kosztorys',
-        description: 'Dla leadów e-mail system automatycznie tworzy kosztorys na podstawie treści zapytania — odczytuje markę i model pojazdu, rozpoznaje potrzeby klienta i dobiera usługi z cennikiem. Pojawia się on w szczegółach leada jako „Kosztorys systemowy" i nie wymaga żadnego działania z Twojej strony.\n\nJeśli chcesz coś zmienić — dodać pozycję, poprawić cenę, usunąć usługę — stwórz własny kosztorys. Kliknij „Dodaj kosztorys" w szczegółach leada i uzupełnij go ręcznie. Ten kosztorys jest oznaczony jako „Twój kosztorys" i zawsze ma pierwszeństwo: zastępuje systemowy we wszystkich obliczeniach i pre-wypełnia formularz rezerwacji swoimi pozycjami. Kosztorys systemowy zostaje widoczny w tle jako punkt odniesienia.\n\nWartość leada w kolumnie „Wartość" w tabeli pochodzi zawsze z tego kosztorysu, który ma wyższy priorytet — czyli z Twojego, jeśli go stworzyłeś.',
-        usedIn: ['Modal szczegółów leada — sekcja Kosztorys', 'Kolumna Wartość w tabeli', 'Pre-wypełnianie formularza rezerwacji'],
+        description: 'Dla leadów e-mail system automatycznie tworzy kosztorys na podstawie treści zapytania: odczytuje markę i model pojazdu, rozpoznaje potrzeby klienta i dobiera usługi z cennikiem. Pojawia się on w szczegółach leada jako „Kosztorys systemowy" i nie wymaga żadnego działania z Twojej strony.\n\nJeśli chcesz coś zmienić (dodać pozycję, poprawić cenę, usunąć usługę), stwórz własny kosztorys. Kliknij „Dodaj kosztorys" w szczegółach leada i uzupełnij go ręcznie. Ten kosztorys jest oznaczony jako „Twój kosztorys" i zawsze ma pierwszeństwo: zastępuje systemowy we wszystkich obliczeniach i pre-wypełnia formularz rezerwacji swoimi pozycjami. Kosztorys systemowy zostaje widoczny w tle jako punkt odniesienia.\n\nWartość leada w kolumnie „Wartość" w tabeli pochodzi zawsze z tego kosztorysu, który ma wyższy priorytet, czyli z Twojego, jeśli go stworzyłeś.',
+        usedIn: ['Modal szczegółów leada (sekcja Kosztorys)', 'Kolumna Wartość w tabeli', 'Pre-wypełnianie formularza rezerwacji'],
       },
       {
         id: 'offer',
         label: 'Przygotowanie odpowiedzi na e-mail',
         group: 'Tworzenie odpowiedzi na e-mail',
-        description: 'Dla leadów e-mail w tabeli pojawia się przycisk „Przygotuj ofertę". Kliknij go, a otworzy się okno w stylu klienta pocztowego z gotową treścią odpowiedzi — spersonalizowaną na podstawie danych leada: imienia klienta, pojazdu i wyceny z kosztorysu.\n\nPodczas generowania tekst pojawia się stopniowo. Gdy animacja skończy się, możesz go swobodnie edytować — kliknij w treść i pisz jak w zwykłym edytorze. Gotową wiadomość skopiuj przyciskiem „Kopiuj do schowka" i wklej do swojego klienta pocztowego.\n\nJak podłączyć skrzynkę pocztową\n\nŻeby zapytania e-mail od klientów trafiały automatycznie do systemu jako leady, musisz skonfigurować przekierowanie wiadomości. W ustawieniach firmy znajdziesz pole „Alias e-mail" z Twoim unikalnym adresem — np. twojafirma@detailboost.pl. Ustaw w swojej skrzynce pocztowej regułę, która przekierowuje przychodzące wiadomości od klientów na ten adres.\n\nAlias nie jest skrzynką — to pośrednik. Gdy wiadomość do niego dotrze, system odczyta dane i utworzy lead. Potem ją całkowicie zapomni: nie przechowuje treści e-maili i nie ma możliwości do nich wrócić. Wysyłasz odpowiedzi sam, ze swojej skrzynki — system Ci tylko pomaga je przygotować.',
-        usedIn: ['Modal szczegółów leada — dla leadów e-mail', 'Ustawienia firmy — pole Alias e-mail'],
+        description: 'Dla leadów e-mail w tabeli pojawia się przycisk „Przygotuj ofertę". Kliknij go, a otworzy się okno w stylu klienta pocztowego z gotową treścią odpowiedzi: spersonalizowaną na podstawie danych leada: imienia klienta, pojazdu i wyceny z kosztorysu.\n\nPodczas generowania tekst pojawia się stopniowo. Gdy animacja skończy się, możesz go swobodnie edytować: kliknij w treść i pisz jak w zwykłym edytorze. Gotową wiadomość skopiuj przyciskiem „Kopiuj do schowka" i wklej do swojego klienta pocztowego.\n\nJak podłączyć skrzynkę pocztową\n\nŻeby zapytania e-mail od klientów trafiały automatycznie do systemu jako leady, musisz skonfigurować przekierowanie wiadomości. W ustawieniach firmy znajdziesz pole „Alias e-mail" z Twoim unikalnym adresem, np. twojafirma@detailboost.pl. Ustaw w swojej skrzynce pocztowej regułę, która przekierowuje przychodzące wiadomości od klientów na ten adres.\n\nAlias nie jest skrzynką: to pośrednik. Gdy wiadomość do niego dotrze, system odczyta dane i utworzy lead. Potem ją całkowicie zapomni: nie przechowuje treści e-maili i nie ma możliwości do nich wrócić. Wysyłasz odpowiedzi sam, ze swojej skrzynki; system Ci tylko pomaga je przygotować.',
+        usedIn: ['Modal szczegółów leada (dla leadów e-mail)', 'Ustawienia firmy (pole Alias e-mail)'],
       },
       {
         id: 'examples',
         label: 'Przykłady odpowiedzi',
         group: 'Tworzenie odpowiedzi na e-mail',
-        description: 'Chcesz, żeby odpowiedzi były bardziej do Ciebie podobne? Użyj przykładów. Po tym jak edytujesz wygenerowaną odpowiedź i jesteś z niej zadowolony, kliknij „Zapisz jako przykład" — system zapamiętuje ją jako wzorzec Twojego stylu.\n\nIm więcej masz zapisanych przykładów, tym lepiej dopasowane są kolejne odpowiedzi — system uczy się Twojego tonu, struktury zdań i sposobu opisywania usług. Najlepiej zapisywać różnorodne przykłady: krótkie i długie, dla różnych typów zapytań.\n\nŻeby zarządzać przykładami — podejrzeć treść, edytować tytuł lub usunąć stary wzorzec — otwórz panel przez ikonkę książki w nagłówku strony lub bezpośrednio z okna compose. Możesz mieć maksymalnie 10 przykładów. Gdy osiągniesz limit, usuń jeden ze starszych, żeby zwolnić miejsce.',
-        usedIn: ['Okno compose — przycisk „Zapisz jako przykład"', 'Nagłówek strony leadów — ikona książki'],
+        description: 'Chcesz, żeby odpowiedzi były bardziej do Ciebie podobne? Użyj przykładów. Po tym jak edytujesz wygenerowaną odpowiedź i jesteś z niej zadowolony, kliknij „Zapisz jako przykład": system zapamiętuje ją jako wzorzec Twojego stylu.\n\nIm więcej masz zapisanych przykładów, tym lepiej dopasowane są kolejne odpowiedzi: system uczy się Twojego tonu, struktury zdań i sposobu opisywania usług. Najlepiej zapisywać różnorodne przykłady: krótkie i długie, dla różnych typów zapytań.\n\nŻeby zarządzać przykładami (podejrzeć treść, edytować tytuł lub usunąć stary wzorzec), otwórz panel przez ikonkę książki w nagłówku strony lub bezpośrednio z okna compose. Możesz mieć maksymalnie 10 przykładów. Gdy osiągniesz limit, usuń jeden ze starszych, żeby zwolnić miejsce.',
+        usedIn: ['Okno compose (przycisk „Zapisz jako przykład")', 'Nagłówek strony leadów (ikona książki)'],
       },
       {
         id: 'analytics-services',
         label: 'Win/Loss per usługa',
         group: 'Analityka',
-        description: 'Przycisk „Analityka" w nagłówku otwiera okno z trzema zakładkami. Na górze wybierasz okres (domyślnie ostatni miesiąc) — zmiana przelicza wszystkie zakładki naraz.\n\nPierwsza zakładka pokazuje, które usługi domykasz, a które przegrywasz. U góry trzy liczby: wygrane leady, przegrane leady i ogólna konwersja dla wybranego okresu.\n\nNiżej tabela rozbija to na pojedyncze usługi — dla każdej widzisz liczbę wygranych, straconych i pasek „win rate" (procent wygranych). Pasek zmienia kolor: zielony przy dobrej skuteczności, pomarańczowy i czerwony przy słabszej.\n\nJak liczone są wyniki:\n• Wygrane — leady ze statusem „Zarezerwowany" lub „Zakończony".\n• Stracone — leady ze statusem „Utracony" lub „Porzucony".\n\nUsługi są posortowane od najczęstszych. Dane pojawią się, gdy oznaczysz leady usługami w kosztorysie.',
-        usedIn: ['Nagłówek strony — przycisk „Analityka"', 'Analityka — zakładka „Win/Loss per usługa"'],
+        description: 'Przycisk „Analityka" w nagłówku otwiera okno z trzema zakładkami. Na górze wybierasz okres (domyślnie ostatni miesiąc), zmiana przelicza wszystkie zakładki naraz.\n\nPierwsza zakładka pokazuje, które usługi domykasz, a które przegrywasz. U góry trzy liczby: wygrane leady, przegrane leady i ogólna konwersja dla wybranego okresu.\n\nNiżej tabela rozbija to na pojedyncze usługi: dla każdej widzisz liczbę wygranych, straconych i pasek „win rate" (procent wygranych). Pasek zmienia kolor: zielony przy dobrej skuteczności, pomarańczowy i czerwony przy słabszej.\n\nJak liczone są wyniki:\n• Wygrane: leady ze statusem „Zarezerwowany" lub „Zakończony".\n• Stracone: leady ze statusem „Utracony" lub „Porzucony".\n\nUsługi są posortowane od najczęstszych. Dane pojawią się, gdy oznaczysz leady usługami w kosztorysie.',
+        usedIn: ['Nagłówek strony (przycisk „Analityka")', 'Analityka (zakładka „Win/Loss per usługa")'],
       },
       {
         id: 'analytics-employees',
         label: 'Skuteczność pracowników',
         group: 'Analityka',
-        description: 'Druga zakładka to ranking zespołu. Dla każdego pracownika widzisz: liczbę przypisanych leadów, ile wygrał, ile stracił, średnią wartość leada i konwersję (procent domkniętych).\n\nKonwersja ma kolory — zielona przy dobrym wyniku, pomarańczowa i czerwona przy słabszym. Osoba z najlepszą skutecznością dostaje wyróżnienie na górze listy.\n\nKonwersja liczona jest jako leady „Zarezerwowane" plus „Zakończone" podzielone przez wszystkie przypisane leady. Dane pojawią się, gdy zaczniesz przypisywać pracowników do leadów.',
-        usedIn: ['Analityka — zakładka „Skuteczność pracowników"'],
+        description: 'Druga zakładka to ranking zespołu. Dla każdego pracownika widzisz: liczbę przypisanych leadów, ile wygrał, ile stracił, średnią wartość leada i konwersję (procent domkniętych).\n\nKonwersja ma kolory: zielona przy dobrym wyniku, pomarańczowa i czerwona przy słabszym. Osoba z najlepszą skutecznością dostaje wyróżnienie na górze listy.\n\nKonwersja liczona jest jako leady „Zarezerwowane" plus „Zakończone" podzielone przez wszystkie przypisane leady. Dane pojawią się, gdy zaczniesz przypisywać pracowników do leadów.',
+        usedIn: ['Analityka (zakładka „Skuteczność pracowników")'],
       },
       {
         id: 'analytics-timing',
-        label: 'Timing — kiedy piszą klienci',
+        label: 'Timing: kiedy piszą klienci',
         group: 'Analityka',
-        description: 'Trzecia zakładka pokazuje, o jakich porach i w które dni miesiąca spływają zapytania. Dwa wykresy: rozkład godzinowy (0–23) i dzienny (1–31). Każdy słupek dzieli się na trzy serie: zapytania przychodzące, zaakceptowane i odrzucone.\n\nNad wykresem możesz włączać i wyłączać poszczególne serie, klikając w ich nazwy. Możesz też zawęzić dane do leadów o określonej wartości — wpisz widełki „od–do" w polu „Wartość leada" i kliknij „Filtruj".\n\nPod każdym wykresem jest przycisk, który automatycznie zinterpretuje dane i podpowie konkretne wnioski: najlepszą porę na telefon do klienta, kiedy wysyłać przypomnienia oraz kiedy uruchamiać kampanie reklamowe i posty w social media.\n\nJeśli dla wybranego okresu nie ma jeszcze danych, wykres pokaże dane przykładowe z odpowiednią adnotacją.',
-        usedIn: ['Analityka — zakładka „Timing"'],
+        description: 'Trzecia zakładka pokazuje, o jakich porach i w które dni miesiąca spływają zapytania. Dwa wykresy: rozkład godzinowy (0-23) i dzienny (1-31). Każdy słupek dzieli się na trzy serie: zapytania przychodzące, zaakceptowane i odrzucone.\n\nNad wykresem możesz włączać i wyłączać poszczególne serie, klikając w ich nazwy. Możesz też zawęzić dane do leadów o określonej wartości: wpisz widełki „od-do" w polu „Wartość leada" i kliknij „Filtruj".\n\nPod każdym wykresem jest przycisk, który automatycznie zinterpretuje dane i podpowie konkretne wnioski: najlepszą porę na telefon do klienta, kiedy wysyłać przypomnienia oraz kiedy uruchamiać kampanie reklamowe i posty w social media.\n\nJeśli dla wybranego okresu nie ma jeszcze danych, wykres pokaże dane przykładowe z odpowiednią adnotacją.',
+        usedIn: ['Analityka (zakładka „Timing")'],
       },
     ],
   };
@@ -2089,7 +2089,7 @@ export const LeadListView: React.FC = () => {
           <Td>
             {lead.assignedCustomer ? (() => {
               const c = lead.assignedCustomer!;
-              const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
+              const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '-';
               const contactSub = (lead.contactIdentifier ?? '').includes('@')
                 ? truncateEmail(lead.contactIdentifier ?? '', 28)
                 : formatPhoneNumber(lead.contactIdentifier ?? '');
@@ -2225,7 +2225,7 @@ export const LeadListView: React.FC = () => {
                         style={{ borderColor: '#10b981', color: '#10b981' }}
                       >
                         <CalendarCheck size={12} />
-                        {calNavLoadingId === calEventId ? '…' : 'Rezerwacja'}
+                        {calNavLoadingId === calEventId ? '...' : 'Rezerwacja'}
                       </BookingBtn>
                       {canChange && (
                         <BookingBtn
@@ -2265,7 +2265,7 @@ export const LeadListView: React.FC = () => {
                   onClick={e => { e.stopPropagation(); handleStartBooking(lead); }}
                 >
                   <Calendar size={12} />
-                  {isBookingLoading && bookingLeadId === lead.id ? '…' : 'Rezerwuj'}
+                  {isBookingLoading && bookingLeadId === lead.id ? '...' : 'Rezerwuj'}
                 </BookingBtn>
               )}
               <IconBtn
@@ -2359,7 +2359,7 @@ export const LeadListView: React.FC = () => {
                     max={pendingCustomTo || undefined}
                     onChange={e => setPendingCustomFrom(e.target.value)}
                   />
-                  <DateInputSep>–</DateInputSep>
+                  <DateInputSep>-</DateInputSep>
                   <DateInput
                     type="date"
                     value={pendingCustomTo}
@@ -2420,7 +2420,7 @@ export const LeadListView: React.FC = () => {
               icon={PhoneCall}
               value={summary?.awaitingFirstContactCount ?? 0}
               label="Do obsłużenia"
-              tooltip="Liczba leadów, które czekają na PIERWSZY kontakt. Każda godzina zwłoki = rosnące ryzyko, że klient zadzwoni do konkurencji. W detailingu przy PPF czy ceramice klient często wysyła zapytanie do 3–5 firm jednocześnie."
+              tooltip="Liczba leadów, które czekają na PIERWSZY kontakt. Każda godzina zwłoki = rosnące ryzyko, że klient zadzwoni do konkurencji. W detailingu przy PPF czy ceramice klient często wysyła zapytanie do 3-5 firm jednocześnie."
               subContent={summary && (
                 <span style={{ fontSize: 12, color: '#ef4444' }}>
                   Śr. oczekiwanie: {formatWaitingTime(summary.avgWaitingTimeMinutes)}
@@ -2436,9 +2436,9 @@ export const LeadListView: React.FC = () => {
             <StatTile
               {...TILE_CONFIGS.conversion}
               icon={TrendingUp}
-              value={summary ? `${summary.conversionRateThisMonth.toFixed(1)}%` : '—'}
+              value={summary ? `${summary.conversionRateThisMonth.toFixed(1)}%` : '-'}
               label="Konwersja (ten miesiąc)"
-              tooltip="Ile procent leadów zamienia się w prawdziwych klientów. To jest zdrowie całego procesu. Jeśli konwersja spada z 45% do 20%, coś się popsuło — może zbyt wolna odpowiedź, może ceny za wysokie, może zły formularz."
+              tooltip="Ile procent leadów zamienia się w prawdziwych klientów. To jest zdrowie całego procesu. Jeśli konwersja spada z 45% do 20%, coś się popsuło: może zbyt wolna odpowiedź, może ceny za wysokie, może zły formularz."
               subContent={summary && (() => {
                 const trend = summary.conversionRateTrendPp;
                 const isUp = trend >= 0;
@@ -2452,7 +2452,7 @@ export const LeadListView: React.FC = () => {
             <StatTile
               {...TILE_CONFIGS.converted}
               icon={CheckCircle2}
-              value={summary ? formatCurrency(summary.convertedValueThisMonth) : '—'}
+              value={summary ? formatCurrency(summary.convertedValueThisMonth) : '-'}
               label="Zrealizowane (ten miesiąc)"
               tooltip="Suma wartości leadów zamienionych w klientów w bieżącym miesiącu. To nie pipeline, to przychód już potwierdzony. Satysfakcja + motywacja."
               subContent={summary && (
@@ -2473,9 +2473,9 @@ export const LeadListView: React.FC = () => {
             <StatTile
               {...TILE_CONFIGS.atRisk}
               icon={AlertTriangle}
-              value={summary ? formatPLN(summary.atRiskValue) : '—'}
+              value={summary ? formatPLN(summary.atRiskValue) : '-'}
               label="Ryzyko utraty"
-              tooltip="Suma wartości leadów, z którymi nie było żadnej interakcji od 24+ godzin. To jest koszt bezczynności — liczba, która boli i zmusza do działania."
+              tooltip="Suma wartości leadów, z którymi nie było żadnej interakcji od 24+ godzin. To jest koszt bezczynności: liczba, która boli i zmusza do działania."
               subContent={summary && (
                 <span style={{ fontSize: 12, color: '#d97706' }}>
                   {summary.atRiskCount} {
@@ -2500,7 +2500,7 @@ export const LeadListView: React.FC = () => {
         )}
       </StatsGrid>
 
-      {/* Onboarding — shown only when account has zero leads and no filters active */}
+      {/* Onboarding: shown only when account has zero leads and no filters active */}
       {!isLoading && !isError
         && !searchValue && activeSource === 'ALL' && datePreset === 'all'
         && pagination != null && pagination.totalItems === 0 && (
@@ -2511,7 +2511,7 @@ export const LeadListView: React.FC = () => {
         />
       )}
 
-      {/* Content section — hidden when onboarding is active */}
+      {/* Content section: hidden when onboarding is active */}
       <ContentSection style={
         !isLoading && !isError && !searchValue && activeSource === 'ALL'
         && datePreset === 'all' && pagination != null && pagination.totalItems === 0
@@ -2527,7 +2527,7 @@ export const LeadListView: React.FC = () => {
               </SearchIcon>
               <SearchInput
                 type="text"
-                placeholder="Szukaj po nazwie, kontakcie…"
+                placeholder="Szukaj po nazwie, kontakcie..."
                 value={searchValue}
                 onChange={handleSearch}
               />
@@ -2560,7 +2560,7 @@ export const LeadListView: React.FC = () => {
               >
                 <DollarSign size={13} />
                 {isValueFilterActive
-                  ? `${appliedValueMin !== undefined ? (appliedValueMin / 100).toFixed(0) : '0'}–${appliedValueMax !== undefined ? (appliedValueMax / 100).toFixed(0) : '∞'} PLN`
+                  ? `${appliedValueMin !== undefined ? (appliedValueMin / 100).toFixed(0) : '0'}-${appliedValueMax !== undefined ? (appliedValueMax / 100).toFixed(0) : '∞'} PLN`
                   : 'Wartość'
                 }
                 {isValueFilterActive && (
@@ -2739,7 +2739,7 @@ export const LeadListView: React.FC = () => {
         {pagination && (
           <PaginationContainer aria-label="Pagination">
             <PaginationInfo>
-              Wyświetlanie {startItem}–{endItem} z {pagination.totalItems} leadów
+              Wyświetlanie {startItem}-{endItem} z {pagination.totalItems} leadów
             </PaginationInfo>
             <PaginationControls>
               <PageBtn
@@ -2776,7 +2776,7 @@ export const LeadListView: React.FC = () => {
         }}
       />
 
-      {/* Status change dropdown — rendered via portal to escape table stacking context */}
+      {/* Status change dropdown: rendered via portal to escape table stacking context */}
       {statusMenuLeadId && (() => {
         const menuLead = leads.find(l => l.id === statusMenuLeadId);
         if (!menuLead) return null;
@@ -2826,7 +2826,7 @@ export const LeadListView: React.FC = () => {
           ? `Czy na pewno chcesz usunąć leada „${deleteTarget.name}"? Tej operacji nie można cofnąć.`
           : ''}
         variant="danger"
-        confirmText={deleteLead.isPending ? 'Usuwanie…' : 'Usuń'}
+        confirmText={deleteLead.isPending ? 'Usuwanie...' : 'Usuń'}
         cancelText="Anuluj"
         onConfirm={() => {
           if (!deleteTarget) return;
@@ -2874,7 +2874,7 @@ export const LeadListView: React.FC = () => {
           </p>
           <textarea
             autoFocus
-            placeholder="Np. klient wybrał konkurencję, za wysoka cena…"
+            placeholder="Np. klient wybrał konkurencję, za wysoka cena..."
             value={lostReasonInput}
             onChange={e => setLostReasonInput(e.target.value)}
             rows={3}

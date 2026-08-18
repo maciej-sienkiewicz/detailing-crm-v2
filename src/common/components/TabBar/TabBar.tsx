@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 /**
- * Canonical underline tab bar — the pattern established by the Instagram
+ * Canonical underline tab bar, the pattern established by the Instagram
  * competition view (Przegląd / Porównanie / Treści / Raport). Every module-level
  * tab switcher renders through this component so typography, spacing and the
  * active-state accent stay identical across views.

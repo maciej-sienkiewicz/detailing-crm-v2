@@ -38,7 +38,7 @@ const formatDateRange = (startStr: string, endStr?: string): string => {
             month: 'long',
             year: 'numeric',
         });
-        return `${startFmt} – ${endFmt}`;
+        return `${startFmt} - ${endFmt}`;
     } catch {
         return formatDate(startStr);
     }
@@ -316,8 +316,8 @@ const HeaderRight = styled.div`
     flex-shrink: 0;
     padding-top: 4px;
 
-    /* 900–640px: the hero is still a row, but three pill buttons plus a kebab no
-       longer fit next to the title — let them wrap under each other. */
+    /* 900-640px: the hero is still a row, but three pill buttons plus a kebab no
+       longer fit next to the title, so let them wrap under each other. */
     @media (max-width: 900px) {
         flex-wrap: wrap;
         justify-content: flex-end;
@@ -582,7 +582,7 @@ export const VisitHeader = ({
         <HeroHeader>
             <HeaderContent>
                 <HeaderLeft>
-                    {/* Title row — tylko tytuł + ikona ołówka */}
+                    {/* Title row: tylko tytuł + ikona ołówka */}
                     <TitleRow>
                         {isEditingTitle ? (
                             <>
@@ -632,7 +632,7 @@ export const VisitHeader = ({
                         )}
                     </TitleRow>
 
-                    {/* Wiersz pojazdu — marka, model, nr rejestracyjny */}
+                    {/* Wiersz pojazdu: marka, model, nr rejestracyjny */}
                     {vehicleLabel && (
                         <VehicleRow>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -751,7 +751,7 @@ export const VisitHeader = ({
                 <ModalFooter>
                     <SharedButton $variant="secondary" onClick={() => setIsDateModalOpen(false)}>Anuluj</SharedButton>
                     <SharedButton $variant="primary" onClick={saveDateModal} disabled={!draftDate || isSavingDate}>
-                        {isSavingDate ? 'Zapisywanie…' : 'Zapisz'}
+                        {isSavingDate ? 'Zapisywanie...' : 'Zapisz'}
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>

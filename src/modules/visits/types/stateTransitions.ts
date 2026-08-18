@@ -18,12 +18,12 @@ export interface PaymentDetails {
     method: PaymentMethod;
     invoiceType: InvoiceType;
     amount: number;
-    /** Termin płatności (ISO date) — wymagany przy TRANSFER z fakturą KSeF. */
+    /** Termin płatności (ISO date), wymagany przy TRANSFER z fakturą KSeF. */
     dueDate?: string;
 }
 
 /**
- * Pozycja faktury KSeF — kwoty w groszach. Dokładnie jedno z pól
+ * Pozycja faktury KSeF: kwoty w groszach. Dokładnie jedno z pól
  * unitPriceNet/unitPriceGross: kwota wpisana przez użytkownika jest źródłem
  * prawdy i nie jest przeliczana wstecz (brutto 500,00 zostaje 500,00).
  */
@@ -38,7 +38,7 @@ export interface CompleteInvoiceItemPayload {
 
 /**
  * Konfiguracja faktury KSeF przy zakończeniu wizyty (modal „Wprowadź zmiany").
- * Gdy suma pozycji jest niższa niż kwota wizyty, wymagane remainderPaymentMethod —
+ * Gdy suma pozycji jest niższa niż kwota wizyty, wymagane remainderPaymentMethod:
  * reszta zostaje udokumentowana paragonem (drugim dokumentem przychodowym).
  */
 export interface CompleteInvoicePayload {
@@ -73,7 +73,7 @@ export interface CompleteVisitResponse {
     ksefInvoiceNumber?: string | null;
     ksefStatus?: string | null;
     remainderDocumentNumber?: string | null;
-    /** Powód odrzucenia przez KSeF — obecny tylko przy ksefStatus === 'REJECTED'. */
+    /** Powód odrzucenia przez KSeF, obecny tylko przy ksefStatus === 'REJECTED'. */
     ksefError?: string | null;
 }
 

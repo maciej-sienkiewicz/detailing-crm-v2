@@ -11,9 +11,9 @@ import {
 } from './MetricBits';
 
 /**
- * Przegląd – domyślny ekran modułu. Odpowiada na jedno pytanie:
+ * Przegląd: domyślny ekran modułu. Odpowiada na jedno pytanie:
  * "jak stoję na tle konkurencji i co wymaga mojej uwagi?"
- * Zero surowych tabel – pozycja, 3 kluczowe liczby z kontekstem i gotowe wnioski.
+ * Zero surowych tabel, tylko pozycja, 3 kluczowe liczby z kontekstem i gotowe wnioski.
  */
 
 const Layout = styled.div`
@@ -182,7 +182,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                 <CenterState>
                     <strong>Zacznij od dodania profili konkurencji</strong>
                     <span>
-                        Kliknij „Profile" i dodaj 3–5 studiów detailingowych z Twojej okolicy oraz własny
+                        Kliknij „Profile" i dodaj 3-5 studiów detailingowych z Twojej okolicy oraz własny
                         profil. Pierwsze dane pojawią się po najbliższej synchronizacji.
                     </span>
                 </CenterState>
@@ -212,7 +212,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                             <strong>Obserwujesz {overview.profilesCount} profili</strong>
                             <span>
                                 Oznacz swój profil gwiazdką w zakładce „Profile", a pokażemy Twoje miejsce
-                                w rankingu. Poniżej – typowe wartości u Twojej konkurencji.
+                                w rankingu. Poniżej znajdziesz typowe wartości u Twojej konkurencji.
                             </span>
                         </RankText>
                     )}
@@ -230,7 +230,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                         <CardHint style={{ margin: 0 }}>jak często pojawiają się treści</CardHint>
                     </MetricBox>
                     <MetricBox>
-                        <label>Aktywność (0–100)</label>
+                        <label>Aktywność (0-100)</label>
                         <MetricCell metric={overview.activityIndex} decimals={0} />
                         <CardHint style={{ margin: 0 }}>tempo + regularność + reakcje</CardHint>
                     </MetricBox>
@@ -243,7 +243,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                     <CardHint>
                         Obserwujesz {overview.comparisonGroupSize}{' '}
                         {overview.comparisonGroupSize === 1 ? 'profil' : 'profile'}. Od 4 profili
-                        odblokujemy porównania z medianą Twojej grupy – oto konta podobne do tych,
+                        odblokujemy porównania z medianą Twojej grupy: oto konta podobne do tych,
                         które już obserwujesz:
                     </CardHint>
                     <SuggestionsSection compact />
@@ -254,7 +254,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                 <Card>
                     <CardTitle>Co wymaga Twojej uwagi</CardTitle>
                     <CardHint>
-                        Gotowe wnioski z ostatnich dni – maksymalnie kilka tygodniowo, tylko to, co istotne.
+                        Gotowe wnioski z ostatnich dni, maksymalnie kilka tygodniowo, tylko to, co istotne.
                     </CardHint>
                     <InsightsGrid>
                         {overview.insights.map(insight => (
@@ -268,7 +268,7 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                 <StorefrontCard>
                     <CardTitle>Twoja wizytówka na Instagramie</CardTitle>
                     <CardHint>
-                        Profil to pierwsza rzecz, którą widzi klient porównujący studia – te braki możesz
+                        Profil to pierwsza rzecz, którą widzi klient porównujący studia: te braki możesz
                         uzupełnić w kilka minut.
                     </CardHint>
                     <ScoreRow>
@@ -327,8 +327,8 @@ export const OverviewTab: React.FC<{ overview: Overview }> = ({ overview }) => {
                                             />
                                         )}
                                     </td>
-                                    <td>{row.erPct !== null ? `${row.erPct.toFixed(1)}%` : '—'}</td>
-                                    <td>{row.postsPerWeek !== null ? row.postsPerWeek.toFixed(1) : '—'}</td>
+                                    <td>{row.erPct !== null ? `${row.erPct.toFixed(1)}%` : '-'}</td>
+                                    <td>{row.postsPerWeek !== null ? row.postsPerWeek.toFixed(1) : '-'}</td>
                                     <td>
                                         <strong>{row.activityIndex}</strong>/100
                                     </td>

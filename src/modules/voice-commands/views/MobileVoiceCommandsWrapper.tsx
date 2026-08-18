@@ -1,5 +1,5 @@
 // src/modules/voice-commands/views/MobileVoiceCommandsWrapper.tsx
-// Public route — no authentication required.
+// Public route: no authentication required.
 // URL format: /m/voice?token=<token>
 
 import { useSearchParams } from 'react-router-dom';

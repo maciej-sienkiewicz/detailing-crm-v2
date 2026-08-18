@@ -8,10 +8,10 @@ import type { NotificationChannels } from '../types/stateTransitions';
 /**
  * Oznaczenie pojazdu jako gotowego do odbioru.
  *
- * Bez kreatora — jedno potwierdzenie z wyborem kanałów. Krok „weryfikacja
+ * Bez kreatora: jedno potwierdzenie z wyborem kanałów. Krok „weryfikacja
  * jakości" został usunięty: jego checkboxy nie trafiały do żadnego payloadu
  * (payload to wyłącznie {sms, email}) i były domyślnie zaznaczone, więc niczego
- * nie blokowały. Realna bramka — usługi w statusie PENDING — działa w widoku
+ * nie blokowały. Realna bramka (usługi w statusie PENDING) działa w widoku
  * wizyty i zostaje bez zmian.
  */
 export const useMarkReady = (visitId: string, onSuccess?: () => void) => {

@@ -51,7 +51,7 @@ export interface EmployeeDetail {
     account: EmployeeAccountInfo | null;
     createdAt: string;
     updatedAt: string;
-    // Pola planowane na kolejne iteracje modułu kadrowego — backend jeszcze ich nie zwraca
+    // Pola planowane na kolejne iteracje modułu kadrowego (backend jeszcze ich nie zwraca)
     personalEmail?: string | null;
     pesel?: string | null;
     nip?: string | null;

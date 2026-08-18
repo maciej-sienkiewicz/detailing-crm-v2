@@ -49,7 +49,7 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
         tick();
         countdownIntervalRef.current = setInterval(tick, 1000);
 
-        // Schedule auto-refresh 2 minutes before expiry — use ref to avoid stale closure
+        // Schedule auto-refresh 2 minutes before expiry; use ref to avoid stale closure
         const msLeft = new Date(expiresAt).getTime() - Date.now();
         const refreshIn = Math.max(0, msLeft - REFRESH_BEFORE_EXPIRY_MS);
         refreshTimerRef.current = setTimeout(() => {

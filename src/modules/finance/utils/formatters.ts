@@ -20,7 +20,7 @@ export const formatMoneyCompact = (grosz: number): string => {
 
 /** Formats a PLN float from KSeF (not in grosze): 2000.0 → "2 000,00 zł" */
 export const formatMoneyFloat = (amount: number | null | undefined, currency = 'PLN'): string => {
-  if (amount == null) return '—';
+  if (amount == null) return '-';
   return new Intl.NumberFormat('pl-PL', {
     style:                 'currency',
     currency,
@@ -31,7 +31,7 @@ export const formatMoneyFloat = (amount: number | null | undefined, currency = '
 
 /** Formats a PLN float without currency symbol: 2000.0 → "2 000,00" */
 export const formatMoneyFloatCompact = (amount: number | null | undefined): string => {
-  if (amount == null) return '—';
+  if (amount == null) return '-';
   return new Intl.NumberFormat('pl-PL', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -39,7 +39,7 @@ export const formatMoneyFloatCompact = (amount: number | null | undefined): stri
 };
 
 export const formatDate = (dateStr: string | null | undefined): string => {
-  if (!dateStr) return '—';
+  if (!dateStr) return '-';
   return new Intl.DateTimeFormat('pl-PL', {
     day:   '2-digit',
     month: '2-digit',

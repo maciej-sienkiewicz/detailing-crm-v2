@@ -292,7 +292,7 @@ export interface CustomerConsentStatusItem {
     definitionId: string;
     definitionSlug: string;
     definitionName: string;
-    /** False when the admin has deleted this consent definition — show as historical record only */
+    /** False when the admin has deleted this consent definition; show as historical record only */
     isDefinitionActive: boolean;
     stage: string | null;
     isMandatory: boolean;

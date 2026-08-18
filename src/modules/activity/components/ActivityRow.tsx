@@ -84,7 +84,7 @@ const IconTile = styled.div<{ $edge: string; $solid: string }>`
     }
 `;
 
-// Imię i nazwisko aktora — przy prawej krawędzi, widoczne tylko na hover.
+// Imię i nazwisko aktora, przy prawej krawędzi, widoczne tylko na hover.
 // Zawsze pozycjonowane absolutnie, więc pojawienie się na hover nie przesuwa
 // niczego w wierszu.
 const hoverActor = css`
@@ -107,7 +107,7 @@ const hoverActor = css`
 `;
 
 // Wiersz bez kwoty: nazwisko na wysokości tytułu, przy prawej krawędzi.
-// Kotwiczone do góry wiersza, a nie do środka — przy rozwiniętych szczegółach
+// Kotwiczone do góry wiersza, a nie do środka: przy rozwiniętych szczegółach
 // środek wiersza wypada na tabeli zmian.
 const HoverActor = styled.span`
     ${hoverActor}
@@ -117,13 +117,13 @@ const HoverActor = styled.span`
 
 // Wiersz z kwotą: nazwisko ląduje POD plakietką, obie przy prawej krawędzi.
 // Wcześniej dzieliły tę samą linię, więc plakietka musiała ustąpić im miejsca
-// i odjeżdżała od krawędzi w stronę środka — wyglądało to jak błąd wyrównania,
+// i odjeżdżała od krawędzi w stronę środka, wyglądało to jak błąd wyrównania,
 // bo powód (nazwisko) był widoczny dopiero po najechaniu.
 const StackedActor = styled.span`
     ${hoverActor}
     top: calc(100% + 5px);
     right: 0;
-    /* Ląduje nad linią opisu — własne tło trzyma czytelność bez rezerwowania
+    /* Ląduje nad linią opisu, własne tło trzyma czytelność bez rezerwowania
        miejsca w układzie (na wierszach bez podświetlenia jest niewidoczne). */
     padding: 1px 6px;
     margin-right: -6px;
@@ -131,7 +131,7 @@ const StackedActor = styled.span`
     background: ${p => p.theme.colors.surface};
 `;
 
-// Kotwica dla StackedActor — pozycjonuje nazwisko dokładnie pod plakietką,
+// Kotwica dla StackedActor, pozycjonuje nazwisko dokładnie pod plakietką,
 // niezależnie od jej szerokości.
 const AmountSlot = styled.div`
     position: relative;
@@ -320,7 +320,7 @@ const NavChip = styled(Link)`
 
 interface NavTarget {
     path: string;
-    /** Set for reservations — the chip resolves the date and deep-links the calendar. */
+    /** Set for reservations; the chip resolves the date and deep-links the calendar. */
     appointmentId?: string;
 }
 
@@ -360,7 +360,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
 
     /**
      * Deep-link to the reservation on the calendar. The feed knows only the
-     * appointment id, so the date is resolved first — the calendar needs it to
+     * appointment id, so the date is resolved first: the calendar needs it to
      * jump to the right month before it can highlight the event and open its
      * summary popover (same contract as LeadListView / dashboard panels).
      */
@@ -371,7 +371,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
             const res = await appointmentApi.getAppointment(appointmentId);
             highlightDate = res.schedule?.startDateTime ?? '';
         } catch {
-            // Navigate anyway — the calendar just won't jump months.
+            // Navigate anyway; the calendar just won't jump months.
         }
         navigate('/calendar', {
             state: { highlightEventId: appointmentId, highlightDate, openEventPopover: true },
@@ -383,7 +383,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
     const hasChanges = item.changes.length > 0;
 
     // Once a reservation has been turned into a visit it no longer exists as a
-    // reservation, so linking to it would be a business error — hide the chip.
+    // reservation, so linking to it would be a business error: hide the chip.
     const appointmentGone = item.action.code === 'VISIT_CREATED'
         || item.action.code === 'APPOINTMENT_CONVERTED';
     const linkable = (ref: ActivityReference) =>
@@ -469,7 +469,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                                             <ArrowRight />
                                         </>
                                     )}
-                                    <NewValue>{change.newValueDisplay ?? '—'}</NewValue>
+                                    <NewValue>{change.newValueDisplay ?? '-'}</NewValue>
                                 </ChangeValues>
                             </ChangeRow>
                         ))}

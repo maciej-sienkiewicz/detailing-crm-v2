@@ -91,7 +91,7 @@ export const ExpenseNoteModal: React.FC<Props> = ({ isOpen, onClose, expense }) 
                         <InputShellTextArea>
                             <BareTextArea
                                 id="expense-note"
-                                placeholder="Treść notatki…"
+                                placeholder="Treść notatki..."
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
                                 autoFocus
@@ -120,7 +120,7 @@ export const ExpenseNoteModal: React.FC<Props> = ({ isOpen, onClose, expense }) 
                     form="expense-note-form"
                     disabled={isSaving}
                 >
-                    {updateNote.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                    {updateNote.isPending ? 'Zapisywanie...' : 'Zapisz'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

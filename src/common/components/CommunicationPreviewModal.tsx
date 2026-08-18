@@ -27,7 +27,7 @@ const fadeIn = keyframes`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    /* dvh so the sheet is measured against the space actually on screen — with
+    /* dvh so the sheet is measured against the space actually on screen; with
        plain viewport units its footer hides under mobile browser chrome. */
     height: 100vh;
     height: 100dvh;

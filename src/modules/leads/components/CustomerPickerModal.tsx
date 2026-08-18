@@ -272,7 +272,7 @@ export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
             <PickerSearchIcon><Search /></PickerSearchIcon>
             <PickerSearchInput
               autoFocus
-              placeholder="Szukaj po nazwisku, emailu, telefonie…"
+              placeholder="Szukaj po nazwisku, emailu, telefonie..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -290,13 +290,13 @@ export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
             </AddNewRow>
 
             {isLoading ? (
-              <PickerEmpty>Ładowanie…</PickerEmpty>
+              <PickerEmpty>Ładowanie...</PickerEmpty>
             ) : customers.length === 0 ? (
               <PickerEmpty>
                 {debouncedSearch ? 'Brak wyników dla podanej frazy' : 'Brak klientów w bazie'}
               </PickerEmpty>
             ) : customers.map(customer => {
-              const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—';
+              const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '-';
               const initials = [customer.firstName?.[0], customer.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
               const contact = customer.contact?.phone || customer.contact?.email || '';
               return (

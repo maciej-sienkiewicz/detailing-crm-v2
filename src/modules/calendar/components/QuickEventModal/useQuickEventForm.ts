@@ -34,7 +34,7 @@ const parsePhone = (full: string): { prefix: string; main: string } => {
         if (spaceIdx > 0) {
             return { prefix: trimmed.slice(0, spaceIdx), main: formatMainPhone(trimmed.slice(spaceIdx + 1)) };
         }
-        // No space — assume 3-char country code (+48, +44, …) if long enough
+        // No space, assume 3-char country code (+48, +44, ...) if long enough
         if (trimmed.length > 3) {
             return { prefix: trimmed.slice(0, 3), main: formatMainPhone(trimmed.slice(3)) };
         }
@@ -230,7 +230,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         staleTime: 60_000,
     });
     // Checkbox visible only when the studio uses the Visit Card AND has the
-    // communication module — module possession comes from the entitlements
+    // communication module: module possession comes from the entitlements
     // source of truth, not the legacy smsModuleActive flag.
     const smsCapability = useCapability('COMM_SEND_TRANSACTIONAL');
     const visitCardEnabled = (visitCardSettings?.enabled ?? false) && smsCapability.enabled;
@@ -847,7 +847,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const addService = (service: Service) => {
-        // Adding the same service more than once is allowed — each addition is its
+        // Adding the same service more than once is allowed, each addition is its
         // own line item with its own price/adjustment/notes (see `serviceRefs`).
         if (service.requireManualPrice) {
             setPendingService(service);
@@ -859,7 +859,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const lineId = nextLineId(service.id);
         setSelectedServiceIds(prev => [...prev, lineId]);
         setServiceRefs(prev => ({ ...prev, [lineId]: service.id }));
-        // Prefer the catalog's stored gross — re-deriving from net drifts by 1 gr for gross-entered prices
+        // Prefer the catalog's stored gross: re-deriving from net drifts by 1 gr for gross-entered prices
         const grossPrice = service.basePriceGross != null
             ? roundTo2(service.basePriceGross / 100)
             : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);

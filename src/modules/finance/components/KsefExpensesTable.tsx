@@ -593,7 +593,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
                   <Td>
                     {exp.documentNumber
                       ? <CellPrimary>{exp.documentNumber}</CellPrimary>
-                      : <EmDash>—</EmDash>
+                      : <EmDash>-</EmDash>
                     }
                     {exp.isCorrection && (
                       <Badge $variant="amber" style={{ marginTop: 4 }}>Korekta</Badge>
@@ -616,7 +616,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
                         )}
                       </>
                     ) : (
-                      <EmDash>—</EmDash>
+                      <EmDash>-</EmDash>
                     )}
                   </Td>
 

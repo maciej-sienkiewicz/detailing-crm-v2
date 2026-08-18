@@ -128,7 +128,7 @@ export const VehicleCard = ({ vehicle, onCardClick }: VehicleCardProps) => (
             <StatItem>
                 <StatLabel>{t.vehicles.card.lastVisit}</StatLabel>
                 <StatValue>
-                    {vehicle.stats.lastVisitDate ? formatDate(vehicle.stats.lastVisitDate) : '—'}
+                    {vehicle.stats.lastVisitDate ? formatDate(vehicle.stats.lastVisitDate) : '-'}
                 </StatValue>
             </StatItem>
             <StatItem>

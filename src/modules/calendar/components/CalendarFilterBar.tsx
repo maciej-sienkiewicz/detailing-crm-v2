@@ -1,6 +1,6 @@
 // src/modules/calendar/components/CalendarFilterBar.tsx
 //
-// Variant D — command-bar with scope chips (Linear / Raycast inspired).
+// Variant D: command-bar with scope chips (Linear / Raycast inspired).
 // Replaces CalendarFilterDropdown + CalendarStatusBar.
 
 import React, { useState, useRef, useEffect } from 'react';

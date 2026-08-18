@@ -4,8 +4,8 @@ import type { EmailRuleKey } from '@/modules/email-campaigns/types';
 
 /**
  * The customer journey, in the order the studio lives it. Grouping the list this way
- * answers the question people actually arrive with — "what does the customer get when
- * the car is ready?" — instead of making them remember which channel it went out on.
+ * answers the question people actually arrive with: "what does the customer get when
+ * the car is ready?" instead of making them remember which channel it went out on.
  */
 export const STAGES = [
   { id: 'booking',  title: 'Rezerwacja',      caption: 'Zanim klient przyjedzie' },
@@ -18,7 +18,7 @@ export const STAGES = [
 
 export type StageId = typeof STAGES[number]['id'];
 
-/** How the offset reads to a studio — and, since the last fix, what it counts from. */
+/** How the offset reads to a studio, and what it counts from since the last fix. */
 export type TimingAnchor = 'beforeVisit' | 'afterPickup';
 
 export const TIMING_LABEL: Record<TimingAnchor, string> = {
@@ -58,7 +58,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'booking',
     name: 'Potwierdzenie rezerwacji',
     description:
-      'Wychodzi natychmiast po zapisaniu rezerwacji. Operator może wysłać ją także ręcznie z formularza rezerwacji — wtedy przełącznik jest pomijany, ale treść nadal pochodzi z tego szablonu.',
+      'Wychodzi natychmiast po zapisaniu rezerwacji. Operator może wysłać ją także ręcznie z formularza rezerwacji: wtedy przełącznik jest pomijany, ale treść nadal pochodzi z tego szablonu.',
     trigger: 'Natychmiast po rezerwacji',
     sms: { ruleKey: 'bookingConfirmation', placeholders: [...CUSTOMER, ...SCHEDULE] },
   },
@@ -97,7 +97,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'intake',
     name: 'Potwierdzenie przyjęcia pojazdu',
     description:
-      'E-mail potwierdzający przyjęcie auta do serwisu. Załączniki — PDF protokołu, zdjęcia, mapę uszkodzeń — wybiera operator przy wysyłce.',
+      'E-mail potwierdzający przyjęcie auta do serwisu. Załączniki (PDF protokołu, zdjęcia, mapę uszkodzeń) wybiera operator przy wysyłce.',
     trigger: 'Przy rozpoczęciu wizyty',
     email: {
       ruleKey: 'visitWelcome',
@@ -126,7 +126,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'inWork',
     name: 'Zgoda na dodanie usług',
     description:
-      'Klient sam wybiera dodatkowe usługi z Karty Wizyty i potwierdza je, odpisując TAK. Zachowaj tę instrukcję w treści — bez niej klient nie wie, jak potwierdzić, a usługi nie zostaną dodane.',
+      'Klient sam wybiera dodatkowe usługi z Karty Wizyty i potwierdza je, odpisując TAK. Zachowaj tę instrukcję w treści: bez niej klient nie wie, jak potwierdzić, a usługi nie zostaną dodane.',
     trigger: 'Gdy klient zamówi usługi z karty',
     sms: { ruleKey: 'upsellConsent', placeholders: [...CUSTOMER, 'uslugi', 'kwota'] },
   },
@@ -169,7 +169,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'after',
     name: 'Przypomnienie po przerwie',
     description:
-      'Odezwanie się do klienta, który dawno nie był w serwisie. Czas liczymy od odbioru pojazdu — domyślnie 3 miesiące. Można je wyciszyć na pojedynczej wizycie.',
+      'Odezwanie się do klienta, który dawno nie był w serwisie. Czas liczymy od odbioru pojazdu: domyślnie 3 miesiące. Można je wyciszyć na pojedynczej wizycie.',
     trigger: 'Po odbiorze pojazdu',
     timing: 'afterPickup',
     sms: { ruleKey: 'delayedReminder', placeholders: [...CUSTOMER, ...SCHEDULE] },

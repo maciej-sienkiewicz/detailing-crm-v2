@@ -174,7 +174,7 @@ const EmptyHero = styled.div`
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('pl-PL', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
@@ -190,7 +190,7 @@ function scheduleLabel(c: Campaign): string {
 function recipientsLabel(c: Campaign): string {
   if (c.status === 'SENDING') return `${c.recipientsSent} / ${c.recipientsTotal}`;
   if (c.recipientsTotal > 0) return `${c.recipientsSent} / ${c.recipientsTotal}`;
-  return '—';
+  return '-';
 }
 
 // „Wyślij teraz" ma sens tylko dla jednorazówek w statusie DRAFT/SCHEDULED.
@@ -260,20 +260,20 @@ export function CampaignsListView() {
         <StatTile
           {...TILE_STYLES.active}
           icon={Play}
-          value={stats?.active ?? '—'}
+          value={stats?.active ?? '-'}
           label="Aktywne"
           tooltip="Kampanie automatyczne, które działają, oraz jednorazowe w trakcie wysyłki."
         />
         <StatTile
           {...TILE_STYLES.scheduled}
           icon={CalendarClock}
-          value={stats?.scheduled ?? '—'}
+          value={stats?.scheduled ?? '-'}
           label="Zaplanowane"
         />
         <StatTile
           {...TILE_STYLES.sent}
           icon={MailCheck}
-          value={stats?.completedTotal ?? '—'}
+          value={stats?.completedTotal ?? '-'}
           label="Wysłane"
           subContent={
             stats ? <MutedText>{stats.messagesSentLast30Days} wiadomości w 30 dni</MutedText> : undefined
@@ -282,7 +282,7 @@ export function CampaignsListView() {
         <StatTile
           {...(creditsLow ? TILE_STYLES.creditsLow : TILE_STYLES.credits)}
           icon={Coins}
-          value={stats?.smsCreditsAvailable ?? '—'}
+          value={stats?.smsCreditsAvailable ?? '-'}
           label="Kredyty SMS"
           onClick={() => navigate('/settings?tab=credits')}
           subContent={creditsLow ? <MutedText>Doładuj przed wysyłką</MutedText> : undefined}
@@ -293,7 +293,7 @@ export function CampaignsListView() {
         <EmptyHero>
           <h2>Wyślij pierwszą kampanię</h2>
           <p>
-            Przypomnij klientom o sobie — świątecznie, po wykonanej usłudze albo wtedy,
+            Przypomnij klientom o sobie: świątecznie, po wykonanej usłudze albo wtedy,
             gdy dawno ich nie było.
           </p>
           <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>
@@ -337,7 +337,7 @@ export function CampaignsListView() {
                     <td><CampaignStatusBadge status={c.status} /></td>
                     <td>{CHANNEL_LABELS[c.channel]}</td>
                     <td>{recipientsLabel(c)}</td>
-                    <td>{c.creditsSpent > 0 ? `${c.creditsSpent} kredytów` : '—'}</td>
+                    <td>{c.creditsSpent > 0 ? `${c.creditsSpent} kredytów` : '-'}</td>
                     <td><MutedText>{scheduleLabel(c)}</MutedText></td>
                     <ActionsCell onClick={(e) => e.stopPropagation()}>
                       <RowActions>
@@ -361,7 +361,7 @@ export function CampaignsListView() {
                             <Trash2 />
                           </IconBtn>
                         )}
-                        {!sendAvailable && !deleteAvailable && <MutedText>—</MutedText>}
+                        {!sendAvailable && !deleteAvailable && <MutedText>-</MutedText>}
                       </RowActions>
                     </ActionsCell>
                   </tr>
@@ -389,7 +389,7 @@ export function CampaignsListView() {
               : pending.campaign.kind === 'AUTOMATIC'
                 ? 'Aktywować kampanię?'
                 : pending.campaign.status === 'SCHEDULED'
-                  ? 'Wysłać teraz — z pominięciem terminu?'
+                  ? 'Wysłać teraz, z pominięciem terminu?'
                   : 'Wysłać kampanię teraz?'
           }
           message={
@@ -397,7 +397,7 @@ export function CampaignsListView() {
               ? `Szkic „${pending.campaign.name}" zostanie trwale usunięty.`
               : pending.campaign.kind === 'AUTOMATIC'
                 ? `Kampania „${pending.campaign.name}" zacznie działać automatycznie i wysyłać wiadomości, gdy klienci spełnią warunek.`
-                : `Wyślemy „${pending.campaign.name}" natychmiast. Listę odbiorców wyliczymy teraz — ta operacja pobierze kredyty.`
+                : `Wyślemy „${pending.campaign.name}" natychmiast. Listę odbiorców wyliczymy teraz, ta operacja pobierze kredyty.`
           }
           confirmText={
             pending.type === 'delete'

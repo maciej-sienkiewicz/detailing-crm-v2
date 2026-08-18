@@ -22,7 +22,7 @@ import type { SmsReadiness, SmsRequirement, SmsRequirementId } from '../hooks/us
  * Turns "you can't send this" into "here is everything it takes, let's do it".
  *
  * Every step resolves its requirement without leaving the visit, and the steps that
- * are already satisfied never appear — a studio missing only credits sees a one-step
+ * are already satisfied never appear: a studio missing only credits sees a one-step
  * dialog, not a tour of things it already bought. Whatever the caller was doing is
  * still on screen underneath, and [onReady] hands control straight back to it.
  */
@@ -31,7 +31,7 @@ interface SmsActivationWizardProps {
     readiness: SmsReadiness;
     /** Which saved message the flow needs, when it is template-driven. */
     templateKey?: MessageKey;
-    /** Context line under the title — the visit this is being set up for. */
+    /** Context line under the title: the visit this is being set up for. */
     contextLabel?: string;
     onClose: () => void;
     /** Fired once nothing blocks sending, so the caller can resume its own flow. */
@@ -141,7 +141,7 @@ export function SmsActivationWizard({
                             {/* The module step finishes in the payment dialog, not here. */}
                             {current?.id === 'module' && (
                                 <SharedButton $variant="secondary" onClick={goNext}>
-                                    Moduł już aktywny — dalej
+                                    Moduł już aktywny, dalej
                                 </SharedButton>
                             )}
                         </>
@@ -163,8 +163,8 @@ function Overview({ readiness, plan, unresolvablePhone }: {
         <>
             <Lede>
                 {plan.length === 0 && !unresolvablePhone
-                    ? 'Wszystko jest już gotowe — możesz wysyłać wiadomości.'
-                    : 'Aby wysyłać SMS-y, potrzebne są poniższe elementy. Przeprowadzimy Cię przez wszystkie — bez opuszczania wizyty.'}
+                    ? 'Wszystko jest już gotowe, możesz wysyłać wiadomości.'
+                    : 'Aby wysyłać SMS-y, potrzebne są poniższe elementy. Przeprowadzimy Cię przez wszystkie, bez opuszczania wizyty.'}
             </Lede>
 
             <CheckList>
@@ -180,7 +180,7 @@ function Overview({ readiness, plan, unresolvablePhone }: {
             {unresolvablePhone && (
                 <Notice $tone="bad">
                     <NoticeTitle>Ten klient nie ma numeru telefonu</NoticeTitle>
-                    Uzupełnij numer w kartotece klienta — bez niego nie wyślemy tej wiadomości,
+                    Uzupełnij numer w kartotece klienta, bez niego nie wyślemy tej wiadomości,
                     nawet po skonfigurowaniu reszty.
                 </Notice>
             )}
@@ -191,7 +191,7 @@ function Overview({ readiness, plan, unresolvablePhone }: {
 const statusLabel = (req: SmsRequirement): string => {
     if (req.status === 'ok') return 'gotowe';
     if (req.status === 'warning') return 'mało';
-    if (req.status === 'unknown') return '—';
+    if (req.status === 'unknown') return '-';
     return req.id === 'credits' ? '0 szt.' : 'brak';
 };
 
@@ -254,7 +254,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
         mutationFn: async (text: string) => {
             if (!spec?.sms) throw new Error('Brak definicji szablonu');
             // PUT replaces the whole config, so start from the server's copy and change
-            // only this rule — anything else would broadcast edits nobody made.
+            // only this rule; anything else would broadcast edits nobody made.
             const config = await fetchAutomationConfig();
             const ruleKey = spec.sms.ruleKey;
             const next = {
@@ -314,7 +314,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
                 onClick={() => save.mutate(body)}
                 disabled={!body.trim() || save.isPending}
             >
-                {save.isPending ? 'Zapisywanie…' : 'Włącz ten szablon'}
+                {save.isPending ? 'Zapisywanie...' : 'Włącz ten szablon'}
             </SharedButton>
         </>
     );
@@ -351,7 +351,7 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
             <Lede>Ostatni krok: doładuj kredyty, z których wyślemy tę i kolejne wiadomości.</Lede>
 
             {isLoading ? (
-                <Lede>Wczytywanie pakietów…</Lede>
+                <Lede>Wczytywanie pakietów...</Lede>
             ) : (
                 <ChoiceList>
                     {(packages ?? []).map(pkg => (
@@ -382,7 +382,7 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
                 onClick={buy}
                 disabled={!chosen || purchase.isPending}
             >
-                {purchase.isPending ? 'Doładowywanie…' : 'Kup i dokończ konfigurację'}
+                {purchase.isPending ? 'Doładowywanie...' : 'Kup i dokończ konfigurację'}
             </SharedButton>
         </>
     );
@@ -394,7 +394,7 @@ function DonePanel() {
     return (
         <DoneWrap>
             <DoneMark>✓</DoneMark>
-            <DoneTitle>Gotowe — SMS-y są uruchomione</DoneTitle>
+            <DoneTitle>Gotowe, SMS-y są uruchomione</DoneTitle>
             <Lede>
                 Wracamy do wysyłki dla tej wizyty. Wszystko, co przed chwilą włączyłeś,
                 działa też dla kolejnych wizyt.

@@ -532,7 +532,7 @@ export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
                                 })
                                 .map((p, i, arr) => (
                                     <React.Fragment key={p}>
-                                        {i > 0 && arr[i - 1] !== p - 1 && <span style={{ color: st.textMuted }}>…</span>}
+                                        {i > 0 && arr[i - 1] !== p - 1 && <span style={{ color: st.textMuted }}>...</span>}
                                         <PageButton $isActive={p === page} onClick={() => setPage(p)}>
                                             {p}
                                         </PageButton>

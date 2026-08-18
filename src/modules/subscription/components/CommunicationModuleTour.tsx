@@ -13,13 +13,13 @@ import type { PlanKey } from '../types';
  *
  * The module alone does not send anything: it needs message texts and it needs
  * credits. Studios used to discover both of those afterwards, one failed send at
- * a time, so this says it before the money changes hands — and ends on a button
+ * a time, so this says it before the money changes hands, and ends on a button
  * that admits as much.
  */
 
 interface CommunicationModuleTourProps {
     onClose: () => void;
-    /** Runs on "Rozumiem i kontynuuję zakup" — hands over to the purchase dialog. */
+    /** Runs on "Rozumiem i kontynuuję zakup": hands over to the purchase dialog. */
     onFinish: () => void;
 }
 
@@ -38,7 +38,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             body: (
                 <>
                     <TourDesc>
-                        Moduł włącza <strong>wysyłkę wiadomości do klientów</strong> — SMS-y i e-maile
+                        Moduł włącza <strong>wysyłkę wiadomości do klientów</strong>: SMS-y i e-maile
                         wychodzące automatycznie na kolejnych etapach wizyty, oraz wysyłki ręczne
                         z poziomu wizyty.
                     </TourDesc>
@@ -63,13 +63,13 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             icon: <FileText />,
             from: '#6366f1',
             to: '#8b5cf6',
-            title: 'Treści wiadomości — włączymy je za Ciebie',
+            title: 'Treści wiadomości: włączymy je za Ciebie',
             body: (
                 <>
                     <TourDesc>
                         Każda sytuacja ma własną treść wiadomości. Po zakupie
                         <strong> włączymy wszystkie szablony automatycznie</strong>, z gotowymi
-                        tekstami — nie musisz nic pisać, żeby zacząć.
+                        tekstami, nie musisz nic pisać, żeby zacząć.
                     </TourDesc>
                     <TourBulletList>
                         <TourBullet $color="#8b5cf6">
@@ -97,14 +97,14 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             body: (
                 <>
                     <TourDesc>
-                        To jedna decyzja z realnym skutkiem — nadawca przesądza,
+                        To jedna decyzja z realnym skutkiem: nadawca przesądza,
                         <strong> czy klient może odpisać</strong>.
                     </TourDesc>
                     <TourBulletList>
                         <TourBullet $color="#0ea5e9">
                             <ArrowLeftRight />
                             <span>
-                                <strong>Numer telefonu</strong> (ustawienie domyślne) — SMS
+                                <strong>Numer telefonu</strong> (ustawienie domyślne), SMS
                                 dwukierunkowy. Klient może odpisać, a odpowiedź
                                 <strong> „TAK" zatwierdza dodatkowe usługi</strong> na wizycie.
                             </span>
@@ -112,7 +112,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         <TourBullet $color="#a855f7">
                             <ArrowRight />
                             <span>
-                                <strong>Nazwa firmy</strong> (do 11 znaków) — SMS
+                                <strong>Nazwa firmy</strong> (do 11 znaków), SMS
                                 jednokierunkowy. Wygląda profesjonalnie i buduje rozpoznawalność,
                                 ale <strong>klient nie ma na co odpowiedzieć</strong>, więc zgody
                                 przez „TAK" przestają działać.
@@ -120,7 +120,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         </TourBullet>
                     </TourBulletList>
                     <TourDesc style={{ marginTop: 14 }}>
-                        Ustawienie działa globalnie — obejmuje wszystkie wiadomości, nie da się
+                        Ustawienie działa globalnie: obejmuje wszystkie wiadomości, nie da się
                         wybrać nadawcy osobno dla pojedynczego szablonu.
                     </TourDesc>
                 </>
@@ -150,14 +150,14 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                             <AlertTriangle />
                             <span>
                                 Do czasu weryfikacji przez operatora
-                                <strong> w polu odbiorcy nadal będzie widoczny numer telefonu</strong> —
+                                <strong> w polu odbiorcy nadal będzie widoczny numer telefonu</strong>,
                                 wiadomości wychodzą normalnie, zmienia się tylko podpis
                             </span>
                         </TourBullet>
                         <TourBullet $color="#64748b">
                             <Info />
                             <span>
-                                Nie chcesz nazwy firmy? Nie rób nic — zostajesz przy numerze
+                                Nie chcesz nazwy firmy? Nie rób nic, zostajesz przy numerze
                                 i zachowujesz odpowiedzi od klientów
                             </span>
                         </TourBullet>
@@ -169,7 +169,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             icon: <Wallet />,
             from: '#d946ef',
             to: '#ec4899',
-            title: 'SMS-y kosztują kredyty — osobno od abonamentu',
+            title: 'SMS-y kosztują kredyty, osobno od abonamentu',
             body: (
                 <>
                     <TourDesc>
@@ -181,7 +181,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                             <Zap />
                             <span>
                                 Na start dodajemy <strong>{starter} SMS-ów</strong> w Twoim
-                                pakiecie {planName} — wystarczą na pierwsze wizyty
+                                pakiecie {planName}, wystarczą na pierwsze wizyty
                             </span>
                         </TourBullet>
                         <TourBullet $color="#d946ef">
@@ -224,8 +224,8 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         </TourBullet>
                     </TourBulletList>
                     <TourDesc style={{ marginTop: 14 }}>
-                        Po Twojej stronie zostają dwie rzeczy: przejrzeć treści szablonów oraz —
-                        jeśli chcesz nadawać pod nazwą firmy —
+                        Po Twojej stronie zostają dwie rzeczy: przejrzeć treści szablonów oraz
+                        (jeśli chcesz nadawać pod nazwą firmy)
                         <strong> wgrać podpisane upoważnienie</strong>. Bez niego SMS-y wychodzą
                         z numeru telefonu.
                     </TourDesc>

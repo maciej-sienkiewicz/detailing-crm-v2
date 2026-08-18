@@ -12,7 +12,7 @@ import type { ActivityIconKey } from '../types';
 /**
  * Premium coupe silhouette.
  *
- * Lucide's `car` reads as a toy — wrong register for a studio whose clients drive
+ * Lucide's `car` reads as a toy: wrong register for a studio whose clients drive
  * the vehicles this CRM tracks. Drawn as a low, wide profile with a fast roofline,
  * on the same 24-grid and stroke weight as the Lucide set so it sits flush beside
  * the other icons.

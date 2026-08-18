@@ -333,14 +333,14 @@ function EditModal({
                     <Textarea
                         value={value}
                         onChange={e => setValue(e.target.value)}
-                        placeholder="Wpisz notatkę techniczną dotyczącą wizyty…"
+                        placeholder="Wpisz notatkę techniczną dotyczącą wizyty..."
                         autoFocus
                     />
                 </ModalBody>
                 <ModalFooter>
                     <Btn $variant="secondary" onClick={onClose}>Anuluj</Btn>
                     <Btn $variant="primary" onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie…' : 'Zapisz'}
+                        {isSaving ? 'Zapisywanie...' : 'Zapisz'}
                     </Btn>
                 </ModalFooter>
             </Modal>
@@ -376,7 +376,7 @@ function HistoryModal({
                 </ModalHeader>
                 <ModalBody>
                     {isLoading ? (
-                        <EmptyHistory>Ładowanie historii…</EmptyHistory>
+                        <EmptyHistory>Ładowanie historii...</EmptyHistory>
                     ) : entries.length === 0 ? (
                         <EmptyHistory>Brak historii zmian notatki</EmptyHistory>
                     ) : (

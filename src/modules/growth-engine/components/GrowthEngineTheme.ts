@@ -1,5 +1,5 @@
 /**
- * Reports Module — Light Theme Constants
+ * Reports Module: Light Theme Constants
  * Consistent with other application tabs (Statistics, Finance, etc.)
  */
 

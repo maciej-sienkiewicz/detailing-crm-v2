@@ -54,7 +54,7 @@ export function PendingDowngradeBanner({ pendingDowngrade }: Props) {
                     onClick={handleCancel}
                     disabled={cancel.isPending}
                 >
-                    {cancel.isPending ? 'Anulowanie…' : 'Anuluj zmianę'}
+                    {cancel.isPending ? 'Anulowanie...' : 'Anuluj zmianę'}
                 </CancelBtn>
             </BannerActions>
         </Banner>

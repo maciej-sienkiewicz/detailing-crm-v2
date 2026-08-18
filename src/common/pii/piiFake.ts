@@ -1,5 +1,5 @@
 // Random, realistic-looking fake values rendered (blurred) in place of masked
-// personal data. Generated client-side from Math.random() — no relation to the
+// personal data. Generated client-side from Math.random(), no relation to the
 // real values, which never leave the backend.
 
 /** Shape of the fake value rendered under the blur. */

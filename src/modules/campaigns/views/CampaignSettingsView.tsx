@@ -76,7 +76,7 @@ export function CampaignSettingsView() {
     if (settings && !form) setForm(settings);
   }, [settings, form]);
 
-  if (isLoading || !form) return <Page><MutedText>Wczytywanie…</MutedText></Page>;
+  if (isLoading || !form) return <Page><MutedText>Wczytywanie...</MutedText></Page>;
 
   const set = (patch: Partial<CampaignSettings>) => {
     setSaved(false);
@@ -125,7 +125,7 @@ export function CampaignSettingsView() {
           <Label>Stopka SMS</Label>
           <TextArea value={form.smsFooter ?? ''} placeholder="np. Rezygnacja: odpisz STOP"
             onChange={(e) => set({ smsFooter: e.target.value })} />
-          <MutedText>Doliczana do każdego SMS-a kampanii — wlicza się w limit znaków.</MutedText>
+          <MutedText>Doliczana do każdego SMS-a kampanii, wlicza się w limit znaków.</MutedText>
         </Field>
         <Field>
           <Label>Stopka e-mail</Label>
@@ -141,7 +141,7 @@ export function CampaignSettingsView() {
           setSaved(true);
         }}
       >
-        {isSaving ? 'Zapisywanie…' : saved ? 'Zapisano' : 'Zapisz ustawienia'}
+        {isSaving ? 'Zapisywanie...' : saved ? 'Zapisano' : 'Zapisz ustawienia'}
       </SaveBtn>
     </Page>
   );

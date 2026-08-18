@@ -162,7 +162,7 @@ interface HeaderDatePickerProps {
     endDate: string;
     onStartChange: (d: string) => void;
     onEndChange: (d: string) => void;
-    /** Gdy podane — presety ustawiają też pasujące grupowanie */
+    /** Gdy podane, presety ustawiają też pasujące grupowanie */
     onGranularityChange?: (g: Granularity) => void;
 }
 
@@ -214,7 +214,7 @@ export const HeaderDatePicker = ({
         setOpen(false);
     };
 
-    const label = activeIdx >= 0 ? presets[activeIdx].label : `${startDate} – ${endDate}`;
+    const label = activeIdx >= 0 ? presets[activeIdx].label : `${startDate} - ${endDate}`;
 
     return (
         <PickerWrap>
@@ -246,7 +246,7 @@ export const HeaderDatePicker = ({
                             max={pendingTo || undefined}
                             onChange={e => setPendingFrom(e.target.value)}
                         />
-                        <RangeSep>–</RangeSep>
+                        <RangeSep>-</RangeSep>
                         <DateInput
                             type="date"
                             value={pendingTo}

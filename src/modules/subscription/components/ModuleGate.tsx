@@ -49,7 +49,7 @@ const ZapSvg = () => (
 // ─── Reusable sales card ──────────────────────────────────────────────────────
 
 export interface ModuleGateCardProps {
-    /** Big heading — module or capability name. */
+    /** Big heading: module or capability name. */
     title: string;
     /** One-paragraph explanation of what is locked and why. */
     subtitle: React.ReactNode;
@@ -64,7 +64,7 @@ export interface ModuleGateCardProps {
 
 /**
  * THE one styled paywall card of the application. Used full-page by [ModuleGate]
- * and inside the global 402 dialog by PaywallListener — every "module missing"
+ * and inside the global 402 dialog by PaywallListener; every "module missing"
  * surface must look identical, so new variants should reuse this component
  * instead of building their own.
  */
@@ -129,7 +129,7 @@ export function ModuleGateCard({
 interface Props {
     /** Feature the wrapped view belongs to. */
     featureKey: FeatureKey;
-    /** What the user loses without this module — shown as a checklist. */
+    /** What the user loses without this module, shown as a checklist. */
     benefits: string[];
     /** Overrides the module name from the catalog (optional). */
     title?: string;
@@ -144,7 +144,7 @@ interface Props {
  *
  * Only the studio owner can purchase; employees see a "ask your owner" note.
  * Note: employees whose role permissions are feature-filtered are redirected
- * by RequirePermission before this component ever renders — the demo layer is
+ * by RequirePermission before this component ever renders; the demo layer is
  * primarily the owner's sales surface.
  */
 export function ModuleGate({ featureKey, benefits, title, children }: Props) {

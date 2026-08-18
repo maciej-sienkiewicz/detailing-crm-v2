@@ -273,7 +273,7 @@ export const BookingPickerModal: React.FC<BookingPickerModalProps> = ({
             <SearchIcon><Search /></SearchIcon>
             <SearchInput
               autoFocus
-              placeholder="Szukaj po kliencie, pojeździe…"
+              placeholder="Szukaj po kliencie, pojeździe..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -289,15 +289,15 @@ export const BookingPickerModal: React.FC<BookingPickerModalProps> = ({
             </UnlinkRow>
           )}
 
-          {isLoading && <EmptyMsg>Ładowanie…</EmptyMsg>}
+          {isLoading && <EmptyMsg>Ładowanie...</EmptyMsg>}
           {!isLoading && items.length === 0 && (
             <EmptyMsg>Brak wyników{search ? ` dla „${search}"` : ''}</EmptyMsg>
           )}
           {items.map(item => {
-            const name = [item.customerFirstName, item.customerLastName].filter(Boolean).join(' ') || '—';
+            const name = [item.customerFirstName, item.customerLastName].filter(Boolean).join(' ') || '-';
             const vehicle = item.vehicle
               ? `${item.vehicle.brand} ${item.vehicle.model}`.trim()
-              : '—';
+              : '-';
             return (
               <Item key={item.id} onClick={() => handleSelect(item)}>
                 <ItemIcon $type={item.type}>

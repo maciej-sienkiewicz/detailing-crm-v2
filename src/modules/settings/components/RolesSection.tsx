@@ -58,7 +58,7 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
                     } else if (targetName) {
                         showSuccess('Rola usunięta', `${moved} os. przeniesiono na rolę „${targetName}".`);
                     } else {
-                        showSuccess('Rola usunięta', `${moved} os. została bez roli — przypisz im nową, aby odzyskały dostęp.`);
+                        showSuccess('Rola usunięta', `${moved} os. została bez roli, przypisz im nową, aby odzyskały dostęp.`);
                     }
                     setDeleteTarget(null);
                 },
@@ -70,7 +70,7 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
         <Container>
             <Toolbar>
                 <Intro>
-                    Twórz role i przypisuj im uprawnienia w drzewie zależności — uprawnienie
+                    Twórz role i przypisuj im uprawnienia w drzewie zależności: uprawnienie
                     podrzędne wymaga nadrzędnego. Role nadajesz użytkownikom w profilu pracownika.
                 </Intro>
                 <AddButton onClick={() => setEditor({ mode: 'add', role: null })}>

@@ -499,7 +499,7 @@ const CompensationFields = ({
 
     return (
         <>
-            {/* Mode toggle — hidden for UOP (always SALARY) */}
+            {/* Mode toggle: hidden for UOP (always SALARY) */}
             {!isUop && (
                 <Field>
                     <Label>Tryb rozliczenia</Label>
@@ -702,7 +702,7 @@ const ContractCard = ({
                 )}
             </CardMeta>
 
-            {/* Current compensation summary — derived from most recent amendment */}
+            {/* Current compensation summary, derived from most recent amendment */}
             {amendments.length > 0 && (() => {
                 const latest = amendments[0];
                 return (
@@ -833,13 +833,13 @@ const ContractCard = ({
                                             ? `${formatCents(a.hourlyRateNetCents)}/h netto`
                                             : a.hourlyRateGrossCents != null
                                                 ? `${formatCents(a.hourlyRateGrossCents)}/h brutto`
-                                                : '—'}
+                                                : '-'}
                                 </span>
                             </div>
                             <AmendmentDate>
                                 {new Date(a.effectiveFrom).toLocaleDateString('pl-PL')}
                                 {a.effectiveTo
-                                    ? ` – ${new Date(a.effectiveTo).toLocaleDateString('pl-PL')}`
+                                    ? ` - ${new Date(a.effectiveTo).toLocaleDateString('pl-PL')}`
                                     : ''}
                             </AmendmentDate>
                         </AmendmentRow>

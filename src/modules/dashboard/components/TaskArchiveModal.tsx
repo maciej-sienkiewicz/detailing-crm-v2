@@ -329,7 +329,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
           <SearchInput
             value={search}
             onChange={e => handleSearch(e.target.value)}
-            placeholder="Szukaj po tytule…"
+            placeholder="Szukaj po tytule..."
           />
         </SearchRow>
 

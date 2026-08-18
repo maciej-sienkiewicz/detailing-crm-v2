@@ -11,7 +11,7 @@ export const VISIT_CARD_SETTINGS_QUERY_KEY = ['visit-card-settings'] as const;
 
 export const useVisitCardSettings = () => {
     // Module possession comes from the ONE entitlements source (/v1/me/entitlements),
-    // not from the legacy `smsModuleActive` flag piggybacking on this endpoint —
+    // not from the legacy `smsModuleActive` flag piggybacking on this endpoint:
     // two unreconciled sources of truth for the same module caused drift.
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
 

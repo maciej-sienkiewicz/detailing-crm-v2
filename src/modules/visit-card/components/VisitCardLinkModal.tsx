@@ -93,8 +93,8 @@ const SentBannerText = styled.div`
     strong { font-weight: 700; }
 `;
 
-/* ── "wysyłka niedostępna" banner — replaces a tooltip on the disabled send
-   button, which only tells the user why AFTER they've already tried. ── */
+/* -- "wysyłka niedostępna" banner: replaces a tooltip on the disabled send
+   button, which only tells the user why AFTER they've already tried. -- */
 
 const LockedBanner = styled.button`
     display: flex;
@@ -194,7 +194,7 @@ const ErrorText = styled.div`
 interface VisitCardLinkModalProps {
     /** Visit the card belongs to. Provide either visitId or appointmentId. */
     visitId?: string;
-    /** Reservation (appointment) the card belongs to — for pre-check-in cards. */
+    /** Reservation (appointment) the card belongs to: for pre-check-in cards. */
     appointmentId?: string;
     isOpen: boolean;
     onClose: () => void;
@@ -250,7 +250,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
         try {
             await navigator.clipboard.writeText(link);
         } catch {
-            // Clipboard API unavailable (e.g. non-HTTPS) — fallback via hidden selection
+            // Clipboard API unavailable (e.g. non-HTTPS), fallback via hidden selection
             const input = document.createElement('textarea');
             input.value = link;
             document.body.appendChild(input);
@@ -304,7 +304,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                         </svg>
                         <LockedBannerText>
-                            <strong>Wysyłka niedostępna</strong> — {comms.lockReason ?? 'brak modułu automatyzacji'}.
+                            <strong>Wysyłka niedostępna</strong>: {comms.lockReason ?? 'brak modułu automatyzacji'}.
                             Kliknij, aby rozszerzyć abonament.
                         </LockedBannerText>
                     </LockedBanner>
@@ -316,7 +316,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     <LinkRow>
                         <LinkInput
                             readOnly
-                            value={link ?? 'Generowanie linku…'}
+                            value={link ?? 'Generowanie linku...'}
                             onFocus={e => e.currentTarget.select()}
                         />
                         <CopyBtn $copied={copied} onClick={handleCopy} disabled={!link}>
@@ -333,7 +333,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                         </svg>
                         <SentBannerText>
                             <strong>Karta Wizyty została już wysłana</strong> {sentSummary}.
-                            Link jest stały — ponowna wysyłka dostarczy tę samą kartę.
+                            Link jest stały, ponowna wysyłka dostarczy tę samą kartę.
                         </SentBannerText>
                     </SentBanner>
                 )}
@@ -358,7 +358,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     disabled={!link || isSending || isPickingChannel || !comms.enabled}
                 >
                     {isSending
-                        ? 'Wysyłanie…'
+                        ? 'Wysyłanie...'
                         : alreadySent ? 'Wyślij kartę ponownie' : 'Wyślij kartę klientowi'}
                 </SharedButton>
             </ModalFooter>

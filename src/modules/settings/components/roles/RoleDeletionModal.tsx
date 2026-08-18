@@ -12,7 +12,7 @@ import type { Role } from '../../rbacTypes';
  * Deleting a role that people hold, without the dead end.
  *
  * The old flow warned that the operation "will be rejected" and then let the backend
- * reject it — leaving the studio to work out for itself who had to be moved. Here the
+ * reject it, leaving the studio to work out for itself who had to be moved. Here the
  * hand-over is part of the deletion: pick where the holders land, see what that costs
  * them, and confirm once.
  */
@@ -20,7 +20,7 @@ const NO_ROLE = '__none__';
 
 interface RoleDeletionModalProps {
     role: Role;
-    /** Every other role in the studio — candidates to receive the holders. */
+    /** Every other role in the studio: candidates to receive the holders. */
     otherRoles: Role[];
     isDeleting: boolean;
     onCancel: () => void;
@@ -94,7 +94,7 @@ export function RoleDeletionModal({ role, otherRoles, isDeleting, onCancel, onCo
                                     {otherRoles.map(r => (
                                         <option key={r.id} value={r.id}>{r.name}</option>
                                     ))}
-                                    <option value={NO_ROLE}>Bez roli — zablokuje dostęp</option>
+                                    <option value={NO_ROLE}>Bez roli, zablokuje dostęp</option>
                                 </FieldSelect>
                             </FormField>
 
@@ -117,7 +117,7 @@ export function RoleDeletionModal({ role, otherRoles, isDeleting, onCancel, onCo
                                     <DiffCol>
                                         <DiffHead $tone="loss">Stracą</DiffHead>
                                         {diff.lost.length === 0
-                                            ? <DiffEmpty>nic — nowa rola obejmuje wszystko</DiffEmpty>
+                                            ? <DiffEmpty>nic, nowa rola obejmuje wszystko</DiffEmpty>
                                             : <Chips>{diff.lost.slice(0, 6).map(p => (
                                                 <Badge key={p.code} $variant="amber">{p.displayName}</Badge>
                                             ))}{diff.lost.length > 6 && <More>+{diff.lost.length - 6}</More>}</Chips>}
@@ -168,7 +168,7 @@ export function RoleDeletionModal({ role, otherRoles, isDeleting, onCancel, onCo
                         onClick={() => onConfirm(hasHolders && target !== NO_ROLE ? target : null)}
                         disabled={isDeleting}
                     >
-                        {isDeleting ? 'Usuwanie…' : confirmLabel}
+                        {isDeleting ? 'Usuwanie...' : confirmLabel}
                     </DangerBtn>
                 </ModalFooter>
             </ModalCard>

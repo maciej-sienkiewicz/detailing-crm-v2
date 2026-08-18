@@ -1,5 +1,5 @@
 /**
- * Car logo service – maps vehicle brand names to logo URLs served via jsDelivr CDN.
+ * Car logo service: maps vehicle brand names to logo URLs served via jsDelivr CDN.
  *
  * jsDelivr mirrors the GitHub repository with Cache-Control: max-age=31536000 (1 year)
  * on all edge nodes globally, so the first fetch per brand is the only network round-trip.
@@ -159,7 +159,7 @@ export function getCarLogoUrl(brand: string | null | undefined): string | null {
     return null;
 }
 
-/** The jsDelivr CDN hostname – used by the Service Worker to scope its cache. */
+/** The jsDelivr CDN hostname, used by the Service Worker to scope its cache. */
 export const CAR_LOGOS_CDN_HOST = 'cdn.jsdelivr.net';
 export const CAR_LOGOS_CDN_PATH_PREFIX =
     '/gh/filippofilip95/car-logos-dataset@master/logos/thumb/';

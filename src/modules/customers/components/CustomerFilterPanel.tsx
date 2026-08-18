@@ -709,7 +709,7 @@ export const CustomerFilterPanel = ({
                                 <NumberInput
                                     type="number"
                                     min={1}
-                                    placeholder="—"
+                                    placeholder="-"
                                     value={lastVisitWithinDays}
                                     onChange={e => {
                                         setLastVisitWithinDays(e.target.value);
@@ -723,7 +723,7 @@ export const CustomerFilterPanel = ({
                                 <NumberInput
                                     type="number"
                                     min={1}
-                                    placeholder="—"
+                                    placeholder="-"
                                     value={notVisitedSinceDays}
                                     onChange={e => {
                                         setNotVisitedSinceDays(e.target.value);
@@ -746,7 +746,7 @@ export const CustomerFilterPanel = ({
                                 value={minRevenue}
                                 onChange={e => setMinRevenue(e.target.value)}
                             />
-                            <RevenueSeparator>–</RevenueSeparator>
+                            <RevenueSeparator>-</RevenueSeparator>
                             <RevenueInput
                                 type="number"
                                 min={0}
@@ -768,7 +768,7 @@ export const CustomerFilterPanel = ({
                                 value={minVisits}
                                 onChange={e => setMinVisits(e.target.value)}
                             />
-                            <RevenueSeparator>–</RevenueSeparator>
+                            <RevenueSeparator>-</RevenueSeparator>
                             <RevenueInput
                                 type="number"
                                 min={0}

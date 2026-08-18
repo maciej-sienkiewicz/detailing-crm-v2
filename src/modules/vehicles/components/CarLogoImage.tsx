@@ -10,7 +10,7 @@ interface CarLogoImageProps {
     className?: string;
 }
 
-// Wysokość kontenera – szerokość auto (logo samo dyktuje proporcje).
+// Wysokość kontenera, szerokość auto (logo samo dyktuje proporcje).
 const SIZE_H: Record<Size, number> = { sm: 24, md: 36, lg: 48 };
 const SIZE_MAX_W: Record<Size, number> = { sm: 40, md: 60, lg: 80 };
 

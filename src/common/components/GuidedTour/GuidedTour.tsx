@@ -7,7 +7,7 @@ import { ArrowRight, ArrowLeft, X } from 'lucide-react';
 /**
  * The step-by-step guide shell, shared by every tour in the app.
  *
- * It owns the chrome — portal, gradient header, step counter, dots, navigation —
+ * It owns the chrome (portal, gradient header, step counter, dots, navigation),
  * so a new tour is a list of steps rather than another 200 lines of modal. The
  * finish label is configurable because a tour that ends in a purchase says
  * something different from one that ends in "off you go".
@@ -253,7 +253,7 @@ interface GuidedTourProps {
   steps: TourStep[];
   onClose: () => void;
   /**
-   * Runs when the last step is confirmed, and TAKES OVER from there — the tour does
+   * Runs when the last step is confirmed, and TAKES OVER from there: the tour does
    * not close itself. That is what lets a tour hand off to something else, such as
    * the purchase dialog it introduces. Without it, the last step just closes.
    */
@@ -276,7 +276,7 @@ export function GuidedTour({ steps, onClose, onFinish, finishLabel = 'Zaczynam' 
       return;
     }
     // Whoever passed onFinish owns what happens next. Calling onClose as well would
-    // tear down the caller along with the tour — which is exactly what made
+    // tear down the caller along with the tour, which is exactly what made
     // "Rozumiem i kontynuuję zakup" close the purchase dialog instead of opening it.
     if (onFinish) onFinish();
     else onClose();

@@ -64,7 +64,7 @@ const DownloadBtn = styled.button`
 
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-    /* Icon-only below 480px — the label plus the close button do not fit next
+    /* Icon-only below 480px: the label plus the close button do not fit next
        to a file name on a phone. */
     @media (max-width: 480px) {
         padding: 8px;
@@ -76,8 +76,8 @@ const PdfFrame = styled.iframe`
     flex: 1;
     width: 100%;
     /* dvh, and floored well below the shell height so the frame asks for space
-       it can actually get — a vh-based minimum used to push the header out of
-       a phone-sized modal. */
+       it can actually get (a vh-based minimum used to push the header out of
+       a phone-sized modal). */
     min-height: min(calc(90dvh - 60px), 800px);
     border: none;
     background: #525659;

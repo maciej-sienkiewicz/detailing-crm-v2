@@ -13,7 +13,7 @@ const mockVisitCommunication: VisitCommunicationResponse = {
             messageType: 'VISIT_WELCOME_EMAIL',
             messageTypeLabel: 'Potwierdzenie przyjęcia pojazdu',
             recipientAddress: 'jan.kowalski@example.com',
-            subject: 'Potwierdzenie przyjęcia pojazdu – VIS-2025-00042',
+            subject: 'Potwierdzenie przyjęcia pojazdu - VIS-2025-00042',
             bodyContent: `Szanowny Panie Janie,
 
 Z przyjemnością informujemy, że Pana pojazd BMW X5 (WA 12345) został przyjęty do naszego warsztatu.
@@ -21,7 +21,7 @@ Z przyjemnością informujemy, że Pana pojazd BMW X5 (WA 12345) został przyję
 Numer wizyty: VIS-2025-00042
 Data przyjęcia: 15.01.2025
 Planowane usługi:
-• Oklejanie PPF – cały przód
+• Oklejanie PPF - cały przód
 • Powłoka ceramiczna
 
 O gotowości pojazdu do odbioru poinformujemy Pana SMS-em.
@@ -52,13 +52,13 @@ Zespół Detailing Studio`,
             messageType: 'SERVICE_CHANGE_NOTIFICATION',
             messageTypeLabel: 'Zmiana zakresu usług',
             recipientAddress: 'jan.kowalski@example.com',
-            subject: 'Zmiana zakresu usług – VIS-2025-00042',
+            subject: 'Zmiana zakresu usług - VIS-2025-00042',
             bodyContent: `Szanowny Panie Janie,
 
 W trakcie realizacji wizyty VIS-2025-00042 wykryliśmy konieczność rozszerzenia zakresu prac.
 
 Proponowana zmiana:
-• Dodanie: Korekta lakieru (1 etap) – 450,00 zł brutto
+• Dodanie: Korekta lakieru (1 etap) - 450,00 zł brutto
 
 Prosimy o potwierdzenie lub odrzucenie zmiany przez link poniżej.
 

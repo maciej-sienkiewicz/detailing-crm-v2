@@ -1017,7 +1017,7 @@ export const OperationalDataTable = ({
                                                     </RecurrencePill>
                                                 )}
                                                 {!isDeleted && op.type === 'RESERVATION' && op.doorToDoor?.hasPickup && (
-                                                    <DoorToDoorPill title="Door to Door — odbiór pojazdu od klienta">
+                                                    <DoorToDoorPill title="Door to Door: odbiór pojazdu od klienta">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <circle cx="12" cy="10" r="3" />
                                                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
@@ -1026,7 +1026,7 @@ export const OperationalDataTable = ({
                                                     </DoorToDoorPill>
                                                 )}
                                                 {!isDeleted && op.type === 'VISIT' && op.doorToDoor?.hasDelivery && (
-                                                    <DoorToDoorPill title="Door to Door — dostarczenie pojazdu do klienta">
+                                                    <DoorToDoorPill title="Door to Door: dostarczenie pojazdu do klienta">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                                                             <polyline points="9 22 9 12 15 12 15 22" />

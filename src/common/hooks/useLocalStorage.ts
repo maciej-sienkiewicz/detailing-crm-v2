@@ -26,7 +26,7 @@ export function useLocalStorage<T>(
                 try {
                     localStorage.setItem(key, JSON.stringify(next));
                 } catch {
-                    // Quota exceeded or private browsing – silently ignore
+                    // Quota exceeded or private browsing: silently ignore
                 }
                 return next;
             });

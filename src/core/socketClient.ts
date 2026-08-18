@@ -55,7 +55,7 @@ function log(...args: unknown[]): void {
 
 function resubscribeAll(client: Client): void {
   for (const registration of topicRegistry) {
-    // Old subscription handles are invalid after a reconnect — always resubscribe
+    // Old subscription handles are invalid after a reconnect, always resubscribe
     registration.subscription = client.subscribe(
       registration.destination,
       registration.onMessage
@@ -132,7 +132,7 @@ function installVisibilityHandler(): void {
     if (document.visibilityState !== 'visible') return;
     const client = stompClient;
     if (client && client.active && !client.connected) {
-      log('Tab visible with stale connection — forcing immediate reconnect');
+      log('Tab visible with stale connection, forcing immediate reconnect');
       void client.deactivate().then(() => {
         // Only reactivate if something still wants the connection
         if (topicRegistry.size > 0) {

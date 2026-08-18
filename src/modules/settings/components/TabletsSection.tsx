@@ -22,7 +22,7 @@ function tokenStatus(tokenExpiresAt: string): 'active' | 'expiring' {
 }
 
 /**
- * Tablet pairing only makes sense with the e-signatures module — the whole
+ * Tablet pairing only makes sense with the e-signatures module: the whole
  * section becomes an upsell surface without it (backend rejects pairing with 402).
  */
 export function TabletsSection() {
@@ -130,7 +130,7 @@ export function TabletsSection() {
                                                 onClick={() => handleDelete(tablet.tabletId)}
                                                 disabled={isDeleting}
                                             >
-                                                {isDeleting ? '…' : 'Usuń'}
+                                                {isDeleting ? '...' : 'Usuń'}
                                             </DangerSmallBtn>
                                             <CancelSmallBtn onClick={() => setConfirmDeleteId(null)}>
                                                 Anuluj

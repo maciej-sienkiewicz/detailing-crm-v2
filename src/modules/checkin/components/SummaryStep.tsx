@@ -417,7 +417,7 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
                         </InfoItem>
                         <InfoItem>
                             <InfoLabel>{t.checkin.summary.depositInfo}</InfoLabel>
-                            <InfoValue>{depositItems.join(', ') || '—'}</InfoValue>
+                            <InfoValue>{depositItems.join(', ') || '-'}</InfoValue>
                         </InfoItem>
                         <InfoItem>
                             <InfoLabel>{t.checkin.summary.photosInfo}</InfoLabel>

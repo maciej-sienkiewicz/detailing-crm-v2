@@ -1,5 +1,5 @@
 // src/modules/checkin/views/MobilePhotoUploadWrapper.tsx
-// Public route — no authentication required.
+// Public route, no authentication required.
 // URL format: /m/upload?t=<token>
 
 import { useSearchParams } from 'react-router-dom';

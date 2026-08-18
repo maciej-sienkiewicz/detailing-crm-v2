@@ -72,7 +72,7 @@ const ImageArea = styled.div`
 
 // Fills the whole image area regardless of the file's intrinsic size, so
 // swapping the src from thumbnail to full-size never changes the rendered
-// geometry — the photo only sharpens in place instead of jumping.
+// geometry: the photo only sharpens in place instead of jumping.
 const MainImage = styled.img`
     width: 100%;
     height: 100%;
@@ -340,7 +340,7 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
     const navigate = useNavigate();
 
     // Show the thumbnail instantly, then swap the same <img> to the full-size
-    // source once it has finished downloading in the background — a single
+    // source once it has finished downloading in the background, using a single
     // element, so the layout never changes.
     const [mainSrc, setMainSrc] = useState(photo.thumbnailUrl);
     useEffect(() => {

@@ -15,7 +15,7 @@ import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice
 import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
 import { VisitCardView } from '@/modules/visit-card';
 
-// Lazy — pulls in pdf.js, which must not weigh down the main bundle
+// Lazy: pulls in pdf.js, which must not weigh down the main bundle
 const PublicSigningView = lazy(() => import('@/modules/public-signing/views/PublicSigningView'));
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
@@ -34,7 +34,7 @@ import { StatisticsView, CategoryDetailView, CostsView } from "@/modules/statist
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
-// Lazy — a heavy, styled-components-rich module most sessions never open
+// Lazy: a heavy, styled-components-rich module most sessions never open
 const GalleryView = lazy(() =>
     import("@/modules/gallery/views/GalleryView").then(m => ({ default: m.GalleryView }))
 );
@@ -51,7 +51,7 @@ import type { FeatureKey } from '@/modules/subscription/types';
  * Authenticated app page: session guard + optional permission guard + layout.
  * When `requires` is missing the page is available to every logged-in user.
  * Users lacking the permission are silently redirected to their default
- * route (no "access denied" screen) — including manual URL entry.
+ * route (no "access denied" screen), including manual URL entry.
  */
 const page = (view: ReactNode, requires?: PermissionRequirement) => (
     <ProtectedRoute>
@@ -65,7 +65,7 @@ const page = (view: ReactNode, requires?: PermissionRequirement) => (
  * Module-gated page: like `page`, but the view is wrapped in a ModuleGate.
  * When the studio hasn't purchased the module, the view renders as a blurred,
  * non-interactive demonstration with an unlock overlay (Przelewy24 checkout)
- * instead of being hidden — the user sees exactly what they're missing.
+ * instead of being hidden: the user sees exactly what they're missing.
  */
 const gatedPage = (
     view: ReactNode,
@@ -205,22 +205,22 @@ export const router = createBrowserRouter([
 
     // ── Mobile (public, token-based) ─────────────────────────────────────
     {
-        // Public mobile upload route — no auth required, token via ?t=
+        // Public mobile upload route, no auth required, token via ?t=
         path: '/m/upload',
         element: <MobilePhotoUploadWrapper />,
     },
     {
-        // Public voice intake route — no auth required, token via ?token=
+        // Public voice intake route, no auth required, token via ?token=
         path: '/m/voice',
         element: <MobileVoiceCommandsWrapper />,
     },
     {
-        // Public customer Visit Card — no auth required, card token in the path
+        // Public customer Visit Card, no auth required, card token in the path
         path: '/vc/:token',
         element: <VisitCardView />,
     },
     {
-        // Public remote document signing (SMS link) — no auth, link token in the path
+        // Public remote document signing (SMS link), no auth, link token in the path
         path: '/sign/:token',
         element: (
             <Suspense fallback={null}>
@@ -229,7 +229,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        // Personal signature drawing on the user's own phone — no auth, link token in the path
+        // Personal signature drawing on the user's own phone, no auth, link token in the path
         path: '/m/sig/:token',
         element: <PhoneSignatureView />,
     },
@@ -350,7 +350,7 @@ export const router = createBrowserRouter([
         path: '/batch-orders',
         element: page(<BatchOrdersView />, 'BATCH_ORDERS'),
     },
-    // Landing page for users whose role grants no permissions — see getDefaultRoute.
+    // Landing page for users whose role grants no permissions; see getDefaultRoute.
     {
         path: '/no-access',
         element: page(<NoAccessView />),

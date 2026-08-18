@@ -717,7 +717,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                         </S.EditPriceField>
                                     </S.EditPriceGrid>
                                     <S.EditVatInfo>
-                                        VAT: {VAT_LABEL(editService.vatRate)} — nie można zmienić podczas edycji
+                                        VAT: {VAT_LABEL(editService.vatRate)} (nie można zmienić podczas edycji)
                                     </S.EditVatInfo>
                                 </div>
                             )}
@@ -735,7 +735,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                 onClick={saveEditService}
                                 disabled={editSaving}
                             >
-                                {editSaving ? 'Zapisuję…' : 'Zapisz'}
+                                {editSaving ? 'Zapisuję...' : 'Zapisz'}
                             </S.EditSaveBtn>
                         </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>

@@ -1,4 +1,4 @@
-// ─── Moduł Kampanii — typy (lustrzane wobec backendowego CampaignController) ──
+// ─── Moduł Kampanii: typy (lustrzane wobec backendowego CampaignController) ──
 
 export type CampaignKind = 'ONE_TIME' | 'AUTOMATIC';
 export type CampaignChannel = 'SMS' | 'EMAIL' | 'BOTH';

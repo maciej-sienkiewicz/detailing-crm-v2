@@ -104,7 +104,7 @@ export const TagInput = ({
     tags,
     suggestions,
     onChange,
-    placeholder = 'Wpisz tag i naciśnij Enter…',
+    placeholder = 'Wpisz tag i naciśnij Enter...',
     autoFocus = false,
 }: TagInputProps) => {
     const [inputValue, setInputValue] = useState('');

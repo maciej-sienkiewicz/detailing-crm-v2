@@ -37,7 +37,7 @@ export interface UploadLogoResponse {
 export interface VisitNumberingConfig {
     /**
      * Szablon numeru, np. "VIS-{YYYY}-{SEQ}". Dostępne znaczniki: {YYYY} {YY} {MM} {DD}
-     * i dokładnie jeden z {SEQ} (rosnący licznik) albo {RAND} (losowe cyfry — numer nie
+     * i dokładnie jeden z {SEQ} (rosnący licznik) albo {RAND} (losowe cyfry, numer nie
      * zdradza liczby zrealizowanych wizyt).
      */
     format: string;
@@ -45,7 +45,7 @@ export interface VisitNumberingConfig {
     sequenceLength: number;
     /** Liczba losowych cyfr {RAND}. */
     randomLength: number;
-    /** Przykładowy numer — dla {SEQ} zawsze z numerem 1, dla {RAND} świeżo wylosowany. */
+    /** Przykładowy numer: dla {SEQ} zawsze z numerem 1, dla {RAND} świeżo wylosowany. */
     preview: string;
 }
 

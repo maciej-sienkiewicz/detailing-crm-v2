@@ -553,7 +553,7 @@ export const pl: TranslationKeys = {
                 other: 'Inne',
             },
             inspectionNotes: 'Notatki wewnętrzne',
-            inspectionNotesPlaceholder: 'Widoczne tylko w systemie — nie pojawiają się na protokole',
+            inspectionNotesPlaceholder: 'Widoczne tylko w systemie, nie pojawiają się na protokole',
             protocolNotes: 'Notatki do protokołu',
             protocolNotesPlaceholder: 'Treść widoczna na protokole przyjęcia pojazdu',
         },
@@ -1012,7 +1012,7 @@ export const pl: TranslationKeys = {
         overview: {
             title: 'Przegląd',
             error: 'Nie udało się załadować statystyk. Spróbuj ponownie.',
-            unassignedWarning: '{count} usług nie jest przypisanych do żadnej kategorii – zestawienie może być niekompletne.',
+            unassignedWarning: '{count} usług nie jest przypisanych do żadnej kategorii, zestawienie może być niekompletne.',
         },
         categories: {
             title: 'Kategorie',

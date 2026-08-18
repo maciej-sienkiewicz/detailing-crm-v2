@@ -4,7 +4,7 @@ import type { WeeksOption } from '../types';
 
 /**
  * Hooki analityki v2. Dane zmieniają się raz dziennie (sync), więc queries mają
- * długi staleTime – przełączanie zakładek nie generuje zbędnych żądań.
+ * długi staleTime, przełączanie zakładek nie generuje zbędnych żądań.
  */
 
 export const ANALYTICS_KEYS = {

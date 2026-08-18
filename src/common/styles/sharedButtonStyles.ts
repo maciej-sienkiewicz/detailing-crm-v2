@@ -1,5 +1,5 @@
 /**
- * Shared button primitives — Stitch-inspired design system
+ * Shared button primitives: Stitch-inspired design system
  */
 import styled from 'styled-components';
 

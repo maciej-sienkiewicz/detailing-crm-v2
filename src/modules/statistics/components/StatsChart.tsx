@@ -1,5 +1,5 @@
 // src/modules/statistics/components/StatsChart.tsx
-// Wykres przychodów — cienki wrapper na wspólny TrendChart.
+// Wykres przychodów: cienki wrapper na wspólny TrendChart.
 import type { StatsDataPoint } from '../types';
 import { t } from '@/common/i18n';
 import { st } from './StatisticsTheme';
@@ -39,6 +39,6 @@ export const StatsChart = ({ data, onBarClick }: StatsChartProps) => (
         formatCount={formatVisits}
         emptyText={t.statistics.chart.noData}
         onBarClick={onBarClick}
-        clickHint={onBarClick ? 'Kliknij dowolny okres na wykresie, aby zobaczyć szczegóły wizyt — także tam, gdzie przychód wynosi 0 zł' : undefined}
+        clickHint={onBarClick ? 'Kliknij dowolny okres na wykresie, aby zobaczyć szczegóły wizyt, także tam, gdzie przychód wynosi 0 zł' : undefined}
     />
 );

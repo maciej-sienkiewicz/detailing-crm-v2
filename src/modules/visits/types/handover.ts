@@ -7,16 +7,16 @@ export const VAT_PERCENT: Record<VatRateCode, number> = { '23': 23, '8': 8, '5':
 
 /**
  * Pozycja faktury z zasadą „pole wpisane jest źródłem prawdy": [mode] wskazuje,
- * którą kwotę wpisał użytkownik — ta kwota NIGDY nie jest przeliczana wstecz,
+ * którą kwotę wpisał użytkownik: ta kwota NIGDY nie jest przeliczana wstecz,
  * a druga jest zawsze pochodną (VAT od netto albo VAT „w stu" od brutto, jak
  * w ustawie o VAT art. 106e ust. 7). Dzięki temu wpisane 500,00 nie przeskoczy
- * na 499,99. Backend liczy identycznie — patrz CompleteVisitInvoiceOrchestrator.
+ * na 499,99. Backend liczy identycznie, patrz CompleteVisitInvoiceOrchestrator.
  */
 export interface HandoverItem {
     name: string;
-    /** Netto w PLN — autorytatywne przy mode=NET, pochodne przy GROSS. */
+    /** Netto w PLN: autorytatywne przy mode=NET, pochodne przy GROSS. */
     net: string;
-    /** Brutto w PLN — autorytatywne przy mode=GROSS, pochodne przy NET. */
+    /** Brutto w PLN: autorytatywne przy mode=GROSS, pochodne przy NET. */
     gross: string;
     mode: PriceMode;
     vatRate: VatRateCode;
@@ -33,14 +33,14 @@ export interface HandoverBuyer {
 
 /**
  * Pełny stan ekranu wydania. Zapisywany do localStorage, żeby zamknięcie okna
- * nie kasowało pracy — stary kreator czyścił wszystko w handleClose().
+ * nie kasowało pracy: stary kreator czyścił wszystko w handleClose().
  */
 export interface HandoverState {
     paymentMethod: PaymentMethod;
     documentType: InvoiceType;
     buyer: HandoverBuyer;
     items: HandoverItem[];
-    /** Faktura pokrywa tylko część kwoty — reszta idzie osobnym dokumentem. */
+    /** Faktura pokrywa tylko część kwoty: reszta idzie osobnym dokumentem. */
     splitRemainder: boolean;
     remainderMethod: PaymentMethod;
     exemptionBasis: string;
@@ -65,7 +65,7 @@ export const vatFromNet = (net: number, rate: VatRateCode): number =>
 export const vatFromGross = (gross: number, rate: VatRateCode): number =>
     Math.round((gross * VAT_PERCENT[rate]) / (100 + VAT_PERCENT[rate]));
 
-/** Kwoty pozycji w groszach — liczone identycznie jak na backendzie. */
+/** Kwoty pozycji w groszach, liczone identycznie jak na backendzie. */
 export const itemAmounts = (item: HandoverItem): { net: number; gross: number } => {
     if (item.mode === 'GROSS') {
         const gross = parsePln(item.gross);
@@ -107,7 +107,7 @@ export const formatNip = (value: string): string => {
 // ─── Walidacja ────────────────────────────────────────────────────────────────
 
 export interface HandoverProblem {
-    /** Sekcja, przy której należy pokazać komunikat — nie w banerze na górze. */
+    /** Sekcja, przy której należy pokazać komunikat, nie w banerze na górze. */
     section: 'seller' | 'buyer' | 'items' | 'balance';
     message: string;
 }
@@ -131,7 +131,7 @@ export const validateHandover = ({ state, visitGross, sellerComplete }: Validate
     if (!sellerComplete) {
         problems.push({
             section: 'seller',
-            message: 'Uzupełnij nazwę i NIP swojej firmy — bez nich faktura nie przejdzie do KSeF.',
+            message: 'Uzupełnij nazwę i NIP swojej firmy, bez nich faktura nie przejdzie do KSeF.',
         });
     }
 
@@ -168,7 +168,7 @@ export const validateHandover = ({ state, visitGross, sellerComplete }: Validate
     if (remainder < 0) {
         problems.push({
             section: 'balance',
-            message: 'Kwota faktury przekracza kwotę wizyty — obniż pozycje.',
+            message: 'Kwota faktury przekracza kwotę wizyty, obniż pozycje.',
         });
     } else if (remainder > 0 && !state.splitRemainder) {
         problems.push({
@@ -186,7 +186,7 @@ export const toInvoicePayload = (state: HandoverState, visitGross: number): Comp
     const nip = normalizeNip(state.buyer.nip);
 
     return {
-        // Kwota autorytatywna idzie w swoim trybie — backend liczy identycznie,
+        // Kwota autorytatywna idzie w swoim trybie, backend liczy identycznie,
         // więc wpisana wartość nigdy nie „przeskakuje"
         items: state.items.map(item => ({
             name: item.name.trim(),

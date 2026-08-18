@@ -31,7 +31,7 @@ export const useKsefCredentials = () => {
  * Whether invoices can reach KSeF on their own.
  *
  * Without a token the send fails at authentication, which the dispatcher reports as
- * a transient failure and queues for offline24 retry — a retry that can never
+ * a transient failure and queues for offline24 retry, a retry that can never
  * succeed. Call sites use this to tell the studio the truth instead, and to offer
  * the XML for manual upload.
  *
@@ -53,7 +53,7 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
     moduleEnabled: ksefModule.enabled,
     /** A token is saved, so invoices are sent automatically. */
     configured: !!data?.nip,
-    /** True while the answer is still unknown — do not render a warning yet. */
+    /** True while the answer is still unknown; do not render a warning yet. */
     isLoading: ksefModule.isLoading || (enabled && isLoading),
   };
 };

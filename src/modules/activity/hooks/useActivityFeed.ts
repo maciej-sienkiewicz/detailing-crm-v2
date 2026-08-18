@@ -13,7 +13,7 @@ export const activityKeys = {
  * The feed, paged by cursor.
  *
  * The whole filter object is part of the query key, so changing any filter starts
- * a fresh page-one query instead of appending to the previous result — which is
+ * a fresh page-one query instead of appending to the previous result, which is
  * what an accumulating infinite query would otherwise do.
  */
 export function useActivityFeed(filters: ActivityFilters) {
@@ -29,7 +29,7 @@ export function useActivityFeed(filters: ActivityFilters) {
     });
 }
 
-/** Filter options are a static catalogue — fetched once per session. */
+/** Filter options are a static catalogue, fetched once per session. */
 export function useActivityFilterOptions() {
     return useQuery({
         queryKey: activityKeys.filterOptions(),

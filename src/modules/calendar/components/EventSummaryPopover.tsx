@@ -50,7 +50,7 @@ const EXIT_MS  = 160;
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 // Single source of truth shared by the CSS below and the measure pass. Callers
-// no longer guess these — they only hand over the anchor rect of the clicked
+// no longer guess these, they only hand over the anchor rect of the clicked
 // event and the popover positions itself against its own measured size.
 
 /** Popover width on tall viewports; must match the `width` rule below. */
@@ -110,7 +110,7 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
         0 12px 24px rgba(0, 0, 0, 0.06),
         0 24px 48px rgba(0, 0, 0, 0.08);
     width: ${POPOVER_WIDTH}px;
-    /* Height must NOT depend on $y — otherwise the same event renders a
+    /* Height must NOT depend on $y, otherwise the same event renders a
        different popover depending on where on screen it was clicked. The
        fit-on-screen guarantee comes from the measure pass below, which knows
        the real rendered height instead of guessing it. */
@@ -131,7 +131,7 @@ const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean 
     }
 
     @media (max-width: 768px) {
-        /* Flex child of Overlay — centering handled by parent */
+        /* Flex child of Overlay: centering handled by parent */
         position: relative !important;
         left: auto !important;
         top: auto !important;
@@ -805,7 +805,7 @@ const SmsRowSkeleton = styled.div`
 const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId }) => {
     const queryClient = useQueryClient();
 
-    // Bez modułu komunikacji cały wiersz znika — sterowanie przypomnieniem,
+    // Bez modułu komunikacji cały wiersz znika: sterowanie przypomnieniem,
     // którego nie da się wysłać, tylko dezorientuje w tak częstym widoku.
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
 
@@ -874,7 +874,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
                         />
                         <ToggleTrack $checked={effectiveChecked} $saving={mutation.isPending} />
                         <ToggleValueText $checked={effectiveChecked} $saving={mutation.isPending}>
-                            {mutation.isPending ? '…' : effectiveChecked ? 'Wł.' : 'Wył.'}
+                            {mutation.isPending ? '...' : effectiveChecked ? 'Wł.' : 'Wył.'}
                         </ToggleValueText>
                     </ToggleLabel>
                 )}
@@ -932,8 +932,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     // short popovers far above their event ("too much empty space below") and
     // squeezed tall ones. Running in a layout effect means the corrected
     // coordinates are committed before the browser paints, so there is no
-    // visible jump. A ResizeObserver keeps this honest when async content —
-    // the SMS row, a long services list — changes the height after mount.
+    // visible jump. A ResizeObserver keeps this honest when async content
+    // (the SMS row, a long services list) changes the height after mount.
     const anchorTop    = anchor?.top;
     const anchorLeft   = anchor?.left;
     const anchorRight  = anchor?.right;
@@ -958,7 +958,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 
             if (anchorLeft != null && anchorRight != null && anchorTop != null) {
                 x = anchorRight + ANCHOR_GAP;
-                // Not enough room on the right — flip to the left of the event.
+                // Not enough room on the right, flip to the left of the event.
                 if (x + w + VIEWPORT_MARGIN > vw) x = anchorLeft - w - ANCHOR_GAP;
                 y = anchorTop;
             } else {
@@ -1016,7 +1016,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         : (event as VisitEventData).technicalNotes;
 
     const formatPrice = (amount?: number, currency?: string) => {
-        if (!amount) return '—';
+        if (!amount) return '-';
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
             currency: currency || 'PLN',
@@ -1054,12 +1054,12 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         const sameDay = start.toDateString() === end.toDateString();
 
         if (isAllDay) {
-            return sameDay ? fmtDate(start) : `${fmtDate(start)} – ${fmtDate(end)}`;
+            return sameDay ? fmtDate(start) : `${fmtDate(start)}-${fmtDate(end)}`;
         }
         if (sameDay) {
-            return `${fmtDate(start)}, ${fmtTime(start)} – ${fmtTime(end)}`;
+            return `${fmtDate(start)}, ${fmtTime(start)}-${fmtTime(end)}`;
         }
-        return `${fmtDate(start)}, ${fmtTime(start)} – ${fmtDate(end)}, ${fmtTime(end)}`;
+        return `${fmtDate(start)}, ${fmtTime(start)}-${fmtDate(end)}, ${fmtTime(end)}`;
     };
 
     const isAllDay = isAppointment ? (event as AppointmentEventData).isAllDay : false;
@@ -1127,11 +1127,11 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </StatusBlock>
                     )}
 
-                    {/* Klient + Pojazd — single column when PII is not accessible */}
+                    {/* Klient + Pojazd: single column when PII is not accessible */}
                     <InfoColumns $singleColumn={!piiGranted}>
-                        {/* Klient — hidden entirely when the caller lacks CUSTOMERS_VIEW.
+                        {/* Klient: hidden entirely when the caller lacks CUSTOMERS_VIEW.
                             The server omits the customer object in that case, so there
-                            is no blurred placeholder — the section simply does not render. */}
+                            is no blurred placeholder, the section simply does not render. */}
                         {piiGranted && (
                             <div>
                                 <SectionTitle>Klient</SectionTitle>
@@ -1186,7 +1186,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                             <circle cx="15.5" cy="17" r="1.5" />
                                         </svg>
                                     </InfoIcon>
-                                    <InfoValueText>{event.vehicleInfo || '—'}</InfoValueText>
+                                    <InfoValueText>{event.vehicleInfo || '-'}</InfoValueText>
                                     <NavArrow className="nav-arrow">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -1202,13 +1202,13 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                             <circle cx="15.5" cy="17" r="1.5" />
                                         </svg>
                                     </InfoIcon>
-                                    <InfoValue>{event.vehicleInfo || '—'}</InfoValue>
+                                    <InfoValue>{event.vehicleInfo || '-'}</InfoValue>
                                 </InfoRow>
                             )}
                         </div>
                     </InfoColumns>
 
-                    {/* SMS — tylko dla rezerwacji, nie dla anulowanych/porzuconych i tylko z uprawnieniem COMMUNICATION_SEND */}
+                    {/* SMS: tylko dla rezerwacji, nie dla anulowanych/porzuconych i tylko z uprawnieniem COMMUNICATION_SEND */}
                     {isAppointment && !isCancelled && can('COMMUNICATION_SEND') && (
                         <AppointmentSmsRow appointmentId={event.id} />
                     )}
@@ -1244,7 +1244,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         <path d="M12 6v6l4 2" />
                                     </svg>
                                 </InfoIcon>
-                                <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
+                                <InfoValue>{formatStatus(event.status) || '-'}</InfoValue>
                             </InfoRow>
                         </div>
                     )}
@@ -1257,7 +1257,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </NotesContainer>
                     )}
 
-                    {/* Ceny — absent from the response when VISITS_SERVICE_PRICES_VIEW
+                    {/* Ceny: absent from the response when VISITS_SERVICE_PRICES_VIEW
                         is not granted, so totalPrice / totalNet are undefined here */}
                     {(event.totalPrice !== undefined || event.totalNet !== undefined) && (
                         <PricesContainer>

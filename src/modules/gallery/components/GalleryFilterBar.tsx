@@ -434,7 +434,7 @@ export const GalleryFilterBar = ({
     const hasAnyFilter = hasVehicleFilter || hasTagFilter;
 
     const countLabel = isFetching
-        ? '…'
+        ? '...'
         : `${totalPhotos}`;
     const countSuffix = isFetching
         ? ''
@@ -507,7 +507,7 @@ export const GalleryFilterBar = ({
                                 <TagSearchInput
                                     ref={tagSearchRef}
                                     type="text"
-                                    placeholder="Szukaj tagu…"
+                                    placeholder="Szukaj tagu..."
                                     value={tagSearch}
                                     onChange={e => setTagSearch(e.target.value)}
                                 />

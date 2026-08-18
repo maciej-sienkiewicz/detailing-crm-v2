@@ -254,9 +254,9 @@ const TEAM_VIEW_PARAM = 'view';
 
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
-// be reached via ?tab= — the view falls back to the first visible tab.
+// be reached via ?tab=; the view falls back to the first visible tab.
 const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
-    // Company data (NIP, address, branding) is studio configuration — owner's call.
+    // Company data (NIP, address, branding) is studio configuration, owner's call.
     company: 'OWNER_ONLY',
     'visit-numbering': 'OWNER_ONLY',
     services: 'VISITS_CREATE',
@@ -265,7 +265,7 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     documents:  'VISITS_CREATE',
     tablets:    'VISITS_CREATE',
     'visit-card': 'VISITS_CREATE',
-    // Billing is the owner's domain — no permission code exists for it.
+    // Billing is the owner's domain: no permission code exists for it.
     plan: 'OWNER_ONLY',
     credits: 'OWNER_ONLY',
     invoices: 'OWNER_ONLY',
@@ -296,7 +296,7 @@ export function SettingsView() {
             : 'security';
 
     // The URL is the tab state, not a one-time seed for it. Reading it on every render
-    // is what makes deep links, back/forward and "send me that screen" work — the old
+    // is what makes deep links, back/forward and "send me that screen" work; the old
     // local useState left the address bar stuck on whatever tab you first landed on.
     const rawTab = searchParams.get('tab') ?? '';
     const alias = SECTION_ALIASES[rawTab];

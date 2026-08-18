@@ -186,7 +186,7 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
                                 })}
                                 disabled={isDeleting}
                             >
-                                {isDeleting ? 'Usuwanie…' : 'Usuń definicję'}
+                                {isDeleting ? 'Usuwanie...' : 'Usuń definicję'}
                             </Button>
                         </ConfirmActions>
                     </ConfirmBox>

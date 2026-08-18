@@ -324,15 +324,15 @@ const ErrorState = styled.div`
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 
-/** "23" → "23%", "zw" → "zw." — stawki nieliczbowe wg schematu FA(2). */
+/** Stawki nieliczbowe wg schematu FA(2): "23" → "23%", "zw" → "zw.". */
 const formatVatRate = (rate: string | null): string => {
-  if (!rate) return '—';
+  if (!rate) return '-';
   return /^\d+([.,]\d+)?$/.test(rate) ? `${rate}%` : `${rate}.`;
 };
 
 /** Ilość bez zbędnych zer: 2 → "2", 1.5 → "1,5". */
 const formatQuantity = (quantity: number | null): string => {
-  if (quantity == null) return '—';
+  if (quantity == null) return '-';
   return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 4 }).format(quantity);
 };
 
@@ -425,7 +425,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
             <PaperHead>
               <div>
                 <DocType>{docTypeLabel(detail)}</DocType>
-                <DocNumber>{detail.documentNumber ?? '—'}</DocNumber>
+                <DocNumber>{detail.documentNumber ?? '-'}</DocNumber>
                 {detail.ksefNumber && <DocKsefRef>KSeF: {detail.ksefNumber}</DocKsefRef>}
                 {detail.isCorrection && detail.originalKsefNumber && (
                   <DocKsefRef>Korekta do: {detail.originalKsefNumber}</DocKsefRef>
@@ -454,7 +454,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
               <PartiesGrid>
                 <PartyCard>
                   <Eyebrow>Sprzedawca</Eyebrow>
-                  <PartyName>{detail.seller.name ?? '—'}</PartyName>
+                  <PartyName>{detail.seller.name ?? '-'}</PartyName>
                   {detail.seller.nip && <PartyLine>NIP: {detail.seller.nip}</PartyLine>}
                   {partyAddress(detail.seller).map((line) => (
                     <PartyLine key={line}>{line}</PartyLine>
@@ -462,7 +462,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                 </PartyCard>
                 <PartyCard>
                   <Eyebrow>Nabywca</Eyebrow>
-                  <PartyName>{detail.buyer.name ?? '—'}</PartyName>
+                  <PartyName>{detail.buyer.name ?? '-'}</PartyName>
                   {detail.buyer.nip && <PartyLine>NIP: {detail.buyer.nip}</PartyLine>}
                   {partyAddress(detail.buyer).map((line) => (
                     <PartyLine key={line}>{line}</PartyLine>
@@ -498,9 +498,9 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                         {detail.items.map((item) => (
                           <tr key={item.lineNumber}>
                             <ItemTd><ItemNum>{item.lineNumber}</ItemNum></ItemTd>
-                            <ItemTd>{item.name ?? '—'}</ItemTd>
+                            <ItemTd>{item.name ?? '-'}</ItemTd>
                             <ItemTd $align="right"><Mono>{formatQuantity(item.quantity)}</Mono></ItemTd>
-                            <ItemTd>{item.unit ?? '—'}</ItemTd>
+                            <ItemTd>{item.unit ?? '-'}</ItemTd>
                             <ItemTd $align="right"><Mono>{formatMoneyFloatCompact(item.unitPriceNet)}</Mono></ItemTd>
                             <ItemTd $align="right"><Mono>{formatVatRate(item.vatRate)}</Mono></ItemTd>
                             <ItemTd $align="right"><Mono>{formatMoneyFloatCompact(item.netValue)}</Mono></ItemTd>
@@ -535,7 +535,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
               <MetaGrid>
                 <div>
                   <Eyebrow>Forma płatności</Eyebrow>
-                  <MetaValue>{detail.payment.methodLabel ?? '—'}</MetaValue>
+                  <MetaValue>{detail.payment.methodLabel ?? '-'}</MetaValue>
                 </div>
                 <div>
                   <Eyebrow>Status płatności</Eyebrow>

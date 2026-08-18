@@ -200,7 +200,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               <DuplicateBox>
                 <strong>⚠ Możliwe podwójne fakturowanie</strong>
                 Ta faktura wygląda na duplikat innej faktury (ten sam nabywca, kwota i zbliżona
-                data). Obie faktury są prawnie wiążące — jeśli to duplikat, nadmiarowy dokument
+                data). Obie faktury są prawnie wiążące, więc jeśli to duplikat, nadmiarowy dokument
                 trzeba skorygować do zera w systemie, w którym powstał.
                 <DuplicateActions>
                   <SharedButton
@@ -209,7 +209,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     disabled={busy}
                     onClick={() => run(() => duplicateMutation.mutateAsync({ id: invoice.id, resolution: 'CONFIRMED_DUPLICATE' }))}
                   >
-                    To duplikat — wyklucz ze statystyk
+                    To duplikat, wyklucz ze statystyk
                   </SharedButton>
                   <SharedButton
                     $variant="secondary"
@@ -226,7 +226,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
             {invoice.ksefStatus === 'QUEUED_RETRY' && (
               <OfflineBox>
                 KSeF był niedostępny w chwili wystawienia (tryb offline24). Faktura zostanie
-                dosłana automatycznie — najpóźniej następnego dnia roboczego. Możesz też ponowić
+                dosłana automatycznie, najpóźniej następnego dnia roboczego. Możesz też ponowić
                 wysyłkę ręcznie.
               </OfflineBox>
             )}
@@ -239,20 +239,20 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             <MetaGrid>
               <MetaItem><span>Status KSeF</span><RevenueStatusBadge status={invoice.ksefStatus} /></MetaItem>
-              <MetaItem><span>Numer KSeF</span>{invoice.ksefNumber ?? '—'}</MetaItem>
+              <MetaItem><span>Numer KSeF</span>{invoice.ksefNumber ?? '-'}</MetaItem>
               <MetaItem><span>Data wystawienia</span>{formatDate(invoice.issueDate)}</MetaItem>
-              <MetaItem><span>Data sprzedaży</span>{invoice.saleDate ? formatDate(invoice.saleDate) : '—'}</MetaItem>
+              <MetaItem><span>Data sprzedaży</span>{invoice.saleDate ? formatDate(invoice.saleDate) : '-'}</MetaItem>
               <MetaItem>
                 <span>Sprzedawca</span>
-                {invoice.seller.name ?? '—'}{invoice.seller.nip && <> · NIP {invoice.seller.nip}</>}
+                {invoice.seller.name ?? '-'}{invoice.seller.nip && <> · NIP {invoice.seller.nip}</>}
               </MetaItem>
               <MetaItem>
                 <span>Nabywca</span>
-                {invoice.buyer.name ?? '—'}{invoice.buyer.nip ? <> · NIP {invoice.buyer.nip}</> : ' · konsument'}
+                {invoice.buyer.name ?? '-'}{invoice.buyer.nip ? <> · NIP {invoice.buyer.nip}</> : ' · konsument'}
               </MetaItem>
               <MetaItem>
                 <span>Płatność</span>
-                {invoice.paymentFormLabel ?? invoice.paymentForm ?? '—'}
+                {invoice.paymentFormLabel ?? invoice.paymentForm ?? '-'}
                 {' · '}
                 {invoice.paymentStatus === 'PAID' ? 'opłacona' : 'oczekuje'}
                 {invoice.paymentDueDate && <> · termin {formatDate(invoice.paymentDueDate)}</>}
@@ -264,8 +264,8 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               </MetaItem>
               {invoice.invoiceType === 'KOR' && (
                 <>
-                  <MetaItem><span>Korekta do</span>{invoice.originalKsefNumber ?? '—'}</MetaItem>
-                  <MetaItem><span>Przyczyna korekty</span>{invoice.correctionReason ?? '—'}</MetaItem>
+                  <MetaItem><span>Korekta do</span>{invoice.originalKsefNumber ?? '-'}</MetaItem>
+                  <MetaItem><span>Przyczyna korekty</span>{invoice.correctionReason ?? '-'}</MetaItem>
                 </>
               )}
             </MetaGrid>
@@ -323,7 +323,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                   onClick={() => run(() => retryMutation.mutateAsync(invoice.id))}
                 >
                   <RefreshCw size={14} />
-                  {retryMutation.isPending ? 'Wysyłanie…' : 'Ponów wysyłkę do KSeF'}
+                  {retryMutation.isPending ? 'Wysyłanie...' : 'Ponów wysyłkę do KSeF'}
                 </SharedButton>
               )}
               <SharedButton
@@ -364,7 +364,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     disabled={busy || !correctionReason.trim()}
                     onClick={handleFullCorrection}
                   >
-                    {correctionMutation.isPending ? 'Wysyłanie korekty…' : 'Wystaw korektę (do zera) i wyślij do KSeF'}
+                    {correctionMutation.isPending ? 'Wysyłanie korekty...' : 'Wystaw korektę (do zera) i wyślij do KSeF'}
                   </SharedButton>
                   <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode(false)}>
                     Anuluj

@@ -202,7 +202,7 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
                                     value={form.roleId ?? ''}
                                     onChange={e => set('roleId', e.target.value || null)}
                                 >
-                                    <option value="">— bez roli —</option>
+                                    <option value="">- bez roli -</option>
                                     {roles.map(role => (
                                         <option key={role.id} value={role.id}>{role.name}</option>
                                     ))}

@@ -310,7 +310,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
             <Card>
                 <CardTitle>Najskuteczniejsze posty w Twojej okolicy</CardTitle>
                 <CardHint>
-                    Domyślnie sortujemy po skuteczności (reakcje względem wielkości profilu), nie po dacie —
+                    Domyślnie sortujemy po skuteczności (reakcje względem wielkości profilu), nie po dacie:
                     najpierw widzisz to, co naprawdę zadziałało. Oceniaj posty, a generator AI nauczy się
                     Twojego gustu.
                 </CardHint>
@@ -424,7 +424,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                                 $tone="like"
                                                 $active={item.reaction === 'LIKED'}
                                                 onClick={() => handleRate(item, 'LIKED')}
-                                                title="Dobry styl — wzorzec dla generatora AI"
+                                                title="Dobry styl: wzorzec dla generatora AI"
                                             >
                                                 <ThumbsUp /> Dobry
                                             </RateBtn>
@@ -432,7 +432,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                                 $tone="dislike"
                                                 $active={item.reaction === 'DISLIKED'}
                                                 onClick={() => handleRate(item, 'DISLIKED')}
-                                                title="Słaby styl — pomiń przy generowaniu"
+                                                title="Słaby styl: pomiń przy generowaniu"
                                             >
                                                 <ThumbsDown /> Słaby
                                             </RateBtn>
@@ -524,7 +524,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                             )}
                         </>
                     ) : (
-                        <CardHint>Za mało danych – wróć po najbliższej synchronizacji.</CardHint>
+                        <CardHint>Za mało danych, wróć po najbliższej synchronizacji.</CardHint>
                     )}
                 </Card>
 
@@ -554,7 +554,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                             </CopyBtn>
                         </>
                     ) : (
-                        <CardHint>Za mało danych – wróć po najbliższej synchronizacji.</CardHint>
+                        <CardHint>Za mało danych, wróć po najbliższej synchronizacji.</CardHint>
                     )}
                 </Card>
             </SideGrid>

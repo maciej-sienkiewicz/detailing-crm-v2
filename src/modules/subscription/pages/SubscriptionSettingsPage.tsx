@@ -141,7 +141,7 @@ export function SubscriptionSettingsPage() {
         return (
             <LoadingWrap>
                 <Spinner />
-                Ładowanie danych subskrypcji…
+                Ładowanie danych subskrypcji...
             </LoadingWrap>
         );
     }
@@ -220,7 +220,7 @@ export function SubscriptionSettingsPage() {
                 <EyeLabel>Konto i rozliczenia</EyeLabel>
                 <SectionTitle>Abonament</SectionTitle>
                 <SectionDesc>
-                    Zarządzaj pakietem i dodatkowymi modułami. Płatności obsługuje Przelewy24 — upgrade i dokupienie modułu wchodzą w życie natychmiast po opłaceniu, downgrade na koniec okresu rozliczeniowego.
+                    Zarządzaj pakietem i dodatkowymi modułami. Płatności obsługuje Przelewy24: upgrade i dokupienie modułu wchodzą w życie natychmiast po opłaceniu, downgrade na koniec okresu rozliczeniowego.
                 </SectionDesc>
             </SectionHead>
 
@@ -237,7 +237,7 @@ export function SubscriptionSettingsPage() {
                         </BannerText>
                     </BannerContent>
                     <BannerCta onClick={handleRenew} disabled={checkout.isPending}>
-                        {checkout.isPending ? 'Przekierowywanie…' : 'Odnów i zapłać (P24)'}
+                        {checkout.isPending ? 'Przekierowywanie...' : 'Odnów i zapłać (P24)'}
                     </BannerCta>
                 </ExpiredBanner>
             )}
@@ -322,8 +322,8 @@ export function SubscriptionSettingsPage() {
                             }}
                         >
                             {checkout.isPending
-                                ? 'Przekierowywanie do płatności…'
-                                : `Przedłuż o 30 dni — ${formatCents(myPlan.monthlyCostCents)}`}
+                                ? 'Przekierowywanie do płatności...'
+                                : `Przedłuż o 30 dni: ${formatCents(myPlan.monthlyCostCents)}`}
                         </button>
                     </div>
                 )}

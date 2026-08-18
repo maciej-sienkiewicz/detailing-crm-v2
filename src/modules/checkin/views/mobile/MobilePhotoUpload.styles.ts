@@ -1,5 +1,5 @@
 // src/modules/checkin/views/mobile/MobilePhotoUpload.styles.ts
-// Standalone styled components — no theme provider, all values hardcoded.
+// Standalone styled components, no theme provider, all values hardcoded.
 
 import styled, { keyframes, css } from 'styled-components';
 

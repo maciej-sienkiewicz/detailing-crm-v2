@@ -20,7 +20,7 @@ function getDaysInMonth(year: number, month: number) {
     return new Date(year, month + 1, 0).getDate();
 }
 
-// Returns 0=Monday … 6=Sunday
+// Returns 0=Monday, ..., 6=Sunday
 function getFirstWeekDay(year: number, month: number) {
     const d = new Date(year, month, 1).getDay();
     return d === 0 ? 6 : d - 1;
@@ -354,11 +354,11 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const [viewMonth, setViewMonth] = useState(() => parsed.month ?? today.getMonth());
 
     const _defaultSlot = getNearestUpcomingSlot();
-    // Hour state — derived from value, or nearest upcoming slot
+    // Hour state, derived from value, or nearest upcoming slot
     const [hour, setHour] = useState(() =>
         parsed.hour !== null ? parsed.hour : _defaultSlot.hour
     );
-    // Minute — snapped to nearest 15-min step, or nearest upcoming slot
+    // Minute, snapped to nearest 15-min step, or nearest upcoming slot
     const [minute, setMinute] = useState(() =>
         parsed.minute !== null ? snapToStep(parsed.minute) : _defaultSlot.minute
     );

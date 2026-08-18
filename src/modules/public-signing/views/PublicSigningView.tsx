@@ -1,6 +1,6 @@
 // src/modules/public-signing/views/PublicSigningView.tsx
 //
-// Public, customer-facing document signing page (route /sign/:token — no login).
+// Public, customer-facing document signing page (route /sign/:token, no login).
 // Opened from the SMS link "Wyślij prośbę na telefon klienta": shows the exact
 // same document a studio tablet would display and lets the customer accept the
 // declaration and sign with their finger.
@@ -313,7 +313,7 @@ export const PublicSigningView = () => {
             if (cancelled) return;
 
             // WYSIWYS: what we render must be byte-identical to what the
-            // employee requested — otherwise refuse to let the customer sign.
+            // employee requested; otherwise refuse to let the customer sign.
             const pdfSha256 = await sha256Hex(pdf);
             if (pdfSha256.toLowerCase() !== session.documentSha256.toLowerCase()) {
                 setPhase({ kind: 'integrity-error' });
@@ -324,7 +324,7 @@ export const PublicSigningView = () => {
         };
 
         // Mobile networks flake: only a 404 proves a bad token. Everything else
-        // (timeout, connection drop, 5xx, transient 4xx) gets automatic retries —
+        // (timeout, connection drop, 5xx, transient 4xx) gets automatic retries;
         // the previous dead-end "link nieprawidłowy" screen for any hiccup was the
         // main source of "nie udało się wyświetlić dokumentu" reports.
         const load = async (): Promise<void> => {
@@ -449,7 +449,7 @@ export const PublicSigningView = () => {
                         <StatusTitle>Nie udało się załadować dokumentu</StatusTitle>
                         <StatusText>
                             Wygląda na problem z połączeniem internetowym. Sprawdź zasięg
-                            i spróbuj ponownie — link pozostaje ważny.
+                            i spróbuj ponownie. Link pozostaje ważny.
                         </StatusText>
                         <div style={{ height: 20 }} />
                         <PrimaryBtn onClick={() => setLoadAttempt(a => a + 1)}>
@@ -473,7 +473,7 @@ export const PublicSigningView = () => {
                         </StatusTitle>
                         <StatusText>
                             {isIntegrity
-                                ? 'Weryfikacja integralności dokumentu nie powiodła się. Ze względów bezpieczeństwa podpis nie jest możliwy — poproś pracownika o ponowne wysłanie prośby.'
+                                ? 'Weryfikacja integralności dokumentu nie powiodła się. Ze względów bezpieczeństwa podpis nie jest możliwy. Poproś pracownika o ponowne wysłanie prośby.'
                                 : 'Sprawdź, czy link z wiadomości SMS został otwarty w całości, lub poproś pracownika o ponowne wysłanie prośby o podpis.'}
                         </StatusText>
                     </StatusCard>
@@ -565,7 +565,7 @@ export const PublicSigningView = () => {
 
                     <Actions>
                         <PrimaryBtn onClick={handleSubmit} disabled={!canSubmit}>
-                            {submitting ? 'Przetwarzanie…' : 'Podpisz dokument'}
+                            {submitting ? 'Przetwarzanie...' : 'Podpisz dokument'}
                         </PrimaryBtn>
                         <SecondaryBtn onClick={handleDecline} disabled={submitting}>
                             Odmawiam podpisania

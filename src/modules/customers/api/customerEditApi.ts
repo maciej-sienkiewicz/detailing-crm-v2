@@ -279,7 +279,7 @@ export const customerEditApi = {
             return mockUploadDocument(payload);
         }
 
-        // Step 1: Initiate upload — backend returns presigned S3 URL
+        // Step 1: Initiate upload; backend returns presigned S3 URL
         const initiateResponse = await apiClient.post<{ documentId: string; uploadUrl: string }>(
             `${CUSTOMERS_BASE_PATH}/${payload.customerId}/documents`,
             {

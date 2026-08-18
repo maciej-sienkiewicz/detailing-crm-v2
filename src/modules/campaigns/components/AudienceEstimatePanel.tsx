@@ -126,7 +126,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, audience, onChan
 
   return (
     <Panel>
-      <BigNumber $dim={isEstimating}>{e ? e.eligible : '—'}</BigNumber>
+      <BigNumber $dim={isEstimating}>{e ? e.eligible : '-'}</BigNumber>
       <BigLabel>
         Odbiorców dostanie wiadomość
         <InfoTooltip text="Finalna liczba klientów po odjęciu wszystkich wykluczeń systemowych (brak zgody, brak kontaktu, STOP, limit częstości)." />
@@ -137,7 +137,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, audience, onChan
           <li>
             <BreakdownLabel>
               Pasuje do filtrów
-              <InfoTooltip text="Łączna liczba klientów spełniających ustawione kryteria odbiorców — przed zastosowaniem wykluczeń systemowych." />
+              <InfoTooltip text="Łączna liczba klientów spełniających ustawione kryteria odbiorców, przed zastosowaniem wykluczeń systemowych." />
             </BreakdownLabel>
             <strong>{e.matched}</strong>
           </li>

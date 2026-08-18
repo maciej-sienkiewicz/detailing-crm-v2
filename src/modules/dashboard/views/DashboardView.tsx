@@ -1,5 +1,5 @@
 /**
- * Dashboard View — Command Center
+ * Dashboard View: Command Center
  */
 
 import { useMemo, useState } from 'react';

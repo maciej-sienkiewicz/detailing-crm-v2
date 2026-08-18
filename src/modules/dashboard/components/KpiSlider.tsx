@@ -86,7 +86,7 @@ const Dot = styled.button<{ $active: boolean; $color: string }>`
 
 // ─── Slides config ────────────────────────────────────────────────────────────
 
-// Revenue is financial data — the card (and its /revenue-summary request) exists
+// Revenue is financial data: the card (and its /revenue-summary request) exists
 // only for users who can read financial reports or statistics.
 const ALL_SLIDES = [
   { key: 'revenue',      color: '#0ea5e9', component: <RevenueKpiCard />,      requires: ['FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW'] as const },

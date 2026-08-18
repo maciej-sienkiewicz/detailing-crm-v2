@@ -1,5 +1,5 @@
 // src/modules/statistics/components/shared/shareSlices.ts
-// Budowanie danych dla donuta udziału kategorii — wspólne dla Przychodów i Kosztów.
+// Budowanie danych dla donuta udziału kategorii, wspólne dla Przychodów i Kosztów.
 
 export const PIE_UNASSIGNED_COLOR = '#94A3B8';
 export const PIE_OTHER_COLOR = '#CBD5E1';
@@ -25,7 +25,7 @@ interface ShareCategoryInput {
 
 /**
  * Buduje wycinki donuta: N największych kategorii, ogon zwinięty do „Pozostałe",
- * a nieprzypisane pozycje jako osobny neutralny wycinek — dzięki temu procenty
+ * a nieprzypisane pozycje jako osobny neutralny wycinek: dzięki temu procenty
  * są udziałami w CAŁOŚCI, nie tylko w części przypisanej.
  */
 export function buildCategoryShareSlices(

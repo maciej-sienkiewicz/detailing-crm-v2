@@ -6,7 +6,7 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'logo',
             label: 'Logo firmy',
-            description: 'Logo reprezentuje markę studia we wszystkich materiałach generowanych przez system. Pojawia się jako element graficzny w nagłówkach — klienci widzą je przy podpisywaniu dokumentów i w otrzymywanych wiadomościach. Zalecany format to SVG lub PNG o minimalnej szerokości 400 px. Plik nie może przekraczać 2 MB.',
+            description: 'Logo reprezentuje markę studia we wszystkich materiałach generowanych przez system. Pojawia się jako element graficzny w nagłówkach: klienci widzą je przy podpisywaniu dokumentów i w otrzymywanych wiadomościach. Zalecany format to SVG lub PNG o minimalnej szerokości 400 px. Plik nie może przekraczać 2 MB.',
             usedIn: [
                 'Nagłówki faktur VAT',
                 'Wiadomości e-mail do klientów',
@@ -17,10 +17,10 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'nip-regon',
             label: 'NIP & REGON',
-            description: 'Numery identyfikacyjne firmy wymagane przez polskie prawo na dokumentach finansowych. NIP (10 cyfr) to numer identyfikacji podatkowej — niezbędny do wystawiania faktur VAT. REGON (9 lub 14 cyfr) to numer w rejestrze podmiotów gospodarczych, wymagany m.in. przy integracji z KSeF.',
+            description: 'Numery identyfikacyjne firmy wymagane przez polskie prawo na dokumentach finansowych. NIP (10 cyfr) to numer identyfikacji podatkowej, niezbędny do wystawiania faktur VAT. REGON (9 lub 14 cyfr) to numer w rejestrze podmiotów gospodarczych, wymagany m.in. przy integracji z KSeF.',
             usedIn: [
-                'Faktury VAT — pole obowiązkowe',
-                'Protokoły — dane wystawcy',
+                'Faktury VAT: pole obowiązkowe',
+                'Protokoły: dane wystawcy',
                 'Integracja z KSeF (Krajowy System e-Faktur)',
             ],
         },
@@ -29,8 +29,8 @@ export const COMPANY_HELP: HelpContent = {
             label: 'Adres',
             description: 'Pełny adres siedziby firmy składający się z ulicy z numerem, kodu pocztowego i miasta. Adres drukowany jest na dokumentach jako dane wystawcy i może być weryfikowany przez organy podatkowe. Upewnij się, że jest zgodny z wpisem w CEIDG lub KRS.',
             usedIn: [
-                'Faktury VAT — dane sprzedawcy',
-                'Protokoły zdawczo-odbiorcze — dane firmy',
+                'Faktury VAT: dane sprzedawcy',
+                'Protokoły zdawczo-odbiorcze: dane firmy',
             ],
         },
         {
@@ -39,8 +39,8 @@ export const COMPANY_HELP: HelpContent = {
             description: 'Telefon kontaktowy i firmowy adres e-mail. Klienci mogą kontaktować się pod tymi danymi w sprawach zleceń, reklamacji lub zapytań. Adres e-mail jest również nadawcą automatycznych wiadomości wysyłanych przez system (np. potwierdzenia przyjęcia pojazdu).',
             usedIn: [
                 'Stopka automatycznych wiadomości e-mail',
-                'Protokoły zdawczo-odbiorcze — dane kontaktowe',
-                'Faktury VAT — dane sprzedawcy',
+                'Protokoły zdawczo-odbiorcze: dane kontaktowe',
+                'Faktury VAT: dane sprzedawcy',
                 'Nadawca automatycznych powiadomień',
             ],
         },
@@ -56,9 +56,9 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'bank',
             label: 'Konto bankowe',
-            description: 'Numer rachunku bankowego w formacie IBAN (26 cyfr dla kont polskich). Drukowany jest na fakturach jako informacja dla klienta o tym, gdzie dokonać przelewu za usługę. Pole jest opcjonalne — jeśli przyjmujesz wyłącznie płatności gotówkowe lub kartą, możesz je pominąć.',
+            description: 'Numer rachunku bankowego w formacie IBAN (26 cyfr dla kont polskich). Drukowany jest na fakturach jako informacja dla klienta o tym, gdzie dokonać przelewu za usługę. Pole jest opcjonalne: jeśli przyjmujesz wyłącznie płatności gotówkowe lub kartą, możesz je pominąć.',
             usedIn: [
-                'Faktury VAT — dane do przelewu',
+                'Faktury VAT: dane do przelewu',
             ],
         },
     ],
@@ -70,10 +70,10 @@ export const SERVICES_HELP: HelpContent = {
         {
             id: 'name',
             label: 'Nazwa usługi',
-            description: 'Pełna nazwa usługi wyświetlana w selektorze przy tworzeniu zlecenia, na fakturach i w historii wizyt. Powinna być jednoznaczna i zrozumiała dla klienta — ta sama nazwa pojawi się na protokole zdawczo-odbiorczym. Minimalna długość to 3 znaki, maksymalna 100 znaków.',
+            description: 'Pełna nazwa usługi wyświetlana w selektorze przy tworzeniu zlecenia, na fakturach i w historii wizyt. Powinna być jednoznaczna i zrozumiała dla klienta: ta sama nazwa pojawi się na protokole zdawczo-odbiorczym. Minimalna długość to 3 znaki, maksymalna 100 znaków.',
             usedIn: [
                 'Selektor usług przy tworzeniu zlecenia',
-                'Faktury VAT — pozycja usługi',
+                'Faktury VAT: pozycja usługi',
                 'Protokoły zdawczo-odbiorcze',
                 'Raporty i statystyki sprzedaży',
                 'Historia wizyt klienta',
@@ -84,7 +84,7 @@ export const SERVICES_HELP: HelpContent = {
             label: 'Cena netto',
             description: 'Cena usługi bez podatku VAT, wyrażona w złotych. Jest to wartość bazowa, od której system automatycznie oblicza cenę brutto na podstawie wybranej stawki VAT. Zmiana ceny netto powoduje natychmiastowe przeliczenie ceny brutto.',
             usedIn: [
-                'Faktury VAT — wartość netto pozycji',
+                'Faktury VAT: wartość netto pozycji',
                 'Raporty przychodów (wartości netto)',
                 'Wycena zlecenia',
             ],
@@ -92,19 +92,19 @@ export const SERVICES_HELP: HelpContent = {
         {
             id: 'gross-price',
             label: 'Cena brutto',
-            description: 'Cena usługi z uwzględnionym podatkiem VAT — kwota, którą zapłaci klient. Możesz wpisać cenę brutto zamiast netto, a system sam wyliczy wartość netto. Oba pola są ze sobą zsynchronizowane w czasie rzeczywistym.',
+            description: 'Cena usługi z uwzględnionym podatkiem VAT, czyli kwota, którą zapłaci klient. Możesz wpisać cenę brutto zamiast netto, a system sam wyliczy wartość netto. Oba pola są ze sobą zsynchronizowane w czasie rzeczywistym.',
             usedIn: [
                 'Wyświetlana klientowi przy wyborze usługi',
-                'Faktury VAT — wartość brutto pozycji',
-                'Wycena zlecenia — cena dla klienta',
+                'Faktury VAT: wartość brutto pozycji',
+                'Wycena zlecenia: cena dla klienta',
             ],
         },
         {
             id: 'vat',
             label: 'Stawka VAT',
-            description: 'Stawka podatku VAT stosowana do tej usługi. Zmiana stawki powoduje automatyczne przeliczenie ceny brutto. Dostępne stawki: 23% (podstawowa), 8% (obniżona), 5% (obniżona), 0% (zerowa) oraz „zw." (zwolniona z VAT — np. dla podmiotów korzystających ze zwolnienia podmiotowego).',
+            description: 'Stawka podatku VAT stosowana do tej usługi. Zmiana stawki powoduje automatyczne przeliczenie ceny brutto. Dostępne stawki: 23% (podstawowa), 8% (obniżona), 5% (obniżona), 0% (zerowa) oraz „zw." (zwolniona z VAT, np. dla podmiotów korzystających ze zwolnienia podmiotowego).',
             usedIn: [
-                'Faktury VAT — kolumna stawki podatku',
+                'Faktury VAT: kolumna stawki podatku',
                 'Obliczanie ceny brutto',
                 'Deklaracje podatkowe',
             ],
@@ -112,10 +112,10 @@ export const SERVICES_HELP: HelpContent = {
         {
             id: 'manual',
             label: 'Wycena ręczna',
-            description: 'Gdy włączona, usługa nie ma z góry ustalonej ceny — pracownik wpisuje ją indywidualnie dla każdego zlecenia. Przydatne przy pracach, których koszt zależy od stanu pojazdu lub zakresu prac: np. korekta lakieru, kompleksowe detailing, usługi specjalistyczne.',
+            description: 'Gdy włączona, usługa nie ma z góry ustalonej ceny: pracownik wpisuje ją indywidualnie dla każdego zlecenia. Przydatne przy pracach, których koszt zależy od stanu pojazdu lub zakresu prac: np. korekta lakieru, kompleksowe detailing, usługi specjalistyczne.',
             usedIn: [
-                'Tworzenie zlecenia — pole ceny wymagane od pracownika',
-                'Faktury — cena wpisywana ręcznie',
+                'Tworzenie zlecenia: pole ceny wymagane od pracownika',
+                'Faktury: cena wpisywana ręcznie',
             ],
         },
         {
@@ -137,7 +137,7 @@ export const DOCUMENTS_HELP: HelpContent = {
         {
             id: 'checkin',
             label: 'Protokół przyjęcia',
-            description: 'Dokument generowany automatycznie w momencie rejestracji pojazdu (etap Check-in). Klient podpisuje go elektronicznie na ekranie dotykowym — tablecie lub smartfonie. Możesz skonfigurować wiele szablonów: jeden globalny (zawsze generowany) oraz dodatkowe aktywowane tylko dla konkretnych usług.',
+            description: 'Dokument generowany automatycznie w momencie rejestracji pojazdu (etap Check-in). Klient podpisuje go elektronicznie na ekranie dotykowym: tablecie lub smartfonie. Możesz skonfigurować wiele szablonów: jeden globalny (zawsze generowany) oraz dodatkowe aktywowane tylko dla konkretnych usług.',
             usedIn: [
                 'Generowany przy każdym przyjęciu pojazdu',
                 'Podpisywany elektronicznie przez klienta',
@@ -159,7 +159,7 @@ export const DOCUMENTS_HELP: HelpContent = {
         {
             id: 'templates',
             label: 'Szablony dokumentów (PDF i HTML)',
-            description: 'Każdy protokół oparty jest na szablonie dokumentu — wypełnialnym formularzu PDF (AcroForm) lub samodzielnym pliku HTML. PDF ma pełne wsparcie: automatyczne uzupełnianie danymi z CRM, podpis na tablecie i pieczęć kwalifikowaną. HTML jest uzupełniany danymi po stronie serwera i służy do podglądu oraz wydruku — pełny obieg podpisu na tablecie wymaga formatu PDF. Po wgraniu plik jest automatycznie weryfikowany: system sprawdza, czy zawiera wszystkie wymagane pola, i odrzuca plik z brakami, wskazując dokładnie, czego brakuje.',
+            description: 'Każdy protokół oparty jest na szablonie dokumentu: wypełnialnym formularzu PDF (AcroForm) lub samodzielnym pliku HTML. PDF ma pełne wsparcie: automatyczne uzupełnianie danymi z CRM, podpis na tablecie i pieczęć kwalifikowaną. HTML jest uzupełniany danymi po stronie serwera i służy do podglądu oraz wydruku; pełny obieg podpisu na tablecie wymaga formatu PDF. Po wgraniu plik jest automatycznie weryfikowany: system sprawdza, czy zawiera wszystkie wymagane pola, i odrzuca plik z brakami, wskazując dokładnie, czego brakuje.',
             usedIn: [
                 'Bazowy projekt każdego protokołu',
                 'Widoczny w podglądzie przed wdrożeniem',
@@ -170,7 +170,7 @@ export const DOCUMENTS_HELP: HelpContent = {
         {
             id: 'template-pdf-howto',
             label: 'Jak przygotować szablon PDF',
-            description: 'Przygotuj jednostronicowy dokument A4 z układem protokołu (możesz pobrać szablon domyślny i użyć go jako bazy). W programie do edycji PDF (np. Adobe Acrobat lub LibreOffice Writer z eksportem do PDF z formularzem) dodaj pola formularza o dokładnych nazwach: brand, model, licenseplate, mileage, fullname, phonenumber, email, companyname, tax, date, price — jako pola tekstowe; services i remarks — jako pola tekstowe wieloliniowe; keys i documents — jako pola wyboru (checkbox). W miejscu podpisu klienta dodaj pole tekstowe o nazwie signature (minimum 60x20 pt, zalecane ok. 260x40 pt) — podpis z tabletu zostanie w nie wpasowany z zachowaniem proporcji. Opcjonalnie dodaj pole company_signature na podpis pracownika. Nie ustawiaj własnych czcionek w polach — system nadpisuje je czcionką z polskimi znakami (7 pt).',
+            description: 'Przygotuj jednostronicowy dokument A4 z układem protokołu (możesz pobrać szablon domyślny i użyć go jako bazy). W programie do edycji PDF (np. Adobe Acrobat lub LibreOffice Writer z eksportem do PDF z formularzem) dodaj pola formularza o dokładnych nazwach: brand, model, licenseplate, mileage, fullname, phonenumber, email, companyname, tax, date, price jako pola tekstowe; services i remarks jako pola tekstowe wieloliniowe; keys i documents jako pola wyboru (checkbox). W miejscu podpisu klienta dodaj pole tekstowe o nazwie signature (minimum 60x20 pt, zalecane ok. 260x40 pt); podpis z tabletu zostanie w nie wpasowany z zachowaniem proporcji. Opcjonalnie dodaj pole company_signature na podpis pracownika. Nie ustawiaj własnych czcionek w polach: system nadpisuje je czcionką z polskimi znakami (7 pt).',
             usedIn: [
                 'Automatyczne uzupełnianie danymi wizyty',
                 'Podpis klienta na tablecie (pole signature)',
@@ -180,7 +180,7 @@ export const DOCUMENTS_HELP: HelpContent = {
         {
             id: 'template-html-howto',
             label: 'Jak przygotować szablon HTML',
-            description: 'Przygotuj samodzielny plik HTML — wszystkie style CSS i czcionki osadzone w pliku, bez odwołań do zasobów zewnętrznych. W miejscach, w które system ma wstawić dane z CRM, dodaj elementom atrybut data-field z nazwą pola, np. <div data-field="brand"></div>. Obowiązuje ta sama lista pól co w PDF (brand, model, licenseplate, mileage, services, remarks, fullname, companyname, phonenumber, email, tax, date, price, keys, documents) plus obszary podpisów: data-field="signature" i opcjonalnie data-field="company_signature". Zadbaj o format wydruku A4 (reguła @page { size: A4 }) — dokument drukowany jest 1:1.',
+            description: 'Przygotuj samodzielny plik HTML: wszystkie style CSS i czcionki osadzone w pliku, bez odwołań do zasobów zewnętrznych. W miejscach, w które system ma wstawić dane z CRM, dodaj elementom atrybut data-field z nazwą pola, np. <div data-field="brand"></div>. Obowiązuje ta sama lista pól co w PDF (brand, model, licenseplate, mileage, services, remarks, fullname, companyname, phonenumber, email, tax, date, price, keys, documents) plus obszary podpisów: data-field="signature" i opcjonalnie data-field="company_signature". Zadbaj o format wydruku A4 (reguła @page { size: A4 }); dokument drukowany jest 1:1.',
             usedIn: [
                 'Uzupełnianie danymi po stronie serwera',
                 'Podgląd i wydruk protokołu',
@@ -189,7 +189,7 @@ export const DOCUMENTS_HELP: HelpContent = {
         {
             id: 'default-template',
             label: 'Szablon domyślny',
-            description: 'Każde studio ma zawsze przypisany szablon protokołu przyjęcia — systemowy szablon domyślny jest dodawany automatycznie przy utworzeniu profilu. Możesz zastąpić go własnym szablonem, a domyślny usunąć lub dezaktywować. Jeśli jednak usuniesz swój szablon i studio zostałoby bez żadnego szablonu przyjęcia, system automatycznie przywróci szablon domyślny — nie da się zostać bez działającego protokołu przyjęcia.',
+            description: 'Każde studio ma zawsze przypisany szablon protokołu przyjęcia: systemowy szablon domyślny jest dodawany automatycznie przy utworzeniu profilu. Możesz zastąpić go własnym szablonem, a domyślny usunąć lub dezaktywować. Jeśli jednak usuniesz swój szablon i studio zostałoby bez żadnego szablonu przyjęcia, system automatycznie przywróci szablon domyślny: nie da się zostać bez działającego protokołu przyjęcia.',
             usedIn: [
                 'Dodawany automatycznie do nowego profilu',
                 'Przywracany po usunięciu ostatniego szablonu przyjęcia',
@@ -216,7 +216,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'list',
             label: 'Lista wiadomości',
-            description: 'Jeden wiersz to jedna sytuacja, w której odzywamy się do klienta — od potwierdzenia rezerwacji po zestawienie zbiorcze dla kontrahenta. Wiersze są pogrupowane w kolejności, w jakiej dzieje się obsługa zlecenia. Pod nazwą widzisz fragment prawdziwej treści z podstawionymi przykładowymi danymi, więc nie musisz wchodzić w szczegóły, żeby sprawdzić, co dostanie klient.',
+            description: 'Jeden wiersz to jedna sytuacja, w której odzywamy się do klienta: od potwierdzenia rezerwacji po zestawienie zbiorcze dla kontrahenta. Wiersze są pogrupowane w kolejności, w jakiej dzieje się obsługa zlecenia. Pod nazwą widzisz fragment prawdziwej treści z podstawionymi przykładowymi danymi, więc nie musisz wchodzić w szczegóły, żeby sprawdzić, co dostanie klient.',
             usedIn: [
                 'Ustawienia → Szablony wiadomości',
                 'Historia komunikacji w profilu klienta',
@@ -225,7 +225,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'channels',
             label: 'Kanały SMS i e-mail',
-            description: 'Część wiadomości wychodzi obydwoma kanałami — na przykład link do Karty Wizyty. Chipy w kolumnie „Kanał" włączają i wyłączają każdy kanał osobno, bez otwierania szczegółów. Szary chip oznacza, że dana wiadomość nie jest wysyłana tym kanałem w ogóle.',
+            description: 'Część wiadomości wychodzi obydwoma kanałami, na przykład link do Karty Wizyty. Chipy w kolumnie „Kanał" włączają i wyłączają każdy kanał osobno, bez otwierania szczegółów. Szary chip oznacza, że dana wiadomość nie jest wysyłana tym kanałem w ogóle.',
             usedIn: [
                 'Kolumna „Kanał" na liście',
                 'Zakładki SMS / E-mail w panelu edycji',
@@ -234,7 +234,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'status',
             label: 'Kiedy wiadomość faktycznie wychodzi',
-            description: 'Zielony chip oznacza, że wiadomość jest włączona i ma treść. Bursztynowy to ostrzeżenie: reguła jest włączona, ale temat lub treść są puste, więc mimo pozornie aktywnego stanu nic nie zostanie wysłane. System nie ma żadnej treści zapasowej — wychodzi wyłącznie to, co sam wpiszesz.',
+            description: 'Zielony chip oznacza, że wiadomość jest włączona i ma treść. Bursztynowy to ostrzeżenie: reguła jest włączona, ale temat lub treść są puste, więc mimo pozornie aktywnego stanu nic nie zostanie wysłane. System nie ma żadnej treści zapasowej: wychodzi wyłącznie to, co sam wpiszesz.',
             usedIn: [
                 'Chipy na liście',
                 'Filtr „Aktywne"',
@@ -243,7 +243,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'timing',
             label: 'Czas wysyłki',
-            description: 'Trzy wiadomości mają konfigurowalne opóźnienie. Przypomnienie przed wizytą liczymy od godziny rozpoczęcia rezerwacji. Podziękowanie po wizycie i przypomnienie po przerwie liczymy od momentu odbioru pojazdu — dlatego rezerwacja, na którą klient się nie stawił, nigdy nie dostanie tych wiadomości.',
+            description: 'Trzy wiadomości mają konfigurowalne opóźnienie. Przypomnienie przed wizytą liczymy od godziny rozpoczęcia rezerwacji. Podziękowanie po wizycie i przypomnienie po przerwie liczymy od momentu odbioru pojazdu, dlatego rezerwacja, na którą klient się nie stawił, nigdy nie dostanie tych wiadomości.',
             usedIn: [
                 'Kolumna „Kiedy wychodzi"',
                 'Sekcja „Czas wysyłki" w panelu edycji',
@@ -252,16 +252,16 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'variables',
             label: 'Zmienne w treści',
-            description: 'Zmienne wstawiasz przyciskami nad polem tekstowym. Każda wiadomość udostępnia tylko te, które potrafi wypełnić — dlatego listy różnią się między szablonami. Nazwa, adres, telefon i strona Twojej firmy nie są zmiennymi: znasz je w chwili pisania szablonu, więc wpisz je wprost w treści. Wpisanie zmiennej, której dana wiadomość nie zna, zablokuje zapis i zostanie oznaczone w edytorze.',
+            description: 'Zmienne wstawiasz przyciskami nad polem tekstowym. Każda wiadomość udostępnia tylko te, które potrafi wypełnić, dlatego listy różnią się między szablonami. Nazwa, adres, telefon i strona Twojej firmy nie są zmiennymi: znasz je w chwili pisania szablonu, więc wpisz je wprost w treści. Wpisanie zmiennej, której dana wiadomość nie zna, zablokuje zapis i zostanie oznaczone w edytorze.',
             usedIn: [
-                'Panel edycji — przyciski „Wstaw"',
+                'Panel edycji: przyciski „Wstaw"',
                 'Podgląd wiadomości',
             ],
         },
         {
             id: 'sender',
             label: 'Nazwa nadawcy SMS',
-            description: 'Do 11 znaków alfanumerycznych wyświetlanych zamiast numeru telefonu. Operator wymaga podpisanego upoważnienia — pobierz wzór, podpisz i wgraj go tutaj. Do czasu potwierdzenia przez operatora SMS-y wychodzą z numeru domyślnego.',
+            description: 'Do 11 znaków alfanumerycznych wyświetlanych zamiast numeru telefonu. Operator wymaga podpisanego upoważnienia: pobierz wzór, podpisz i wgraj go tutaj. Do czasu potwierdzenia przez operatora SMS-y wychodzą z numeru domyślnego.',
             usedIn: [
                 'Każdy SMS wysłany do klienta',
                 'Kampanie SMS',
@@ -270,7 +270,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'credits',
             label: 'Kredyty SMS',
-            description: 'Każdy wysłany SMS zużywa kredyty. Wiadomość do 160 znaków to 1 kredyt, a polskie znaki diakrytyczne skracają ten limit do 70 znaków — licznik pod polem treści pokazuje, na ile wiadomości rozpadnie się Twój szablon. Stan kredytów uzupełnisz w zakładce „Kredyty SMS i AI".',
+            description: 'Każdy wysłany SMS zużywa kredyty. Wiadomość do 160 znaków to 1 kredyt, a polskie znaki diakrytyczne skracają ten limit do 70 znaków; licznik pod polem treści pokazuje, na ile wiadomości rozpadnie się Twój szablon. Stan kredytów uzupełnisz w zakładce „Kredyty SMS i AI".',
             usedIn: [
                 'Licznik segmentów w edytorze',
                 'Saldo kredytów w zakładce Kredyty',
@@ -303,7 +303,7 @@ export const CREDITS_HELP: HelpContent = {
         {
             id: 'packages',
             label: 'Pakiety kredytów',
-            description: 'Kredyty kupujesz jednorazowo w wybranych pakietach. Im większy pakiet, tym niższa cena jednostkowa za kredyt. Kredyty nie wygasają po zakończeniu okresu rozliczeniowego — zostają na koncie do wykorzystania.',
+            description: 'Kredyty kupujesz jednorazowo w wybranych pakietach. Im większy pakiet, tym niższa cena jednostkowa za kredyt. Kredyty nie wygasają po zakończeniu okresu rozliczeniowego: zostają na koncie do wykorzystania.',
             usedIn: [
                 'Dostępność funkcji SMS i AI',
             ],

@@ -38,7 +38,7 @@ const EntityCardsStack = styled.div`
     gap: 16px;
     margin-bottom: 20px;
 
-    /* One column on phones — cards stacked, full width. */
+    /* One column on phones: cards stacked, full width. */
     @media (max-width: 720px) {
         grid-template-columns: 1fr;
         gap: 12px;
@@ -208,7 +208,7 @@ export const AppointmentEditView = () => {
     const initialFormDataRef = useRef<CheckInFormData | null>(null);
 
     // Entity summary-card state (customer/vehicle). Selection, mutation and creation
-    // are separate states — the payload mode is read off the state kind, never
+    // are separate states: the payload mode is read off the state kind, never
     // inferred from which inputs the user happened to touch.
     const [entityState, setEntityState] = useState<EntitySectionsState | null>(null);
     const initialEntityStateRef = useRef<EntitySectionsState | null>(null);
@@ -356,8 +356,8 @@ export const AppointmentEditView = () => {
     };
 
     // State mapping: CheckInFormData.technicalState (edited in VerificationStep) -> the
-    // note fields the API actually persists. Kept as a pure function so the mapping — and
-    // the bug of silently dropping it — is visible and testable on its own.
+    // note fields the API actually persists. Kept as a pure function so the mapping,
+    // and the bug of silently dropping it, is visible and testable on its own.
     const mapTechnicalNotesToPayload = (technicalState: CheckInFormData['technicalState']) => ({
         // Legacy single-field consumers (calendar tooltips, reminders) still read `note`.
         note: technicalState.inspectionNotes || undefined,
@@ -377,7 +377,7 @@ export const AppointmentEditView = () => {
             return null;
         }
 
-        // Transient card states (open edit form / open picker) must be resolved first —
+        // Transient card states (open edit form / open picker) must be resolved first:
         // there is no defensible payload for "the user is mid-decision".
         if (hasUnresolvedSection(entityState)) {
             showInfo('Zatwierdź lub anuluj edycję w karcie klienta/pojazdu przed zapisem wizyty.');

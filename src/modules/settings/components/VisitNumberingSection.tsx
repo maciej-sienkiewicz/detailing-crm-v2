@@ -54,7 +54,7 @@ const sampleNumber = (format: string, sequenceLength: number, randomLength: numb
 
 // Plain-language explanation of how the chosen format behaves.
 const behaviorOf = (format: string): string => {
-    if (usesRandom(format)) return 'Cyfry są losowane przy każdej wizycie — numer nie zdradza liczby wizyt.';
+    if (usesRandom(format)) return 'Cyfry są losowane przy każdej wizycie: numer nie zdradza liczby wizyt.';
     if (format.includes('{DD}')) return 'Licznik rośnie o 1 i resetuje się każdego dnia.';
     if (format.includes('{MM}')) return 'Licznik rośnie o 1 i resetuje się co miesiąc.';
     if (format.includes('{YYYY}') || format.includes('{YY}')) return 'Licznik rośnie o 1 i resetuje się co rok.';
@@ -107,7 +107,7 @@ const Subtitle = styled.p`
     margin: 0 0 20px;
 `;
 
-// Hero preview — the single source of truth for "what will my numbers look like".
+// Hero preview: the single source of truth for "what will my numbers look like".
 const Hero = styled.div<{ $invalid?: boolean }>`
     border: 1px solid ${p => (p.$invalid ? '#fecaca' : '#e2e8f0')};
     background: ${p => (p.$invalid ? '#fef2f2' : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)')};
@@ -154,7 +154,7 @@ const GroupLabel = styled.div`
     margin-bottom: 8px;
 `;
 
-// Style cards — radio-group semantics, concrete examples instead of syntax.
+// Style cards: radio-group semantics, concrete examples instead of syntax.
 const CardGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -249,7 +249,7 @@ const FieldHint = styled.div`
     color: #94a3b8;
 `;
 
-// Stepper for digit counts — no free-text quirks, one obvious way to change it.
+// Stepper for digit counts: no free-text quirks, one obvious way to change it.
 const Stepper = styled.div`
     display: inline-flex;
     align-items: stretch;
@@ -387,7 +387,7 @@ export const VisitNumberingSection = () => {
     const [customSelected, setCustomSelected] = useState(false);
     const [saved, setSaved] = useState<{ format: string; sequenceLength: number; randomLength: number } | null>(null);
 
-    // Seeding local editable state from the loaded query result, once — guarded on
+    // Seeding local editable state from the loaded query result, once, guarded on
     // `saved` (state, not a ref) so this stays the React-sanctioned "adjust state
     // during render" pattern rather than an effect-driven cascade.
     if (config && saved === null) {
@@ -451,7 +451,7 @@ export const VisitNumberingSection = () => {
 
                 <Hero $invalid={!!error}>
                     <HeroLabel>Tak będzie wyglądał numer wizyty</HeroLabel>
-                    <HeroNumber>{preview ?? '—'}</HeroNumber>
+                    <HeroNumber>{preview ?? '-'}</HeroNumber>
                     {error ? <HeroError>{error}</HeroError> : <HeroCaption>{behaviorOf(format)}</HeroCaption>}
                 </Hero>
 
@@ -488,7 +488,7 @@ export const VisitNumberingSection = () => {
                             Własny format
                             <CardCheck $selected={isCustom}>{isCustom ? '✓' : ''}</CardCheck>
                         </CardName>
-                        <CardExample>{isCustom && preview ? preview : '…'}</CardExample>
+                        <CardExample>{isCustom && preview ? preview : '...'}</CardExample>
                         <CardDesc>zbuduj z dostępnych znaczników</CardDesc>
                     </StyleCard>
                 </CardGrid>

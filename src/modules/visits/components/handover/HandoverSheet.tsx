@@ -53,11 +53,11 @@ interface HandoverSheetProps {
 }
 
 /**
- * Wydanie pojazdu — jeden ekran zamiast trzystopniowego kreatora.
+ * Wydanie pojazdu: jeden ekran zamiast trzystopniowego kreatora.
  *
  * Wszystkie decyzje mają domyślne odpowiedzi (forma zapłaty, dokument, nabywca
- * z kartoteki), więc typowe wydanie to jedno kliknięcie w stopce. Szczegóły —
- * nabywca i pozycje faktury — są zwinięte i edytowalne w tym samym oknie;
+ * z kartoteki), więc typowe wydanie to jedno kliknięcie w stopce. Szczegóły
+ * (nabywca i pozycje faktury) są zwinięte i edytowalne w tym samym oknie;
  * nie ma tu już modala nad modalem.
  *
  * Po zapisie okno nie znika: pokazuje potwierdzenie z numerem dokumentu
@@ -74,21 +74,21 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     const customerLabel = `${visit.customer.firstName} ${visit.customer.lastName}`.trim();
 
     // Imię i nazwisko trafia na protokół jako podpisujący. Bez uprawnienia do
-    // danych osobowych dostajemy z backendu maskę — pusta wartość wyłącza
+    // danych osobowych dostajemy z backendu maskę: pusta wartość wyłącza
     // wysyłkę do podpisu, zamiast wpisać „***" na dokument.
     const signerName = isPiiMasked(joinPiiName(visit.customer.firstName, visit.customer.lastName))
         ? ''
         : customerLabel;
 
     // Zamknięcie w trakcie zapisu zostawiłoby użytkownika bez informacji, czy
-    // wizyta została zakończona — blokujemy do czasu odpowiedzi serwera.
+    // wizyta została zakończona, więc blokujemy do czasu odpowiedzi serwera.
     const handleClose = () => {
         if (handover.isSubmitting) return;
         onClose();
     };
 
     // `signatureObtained` w payloadzie odzwierciedla realny stan podpisu
-    // protokołu, a nie — jak w starym kreatorze — twardą wartość `true`.
+    // protokołu, a nie (jak w starym kreatorze) twardą wartość `true`.
     const { patch } = handover;
     const handleSignedChange = useCallback(
         (protocolSigned: boolean) => patch({ protocolSigned }),
@@ -135,7 +135,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                 problemsIn={handover.problemsIn}
                             />
                         ) : (
-                            // Moment wysokiej intencji: zamiast sekcji rozliczenia —
+                            // Moment wysokiej intencji: zamiast sekcji rozliczenia,
                             // propozycja modułu finansowego, z zachowaną ścieżką
                             // „wydaj pojazd bez faktury" (operacja rdzeniowa BASIC).
                             !handover.isFreeVisit && (
@@ -166,7 +166,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         onClick={() => handover.submit()}
                     >
                         {handover.isSubmitting
-                            ? 'Wydawanie…'
+                            ? 'Wydawanie...'
                             : submitLabel(
                                 handover.state.documentType,
                                 handover.isFreeVisit,

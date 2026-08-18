@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, []);
 
-  // Po każdym 403 z API odśwież efektywne uprawnienia (permissions z /auth/me) —
+  // Po każdym 403 z API odśwież efektywne uprawnienia (permissions z /auth/me):
   // rola mogła zostać zmieniona w innej sesji, a UI ukrywa to, czego użytkownik
   // nie może zrobić. Debounce chroni przed burstem 403 z jednego widoku.
   useEffect(() => {

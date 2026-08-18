@@ -9,11 +9,11 @@ import type { AddOnKey, PaywallErrorResponse } from '../types';
 /**
  * Global safety net for the HTTP 402 MODULE_REQUIRED contract.
  *
- * Mounted once (App). Fires ONLY for mutations — background reads fail silently
+ * Mounted once (App). Fires ONLY for mutations; background reads fail silently
  * (see apiClient) so simply visiting a view never pops a paywall. When a
  * deliberate action is rejected because the studio lacks a module, this dialog
  * turns the dead end into a purchase path using the same styled card as the
- * full-page ModuleGate — every "module missing" surface looks identical.
+ * full-page ModuleGate: every "module missing" surface looks identical.
  */
 export function PaywallListener() {
     const [payload, setPayload] = useState<PaywallErrorResponse | null>(null);

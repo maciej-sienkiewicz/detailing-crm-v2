@@ -414,7 +414,7 @@ export const vehicleApi = {
             };
         }
 
-        // Step 1: Initiate upload — backend returns presigned S3 URL
+        // Step 1: Initiate upload (backend returns presigned S3 URL)
         const initiateResponse = await apiClient.post<VehicleDocumentUploadResponse>(
             `${BASE_PATH}/${vehicleId}/documents`,
             {

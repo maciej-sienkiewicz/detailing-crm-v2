@@ -1,5 +1,5 @@
 /**
- * Statistics Module — Premium Light Theme Constants
+ * Statistics Module: Premium Light Theme Constants
  * Clean, airy light-mode aesthetic with strong typographic hierarchy
  * and subtle elevation. Inspired by the Growth Engine's design language.
  */

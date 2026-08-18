@@ -14,7 +14,7 @@ const SIZE_MAP: Record<ModalSize, string> = {
 interface ModalShellProps {
     isOpen: boolean;
     onClose: () => void;
-    /** Preferred — sm=480px · md=560px · lg=640px · xl=800px */
+    /** Preferred: sm=480px · md=560px · lg=640px · xl=800px */
     size?: ModalSize;
     /** @deprecated Use size instead */
     maxWidth?: string;
@@ -22,7 +22,7 @@ interface ModalShellProps {
 }
 
 /**
- * ModalShell — canonical modal container for every modal in the app.
+ * ModalShell: canonical modal container for every modal in the app.
  *
  * Renders a portal, locks body scroll, handles Escape key and backdrop click.
  * Overlay covers the full viewport (sidebar included) with a blur backdrop.
@@ -55,7 +55,7 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, children }: ModalS
 
     // Keep the modal inside the *visible* region when the on-screen keyboard is
     // up. `position: fixed` resolves against the layout viewport, which iOS
-    // never shrinks for the keyboard — it shrinks the visual viewport instead —
+    // never shrinks for the keyboard (it shrinks the visual viewport instead),
     // so a vertically centered modal ends up hidden behind the keyboard.
     // While the keyboard is open, pin the overlay to the visual viewport and
     // align the modal to its top; restore the centered layout on close.

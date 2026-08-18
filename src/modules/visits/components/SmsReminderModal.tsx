@@ -486,19 +486,19 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
             <Body>
                 {readiness.blocking.length > 0 ? (
                     <SetupPanel>
-                        <SetupTitle>Zanim wyślesz — brakuje jeszcze kilku rzeczy</SetupTitle>
+                        <SetupTitle>Zanim wyślesz, brakuje jeszcze kilku rzeczy</SetupTitle>
                         <SetupList>
                             {readiness.blocking.map(req => (
                                 <SetupItem key={req.id}>
                                     <SetupDot />
-                                    <span><strong>{req.label}</strong> — {req.detail}</span>
+                                    <span><strong>{req.label}</strong>: {req.detail}</span>
                                 </SetupItem>
                             ))}
                         </SetupList>
                         <SetupHint>
                             {readiness.blocking.every(r => r.fixable)
                                 ? 'Możemy to ustawić teraz, bez opuszczania tej wizyty.'
-                                : 'Część z tego uzupełnisz w kartotece klienta — resztę ustawimy tutaj.'}
+                                : 'Część z tego uzupełnisz w kartotece klienta, resztę ustawimy tutaj.'}
                         </SetupHint>
                         <SharedButton
                             $variant="primary"
@@ -512,7 +512,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                 <>
                 {readiness.warnings.map(warn => (
                     <LowBalance key={warn.id}>
-                        <strong>Zostało {warn.detail} kredytów SMS</strong> — ta wiadomość zużyje 1.
+                        <strong>Zostało {warn.detail} kredytów SMS</strong>, ta wiadomość zużyje 1.
                         Możesz dokończyć wysyłkę i doładować później.
                         <LowBalanceAction type="button" onClick={() => setWizardOpen(true)}>
                             Doładuj teraz

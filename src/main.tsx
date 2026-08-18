@@ -7,7 +7,7 @@ import './index.css';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker
         .register('/logo-sw.js', { scope: '/' })
-        .catch(() => {/* SW is an enhancement – silently ignore failures */});
+        .catch(() => {/* SW is an enhancement, silently ignore failures */});
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

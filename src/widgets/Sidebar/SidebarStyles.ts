@@ -361,7 +361,7 @@ export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boo
         margin-bottom: 2px;
     }
 
-    /* Left accent indicator — sits at the container's left edge */
+    /* Left accent indicator: sits at the container's left edge */
     &::before {
         content: '';
         position: absolute;

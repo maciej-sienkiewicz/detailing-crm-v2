@@ -492,14 +492,14 @@ const RestartBtn = styled.button`
 const EXAMPLES = [
   'Klienci z BMW z oklejaniem PPF w ostatnim roku',
   'Osoby bez wizyty od ponad 6 miesięcy',
-  'Właściciele Audi – oferta ceramiki',
+  'Właściciele Audi - oferta ceramiki',
   'Klienci, którzy odwiedzili nas w 2025 roku',
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(iso?: string) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('pl-PL', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
@@ -608,7 +608,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
           <PromptTextarea
             ref={textareaRef}
             autoFocus
-            placeholder="Np. klienci posiadający BMW, którzy w ostatnim roku odwiedzili salon i mieli oklejany samochód folią PPF…"
+            placeholder="Np. klienci posiadający BMW, którzy w ostatnim roku odwiedzili salon i mieli oklejany samochód folią PPF..."
             value={promptText}
             onChange={e => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -645,7 +645,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
           <Dot $delay="0.18s" />
           <Dot $delay="0.36s" />
         </DotsRow>
-        <LoadingText>Przeszukiwanie bazy klientów…</LoadingText>
+        <LoadingText>Przeszukiwanie bazy klientów...</LoadingText>
         {lastPrompt && <PromptEcho>„{lastPrompt}"</PromptEcho>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 560 }}>
           {[90, 75, 82, 65].map((w, i) => (
@@ -759,7 +759,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
             <Input
               id="camp-title"
               type="text"
-              placeholder="Np. BMW PPF – oferta specjalna"
+              placeholder="Np. BMW PPF - oferta specjalna"
               value={title}
               onChange={e => setTitle(e.target.value)}
             />
@@ -778,7 +778,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
         <ConfigBottom>
           <ConfigNote>
             Odbiorcy: <strong>{selectedCount}</strong> z {customers.length}.
-            {!launchDate && ' Bez daty – możesz wysłać ręcznie.'}
+            {!launchDate && ' Bez daty, możesz wysłać ręcznie.'}
           </ConfigNote>
           <CreateBtn
             $disabled={isCreating || !title.trim() || selectedCount === 0}
@@ -794,7 +794,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
             ) : (
               <CheckCircle2 size={14} strokeWidth={2.5} />
             )}
-            {isCreating ? 'Zapisywanie…' : 'Zapisz kampanię'}
+            {isCreating ? 'Zapisywanie...' : 'Zapisz kampanię'}
           </CreateBtn>
         </ConfigBottom>
       </ConfigCard>

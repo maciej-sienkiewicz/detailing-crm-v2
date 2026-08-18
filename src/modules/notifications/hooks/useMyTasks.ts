@@ -12,7 +12,7 @@ export function useMyTasks() {
 }
 
 /**
- * Unread badge count for the "Powiadomienia" sidebar item. Polls every 60 s —
+ * Unread badge count for the "Powiadomienia" sidebar item. Polls every 60 s:
  * enable only for users who actually see the tab (no dashboard access), so the
  * request never fires for everyone else.
  */

@@ -6,7 +6,7 @@ import { invalidateAnalytics } from './useAnalytics';
 export const useProfileActions = () => {
     const queryClient = useQueryClient();
 
-    // Zmiany w profilach unieważniają też analitykę – ranking i benchmark
+    // Zmiany w profilach unieważniają też analitykę: ranking i benchmark
     // muszą odzwierciedlać aktualny koszyk profili
     const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: [INSTAGRAM_PROFILES_KEY] });

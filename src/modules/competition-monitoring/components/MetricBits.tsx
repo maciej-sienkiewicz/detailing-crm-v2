@@ -4,7 +4,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { MetricTriple } from '../types';
 
 /**
- * Współdzielone klocki UI modułu. Zasada: żadna liczba bez kontekstu –
+ * Współdzielone klocki UI modułu. Zasada: żadna liczba bez kontekstu,
  * każda metryka renderowana jest z deltą i/lub odniesieniem do konkurencji,
  * opisanym prostym językiem (bez żargonu analitycznego).
  */
@@ -12,7 +12,7 @@ import type { MetricTriple } from '../types';
 // ─── Formatery ────────────────────────────────────────────────────────────────
 
 export const formatNumber = (value: number | null | undefined, decimals = 0): string => {
-    if (value === null || value === undefined) return '—';
+    if (value === null || value === undefined) return '-';
     if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} mln`;
     if (Math.abs(value) >= 10_000) return `${(value / 1000).toFixed(0)} tys.`;
     if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)} tys.`;

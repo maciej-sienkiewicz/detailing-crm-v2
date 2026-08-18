@@ -13,7 +13,7 @@ import type { PaymentOrder } from '../types';
  *
  * The P24 webhook settles the order server-side, so this page only polls the
  * order status until it flips from PENDING to PAID/FAILED. It must be reachable
- * for EXPIRED studios — the route is registered without the SubscriptionGate.
+ * for EXPIRED studios: the route is registered without the SubscriptionGate.
  */
 
 const POLL_INTERVAL_MS = 2500;
@@ -147,7 +147,7 @@ export function PaymentResultPage() {
                     return;
                 }
             } catch {
-                // transient error — keep polling until timeout
+                // transient error, keep polling until timeout
             }
 
             if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) {
@@ -169,12 +169,12 @@ export function PaymentResultPage() {
                 {state === 'polling' && (
                     <>
                         <Spinner />
-                        <Title>Przetwarzamy Twoją płatność…</Title>
+                        <Title>Przetwarzamy Twoją płatność...</Title>
                         <Text>
-                            Czekamy na potwierdzenie z Przelewy24. Zwykle trwa to kilka sekund —
+                            Czekamy na potwierdzenie z Przelewy24. Zwykle trwa to kilka sekund,
                             nie zamykaj tej strony.
                         </Text>
-                        {order && <Amount>{order.description} — {formatCents(order.amountCents)}</Amount>}
+                        {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
                     </>
                 )}
 
@@ -184,7 +184,7 @@ export function PaymentResultPage() {
                         <Title>Płatność zakończona pomyślnie</Title>
                         <Text>
                             {order?.typeDisplayName}: {order?.description}. Twoje konto zostało
-                            zaktualizowane — możesz wrócić do pracy.
+                            zaktualizowane, możesz wrócić do pracy.
                         </Text>
                         {order && <Amount>{formatCents(order.amountCents)}</Amount>}
                         <PrimaryBtn onClick={goToApp}>Przejdź do aplikacji</PrimaryBtn>
@@ -196,7 +196,7 @@ export function PaymentResultPage() {
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
                         <Title>Płatność nie powiodła się</Title>
                         <Text>
-                            {order?.failureReason ?? 'Transakcja została odrzucona lub anulowana. Żadna kwota nie została pobrana — możesz spróbować ponownie.'}
+                            {order?.failureReason ?? 'Transakcja została odrzucona lub anulowana. Żadna kwota nie została pobrana, możesz spróbować ponownie.'}
                         </Text>
                         <PrimaryBtn onClick={goToApp}>Wróć do ustawień</PrimaryBtn>
                     </>

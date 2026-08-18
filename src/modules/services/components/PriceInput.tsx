@@ -135,7 +135,7 @@ export const PriceInput = ({
     const [grossFocused, setGrossFocused] = useState(false);
 
     // When a blur handler formats the fields itself, this flag tells the
-    // sync effect to skip its own recalculation for that run — prevents the
+    // sync effect to skip its own recalculation for that run, preventing the
     // net→gross roundtrip from overwriting an exact gross the user typed.
     const skipSyncRef = useRef(false);
 

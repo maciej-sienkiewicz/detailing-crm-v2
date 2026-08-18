@@ -6,7 +6,7 @@ import type { MessageKey } from './types';
  * A message rule ships disabled with an empty body, which is the trap the whole
  * activation flow exists to close: nothing warns you, the send just never happens.
  * These let a studio switch a message on by picking a text instead of writing one,
- * and every token here is on the message's allowed list — see MESSAGES in catalog.ts.
+ * and every token here is on the message's allowed list; see MESSAGES in catalog.ts.
  */
 export const STARTER_SMS: Partial<Record<MessageKey, string[]>> = {
     preVisit: [

@@ -336,7 +336,7 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                                 .map((p, i, arr) => (
                                     <React.Fragment key={p}>
                                         {i > 0 && arr[i - 1] !== p - 1 && (
-                                            <span style={{ color: st.textMuted, fontSize: st.fontSm }}>…</span>
+                                            <span style={{ color: st.textMuted, fontSize: st.fontSm }}>...</span>
                                         )}
                                         <PageButton $isActive={p === page} onClick={() => setPage(p)}>
                                             {p}

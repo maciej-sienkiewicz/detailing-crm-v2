@@ -79,7 +79,7 @@ const Image = styled.img`
     display: block;
     /* Explicit viewport-relative limits so the image always fits without
        relying on parent height being definite (which it often is not in
-       a flex chain). object-fit: contain preserves aspect ratio — nothing
+       a flex chain). object-fit: contain preserves aspect ratio: nothing
        is ever cropped. */
     max-width: calc(100vw - 180px);
     max-height: calc(100dvh - 100px);

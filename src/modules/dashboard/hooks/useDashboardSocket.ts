@@ -4,7 +4,7 @@
  * Updates the "recent calls" section of the dashboard TanStack Query cache.
  *
  * Note: the NEW_LEAD toast is shown globally by useLeadSocket (mounted in the
- * Sidebar for the whole session), so this hook must not show its own toast —
+ * Sidebar for the whole session), so this hook must not show its own toast:
  * both hooks listen on the same topic and doing so would double the
  * notification whenever the dashboard is open.
  */

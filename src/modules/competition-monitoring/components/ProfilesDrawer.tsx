@@ -13,7 +13,7 @@ import { SuggestionsSection } from './SuggestionsSection';
 /**
  * Panel zarządzania obserwowanymi profilami (drawer z prawej strony).
  * Tu mieszka moderacja (zatwierdź/odrzuć), oznaczanie własnego profilu
- * i usuwanie – z potwierdzeniem, bo kasuje dane analityczne.
+ * i usuwanie (z potwierdzeniem, bo kasuje dane analityczne).
  */
 
 const Overlay = styled.div`
@@ -185,12 +185,12 @@ export const ProfilesDrawer: React.FC<{
                 </Head>
                 <Body>
                     <HintText>
-                        Dodaj 3–5 konkurentów z okolicy i oznacz gwiazdką własny profil – wtedy pokażemy
+                        Dodaj 3-5 konkurentów z okolicy i oznacz gwiazdką własny profil, wtedy pokażemy
                         Twoje miejsce w rankingu.{' '}
                         <a href="#" onClick={e => { e.preventDefault(); onAddProfile(); }}>Dodaj profil</a>
                     </HintText>
 
-                    {isLoading && <HintText>Wczytywanie…</HintText>}
+                    {isLoading && <HintText>Wczytywanie...</HintText>}
                     {!isLoading && profiles.length === 0 && (
                         <HintText>Nie obserwujesz jeszcze żadnych profili.</HintText>
                     )}
@@ -211,7 +211,7 @@ export const ProfilesDrawer: React.FC<{
 
                             {profile.apiError && (
                                 <ApiErrorNote>
-                                    Nie udało się pobrać danych tego profilu – sprawdź, czy nazwa jest poprawna.
+                                    Nie udało się pobrać danych tego profilu, sprawdź, czy nazwa jest poprawna.
                                 </ApiErrorNote>
                             )}
 

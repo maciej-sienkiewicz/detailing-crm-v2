@@ -145,7 +145,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="primary" $size="sm" onClick={handleSubmit} disabled={isAdding}>
-                    {isAdding ? 'Dodawanie…' : 'Dodaj profil'}
+                    {isAdding ? 'Dodawanie...' : 'Dodaj profil'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

@@ -1,7 +1,7 @@
 // Shared visual primitives for the customer/vehicle summary cards.
 //
 // Design language: quiet reference card. The default (selected) state carries
-// no badge and no loud chrome — identity row with an avatar/tile, meta with
+// no badge and no loud chrome: identity row with an avatar/tile, meta with
 // inline icons, and a hairline-separated row of quiet text actions. Exceptional
 // states (new / locally modified / ownership change) are marked with a small
 // colored-dot tag, and their consequences are spelled out in the notice bar,
@@ -164,7 +164,7 @@ export const PlateChip = styled.span`
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-/** Quiet text-action row under a hairline — the card's footer. */
+/** Quiet text-action row under a hairline: the card's footer. */
 export const CardActions = styled.div`
     display: flex;
     flex-wrap: wrap;

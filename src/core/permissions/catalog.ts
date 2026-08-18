@@ -12,7 +12,7 @@ export const PERMISSIONS = {
     VISITS_DELETE: 'VISITS_DELETE',
     VISITS_SERVICE_PRICES_VIEW: 'VISITS_SERVICE_PRICES_VIEW',
     VISITS_MEDIA_DELETE: 'VISITS_MEDIA_DELETE',
-    // Klienci i pojazdy — sekcja modułu „Wizyty i kalendarz” (nie osobny moduł)
+    // Klienci i pojazdy: sekcja modułu „Wizyty i kalendarz” (nie osobny moduł)
     CUSTOMERS_VIEW: 'CUSTOMERS_VIEW',
     CUSTOMERS_DELETE: 'CUSTOMERS_DELETE',
     // Finanse
@@ -35,7 +35,7 @@ export const PERMISSIONS = {
     TASKS_MANAGE: 'TASKS_MANAGE',
     // Zlecenia zbiorcze
     BATCH_ORDERS: 'BATCH_ORDERS',
-    // Historia aktywności — feed przecina wszystkie moduły i pokazuje również
+    // Historia aktywności: feed przecina wszystkie moduły i pokazuje również
     // zdarzenia kadrowo-płacowe oraz bezpieczeństwa, więc nie może jechać na
     // uprawnieniu żadnego pojedynczego modułu. Właściciel ma dostęp zawsze.
     AUDIT_VIEW: 'AUDIT_VIEW',
@@ -51,7 +51,7 @@ export type PermissionRequirement = PermissionCode | PermissionCode[];
 
 /**
  * A requirement that may additionally be owner-only. No permission code can
- * grant an OWNER_ONLY area — it matches exactly the studio owner
+ * grant an OWNER_ONLY area: it matches exactly the studio owner
  * (`user.permissions == null`). Used for billing, subscription and
  * company-wide configuration surfaces.
  */

@@ -9,9 +9,9 @@ interface CompanyPayload {
 }
 
 /**
- * Pure state → API mapping. The mode is read off the state kind — never inferred
- * from which fields happen to be filled — so the backend gets an unambiguous
- * instruction for the Customer–Vehicle–Visit relations.
+ * Pure state → API mapping. The mode is read off the state kind, never inferred
+ * from which fields happen to be filled, so the backend gets an unambiguous
+ * instruction for the Customer-Vehicle-Visit relations.
  *
  * Returns null for transient states (EDITING/CHOOSING): the caller must block
  * the save and point the user at the unresolved card.
@@ -70,7 +70,7 @@ export function toVehicleIdentity(state: VehicleSectionState): VehicleIdentity |
                 },
             };
         case 'NEW': {
-            // An untouched auto-opened form degrades to "no vehicle" — the empty-garage
+            // An untouched auto-opened form degrades to "no vehicle": the empty-garage
             // auto-progression must not make the vehicle silently mandatory.
             const d = state.draft;
             const empty = !d.brand.trim() && !d.model.trim() && !(d.licensePlate ?? '').trim();
