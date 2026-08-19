@@ -4,14 +4,17 @@
 // zamknięcie jako „przegrany" wymusza wybór powodu ze słownika.
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
-import { BarChart3, Check, Mail, Minus, Phone, Plus, Search, User, X } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { BarChart3, Car, Check, Loader2, Mail, Minus, Phone, Plus, Search, User, X } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
 import { useServices } from '@/modules/services';
+import { useVehicleMetadata } from '@/modules/vehicles/hooks/useVehicleMetadata';
 import { useToast } from '@/common/components/Toast';
 import {
     useChangeLeadStatus,
+    useLeadsSocket,
+    useUpdateLeadVehicle,
     useLead,
     useLeadDictionaries,
     useLeadHistory,
@@ -35,6 +38,12 @@ import {
     formatGrosze,
     formatRelativeTime,
 } from '../components/shared';
+
+/** „Marka Model" albo null, gdy nie rozpoznano — jedno miejsce na tę składankę. */
+const formatVehicle = (lead: { vehicleBrand: string | null; vehicleModel: string | null }): string | null =>
+    lead.vehicleBrand
+        ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}`
+        : null;
 
 const STATUS_BADGE_VARIANT: Record<LeadStatus, 'success' | 'error' | 'warning' | 'info' | 'primary'> = {
     NEW: 'primary',
@@ -113,6 +122,30 @@ const HeadRow = styled.div`
     background: ${p => p.theme.colors.surfaceAlt};
     border-bottom: 1px solid ${p => p.theme.colors.border};
     min-width: 780px;
+`;
+
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
+
+/**
+ * Rozpoznawanie auta chodzi w tle, więc komórka ma trzy stany: pracuje (spinner),
+ * zna odpowiedź (marka i model) albo nie znalazła nic („—"). Pusta komórka bez
+ * spinnera i pusta komórka w trakcie pracy wyglądałyby tak samo, a to dwie różne
+ * informacje dla kogoś, kto właśnie oznaczył leada.
+ */
+const VehicleSpinner = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+
+    svg {
+        width: 13px;
+        height: 13px;
+        animation: ${spin} 900ms linear infinite;
+    }
 `;
 
 /** Tagi w wierszu: dwa pierwsze plus licznik reszty — kolumna ma pozostać wąska. */
@@ -263,6 +296,35 @@ const DrawerSection = styled.section`
         letter-spacing: 0.05em;
         text-transform: uppercase;
         color: ${p => p.theme.colors.textMuted};
+    }
+`;
+
+const VehicleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: ${p => p.theme.colors.text};
+
+    svg { color: ${p => p.theme.colors.textMuted}; flex-shrink: 0; }
+    .grow { flex: 1; min-width: 0; }
+    .muted { color: ${p => p.theme.colors.textMuted}; }
+`;
+
+const VehiclePickers = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    select {
+        width: 100%;
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.md};
+        padding: 8px 10px;
+        font-size: 13px;
+        font-family: inherit;
+        color: ${p => p.theme.colors.text};
+        background: #ffffff;
     }
 `;
 
@@ -422,10 +484,14 @@ export default function LeadsView() {
     const [lostNote, setLostNote] = useState('');
     const [editingServices, setEditingServices] = useState<EditableServiceItem[] | null>(null);
     const [serviceSearch, setServiceSearch] = useState('');
+    // null = podgląd, obiekt = edycja pojazdu. Marka i model wybierane z katalogu,
+    // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
+    const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
 
     const selectedLeadId = searchParams.get('lead');
     const selectLead = (leadId: string | null) => {
         setEditingServices(null);
+        setEditingVehicle(null);
         setSearchParams(leadId ? { lead: leadId } : {}, { replace: true });
     };
 
@@ -433,6 +499,17 @@ export default function LeadsView() {
     const { data: lead } = useLead(selectedLeadId);
     const { data: history } = useLeadHistory(selectedLeadId);
     const { data: dictionaries } = useLeadDictionaries();
+    // Ten sam katalog, którym backend kanonizuje odczyt z korespondencji — ręczna
+    // korekta nie ma prawa wprowadzić wartości, których backend potem nie przyjmie.
+    const { data: vehicleCatalog } = useVehicleMetadata();
+    const vehicleBrands = useMemo(
+        () => (vehicleCatalog ?? []).map((entry) => entry.marka),
+        [vehicleCatalog]
+    );
+    const vehicleModels = useMemo(
+        () => (vehicleCatalog ?? []).find((entry) => entry.marka === editingVehicle?.brand)?.modele ?? [],
+        [vehicleCatalog, editingVehicle?.brand]
+    );
     const { services: catalog } = useServices({
         search: serviceSearch,
         page: 1,
@@ -440,13 +517,39 @@ export default function LeadsView() {
         showInactive: false,
     });
     const changeStatus = useChangeLeadStatus();
+    const updateVehicle = useUpdateLeadVehicle();
     const updateServices = useUpdateLeadServices();
     const { showSuccess, showError } = useToast();
+    // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
+    // zamienia się w wynik bez odświeżania strony.
+    useLeadsSocket();
 
     const editedTotal = useMemo(
         () => (editingServices ?? []).reduce((sum, item) => sum + item.priceGross * item.quantity, 0),
         [editingServices]
     );
+
+    const saveVehicle = (leadId: string) => {
+        if (!editingVehicle) return;
+        updateVehicle.mutate(
+            {
+                leadId,
+                vehicleBrand: editingVehicle.brand || null,
+                vehicleModel: editingVehicle.model || null,
+            },
+            {
+                onSuccess: () => {
+                    setEditingVehicle(null);
+                    showSuccess('Pojazd zapisany');
+                },
+                onError: (error) => {
+                    const message =
+                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    showError('Nie udało się zapisać pojazdu', message ?? 'Spróbuj ponownie');
+                },
+            }
+        );
+    };
 
     const requestStatus = (leadId: string, status: LeadStatus) => {
         if (status === 'LOST') {
@@ -558,9 +661,13 @@ export default function LeadsView() {
                                 </span>
                             </span>
                             <span className="vehicle">
-                                {item.vehicleBrand
-                                    ? `${item.vehicleBrand}${item.vehicleModel ? ` ${item.vehicleModel}` : ''}`
-                                    : '—'}
+                                {item.vehicleDetectionStatus === 'PENDING' ? (
+                                    <VehicleSpinner title="Rozpoznajemy auto z korespondencji">
+                                        <Loader2 /> Rozpoznaję…
+                                    </VehicleSpinner>
+                                ) : (
+                                    formatVehicle(item) ?? '—'
+                                )}
                             </span>
                             <TagCell>
                                 {item.tagLabels.length === 0 && <span className="none">—</span>}
@@ -613,6 +720,74 @@ export default function LeadsView() {
                                 <X size={18} />
                             </button>
                         </DrawerHeader>
+
+                        <DrawerSection>
+                            <h4>Pojazd</h4>
+                            {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
+                                <VehicleRow className="muted">
+                                    <Loader2 size={14} style={{ animation: 'none' }} />
+                                    Rozpoznajemy auto z korespondencji…
+                                </VehicleRow>
+                            ) : editingVehicle === null ? (
+                                <VehicleRow>
+                                    <Car size={15} />
+                                    <span className="grow">
+                                        {formatVehicle(lead) ?? <span className="muted">Nie rozpoznano auta</span>}
+                                    </span>
+                                    <IconButton
+                                        onClick={() => setEditingVehicle({
+                                            brand: lead.vehicleBrand ?? '',
+                                            model: lead.vehicleModel ?? '',
+                                        })}
+                                    >
+                                        {lead.vehicleBrand ? 'Zmień' : 'Uzupełnij'}
+                                    </IconButton>
+                                </VehicleRow>
+                            ) : (
+                                <>
+                                    <VehiclePickers>
+                                        <select
+                                            value={editingVehicle.brand}
+                                            onChange={(event) => setEditingVehicle({
+                                                brand: event.target.value,
+                                                // Zmiana marki zeruje model: modele są per marka,
+                                                // a zostawiony stary nie przeszedłby walidacji.
+                                                model: '',
+                                            })}
+                                            aria-label="Marka"
+                                        >
+                                            <option value="">Marka…</option>
+                                            {vehicleBrands.map((brand) => (
+                                                <option key={brand} value={brand}>{brand}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={editingVehicle.model}
+                                            onChange={(event) => setEditingVehicle({
+                                                brand: editingVehicle.brand,
+                                                model: event.target.value,
+                                            })}
+                                            disabled={!editingVehicle.brand}
+                                            aria-label="Model"
+                                        >
+                                            <option value="">Model…</option>
+                                            {vehicleModels.map((model) => (
+                                                <option key={model} value={model}>{model}</option>
+                                            ))}
+                                        </select>
+                                    </VehiclePickers>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <PrimaryButton
+                                            onClick={() => saveVehicle(lead.id)}
+                                            disabled={updateVehicle.isPending}
+                                        >
+                                            {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                                        </PrimaryButton>
+                                        <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
+                                    </div>
+                                </>
+                            )}
+                        </DrawerSection>
 
                         <DrawerSection>
                             <h4>Status</h4>

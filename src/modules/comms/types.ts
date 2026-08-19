@@ -194,9 +194,11 @@ export interface Lead {
     /** Kody tagów — oś „o co pytają" w analityce; lead może mieć ich kilka. */
     tags: string[];
     tagLabels: string[];
-    /** Rozpoznane z korespondencji; null, gdy klient nie podał auta. */
+    /** Wartości z katalogu pojazdów; null, gdy nie rozpoznano. */
     vehicleBrand: string | null;
     vehicleModel: string | null;
+    /** PENDING = rozpoznanie w toku (spinner w tabeli), DONE = zakończone. */
+    vehicleDetectionStatus: 'PENDING' | 'DONE';
     lostReasonCode: string | null;
     lostReasonLabel: string | null;
     lostReason: string | null;
