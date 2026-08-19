@@ -12,6 +12,19 @@ import { setPiiAccessFromHeader } from '@/common/pii';
 declare module 'axios' {
     export interface AxiosRequestConfig {
         skipErrorToast?: boolean;
+        /**
+         * Per-request opt-out from the automatic bounce to `/login` on 401.
+         *
+         * For BACKGROUND calls the user never made: telemetry heartbeats, silent polls.
+         * Without it, a request the user did not trigger decides to throw them out of a
+         * half-filled form. Logging out has to be a consequence of what the user did —
+         * their own action hitting a dead session, or the idle lock — not of a timer
+         * ticking somewhere in the background.
+         *
+         * Never set it on a call whose result the user is waiting for: there the redirect
+         * is the correct answer to an expired session.
+         */
+        skipAuthRedirect?: boolean;
     }
 }
 
@@ -55,8 +68,10 @@ apiClient.interceptors.response.use(
                 || currentPath.startsWith('/m/sig/');
             // PIN verification endpoints return 401 for wrong PIN; caller handles retries, don't bounce to /login
             const isPinEndpoint = requestUrl.includes('/v1/pin');
+            // Background calls the user never made must not eject them from the app.
+            const isBackgroundCall = error.config?.skipAuthRedirect === true;
 
-            if (!isPublicPath && !isPinEndpoint) {
+            if (!isPublicPath && !isPinEndpoint && !isBackgroundCall) {
                 window.location.href = '/login';
             }
         }

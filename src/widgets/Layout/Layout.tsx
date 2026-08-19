@@ -6,6 +6,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
 import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
+import { SessionTelemetryProvider } from '@/core/telemetry';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 
 const LayoutContainer = styled.div`
@@ -62,18 +63,24 @@ export const Layout = ({ children }: LayoutProps) => {
     keyRef.current += 1;
     const flashKey = keyRef.current;
 
+    // SessionTelemetryProvider siedzi wewnątrz IdleTimeoutProvider, bo pomiar czasu pracy
+    // musi wiedzieć o zablokowanym ekranie, i wewnątrz routera, bo raportuje bieżącą trasę.
+    // Layout renderuje się wyłącznie dla zalogowanego użytkownika, więc telemetria nie
+    // startuje na ekranie logowania ani na stronach publicznych (podpis, karta wizyty).
     return (
         <IdleTimeoutProvider>
-            <CalendarNavigationProvider>
-                <LayoutContainer>
-                    <Sidebar />
-                    <ContentWrapper $isCollapsed={isCollapsed}>
-                        {children}
-                        <RouteFlash key={`${pathname}-${flashKey}`} />
-                    </ContentWrapper>
-                </LayoutContainer>
-                <CalendarNavigationOverlay />
-            </CalendarNavigationProvider>
+            <SessionTelemetryProvider>
+                <CalendarNavigationProvider>
+                    <LayoutContainer>
+                        <Sidebar />
+                        <ContentWrapper $isCollapsed={isCollapsed}>
+                            {children}
+                            <RouteFlash key={`${pathname}-${flashKey}`} />
+                        </ContentWrapper>
+                    </LayoutContainer>
+                    <CalendarNavigationOverlay />
+                </CalendarNavigationProvider>
+            </SessionTelemetryProvider>
         </IdleTimeoutProvider>
     );
 };
