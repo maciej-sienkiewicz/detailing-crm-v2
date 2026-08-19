@@ -4,9 +4,22 @@ import { UserSwitcherPanel } from '@/modules/pin-switcher';
 
 interface IdleTimeoutContextType {
     resetTimer: () => void;
+    /**
+     * Whether the screen is currently locked behind the user-switcher panel.
+     *
+     * Exposed for session telemetry: a locked screen is the one moment when we know for
+     * certain nobody is working, so the time-spent measurement must not count mouse
+     * movement over the lock overlay as engaged time. Reading the sessionStorage key
+     * directly from the telemetry module would couple it to this file's internals; a
+     * context value is the seam that is meant to be depended on.
+     */
+    isLocked: boolean;
 }
 
-const IdleTimeoutContext = createContext<IdleTimeoutContextType>({ resetTimer: () => {} });
+const IdleTimeoutContext = createContext<IdleTimeoutContextType>({
+    resetTimer: () => {},
+    isLocked: false,
+});
 
 export const useIdleTimeout = () => useContext(IdleTimeoutContext);
 
@@ -83,7 +96,7 @@ export const IdleTimeoutProvider = ({ children }: Props) => {
     };
 
     return (
-        <IdleTimeoutContext.Provider value={{ resetTimer }}>
+        <IdleTimeoutContext.Provider value={{ resetTimer, isLocked }}>
             {children}
             {isLocked && (
                 <UserSwitcherPanel onClose={handleUnlock} lockMode />
