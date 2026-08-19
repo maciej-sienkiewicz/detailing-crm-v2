@@ -21,10 +21,16 @@ const BASE = '/v1/ksef';
 export const ksefApi = {
   // ── Credentials ────────────────────────────────────────────────────────────
 
-  /** Zwraca null, gdy studio nie ma zapisanych poświadczeń (backend odpowiada 404). */
+  /**
+   * Zwraca null, gdy studio nie ma zapisanych poświadczeń (backend odpowiada 404).
+   *
+   * `skipErrorToast`: brak tokenu to normalny stan, nie błąd. Call sites (np. modal
+   * wydania pojazdu) renderują własną informację o braku automatycznej wysyłki,
+   * więc globalny toast "Wystąpił nieoczekiwany błąd" byłby mylący.
+   */
   getCredentials: async (): Promise<KsefCredentials | null> => {
     try {
-      const response = await apiClient.get(`${BASE}/credentials`);
+      const response = await apiClient.get(`${BASE}/credentials`, { skipErrorToast: true });
       return response.data;
     } catch (error: any) {
       if (error?.response?.status === 404) return null;
