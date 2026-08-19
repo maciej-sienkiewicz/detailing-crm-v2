@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader/PageHeader';
+import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import {
     useContractors,
     useCreateContractor,
@@ -9,6 +9,7 @@ import {
 } from '../hooks/useBatchOrders';
 import { ContractorFormModal } from '../components/ContractorFormModal';
 import { ContractorEntriesSection } from '../components/ContractorEntriesSection';
+import { BatchServicesModal } from '../components/BatchServicesModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import type { BatchContractor, ContractorRequest } from '../types';
 
@@ -104,6 +105,7 @@ export function BatchOrdersView() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editContractor, setEditContractor] = useState<BatchContractor | null>(null);
     const [confirmDeleteContractor, setConfirmDeleteContractor] = useState<BatchContractor | null>(null);
+    const [showServices, setShowServices] = useState(false);
 
     async function handleCreateContractor(data: ContractorRequest) {
         await createContractor.mutateAsync(data);
@@ -118,11 +120,16 @@ export function BatchOrdersView() {
         <ViewContainer>
             <PageHeader
                 title="Zlecenia zbiorcze"
-                subtitle="Zarządzaj kontrahentami B2B i rozliczeniami miesięcznymi"
+                subtitle="Zarządzaj kontrahentami B2B i ich rozliczeniami"
                 actions={
-                    <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)}>
-                        + Dodaj kontrahenta
-                    </PageHeaderPrimaryButton>
+                    <>
+                        <PageHeaderGhostButton onClick={() => setShowServices(true)}>
+                            Zarządzaj usługami
+                        </PageHeaderGhostButton>
+                        <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)}>
+                            + Dodaj kontrahenta
+                        </PageHeaderPrimaryButton>
+                    </>
                 }
             />
 
@@ -137,7 +144,7 @@ export function BatchOrdersView() {
                     <EmptyIcon>🤝</EmptyIcon>
                     <EmptyTitle>Brak kontrahentów</EmptyTitle>
                     <EmptyDesc>
-                        Dodaj pierwszego kontrahenta B2B, aby zacząć rejestrować zlecenia zbiorcze i generować miesięczne raporty.
+                        Dodaj pierwszego kontrahenta B2B, aby zacząć rejestrować zlecenia zbiorcze i generować zestawienia do rozliczenia.
                     </EmptyDesc>
                     <EmptyBtn onClick={() => setShowCreateModal(true)}>
                         Dodaj kontrahenta
@@ -156,6 +163,10 @@ export function BatchOrdersView() {
                         />
                     ))}
                 </ContractorsList>
+            )}
+
+            {showServices && (
+                <BatchServicesModal onClose={() => setShowServices(false)} />
             )}
 
             {showCreateModal && (

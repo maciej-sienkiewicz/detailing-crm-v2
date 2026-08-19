@@ -3,16 +3,17 @@ import type {
     BatchContractor,
     BatchOrderEntry,
     BatchOrderPhoto,
-    CloseHistoryRecord,
-    CloseMonthRequest,
-    CloseMonthResult,
+    BatchService,
+    BatchServiceRequest,
     ContractorsResponse,
     ContractorEntriesResponse,
     ContractorRequest,
     EntryRequest,
-    EntrySummary,
     PhotoUploadRequest,
     PhotoUploadResponse,
+    SettlementHistoryRecord,
+    SettlementRequest,
+    SettlementResult,
     VehicleSuggestion,
 } from '../types';
 
@@ -38,10 +39,18 @@ export const batchOrderApi = {
         await apiClient.delete(`${BASE}/contractors/${contractorId}`);
     },
 
-    getContractorEntries: async (contractorId: string, from?: string, to?: string): Promise<ContractorEntriesResponse> => {
+    getContractorEntries: async (
+        contractorId: string,
+        from?: string,
+        to?: string,
+        includeSettled = false,
+    ): Promise<ContractorEntriesResponse> => {
         const params = new URLSearchParams();
         if (from) params.append('from', from);
         if (to) params.append('to', to);
+        // Only sent when on: the backend defaults to hiding settled entries, and an
+        // explicit `false` on every request would make the default meaningless.
+        if (includeSettled) params.append('includeSettled', 'true');
         const query = params.toString() ? `?${params}` : '';
         const response = await apiClient.get<ContractorEntriesResponse>(`${BASE}/contractors/${contractorId}/entries${query}`);
         return response.data;
@@ -120,16 +129,39 @@ export const batchOrderApi = {
         window.URL.revokeObjectURL(url);
     },
 
-    closeMonth: async (contractorId: string, request: CloseMonthRequest): Promise<CloseMonthResult> => {
-        const response = await apiClient.post<CloseMonthResult>(`${BASE}/contractors/${contractorId}/close-month`, request);
+    settle: async (contractorId: string, request: SettlementRequest): Promise<SettlementResult> => {
+        const response = await apiClient.post<SettlementResult>(`${BASE}/contractors/${contractorId}/close-month`, request);
         return response.data;
     },
 
-    getCloseHistory: async (contractorId: string): Promise<CloseHistoryRecord[]> => {
-        const response = await apiClient.get<{ records: CloseHistoryRecord[] }>(
+    getSettlementHistory: async (contractorId: string): Promise<SettlementHistoryRecord[]> => {
+        const response = await apiClient.get<{ records: SettlementHistoryRecord[] }>(
             `${BASE}/contractors/${contractorId}/close-history`
         );
         return response.data.records;
+    },
+
+    // ── Service catalog ──────────────────────────────────────────────────────
+
+    listServices: async (q?: string): Promise<BatchService[]> => {
+        const response = await apiClient.get<{ services: BatchService[] }>(`${BASE}/services`, {
+            params: q ? { q } : undefined,
+        });
+        return response.data.services;
+    },
+
+    createService: async (data: BatchServiceRequest): Promise<BatchService> => {
+        const response = await apiClient.post<{ service: BatchService }>(`${BASE}/services`, data);
+        return response.data.service;
+    },
+
+    updateService: async (serviceId: string, data: BatchServiceRequest): Promise<BatchService> => {
+        const response = await apiClient.put<{ service: BatchService }>(`${BASE}/services/${serviceId}`, data);
+        return response.data.service;
+    },
+
+    deleteService: async (serviceId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/services/${serviceId}`);
     },
 
     downloadHistorySnapshot: async (historyId: string, contractorName: string): Promise<void> => {
@@ -139,7 +171,7 @@ export const batchOrderApi = {
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = `zamkniecie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`;
+        link.download = `rozliczenie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`;
         link.click();
         window.URL.revokeObjectURL(url);
     },

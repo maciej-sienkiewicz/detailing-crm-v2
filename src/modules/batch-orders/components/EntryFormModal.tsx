@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { Camera } from 'lucide-react';
@@ -13,8 +14,12 @@ import {
     FormErrorMsg, FormAlertBanner,
 } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
+import { MAX_2_DECIMALS, centsToInput, inputToCents } from '@/common/utils/moneyInput';
+import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
+import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { BatchOrderEntry, EntryRequest, ServiceItemRequest, VehicleSuggestion } from '../types';
+import { useBatchServices } from '../hooks/useBatchOrders';
+import type { BatchOrderEntry, BatchService, EntryRequest, ServiceItemRequest, VehicleSuggestion } from '../types';
 
 // ─── Service card ─────────────────────────────────────────────────────────────
 
@@ -210,6 +215,46 @@ const SuggestionItem = styled.li`
     }
 `;
 
+/**
+ * The service list is positioned against the viewport and portalled to <body>.
+ *
+ * The plate and VIN lists sit inside the scrolling modal body, which is survivable
+ * for a field near the top; the service rows are the last thing in a long form, so
+ * an absolutely-positioned list there gets cut off by the scroll container exactly
+ * when it is needed. Same trick as the check-in service picker.
+ */
+const FixedSuggestionList = styled(SuggestionList)`
+    position: fixed;
+    right: auto;
+    top: auto;
+    z-index: 3000;
+`;
+
+/** Service suggestions carry a price, so they need two columns rather than the
+ *  plate list's "code + description" shape. */
+const ServiceSuggestionItem = styled(SuggestionItem)`
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+`;
+
+const ServiceSuggestionName = styled.span`
+    color: #0f172a;
+    font-size: 14px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const ServiceSuggestionPrice = styled.span`
+    flex-shrink: 0;
+    font-size: 12.5px;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+`;
+
 // ─── VIN camera inline button ─────────────────────────────────────────────────
 
 const CameraInlineBtn = styled.button`
@@ -233,16 +278,6 @@ const CameraInlineBtn = styled.button`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function centsToDisplay(cents: number): string {
-    return (cents / 100).toFixed(2);
-}
-
-function displayToCents(value: string): number {
-    const parsed = parseFloat(value.replace(',', '.'));
-    if (isNaN(parsed)) return 0;
-    return Math.round(parsed * 100);
-}
-
 const VAT_OPTIONS = [
     { label: '23%', value: 23 },
     { label: '8%', value: 8 },
@@ -265,8 +300,8 @@ function emptyService(): ServiceFormItem {
 function serviceToForm(svc: { name: string; netAmountCents: number; grossAmountCents: number; vatRate: number }): ServiceFormItem {
     return {
         name: svc.name,
-        netDisplay: centsToDisplay(svc.netAmountCents),
-        grossDisplay: centsToDisplay(svc.grossAmountCents),
+        netDisplay: centsToInput(svc.netAmountCents),
+        grossDisplay: centsToInput(svc.grossAmountCents),
         vatRate: svc.vatRate,
     };
 }
@@ -304,6 +339,86 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
     const [vinUploading, setVinUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // The module's own service catalog, fetched once and filtered locally: it is a short
+    // per-studio list, and a request per keystroke would lag behind the typing it is
+    // meant to shortcut.
+    const { data: catalog } = useBatchServices();
+    const [suggestFor, setSuggestFor] = useState<number | null>(null);
+    const [suggestStyle, setSuggestStyle] = useState<React.CSSProperties>({});
+    const servicesRef = useRef<HTMLDivElement>(null);
+    const suggestAnchorRef = useRef<HTMLInputElement | null>(null);
+    const suggestListRef = useRef<HTMLUListElement>(null);
+
+    /** Anchors the list to the input, opening upward when the room is above. */
+    const positionSuggestions = useCallback(() => {
+        const el = suggestAnchorRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        const below = viewportHeight - rect.bottom - 12;
+        const above = rect.top - 12;
+        const openUp = below < 140 && above > below;
+        setSuggestStyle({
+            left: rect.left,
+            width: rect.width,
+            maxHeight: Math.min(220, Math.max(120, openUp ? above : below)),
+            ...(openUp
+                ? { bottom: viewportHeight - rect.top + 4 }
+                : { top: rect.bottom + 4 }),
+        });
+    }, []);
+
+    useEffect(() => {
+        if (suggestFor === null) return;
+        positionSuggestions();
+
+        function handleClick(e: MouseEvent) {
+            const target = e.target as Node;
+            const insideSection = servicesRef.current?.contains(target);
+            const insideList = suggestListRef.current?.contains(target);
+            if (!insideSection && !insideList) setSuggestFor(null);
+        }
+        // The list is fixed to the viewport, so it has to follow its anchor rather
+        // than ride along with the modal's scroll.
+        window.addEventListener('scroll', positionSuggestions, true);
+        window.addEventListener('resize', positionSuggestions);
+        window.visualViewport?.addEventListener('resize', positionSuggestions);
+        document.addEventListener('mousedown', handleClick);
+        return () => {
+            window.removeEventListener('scroll', positionSuggestions, true);
+            window.removeEventListener('resize', positionSuggestions);
+            window.visualViewport?.removeEventListener('resize', positionSuggestions);
+            document.removeEventListener('mousedown', handleClick);
+        };
+    }, [suggestFor, positionSuggestions]);
+
+    function openSuggestions(idx: number, input: HTMLInputElement | null) {
+        suggestAnchorRef.current = input;
+        setSuggestFor(idx);
+    }
+
+    function suggestionsFor(query: string): BatchService[] {
+        const q = query.trim().toLowerCase();
+        if (!catalog?.length) return [];
+        // An empty field offers the whole catalog (capped): on a fresh row the operator
+        // usually wants to pick, not to type.
+        const matches = q ? catalog.filter(s => s.name.toLowerCase().includes(q)) : catalog;
+        // An exact hit means the field is already what it would be set to; keeping the
+        // list open there would cover the price fields the operator is moving to next.
+        if (matches.length === 1 && matches[0].name.toLowerCase() === q) return [];
+        return matches.slice(0, 8);
+    }
+
+    function applySuggestion(idx: number, service: BatchService) {
+        updateService(idx, {
+            name: service.name,
+            netDisplay: centsToInput(service.netAmountCents),
+            grossDisplay: centsToInput(service.grossAmountCents),
+            vatRate: service.vatRate,
+        });
+        setSuggestFor(null);
+    }
 
     useEffect(() => {
         let cancelled = false;
@@ -391,24 +506,39 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
         setServices(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
     }
 
+    // Net drives gross and gross drives net, through the same helpers the visit service
+    // editor uses — including for ZW (vatRate -1), where the two are equal. The previous
+    // `vatRate >= 0` guard left the other field stale on a ZW position, so a service
+    // exempt from VAT could be saved with a gross that disagreed with its net.
     function updateNet(idx: number, val: string) {
-        const cents = displayToCents(val);
-        const { vatRate, grossDisplay } = services[idx];
-        let newGross = grossDisplay;
-        if (vatRate >= 0 && val !== '') {
-            newGross = centsToDisplay(vatRate === 0 ? cents : Math.round(cents * (1 + vatRate / 100)));
-        }
-        updateService(idx, { netDisplay: val, grossDisplay: newGross });
+        if (!MAX_2_DECIMALS.test(val)) return;
+        const { vatRate } = services[idx];
+        const gross = netToGross(inputToCents(val), vatRate);
+        updateService(idx, {
+            netDisplay: val,
+            grossDisplay: val === '' ? '' : centsToInput(gross),
+        });
     }
 
     function updateGross(idx: number, val: string) {
-        const cents = displayToCents(val);
-        const { vatRate, netDisplay } = services[idx];
-        let newNet = netDisplay;
-        if (vatRate >= 0 && val !== '') {
-            newNet = centsToDisplay(vatRate === 0 ? cents : Math.round(cents / (1 + vatRate / 100)));
-        }
-        updateService(idx, { grossDisplay: val, netDisplay: newNet });
+        if (!MAX_2_DECIMALS.test(val)) return;
+        const { vatRate } = services[idx];
+        const net = grossToNet(inputToCents(val), vatRate);
+        updateService(idx, {
+            grossDisplay: val,
+            netDisplay: val === '' ? '' : centsToInput(net),
+        });
+    }
+
+    // A VAT change keeps net and re-derives gross: net is the figure the contract is
+    // written in, so it is the one that should survive.
+    function updateVat(idx: number, vatRate: number) {
+        const { netDisplay } = services[idx];
+        const gross = netToGross(inputToCents(netDisplay), vatRate);
+        updateService(idx, {
+            vatRate,
+            grossDisplay: netDisplay === '' ? '' : centsToInput(gross),
+        });
     }
 
     function addService() {
@@ -428,8 +558,8 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                 .filter(s => s.name.trim())
                 .map(s => ({
                     name: s.name.trim(),
-                    netAmountCents: displayToCents(s.netDisplay),
-                    grossAmountCents: displayToCents(s.grossDisplay),
+                    netAmountCents: inputToCents(s.netDisplay),
+                    grossAmountCents: inputToCents(s.grossDisplay),
                     vatRate: s.vatRate,
                 }));
 
@@ -571,15 +701,43 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
 
                 <div>
                     <ModalSectionTitle>Wykonane usługi</ModalSectionTitle>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {services.map((svc, idx) => (
+                    <div ref={servicesRef} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {services.map((svc, idx) => {
+                            const suggestions = suggestFor === idx ? suggestionsFor(svc.name) : [];
+                            return (
                             <ServiceCard key={idx}>
                                 <ServiceCardHeader>
-                                    <ServiceNameInput
-                                        value={svc.name}
-                                        onChange={e => updateService(idx, { name: capitalizeFirst(e.target.value) })}
-                                        placeholder={`Nazwa usługi ${idx + 1}...`}
-                                    />
+                                    <AutocompleteWrapper style={{ flex: 1, minWidth: 0 }}>
+                                        <ServiceNameInput
+                                            value={svc.name}
+                                            onChange={e => {
+                                                updateService(idx, { name: capitalizeFirst(e.target.value) });
+                                                openSuggestions(idx, e.currentTarget);
+                                            }}
+                                            onFocus={e => openSuggestions(idx, e.currentTarget)}
+                                            placeholder={`Nazwa usługi ${idx + 1}...`}
+                                            autoComplete="off"
+                                            style={{ width: '100%' }}
+                                        />
+                                        {suggestions.length > 0 && createPortal(
+                                            <FixedSuggestionList ref={suggestListRef} style={suggestStyle}>
+                                                {suggestions.map(s => (
+                                                    <ServiceSuggestionItem
+                                                        key={s.id}
+                                                        // mousedown, not click: the input's blur must not
+                                                        // tear the list down before the choice lands.
+                                                        onMouseDown={() => applySuggestion(idx, s)}
+                                                    >
+                                                        <ServiceSuggestionName>{s.name}</ServiceSuggestionName>
+                                                        <ServiceSuggestionPrice>
+                                                            {formatCurrency(s.grossAmountCents / 100)} brutto
+                                                        </ServiceSuggestionPrice>
+                                                    </ServiceSuggestionItem>
+                                                ))}
+                                            </FixedSuggestionList>,
+                                            document.body
+                                        )}
+                                    </AutocompleteWrapper>
                                     {services.length > 1 && (
                                         <RemoveBtn type="button" onClick={() => removeService(idx)}>✕</RemoveBtn>
                                     )}
@@ -588,30 +746,28 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                     <PriceField>
                                         <PriceLabel>Netto (zł)</PriceLabel>
                                         <PriceInput
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
+                                            type="text"
+                                            inputMode="decimal"
                                             value={svc.netDisplay}
                                             onChange={e => updateNet(idx, e.target.value)}
-                                            placeholder="0.00"
+                                            placeholder="0,00"
                                         />
                                     </PriceField>
                                     <PriceField>
                                         <PriceLabel>Brutto (zł)</PriceLabel>
                                         <PriceInput
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
+                                            type="text"
+                                            inputMode="decimal"
                                             value={svc.grossDisplay}
                                             onChange={e => updateGross(idx, e.target.value)}
-                                            placeholder="0.00"
+                                            placeholder="0,00"
                                         />
                                     </PriceField>
                                     <PriceField>
                                         <PriceLabel>VAT</PriceLabel>
                                         <PriceSelect
                                             value={svc.vatRate}
-                                            onChange={e => updateService(idx, { vatRate: Number(e.target.value) })}
+                                            onChange={e => updateVat(idx, Number(e.target.value))}
                                         >
                                             {VAT_OPTIONS.map(opt => (
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -620,7 +776,8 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                     </PriceField>
                                 </PriceGrid>
                             </ServiceCard>
-                        ))}
+                            );
+                        })}
                         <AddServiceBtn type="button" onClick={addService}>+ Dodaj usługę</AddServiceBtn>
                     </div>
                 </div>

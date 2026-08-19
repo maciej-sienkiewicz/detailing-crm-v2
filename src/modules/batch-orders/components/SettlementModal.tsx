@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useCapability } from '@/modules/subscription';
 import styled from 'styled-components';
-import type { BatchContractor, CloseMode, CloseMonthRequest } from '../types';
+import type { BatchContractor, SettlementMode, SettlementRequest } from '../types';
 
 const Overlay = styled.div`
     position: fixed;
@@ -271,14 +271,14 @@ interface Props {
     contractor: BatchContractor;
     from: string;
     to: string;
-    hasPartialClose: boolean;
-    onConfirm: (request: CloseMonthRequest) => Promise<void>;
+    hasPartialSettlement: boolean;
+    onConfirm: (request: SettlementRequest) => Promise<void>;
     onClose: () => void;
     isLoading?: boolean;
 }
 
-export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfirm, onClose, isLoading }: Props) {
-    const [mode, setMode] = useState<CloseMode>(hasPartialClose ? 'NEW_ONLY' : 'ALL');
+export function SettlementModal({ contractor, from, to, hasPartialSettlement, onConfirm, onClose, isLoading }: Props) {
+    const [mode, setMode] = useState<SettlementMode>(hasPartialSettlement ? 'NEW_ONLY' : 'ALL');
     const [addToFinances, setAddToFinances] = useState(false);
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const [sendEmail, setSendEmail] = useState(false);
@@ -302,42 +302,42 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
             <Modal>
                 <ModalBody>
                     <div>
-                        <Title>Zamknij miesiąc</Title>
+                        <Title>Rozlicz okres</Title>
                         <Subtitle style={{ marginTop: 6 }}>
                             {contractor.name} · {periodLabel}
                         </Subtitle>
                     </div>
 
-                    {hasPartialClose && (
+                    {hasPartialSettlement && (
                         <WarningBox>
                             <WarningTitle>
-                                Część pozycji została zamknięta we wcześniejszym raporcie.
+                                Część pozycji została już rozliczona we wcześniejszym zestawieniu.
                             </WarningTitle>
                             <ModeOptions>
                                 <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
                                     <ModeRadio
                                         type="radio"
-                                        name="close-mode"
+                                        name="settlement-mode"
                                         checked={mode === 'ALL'}
                                         onChange={() => setMode('ALL')}
                                         onClick={e => e.stopPropagation()}
                                     />
                                     <div>
                                         <ModeLabel>Wszystkie pozycje</ModeLabel>
-                                        <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już zamkniętymi.</ModeDesc>
+                                        <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już rozliczonymi.</ModeDesc>
                                     </div>
                                 </ModeOption>
                                 <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
                                     <ModeRadio
                                         type="radio"
-                                        name="close-mode"
+                                        name="settlement-mode"
                                         checked={mode === 'NEW_ONLY'}
                                         onChange={() => setMode('NEW_ONLY')}
                                         onClick={e => e.stopPropagation()}
                                     />
                                     <div>
                                         <ModeLabel>Tylko nowo dodane</ModeLabel>
-                                        <ModeDesc>Zamyka wyłącznie wpisy, które nie były jeszcze ujęte w żadnym raporcie.</ModeDesc>
+                                        <ModeDesc>Rozlicza wyłącznie wpisy, które nie były jeszcze ujęte w żadnym zestawieniu.</ModeDesc>
                                     </div>
                                 </ModeOption>
                             </ModeOptions>
@@ -384,9 +384,9 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
                         </CheckDescription>
                         {sendEmail && (
                             <EmailField onClick={e => e.stopPropagation()}>
-                                <EmailLabel htmlFor="close-month-email">Adres e-mail</EmailLabel>
+                                <EmailLabel htmlFor="settlement-email">Adres e-mail</EmailLabel>
                                 <EmailInput
-                                    id="close-month-email"
+                                    id="settlement-email"
                                     type="email"
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
@@ -411,7 +411,7 @@ export function CloseMonthModal({ contractor, from, to, hasPartialClose, onConfi
                         onClick={handleConfirm}
                         disabled={isLoading || (sendEmail && !email.trim())}
                     >
-                        {isLoading ? 'Zamykanie...' : 'Zamknij miesiąc'}
+                        {isLoading ? 'Rozliczanie...' : 'Rozlicz'}
                     </Btn>
                 </Actions>
             </Modal>
