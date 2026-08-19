@@ -4,7 +4,7 @@ export interface TabletInfo {
     tabletId: string;
     deviceName: string;
     pairedAt: string;
-    tokenExpiresAt: string | null;
+    lastSeenAt: string | null;
 }
 
 export interface SignatureRequestResponse {

@@ -2,7 +2,8 @@ export interface Tablet {
     tabletId: string;
     deviceName: string;
     pairedAt: string;
-    tokenExpiresAt: string;
+    /** Ostatnie żądanie z urządzenia; null, gdy nie odezwało się od sparowania. */
+    lastSeenAt: string | null;
 }
 
 export interface PairingCodeResponse {
