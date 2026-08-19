@@ -119,7 +119,12 @@ export function MessageReaderOverlay({
 
             <Body>
                 <Sheet>
-                    {message.bodyHtml && <MessageBody html={message.bodyHtml} />}
+                    {message.bodyHtml && (
+                        <MessageBody
+                            html={message.bodyHtml}
+                            cacheKey={`full-${message.id}`}
+                        />
+                    )}
                 </Sheet>
             </Body>
 

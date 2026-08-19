@@ -5,34 +5,31 @@
 //  - mobile/tablet (<1024px): lista LUB konwersacja (przełączane, z przyciskiem wstecz),
 //    filtry jako poziome chipy zamiast bocznego panelu folderów.
 // Widok wypełnia całą dostępną wysokość — scrolluje się wyłącznie lista i wiadomości.
+//
+// Przełączenie wątku nie przebudowuje ekranu: kolumny są sterowane wybranym id
+// (a nie tym, czy dane zdążyły dojść), nagłówek rozmowy renderuje się od razu z
+// danych z listy, a dociąga się wyłącznie treść korespondencji — w wydzielonym,
+// memoizowanym ConversationView. Dzięki temu nic nie „przeskakuje" pod kursorem.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Archive,
-    ArchiveRestore,
-    ArrowLeft,
     ChevronLeft,
     ChevronRight,
-    Download,
     Folder,
     FolderPlus,
     Inbox,
     Mail,
     MailOpen,
-    Maximize2,
     Paperclip,
     PanelLeftClose,
     PanelLeftOpen,
-    PanelRightClose,
-    PanelRightOpen,
     RefreshCw,
     Search,
     Settings,
     Sparkles,
-    Tag,
     Trash2,
-    Wallet,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { commsApi } from '../api/commsApi';
@@ -49,11 +46,9 @@ import {
     useThread,
     useThreads,
 } from '../hooks/useComms';
-import type { CommMessage, CommThread } from '../types';
-import { MessageBody } from '../components/MessageBody';
-import { ReplyComposer } from '../components/ReplyComposer';
+import type { CommLabel, CommThread } from '../types';
+import { ConversationView } from '../components/ConversationView';
 import { InsightsPanel } from '../components/InsightsPanel';
-import { MarkAsLeadPopover } from '../components/MarkAsLeadPopover';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import {
     EmptyHint,
@@ -61,8 +56,6 @@ import {
     IconButton,
     Pill,
     SurfaceCard,
-    formatDateTime,
-    formatGrosze,
     formatRelativeTime,
 } from '../components/shared';
 
@@ -387,9 +380,8 @@ const Pager = styled.div`
     }
 `;
 
-// ── Konwersacja ──────────────────────────────────────────────────────────────
-
-const ConversationPane = styled.div<{ $hiddenOnMobile: boolean }>`
+/** Pusta prawa kolumna — te same reguły widoczności co ConversationView. */
+const ConversationEmptyPane = styled.div<{ $hiddenOnMobile: boolean }>`
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -397,162 +389,6 @@ const ConversationPane = styled.div<{ $hiddenOnMobile: boolean }>`
     flex-direction: column;
 
     @media (min-width: ${p => p.theme.breakpoints.lg}) { display: flex; }
-`;
-
-const ConversationHeader = styled.div`
-    padding: 10px 12px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    flex-wrap: wrap;
-
-    .titles { flex: 1; min-width: 160px; }
-    h3 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .sub {
-        font-size: 12px;
-        color: ${p => p.theme.colors.textSecondary};
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-`;
-
-/** Kompaktowa wizytówka klienta, gdy panel Insights jest schowany. */
-const ClientChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${p => p.theme.colors.success};
-    background: ${p => p.theme.colors.successLight};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 3px 9px;
-    white-space: nowrap;
-`;
-
-const MessagesScroll = styled.div`
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    background: ${p => p.theme.colors.surfaceAlt};
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: 16px; }
-`;
-
-const MessageCard = styled.article<{ $outbound: boolean }>`
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#bae6fd' : theme.colors.border)};
-    border-radius: ${p => p.theme.radii.lg};
-    overflow: hidden;
-    box-shadow: ${p => p.theme.shadows.sm};
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        ${({ $outbound }) => ($outbound ? 'margin-left: 40px;' : 'margin-right: 40px;')}
-    }
-`;
-
-const MessageHeader = styled.header`
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 14px 6px;
-
-    .from {
-        font-size: 13px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        overflow-wrap: anywhere;
-    }
-    .from small {
-        font-weight: ${p => p.theme.fontWeights.normal};
-        color: ${p => p.theme.colors.textMuted};
-        margin-left: 6px;
-    }
-    .meta {
-        font-size: 11px;
-        color: ${p => p.theme.colors.textMuted};
-        white-space: nowrap;
-        text-align: right;
-    }
-`;
-
-const ExpandIconButton = styled.button`
-    border: none;
-    background: none;
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
-    padding: 2px;
-    display: inline-flex;
-    align-items: center;
-    border-radius: ${p => p.theme.radii.sm};
-
-    &:hover {
-        color: ${p => p.theme.colors.textSecondary};
-        background: ${p => p.theme.colors.surfaceAlt};
-    }
-`;
-
-const MessagePadding = styled.div`
-    padding: 0 14px 12px;
-`;
-
-const AttachmentRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 14px 12px;
-`;
-
-const AttachmentChip = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.textSecondary};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 4px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: inherit;
-
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
-
-    span { color: ${p => p.theme.colors.textMuted}; }
-`;
-
-const LabelSelect = styled.select`
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 6px 10px;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textSecondary};
-    background: ${p => p.theme.colors.surface};
-    font-family: inherit;
 `;
 
 const EmptyStateWrap = styled.div`
@@ -569,6 +405,9 @@ const EmptyStateWrap = styled.div`
 
 // ── Widok ────────────────────────────────────────────────────────────────────
 
+/** Stabilna referencja — memoizowany ConversationView nie przerysowuje się bez potrzeby. */
+const EMPTY_LABELS: CommLabel[] = [];
+
 type Folderish =
     | { kind: 'inbox' }
     | { kind: 'unread' }
@@ -583,7 +422,6 @@ export default function MailView() {
     const [folder, setFolder] = useState<Folderish>({ kind: 'inbox' });
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
-    const [leadPopoverOpen, setLeadPopoverOpen] = useState(false);
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const isWide = useMediaQuery('(min-width: 1440px)');
     // Panel klienta: na szerokich ekranach otwarty, na laptopach chowany —
@@ -630,10 +468,21 @@ export default function MailView() {
     );
     const { data: threadPage } = useThreads(filters);
     const { data: detail } = useThread(selectedThreadId);
+
+    // Nagłówek rozmowy stawiamy na danych z listy — są już w cache, więc pojawia
+    // się w tej samej klatce co kliknięcie. Dociąga się wyłącznie treść wiadomości.
+    const listThread = useMemo(
+        () => (threadPage?.items ?? []).find((item) => item.id === selectedThreadId) ?? null,
+        [threadPage, selectedThreadId]
+    );
+    const detailMatches = Boolean(selectedThreadId) && detail?.thread.id === selectedThreadId;
+    const openThread: CommThread | null = detailMatches ? detail!.thread : listThread;
+    const openMessages = detailMatches ? detail!.messages : null;
+
     // Ten sam cache co panel Insights — chip w nagłówku nie kosztuje drugiego requestu.
     const { data: insights } = useContactInsights(
-        detail?.thread.participantEmail ?? null,
-        detail?.thread.id
+        openThread?.participantEmail ?? null,
+        openThread?.id
     );
 
     const markRead = useMarkThreadRead();
@@ -652,7 +501,7 @@ export default function MailView() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [detail?.thread.id, detail?.thread.unreadCount]);
 
-    const downloadAttachment = async (attachmentId: string, fileName: string) => {
+    const downloadAttachment = useCallback(async (attachmentId: string, fileName: string) => {
         const blob = await commsApi.downloadAttachment(attachmentId);
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
@@ -660,7 +509,22 @@ export default function MailView() {
         anchor.download = fileName;
         anchor.click();
         URL.revokeObjectURL(url);
-    };
+    }, []);
+
+    const changeThreadLabel = useCallback(
+        (threadId: string, labelId: string | null) => setLabel.mutate({ threadId, labelId }),
+        [setLabel]
+    );
+    const toggleArchived = useCallback(
+        (thread: CommThread) =>
+            setArchived.mutate(
+                { threadId: thread.id, archived: !thread.archived },
+                { onSuccess: () => selectThread(null) }
+            ),
+        [setArchived, selectThread]
+    );
+    const toggleInsights = useCallback(() => setInsightsOpen((open) => !open), []);
+    const closeConversation = useCallback(() => selectThread(null), [selectThread]);
 
     const activeAccount = accounts?.find((account) => account.status !== 'DISABLED');
     const accountsConnected = (accounts ?? []).filter((account) => account.status !== 'DISABLED');
@@ -689,8 +553,11 @@ export default function MailView() {
     const folderKey = folder.kind === 'label' ? `label-${folder.labelId}` : folder.kind;
 
     const knownClient = insights?.customer ?? null;
-    const conversationOpen = Boolean(detail);
-    const fullMessage = detail?.messages.find((message) => message.id === fullMessageId) ?? null;
+    // Otwartość rozmowy zależy od wyboru użytkownika, nie od stanu zapytania —
+    // inaczej kolumny znikałyby i wracały przy każdym przełączeniu wątku.
+    const conversationOpen = Boolean(selectedThreadId);
+    const insightsVisible = isDesktop && (isWide ? insightsOpen : insightsOpen && conversationOpen);
+    const fullMessage = openMessages?.find((message) => message.id === fullMessageId) ?? null;
 
     if (accounts && accountsConnected.length === 0) {
         return (
@@ -897,176 +764,45 @@ export default function MailView() {
                     )}
                 </ListPane>
 
-                <ConversationPane $hiddenOnMobile={!conversationOpen}>
-                    {!detail && (
-                        <EmptyStateWrap>
-                            <div>
-                                <MailOpen size={36} color="#cbd5e1" style={{ marginBottom: 10 }} />
-                                <p>Wybierz konwersację z listy</p>
-                            </div>
-                        </EmptyStateWrap>
-                    )}
-                    {detail && (
-                        <>
-                            <ConversationHeader>
-                                {!isDesktop && (
-                                    <IconButton
-                                        onClick={() => selectThread(null)}
-                                        aria-label="Wróć do listy"
-                                        style={{ padding: 7 }}
-                                    >
-                                        <ArrowLeft />
-                                    </IconButton>
-                                )}
-                                <div className="titles">
-                                    <h3>{detail.thread.subject ?? '(bez tematu)'}</h3>
-                                    <div className="sub">
-                                        {detail.thread.participantName
-                                            ? `${detail.thread.participantName} · ${detail.thread.participantEmail}`
-                                            : detail.thread.participantEmail}
-                                        {knownClient && (
-                                            <ClientChip title="Klient z kartoteki">
-                                                <Wallet size={11} />
-                                                {knownClient.completedVisitCount}{' '}
-                                                {knownClient.completedVisitCount === 1 ? 'wizyta' : 'wizyt'}
-                                                {' · '}
-                                                {formatGrosze(knownClient.totalSpentGross)}
-                                            </ClientChip>
-                                        )}
-                                    </div>
+                {!openThread && (
+                    <ConversationEmptyPane $hiddenOnMobile={!conversationOpen}>
+                        {conversationOpen ? (
+                            // Wątek spoza bieżącej strony listy (np. z „wcześniejszych rozmów")
+                            // — nagłówka nie mamy jeszcze z czego postawić.
+                            <EmptyHint>Wczytywanie rozmowy…</EmptyHint>
+                        ) : (
+                            <EmptyStateWrap>
+                                <div>
+                                    <MailOpen size={36} color="#cbd5e1" style={{ marginBottom: 10 }} />
+                                    <p>Wybierz konwersację z listy</p>
                                 </div>
+                            </EmptyStateWrap>
+                        )}
+                    </ConversationEmptyPane>
+                )}
+                {openThread && (
+                    <ConversationView
+                        thread={openThread}
+                        messages={openMessages}
+                        labels={labels ?? EMPTY_LABELS}
+                        isDesktop={isDesktop}
+                        hiddenOnMobile={!conversationOpen}
+                        insightsVisible={insightsVisible}
+                        clientSummary={knownClient}
+                        onBack={closeConversation}
+                        onSetLabel={changeThreadLabel}
+                        onToggleArchived={toggleArchived}
+                        onToggleInsights={toggleInsights}
+                        onOpenFullMessage={setFullMessageId}
+                        onDownloadAttachment={downloadAttachment}
+                    />
+                )}
 
-                                <HeaderActions>
-                                    <LabelSelect
-                                        value={detail.thread.labelId ?? ''}
-                                        onChange={(event) =>
-                                            setLabel.mutate({
-                                                threadId: detail.thread.id,
-                                                labelId: event.target.value || null,
-                                            })
-                                        }
-                                        aria-label="Folder"
-                                    >
-                                        <option value="">Bez folderu</option>
-                                        {(labels ?? []).map((label) => (
-                                            <option key={label.id} value={label.id}>{label.name}</option>
-                                        ))}
-                                    </LabelSelect>
-
-                                    <IconButton
-                                        onClick={() =>
-                                            setArchived.mutate(
-                                                { threadId: detail.thread.id, archived: !detail.thread.archived },
-                                                { onSuccess: () => selectThread(null) }
-                                            )
-                                        }
-                                        aria-label={detail.thread.archived ? 'Przywróć' : 'Archiwizuj'}
-                                    >
-                                        {detail.thread.archived ? <ArchiveRestore /> : <Archive />}
-                                    </IconButton>
-
-                                    {detail.thread.leadId ? (
-                                        <Link to={`/leads?lead=${detail.thread.leadId}`}>
-                                            <Pill $bg="#f0fdf4" $fg="#15803d" style={{ cursor: 'pointer', padding: '6px 12px' }}>
-                                                <Sparkles size={11} /> Lead
-                                            </Pill>
-                                        </Link>
-                                    ) : (
-                                        <IconButton onClick={() => setLeadPopoverOpen(true)}>
-                                            <Tag /> Oznacz jako lead
-                                        </IconButton>
-                                    )}
-
-                                    {isDesktop && (
-                                        <IconButton
-                                            onClick={() => setInsightsOpen(!insightsOpen)}
-                                            aria-label={insightsOpen ? 'Ukryj panel klienta' : 'Pokaż panel klienta'}
-                                            title={insightsOpen ? 'Ukryj panel klienta' : 'Pokaż panel klienta'}
-                                            style={{ padding: 7 }}
-                                        >
-                                            {insightsOpen ? <PanelRightClose /> : <PanelRightOpen />}
-                                        </IconButton>
-                                    )}
-                                </HeaderActions>
-                                {leadPopoverOpen && (
-                                    <MarkAsLeadPopover
-                                        threadId={detail.thread.id}
-                                        onClose={() => setLeadPopoverOpen(false)}
-                                        onCreated={() => undefined}
-                                    />
-                                )}
-                            </ConversationHeader>
-
-                            <MessagesScroll>
-                                {detail.messages.map((message: CommMessage) => (
-                                    <MessageCard key={message.id} $outbound={message.direction === 'OUTBOUND'}>
-                                        <MessageHeader>
-                                            <span className="from">
-                                                {message.direction === 'OUTBOUND'
-                                                    ? 'Ty'
-                                                    : message.fromName ?? message.fromEmail}
-                                                <small>{message.fromEmail}</small>
-                                            </span>
-                                            <span className="meta">
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                                    {formatDateTime(message.sentAt)}
-                                                    {message.bodyHtml && (
-                                                        <ExpandIconButton
-                                                            onClick={() => setFullMessageId(message.id)}
-                                                            aria-label="Wyświetl w pełnym widoku"
-                                                            title="Wyświetl w pełnym widoku"
-                                                        >
-                                                            <Maximize2 size={13} />
-                                                        </ExpandIconButton>
-                                                    )}
-                                                </span>
-                                                {message.direction === 'INBOUND' && message.isRead
-                                                    && message.readSource === 'EXTERNAL' && (
-                                                    <div>przeczytano w innym kliencie</div>
-                                                )}
-                                            </span>
-                                        </MessageHeader>
-                                        <MessagePadding>
-                                            {message.bodyHtml
-                                                ? (
-                                                    <MessageBody
-                                                        html={message.bodyHtml}
-                                                        onOpenFull={() => setFullMessageId(message.id)}
-                                                    />
-                                                )
-                                                : <EmptyHint>(pusta wiadomość)</EmptyHint>}
-                                        </MessagePadding>
-                                        {message.attachments.length > 0 && (
-                                            <AttachmentRow>
-                                                {message.attachments.map((attachment) => (
-                                                    <AttachmentChip
-                                                        key={attachment.id}
-                                                        onClick={() => downloadAttachment(attachment.id, attachment.fileName)}
-                                                    >
-                                                        <Download size={12} />
-                                                        {attachment.fileName}
-                                                        <span>{(attachment.sizeBytes / 1024).toFixed(0)} KB</span>
-                                                    </AttachmentChip>
-                                                ))}
-                                            </AttachmentRow>
-                                        )}
-                                    </MessageCard>
-                                ))}
-                            </MessagesScroll>
-
-                            <ReplyComposer
-                                threadId={detail.thread.id}
-                                initialTo={detail.thread.participantEmail}
-                            />
-                        </>
-                    )}
-                </ConversationPane>
-
-                {isDesktop && (isWide ? insightsOpen : insightsOpen && conversationOpen) && (
+                {insightsVisible && (
                     <InsightsPanel
-                        email={detail?.thread.participantEmail ?? null}
-                        threadId={detail?.thread.id}
-                        participantName={detail?.thread.participantName}
+                        email={openThread?.participantEmail ?? null}
+                        threadId={openThread?.id}
+                        participantName={openThread?.participantName}
                         onSelectThread={selectThread}
                     />
                 )}
