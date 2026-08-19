@@ -42,7 +42,7 @@ import {
 import type { CommAttachment, CommMessage, CommThread } from '../types';
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
-import { MarkAsLeadPopover } from './MarkAsLeadPopover';
+import { MarkAsLeadModal } from './MarkAsLeadModal';
 import { ClientProfileModal } from './ClientProfileModal';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
@@ -512,7 +512,7 @@ function ConversationViewImpl({
                     )}
                 </HeaderActions>
                 {leadPopoverOpen && (
-                    <MarkAsLeadPopover
+                    <MarkAsLeadModal
                         threadId={thread.id}
                         onClose={() => setLeadPopoverThreadId(null)}
                         onCreated={() => undefined}
