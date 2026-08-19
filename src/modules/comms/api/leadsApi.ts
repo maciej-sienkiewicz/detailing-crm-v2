@@ -85,6 +85,15 @@ export const leadsApi = {
         return data;
     },
 
+    updateVehicle: async (
+        leadId: string,
+        vehicleBrand: string | null,
+        vehicleModel: string | null
+    ): Promise<Lead> => {
+        const { data } = await apiClient.put(`/v1/leads/${leadId}/vehicle`, { vehicleBrand, vehicleModel });
+        return data;
+    },
+
     updateLead: async (
         leadId: string,
         request: { category?: string; customerName?: string; assignedUserId?: string }

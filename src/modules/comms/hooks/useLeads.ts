@@ -1,8 +1,19 @@
 // src/modules/comms/hooks/useLeads.ts
+import { useCallback, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { IMessage } from '@stomp/stompjs';
+import { subscribeToTopic } from '@/core/socketClient';
+import { useAuth } from '@/core';
 import { leadsApi } from '../api/leadsApi';
 import { COMMS_THREADS_KEY } from './useComms';
-import type { LeadServiceItemInput, LeadStatus, MarkThreadAsLeadRequest } from '../types';
+import type {
+    DashboardSocketEvent,
+    Lead,
+    LeadPage,
+    LeadServiceItemInput,
+    LeadStatus,
+    MarkThreadAsLeadRequest,
+} from '../types';
 
 export const LEADS_KEY = ['leads'];
 export const LEAD_DICTIONARIES_KEY = [...LEADS_KEY, 'dictionaries'];
@@ -69,6 +80,67 @@ const useLeadInvalidation = () => {
         }
     };
 };
+
+export const useUpdateLeadVehicle = () => {
+    const invalidate = useLeadInvalidation();
+    return useMutation({
+        mutationFn: ({ leadId, vehicleBrand, vehicleModel }: {
+            leadId: string;
+            vehicleBrand: string | null;
+            vehicleModel: string | null;
+        }) => leadsApi.updateVehicle(leadId, vehicleBrand, vehicleModel),
+        onSuccess: (_lead, variables) => invalidate(variables.leadId),
+    });
+};
+
+/**
+ * Nasłuch zmian leadów na topicu studia. Backend przysyła pełny wiersz, więc
+ * podmieniamy go w cache zamiast odpytywać serwer — dzięki temu spinner przy
+ * rozpoznawaniu auta zamienia się w wynik sam, bez odświeżania strony.
+ */
+export function useLeadsSocket(): void {
+    const { isAuthenticated, user } = useAuth();
+    const queryClient = useQueryClient();
+
+    const handleMessage = useCallback(
+        (message: IMessage) => {
+            let event: DashboardSocketEvent;
+            try {
+                event = JSON.parse(message.body);
+            } catch {
+                return;
+            }
+            if (event.type !== 'LEAD_UPDATED' && event.type !== 'LEAD_STATUS_CHANGED') return;
+
+            const lead = event.payload as Lead;
+            if (!lead?.id) return;
+
+            queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (page) => {
+                if (!page) return page;
+                const index = page.items.findIndex((item) => item.id === lead.id);
+                if (index === -1) return page;
+                const items = [...page.items];
+                items[index] = lead;
+                return { ...page, items };
+            });
+            queryClient.setQueryData([...LEADS_KEY, 'detail', lead.id], lead);
+        },
+        [queryClient]
+    );
+
+    const handlerRef = useRef(handleMessage);
+    useEffect(() => {
+        handlerRef.current = handleMessage;
+    }, [handleMessage]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !user?.studioId) return;
+        return subscribeToTopic(
+            `/topic/studio.${user.studioId}.dashboard`,
+            (message) => handlerRef.current(message)
+        );
+    }, [isAuthenticated, user?.studioId]);
+}
 
 export const useMarkThreadAsLead = () => {
     const queryClient = useQueryClient();
