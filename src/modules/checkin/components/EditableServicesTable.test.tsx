@@ -6,6 +6,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
+import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { EditableServicesTable } from './EditableServicesTable';
 import type { ServiceLineItem } from '../types';
 import type { Service } from '@/modules/services/types';
@@ -102,8 +103,11 @@ function renderTable(services: ServiceLineItem[], onChange = vi.fn()) {
     return {
         onChange,
         ...render(
+            // Modal ceny pozycjonuje się względem menu bocznego, więc potrzebuje jego kontekstu.
             <StyledThemeProvider theme={theme}>
-                <EditableServicesTable services={services} onChange={onChange} />
+                <SidebarProvider>
+                    <EditableServicesTable services={services} onChange={onChange} />
+                </SidebarProvider>
             </StyledThemeProvider>
         ),
     };
@@ -241,7 +245,7 @@ describe('EditableServicesTable', () => {
             expect(onChange).not.toHaveBeenCalled();
         });
 
-        it('wyświetla nazwę wybranej usługi w modalu', async () => {
+        it('pokazuje nazwę usługi jako pole zablokowane do edycji', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             renderTable([]);
@@ -250,10 +254,11 @@ describe('EditableServicesTable', () => {
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            expect(screen.getByText('Usługa niestandardowa')).toBeInTheDocument();
+            const nameField = screen.getByDisplayValue('Usługa niestandardowa');
+            expect(nameField).toBeDisabled();
         });
 
-        it('pozwala wybrać tryb wpisywania ceny: brutto lub netto', async () => {
+        it('daje wybór stawki VAT oraz parę pól: cena netto i cena brutto', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             renderTable([]);
@@ -262,11 +267,12 @@ describe('EditableServicesTable', () => {
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            expect(screen.getByRole('button', { name: 'Brutto' })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Netto' })).toBeInTheDocument();
+            expect(screen.getByText('Stawka VAT')).toBeInTheDocument();
+            expect(screen.getByText('Cena netto')).toBeInTheDocument();
+            expect(screen.getByText('Cena brutto')).toBeInTheDocument();
         });
 
-        it('po wpisaniu ceny brutto ustawia basePriceNet=netto i PERCENT 0 (dla UI rabatu)', async () => {
+        it('po wpisaniu ceny netto wylicza brutto od netto', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
@@ -275,23 +281,21 @@ describe('EditableServicesTable', () => {
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            // domyślnie tryb Brutto, wpisujemy 123 PLN brutto (VAT 23% → netto 100)
-            const priceInput = screen.getByPlaceholderText('0.00');
-            await user.type(priceInput, '123');
+            const [netField, grossField] = screen.getAllByPlaceholderText('0.00');
+            await user.type(netField, '100');
+            // 100 netto przy 23% VAT → 123 brutto
+            expect(grossField).toHaveValue('123.00');
 
             await user.click(screen.getByRole('button', { name: 'Dodaj usługę' }));
 
-            expect(onChange).toHaveBeenCalledOnce();
             const [newList] = onChange.mock.calls[0];
-            expect(newList).toHaveLength(1);
-            // 123 brutto / 1.23 = ~100 netto = 10000 centów
             expect(newList[0].basePriceNet).toBe(10000);
-            expect(newList[0].adjustment.type).toBe('PERCENT');
-            expect(newList[0].adjustment.value).toBe(0);
+            expect(newList[0].basePriceGross).toBe(12300);
+            expect(newList[0].adjustment).toEqual({ type: 'PERCENT', value: 0 });
             expect(newList[0].requireManualPrice).toBe(true);
         });
 
-        it('po wpisaniu ceny netto ustawia basePriceNet=netto i PERCENT 0 (dla UI rabatu)', async () => {
+        it('po wpisaniu ceny brutto wylicza netto od brutto', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
@@ -300,18 +304,37 @@ describe('EditableServicesTable', () => {
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            await user.click(screen.getByRole('button', { name: 'Netto' }));
-
-            const priceInput = screen.getByPlaceholderText('0.00');
-            await user.type(priceInput, '100');
+            const [netField, grossField] = screen.getAllByPlaceholderText('0.00');
+            await user.type(grossField, '123');
+            expect(netField).toHaveValue('100.00');
 
             await user.click(screen.getByRole('button', { name: 'Dodaj usługę' }));
 
-            expect(onChange).toHaveBeenCalledOnce();
             const [newList] = onChange.mock.calls[0];
             expect(newList[0].basePriceNet).toBe(10000);
-            expect(newList[0].adjustment.type).toBe('PERCENT');
-            expect(newList[0].adjustment.value).toBe(0);
+            // Brutto zostaje dokładnie takie, jak wpisano — bez dryfu z przeliczenia w tę i z powrotem.
+            expect(newList[0].basePriceGross).toBe(12300);
+        });
+
+        it('zmiana stawki VAT przelicza brutto od wpisanego netto', async () => {
+            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            const user = userEvent.setup();
+            const { onChange } = renderTable([]);
+
+            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            await user.type(autocompleteInput, 'niest');
+            await user.click(await screen.findByText('Usługa niestandardowa'));
+
+            const [netField] = screen.getAllByPlaceholderText('0.00');
+            await user.type(netField, '100');
+            await user.selectOptions(screen.getByRole('combobox'), '8');
+
+            await user.click(screen.getByRole('button', { name: 'Dodaj usługę' }));
+
+            const [newList] = onChange.mock.calls[0];
+            expect(newList[0].vatRate).toBe(8);
+            expect(newList[0].basePriceNet).toBe(10000);
+            expect(newList[0].basePriceGross).toBe(10800);
         });
 
         it('przycisk "Dodaj usługę" jest nieaktywny gdy pole ceny jest puste', async () => {

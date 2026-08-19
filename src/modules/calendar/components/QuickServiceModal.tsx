@@ -5,6 +5,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import { useCreateService } from '@/modules/services/hooks/useServices';
 import type { VatRate } from '@/modules/services/types';
+import { VAT_OPTIONS } from '@/modules/services/vatOptions';
 import {
     Overlay,
     ModalContainer,
@@ -29,14 +30,6 @@ import {
     Footer,
     Button,
 } from './QuickServiceModalStyles';
-
-const VAT_OPTIONS: { value: VatRate; label: string }[] = [
-    { value: 23, label: '23%' },
-    { value: 8, label: '8%' },
-    { value: 5, label: '5%' },
-    { value: 0, label: '0%' },
-    { value: -1, label: 'zw.' },
-];
 
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
