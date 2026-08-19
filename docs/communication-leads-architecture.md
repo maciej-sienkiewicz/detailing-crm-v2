@@ -29,7 +29,7 @@ Użytkownik wpisuje: kontakt@studioblysk.pl
  2. Lookup MX domeny:
     - MX *.google.com / googlemail.com  → GOOGLE_OAUTH (Google Workspace)
     - MX *.outlook.com / *.protection.* → MS_OAUTH (Microsoft 365)
- 3. W pozostałych wypadkach → IMAP_AUTODISCOVER
+ 3. W pozostałych wypadkach → IMAP_AUTODISCOVERr
         │
         ▼
 UI pokazuje JEDEN z trzech ekranów — nigdy wyboru "IMAP czy OAuth"
