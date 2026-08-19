@@ -11,9 +11,15 @@
 //  2. WIERSZ, NIE DYMEK. Mail to dokument: pełna szerokość, stała kolumna czytelnicza,
 //     kierunek zaznaczony akcentem i tłem, a nie przesunięciem w bok. Dymki z
 //     marginesem 40px zjadały szerokość dokładnie tam, gdzie potrzebna jest treść.
-//  3. JEDNO MIEJSCE NA ADRES. Nazwa nadawcy jest przy każdej wiadomości (bo mówi, kto
-//     mówi), ale adres pokazujemy tylko wtedy, gdy odbiega od uczestnika wątku —
-//     w kółko powtarzany e-mail to szum, nie informacja.
+//  3. JEDNO MIEJSCE NA ADRES. Adres uczestnika stoi w podtytule nagłówka i nigdzie
+//     indziej. Nazwa nadawcy jest przy każdej wiadomości (bo mówi, kto mówi), ale
+//     adres tylko wtedy, gdy odbiega od uczestnika wątku — w kółko powtarzany e-mail
+//     to szum, nie informacja.
+//  4. KONTEKST KLIENTA JAKO PASEK, NIE PANEL. Jeśli rozpoznaliśmy nadawcę w kartotece,
+//     nad korespondencją pojawia się jedno zdanie z liczbami, które zmieniają ton
+//     odpowiedzi (ile wizyt, ile zostawił), a szczegóły otwiera modal. Stały panel
+//     boczny zabierał 300 px na każdym ekranie po to, by przez większość czasu
+//     powtarzać to, co i tak widać w nagłówku.
 //
 // Komponent jest memoizowany: odświeżenie listy wątków, zdarzenie WebSocket czy
 // pisanie w wyszukiwarce nie przerysowuje treści korespondencji.
@@ -26,18 +32,18 @@ import {
     ArrowLeft,
     ChevronDown,
     Download,
+    ChevronRight,
     Maximize2,
     Paperclip,
-    PanelRightClose,
-    PanelRightOpen,
     Sparkles,
     Tag,
     Wallet,
 } from 'lucide-react';
-import type { CommAttachment, CommLabel, CommMessage, CommThread } from '../types';
+import type { CommAttachment, CommMessage, CommThread } from '../types';
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadPopover } from './MarkAsLeadPopover';
+import { ClientProfileModal } from './ClientProfileModal';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
@@ -87,18 +93,40 @@ const HeaderActions = styled.div`
     flex-wrap: wrap;
 `;
 
-/** Kompaktowa wizytówka klienta, gdy panel Insights jest schowany. */
-const ClientChip = styled.span`
-    display: inline-flex;
+/**
+ * Pasek rozpoznanego klienta — jedno zdanie między nagłówkiem a korespondencją.
+ * Liczby, które realnie zmieniają ton odpowiedzi: ile razy u nas był i ile zostawił.
+ */
+const ClientBar = styled.button`
+    display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${p => p.theme.colors.success};
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.successLight};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 3px 9px;
-    white-space: nowrap;
+    color: ${p => p.theme.colors.success};
+    padding: 9px 16px;
+    font-size: 13px;
+    transition: filter ${p => p.theme.transitions.fast};
+
+    &:hover { filter: brightness(0.97); }
+
+    .text { flex: 1; min-width: 0; }
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
+    .cta {
+        font-weight: ${p => p.theme.fontWeights.medium};
+        text-decoration: underline;
+        white-space: nowrap;
+    }
+    svg { flex-shrink: 0; }
+
+    @media (max-width: calc(${p => p.theme.breakpoints.md} - 1px)) {
+        .cta { display: none; }
+    }
 `;
 
 const MessagesScroll = styled.div`
@@ -278,20 +306,20 @@ const AttachmentChip = styled.button`
     span { color: ${p => p.theme.colors.textMuted}; }
 `;
 
-const LabelSelect = styled.select`
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 6px 10px;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textSecondary};
-    background: ${p => p.theme.colors.surface};
-    font-family: inherit;
-`;
-
-/** Szkielet na czas dociągania treści — rozmiar zbliżony do wiadomości,
- *  żeby przełączenie wątku nie było skokiem, tylko podmianą treści. */
+/**
+ * Szkielet na czas dociągania treści. Pojawia się z opóźnieniem: wątek trafia do
+ * cache przy najechaniu na listę, więc zwykle przychodzi w kilkadziesiąt milisekund,
+ * a szkielet mignąłby wtedy tylko po to, żeby zaraz zniknąć. Opóźnienie robi CSS,
+ * nie stan — dzięki temu nie kosztuje ani jednego dodatkowego renderu.
+ */
 const SkeletonCard = styled.div<{ $height: number }>`
     height: ${({ $height }) => $height}px;
+    opacity: 0;
+    animation: commsShimmer 1.4s ease-in-out infinite, commsSkeletonIn 120ms linear 260ms forwards;
+
+    @keyframes commsSkeletonIn {
+        to { opacity: 1; }
+    }
     border-radius: ${p => p.theme.radii.lg};
     border: 1px solid ${p => p.theme.colors.border};
     background: linear-gradient(
@@ -301,7 +329,6 @@ const SkeletonCard = styled.div<{ $height: number }>`
         ${p => p.theme.colors.surface} 70%
     );
     background-size: 300% 100%;
-    animation: commsShimmer 1.4s ease-in-out infinite;
 
     @keyframes commsShimmer {
         from { background-position: 150% 0; }
@@ -348,24 +375,30 @@ const senderName = (message: CommMessage): string =>
     message.direction === 'OUTBOUND' ? 'Ty' : message.fromName ?? message.fromEmail;
 
 export interface ConversationClientSummary {
+    name: string | null;
     completedVisitCount: number;
     totalSpentGross: number;
 }
+
+/** Odmiana „wizyta/wizyty/wizyt" — pasek ma brzmieć jak zdanie, nie jak raport. */
+const visitsLabel = (count: number): string => {
+    if (count === 1) return 'wizytę';
+    const lastDigit = count % 10;
+    const lastTwo = count % 100;
+    const plural = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14);
+    return plural ? 'wizyty' : 'wizyt';
+};
 
 interface ConversationViewProps {
     thread: CommThread;
     /** null = treść wątku jeszcze się dociąga (nagłówek jest już poprawny). */
     messages: CommMessage[] | null;
-    labels: CommLabel[];
     isDesktop: boolean;
     hiddenOnMobile: boolean;
-    /** Panel klienta jest widoczny — nie powtarzamy tam podanego adresu. */
-    insightsVisible: boolean;
+    /** Rozpoznany klient z kartoteki — źródło paska nad korespondencją. */
     clientSummary: ConversationClientSummary | null;
     onBack: () => void;
-    onSetLabel: (threadId: string, labelId: string | null) => void;
     onToggleArchived: (thread: CommThread) => void;
-    onToggleInsights: () => void;
     onOpenFullMessage: (messageId: string) => void;
     onDownloadAttachment: (attachmentId: string, fileName: string) => void;
 }
@@ -373,15 +406,11 @@ interface ConversationViewProps {
 function ConversationViewImpl({
     thread,
     messages,
-    labels,
     isDesktop,
     hiddenOnMobile,
-    insightsVisible,
     clientSummary,
     onBack,
-    onSetLabel,
     onToggleArchived,
-    onToggleInsights,
     onOpenFullMessage,
     onDownloadAttachment,
 }: ConversationViewProps) {
@@ -440,9 +469,7 @@ function ConversationViewImpl({
         scrollRef.current?.scrollTo({ top: 0 });
     }, [thread.id]);
 
-    // Adres uczestnika ma jedno miejsce w interfejsie: panel klienta, a gdy jest
-    // schowany — podtytuł nagłówka. Nazwa zostaje zawsze, bo to ona identyfikuje rozmowę.
-    const showParticipantEmail = !insightsVisible || !thread.participantName;
+    const [profileOpen, setProfileOpen] = useState(false);
 
     return (
         <Pane $hiddenOnMobile={hiddenOnMobile}>
@@ -455,37 +482,16 @@ function ConversationViewImpl({
                 <div className="titles">
                     <h3 title={thread.subject ?? undefined}>{thread.subject ?? '(bez tematu)'}</h3>
                     <div className="sub">
-                        <span title={thread.participantEmail}>
-                            {showParticipantEmail
-                                ? thread.participantName
-                                    ? `${thread.participantName} · ${thread.participantEmail}`
-                                    : thread.participantEmail
-                                : thread.participantName}
+                        {/* Jedyne miejsce w widoku, w którym stoi adres uczestnika. */}
+                        <span>
+                            {thread.participantName
+                                ? `${thread.participantName} · ${thread.participantEmail}`
+                                : thread.participantEmail}
                         </span>
-                        {clientSummary && (
-                            <ClientChip title="Klient z kartoteki">
-                                <Wallet size={11} />
-                                {clientSummary.completedVisitCount}{' '}
-                                {clientSummary.completedVisitCount === 1 ? 'wizyta' : 'wizyt'}
-                                {' · '}
-                                {formatGrosze(clientSummary.totalSpentGross)}
-                            </ClientChip>
-                        )}
                     </div>
                 </div>
 
                 <HeaderActions>
-                    <LabelSelect
-                        value={thread.labelId ?? ''}
-                        onChange={(event) => onSetLabel(thread.id, event.target.value || null)}
-                        aria-label="Folder"
-                    >
-                        <option value="">Bez folderu</option>
-                        {labels.map((label) => (
-                            <option key={label.id} value={label.id}>{label.name}</option>
-                        ))}
-                    </LabelSelect>
-
                     <IconButton
                         onClick={() => onToggleArchived(thread)}
                         aria-label={thread.archived ? 'Przywróć' : 'Archiwizuj'}
@@ -504,17 +510,6 @@ function ConversationViewImpl({
                             <Tag /> Oznacz jako lead
                         </IconButton>
                     )}
-
-                    {isDesktop && (
-                        <IconButton
-                            onClick={onToggleInsights}
-                            aria-label={insightsVisible ? 'Ukryj panel klienta' : 'Pokaż panel klienta'}
-                            title={insightsVisible ? 'Ukryj panel klienta' : 'Pokaż panel klienta'}
-                            style={{ padding: 7 }}
-                        >
-                            {insightsVisible ? <PanelRightClose /> : <PanelRightOpen />}
-                        </IconButton>
-                    )}
                 </HeaderActions>
                 {leadPopoverOpen && (
                     <MarkAsLeadPopover
@@ -524,6 +519,21 @@ function ConversationViewImpl({
                     />
                 )}
             </Header>
+
+            {clientSummary && (
+                <ClientBar onClick={() => setProfileOpen(true)} title="Zobacz profil klienta">
+                    <Wallet size={14} />
+                    <span className="text">
+                        <strong>{clientSummary.name ?? thread.participantName ?? thread.participantEmail}</strong>
+                        {' odbył u nas '}
+                        <strong>{clientSummary.completedVisitCount}</strong>
+                        {` ${visitsLabel(clientSummary.completedVisitCount)} o wartości `}
+                        <strong>{formatGrosze(clientSummary.totalSpentGross)}</strong>.
+                    </span>
+                    <span className="cta">Kliknij i dowiedz się więcej</span>
+                    <ChevronRight size={14} />
+                </ClientBar>
+            )}
 
             <MessagesScroll ref={scrollRef}>
                 {messages === null && (
@@ -652,6 +662,14 @@ function ConversationViewImpl({
                 threadId={thread.id}
                 initialTo={thread.participantEmail}
                 recipientLabel={thread.participantName ?? thread.participantEmail}
+            />
+
+            <ClientProfileModal
+                isOpen={profileOpen}
+                onClose={() => setProfileOpen(false)}
+                clientName={
+                    clientSummary?.name ?? thread.participantName ?? thread.participantEmail
+                }
             />
         </Pane>
     );

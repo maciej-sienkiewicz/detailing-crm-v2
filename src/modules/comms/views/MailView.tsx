@@ -1,9 +1,10 @@
 // src/modules/comms/views/MailView.tsx
-// Skrzynka pocztowa CRM. Trzy tryby prezentacji:
-//  - szeroki desktop: foldery + lista + konwersacja (+ chowany panel klienta),
-//  - laptop: jak wyżej, ale panel klienta domyślnie schowany (przycisk w nagłówku),
-//  - mobile/tablet (<1024px): lista LUB konwersacja (przełączane, z przyciskiem wstecz),
-//    filtry jako poziome chipy zamiast bocznego panelu folderów.
+// Skrzynka pocztowa CRM. Dwa tryby prezentacji:
+//  - desktop (≥1024px): lista + konwersacja obok siebie,
+//  - mobile/tablet: lista LUB konwersacja (przełączane, z przyciskiem wstecz).
+// Filtry skrzynki to rząd chipów nad listą. Bocznego panelu folderów nie ma —
+// zabierał 208 px szerokości na każdym ekranie, a etykiet i tak nikt nie prowadził;
+// panelu klienta też nie, jego rolę przejął pasek nad korespondencją.
 // Widok wypełnia całą dostępną wysokość — scrolluje się wyłącznie lista i wiadomości.
 //
 // Przełączenie wątku nie przebudowuje ekranu: kolumny są sterowane wybranym id
@@ -14,41 +15,29 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    Archive,
     ChevronLeft,
     ChevronRight,
-    Folder,
-    FolderPlus,
-    Inbox,
     Mail,
     MailOpen,
     Paperclip,
-    PanelLeftClose,
-    PanelLeftOpen,
     RefreshCw,
     Search,
     Settings,
-    Sparkles,
-    Trash2,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { commsApi } from '../api/commsApi';
 import {
     useContactInsights,
-    useCreateLabel,
-    useDeleteLabel,
-    useLabels,
     useMailAccounts,
     useMarkThreadRead,
+    usePrefetchThread,
     useSetThreadArchived,
-    useSetThreadLabel,
     useSyncAccount,
     useThread,
     useThreads,
 } from '../hooks/useComms';
-import type { CommLabel, CommThread } from '../types';
+import type { CommThread } from '../types';
 import { ConversationView } from '../components/ConversationView';
-import { InsightsPanel } from '../components/InsightsPanel';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import {
     EmptyHint,
@@ -106,97 +95,18 @@ const AppCard = styled(SurfaceCard)`
     }
 `;
 
-// ── Panel folderów (desktop ≥1024) ───────────────────────────────────────────
+// ── Lista wątków ─────────────────────────────────────────────────────────────
 
-const FolderRail = styled.nav<{ $open: boolean }>`
-    width: 208px;
-    flex-shrink: 0;
-    border-right: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surfaceAlt};
-    padding: 12px 8px;
-    display: none;
-    flex-direction: column;
-    gap: 2px;
-    overflow-y: auto;
-    min-height: 0;
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) {
-        display: ${({ $open }) => ($open ? 'flex' : 'none')};
-    }
-`;
-
-const FolderButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    border: none;
-    background: ${({ $active, theme }) => ($active ? theme.colors.surface : 'transparent')};
-    box-shadow: ${({ $active }) => ($active ? '0 1px 2px rgba(15, 23, 42, 0.06)' : 'none')};
-    color: ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.textSecondary)};
-    font-weight: ${({ $active, theme }) =>
-        $active ? theme.fontWeights.semibold : theme.fontWeights.normal};
-    font-size: 13px;
-    padding: 8px 10px;
-    border-radius: ${p => p.theme.radii.md};
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    transition: background ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.surface}; }
-
-    svg { flex-shrink: 0; }
-
-    .count {
-        margin-left: auto;
-        font-size: 11px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        color: #ffffff;
-        background: ${p => p.theme.colors.primary};
-        border-radius: ${p => p.theme.radii.full};
-        padding: 1px 7px;
-    }
-    .del {
-        margin-left: auto;
-        color: ${p => p.theme.colors.textMuted};
-        display: none;
-    }
-    &:hover .del { display: inline-flex; }
-`;
-
-const RailSection = styled.div`
-    margin-top: 14px;
-    padding: 0 10px 4px;
-    font-size: 10px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    button {
-        border: none;
-        background: none;
-        color: ${p => p.theme.colors.textMuted};
-        cursor: pointer;
-        padding: 0;
-        &:hover { color: ${p => p.theme.colors.textSecondary}; }
-    }
-`;
-
+/** Stopka listy: stan podłączonej skrzynki i wejście w jej ustawienia. */
 const AccountFooter = styled.div`
     margin-top: auto;
-    padding: 10px;
+    padding: 8px 12px;
     border-top: 1px solid ${p => p.theme.colors.border};
     font-size: 12px;
     color: ${p => p.theme.colors.textSecondary};
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    word-break: break-all;
+    align-items: center;
+    gap: 6px;
 `;
 
 const StatusDot = styled.span<{ $color: string }>`
@@ -205,11 +115,8 @@ const StatusDot = styled.span<{ $color: string }>`
     height: 8px;
     border-radius: 50%;
     background: ${({ $color }) => $color};
-    margin-right: 6px;
     flex-shrink: 0;
 `;
-
-// ── Lista wątków ─────────────────────────────────────────────────────────────
 
 const ListPane = styled.div<{ $hiddenOnMobile: boolean }>`
     flex: 1;
@@ -234,41 +141,25 @@ const ListHeader = styled.div`
     gap: 8px;
 `;
 
-const MobileChipsRow = styled.div`
+/** Filtry skrzynki. Zastąpiły boczny panel folderów: te same cztery widoki
+ *  zajmują teraz jeden rząd zamiast 208 px szerokości na każdym ekranie. */
+const FilterRow = styled.div`
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    -webkit-overflow-scrolling: touch;
 
-    &::-webkit-scrollbar { display: none; }
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) { display: none; }
+    /* Węższe niż domyślny chip aplikacji: cztery widoki muszą zmieścić się nad
+       listą szerokości 340 px, a nie chować się w poziomym przewijaniu. */
+    button {
+        padding: 6px 12px;
+        font-size: 12.5px;
+    }
 `;
 
 const SearchRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-`;
-
-const RailToggle = styled.button`
-    display: none;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
-    border-radius: ${p => p.theme.radii.full};
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
-
-    @media (min-width: ${p => p.theme.breakpoints.lg}) { display: inline-flex; }
 `;
 
 const SearchInput = styled.div`
@@ -405,9 +296,6 @@ const EmptyStateWrap = styled.div`
 
 // ── Widok ────────────────────────────────────────────────────────────────────
 
-/** Stabilna referencja — memoizowany ConversationView nie przerysowuje się bez potrzeby. */
-const EMPTY_LABELS: CommLabel[] = [];
-
 type Folderish =
     | { kind: 'inbox' }
     | { kind: 'unread' }
@@ -423,25 +311,8 @@ export default function MailView() {
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
     const isDesktop = useMediaQuery('(min-width: 1024px)');
-    const isWide = useMediaQuery('(min-width: 1440px)');
-    // Panel klienta: na szerokich ekranach otwarty, na laptopach chowany —
-    // użytkownik dociąga go przyciskiem w nagłówku konwersacji.
-    const [insightsOpen, setInsightsOpen] = useState(
-        () => window.matchMedia('(min-width: 1440px)').matches
-    );
-    // Panel folderów zwijany na życzenie; wybór pamiętany między sesjami.
-    const [railOpen, setRailOpen] = useState(
-        () => window.localStorage.getItem('comms.railOpen') !== 'false'
-    );
     const [fullMessageId, setFullMessageId] = useState<string | null>(null);
     const { showInfo } = useToast();
-
-    const toggleRail = () => {
-        setRailOpen((open) => {
-            window.localStorage.setItem('comms.railOpen', String(!open));
-            return !open;
-        });
-    };
 
     const selectedThreadId = searchParams.get('thread');
     const selectThread = useCallback(
@@ -453,7 +324,7 @@ export default function MailView() {
     );
 
     const { data: accounts } = useMailAccounts();
-    const { data: labels } = useLabels();
+    const prefetchThread = usePrefetchThread();
     const filters = useMemo(
         () => ({
             archived: folder.kind === 'archive',
@@ -487,9 +358,6 @@ export default function MailView() {
 
     const markRead = useMarkThreadRead();
     const setArchived = useSetThreadArchived();
-    const setLabel = useSetThreadLabel();
-    const createLabel = useCreateLabel();
-    const deleteLabel = useDeleteLabel();
     const syncAccount = useSyncAccount();
 
     // Otwarcie konwersacji oznacza ją jako przeczytaną — lokalnie od razu,
@@ -511,10 +379,6 @@ export default function MailView() {
         URL.revokeObjectURL(url);
     }, []);
 
-    const changeThreadLabel = useCallback(
-        (threadId: string, labelId: string | null) => setLabel.mutate({ threadId, labelId }),
-        [setLabel]
-    );
     const toggleArchived = useCallback(
         (thread: CommThread) =>
             setArchived.mutate(
@@ -523,7 +387,6 @@ export default function MailView() {
             ),
         [setArchived, selectThread]
     );
-    const toggleInsights = useCallback(() => setInsightsOpen((open) => !open), []);
     const closeConversation = useCallback(() => selectThread(null), [selectThread]);
 
     const activeAccount = accounts?.find((account) => account.status !== 'DISABLED');
@@ -544,19 +407,13 @@ export default function MailView() {
         { key: 'unread', label: 'Nieprzeczytane', folderish: { kind: 'unread' } },
         { key: 'leads', label: 'Leady', folderish: { kind: 'leads' } },
         { key: 'archive', label: 'Archiwum', folderish: { kind: 'archive' } },
-        ...(labels ?? []).map((label) => ({
-            key: `label-${label.id}`,
-            label: label.name,
-            folderish: { kind: 'label', labelId: label.id } as Folderish,
-        })),
     ];
-    const folderKey = folder.kind === 'label' ? `label-${folder.labelId}` : folder.kind;
+    const folderKey = folder.kind;
 
     const knownClient = insights?.customer ?? null;
     // Otwartość rozmowy zależy od wyboru użytkownika, nie od stanu zapytania —
     // inaczej kolumny znikałyby i wracały przy każdym przełączeniu wątku.
     const conversationOpen = Boolean(selectedThreadId);
-    const insightsVisible = isDesktop && (isWide ? insightsOpen : insightsOpen && conversationOpen);
     const fullMessage = openMessages?.find((message) => message.id === fullMessageId) ?? null;
 
     if (accounts && accountsConnected.length === 0) {
@@ -585,93 +442,9 @@ export default function MailView() {
     return (
         <Screen>
             <AppCard>
-                <FolderRail $open={railOpen}>
-                    <FolderButton $active={folder.kind === 'inbox'} onClick={() => changeFolder({ kind: 'inbox' })}>
-                        <Inbox size={15} /> Odebrane
-                        {threadPage && threadPage.totalUnread > 0 && (
-                            <span className="count">{threadPage.totalUnread}</span>
-                        )}
-                    </FolderButton>
-                    <FolderButton $active={folder.kind === 'unread'} onClick={() => changeFolder({ kind: 'unread' })}>
-                        <MailOpen size={15} /> Nieprzeczytane
-                    </FolderButton>
-                    <FolderButton $active={folder.kind === 'leads'} onClick={() => changeFolder({ kind: 'leads' })}>
-                        <Sparkles size={15} /> Leady
-                    </FolderButton>
-                    <FolderButton $active={folder.kind === 'archive'} onClick={() => changeFolder({ kind: 'archive' })}>
-                        <Archive size={15} /> Archiwum
-                    </FolderButton>
-
-                    <RailSection>
-                        Foldery
-                        <button
-                            aria-label="Nowy folder"
-                            onClick={() => {
-                                const name = window.prompt('Nazwa folderu');
-                                if (name?.trim()) createLabel.mutate({ name: name.trim() });
-                            }}
-                        >
-                            <FolderPlus size={13} />
-                        </button>
-                    </RailSection>
-                    {(labels ?? []).map((label) => (
-                        <FolderButton
-                            key={label.id}
-                            $active={folder.kind === 'label' && folder.labelId === label.id}
-                            onClick={() => changeFolder({ kind: 'label', labelId: label.id })}
-                        >
-                            <Folder size={15} /> {label.name}
-                            <span
-                                className="del"
-                                role="button"
-                                aria-label={`Usuń folder ${label.name}`}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    if (window.confirm(`Usunąć folder „${label.name}”? Wiadomości zostaną w skrzynce.`)) {
-                                        deleteLabel.mutate(label.id);
-                                        if (folder.kind === 'label' && folder.labelId === label.id) {
-                                            changeFolder({ kind: 'inbox' });
-                                        }
-                                    }
-                                }}
-                            >
-                                <Trash2 size={12} />
-                            </span>
-                        </FolderButton>
-                    ))}
-
-                    <AccountFooter>
-                        {accountsConnected.map((account) => (
-                            <div key={account.id} title={account.lastError ?? undefined}>
-                                <StatusDot $color={statusColor(account.status)} />
-                                {account.emailAddress}
-                                {account.status === 'AUTH_FAILED' && (
-                                    <div style={{ color: '#ef4444', fontSize: 11, marginTop: 2 }}>
-                                        Zaloguj się ponownie w ustawieniach
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        <div style={{ display: 'flex', gap: 6 }}>
-                            <IconButton
-                                onClick={() => {
-                                    if (!activeAccount) return;
-                                    syncAccount.mutate(activeAccount.id);
-                                    showInfo('Synchronizuję…', 'Nowe wiadomości pojawią się za chwilę');
-                                }}
-                            >
-                                <RefreshCw /> Odśwież
-                            </IconButton>
-                            <Link to="/communication/mailboxes">
-                                <IconButton as="span" aria-label="Ustawienia skrzynek"><Settings /></IconButton>
-                            </Link>
-                        </div>
-                    </AccountFooter>
-                </FolderRail>
-
                 <ListPane $hiddenOnMobile={conversationOpen}>
                     <ListHeader>
-                        <MobileChipsRow>
+                        <FilterRow>
                             {folderChips.map((chip) => (
                                 <FilterChip
                                     key={chip.key}
@@ -684,15 +457,8 @@ export default function MailView() {
                                         : ''}
                                 </FilterChip>
                             ))}
-                        </MobileChipsRow>
+                        </FilterRow>
                         <SearchRow>
-                            <RailToggle
-                                onClick={toggleRail}
-                                aria-label={railOpen ? 'Ukryj foldery' : 'Pokaż foldery'}
-                                title={railOpen ? 'Ukryj foldery' : 'Pokaż foldery'}
-                            >
-                                {railOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
-                            </RailToggle>
                             <SearchInput>
                                 <Search size={14} />
                                 <input
@@ -713,6 +479,11 @@ export default function MailView() {
                                 $active={thread.id === selectedThreadId}
                                 $unread={thread.unreadCount > 0}
                                 onClick={() => selectThread(thread.id)}
+                                // Zanim palec/kursor dojdzie do kliknięcia, wątek zdąży
+                                // trafić do cache — treść podmienia się wtedy bez migotania.
+                                onMouseEnter={() => prefetchThread(thread.id, thread.participantEmail)}
+                                onFocus={() => prefetchThread(thread.id, thread.participantEmail)}
+                                onTouchStart={() => prefetchThread(thread.id, thread.participantEmail)}
                             >
                                 <div className="top">
                                     <span className="who">
@@ -745,23 +516,36 @@ export default function MailView() {
                             </button>
                         </Pager>
                     )}
-                    {!isDesktop && (
-                        <AccountFooter as="div" style={{ marginTop: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {activeAccount && (
-                                    <>
-                                        <StatusDot $color={statusColor(activeAccount.status)} />
-                                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {activeAccount.emailAddress}
-                                        </span>
-                                    </>
-                                )}
-                                <Link to="/communication/mailboxes">
-                                    <IconButton as="span" aria-label="Ustawienia skrzynek"><Settings /></IconButton>
-                                </Link>
-                            </div>
-                        </AccountFooter>
-                    )}
+                    <AccountFooter>
+                        {activeAccount && (
+                            <>
+                                <StatusDot $color={statusColor(activeAccount.status)} />
+                                <span
+                                    style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    title={activeAccount.lastError ?? undefined}
+                                >
+                                    {activeAccount.emailAddress}
+                                </span>
+                            </>
+                        )}
+                        <IconButton
+                            onClick={() => {
+                                if (!activeAccount) return;
+                                syncAccount.mutate(activeAccount.id);
+                                showInfo('Synchronizuję…', 'Nowe wiadomości pojawią się za chwilę');
+                            }}
+                            aria-label="Odśwież skrzynkę"
+                            title="Odśwież skrzynkę"
+                            style={{ padding: 7 }}
+                        >
+                            <RefreshCw />
+                        </IconButton>
+                        <Link to="/communication/mailboxes">
+                            <IconButton as="span" aria-label="Ustawienia skrzynek" style={{ padding: 7 }}>
+                                <Settings />
+                            </IconButton>
+                        </Link>
+                    </AccountFooter>
                 </ListPane>
 
                 {!openThread && (
@@ -784,28 +568,16 @@ export default function MailView() {
                     <ConversationView
                         thread={openThread}
                         messages={openMessages}
-                        labels={labels ?? EMPTY_LABELS}
                         isDesktop={isDesktop}
                         hiddenOnMobile={!conversationOpen}
-                        insightsVisible={insightsVisible}
                         clientSummary={knownClient}
                         onBack={closeConversation}
-                        onSetLabel={changeThreadLabel}
                         onToggleArchived={toggleArchived}
-                        onToggleInsights={toggleInsights}
                         onOpenFullMessage={setFullMessageId}
                         onDownloadAttachment={downloadAttachment}
                     />
                 )}
 
-                {insightsVisible && (
-                    <InsightsPanel
-                        email={openThread?.participantEmail ?? null}
-                        threadId={openThread?.id}
-                        participantName={openThread?.participantName}
-                        onSelectThread={selectThread}
-                    />
-                )}
                 {fullMessage && (
                     <MessageReaderOverlay
                         message={fullMessage}

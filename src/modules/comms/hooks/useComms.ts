@@ -9,6 +9,7 @@ import { commsApi } from '../api/commsApi';
 import type {
     CommMessageReadPayload,
     CommThreadDetail,
+    CommThreadPage,
     CommThreadUpdatedPayload,
     DashboardSocketEvent,
     SendMailRequest,
@@ -18,7 +19,6 @@ import type {
 export const COMMS_KEY = ['comms'];
 export const COMMS_THREADS_KEY = [...COMMS_KEY, 'threads'];
 export const COMMS_ACCOUNTS_KEY = [...COMMS_KEY, 'accounts'];
-export const COMMS_LABELS_KEY = [...COMMS_KEY, 'labels'];
 export const COMMS_INSIGHTS_KEY = [...COMMS_KEY, 'insights'];
 
 export const useMailAccounts = (options?: { enabled?: boolean }) =>
@@ -35,15 +35,43 @@ export const useThreads = (filters: ThreadListFilters) =>
         placeholderData: (previous) => previous,
     });
 
+const threadDetailQuery = (threadId: string) => ({
+    queryKey: [...COMMS_THREADS_KEY, 'detail', threadId],
+    queryFn: () => commsApi.getThread(threadId),
+    // Wątek otwarty przed chwilą wraca z cache bez requestu — przełączanie tam
+    // i z powrotem nie miga wtedy w ogóle. Świeżość pilnuje WebSocket, który
+    // unieważnia konkretny wątek, gdy coś się w nim zmieni.
+    staleTime: 5 * 60_000,
+});
+
 export const useThread = (threadId: string | null) =>
     useQuery({
-        queryKey: [...COMMS_THREADS_KEY, 'detail', threadId],
-        queryFn: () => commsApi.getThread(threadId!),
+        ...threadDetailQuery(threadId ?? ''),
         enabled: threadId !== null,
     });
 
-export const useLabels = () =>
-    useQuery({ queryKey: COMMS_LABELS_KEY, queryFn: commsApi.getLabels });
+/**
+ * Wciąga wątek do cache, zanim użytkownik go kliknie (najechanie myszą, dotknięcie).
+ * Kliknięcie zastaje wtedy gotowe dane i treść podmienia się bez etapu ładowania.
+ */
+export const usePrefetchThread = () => {
+    const queryClient = useQueryClient();
+    return useCallback(
+        (threadId: string, participantEmail?: string) => {
+            queryClient.prefetchQuery(threadDetailQuery(threadId));
+            // Pasek klienta korzysta z tego samego cache — pobrany razem z wątkiem
+            // nie dosuwa treści w dół chwilę po jej pokazaniu.
+            if (participantEmail) {
+                queryClient.prefetchQuery({
+                    queryKey: [...COMMS_INSIGHTS_KEY, participantEmail, threadId],
+                    queryFn: () => commsApi.getInsights(participantEmail, threadId),
+                    staleTime: 30_000,
+                });
+            }
+        },
+        [queryClient]
+    );
+};
 
 export const useContactInsights = (email: string | null, threadId?: string) =>
     useQuery({
@@ -68,7 +96,11 @@ export const useMarkThreadRead = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (threadId: string) => commsApi.markThreadRead(threadId),
-        // Optymistycznie: wątek od razu przestaje być nieprzeczytany.
+        // Optymistycznie: wątek od razu przestaje być nieprzeczytany — i na tym
+        // koniec. Wcześniejsze unieważnienie listy powodowało jej refetch przy
+        // KAŻDYM otwarciu wiadomości, a więc przerysowanie całej lewej kolumny —
+        // to był główny „mrugający" element widoku. Licznik korygujemy lokalnie,
+        // bo dokładnie wiemy, o ile spadł.
         onMutate: async (threadId) => {
             queryClient.setQueryData<CommThreadDetail>(
                 [...COMMS_THREADS_KEY, 'detail', threadId],
@@ -79,9 +111,21 @@ export const useMarkThreadRead = () => {
                         messages: old.messages.map((m) => ({ ...m, isRead: true })),
                     }
             );
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+            queryClient.setQueriesData<CommThreadPage>(
+                { queryKey: [...COMMS_THREADS_KEY, 'list'] },
+                (page) => {
+                    if (!page) return page;
+                    const target = page.items.find((item) => item.id === threadId);
+                    if (!target || target.unreadCount === 0) return page;
+                    return {
+                        ...page,
+                        totalUnread: Math.max(0, page.totalUnread - target.unreadCount),
+                        items: page.items.map((item) =>
+                            item.id === threadId ? { ...item, unreadCount: 0 } : item
+                        ),
+                    };
+                }
+            );
         },
     });
 };
@@ -92,32 +136,6 @@ export const useSetThreadArchived = () => {
         mutationFn: ({ threadId, archived }: { threadId: string; archived: boolean }) =>
             commsApi.setThreadArchived(threadId, archived),
         onSettled: () => queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY }),
-    });
-};
-
-export const useSetThreadLabel = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ threadId, labelId }: { threadId: string; labelId: string | null }) =>
-            commsApi.setThreadLabel(threadId, labelId),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY }),
-    });
-};
-
-export const useCreateLabel = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ name, color }: { name: string; color?: string }) =>
-            commsApi.createLabel(name, color),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: COMMS_LABELS_KEY }),
-    });
-};
-
-export const useDeleteLabel = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (labelId: string) => commsApi.deleteLabel(labelId),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: COMMS_KEY }),
     });
 };
 
@@ -240,3 +258,32 @@ export function useCommsSocket(): void {
         };
     }, [isAuthenticated, user?.studioId, queryClient]);
 }
+
+// ── Stopka nadawcy ───────────────────────────────────────────────────────────
+
+export const COMMS_SIGNATURE_KEY = [...COMMS_KEY, 'signature'];
+
+export const useMailSignature = () =>
+    useQuery({
+        queryKey: COMMS_SIGNATURE_KEY,
+        queryFn: commsApi.getSignature,
+        staleTime: 5 * 60_000,
+    });
+
+export const useSaveMailSignature = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ bodyHtml, enabledByDefault }: { bodyHtml: string; enabledByDefault: boolean }) =>
+            commsApi.saveSignature(bodyHtml, enabledByDefault),
+        onSuccess: (signature) => queryClient.setQueryData(COMMS_SIGNATURE_KEY, signature),
+    });
+};
+
+export const useDeleteMailSignature = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: commsApi.deleteSignature,
+        onSuccess: () =>
+            queryClient.setQueryData(COMMS_SIGNATURE_KEY, { bodyHtml: null, enabledByDefault: false }),
+    });
+};

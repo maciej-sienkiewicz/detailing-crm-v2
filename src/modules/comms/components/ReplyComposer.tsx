@@ -7,9 +7,10 @@
 // schowane pod dyskretnym przełącznikiem — na wypadek, gdy ktoś chce je sprawdzić.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { AtSign, Send } from 'lucide-react';
+import { AtSign, PenLine, Send, Settings2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
-import { useSendMail } from '../hooks/useComms';
+import { useMailSignature, useSendMail } from '../hooks/useComms';
+import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PrimaryButton } from './shared';
 
 const Composer = styled.div`
@@ -60,6 +61,71 @@ const Actions = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    flex-wrap: wrap;
+`;
+
+const LeftActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+`;
+
+/**
+ * Przełącznik stopki. Stan „włączony/wyłączony" musi być widoczny bez klikania —
+ * decyzja o tym, co dokleimy do cudzej skrzynki, nie może wymagać sprawdzania.
+ */
+const SignatureToggle = styled.button<{ $on: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid ${({ $on, theme }) => ($on ? theme.colors.primary : theme.colors.border)};
+    background: ${({ $on, theme }) => ($on ? '#f0f9ff' : theme.colors.surface)};
+    color: ${({ $on, theme }) => ($on ? theme.colors.primary : theme.colors.textSecondary)};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 6px 12px 6px 8px;
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    font-family: inherit;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover { border-color: ${p => p.theme.colors.primary}; }
+
+    .track {
+        position: relative;
+        width: 26px;
+        height: 15px;
+        flex-shrink: 0;
+        border-radius: 999px;
+        background: ${({ $on, theme }) => ($on ? theme.colors.primary : '#cbd5e1')};
+        transition: background ${p => p.theme.transitions.fast};
+    }
+    .knob {
+        position: absolute;
+        top: 2px;
+        left: ${({ $on }) => ($on ? '13px' : '2px')};
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #ffffff;
+        transition: left ${p => p.theme.transitions.fast};
+    }
+`;
+
+const ConfigureButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+
+    &:hover { color: ${p => p.theme.colors.textSecondary}; }
 `;
 
 const RecipientToggle = styled.button`
@@ -111,7 +177,14 @@ export function ReplyComposer({
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const sendMail = useSendMail();
+    const { data: signature } = useMailSignature();
     const { showSuccess, showError } = useToast();
+    const [signatureSettingsOpen, setSignatureSettingsOpen] = useState(false);
+    // Ręczna decyzja użytkownika wygrywa z ustawieniem domyślnym stopki; dopóki jej
+    // nie podjął, przełącznik pokazuje to, co sam skonfigurował w ustawieniach.
+    const [signatureChoice, setSignatureChoice] = useState<boolean | null>(null);
+    const hasSignature = Boolean(signature?.bodyHtml);
+    const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
     // W wątku odbiorca jest oczywisty — pokazujemy go dopiero na żądanie.
     const replyInThread = Boolean(threadId) && Boolean(initialTo);
     const [recipientShown, setRecipientShown] = useState(!replyInThread);
@@ -125,6 +198,7 @@ export function ReplyComposer({
                 to: to.split(',').map((address) => address.trim()).filter(Boolean),
                 subject: subject.trim() || undefined,
                 bodyHtml: textToHtml(body),
+                appendSignature,
             },
             {
                 onSuccess: () => {
@@ -173,21 +247,59 @@ export function ReplyComposer({
                 }}
             />
             <Actions>
-                {replyInThread && !recipientShown ? (
-                    <RecipientToggle
-                        onClick={() => setRecipientShown(true)}
-                        title="Pokaż pełny adres odbiorcy"
-                    >
-                        <AtSign size={11} /> Do: {recipientLabel ?? initialTo}
-                    </RecipientToggle>
-                ) : (
-                    <span />
-                )}
+                <LeftActions>
+                    {replyInThread && !recipientShown && (
+                        <RecipientToggle
+                            onClick={() => setRecipientShown(true)}
+                            title="Pokaż pełny adres odbiorcy"
+                        >
+                            <AtSign size={11} /> Do: {recipientLabel ?? initialTo}
+                        </RecipientToggle>
+                    )}
+
+                    {hasSignature ? (
+                        <SignatureToggle
+                            $on={appendSignature}
+                            onClick={() => setSignatureChoice(!appendSignature)}
+                            role="switch"
+                            aria-checked={appendSignature}
+                            title={
+                                appendSignature
+                                    ? 'Stopka zostanie dołączona do tej wiadomości'
+                                    : 'Wyślij bez stopki'
+                            }
+                        >
+                            <span className="track"><span className="knob" /></span>
+                            Dodaj stopkę
+                        </SignatureToggle>
+                    ) : (
+                        <ConfigureButton onClick={() => setSignatureSettingsOpen(true)}>
+                            <PenLine size={12} /> Ustaw stopkę
+                        </ConfigureButton>
+                    )}
+
+                    {hasSignature && (
+                        <ConfigureButton
+                            onClick={() => setSignatureSettingsOpen(true)}
+                            title="Zmień treść stopki"
+                        >
+                            <Settings2 size={12} /> Zmień
+                        </ConfigureButton>
+                    )}
+                </LeftActions>
+
                 <PrimaryButton onClick={submit} disabled={sendMail.isPending || !body.trim()}>
                     <Send size={14} />
                     {sendMail.isPending ? 'Wysyłanie…' : 'Wyślij'}
                 </PrimaryButton>
             </Actions>
+
+            {signatureSettingsOpen && (
+                <SignatureSettingsModal
+                    isOpen
+                    onClose={() => setSignatureSettingsOpen(false)}
+                />
+            )}
         </Composer>
     );
 }
