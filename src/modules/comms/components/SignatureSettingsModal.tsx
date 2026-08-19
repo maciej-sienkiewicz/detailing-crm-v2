@@ -143,7 +143,7 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
                 <TextArea
                     value={text}
                     onChange={(event) => setText(event.target.value)}
-                    placeholder={'Jakub Bartłomiejczak\nCarsLab\n517 131 366'}
+                    placeholder={'Jan Kowalski\nTwojaFirma\n123 123 123'}
                     aria-label="Treść stopki"
                 />
 
