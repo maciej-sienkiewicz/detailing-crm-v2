@@ -167,15 +167,26 @@ const Title = styled.h3`
     min-width: 0;
 `;
 
-const Amount = styled.span`
+// Kwota ujemna to pieniądze wychodzące — korekta kasy na minus, wypłata. W zielonej
+// plakietce „przychodowej" czytałaby się jako wpływ, a minus przed liczbą jest zbyt
+// drobny, żeby to odkręcić; kolor niesie tu ten sam sygnał co znak.
+const Amount = styled.span<{ $outgoing: boolean }>`
     flex-shrink: 0;
     font-size: 13px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.2px;
-    color: #0f766e;
-    background: rgba(15, 118, 110, 0.09);
-    border: 1px solid rgba(15, 118, 110, 0.18);
+    ${p => p.$outgoing
+        ? css`
+            color: #b91c1c;
+            background: rgba(220, 38, 38, 0.09);
+            border: 1px solid rgba(220, 38, 38, 0.20);
+        `
+        : css`
+            color: #0f766e;
+            background: rgba(15, 118, 110, 0.09);
+            border: 1px solid rgba(15, 118, 110, 0.18);
+        `}
     padding: 3px 10px;
     border-radius: 9999px;
     white-space: nowrap;
@@ -420,7 +431,7 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                     <Title><PiiText value={item.title} /></Title>
                     {item.amount && (
                         <AmountSlot>
-                            <Amount>{item.amount.display}</Amount>
+                            <Amount $outgoing={Number(item.amount.value) < 0}>{item.amount.display}</Amount>
                             <StackedActor aria-hidden="true">{actorContent}</StackedActor>
                         </AmountSlot>
                     )}
