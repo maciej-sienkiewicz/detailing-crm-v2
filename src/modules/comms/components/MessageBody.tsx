@@ -1,33 +1,80 @@
 // src/modules/comms/components/MessageBody.tsx
-// Render cudzego HTML w izolowanym iframe. Trzecia warstwa obrony (po sanityzacji
-// serwera): sandbox bez allow-scripts, więc nawet przepuszczony skrypt nie wykona się;
-// allow-same-origin jest bezpieczne bez skryptów, a daje ciasteczka dla obrazków
-// inline (cid → /api/v1/comms/attachments/…) i pomiar wysokości dokumentu.
+// Treść jednej wiadomości. Dwie drogi renderu, dobierane do tego, czym wiadomość
+// naprawdę jest:
 //
-// Pomiar musi być odporny: newslettery ładują obrazki z zewnętrznych domen długo
-// po zdarzeniu load, a część z nich w ogóle się nie ładuje. Dlatego wysokość
-// dopasowujemy przez ResizeObserver na <body> ramki plus nasłuch na obrazkach —
-// inaczej wiadomość zostaje ucięta na wysokości zmierzonej w pierwszej klatce.
-// Zmierzone wysokości pamiętamy w cache modułu: powrót do wątku renderuje się od
-// razu w docelowym rozmiarze, zamiast „dorastać" w oczach użytkownika.
+//  • ZWYKŁA KORESPONDENCJA (akapity, listy, linki — przytłaczająca większość poczty
+//    w CRM) renderuje się WPROST w naszej typografii. Jedna czcionka, jeden rytm,
+//    jedna szerokość kolumny — i zero mierzenia wysokości, więc nie ma czego uciąć.
+//    Warstwy bezpieczeństwa: sanityzacja na backendzie (jsoup Safelist) + DOMPurify tutaj.
 //
-// Długa wiadomość nie jest już ucinana bez wyjścia — chmurka dostaje własny scroll.
-// Wiadomość graficzna (newsletter, oferta w jednym obrazku) zamienia się w przycisk
-// otwierający pełny podgląd: w wąskiej chmurce i tak nie da się jej przeczytać.
+//  • MAIL PROJEKTOWANY (newsletter na tabelach, własne style, tła) ląduje w izolowanym
+//    iframe, bo tam układ jest treścią, a obce CSS nie może wyciec na resztę aplikacji.
+//    Sandbox bez allow-scripts; allow-same-origin daje ciasteczka dla obrazków inline
+//    (cid → /api/v1/comms/attachments/…) i pomiar wysokości dokumentu. Ramka bywa
+//    ekranami treści, więc dostaje własny scroll i przejście do pełnego podglądu.
+//
+//  • WIADOMOŚĆ GRAFICZNA (sam obrazek, zero tekstu) w wąskiej kolumnie wątku jest
+//    nieczytelna — pokazujemy przycisk otwierający pełny podgląd.
+//
+// Doklejoną historię rozmowy chowamy pod przełącznikiem w obu trybach (patrz
+// utils/emailHtml.ts) — bez tego każda kolejna odpowiedź powtarza cały wątek.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { ChevronDown, ChevronUp, Image as ImageIcon, Maximize2 } from 'lucide-react';
-import { describeHtml, splitQuotedHistory } from '../utils/emailHtml';
+import DOMPurify from 'dompurify';
+import { ChevronUp, Image as ImageIcon, Maximize2 } from 'lucide-react';
+import { describeHtml, isRichHtml, splitQuotedHistory, trimEmptyEdges } from '../utils/emailHtml';
 
 const Root = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 10px;
     min-width: 0;
+`;
+
+/** Kolumna czytelnicza: długość wiersza, przy której oko nie gubi linijek. */
+const Prose = styled.div`
+    max-width: 68ch;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: ${p => p.theme.colors.text};
+    overflow-wrap: anywhere;
+
+    /* Obcy HTML sprowadzamy do naszego rytmu — bez tego każdy mail ma inną skalę. */
+    * { max-width: 100%; font-family: inherit !important; }
+    font, span, div, p, td { font-size: inherit !important; line-height: inherit !important; }
+
+    p, div { margin: 0; }
+    p + p { margin-top: 0.9em; }
+    br + br { line-height: 0.5; }
+    ul, ol { margin: 0.6em 0; padding-left: 1.4em; }
+    li { margin: 0.2em 0; }
+    a { color: ${p => p.theme.colors.primary}; text-decoration: underline; }
+    img { height: auto; border-radius: ${p => p.theme.radii.sm}; margin: 4px 0; }
+    hr { border: none; border-top: 1px solid ${p => p.theme.colors.border}; margin: 1em 0; }
+    blockquote {
+        margin: 0.6em 0;
+        padding-left: 12px;
+        border-left: 2px solid ${p => p.theme.colors.border};
+        color: ${p => p.theme.colors.textSecondary};
+    }
+    pre { white-space: pre-wrap; font-family: inherit; }
+    table { border-collapse: collapse; }
+    td, th { padding: 2px 6px; }
+`;
+
+/** Cytat renderujemy przygaszony — jest kontekstem, nie treścią. */
+const QuotedProse = styled(Prose)`
+    margin-top: 4px;
+    padding-left: 12px;
+    border-left: 2px solid ${p => p.theme.colors.border};
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 13.5px;
 `;
 
 const ScrollArea = styled.div<{ $clamped: boolean; $maxHeight: number }>`
     position: relative;
+    width: 100%;
     min-width: 0;
     ${({ $clamped, $maxHeight }) =>
         $clamped &&
@@ -38,12 +85,8 @@ const ScrollArea = styled.div<{ $clamped: boolean; $maxHeight: number }>`
         -webkit-overflow-scrolling: touch;
     `}
 
-    /* Delikatny pasek przewijania, żeby chmurka nie wyglądała jak okno w oknie. */
     &::-webkit-scrollbar { width: 8px; }
-    &::-webkit-scrollbar-thumb {
-        background: rgba(148, 163, 184, 0.45);
-        border-radius: 999px;
-    }
+    &::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.45); border-radius: 999px; }
     &::-webkit-scrollbar-track { background: transparent; }
 `;
 
@@ -57,12 +100,34 @@ const Frame = styled.iframe<{ $ready: boolean }>`
     transition: opacity 120ms ease-out;
 `;
 
-/** Stopka chmurki: przewijalna treść, historia rozmowy, pełny podgląd. */
 const Footer = styled.div`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+`;
+
+/** „⋯" w stylu Gmaila: rozwija doklejoną historię rozmowy, nie krzycząc o tym. */
+const QuoteToggle = styled.button<{ $open: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid transparent;
+    background: ${p => p.theme.colors.surfaceAlt};
+    color: ${p => p.theme.colors.textMuted};
+    border-radius: ${p => p.theme.radii.full};
+    padding: ${({ $open }) => ($open ? '4px 12px' : '2px 10px')};
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    letter-spacing: ${({ $open }) => ($open ? 'normal' : '0.12em')};
+    cursor: pointer;
+    font-family: inherit;
+
+    &:hover {
+        background: ${p => p.theme.colors.surfaceHover};
+        color: ${p => p.theme.colors.textSecondary};
+    }
 `;
 
 const GhostButton = styled.button`
@@ -82,12 +147,12 @@ const GhostButton = styled.button`
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
-/** Zastępnik wiadomości graficznej — jedno kliknięcie do czytelnego widoku. */
 const GraphicalCard = styled.button`
     display: flex;
     align-items: center;
     gap: 10px;
     width: 100%;
+    max-width: 420px;
     text-align: left;
     border: 1px dashed ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surfaceAlt};
@@ -97,10 +162,7 @@ const GraphicalCard = styled.button`
     font-family: inherit;
     transition: all ${p => p.theme.transitions.fast};
 
-    &:hover {
-        border-color: ${p => p.theme.colors.primary};
-        background: ${p => p.theme.colors.surface};
-    }
+    &:hover { border-color: ${p => p.theme.colors.primary}; background: ${p => p.theme.colors.surface}; }
 
     .icon {
         display: inline-flex;
@@ -115,15 +177,8 @@ const GraphicalCard = styled.button`
         color: ${p => p.theme.colors.textMuted};
     }
     .grow { flex: 1; min-width: 0; }
-    .title {
-        font-size: 13px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-    }
-    .hint {
-        font-size: 12px;
-        color: ${p => p.theme.colors.textSecondary};
-    }
+    .title { font-size: 13px; font-weight: ${p => p.theme.fontWeights.semibold}; color: ${p => p.theme.colors.text}; }
+    .hint { font-size: 12px; color: ${p => p.theme.colors.textSecondary}; }
 `;
 
 const FRAME_STYLES = `
@@ -146,12 +201,20 @@ const FRAME_STYLES = `
     </style>
 `;
 
-/** Wysokości zmierzonych wiadomości — klucz: id wiadomości + stan cytatu. */
+/** Warstwa kliencka nad sanityzacją backendu — obie muszą zawieść, żeby coś przeszło. */
+const PURIFY_CONFIG = {
+    FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'base'],
+    FORBID_ATTR: ['srcset', 'formaction'],
+    ADD_ATTR: ['target', 'rel'],
+};
+
+const sanitize = (html: string): string => DOMPurify.sanitize(html, PURIFY_CONFIG) as string;
+
+/** Wysokości zmierzonych ramek — klucz: id wiadomości + stan cytatu. */
 const heightCache = new Map<string, number>();
 const HEIGHT_CACHE_LIMIT = 400;
 
 const rememberHeight = (key: string, value: number) => {
-    // Cache żyje tyle, co karta przeglądarki — po długiej sesji czyścimy najstarsze wpisy.
     if (heightCache.size >= HEIGHT_CACHE_LIMIT) {
         const oldest = heightCache.keys().next().value;
         if (oldest !== undefined) heightCache.delete(oldest);
@@ -161,15 +224,15 @@ const rememberHeight = (key: string, value: number) => {
 
 interface MessageBodyProps {
     html: string;
-    /** Id wiadomości — pozwala pamiętać zmierzoną wysokość między renderami. */
+    /** Id wiadomości — pozwala pamiętać zmierzoną wysokość ramki między renderami. */
     cacheKey?: string;
-    /** Wysokość, powyżej której chmurka dostaje własny scroll. */
+    /** Wysokość, powyżej której ramka maila projektowanego dostaje własny scroll. */
     maxHeight?: number;
-    /** Gdy podany, pokazujemy przejście do pełnego podglądu. */
+    /** Gdy podany, oferujemy przejście do pełnego podglądu. */
     onOpenFull?: () => void;
     /** Chowanie doklejonej historii rozmowy pod przełącznikiem. */
     collapseQuoted?: boolean;
-    /** Podmiana wiadomości graficznej na przycisk (tylko w chmurce rozmowy). */
+    /** Podmiana wiadomości graficznej na przycisk (tylko w wątku, nie w pełnym podglądzie). */
     compactGraphical?: boolean;
 }
 
@@ -184,12 +247,12 @@ export function MessageBody({
     const frameRef = useRef<HTMLIFrameElement>(null);
     const [quotedShown, setQuotedShown] = useState(false);
 
-    const { mainHtml, quotedHtml } = useMemo(
-        () => (collapseQuoted ? splitQuotedHistory(html) : { mainHtml: html, quotedHtml: null }),
-        [html, collapseQuoted]
-    );
+    const { mainHtml, quotedHtml } = useMemo(() => {
+        const split = collapseQuoted ? splitQuotedHistory(html) : { mainHtml: html, quotedHtml: null };
+        return { mainHtml: trimEmptyEdges(split.mainHtml), quotedHtml: split.quotedHtml };
+    }, [html, collapseQuoted]);
     const shape = useMemo(() => describeHtml(mainHtml), [mainHtml]);
-    const asPlaceholder = compactGraphical && shape.isGraphical && Boolean(onOpenFull);
+    const rich = useMemo(() => isRichHtml(mainHtml), [mainHtml]);
 
     const documentHtml = useMemo(() => {
         const body = quotedShown && quotedHtml
@@ -199,11 +262,9 @@ export function MessageBody({
     }, [mainHtml, quotedHtml, quotedShown]);
 
     const measureKey = cacheKey ? `${cacheKey}:${quotedShown ? 'full' : 'main'}` : null;
-    const cachedHeight = measureKey ? heightCache.get(measureKey) ?? 0 : 0;
     // Start od zapamiętanej wysokości: wracając do wątku ramka od razu ma docelowy
-    // rozmiar, zamiast „dorastać" w oczach użytkownika. Kolejne wartości przynosi
-    // pomiar po załadowaniu ramki.
-    const [height, setHeight] = useState(cachedHeight);
+    // rozmiar, zamiast „dorastać" w oczach użytkownika.
+    const [height, setHeight] = useState(measureKey ? heightCache.get(measureKey) ?? 0 : 0);
 
     const measure = useCallback(() => {
         const doc = frameRef.current?.contentDocument;
@@ -251,7 +312,25 @@ export function MessageBody({
         return () => frame?.__cleanup?.();
     }, [documentHtml]);
 
-    if (asPlaceholder) {
+    const quoteToggle = quotedHtml && (
+        <QuoteToggle
+            $open={quotedShown}
+            onClick={() => setQuotedShown((shown) => !shown)}
+            aria-expanded={quotedShown}
+            title="Wcześniejsza korespondencja doklejona przez program pocztowy nadawcy"
+        >
+            {quotedShown ? (
+                <>
+                    <ChevronUp size={12} /> Ukryj historię rozmowy
+                </>
+            ) : (
+                '•••'
+            )}
+        </QuoteToggle>
+    );
+
+    // ── Wiadomość graficzna ──────────────────────────────────────────────────
+    if (compactGraphical && shape.isGraphical && onOpenFull) {
         return (
             <Root>
                 <GraphicalCard onClick={onOpenFull}>
@@ -262,17 +341,29 @@ export function MessageBody({
                     </span>
                     <Maximize2 size={14} />
                 </GraphicalCard>
+                {quotedHtml && <Footer>{quoteToggle}</Footer>}
+            </Root>
+        );
+    }
+
+    // ── Zwykła korespondencja: render wprost, w naszej typografii ────────────
+    if (!rich) {
+        return (
+            <Root>
+                <Prose dangerouslySetInnerHTML={{ __html: sanitize(mainHtml) }} />
                 {quotedHtml && (
-                    <Footer>
-                        <GhostButton onClick={onOpenFull}>
-                            Zawiera historię rozmowy
-                        </GhostButton>
-                    </Footer>
+                    <>
+                        <Footer>{quoteToggle}</Footer>
+                        {quotedShown && (
+                            <QuotedProse dangerouslySetInnerHTML={{ __html: sanitize(quotedHtml) }} />
+                        )}
+                    </>
                 )}
             </Root>
         );
     }
 
+    // ── Mail projektowany: izolowana ramka ───────────────────────────────────
     const clamped = Boolean(maxHeight) && height > (maxHeight ?? 0);
 
     return (
@@ -291,15 +382,7 @@ export function MessageBody({
             </ScrollArea>
             {(quotedHtml || (clamped && onOpenFull)) && (
                 <Footer>
-                    {quotedHtml && (
-                        <GhostButton
-                            onClick={() => setQuotedShown((shown) => !shown)}
-                            title="Wcześniejsza korespondencja doklejona przez program pocztowy nadawcy"
-                        >
-                            {quotedShown ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                            {quotedShown ? 'Ukryj historię rozmowy' : 'Pokaż historię rozmowy'}
-                        </GhostButton>
-                    )}
+                    {quoteToggle}
                     {clamped && onOpenFull && (
                         <GhostButton onClick={onOpenFull}>
                             <Maximize2 size={13} /> Otwórz w pełnym widoku

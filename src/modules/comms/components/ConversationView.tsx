@@ -1,27 +1,33 @@
 // src/modules/comms/components/ConversationView.tsx
 // Prawa kolumna skrzynki: nagłówek rozmowy, oś wiadomości i pole odpowiedzi.
 //
-// Wydzielone z MailView z dwóch powodów:
-//  1. Wydajność i spokój ekranu — komponent jest memoizowany, więc pisanie w
-//     wyszukiwarce, odświeżenie listy wątków czy przyjście zdarzenia WebSocket
-//     nie przerysowuje ramek z treścią wiadomości. Przerysowuje się wyłącznie to,
-//     co faktycznie się zmieniło.
-//  2. Jedno miejsce odpowiedzialne za prezentację korespondencji — łatwiej
-//     pilnować, żeby ta sama informacja nie pojawiała się dwa razy.
+// Wątek czyta się jak dokument, nie jak czat. Trzy decyzje, które za tym stoją:
 //
-// Zasada anty-powtórzeniowa w nagłówkach: adres nadawcy pokazujemy dokładnie raz.
-// Kanonicznym miejscem jest panel klienta (gdy otwarty), a gdy jest schowany —
-// podtytuł nagłówka rozmowy. Nagłówki poszczególnych wiadomości podają adres
-// tylko wtedy, gdy odbiega od uczestnika wątku (przekazane, wiele adresów).
-import { memo, useEffect, useRef, useState } from 'react';
+//  1. AKORDEON. Domyślnie otwarta jest ostatnia wiadomość (i wszystko, czego nie
+//     przeczytano); wcześniejsze są jednolinijkowymi wierszami z nadawcą, początkiem
+//     treści i godziną. Wątek na 28 wiadomości mieści się wtedy na ekranie, a oko ma
+//     jedno miejsce, w które ma patrzeć. Dłuższe historie zwijają środek pod jeden
+//     przycisk — jak w Gmailu.
+//  2. WIERSZ, NIE DYMEK. Mail to dokument: pełna szerokość, stała kolumna czytelnicza,
+//     kierunek zaznaczony akcentem i tłem, a nie przesunięciem w bok. Dymki z
+//     marginesem 40px zjadały szerokość dokładnie tam, gdzie potrzebna jest treść.
+//  3. JEDNO MIEJSCE NA ADRES. Nazwa nadawcy jest przy każdej wiadomości (bo mówi, kto
+//     mówi), ale adres pokazujemy tylko wtedy, gdy odbiega od uczestnika wątku —
+//     w kółko powtarzany e-mail to szum, nie informacja.
+//
+// Komponent jest memoizowany: odświeżenie listy wątków, zdarzenie WebSocket czy
+// pisanie w wyszukiwarce nie przerysowuje treści korespondencji.
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Archive,
     ArchiveRestore,
     ArrowLeft,
+    ChevronDown,
     Download,
     Maximize2,
+    Paperclip,
     PanelRightClose,
     PanelRightOpen,
     Sparkles,
@@ -32,7 +38,8 @@ import type { CommAttachment, CommLabel, CommMessage, CommThread } from '../type
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadPopover } from './MarkAsLeadPopover';
-import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze } from './shared';
+import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
+import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
 const Pane = styled.div<{ $hiddenOnMobile: boolean }>`
     flex: 1;
@@ -99,35 +106,118 @@ const MessagesScroll = styled.div`
     min-height: 0;
     overflow-y: auto;
     background: ${p => p.theme.colors.surfaceAlt};
-    padding: 12px;
+    padding: 14px 12px 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: 16px; }
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: 18px 20px 24px; }
 `;
 
-const MessageCard = styled.article<{ $outbound: boolean }>`
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#bae6fd' : theme.colors.border)};
+/**
+ * Wiadomość jako kartka dokumentu. flex-shrink: 0 jest tu krytyczne: w kolumnie
+ * flex elementy domyślnie kurczą się do wysokości kontenera zamiast go przewinąć,
+ * przez co każda wiadomość zostawała ścięta do kilku linijek.
+ */
+const Article = styled.article<{ $outbound: boolean }>`
+    flex-shrink: 0;
+    background: ${({ $outbound, theme }) => ($outbound ? '#f7fbff' : theme.colors.surface)};
+    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#dbeafe' : theme.colors.border)};
+    border-left: 3px solid ${({ $outbound, theme }) => ($outbound ? theme.colors.primary : 'transparent')};
     border-radius: ${p => p.theme.radii.lg};
-    overflow: hidden;
     box-shadow: ${p => p.theme.shadows.sm};
+    padding: 14px 16px 16px;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        ${({ $outbound }) => ($outbound ? 'margin-left: 40px;' : 'margin-right: 40px;')}
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: 16px 20px 18px; }
+`;
+
+/** Zwinięta wiadomość: kto, o czym, kiedy — jedna linijka, całość klikalna. */
+const CollapsedRow = styled.button<{ $outbound: boolean }>`
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    background: ${({ $outbound, theme }) => ($outbound ? '#f7fbff' : theme.colors.surface)};
+    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#dbeafe' : theme.colors.border)};
+    border-left: 3px solid ${({ $outbound, theme }) => ($outbound ? theme.colors.primary : 'transparent')};
+    border-radius: ${p => p.theme.radii.lg};
+    padding: 9px 16px;
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+
+    .who {
+        font-size: 13px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        white-space: nowrap;
     }
+    .preview {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        color: ${p => p.theme.colors.textMuted};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .when {
+        font-size: 11px;
+        color: ${p => p.theme.colors.textMuted};
+        white-space: nowrap;
+    }
+    .clip { color: ${p => p.theme.colors.textMuted}; flex-shrink: 0; }
+`;
+
+/** Zwinięty środek długiej historii — jeden przycisk zamiast dwudziestu wierszy. */
+const GapRow = styled.button`
+    flex-shrink: 0;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 5px 16px;
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    font-family: inherit;
+    cursor: pointer;
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+`;
+
+/** Inicjały nadawcy — najszybszy sposób na „kto mówi" przy skanowaniu wątku. */
+const Avatar = styled.span<{ $hue: number; $outbound: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    letter-spacing: 0.02em;
+    color: ${({ $outbound, $hue }) => ($outbound ? '#0369a1' : `hsl(${$hue}, 45%, 34%)`)};
+    background: ${({ $outbound, $hue }) => ($outbound ? '#e0f2fe' : `hsl(${$hue}, 62%, 93%)`)};
 `;
 
 const MessageHeader = styled.header`
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 14px 6px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
 
+    .identity { flex: 1; min-width: 0; }
     .from {
-        font-size: 13px;
+        font-size: 13.5px;
         font-weight: ${p => p.theme.fontWeights.semibold};
         color: ${p => p.theme.colors.text};
         overflow-wrap: anywhere;
@@ -138,10 +228,12 @@ const MessageHeader = styled.header`
         margin-left: 6px;
     }
     .meta {
-        font-size: 11px;
+        font-size: 11.5px;
         color: ${p => p.theme.colors.textMuted};
-        white-space: nowrap;
-        text-align: right;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
     }
 `;
 
@@ -150,26 +242,22 @@ const ExpandIconButton = styled.button`
     background: none;
     color: ${p => p.theme.colors.textMuted};
     cursor: pointer;
-    padding: 2px;
+    padding: 4px;
     display: inline-flex;
     align-items: center;
     border-radius: ${p => p.theme.radii.sm};
+    flex-shrink: 0;
 
-    &:hover {
-        color: ${p => p.theme.colors.textSecondary};
-        background: ${p => p.theme.colors.surfaceAlt};
-    }
-`;
-
-const MessagePadding = styled.div`
-    padding: 0 14px 12px;
+    &:hover { color: ${p => p.theme.colors.textSecondary}; background: ${p => p.theme.colors.surfaceAlt}; }
 `;
 
 const AttachmentRow = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 0 14px 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid ${p => p.theme.colors.border};
 `;
 
 const AttachmentChip = styled.button`
@@ -220,14 +308,44 @@ const SkeletonCard = styled.div<{ $height: number }>`
         to { background-position: -50% 0; }
     }
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) { margin-right: 40px; }
+    flex-shrink: 0;
 `;
 
-/** Wysokość, powyżej której chmurka wiadomości dostaje własny scroll. */
-const BUBBLE_MAX_HEIGHT = 560;
+/** Wysokość, powyżej której ramka maila projektowanego dostaje własny scroll. */
+const RICH_MAIL_MAX_HEIGHT = 620;
+
+/** Powyżej tylu wiadomości chowamy środek historii pod jeden przycisk. */
+const COLLAPSE_MIDDLE_ABOVE = 5;
+/** Ile ostatnich wiadomości zostaje widocznych, gdy środek jest zwinięty. */
+const TAIL_SIZE = 3;
 
 const sameAddress = (left: string | null | undefined, right: string | null | undefined): boolean =>
     Boolean(left) && Boolean(right) && left!.trim().toLowerCase() === right!.trim().toLowerCase();
+
+/** Inicjały nadawcy: „Biuro CarsLab" → BC, „henkel.michal87@gmail.com" → HE. */
+const initialsOf = (name: string | null, email: string): string => {
+    const source = (name ?? email.split('@')[0] ?? '').replace(/[^\p{L}\p{N}\s.]/gu, ' ').trim();
+    const parts = source.split(/[\s.]+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
+/** Stabilny odcień awatara — ten sam nadawca zawsze w tym samym kolorze. */
+const hueOf = (value: string): number => {
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+        hash = (hash * 31 + value.charCodeAt(index)) % 360;
+    }
+    return hash;
+};
+
+/** Nazwa nadawcy w wierszu wiadomości — krótka, bo kontekst daje nagłówek wątku. */
+/** Stała referencja — pusta mapa rozwinięć dla świeżo otwartego wątku. */
+const EMPTY_OVERRIDES: Record<string, boolean> = {};
+
+const senderName = (message: CommMessage): string =>
+    message.direction === 'OUTBOUND' ? 'Ty' : message.fromName ?? message.fromEmail;
 
 export interface ConversationClientSummary {
     completedVisitCount: number;
@@ -272,6 +390,50 @@ function ConversationViewImpl({
     const [leadPopoverThreadId, setLeadPopoverThreadId] = useState<string | null>(null);
     const leadPopoverOpen = leadPopoverThreadId === thread.id;
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Ręczne rozwinięcia trzymamy razem z id wątku — zmiana rozmowy zeruje je sama,
+    // bez efektu synchronizującego stan.
+    const [manual, setManual] = useState<{ threadId: string; map: Record<string, boolean> }>({
+        threadId: thread.id,
+        map: {},
+    });
+    const manualMap = manual.threadId === thread.id ? manual.map : EMPTY_OVERRIDES;
+    const [historyShownFor, setHistoryShownFor] = useState<string | null>(null);
+    const historyShown = historyShownFor === thread.id;
+
+    const toggleMessage = (messageId: string, currentlyExpanded: boolean) =>
+        setManual((previous) => ({
+            threadId: thread.id,
+            map: {
+                ...(previous.threadId === thread.id ? previous.map : {}),
+                [messageId]: !currentlyExpanded,
+            },
+        }));
+
+    // Podgląd treści bez cytatów — to on trafia do zwiniętego wiersza.
+    const previews = useMemo(() => {
+        const map = new Map<string, string>();
+        (messages ?? []).forEach((message) => {
+            const body = message.bodyHtml ?? '';
+            map.set(message.id, body ? plainPreview(splitQuotedHistory(body).mainHtml) : '(pusta wiadomość)');
+        });
+        return map;
+    }, [messages]);
+
+    // Co jest otwarte domyślnie: ostatnia wiadomość, wszystko nieprzeczytane i całe
+    // krótkie wątki. Reszta czeka zwinięta — jedno kliknięcie od treści.
+    const total = messages?.length ?? 0;
+    const isExpanded = (message: CommMessage, index: number): boolean => {
+        const manualChoice = manualMap[message.id];
+        if (manualChoice !== undefined) return manualChoice;
+        return index === total - 1 || !message.isRead || total <= 2;
+    };
+
+    // Środek długiej historii chowamy pod jeden przycisk (pierwsza + ostatnie trzy).
+    const hiddenCount = Math.max(0, total - 1 - TAIL_SIZE);
+    const collapseMiddle = total > COLLAPSE_MIDDLE_ABOVE && hiddenCount > 1 && !historyShown;
+    const isInHiddenMiddle = (index: number) =>
+        collapseMiddle && index > 0 && index < total - TAIL_SIZE;
 
     // Nowy wątek zaczynamy czytać od góry; w obrębie wątku pozycja zostaje.
     useEffect(() => {
@@ -366,56 +528,106 @@ function ConversationViewImpl({
             <MessagesScroll ref={scrollRef}>
                 {messages === null && (
                     <>
-                        <SkeletonCard $height={140} />
-                        <SkeletonCard $height={96} />
+                        <SkeletonCard $height={132} />
+                        <SkeletonCard $height={92} />
                     </>
                 )}
-                {(messages ?? []).map((message: CommMessage) => {
+
+                {(messages ?? []).map((message: CommMessage, index: number) => {
+                    if (isInHiddenMiddle(index)) {
+                        // Jeden przycisk zamiast całej zwiniętej historii — rysujemy go
+                        // w miejscu pierwszej schowanej wiadomości.
+                        return index === 1 ? (
+                            <GapRow
+                                key="history-gap"
+                                onClick={() => setHistoryShownFor(thread.id)}
+                                title="Pokaż wcześniejsze wiadomości w tym wątku"
+                            >
+                                <ChevronDown size={13} />
+                                {hiddenCount} wcześniejsze wiadomości
+                            </GapRow>
+                        ) : null;
+                    }
+
                     const outbound = message.direction === 'OUTBOUND';
+                    const expanded = isExpanded(message, index);
+                    const name = senderName(message);
+                    const initials = outbound ? 'TY' : initialsOf(message.fromName, message.fromEmail);
+                    const hue = hueOf(message.fromEmail);
+
+                    if (!expanded) {
+                        return (
+                            <CollapsedRow
+                                key={message.id}
+                                $outbound={outbound}
+                                onClick={() => toggleMessage(message.id, expanded)}
+                                aria-expanded={false}
+                                title="Rozwiń wiadomość"
+                            >
+                                <Avatar $hue={hue} $outbound={outbound}>{initials}</Avatar>
+                                <span className="who">{name}</span>
+                                <span className="preview">{previews.get(message.id)}</span>
+                                {message.attachments.length > 0 && (
+                                    <Paperclip size={12} className="clip" aria-label="Ma załączniki" />
+                                )}
+                                <span className="when">{formatRelativeTime(message.sentAt)}</span>
+                            </CollapsedRow>
+                        );
+                    }
+
                     // Adres pokazujemy tylko, gdy wnosi informację — inaczej powtarzalibyśmy
                     // to, co stoi w nagłówku rozmowy i w panelu klienta.
                     const showEmail =
                         !outbound && !sameAddress(message.fromEmail, thread.participantEmail);
+                    const readElsewhere =
+                        message.direction === 'INBOUND' && message.isRead && message.readSource === 'EXTERNAL';
 
                     return (
-                        <MessageCard key={message.id} $outbound={outbound}>
+                        <Article key={message.id} $outbound={outbound}>
                             <MessageHeader>
-                                <span className="from">
-                                    {outbound ? 'Ty' : message.fromName ?? message.fromEmail}
-                                    {showEmail && <small>{message.fromEmail}</small>}
-                                </span>
-                                <span className="meta">
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <Avatar $hue={hue} $outbound={outbound}>{initials}</Avatar>
+                                <button
+                                    className="identity"
+                                    onClick={() => toggleMessage(message.id, expanded)}
+                                    aria-expanded
+                                    title="Zwiń wiadomość"
+                                    style={{
+                                        border: 'none', background: 'none', padding: 0,
+                                        textAlign: 'left', cursor: 'pointer', font: 'inherit',
+                                    }}
+                                >
+                                    <div className="from">
+                                        {name}
+                                        {showEmail && <small>{message.fromEmail}</small>}
+                                    </div>
+                                    <div className="meta">
                                         {formatDateTime(message.sentAt)}
-                                        {message.bodyHtml && (
-                                            <ExpandIconButton
-                                                onClick={() => onOpenFullMessage(message.id)}
-                                                aria-label="Wyświetl w pełnym widoku"
-                                                title="Wyświetl w pełnym widoku"
-                                            >
-                                                <Maximize2 size={13} />
-                                            </ExpandIconButton>
-                                        )}
-                                    </span>
-                                    {message.direction === 'INBOUND' && message.isRead
-                                        && message.readSource === 'EXTERNAL' && (
-                                        <div>przeczytano w innym kliencie</div>
-                                    )}
-                                </span>
+                                        {readElsewhere && <span>· przeczytano w innym kliencie</span>}
+                                    </div>
+                                </button>
+                                {message.bodyHtml && (
+                                    <ExpandIconButton
+                                        onClick={() => onOpenFullMessage(message.id)}
+                                        aria-label="Wyświetl w pełnym widoku"
+                                        title="Wyświetl w pełnym widoku"
+                                    >
+                                        <Maximize2 size={14} />
+                                    </ExpandIconButton>
+                                )}
                             </MessageHeader>
-                            <MessagePadding>
-                                {message.bodyHtml
-                                    ? (
-                                        <MessageBody
-                                            html={message.bodyHtml}
-                                            cacheKey={message.id}
-                                            maxHeight={BUBBLE_MAX_HEIGHT}
-                                            compactGraphical
-                                            onOpenFull={() => onOpenFullMessage(message.id)}
-                                        />
-                                    )
-                                    : <EmptyHint>(pusta wiadomość)</EmptyHint>}
-                            </MessagePadding>
+
+                            {message.bodyHtml
+                                ? (
+                                    <MessageBody
+                                        html={message.bodyHtml}
+                                        cacheKey={message.id}
+                                        maxHeight={RICH_MAIL_MAX_HEIGHT}
+                                        compactGraphical
+                                        onOpenFull={() => onOpenFullMessage(message.id)}
+                                    />
+                                )
+                                : <EmptyHint>(pusta wiadomość)</EmptyHint>}
+
                             {message.attachments.length > 0 && (
                                 <AttachmentRow>
                                     {message.attachments.map((attachment: CommAttachment) => (
@@ -430,7 +642,7 @@ function ConversationViewImpl({
                                     ))}
                                 </AttachmentRow>
                             )}
-                        </MessageCard>
+                        </Article>
                     );
                 })}
             </MessagesScroll>

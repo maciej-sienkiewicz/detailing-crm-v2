@@ -46,9 +46,10 @@ const QUOTE_SELECTORS = [
  * całego cytatu; w obu przypadkach cięcie w tym miejscu jest poprawne.
  */
 const QUOTE_MARKERS: RegExp[] = [
-    /^W dniu[\s\S]{0,240}napisa[łl](\(?a\)?)?\s*:/i,
+    /^W dniu[\s\S]{0,240}(napisa[łl](\(?a\)?)?|pisze)\s*:/i,
     /^Dnia[\s\S]{0,240}(napisa[łl](\(?a\)?)?|pisze)\s*:/i,
-    /^(pon|wt|śr|sr|czw|pt|sob|niedz)[a-ząćęłńóśźż]*\.?,?\s[\s\S]{0,240}napisa[łl](\(?a\)?)?\s*:/i,
+    /^(pon|wt|śr|sr|czw|pt|sob|niedz)[a-ząćęłńóśźż]*\.?,?\s[\s\S]{0,240}(napisa[łl](\(?a\)?)?|pisze)\s*:/i,
+    /^[\s\S]{0,120}użytkownik[\s\S]{0,200}napisa[łl](\(?a\)?)?\s*:/i,
     /^On[\s\S]{0,240}wrote\s*:/i,
     /^-{2,}\s*(Original Message|Wiadomość oryginalna|Forwarded message|Wiadomość przekazana)/i,
     /^_{5,}\s*$/,
@@ -78,7 +79,7 @@ function findQuoteAnchor(body: HTMLElement): Element | null {
 }
 
 /** Węzeł zakotwiczenia i wszystko, co po nim następuje (także u przodków). */
-function collectFromAnchor(anchor: Element, body: HTMLElement): Node[] {
+function collectFromAnchor(anchor: Node, body: HTMLElement): Node[] {
     const collected: Node[] = [];
     let node: Node | null = anchor;
     // Sam kotwiczący element wchodzi do cytatu; jego przodkowie zostają
@@ -94,6 +95,30 @@ function collectFromAnchor(anchor: Element, body: HTMLElement): Node[] {
         includeSelf = false;
     }
     return collected;
+}
+
+/**
+ * Cytat w czystym tekście: część klientów (np. Thunderbird) wysyła całą rozmowę
+ * jako jeden węzeł tekstowy w <div style="white-space:pre-wrap">, gdzie historia
+ * zaczyna się nagłówkiem „W dniu … pisze:" i liniami z „>". Znajdujemy pierwszą
+ * taką linię i dzielimy węzeł tekstowy dokładnie w tym miejscu.
+ */
+function findTextQuoteCut(body: HTMLElement): Text | null {
+    const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode() as Text | null;
+    while (node) {
+        const value = node.nodeValue ?? '';
+        let offset = 0;
+        for (const line of value.split('\n')) {
+            const trimmed = line.trim();
+            if (offset > 0 && (trimmed.startsWith('>') || isQuoteMarker(trimmed))) {
+                return offset === 0 ? node : node.splitText(offset);
+            }
+            offset += line.length + 1;
+        }
+        node = walker.nextNode() as Text | null;
+    }
+    return null;
 }
 
 const visibleTextLength = (element: HTMLElement): number =>
@@ -115,7 +140,8 @@ export function splitQuotedHistory(html: string): SplitQuoteResult {
     }
 
     const body = document.body;
-    const anchor = findQuoteAnchor(body);
+    // Najpierw kontener/nagłówek w strukturze, potem cytat ukryty w czystym tekście.
+    const anchor: Node | null = findQuoteAnchor(body) ?? findTextQuoteCut(body);
     if (!anchor || anchor === body) return { mainHtml: html, quotedHtml: null };
 
     const quoted = document.createElement('div');
@@ -153,10 +179,109 @@ export function describeHtml(html: string): HtmlShape {
 
     document.body.querySelectorAll('style, script').forEach((node) => node.remove());
     const textLength = visibleTextLength(document.body);
-    const imageCount = document.body.querySelectorAll('img').length;
+    // Obrazek bez źródła to pozostałość po wyciętym załączniku inline — nie niesie treści.
+    const imageCount = Array.from(document.body.querySelectorAll('img')).filter(
+        (image) => (image.getAttribute('src') ?? '').trim().length > 0
+    ).length;
 
-    const isGraphical =
-        (imageCount >= 1 && textLength < 180) || (imageCount >= 3 && textLength < 400);
+    // Wiadomość „graficzna" to taka, w której obrazki NIOSĄ treść (newsletter, oferta).
+    // Kilka zdań tekstu ze zdjęciem w załączniku to nadal zwykła wiadomość.
+    const isGraphical = imageCount >= 1 && textLength < 60;
 
     return { textLength, imageCount, isGraphical };
+}
+
+/**
+ * Czy wiadomość wymaga izolowanej ramki?
+ *
+ * Zwykła korespondencja biznesowa to akapity, listy i linki — taki HTML renderujemy
+ * wprost w naszej typografii: jedna czcionka, jeden rytm, żadnego mierzenia wysokości
+ * (a więc i żadnego ucinania treści). Iframe zostawiamy dla maili PROJEKTOWANYCH —
+ * newsletterów opartych o tabele, własne style i tła — bo tylko tam własny układ
+ * wiadomości jest treścią, którą trzeba pokazać wiernie i odizolować od naszego CSS.
+ */
+export function isRichHtml(html: string): boolean {
+    if (!html || typeof DOMParser === 'undefined') return false;
+
+    let document: Document;
+    try {
+        document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    } catch {
+        return true;
+    }
+
+    const body = document.body;
+    if (body.querySelector('table, style, center, font, [bgcolor], [background]')) return true;
+
+    const styled = Array.from(body.querySelectorAll('[style]')).filter((element) => {
+        const style = (element.getAttribute('style') ?? '').toLowerCase();
+        // Kolory, tła i wymuszone szerokości to znak, że ktoś projektował układ.
+        return /background|font-family|font-size|width\s*:|color\s*:/.test(style);
+    });
+    if (styled.length > 3) return true;
+
+    const images = Array.from(body.querySelectorAll('img')).filter(
+        (image) => (image.getAttribute('src') ?? '').trim().length > 0
+    );
+    return images.length > 2;
+}
+
+/** Pierwsze zdania treści — do zwiniętego wiersza wiadomości w wątku. */
+export function plainPreview(html: string, maxLength = 140): string {
+    if (!html || typeof DOMParser === 'undefined') return '';
+    try {
+        const document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+        document.body.querySelectorAll('style, script').forEach((node) => node.remove());
+        // Bez tego textContent skleja sąsiednie bloki („Dzień dobry,Proszę o wycenę”).
+        document.body.querySelectorAll('br, p, div, li, tr, td, blockquote').forEach((node) => {
+            node.parentNode?.insertBefore(document.createTextNode(' '), node);
+        });
+        const text = (document.body.textContent ?? '').replace(/\s+/g, ' ').trim();
+        return text.length > maxLength ? `${text.slice(0, maxLength).trimEnd()}…` : text;
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Sprząta ogon wiadomości: obrazki bez źródła (pozostałości po wyciętych
+ * załącznikach inline) oraz puste akapity i <br> na końcu treści. Bez tego
+ * krótka wiadomość potrafi ciągnąć za sobą kilkaset pikseli pustki — a pustka
+ * w widoku czatu wygląda jak zgubiona treść.
+ */
+export function trimEmptyEdges(html: string): string {
+    if (!html || typeof DOMParser === 'undefined') return html;
+
+    let document: Document;
+    try {
+        document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    } catch {
+        return html;
+    }
+
+    const body = document.body;
+    body.querySelectorAll('img').forEach((image) => {
+        if ((image.getAttribute('src') ?? '').trim().length === 0) image.remove();
+    });
+
+    const isBlank = (node: Node): boolean => {
+        if (node.nodeType === Node.TEXT_NODE) return (node.nodeValue ?? '').trim().length === 0;
+        if (node.nodeType !== Node.ELEMENT_NODE) return true;
+        const element = node as Element;
+        if (element.querySelector('img, hr, table')) return false;
+        return (element.textContent ?? '').trim().length === 0;
+    };
+
+    // Puste bloki obcinamy z obu końców — w środku bywają celową interlinią.
+    // Schodzimy przy tym po ostatnich dzieciach, bo klienci pocztowe pakują treść
+    // w kilka warstw <div>, a pustka siedzi na samym dole tej struktury.
+    const trimTail = (element: Element) => {
+        while (element.lastChild && isBlank(element.lastChild)) element.removeChild(element.lastChild);
+        const last = element.lastElementChild;
+        if (last) trimTail(last);
+    };
+    trimTail(body);
+    while (body.firstChild && isBlank(body.firstChild)) body.removeChild(body.firstChild);
+
+    return body.innerHTML;
 }
