@@ -259,6 +259,10 @@ export function useCommsSocket(): void {
     }, [isAuthenticated, user?.studioId, queryClient]);
 }
 
+/** Korekta językowa treści wiadomości — świadomy krok użytkownika, nie automat. */
+export const useProofread = () =>
+    useMutation({ mutationFn: (text: string) => commsApi.proofread(text) });
+
 // ── Stopka nadawcy ───────────────────────────────────────────────────────────
 
 export const COMMS_SIGNATURE_KEY = [...COMMS_KEY, 'signature'];

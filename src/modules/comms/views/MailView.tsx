@@ -2,9 +2,10 @@
 // Skrzynka pocztowa CRM. Dwa tryby prezentacji:
 //  - desktop (≥1024px): lista + konwersacja obok siebie,
 //  - mobile/tablet: lista LUB konwersacja (przełączane, z przyciskiem wstecz).
-// Filtry skrzynki to rząd chipów nad listą. Bocznego panelu folderów nie ma —
-// zabierał 208 px szerokości na każdym ekranie, a etykiet i tak nikt nie prowadził;
-// panelu klienta też nie, jego rolę przejął pasek nad korespondencją.
+// Widok jest jednym strumieniem odebranej korespondencji: bez folderów, bez filtrów
+// i bez panelu klienta. Studio nie prowadzi katalogów, więc każdy przełącznik widoku
+// był kosztem uwagi bez pokrycia — do wątku dochodzi się wyszukiwarką albo przewijaniem.
+// Kontekst klienta przejął pasek nad korespondencją.
 // Widok wypełnia całą dostępną wysokość — scrolluje się wyłącznie lista i wiadomości.
 //
 // Przełączenie wątku nie przebudowuje ekranu: kolumny są sterowane wybranym id
@@ -41,7 +42,6 @@ import { ConversationView } from '../components/ConversationView';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import {
     EmptyHint,
-    FilterChip,
     IconButton,
     Pill,
     SurfaceCard,
@@ -139,21 +139,6 @@ const ListHeader = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
-`;
-
-/** Filtry skrzynki. Zastąpiły boczny panel folderów: te same cztery widoki
- *  zajmują teraz jeden rząd zamiast 208 px szerokości na każdym ekranie. */
-const FilterRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-
-    /* Węższe niż domyślny chip aplikacji: cztery widoki muszą zmieścić się nad
-       listą szerokości 340 px, a nie chować się w poziomym przewijaniu. */
-    button {
-        padding: 6px 12px;
-        font-size: 12.5px;
-    }
 `;
 
 const SearchRow = styled.div`
@@ -296,18 +281,10 @@ const EmptyStateWrap = styled.div`
 
 // ── Widok ────────────────────────────────────────────────────────────────────
 
-type Folderish =
-    | { kind: 'inbox' }
-    | { kind: 'unread' }
-    | { kind: 'leads' }
-    | { kind: 'archive' }
-    | { kind: 'label'; labelId: string };
-
 export default function MailView() {
     // Zdarzenia WebSocket obsługuje globalna subskrypcja w Sidebarze (useCommsSocket);
     // tu wystarczą unieważnienia cache, które ona wykonuje.
     const [searchParams, setSearchParams] = useSearchParams();
-    const [folder, setFolder] = useState<Folderish>({ kind: 'inbox' });
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
     const isDesktop = useMediaQuery('(min-width: 1024px)');
@@ -327,15 +304,12 @@ export default function MailView() {
     const prefetchThread = usePrefetchThread();
     const filters = useMemo(
         () => ({
-            archived: folder.kind === 'archive',
-            onlyUnread: folder.kind === 'unread',
-            onlyLeads: folder.kind === 'leads',
-            labelId: folder.kind === 'label' ? folder.labelId : undefined,
+            archived: false,
             query: query || undefined,
             page,
             pageSize: 30,
         }),
-        [folder, query, page]
+        [query, page]
     );
     const { data: threadPage } = useThreads(filters);
     const { data: detail } = useThread(selectedThreadId);
@@ -396,20 +370,6 @@ export default function MailView() {
     const statusColor = (status: string) =>
         status === 'ACTIVE' ? '#22c55e' : status === 'AUTH_FAILED' ? '#ef4444' : '#d1d5db';
 
-    const changeFolder = (next: Folderish) => {
-        setFolder(next);
-        setPage(0);
-        if (!isDesktop) selectThread(null);
-    };
-
-    const folderChips: { key: string; label: string; folderish: Folderish }[] = [
-        { key: 'inbox', label: 'Odebrane', folderish: { kind: 'inbox' } },
-        { key: 'unread', label: 'Nieprzeczytane', folderish: { kind: 'unread' } },
-        { key: 'leads', label: 'Leady', folderish: { kind: 'leads' } },
-        { key: 'archive', label: 'Archiwum', folderish: { kind: 'archive' } },
-    ];
-    const folderKey = folder.kind;
-
     const knownClient = insights?.customer ?? null;
     // Otwartość rozmowy zależy od wyboru użytkownika, nie od stanu zapytania —
     // inaczej kolumny znikałyby i wracały przy każdym przełączeniu wątku.
@@ -444,20 +404,6 @@ export default function MailView() {
             <AppCard>
                 <ListPane $hiddenOnMobile={conversationOpen}>
                     <ListHeader>
-                        <FilterRow>
-                            {folderChips.map((chip) => (
-                                <FilterChip
-                                    key={chip.key}
-                                    $active={folderKey === chip.key}
-                                    onClick={() => changeFolder(chip.folderish)}
-                                >
-                                    {chip.label}
-                                    {chip.key === 'inbox' && threadPage && threadPage.totalUnread > 0
-                                        ? ` (${threadPage.totalUnread})`
-                                        : ''}
-                                </FilterChip>
-                            ))}
-                        </FilterRow>
                         <SearchRow>
                             <SearchInput>
                                 <Search size={14} />
