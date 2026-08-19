@@ -54,6 +54,12 @@ export const commsApi = {
         return data;
     },
 
+    /** Korekta językowa treści przed wysyłką (LLM po stronie serwera). */
+    proofread: async (text: string): Promise<string> => {
+        const { data } = await apiClient.post('/v1/comms/proofread', { text }, { skipErrorToast: true });
+        return data.text;
+    },
+
     // ── Stopka nadawcy ───────────────────────────────────────────────────────
 
     getSignature: async (): Promise<MailSignature> => {

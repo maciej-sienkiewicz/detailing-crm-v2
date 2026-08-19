@@ -7,9 +7,9 @@
 // schowane pod dyskretnym przełącznikiem — na wypadek, gdy ktoś chce je sprawdzić.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { AtSign, PenLine, Send, Settings2 } from 'lucide-react';
+import { AtSign, Loader2, PenLine, Send, Settings2, SpellCheck, Undo2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
-import { useMailSignature, useSendMail } from '../hooks/useComms';
+import { useMailSignature, useProofread, useSendMail } from '../hooks/useComms';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PrimaryButton } from './shared';
 
@@ -143,6 +143,43 @@ const RecipientToggle = styled.button`
     &:hover { color: #4b5563; }
 `;
 
+/** Przycisk korekty — obok „Wyślij", ale wizualnie wtórny wobec niego. */
+const ProofreadButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover:not(:disabled) {
+        background: ${p => p.theme.colors.surfaceHover};
+        border-color: ${p => p.theme.colors.textMuted};
+    }
+    &:disabled { opacity: 0.55; cursor: default; }
+
+    .spin {
+        animation: proofreadSpin 900ms linear infinite;
+    }
+    @keyframes proofreadSpin {
+        to { transform: rotate(360deg); }
+    }
+`;
+
+const SendGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
 const escapeHtml = (value: string): string =>
     value
         .replace(/&/g, '&amp;')
@@ -150,8 +187,10 @@ const escapeHtml = (value: string): string =>
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 
+// Końcowe (i początkowe) puste linie ucinamy przed wysyłką: kilka Enterów przed
+// kliknięciem „Wyślij" zostawiało w skrzynce odbiorcy pustą przestrzeń.
 const textToHtml = (value: string): string =>
-    `<div>${escapeHtml(value).replace(/\n/g, '<br>')}</div>`;
+    `<div>${escapeHtml(value.trim()).replace(/\n/g, '<br>')}</div>`;
 
 interface ReplyComposerProps {
     /** Odpowiedź w istniejącym wątku… */
@@ -183,11 +222,41 @@ export function ReplyComposer({
     // Ręczna decyzja użytkownika wygrywa z ustawieniem domyślnym stopki; dopóki jej
     // nie podjął, przełącznik pokazuje to, co sam skonfigurował w ustawieniach.
     const [signatureChoice, setSignatureChoice] = useState<boolean | null>(null);
+    // Treść sprzed korekty — dopóki użytkownik jej nie tknął, można wrócić jednym kliknięciem.
+    const [beforeProofread, setBeforeProofread] = useState<string | null>(null);
+    const proofread = useProofread();
     const hasSignature = Boolean(signature?.bodyHtml);
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
     // W wątku odbiorca jest oczywisty — pokazujemy go dopiero na żądanie.
     const replyInThread = Boolean(threadId) && Boolean(initialTo);
     const [recipientShown, setRecipientShown] = useState(!replyInThread);
+
+    const runProofread = () => {
+        const source = body.trim();
+        if (!source || proofread.isPending) return;
+        proofread.mutate(source, {
+            onSuccess: (corrected) => {
+                if (corrected.trim() === source) {
+                    showSuccess('Bez zmian', 'Nie znaleźliśmy błędów w tej treści');
+                    return;
+                }
+                setBeforeProofread(body);
+                setBody(corrected);
+                showSuccess('Poprawiono', 'Przejrzyj zmiany przed wysłaniem');
+            },
+            onError: (error) => {
+                const message =
+                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                showError('Nie udało się poprawić treści', message ?? 'Spróbuj ponownie za chwilę');
+            },
+        });
+    };
+
+    const undoProofread = () => {
+        if (beforeProofread === null) return;
+        setBody(beforeProofread);
+        setBeforeProofread(null);
+    };
 
     const submit = () => {
         if (!body.trim()) return;
@@ -203,6 +272,7 @@ export function ReplyComposer({
             {
                 onSuccess: () => {
                     setBody('');
+                    setBeforeProofread(null);
                     showSuccess('Wysłano', 'Wiadomość trafi też do folderu Wysłane na serwerze');
                     onSent?.();
                 },
@@ -240,7 +310,10 @@ export function ReplyComposer({
             )}
             <TextArea
                 value={body}
-                onChange={(event) => setBody(event.target.value)}
+                onChange={(event) => {
+                    setBody(event.target.value);
+                    setBeforeProofread(null);
+                }}
                 placeholder={threadId ? 'Napisz odpowiedź…' : 'Napisz wiadomość…'}
                 onKeyDown={(event) => {
                     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') submit();
@@ -288,10 +361,26 @@ export function ReplyComposer({
                     )}
                 </LeftActions>
 
-                <PrimaryButton onClick={submit} disabled={sendMail.isPending || !body.trim()}>
-                    <Send size={14} />
-                    {sendMail.isPending ? 'Wysyłanie…' : 'Wyślij'}
-                </PrimaryButton>
+                <SendGroup>
+                    {beforeProofread !== null && (
+                        <ProofreadButton onClick={undoProofread} title="Przywróć treść sprzed korekty">
+                            <Undo2 size={14} /> Cofnij
+                        </ProofreadButton>
+                    )}
+                    <ProofreadButton
+                        onClick={runProofread}
+                        disabled={proofread.isPending || !body.trim()}
+                        title="Popraw literówki, interpunkcję i odmianę — bez zmiany treści"
+                    >
+                        {proofread.isPending
+                            ? <><Loader2 size={14} className="spin" /> Poprawiam…</>
+                            : <><SpellCheck size={14} /> Popraw błędy</>}
+                    </ProofreadButton>
+                    <PrimaryButton onClick={submit} disabled={sendMail.isPending || !body.trim()}>
+                        <Send size={14} />
+                        {sendMail.isPending ? 'Wysyłanie…' : 'Wyślij'}
+                    </PrimaryButton>
+                </SendGroup>
             </Actions>
 
             {signatureSettingsOpen && (
