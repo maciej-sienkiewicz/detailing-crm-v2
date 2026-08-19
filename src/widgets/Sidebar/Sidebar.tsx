@@ -85,7 +85,10 @@ const buildMenuSections = (
                 { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
                 { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
                 { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
-                { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0, requires: 'LEADS_MANAGE' },
+                // Bez czerwonego alertu: leada tworzy świadome kliknięcie użytkownika,
+                // więc nie ma czego zgłaszać jako nowość. Licznik zostaje — mówi, ile
+                // zapytań czeka na ruch — ale nie krzyczy jak nieprzeczytana poczta.
+                { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, requires: 'LEADS_MANAGE' },
             ],
         },
         {

@@ -10,10 +10,15 @@ import type {
     SyncItemNameRequest,
 } from '../types';
 
-export const useServices = (filters: ServiceListFilters) => {
+export const useServices = (filters: ServiceListFilters & { enabled?: boolean }) => {
+    // `enabled` pozwala odłożyć pobranie cennika do momentu, w którym ekran naprawdę
+    // go potrzebuje (np. sekcja usług schowana za przyciskiem). Domyślnie włączone,
+    // więc dotychczasowe wywołania działają bez zmian.
+    const { enabled = true, ...listFilters } = filters;
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ['services', filters],
-        queryFn: () => servicesApi.getServices(filters),
+        queryKey: ['services', listFilters],
+        queryFn: () => servicesApi.getServices(listFilters),
+        enabled,
     });
 
     return {

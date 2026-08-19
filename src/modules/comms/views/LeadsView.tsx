@@ -102,7 +102,7 @@ const TableScroll = styled.div`
 
 const HeadRow = styled.div`
     display: grid;
-    grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr;
+    grid-template-columns: 1.9fr 1.2fr 1.4fr 1fr 1fr 0.9fr;
     gap: 10px;
     padding: 12px 20px;
     font-size: 11px;
@@ -112,16 +112,41 @@ const HeadRow = styled.div`
     color: ${p => p.theme.colors.textMuted};
     background: ${p => p.theme.colors.surfaceAlt};
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    min-width: 640px;
+    min-width: 780px;
+`;
+
+/** Tagi w wierszu: dwa pierwsze plus licznik reszty — kolumna ma pozostać wąska. */
+const TagCell = styled.span`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+
+    .none { color: ${p => p.theme.colors.textMuted}; }
+`;
+
+const TagPill = styled.span`
+    display: inline-block;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 2px 8px;
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => p.theme.colors.surfaceAlt};
+    border: 1px solid ${p => p.theme.colors.border};
+    font-size: 11.5px;
+    color: ${p => p.theme.colors.textSecondary};
 `;
 
 const Row = styled.button<{ $active?: boolean }>`
     display: grid;
-    grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr;
+    grid-template-columns: 1.9fr 1.2fr 1.4fr 1fr 1fr 0.9fr;
     gap: 10px;
     align-items: center;
     width: 100%;
-    min-width: 640px;
+    min-width: 780px;
     text-align: left;
     padding: 12px 20px;
     border: none;
@@ -150,6 +175,12 @@ const Row = styled.button<{ $active?: boolean }>`
         font-size: 12px;
         color: ${p => p.theme.colors.textMuted};
         font-weight: ${p => p.theme.fontWeights.normal};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .vehicle {
+        color: ${p => p.theme.colors.textSecondary};
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -508,7 +539,8 @@ export default function LeadsView() {
                 <TableScroll>
                     <HeadRow>
                         <span>Kontakt</span>
-                        <span>Kategoria</span>
+                        <span>Pojazd</span>
+                        <span>Tagi</span>
                         <span>Wartość</span>
                         <span>Status</span>
                         <span>Utworzony</span>
@@ -525,7 +557,25 @@ export default function LeadsView() {
                                     {item.customerName && <div className="sub">{item.contactIdentifier}</div>}
                                 </span>
                             </span>
-                            <span>{item.categoryLabel ?? '—'}</span>
+                            <span className="vehicle">
+                                {item.vehicleBrand
+                                    ? `${item.vehicleBrand}${item.vehicleModel ? ` ${item.vehicleModel}` : ''}`
+                                    : '—'}
+                            </span>
+                            <TagCell>
+                                {item.tagLabels.length === 0 && <span className="none">—</span>}
+                                {item.tagLabels.slice(0, 2).map((label) => (
+                                    <TagPill key={label}>{label}</TagPill>
+                                ))}
+                                {item.tagLabels.length > 2 && (
+                                    <TagPill
+                                        as="span"
+                                        title={item.tagLabels.slice(2).join(', ')}
+                                    >
+                                        +{item.tagLabels.length - 2}
+                                    </TagPill>
+                                )}
+                            </TagCell>
                             <span className="value">
                                 {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '—'}
                             </span>

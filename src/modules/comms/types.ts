@@ -191,8 +191,12 @@ export interface Lead {
     assignedUserId: string | null;
     assignedUserName: string | null;
     threadId: string | null;
-    category: string | null;
-    categoryLabel: string | null;
+    /** Kody tagów — oś „o co pytają" w analityce; lead może mieć ich kilka. */
+    tags: string[];
+    tagLabels: string[];
+    /** Rozpoznane z korespondencji; null, gdy klient nie podał auta. */
+    vehicleBrand: string | null;
+    vehicleModel: string | null;
     lostReasonCode: string | null;
     lostReasonLabel: string | null;
     lostReason: string | null;
@@ -216,7 +220,7 @@ export interface DictionaryEntry {
 }
 
 export interface LeadDictionaries {
-    categories: DictionaryEntry[];
+    tags: DictionaryEntry[];
     lostReasons: DictionaryEntry[];
 }
 
@@ -236,7 +240,7 @@ export interface LeadServiceItemInput {
 }
 
 export interface MarkThreadAsLeadRequest {
-    category?: string;
+    tags: string[];
     services: LeadServiceItemInput[];
 }
 
