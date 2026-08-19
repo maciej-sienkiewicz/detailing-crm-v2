@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { useCloseHistory } from '../hooks/useBatchOrders';
+import { useSettlementHistory } from '../hooks/useBatchOrders';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { BatchContractor, CloseHistoryRecord } from '../types';
+import type { BatchContractor, SettlementHistoryRecord } from '../types';
 
 const Overlay = styled.div`
     position: fixed;
@@ -250,7 +250,7 @@ function formatDate(iso: string | null) {
     return new Date(iso).toLocaleDateString('pl-PL');
 }
 
-function HistoryCard({ record, contractorName }: { record: CloseHistoryRecord; contractorName: string }) {
+function HistoryCard({ record, contractorName }: { record: SettlementHistoryRecord; contractorName: string }) {
     const [downloading, setDownloading] = useState(false);
 
     async function handleDownload() {
@@ -319,21 +319,21 @@ interface Props {
     onClose: () => void;
 }
 
-export function CloseHistoryModal({ contractor, onClose }: Props) {
-    const { data: records, isLoading } = useCloseHistory(contractor.id);
+export function SettlementHistoryModal({ contractor, onClose }: Props) {
+    const { data: records, isLoading } = useSettlementHistory(contractor.id);
 
     return (
         <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
             <Modal>
                 <ModalHeader>
-                    <Title>Historia zamknięć: {contractor.name}</Title>
+                    <Title>Historia rozliczeń: {contractor.name}</Title>
                     <CloseBtn onClick={onClose} title="Zamknij">×</CloseBtn>
                 </ModalHeader>
                 <ModalBody>
                     {isLoading ? (
                         <EmptyMsg>Ładowanie...</EmptyMsg>
                     ) : !records || records.length === 0 ? (
-                        <EmptyMsg>Brak historii zamknięć dla tego kontrahenta.</EmptyMsg>
+                        <EmptyMsg>Brak historii rozliczeń dla tego kontrahenta.</EmptyMsg>
                     ) : (
                         records.map(r => (
                             <HistoryCard key={r.id} record={r} contractorName={contractor.name} />

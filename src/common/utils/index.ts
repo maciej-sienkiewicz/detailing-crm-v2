@@ -10,6 +10,12 @@ export {
 } from './formatters';
 
 export {
+    MAX_2_DECIMALS,
+    centsToInput,
+    inputToCents,
+} from './moneyInput';
+
+export {
     isValidEmail,
     isValidPolishPostalCode,
     isValidPolishPhone,

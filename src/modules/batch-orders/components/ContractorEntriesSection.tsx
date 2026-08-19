@@ -2,14 +2,14 @@ import { Fragment, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry, useCloseMonth } from '../hooks/useBatchOrders';
+import { useContractorEntries, useCreateEntry, useUpdateEntry, useDeleteEntry, useSettle } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { DateRangeFilter, currentMonthRange } from './DateRangeFilter';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
-import { CloseMonthModal } from './CloseMonthModal';
-import { CloseHistoryModal } from './CloseHistoryModal';
+import { SettlementModal } from './SettlementModal';
+import { SettlementHistoryModal } from './SettlementHistoryModal';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { BatchContractor, BatchOrderEntry, CloseMonthRequest, EntryRequest } from '../types';
+import type { BatchContractor, BatchOrderEntry, EntryRequest, SettlementRequest } from '../types';
 
 const Section = styled.div`
     background: ${p => p.theme.colors.surface};
@@ -57,6 +57,61 @@ const FilterRow = styled.div`
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surfaceAlt};
     flex-wrap: wrap;
+`;
+
+/**
+ * "Pokaż rozliczone" sits in the filter row rather than the header: it narrows what
+ * the list shows, exactly like the date range next to it, and grouping it with the
+ * buttons that *act* on the list would suggest it does something to the entries.
+ */
+const SettledToggle = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: ${p => p.theme.fontSizes.xs};
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    margin-left: auto;
+
+    @media (max-width: 639px) {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    input {
+        width: 16px;
+        height: 16px;
+        accent-color: ${p => p.theme.colors.primary};
+        cursor: pointer;
+        flex-shrink: 0;
+
+        @media (hover: none) and (pointer: coarse) {
+            width: 20px;
+            height: 20px;
+        }
+    }
+`;
+
+const SettledCount = styled.span`
+    font-variant-numeric: tabular-nums;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
+const SettledBadge = styled.span`
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #15803d;
+    background: rgba(34, 197, 94, 0.13);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    white-space: nowrap;
 `;
 
 const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success'; $mobileHide?: boolean }>`
@@ -427,7 +482,10 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
-    const [showCloseMonth, setShowCloseMonth] = useState(false);
+    const [showSettlement, setShowSettlement] = useState(false);
+    // Off by default: a settled entry is finished business, and months of finished work
+    // above the two entries still waiting is the reason this list stopped being usable.
+    const [showSettled, setShowSettled] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
@@ -440,11 +498,16 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         return () => document.removeEventListener('click', close);
     }, [openMenuEntryId]);
 
-    const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom || undefined, filterTo || undefined);
+    const { data, isLoading, isError } = useContractorEntries(
+        contractor.id,
+        filterFrom || undefined,
+        filterTo || undefined,
+        showSettled,
+    );
     const createEntry = useCreateEntry(contractor.id);
     const updateEntry = useUpdateEntry(contractor.id);
     const deleteEntry = useDeleteEntry(contractor.id);
-    const closeMonth = useCloseMonth(contractor.id);
+    const settle = useSettle(contractor.id);
 
     function openMenu(e: React.MouseEvent<HTMLButtonElement>, entryId: string) {
         e.stopPropagation();
@@ -484,15 +547,18 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         }
     }
 
-    async function handleCloseMonth(request: CloseMonthRequest) {
-        await closeMonth.mutateAsync(request);
-        setShowCloseMonth(false);
+    async function handleSettle(request: SettlementRequest) {
+        await settle.mutateAsync(request);
+        setShowSettlement(false);
     }
 
     const entries = data?.entries ?? [];
     const summary = data?.summary;
     const openEntry = entries.find(e => e.id === openMenuEntryId) ?? null;
-    const hasPartialClose = entries.some(e => e.isClosed);
+    // Counted server-side over the whole period, so it stays right while the list hides
+    // the very entries it is counting.
+    const settledCount = data?.settledCount ?? 0;
+    const hasPartialSettlement = settledCount > 0;
 
     return (
         <>
@@ -513,15 +579,15 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         <ActionBtn $mobileHide $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
                             {downloading ? 'Generowanie...' : '↓ PDF'}
                         </ActionBtn>
-                        <ActionBtn $mobileHide $variant="ghost" onClick={() => setShowHistory(true)} title="Historia zamknięć">
+                        <ActionBtn $mobileHide $variant="ghost" onClick={() => setShowHistory(true)} title="Historia rozliczeń">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
                             </svg>
                             Historia
                         </ActionBtn>
-                        <ActionBtn $variant="success" onClick={() => setShowCloseMonth(true)}>
-                            Zamknij miesiąc
+                        <ActionBtn $variant="success" onClick={() => setShowSettlement(true)}>
+                            Rozlicz
                         </ActionBtn>
                         <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
                             + Dodaj wpis
@@ -557,6 +623,15 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         to={filterTo}
                         onChange={(f, t) => { setFilterFrom(f); setFilterTo(t); }}
                     />
+                    <SettledToggle>
+                        <input
+                            type="checkbox"
+                            checked={showSettled}
+                            onChange={e => setShowSettled(e.target.checked)}
+                        />
+                        Pokaż rozliczone
+                        {settledCount > 0 && <SettledCount>({settledCount})</SettledCount>}
+                    </SettledToggle>
                 </FilterRow>
 
                 {isLoading ? (
@@ -565,7 +640,9 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     <EmptyRow>Błąd ładowania danych</EmptyRow>
                 ) : entries.length === 0 ? (
                     <EmptyRow>
-                        Brak wpisów{(filterFrom || filterTo) ? ' dla wybranego okresu' : '. Dodaj pierwszy wpis używając przycisku powyżej.'}
+                        {settledCount > 0 && !showSettled
+                            ? `Wszystkie wpisy z tego okresu są już rozliczone (${settledCount}). Zaznacz „Pokaż rozliczone", aby je zobaczyć.`
+                            : `Brak wpisów${(filterFrom || filterTo) ? ' dla wybranego okresu' : '. Dodaj pierwszy wpis używając przycisku powyżej.'}`}
                     </EmptyRow>
                 ) : (
                     <>
@@ -588,6 +665,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                             <Tr $closed={entry.isClosed}>
                                                 <Td style={{ whiteSpace: 'nowrap' }}>
                                                     {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                                    {entry.isClosed && <SettledBadge>Rozliczone</SettledBadge>}
                                                 </Td>
                                                 <Td>
                                                     <VehicleCell>
@@ -744,20 +822,20 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 onCancel={() => setConfirmDeleteEntryId(null)}
             />
 
-            {showCloseMonth && (
-                <CloseMonthModal
+            {showSettlement && (
+                <SettlementModal
                     contractor={contractor}
                     from={filterFrom}
                     to={filterTo}
-                    hasPartialClose={hasPartialClose}
-                    onConfirm={handleCloseMonth}
-                    onClose={() => setShowCloseMonth(false)}
-                    isLoading={closeMonth.isPending}
+                    hasPartialSettlement={hasPartialSettlement}
+                    onConfirm={handleSettle}
+                    onClose={() => setShowSettlement(false)}
+                    isLoading={settle.isPending}
                 />
             )}
 
             {showHistory && (
-                <CloseHistoryModal
+                <SettlementHistoryModal
                     contractor={contractor}
                     onClose={() => setShowHistory(false)}
                 />

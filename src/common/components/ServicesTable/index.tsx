@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
+import { MAX_2_DECIMALS, centsToInput } from '@/common/utils/moneyInput';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
 
@@ -45,7 +46,6 @@ interface Props {
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
 const VAT_LABEL = (rate: number) => rate === -1 ? 'ZW' : `${rate}%`;
 
-const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'PERCENT', label: '%' },
@@ -55,8 +55,6 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'SET_GROSS', label: '=Brutto' },
 ];
 
-const centsToInput = (cents: number): string =>
-    (cents / 100).toFixed(2).replace('.', ',');
 
 const grossToNet = (grossCents: number, vatRate: number): number => {
     if (vatRate <= 0) return grossCents;

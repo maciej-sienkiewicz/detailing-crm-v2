@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { batchOrderApi } from '../api/batchOrderApi';
-import type { CloseMonthRequest, ContractorRequest, EntryRequest } from '../types';
+import type { BatchServiceRequest, ContractorRequest, EntryRequest, SettlementRequest } from '../types';
 
 export const CONTRACTORS_KEY = ['batch-orders', 'contractors'] as const;
 export const ENTRIES_KEY = (contractorId: string) => ['batch-orders', 'entries', contractorId] as const;
 export const ENTRY_PHOTOS_KEY = (entryId: string) => ['batch-orders', 'entry-photos', entryId] as const;
-export const CLOSE_HISTORY_KEY = (contractorId: string) => ['batch-orders', 'close-history', contractorId] as const;
+export const SETTLEMENT_HISTORY_KEY = (contractorId: string) => ['batch-orders', 'settlement-history', contractorId] as const;
+export const BATCH_SERVICES_KEY = ['batch-orders', 'services'] as const;
 
 export function useContractors() {
     return useQuery({
@@ -14,11 +15,19 @@ export function useContractors() {
     });
 }
 
-export function useContractorEntries(contractorId: string, from?: string, to?: string) {
+export function useContractorEntries(
+    contractorId: string,
+    from?: string,
+    to?: string,
+    includeSettled = false,
+) {
     return useQuery({
-        queryKey: [...ENTRIES_KEY(contractorId), from, to],
-        queryFn: () => batchOrderApi.getContractorEntries(contractorId, from, to),
+        queryKey: [...ENTRIES_KEY(contractorId), from, to, includeSettled],
+        queryFn: () => batchOrderApi.getContractorEntries(contractorId, from, to, includeSettled),
         enabled: !!contractorId,
+        // Toggling "Pokaż rozliczone" re-queries under a new key; without this the list
+        // blanks out for a moment on every toggle, which reads as data being lost.
+        placeholderData: previous => previous,
     });
 }
 
@@ -88,21 +97,55 @@ export function useDeleteEntryPhoto(entryId: string) {
     });
 }
 
-export function useCloseMonth(contractorId: string) {
+export function useSettle(contractorId: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (request: CloseMonthRequest) => batchOrderApi.closeMonth(contractorId, request),
+        mutationFn: (request: SettlementRequest) => batchOrderApi.settle(contractorId, request),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
-            qc.invalidateQueries({ queryKey: CLOSE_HISTORY_KEY(contractorId) });
+            qc.invalidateQueries({ queryKey: SETTLEMENT_HISTORY_KEY(contractorId) });
         },
     });
 }
 
-export function useCloseHistory(contractorId: string) {
+export function useSettlementHistory(contractorId: string) {
     return useQuery({
-        queryKey: CLOSE_HISTORY_KEY(contractorId),
-        queryFn: () => batchOrderApi.getCloseHistory(contractorId),
+        queryKey: SETTLEMENT_HISTORY_KEY(contractorId),
+        queryFn: () => batchOrderApi.getSettlementHistory(contractorId),
         enabled: !!contractorId,
+    });
+}
+
+// ─── Service catalog ──────────────────────────────────────────────────────────
+
+export function useBatchServices(search?: string) {
+    return useQuery({
+        queryKey: [...BATCH_SERVICES_KEY, search ?? ''],
+        queryFn: () => batchOrderApi.listServices(search),
+    });
+}
+
+export function useCreateBatchService() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (data: BatchServiceRequest) => batchOrderApi.createService(data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: BATCH_SERVICES_KEY }),
+    });
+}
+
+export function useUpdateBatchService() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ serviceId, data }: { serviceId: string; data: BatchServiceRequest }) =>
+            batchOrderApi.updateService(serviceId, data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: BATCH_SERVICES_KEY }),
+    });
+}
+
+export function useDeleteBatchService() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (serviceId: string) => batchOrderApi.deleteService(serviceId),
+        onSuccess: () => qc.invalidateQueries({ queryKey: BATCH_SERVICES_KEY }),
     });
 }
