@@ -16,9 +16,19 @@ function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function tokenStatus(tokenExpiresAt: string): 'active' | 'expiring' {
-    const daysLeft = (new Date(tokenExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-    return daysLeft < 7 ? 'expiring' : 'active';
+/**
+ * Parowanie nie wygasa — kończy je dopiero odłączenie urządzenia. Zamiast daty
+ * ważności pokazujemy więc to, co realnie mówi o stanie sprzętu: kiedy tablet
+ * ostatnio się odezwał. Cisza dłuższa niż doba zwykle znaczy, że urządzenie jest
+ * wyłączone albo poza siecią — i o tym warto wiedzieć przed wizytą klienta.
+ */
+function lastSeenLabel(lastSeenAt: string | null): { text: string; stale: boolean } {
+    if (!lastSeenAt) return { text: 'Jeszcze się nie połączył', stale: true };
+
+    const minutes = (Date.now() - new Date(lastSeenAt).getTime()) / 60_000;
+    if (minutes < 60) return { text: 'Aktywny', stale: false };
+    if (minutes < 60 * 24) return { text: `Widziany ${Math.floor(minutes / 60)} godz. temu`, stale: false };
+    return { text: `Widziany ${formatDate(lastSeenAt)}`, stale: true };
 }
 
 /**
@@ -82,7 +92,7 @@ export function TabletsSection() {
                 <ListHeader>
                     <ColLabel>Urządzenie</ColLabel>
                     <ColLabel>Sparowano</ColLabel>
-                    <ColLabel>Token wygasa</ColLabel>
+                    <ColLabel>Stan</ColLabel>
                     <ColLabel />
                 </ListHeader>
 
@@ -105,7 +115,7 @@ export function TabletsSection() {
                     </EmptyWrap>
                 ) : (
                     tablets.map(tablet => {
-                        const status = tokenStatus(tablet.tokenExpiresAt);
+                        const lastSeen = lastSeenLabel(tablet.lastSeenAt);
                         const isConfirming = confirmDeleteId === tablet.tabletId;
                         const isDeleting = deleteTablet.isPending && confirmDeleteId === tablet.tabletId;
 
@@ -117,9 +127,9 @@ export function TabletsSection() {
                                 </NameCell>
                                 <DateCell>{formatDate(tablet.pairedAt)}</DateCell>
                                 <div>
-                                    {status === 'active'
-                                        ? <Badge $variant="green"><Dot $color="#059669" />{formatDate(tablet.tokenExpiresAt)}</Badge>
-                                        : <Badge $variant="amber"><Dot $color="#d97706" />Wygasa {formatDate(tablet.tokenExpiresAt)}</Badge>
+                                    {lastSeen.stale
+                                        ? <Badge $variant="amber"><Dot $color="#d97706" />{lastSeen.text}</Badge>
+                                        : <Badge $variant="green"><Dot $color="#059669" />{lastSeen.text}</Badge>
                                     }
                                 </div>
                                 <ActionsCell>
