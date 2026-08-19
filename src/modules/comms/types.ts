@@ -120,6 +120,15 @@ export interface SendMailRequest {
     cc?: string[];
     subject?: string;
     bodyHtml: string;
+    /** Stopkę dokleja serwer — zapisana treść jest jedynym źródłem prawdy. */
+    appendSignature?: boolean;
+}
+
+/** Stopka nadawcy — należy do zalogowanego użytkownika, nie do studia. */
+export interface MailSignature {
+    bodyHtml: string | null;
+    /** Czy przełącznik „Dodaj stopkę" startuje włączony. */
+    enabledByDefault: boolean;
 }
 
 // ── Insights ─────────────────────────────────────────────────────────────────

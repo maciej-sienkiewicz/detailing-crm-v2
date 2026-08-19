@@ -1,12 +1,12 @@
 // src/modules/comms/api/commsApi.ts
 import { apiClient } from '@/core/apiClient';
 import type {
-    CommLabel,
     CommThreadDetail,
     CommThreadPage,
     ConnectMailAccountRequest,
     ContactInsights,
     MailAccountState,
+    MailSignature,
     ProviderDetectResult,
     SendMailRequest,
     ThreadListFilters,
@@ -54,6 +54,22 @@ export const commsApi = {
         return data;
     },
 
+    // ── Stopka nadawcy ───────────────────────────────────────────────────────
+
+    getSignature: async (): Promise<MailSignature> => {
+        const { data } = await apiClient.get('/v1/comms/signature');
+        return data;
+    },
+
+    saveSignature: async (bodyHtml: string, enabledByDefault: boolean): Promise<MailSignature> => {
+        const { data } = await apiClient.put('/v1/comms/signature', { bodyHtml, enabledByDefault });
+        return data;
+    },
+
+    deleteSignature: async (): Promise<void> => {
+        await apiClient.delete('/v1/comms/signature');
+    },
+
     getThread: async (threadId: string): Promise<CommThreadDetail> => {
         const { data } = await apiClient.get(`/v1/comms/threads/${threadId}`);
         return data;
@@ -67,9 +83,6 @@ export const commsApi = {
         await apiClient.put(`/v1/comms/threads/${threadId}/archive`, { archived });
     },
 
-    setThreadLabel: async (threadId: string, labelId: string | null): Promise<void> => {
-        await apiClient.put(`/v1/comms/threads/${threadId}/label`, { labelId });
-    },
 
     // ── Wysyłka ──────────────────────────────────────────────────────────────
 
@@ -80,19 +93,8 @@ export const commsApi = {
 
     // ── Foldery lokalne (etykiety) ───────────────────────────────────────────
 
-    getLabels: async (): Promise<CommLabel[]> => {
-        const { data } = await apiClient.get('/v1/comms/labels');
-        return data;
-    },
 
-    createLabel: async (name: string, color?: string): Promise<CommLabel> => {
-        const { data } = await apiClient.post('/v1/comms/labels', { name, color: color ?? null });
-        return data;
-    },
 
-    deleteLabel: async (labelId: string): Promise<void> => {
-        await apiClient.delete(`/v1/comms/labels/${labelId}`);
-    },
 
     // ── Insights ─────────────────────────────────────────────────────────────
 
