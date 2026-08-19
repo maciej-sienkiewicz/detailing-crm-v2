@@ -55,15 +55,10 @@ export type VehicleIdentity =
         newData: {
             brand: string;
             model: string;
-            /** Backend contract field: NewVehicleDataRequest.year. */
-            year?: number;
-            /** @deprecated backend reads `year`; kept for legacy call sites. */
             yearOfProduction?: number;
             licensePlate?: string;
             color?: string;
         };
-        /** Plate-collision override: the user explicitly confirmed "it's a different vehicle". */
-        duplicateOverrideVehicleId?: string;
     }
     | {
         mode: 'UPDATE';
@@ -71,22 +66,10 @@ export type VehicleIdentity =
         updateData: {
             brand: string;
             model: string;
-            /** Backend contract field: NewVehicleDataRequest.year. */
-            year?: number;
-            /** @deprecated backend reads `year`; kept for legacy call sites. */
             yearOfProduction?: number;
             licensePlate?: string;
             color?: string;
         };
-    }
-    | {
-        /**
-         * Attach a vehicle that already exists in the studio (found by plate lookup),
-         * resolving ownership explicitly instead of creating a duplicate.
-         */
-        mode: 'LINK_EXISTING';
-        id: string;
-        ownership: 'ADD_CO_OWNER' | 'TRANSFER_PRIMARY';
     }
     | {
         mode: 'NONE';
