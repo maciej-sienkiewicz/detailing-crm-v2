@@ -1,9 +1,13 @@
 // src/modules/comms/components/ReplyComposer.tsx
 // Odpowiedź w wątku lub nowa wiadomość. Treść jako prosty tekst zamieniany na
 // bezpieczny HTML (backend i tak sanityzuje) — bez ciężkiego edytora WYSIWYG.
+//
+// Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
+// uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
+// schowane pod dyskretnym przełącznikiem — na wypadek, gdy ktoś chce je sprawdzić.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Send } from 'lucide-react';
+import { AtSign, Send } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { useSendMail } from '../hooks/useComms';
 import { PrimaryButton } from './shared';
@@ -53,7 +57,24 @@ const TextArea = styled.textarea`
 
 const Actions = styled.div`
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+`;
+
+const RecipientToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 12px;
+    color: #9ca3af;
+    cursor: pointer;
+
+    &:hover { color: #4b5563; }
 `;
 
 const escapeHtml = (value: string): string =>
@@ -72,16 +93,28 @@ interface ReplyComposerProps {
     /** …albo nowa wiadomość (wymaga accountId + adresata + tematu). */
     accountId?: string;
     initialTo?: string;
+    /** Nazwa odbiorcy do dyskretnej etykiety, gdy pole „Do" jest schowane. */
+    recipientLabel?: string;
     requireSubject?: boolean;
     onSent?: () => void;
 }
 
-export function ReplyComposer({ threadId, accountId, initialTo, requireSubject, onSent }: ReplyComposerProps) {
+export function ReplyComposer({
+    threadId,
+    accountId,
+    initialTo,
+    recipientLabel,
+    requireSubject,
+    onSent,
+}: ReplyComposerProps) {
     const [to, setTo] = useState(initialTo ?? '');
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const sendMail = useSendMail();
     const { showSuccess, showError } = useToast();
+    // W wątku odbiorca jest oczywisty — pokazujemy go dopiero na żądanie.
+    const replyInThread = Boolean(threadId) && Boolean(initialTo);
+    const [recipientShown, setRecipientShown] = useState(!replyInThread);
 
     const submit = () => {
         if (!body.trim()) return;
@@ -110,15 +143,17 @@ export function ReplyComposer({ threadId, accountId, initialTo, requireSubject, 
 
     return (
         <Composer>
-            <MetaRow>
-                Do:
-                <input
-                    value={to}
-                    onChange={(event) => setTo(event.target.value)}
-                    placeholder="adres@klienta.pl"
-                    disabled={Boolean(threadId) && Boolean(initialTo)}
-                />
-            </MetaRow>
+            {recipientShown && (
+                <MetaRow>
+                    Do:
+                    <input
+                        value={to}
+                        onChange={(event) => setTo(event.target.value)}
+                        placeholder="adres@klienta.pl"
+                        disabled={replyInThread}
+                    />
+                </MetaRow>
+            )}
             {requireSubject && (
                 <MetaRow>
                     Temat:
@@ -132,12 +167,22 @@ export function ReplyComposer({ threadId, accountId, initialTo, requireSubject, 
             <TextArea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
-                placeholder="Napisz odpowiedź…"
+                placeholder={threadId ? 'Napisz odpowiedź…' : 'Napisz wiadomość…'}
                 onKeyDown={(event) => {
                     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') submit();
                 }}
             />
             <Actions>
+                {replyInThread && !recipientShown ? (
+                    <RecipientToggle
+                        onClick={() => setRecipientShown(true)}
+                        title="Pokaż pełny adres odbiorcy"
+                    >
+                        <AtSign size={11} /> Do: {recipientLabel ?? initialTo}
+                    </RecipientToggle>
+                ) : (
+                    <span />
+                )}
                 <PrimaryButton onClick={submit} disabled={sendMail.isPending || !body.trim()}>
                     <Send size={14} />
                     {sendMail.isPending ? 'Wysyłanie…' : 'Wyślij'}
