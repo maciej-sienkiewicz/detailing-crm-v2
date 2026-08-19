@@ -573,6 +573,7 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
         <HdrPickerPanel ref={panelRef} style={{ top: panelPos.top, right: panelPos.right }}>
           <DPPresetGroup>
             {([
+              ['currentMonth', 'Bieżący miesiąc', currentMonthHint()] as const,
               ['all',     'Cały czas',       ''] as const,
               ['week',    'Ostatni tydzień',  '7 dni'] as const,
               ['month',   'Ostatni miesiąc',  '30 dni'] as const,
@@ -607,20 +608,43 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
 
 // ─── Date range picker (filter strip, light) ──────────────────────────────────
 
-type DatePreset = 'all' | 'week' | 'month' | 'quarter' | 'custom';
+export type DatePreset = 'currentMonth' | 'all' | 'week' | 'month' | 'quarter' | 'custom';
 
-const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+/**
+ * Data w strefie użytkownika, nie w UTC. toISOString() cofa datę o strefę, więc nad
+ * ranem pierwszego dnia miesiąca „bieżący miesiąc" zaczynałby się w miesiącu poprzednim.
+ */
+const toISODate = (d: Date): string => {
+  const month = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+};
 
-const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?: string } => {
+export const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?: string } => {
   if (preset === 'all' || preset === 'custom') return {};
   const today = new Date();
+
+  // Bieżący miesiąc to miesiąc kalendarzowy, a nie ostatnie 30 dni: rozliczenia
+  // prowadzi się od pierwszego do ostatniego dnia, więc zakres obejmuje cały miesiąc
+  // (także dni, które dopiero nadejdą — faktura bywa wystawiona z datą w przód).
+  if (preset === 'currentMonth') {
+    const from = new Date(today.getFullYear(), today.getMonth(), 1);
+    const to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { dateFrom: toISODate(from), dateTo: toISODate(to) };
+  }
+
   const days = preset === 'week' ? 7 : preset === 'month' ? 30 : 90;
   const from = new Date(today);
   from.setDate(today.getDate() - days);
   return { dateFrom: toISODate(from), dateTo: toISODate(today) };
 };
 
+/** Nazwa bieżącego miesiąca jako podpowiedź przy presecie — „sierpień 2026". */
+const currentMonthHint = (): string =>
+  new Date().toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+
 const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: string): string => {
+  if (preset === 'currentMonth') return 'Bieżący miesiąc';
   if (preset === 'all') return 'Cały czas';
   if (preset === 'week') return 'Ostatni tydzień';
   if (preset === 'month') return 'Ostatni miesiąc';
@@ -997,7 +1021,9 @@ export const FinanceView: React.FC = () => {
   // pełne dane dociągamy po id, bo lista zwraca tylko wspólny podzbiór pól
   const [selectedFinanceDocumentId, setSelectedFinanceDocumentId] = useState<string | null>(null);
   const { document: selectedFinanceDocument } = useFinanceDocument(selectedFinanceDocumentId ?? undefined);
-  const [datePreset, setDatePreset]       = useState<DatePreset>('all');
+  // Domyślnie bieżący miesiąc: rozliczenia prowadzi się miesiącami, a widok „cały czas"
+  // kazał przy każdym wejściu przewijać dokumenty sprzed lat, żeby dojść do tych aktualnych.
+  const [datePreset, setDatePreset]       = useState<DatePreset>('currentMonth');
   const [customFrom, setCustomFrom]       = useState('');
   const [customTo, setCustomTo]           = useState('');
 
