@@ -182,6 +182,27 @@ const MenuFooter = styled.div`
         &:disabled { opacity: 0.5; cursor: default; }
     }
 
+    /**
+     * „Gotowe" zamyka listę. Wybór wielokrotny nie ma naturalnego końca — po ostatnim
+     * kliknięciu menu zostaje otwarte i trzeba było trafić gdzieś obok, żeby wrócić do
+     * formularza. Klikanie w pustkę jako sposób na zamknięcie okna jest wiedzą tajemną;
+     * przycisk mówi to wprost i stoi tam, gdzie kończy się praca z listą.
+     */
+    button.done {
+        flex-shrink: 0;
+        border: 1px solid ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surface};
+        color: ${p => p.theme.colors.textSecondary};
+        border-radius: ${p => p.theme.radii.sm};
+        padding: 7px 12px;
+        font-size: 12.5px;
+        font-family: inherit;
+        font-weight: ${p => p.theme.fontWeights.medium};
+        cursor: pointer;
+
+        &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+    }
+
     svg.spin { animation: ${spin} 900ms linear infinite; }
 `;
 
@@ -346,6 +367,9 @@ export function TagMultiSelect({ options, value, onChange, onCreate, onDelete, i
                             >
                                 {isCreating ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
                                 Dodaj
+                            </button>
+                            <button className="done" type="button" onClick={() => setOpen(false)}>
+                                Gotowe
                             </button>
                         </MenuFooter>
                     </SelectMenu>,

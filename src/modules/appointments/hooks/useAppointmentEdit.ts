@@ -1,6 +1,6 @@
 // src/modules/appointments/hooks/useAppointmentEdit.ts
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { appointmentApi } from '../api/appointmentApi';
 import type { SelectedCustomer, SelectedVehicle, ServiceLineItem } from '../types';
@@ -8,6 +8,7 @@ import { useAppointmentServices, useAppointmentColors, useCustomerVehicles } fro
 
 export const useAppointmentEdit = (appointmentId: string) => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
         queryKey: ['appointments', appointmentId],
@@ -80,7 +81,13 @@ export const useAppointmentEdit = (appointmentId: string) => {
 
     const updateMutation = useMutation({
         mutationFn: (payload: any) => appointmentApi.updateAppointment(appointmentId, payload),
-        onSuccess: () => navigate('/appointments'),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            // Lista usług rezerwacji jest jednocześnie wyceną leada, z którego powstała.
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+            navigate('/appointments');
+        },
     });
 
     const handleSubmit = () => {

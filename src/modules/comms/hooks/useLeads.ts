@@ -284,12 +284,23 @@ export const useChangeLeadStatus = () => {
     });
 };
 
+/**
+ * Wycena leada i lista usług powiązanej rezerwacji to jedna lista — backend
+ * przepisuje jedną w drugą. Dlatego po zapisie unieważniamy też kalendarz:
+ * inaczej ten sam użytkownik widziałby w drugiej zakładce swoją poprzednią wersję.
+ */
 export const useUpdateLeadServices = () => {
+    const queryClient = useQueryClient();
     const invalidate = useLeadInvalidation();
     return useMutation({
         mutationFn: ({ leadId, services }: { leadId: string; services: LeadServiceItemInput[] }) =>
             leadsApi.updateServices(leadId, services),
-        onSuccess: (_lead, { leadId }) => invalidate(leadId),
+        onSuccess: (_lead, { leadId }) => {
+            invalidate(leadId);
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+        },
     });
 };
 
