@@ -3,16 +3,25 @@
 // sam: kontakt z wątku, klienta po adresie, treść pierwszej wiadomości, a markę
 // i model auta odczytuje z korespondencji już po zapisaniu (backend, LLM).
 //
-//  • TAGI — wielokrotny wybór. Jedno zapytanie potrafi dotyczyć folii z przodu,
-//    korekty reszty lakieru i powłoki na koniec; pojedyncza kategoria kazała wybrać
-//    jedną z nich i przekłamywała odpowiedź na pytanie „o co klienci pytają".
+//  • Okno jest celowo małe — to potwierdzenie decyzji, a nie formularz. Rozwlekłe
+//    objaśnienia pod polami kazałyby je czytać za każdym razem, choć wystarczy raz.
+//  • TAGI — dropdown wielokrotnego wyboru, ten sam wzorzec co „Kolor w kalendarzu”
+//    przy przyjęciu: lista zamknięta w menu nie rozpycha okna, gdy tagów przybędzie.
 //  • USŁUGI — schowane za przyciskiem. Wycena na etapie oznaczania to wyjątek, nie
 //    reguła: zwykle wiadomo, o czym jest rozmowa, a nie ile to będzie kosztować.
-//    Wyszukiwarka cennika otwarta od razu sugerowałaby, że trzeba ją wypełnić.
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { Check, Minus, Plus, Search, Tag as TagIcon, X } from 'lucide-react';
-import { Modal } from '@/common/components/Modal';
+import { Check, ChevronDown, Minus, Plus, Search, X } from 'lucide-react';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
 import { useServices } from '@/modules/services';
 import { useToast } from '@/common/components/Toast';
 import { useLeadDictionaries, useMarkThreadAsLead } from '../hooks/useLeads';
@@ -22,54 +31,244 @@ import { EmptyHint, IconButton, PrimaryButton, formatGrosze } from './shared';
 const Body = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    padding: 4px 0 8px;
+    gap: 14px;
 `;
 
 const Field = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
 `;
 
 const FieldLabel = styled.div`
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: ${p => p.theme.colors.textMuted};
 `;
 
-const FieldHint = styled.p`
-    margin: 0;
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textSecondary};
+// ─── Dropdown tagów ───────────────────────────────────────────────────────────
+// Ten sam mechanizm co ColorDropdown w przyjęciu pojazdu: menu w portalu, pozycja
+// liczona od triggera, zamykanie kliknięciem obok. Różnica jest jedna — wybór jest
+// wielokrotny, więc menu zostaje otwarte po kliknięciu pozycji.
+
+const SelectContainer = styled.div`
+    position: relative;
 `;
 
-const TagGrid = styled.div`
+const SelectTrigger = styled.button`
+    width: 100%;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-`;
-
-/** Zaznaczenie musi być widoczne bez najeżdżania — to pole wielokrotnego wyboru. */
-const TagChip = styled.button<{ $active: boolean }>`
-    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-    background: ${({ $active }) => ($active ? '#f0f9ff' : '#ffffff')};
-    color: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textSecondary)};
-    font-weight: ${({ $active, theme }) =>
-        $active ? theme.fontWeights.semibold : theme.fontWeights.normal};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 7px 14px;
-    font-size: 13px;
-    font-family: inherit;
+    gap: 8px;
+    padding: 10px 13px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    background: ${p => p.theme.colors.surface};
     cursor: pointer;
     transition: all ${p => p.theme.transitions.fast};
+    font-size: 13.5px;
+    font-family: inherit;
+    color: ${p => p.theme.colors.text};
+    text-align: left;
 
-    &:hover { border-color: ${p => p.theme.colors.primary}; }
+    &:hover { border-color: ${p => p.theme.colors.textMuted}; }
+    &:focus-visible {
+        outline: none;
+        border-color: ${p => p.theme.colors.primary};
+    }
+
+    .value {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .placeholder { color: ${p => p.theme.colors.textMuted}; }
+    svg { flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
+`;
+
+const SelectMenu = styled.div`
+    position: fixed;
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    padding: 4px 0;
+    z-index: 9999;
+    overflow-y: auto;
+`;
+
+const SelectOption = styled.button<{ $selected: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    border: none;
+    background: ${({ $selected, theme }) => ($selected ? theme.colors.surfaceAlt : 'transparent')};
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${({ $selected, theme }) =>
+        $selected ? theme.fontWeights.semibold : theme.fontWeights.normal};
+    color: ${p => p.theme.colors.text};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+`;
+
+/** Kwadracik zaznaczenia — bez niego nie widać, że wyborów może być kilka. */
+const OptionBox = styled.span<{ $selected: boolean }>`
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: ${p => p.theme.radii.sm};
+    border: 1.5px solid
+        ${({ $selected, theme }) => ($selected ? theme.colors.primary : theme.colors.border)};
+    background: ${({ $selected, theme }) => ($selected ? theme.colors.primary : 'transparent')};
+    color: #ffffff;
+`;
+
+interface TagOption {
+    code: string;
+    label: string;
+}
+
+interface TagMultiSelectProps {
+    options: TagOption[];
+    value: string[];
+    onChange: (next: string[]) => void;
+}
+
+function TagMultiSelect({ options, value, onChange }: TagMultiSelectProps) {
+    const [open, setOpen] = useState(false);
+    const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number }>({
+        left: 0,
+        width: 0,
+        maxHeight: 0,
+    });
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+
+    const calcPos = useCallback(() => {
+        const trigger = triggerRef.current;
+        if (!trigger) return;
+        const rect = trigger.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        const below = viewportHeight - rect.bottom - 4;
+        const above = rect.top - 4;
+        if (below < 140 && above > below) {
+            setPos({ bottom: viewportHeight - rect.top + 4, left: rect.left, width: rect.width, maxHeight: Math.min(260, above) });
+        } else {
+            setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width, maxHeight: Math.min(260, below) });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!open) return;
+        const onDocClick = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (!containerRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+                setOpen(false);
+            }
+        };
+        // Escape ma zamknąć listę, a nie całe okno — dlatego faza przechwytywania
+        // i zatrzymanie zdarzenia, zanim dojdzie do nasłuchu modala.
+        const onEsc = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            setOpen(false);
+        };
+        const onReposition = () => calcPos();
+        document.addEventListener('mousedown', onDocClick);
+        document.addEventListener('keydown', onEsc, true);
+        window.addEventListener('scroll', onReposition, true);
+        window.addEventListener('resize', onReposition);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            document.removeEventListener('keydown', onEsc, true);
+            window.removeEventListener('scroll', onReposition, true);
+            window.removeEventListener('resize', onReposition);
+        };
+    }, [open, calcPos]);
+
+    const summary = useMemo(
+        () =>
+            options
+                .filter((option) => value.includes(option.code))
+                .map((option) => option.label)
+                .join(', '),
+        [options, value]
+    );
+
+    const toggle = (code: string) =>
+        onChange(value.includes(code) ? value.filter((entry) => entry !== code) : [...value, code]);
+
+    return (
+        <SelectContainer ref={containerRef}>
+            <SelectTrigger
+                ref={triggerRef}
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                onClick={() => {
+                    calcPos();
+                    setOpen((current) => !current);
+                }}
+            >
+                <span className={summary ? 'value' : 'value placeholder'}>
+                    {summary || 'Wybierz tagi'}
+                </span>
+                <ChevronDown size={15} />
+            </SelectTrigger>
+            {open &&
+                createPortal(
+                    <SelectMenu
+                        ref={menuRef}
+                        role="listbox"
+                        aria-multiselectable
+                        style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
+                    >
+                        {options.length === 0 && <EmptyHint>Brak tagów</EmptyHint>}
+                        {options.map((option) => {
+                            const selected = value.includes(option.code);
+                            return (
+                                <SelectOption
+                                    key={option.code}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={selected}
+                                    $selected={selected}
+                                    onClick={() => toggle(option.code)}
+                                >
+                                    <OptionBox $selected={selected}>
+                                        {selected && <Check size={11} strokeWidth={3} />}
+                                    </OptionBox>
+                                    {option.label}
+                                </SelectOption>
+                            );
+                        })}
+                    </SelectMenu>,
+                    document.body
+                )}
+        </SelectContainer>
+    );
+}
+
+// ─── Usługi ───────────────────────────────────────────────────────────────────
+
+const WideButton = styled(IconButton)`
+    width: 100%;
+    border-radius: ${p => p.theme.radii.md};
+    padding: 10px 14px;
+    border-style: dashed;
 `;
 
 const SearchBox = styled.div`
@@ -85,6 +284,7 @@ const SearchBox = styled.div`
         border: none;
         outline: none;
         flex: 1;
+        min-width: 0;
         font-size: 13.5px;
         font-family: inherit;
         color: ${p => p.theme.colors.text};
@@ -93,7 +293,7 @@ const SearchBox = styled.div`
 `;
 
 const ServiceList = styled.div`
-    max-height: 220px;
+    max-height: 190px;
     overflow-y: auto;
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.md};
@@ -156,25 +356,17 @@ const SelectedRow = styled.div`
     }
 `;
 
-const Footer = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    border-top: 1px solid ${p => p.theme.colors.border};
-    padding-top: 14px;
+const Total = styled.div`
+    margin-right: auto;
+    font-size: 15px;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    color: ${p => p.theme.colors.text};
 
-    .total {
-        font-size: 15px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        color: ${p => p.theme.colors.text};
-
-        small {
-            display: block;
-            font-size: 11.5px;
-            font-weight: ${p => p.theme.fontWeights.normal};
-            color: ${p => p.theme.colors.textMuted};
-        }
+    small {
+        display: block;
+        font-size: 11.5px;
+        font-weight: ${p => p.theme.fontWeights.normal};
+        color: ${p => p.theme.colors.textMuted};
     }
 `;
 
@@ -214,11 +406,6 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         () => selected.reduce((sum, item) => sum + item.priceGross * item.quantity, 0),
         [selected]
     );
-
-    const toggleTag = (code: string) =>
-        setTags((current) =>
-            current.includes(code) ? current.filter((entry) => entry !== code) : [...current, code]
-        );
 
     const toggleService = (serviceId: string, name: string, priceGross: number) =>
         setSelected((current) =>
@@ -264,121 +451,105 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
     };
 
     return (
-        <Modal isOpen onClose={onClose} title="Oznacz jako lead">
-            <Body>
-                <Field>
-                    <FieldLabel>Tagi</FieldLabel>
-                    <FieldHint>
-                        Czego dotyczy zapytanie. Możesz wybrać kilka — po nich liczy się,
-                        o co klienci pytają najczęściej.
-                    </FieldHint>
-                    <TagGrid>
-                        {(dictionaries?.tags ?? []).map((entry) => (
-                            <TagChip
-                                key={entry.code}
-                                type="button"
-                                $active={tags.includes(entry.code)}
-                                aria-pressed={tags.includes(entry.code)}
-                                onClick={() => toggleTag(entry.code)}
-                            >
-                                {tags.includes(entry.code) ? <Check size={13} /> : <TagIcon size={13} />}
-                                {entry.label}
-                            </TagChip>
-                        ))}
-                    </TagGrid>
-                </Field>
+        <ModalShell isOpen onClose={onClose} size="sm">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Oznacz jako lead</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+            <ModalContent>
+                <Body>
+                    <Field>
+                        <FieldLabel>Tagi</FieldLabel>
+                        <TagMultiSelect
+                            options={dictionaries?.tags ?? []}
+                            value={tags}
+                            onChange={setTags}
+                        />
+                    </Field>
 
-                <Field>
-                    <FieldLabel>Usługi</FieldLabel>
-                    {!servicesOpen ? (
-                        <>
-                            <FieldHint>
-                                Jeśli wiadomo już, o jakie usługi chodzi, dopisz je — wartość
-                                zapytania policzy się z cennika.
-                            </FieldHint>
-                            <IconButton
-                                type="button"
-                                style={{ alignSelf: 'flex-start' }}
-                                onClick={() => setServicesOpen(true)}
-                            >
+                    <Field>
+                        <FieldLabel>Usługi</FieldLabel>
+                        {!servicesOpen ? (
+                            <WideButton type="button" onClick={() => setServicesOpen(true)}>
                                 <Plus /> Dodaj usługi
-                            </IconButton>
-                        </>
-                    ) : (
-                        <>
-                            <SearchBox>
-                                <Search size={14} />
-                                <input
-                                    autoFocus
-                                    placeholder="Szukaj usługi z cennika…"
-                                    value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => { setServicesOpen(false); setSearch(''); }}
-                                    aria-label="Zwiń wyszukiwarkę usług"
-                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
-                                >
-                                    <X size={14} />
-                                </button>
-                            </SearchBox>
+                            </WideButton>
+                        ) : (
+                            <>
+                                <SearchBox>
+                                    <Search size={14} />
+                                    <input
+                                        autoFocus
+                                        placeholder="Szukaj usługi z cennika…"
+                                        value={search}
+                                        onChange={(event) => setSearch(event.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => { setServicesOpen(false); setSearch(''); }}
+                                        aria-label="Zwiń wyszukiwarkę usług"
+                                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </SearchBox>
 
-                            <ServiceList>
-                                {isLoading && <EmptyHint>Wczytywanie cennika…</EmptyHint>}
-                                {!isLoading && services.length === 0 && <EmptyHint>Brak usług</EmptyHint>}
-                                {services.map((service) => {
-                                    const isSelected = selected.some((item) => item.serviceId === service.id);
-                                    return (
-                                        <ServiceRow
-                                            key={service.id}
-                                            type="button"
-                                            $selected={isSelected}
-                                            onClick={() => toggleService(service.id, service.name, service.basePriceGross)}
-                                        >
-                                            <span className="name">
-                                                {isSelected && <Check size={13} style={{ marginRight: 4, verticalAlign: -2 }} />}
-                                                {service.name}
-                                            </span>
-                                            <span className="price">{formatGrosze(service.basePriceGross)}</span>
-                                        </ServiceRow>
-                                    );
-                                })}
-                            </ServiceList>
+                                <ServiceList>
+                                    {isLoading && <EmptyHint>Wczytywanie cennika…</EmptyHint>}
+                                    {!isLoading && services.length === 0 && <EmptyHint>Brak usług</EmptyHint>}
+                                    {services.map((service) => {
+                                        const isSelected = selected.some((item) => item.serviceId === service.id);
+                                        return (
+                                            <ServiceRow
+                                                key={service.id}
+                                                type="button"
+                                                $selected={isSelected}
+                                                onClick={() => toggleService(service.id, service.name, service.basePriceGross)}
+                                            >
+                                                <span className="name">
+                                                    {isSelected && <Check size={13} style={{ marginRight: 4, verticalAlign: -2 }} />}
+                                                    {service.name}
+                                                </span>
+                                                <span className="price">{formatGrosze(service.basePriceGross)}</span>
+                                            </ServiceRow>
+                                        );
+                                    })}
+                                </ServiceList>
 
-                            {selected.length > 0 && (
-                                <SelectedList>
-                                    {selected.map((item) => (
-                                        <SelectedRow key={item.serviceId}>
-                                            <span className="grow">{item.name}</span>
-                                            <span className="qty">
-                                                <button type="button" onClick={() => changeQuantity(item.serviceId, -1)} aria-label="Mniej">
-                                                    <Minus size={11} />
-                                                </button>
-                                                {item.quantity}
-                                                <button type="button" onClick={() => changeQuantity(item.serviceId, 1)} aria-label="Więcej">
-                                                    <Plus size={11} />
-                                                </button>
-                                            </span>
-                                            <span>{formatGrosze(item.priceGross * item.quantity)}</span>
-                                        </SelectedRow>
-                                    ))}
-                                </SelectedList>
-                            )}
-                        </>
-                    )}
-                </Field>
-
-                <Footer>
-                    <div className="total">
-                        {total > 0 ? formatGrosze(total) : '—'}
-                        <small>wartość potencjalnego zlecenia</small>
-                    </div>
-                    <PrimaryButton onClick={submit} disabled={markAsLead.isPending}>
-                        {markAsLead.isPending ? 'Zapisywanie…' : 'Utwórz lead'}
-                    </PrimaryButton>
-                </Footer>
-            </Body>
-        </Modal>
+                                {selected.length > 0 && (
+                                    <SelectedList>
+                                        {selected.map((item) => (
+                                            <SelectedRow key={item.serviceId}>
+                                                <span className="grow">{item.name}</span>
+                                                <span className="qty">
+                                                    <button type="button" onClick={() => changeQuantity(item.serviceId, -1)} aria-label="Mniej">
+                                                        <Minus size={11} />
+                                                    </button>
+                                                    {item.quantity}
+                                                    <button type="button" onClick={() => changeQuantity(item.serviceId, 1)} aria-label="Więcej">
+                                                        <Plus size={11} />
+                                                    </button>
+                                                </span>
+                                                <span>{formatGrosze(item.priceGross * item.quantity)}</span>
+                                            </SelectedRow>
+                                        ))}
+                                    </SelectedList>
+                                )}
+                            </>
+                        )}
+                    </Field>
+                </Body>
+            </ModalContent>
+            <ModalFooter>
+                <Total>
+                    {total > 0 ? formatGrosze(total) : '—'}
+                    <small>wartość potencjalnego zlecenia</small>
+                </Total>
+                <PrimaryButton onClick={submit} disabled={markAsLead.isPending}>
+                    {markAsLead.isPending ? 'Zapisywanie…' : 'Utwórz lead'}
+                </PrimaryButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }
