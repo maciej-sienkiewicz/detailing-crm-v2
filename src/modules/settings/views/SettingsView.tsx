@@ -15,6 +15,7 @@ import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
 import { TabletsSection } from '../components/TabletsSection';
 import { VisitCardSection } from '../components/VisitCardSection';
+import { LeadFormsSection } from '../components/LeadFormsSection';
 import { SecuritySection } from '../components/SecuritySection';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { HelpModal } from '../components/shared/SettingsLayout';
@@ -33,7 +34,7 @@ import {
 type SectionId =
     | 'company' | 'visit-numbering' | 'services' | 'team'
     | 'templates' | 'documents'
-    | 'tablets' | 'visit-card'
+    | 'tablets' | 'visit-card' | 'lead-forms'
     | 'plan' | 'credits' | 'invoices' | 'security';
 
 interface NavItem {
@@ -66,6 +67,7 @@ const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2z
 const HashIcon        = () => <Icon d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18" />;
 const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
 const TabletIcon     = () => <Icon d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 15h.01" />;
+const FormIcon       = () => <Icon d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h4" />;
 const CardIcon       = () => <Icon d="M2 6h20v12H2zM2 10h20M6 15h4" />;
 const QuestionIcon   = () => (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -99,6 +101,7 @@ const NAV_GROUPS: NavGroup[] = [
             { id: 'documents',       label: 'Dokumenty i podpisy',   icon: <FileSignIcon /> },
             { id: 'tablets',         label: 'Urządzenia mobilne',               icon: <TabletIcon /> },
             { id: 'visit-card',      label: 'Karta Wizyty',          icon: <CardIcon /> },
+            { id: 'lead-forms',      label: 'Formularze na stronie', icon: <FormIcon /> },
         ],
     },
     {
@@ -235,7 +238,7 @@ const BreadcrumbSep = styled.span`
 const VALID_SECTIONS = new Set<SectionId>([
     'company', 'visit-numbering', 'services', 'team',
     'templates', 'documents',
-    'tablets', 'visit-card',
+    'tablets', 'visit-card', 'lead-forms',
     'plan', 'credits', 'invoices', 'security',
 ]);
 
@@ -350,6 +353,8 @@ export function SettingsView() {
         content = <TabletsSection />;
     } else if (section === 'visit-card') {
         content = <VisitCardSection />;
+    } else if (section === 'lead-forms') {
+        content = <LeadFormsSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
     } else {

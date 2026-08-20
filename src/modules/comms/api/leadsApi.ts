@@ -119,6 +119,44 @@ export const leadsApi = {
         await apiClient.delete(`/v1/leads/${leadId}`, { skipErrorToast: true });
     },
 
+    // ── Webhooki formularzy ──────────────────────────────────────────────────
+
+    getIntakeWebhooks: async (): Promise<LeadIntakeWebhook[]> => {
+        const { data } = await apiClient.get('/v1/leads/intake-webhooks');
+        return data;
+    },
+
+    createIntakeWebhook: async (
+        name: string,
+        defaultTagCodes: string[]
+    ): Promise<CreatedLeadIntakeWebhook> => {
+        const { data } = await apiClient.post(
+            '/v1/leads/intake-webhooks',
+            { name, defaultTagCodes },
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
+    updateIntakeWebhook: async (
+        id: string,
+        request: { name?: string; active?: boolean; fieldMapping?: string; defaultTagCodes?: string[] }
+    ): Promise<LeadIntakeWebhook> => {
+        const { data } = await apiClient.put(`/v1/leads/intake-webhooks/${id}`, request, {
+            skipErrorToast: true,
+        });
+        return data;
+    },
+
+    deleteIntakeWebhook: async (id: string): Promise<void> => {
+        await apiClient.delete(`/v1/leads/intake-webhooks/${id}`, { skipErrorToast: true });
+    },
+
+    getIntakeDeliveries: async (id: string): Promise<LeadIntakeDelivery[]> => {
+        const { data } = await apiClient.get(`/v1/leads/intake-webhooks/${id}/deliveries`);
+        return data;
+    },
+
     createTag: async (label: string): Promise<DictionaryEntry> => {
         const { data } = await apiClient.post('/v1/leads/tags', { label }, { skipErrorToast: true });
         return data;

@@ -165,7 +165,7 @@ export interface InsightsAppointment {
 // ── Leady ────────────────────────────────────────────────────────────────────
 
 export type LeadStatus = 'NEW' | 'IN_PROGRESS' | 'CONFIRMED' | 'COMPLETED' | 'LOST' | 'NO_SHOW';
-export type LeadSource = 'PHONE' | 'EMAIL' | 'MANUAL';
+export type LeadSource = 'PHONE' | 'EMAIL' | 'FORM' | 'MANUAL';
 
 export interface LeadServiceItem {
     id: string;
@@ -323,6 +323,38 @@ export interface ContactNoteEvent {
     bodyAfter: string | null;
     actorName: string;
     createdAt: string;
+}
+
+// ── Webhooki formularzy ──────────────────────────────────────────────────────
+
+export interface LeadIntakeWebhook {
+    id: string;
+    name: string;
+    /** Ostatnie znaki tokenu — do rozpoznania wpisu, bez ujawniania adresu. */
+    tokenHint: string;
+    active: boolean;
+    fieldMapping: string | null;
+    defaultTagCodes: string[];
+    createdAt: string;
+    lastReceivedAt: string | null;
+    receivedCount: number;
+}
+
+/** Token widać jeden raz — przy tworzeniu. */
+export interface CreatedLeadIntakeWebhook {
+    webhook: LeadIntakeWebhook;
+    token: string;
+}
+
+export type LeadIntakeDeliveryStatus = 'CREATED' | 'DUPLICATE' | 'REJECTED';
+
+export interface LeadIntakeDelivery {
+    id: string;
+    receivedAt: string;
+    status: LeadIntakeDeliveryStatus;
+    reason: string | null;
+    leadId: string | null;
+    payload: string;
 }
 
 // ── Wizytówka kontaktu ───────────────────────────────────────────────────────
