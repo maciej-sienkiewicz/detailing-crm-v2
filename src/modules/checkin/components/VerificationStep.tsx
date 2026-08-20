@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -688,6 +688,16 @@ const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownPro
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+/**
+ * Komunikat błędu pod polem, oznaczony kotwicą `data-error-anchor`.
+ * Kreator po nieudanej walidacji przewija do pierwszej takiej kotwiki w
+ * kolejności DOM — czyli w kolejności pól na formularzu, a nie w kolejności
+ * komunikatów na liście w stopce.
+ */
+const FieldError = ({ children }: { children: ReactNode }) => (
+    <ErrorMessage data-error-anchor="">{children}</ErrorMessage>
+);
+
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
@@ -1340,7 +1350,7 @@ export const VerificationStep = ({
                                 onChange={(val) => onChange({ appointmentColorId: val })}
                                 onAddColor={() => setIsColorModalOpen(true)}
                             />
-                            {errors.color && <ErrorMessage>{errors.color}</ErrorMessage>}
+                            {errors.color && <FieldError>{errors.color}</FieldError>}
                         </FieldGroup>
                     </FormGrid>
                 </SectionBody>
@@ -1368,7 +1378,7 @@ export const VerificationStep = ({
                     </SectionActions>
                 </SectionHead>
                 <SectionBody>
-                    {errors.customer && <ErrorMessage>{errors.customer}</ErrorMessage>}
+                    {errors.customer && <FieldError>{errors.customer}</FieldError>}
 
                     <FormGrid>
                         <div ref={firstNameFieldRef}>
@@ -1381,7 +1391,7 @@ export const VerificationStep = ({
                                 onFocus={() => handleCustomerInputFocus(firstNameFieldRef)}
                                 autoComplete="new-password"
                             />
-                            {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
+                            {errors.firstName && <FieldError>{errors.firstName}</FieldError>}
                         </FieldGroup>
                         </div>
 
@@ -1395,7 +1405,7 @@ export const VerificationStep = ({
                                 onFocus={() => handleCustomerInputFocus(lastNameFieldRef)}
                                 autoComplete="new-password"
                             />
-                            {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
+                            {errors.lastName && <FieldError>{errors.lastName}</FieldError>}
                         </FieldGroup>
                         </div>
 
@@ -1422,7 +1432,7 @@ export const VerificationStep = ({
                                 }}
                                 onBlur={handleCustomerFieldBlur}
                             />
-                            {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
+                            {errors.phone && <FieldError>{errors.phone}</FieldError>}
                         </FieldGroup>
 
                         <FieldGroup>
@@ -1433,11 +1443,11 @@ export const VerificationStep = ({
                                 onChange={(e) => handleCustomerFieldChange({ email: e.target.value })}
                                 onBlur={handleCustomerFieldBlur}
                             />
-                            {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+                            {errors.email && <FieldError>{errors.email}</FieldError>}
                         </FieldGroup>
                     </FormGrid>
 
-                    {errors.contact && <ErrorMessage>{errors.contact}</ErrorMessage>}
+                    {errors.contact && <FieldError>{errors.contact}</FieldError>}
 
                     {/* Adres domowy */}
                     <CollapsibleWrap>
@@ -1595,7 +1605,7 @@ export const VerificationStep = ({
                                             value={formData.vehicleHandoff.contactPerson.firstName}
                                             onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, firstName: e.target.value } } })}
                                         />
-                                        {errors.handoffFirstName && <ErrorMessage>{errors.handoffFirstName}</ErrorMessage>}
+                                        {errors.handoffFirstName && <FieldError>{errors.handoffFirstName}</FieldError>}
                                     </FieldGroup>
                                     <FieldGroup>
                                         <Label>Nazwisko osoby przekazującej *</Label>
@@ -1603,7 +1613,7 @@ export const VerificationStep = ({
                                             value={formData.vehicleHandoff.contactPerson.lastName}
                                             onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, lastName: e.target.value } } })}
                                         />
-                                        {errors.handoffLastName && <ErrorMessage>{errors.handoffLastName}</ErrorMessage>}
+                                        {errors.handoffLastName && <FieldError>{errors.handoffLastName}</FieldError>}
                                     </FieldGroup>
                                     <FieldGroup>
                                         <Label>Telefon</Label>
@@ -1611,7 +1621,7 @@ export const VerificationStep = ({
                                             value={formData.vehicleHandoff.contactPerson.phone}
                                             onChange={(value) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, phone: value || '' } } })}
                                         />
-                                        {errors.handoffPhone && <ErrorMessage>{errors.handoffPhone}</ErrorMessage>}
+                                        {errors.handoffPhone && <FieldError>{errors.handoffPhone}</FieldError>}
                                     </FieldGroup>
                                     <FieldGroup>
                                         <Label>E-mail</Label>
@@ -1620,12 +1630,12 @@ export const VerificationStep = ({
                                             value={formData.vehicleHandoff.contactPerson.email}
                                             onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, email: e.target.value } } })}
                                         />
-                                        {errors.handoffEmail && <ErrorMessage>{errors.handoffEmail}</ErrorMessage>}
+                                        {errors.handoffEmail && <FieldError>{errors.handoffEmail}</FieldError>}
                                     </FieldGroup>
                                 </FormGrid>
                             )}
                             {formData.vehicleHandoff.isHandedOffByOtherPerson && errors.handoffContact && (
-                                <ErrorMessage>{errors.handoffContact}</ErrorMessage>
+                                <FieldError>{errors.handoffContact}</FieldError>
                             )}
                         </>
                     )}
@@ -1654,7 +1664,7 @@ export const VerificationStep = ({
                     </SectionActions>
                 </SectionHead>
                 <SectionBody>
-                    {errors.vehicle && <ErrorMessage>{errors.vehicle}</ErrorMessage>}
+                    {errors.vehicle && <FieldError>{errors.vehicle}</FieldError>}
 
                     {selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
                         <VehicleSuggestionsWrap>
@@ -1727,7 +1737,7 @@ export const VerificationStep = ({
                                     onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
                                     placeholder={t.checkin.technical.mileagePlaceholder}
                                 />
-                                {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+                                {errors.mileage && <FieldError>{errors.mileage}</FieldError>}
                             </FieldGroup>
                         )}
 
@@ -1792,7 +1802,7 @@ export const VerificationStep = ({
                         services={formData.services}
                         onChange={onServicesChange}
                     />
-                    {errors.services && <ErrorMessage>{errors.services}</ErrorMessage>}
+                    {errors.services && <FieldError>{errors.services}</FieldError>}
                 </SectionBody>
             </SectionCard>
 
