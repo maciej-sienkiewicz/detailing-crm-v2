@@ -12,7 +12,7 @@
 // (a nie tym, czy dane zdążyły dojść), nagłówek rozmowy renderuje się od razu z
 // danych z listy, a dociąga się wyłącznie treść korespondencji — w wydzielonym,
 // memoizowanym ConversationView. Dzięki temu nic nie „przeskakuje" pod kursorem.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
@@ -50,16 +50,26 @@ import {
 
 // ── Media query hook ─────────────────────────────────────────────────────────
 
+/**
+ * Szerokość okna jest stanem przeglądarki, nie Reacta — czytamy ją przez
+ * useSyncExternalStore zamiast kopiować do useState w efekcie. Kopia wymagała
+ * setState w ciele efektu (kaskadowe renderowanie przy każdym montowaniu) i potrafiła
+ * przez jedną klatkę pokazać stan sprzed zmiany rozmiaru.
+ */
 function useMediaQuery(query: string): boolean {
-    const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
-    useEffect(() => {
-        const mql = window.matchMedia(query);
-        const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
-        mql.addEventListener('change', onChange);
-        setMatches(mql.matches);
-        return () => mql.removeEventListener('change', onChange);
-    }, [query]);
-    return matches;
+    const subscribe = useCallback(
+        (onChange: () => void) => {
+            const mql = window.matchMedia(query);
+            mql.addEventListener('change', onChange);
+            return () => mql.removeEventListener('change', onChange);
+        },
+        [query]
+    );
+    return useSyncExternalStore(
+        subscribe,
+        () => window.matchMedia(query).matches,
+        () => false
+    );
 }
 
 // ── Layout ───────────────────────────────────────────────────────────────────
