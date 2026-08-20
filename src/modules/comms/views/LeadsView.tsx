@@ -5,10 +5,19 @@
 import { useMemo, useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, Car, Check, Loader2, Mail, Phone, Search, Trash2, User, X } from 'lucide-react';
+import { BarChart3, Car, Check, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import {
+    CloseBtn,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    ModalShell,
+    ModalTitle,
+    ModalTitleGroup,
+} from '@/common/components/ModalKit';
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { useVehicleMetadata } from '@/modules/vehicles/hooks/useVehicleMetadata';
@@ -265,74 +274,35 @@ const EditableCell = styled.button`
     }
 `;
 
-// ── Panel szczegółów ─────────────────────────────────────────────────────────
+// ── Okno szczegółów ──────────────────────────────────────────────────────────
+//
+// Modal, nie panel boczny. Szczegóły leada to przede wszystkim wycena, a wycena
+// jest tabelą: nazwa usługi, netto, VAT, brutto, rabat, notatka. Wąska szpalta
+// przy krawędzi ekranu ucinała nazwy do jednej litery i ściskała liczby tak, że
+// nie dało się ich porównać — a wycena, której nie da się przeczytać, nie jest
+// wyceną. Szeroki modal daje tabeli szerokość, której potrzebuje, i pozwala
+// ustawić drobniejsze fakty (pojazd, status) obok siebie zamiast jeden pod drugim.
 
-const DrawerOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.4);
-    z-index: 70;
-`;
+/** Fakty, które mieszczą się w dwóch kolumnach: pojazd i status. */
+const FactGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 
-/**
- * Szerszy niż typowy panel, bo mieści edytor wyceny — ten sam, co przy przyjęciu
- * pojazdu, z kolumnami netto / VAT / brutto. Przy 440 px nazwa usługi ucinała się
- * do jednej litery, a wycena bez czytelnej nazwy nie jest wyceną.
- */
-const Drawer = styled.aside`
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(620px, 100vw);
-    max-width: 100vw;
-    background: ${p => p.theme.colors.surface};
-    z-index: 71;
-    box-shadow: ${p => p.theme.shadows.xl};
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-`;
-
-const DrawerHeader = styled.div`
-    padding: 18px 20px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    background: ${p => p.theme.colors.surfaceAlt};
-
-    h3 {
-        margin: 0 0 2px;
-        font-size: 16px;
-        color: ${p => p.theme.colors.text};
-        overflow-wrap: anywhere;
-    }
-    .sub {
-        font-size: 13px;
-        color: ${p => p.theme.colors.textSecondary};
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-    button.close {
-        border: none;
-        background: none;
-        color: ${p => p.theme.colors.textMuted};
-        cursor: pointer;
-        padding: 4px;
-        &:hover { color: ${p => p.theme.colors.textSecondary}; }
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        grid-template-columns: 1fr;
     }
 `;
 
-const DrawerSection = styled.section`
-    padding: 14px 20px;
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+const Panel = styled.section`
     display: flex;
     flex-direction: column;
     gap: 8px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.lg};
+    padding: 14px 16px;
+    background: ${p => p.theme.colors.surface};
+    min-width: 0;
 
     h4 {
         margin: 0;
@@ -342,6 +312,22 @@ const DrawerSection = styled.section`
         text-transform: uppercase;
         color: ${p => p.theme.colors.textMuted};
     }
+`;
+
+const ModalBody = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+/** Podtytuł okna: skąd przyszedł lead i jak się z nim skontaktować. */
+const LeadIdentity = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: ${p => p.theme.colors.textSecondary};
 `;
 
 const VehicleRow = styled.div`
@@ -480,7 +466,9 @@ const HistoryLine = styled.div`
 const LostDialog = styled.div`
     position: fixed;
     inset: 0;
-    z-index: 80;
+    /* Ponad oknem szczegółów (ModalOverlay ma 1000) — pytanie o powód przegranej
+       pada właśnie z tamtego okna i musi być nad nim, a nie za nim. */
+    z-index: 1100;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -825,211 +813,215 @@ export default function LeadsView() {
             </SurfaceCard>
 
             {lead && (
-                <>
-                    <DrawerOverlay onClick={() => selectLead(null)} />
-                    <Drawer>
-                        <DrawerHeader>
-                            <div>
-                                <h3>{lead.customerName ?? lead.contactIdentifier}</h3>
-                                <div className="sub">
-                                    <SourceIcon source={lead.source} />
-                                    {lead.contactIdentifier}
-                                    {lead.threadId && (
-                                        <Link to={`/communication?thread=${lead.threadId}`}>
-                                            <Badge $variant="info" style={{ cursor: 'pointer' }}>
-                                                Zobacz korespondencję
-                                            </Badge>
-                                        </Link>
-                                    )}
-                                </div>
-                            </div>
-                            <button className="close" onClick={() => selectLead(null)} aria-label="Zamknij">
-                                <X size={18} />
-                            </button>
-                        </DrawerHeader>
+                <ModalShell isOpen onClose={() => selectLead(null)} maxWidth="1040px">
+                    <ModalHeader>
+                        <ModalTitleGroup>
+                            <ModalTitle>{lead.customerName ?? lead.contactIdentifier}</ModalTitle>
+                            <LeadIdentity>
+                                <SourceIcon source={lead.source} />
+                                {lead.contactIdentifier}
+                                {lead.threadId && (
+                                    <Link to={`/communication?thread=${lead.threadId}`}>
+                                        <Badge $variant="info" style={{ cursor: 'pointer' }}>
+                                            Zobacz korespondencję
+                                        </Badge>
+                                    </Link>
+                                )}
+                            </LeadIdentity>
+                        </ModalTitleGroup>
+                        <CloseBtn onClick={() => selectLead(null)} />
+                    </ModalHeader>
 
-                        <DrawerSection>
-                            <h4>Pojazd</h4>
-                            {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
-                                <VehicleRow className="muted">
-                                    <Loader2 size={14} style={{ animation: 'none' }} />
-                                    Rozpoznajemy auto z korespondencji…
-                                </VehicleRow>
-                            ) : editingVehicle === null ? (
-                                <VehicleRow>
-                                    <Car size={15} />
-                                    <span className="grow">
-                                        {formatVehicle(lead) ?? <span className="muted">Nie rozpoznano auta</span>}
-                                    </span>
-                                    <IconButton
-                                        onClick={() => setEditingVehicle({
-                                            brand: lead.vehicleBrand ?? '',
-                                            model: lead.vehicleModel ?? '',
-                                        })}
-                                    >
-                                        {lead.vehicleBrand ? 'Zmień' : 'Uzupełnij'}
-                                    </IconButton>
-                                </VehicleRow>
-                            ) : (
-                                <>
-                                    <VehiclePickers>
-                                        <select
-                                            value={editingVehicle.brand}
-                                            onChange={(event) => setEditingVehicle({
-                                                brand: event.target.value,
-                                                // Zmiana marki zeruje model: modele są per marka,
-                                                // a zostawiony stary nie przeszedłby walidacji.
-                                                model: '',
-                                            })}
-                                            aria-label="Marka"
-                                        >
-                                            <option value="">Marka…</option>
-                                            {vehicleBrands.map((brand) => (
-                                                <option key={brand} value={brand}>{brand}</option>
-                                            ))}
-                                        </select>
-                                        <select
-                                            value={editingVehicle.model}
-                                            onChange={(event) => setEditingVehicle({
-                                                brand: editingVehicle.brand,
-                                                model: event.target.value,
-                                            })}
-                                            disabled={!editingVehicle.brand}
-                                            aria-label="Model"
-                                        >
-                                            <option value="">Model…</option>
-                                            {vehicleModels.map((model) => (
-                                                <option key={model} value={model}>{model}</option>
-                                            ))}
-                                        </select>
-                                    </VehiclePickers>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <PrimaryButton
-                                            onClick={() => saveVehicle(lead.id)}
-                                            disabled={updateVehicle.isPending}
-                                        >
-                                            {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
-                                        </PrimaryButton>
-                                        <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
-                                    </div>
-                                </>
-                            )}
-                        </DrawerSection>
-
-                        <DrawerSection>
-                            <h4>Status</h4>
-                            <StatusGrid>
-                                {LEAD_STATUS_FLOW.map((status) => {
-                                    const active = lead.status === status;
-                                    return (
-                                        <StatusOption
-                                            key={status}
-                                            $active={active}
-                                            onClick={() => !active && requestStatus(lead.id, status)}
-                                        >
-                                            {active && <Check size={11} />}
-                                            {LEAD_STATUS_LABELS[status]}
-                                        </StatusOption>
-                                    );
-                                })}
-                            </StatusGrid>
-                            {lead.status === 'LOST' && lead.lostReasonLabel && (
-                                <HistoryLine>
-                                    Powód przegranej: <strong>{lead.lostReasonLabel}</strong>
-                                    {lead.lostReason && <> — {lead.lostReason}</>}
-                                </HistoryLine>
-                            )}
-                        </DrawerSection>
-
-                        <DrawerSection>
-                            <h4>Usługi i wycena</h4>
-                            {editingServices === null && (
-                                <>
-                                    {lead.services.length === 0 && (
-                                        <HistoryLine>Nie przypisano jeszcze usług.</HistoryLine>
-                                    )}
-                                    {lead.services.map((item) => (
-                                        <ServiceLine key={item.id}>
+                    <ModalContent>
+                        <ModalBody>
+                            <FactGrid>
+                                <Panel>
+                                    <h4>Pojazd</h4>
+                                    {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
+                                        <VehicleRow className="muted">
+                                            <Loader2 size={14} style={{ animation: 'none' }} />
+                                            Rozpoznajemy auto z korespondencji…
+                                        </VehicleRow>
+                                    ) : editingVehicle === null ? (
+                                        <VehicleRow>
+                                            <Car size={15} />
                                             <span className="grow">
-                                                {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
+                                                {formatVehicle(lead) ?? <span className="muted">Nie rozpoznano auta</span>}
                                             </span>
-                                            <span>{formatGrosze(item.totalGross)}</span>
-                                        </ServiceLine>
-                                    ))}
-                                    {lead.estimatedValue > 0 && (
+                                            <IconButton
+                                                onClick={() => setEditingVehicle({
+                                                    brand: lead.vehicleBrand ?? '',
+                                                    model: lead.vehicleModel ?? '',
+                                                })}
+                                            >
+                                                {lead.vehicleBrand ? 'Zmień' : 'Uzupełnij'}
+                                            </IconButton>
+                                        </VehicleRow>
+                                    ) : (
+                                        <>
+                                            <VehiclePickers>
+                                                <select
+                                                    value={editingVehicle.brand}
+                                                    onChange={(event) => setEditingVehicle({
+                                                        brand: event.target.value,
+                                                        // Zmiana marki zeruje model: modele są per marka,
+                                                        // a zostawiony stary nie przeszedłby walidacji.
+                                                        model: '',
+                                                    })}
+                                                    aria-label="Marka"
+                                                >
+                                                    <option value="">Marka…</option>
+                                                    {vehicleBrands.map((brand) => (
+                                                        <option key={brand} value={brand}>{brand}</option>
+                                                    ))}
+                                                </select>
+                                                <select
+                                                    value={editingVehicle.model}
+                                                    onChange={(event) => setEditingVehicle({
+                                                        brand: editingVehicle.brand,
+                                                        model: event.target.value,
+                                                    })}
+                                                    disabled={!editingVehicle.brand}
+                                                    aria-label="Model"
+                                                >
+                                                    <option value="">Model…</option>
+                                                    {vehicleModels.map((model) => (
+                                                        <option key={model} value={model}>{model}</option>
+                                                    ))}
+                                                </select>
+                                            </VehiclePickers>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <PrimaryButton
+                                                    onClick={() => saveVehicle(lead.id)}
+                                                    disabled={updateVehicle.isPending}
+                                                >
+                                                    {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                                                </PrimaryButton>
+                                                <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
+                                            </div>
+                                        </>
+                                    )}
+                                </Panel>
+
+                                <Panel>
+                                    <h4>Status</h4>
+                                    <StatusGrid>
+                                        {LEAD_STATUS_FLOW.map((status) => {
+                                            const active = lead.status === status;
+                                            return (
+                                                <StatusOption
+                                                    key={status}
+                                                    $active={active}
+                                                    onClick={() => !active && requestStatus(lead.id, status)}
+                                                >
+                                                    {active && <Check size={11} />}
+                                                    {LEAD_STATUS_LABELS[status]}
+                                                </StatusOption>
+                                            );
+                                        })}
+                                    </StatusGrid>
+                                    {lead.status === 'LOST' && lead.lostReasonLabel && (
+                                        <HistoryLine>
+                                            Powód przegranej: <strong>{lead.lostReasonLabel}</strong>
+                                            {lead.lostReason && <> — {lead.lostReason}</>}
+                                        </HistoryLine>
+                                    )}
+                                </Panel>
+                            </FactGrid>
+
+                            <Panel>
+                                <h4>Usługi i wycena</h4>
+                                {editingServices === null && (
+                                    <>
+                                        {lead.services.length === 0 && (
+                                            <HistoryLine>Nie przypisano jeszcze usług.</HistoryLine>
+                                        )}
+                                        {lead.services.map((item) => (
+                                            <ServiceLine key={item.id}>
+                                                <span className="grow">
+                                                    {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
+                                                </span>
+                                                <span>{formatGrosze(item.totalGross)}</span>
+                                            </ServiceLine>
+                                        ))}
+                                        {lead.estimatedValue > 0 && (
+                                            <TotalLine>
+                                                <span>Razem</span>
+                                                <span>{formatGrosze(lead.estimatedValue)}</span>
+                                            </TotalLine>
+                                        )}
+                                        <IconButton
+                                            style={{ alignSelf: 'flex-start' }}
+                                            onClick={() => setEditingServices(toServiceLines(lead.services))}
+                                        >
+                                            Edytuj usługi
+                                        </IconButton>
+                                    </>
+                                )}
+                                {editingServices !== null && (
+                                    <>
+                                        {/* Ten sam edytor co przy przyjęciu pojazdu: rabaty, notatka
+                                            do pozycji, korekta ceny i podpowiedzi z cennika. Lead nie
+                                            potrzebuje własnej, uboższej listy — wycena to ta sama
+                                            czynność, tylko wcześniej. */}
+                                        <EditableServicesTable
+                                            services={editingServices}
+                                            onChange={setEditingServices}
+                                        />
                                         <TotalLine>
                                             <span>Razem</span>
-                                            <span>{formatGrosze(lead.estimatedValue)}</span>
+                                            <span>{formatGrosze(editedTotal)}</span>
                                         </TotalLine>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <PrimaryButton onClick={saveServices} disabled={updateServices.isPending}>
+                                                Zapisz
+                                            </PrimaryButton>
+                                            <IconButton onClick={() => setEditingServices(null)}>Anuluj</IconButton>
+                                        </div>
+                                    </>
+                                )}
+                            </Panel>
+
+                            <FactGrid>
+                                <Panel>
+                                    <h4>Pierwsza wiadomość</h4>
+                                    <HistoryLine>
+                                        {lead.initialMessage ?? 'Brak treści pierwszej wiadomości.'}
+                                    </HistoryLine>
+                                </Panel>
+
+                                <Panel>
+                                    <h4>Historia</h4>
+                                    {(history ?? []).length === 0 && (
+                                        <HistoryLine>Brak zmian statusu.</HistoryLine>
                                     )}
-                                    <IconButton
-                                        style={{ alignSelf: 'flex-start' }}
-                                        onClick={() => setEditingServices(toServiceLines(lead.services))}
-                                    >
-                                        Edytuj usługi
-                                    </IconButton>
-                                </>
-                            )}
-                            {editingServices !== null && (
-                                <>
-                                    {/* Ten sam edytor co przy przyjęciu pojazdu: rabaty, notatka
-                                        do pozycji, korekta ceny i podpowiedzi z cennika. Lead nie
-                                        potrzebuje własnej, uboższej listy — wycena to ta sama
-                                        czynność, tylko wcześniej. */}
-                                    <EditableServicesTable
-                                        services={editingServices}
-                                        onChange={setEditingServices}
-                                    />
-                                    <TotalLine>
-                                        <span>Razem</span>
-                                        <span>{formatGrosze(editedTotal)}</span>
-                                    </TotalLine>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <PrimaryButton onClick={saveServices} disabled={updateServices.isPending}>
-                                            Zapisz
-                                        </PrimaryButton>
-                                        <IconButton onClick={() => setEditingServices(null)}>Anuluj</IconButton>
-                                    </div>
-                                </>
-                            )}
-                        </DrawerSection>
+                                    {(history ?? []).map((entry, index) => (
+                                        <HistoryLine key={index}>
+                                            {formatDateTime(entry.createdAt)} —{' '}
+                                            <strong>{LEAD_STATUS_LABELS[entry.toStatus]}</strong>
+                                            {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
+                                            {entry.changedByName && <> · {entry.changedByName}</>}
+                                        </HistoryLine>
+                                    ))}
+                                </Panel>
+                            </FactGrid>
+                        </ModalBody>
+                    </ModalContent>
 
-                        {lead.initialMessage && (
-                            <DrawerSection>
-                                <h4>Pierwsza wiadomość</h4>
-                                <HistoryLine>{lead.initialMessage}</HistoryLine>
-                            </DrawerSection>
-                        )}
-
-                        <DrawerSection>
-                            <h4>Historia</h4>
-                            {(history ?? []).map((entry, index) => (
-                                <HistoryLine key={index}>
-                                    {formatDateTime(entry.createdAt)} —{' '}
-                                    <strong>{LEAD_STATUS_LABELS[entry.toStatus]}</strong>
-                                    {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
-                                    {entry.changedByName && <> · {entry.changedByName}</>}
-                                </HistoryLine>
-                            ))}
-                        </DrawerSection>
-
-                        <DrawerSection>
-                            <h4>Usuń lead</h4>
-                            <HistoryLine>
-                                Zapytanie zniknie razem z historią statusów i tagami.
-                                Korespondencja zostanie w skrzynce i będzie ją można oznaczyć
-                                jako lead ponownie.
-                            </HistoryLine>
-                            <DangerButton
-                                type="button"
-                                onClick={() => setDeleteDialogFor(lead.id)}
-                                disabled={deleteLead.isPending}
-                            >
-                                <Trash2 size={14} /> Usuń lead
-                            </DangerButton>
-                        </DrawerSection>
-                    </Drawer>
-                </>
+                    <ModalFooter>
+                        {/* Usunięcie stoi po lewej, z dala od „Zamknij" — dwie akcje o wprost
+                            przeciwnych skutkach nie mają prawa sąsiadować pod kursorem. */}
+                        <DangerButton
+                            type="button"
+                            style={{ marginRight: 'auto' }}
+                            onClick={() => setDeleteDialogFor(lead.id)}
+                            disabled={deleteLead.isPending}
+                        >
+                            <Trash2 size={14} /> Usuń lead
+                        </DangerButton>
+                        <IconButton onClick={() => selectLead(null)}>Zamknij</IconButton>
+                    </ModalFooter>
+                </ModalShell>
             )}
 
             {cellEditor && (
