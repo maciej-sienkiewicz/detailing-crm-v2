@@ -132,6 +132,55 @@ export const useDeleteLeadTag = () => {
     });
 };
 
+// ── Webhooki formularzy ──────────────────────────────────────────────────────
+
+export const LEAD_INTAKE_KEY = [...LEADS_KEY, 'intake-webhooks'];
+
+export const useLeadIntakeWebhooks = (options?: { enabled?: boolean }) =>
+    useQuery({
+        queryKey: LEAD_INTAKE_KEY,
+        queryFn: leadsApi.getIntakeWebhooks,
+        enabled: options?.enabled ?? true,
+    });
+
+export const useLeadIntakeDeliveries = (webhookId: string | null) =>
+    useQuery({
+        queryKey: [...LEAD_INTAKE_KEY, 'deliveries', webhookId],
+        queryFn: () => leadsApi.getIntakeDeliveries(webhookId!),
+        enabled: webhookId !== null,
+    });
+
+export const useCreateLeadIntakeWebhook = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ name, defaultTagCodes }: { name: string; defaultTagCodes: string[] }) =>
+            leadsApi.createIntakeWebhook(name, defaultTagCodes),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: LEAD_INTAKE_KEY }),
+    });
+};
+
+export const useUpdateLeadIntakeWebhook = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, ...request }: {
+            id: string;
+            name?: string;
+            active?: boolean;
+            fieldMapping?: string;
+            defaultTagCodes?: string[];
+        }) => leadsApi.updateIntakeWebhook(id, request),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: LEAD_INTAKE_KEY }),
+    });
+};
+
+export const useDeleteLeadIntakeWebhook = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => leadsApi.deleteIntakeWebhook(id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: LEAD_INTAKE_KEY }),
+    });
+};
+
 export const useUpdateLeadTags = () => {
     const invalidate = useLeadInvalidation();
     return useMutation({

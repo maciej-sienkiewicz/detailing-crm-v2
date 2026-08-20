@@ -5,7 +5,7 @@
 import { useMemo, useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, Car, Check, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
+import { BarChart3, Car, Check, Globe, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -519,6 +519,8 @@ const ReasonOption = styled.button<{ $active: boolean }>`
 function SourceIcon({ source }: { source: Lead['source'] }) {
     if (source === 'PHONE') return <Phone size={13} color="#94a3b8" />;
     if (source === 'EMAIL') return <Mail size={13} color="#94a3b8" />;
+    // Formularz ze strony — inne źródło znaczy inną rozmowę, więc i inna ikona.
+    if (source === 'FORM') return <Globe size={13} color="#94a3b8" />;
     return <User size={13} color="#94a3b8" />;
 }
 
