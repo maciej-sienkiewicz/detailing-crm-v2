@@ -24,8 +24,18 @@ export { overlayFadeIn, modalScaleIn };
 
 // ─── Overlay & container ──────────────────────────────────────────────────────
 
+/**
+ * z-index 1300, nie 50.
+ *
+ * Pięćdziesiątka działała wyłącznie dzięki geometrii: nakładka jest przesunięta
+ * o szerokość sidebara (`left`), więc nie miała z czym się nakładać, choć leżała
+ * *pod* nim (100) i pod każdym oknem z ModalKit (1000). Wystarczyło otworzyć ten
+ * modal z innego okna — rezerwacja zakładana z panelu leada — żeby wylądował pod
+ * tamtym i przestał być klikalny. 1300 stawia go nad warstwą okien aplikacji
+ * i pod jego własnymi listami rozwijanymi (9999).
+ */
 export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
-    z-index: 50;
+    z-index: 1300;
     left: ${p => p.$contentLeft ?? 0}px;
 
     @media (max-width: 639px) {
