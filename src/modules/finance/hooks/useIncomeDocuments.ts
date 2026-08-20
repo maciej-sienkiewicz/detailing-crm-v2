@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { incomeDocumentsApi } from '../api/incomeDocumentsApi';
-import type { IncomeDocumentFilters } from '../types';
+import { KSEF_REVENUE_KEY } from './useKsefRevenue';
+import { useInvalidateFinance } from './useFinance';
+import type { IncomeDocumentFilters, IncomeSourceKind } from '../types';
 
 export const INCOME_DOCUMENTS_KEY = ['finance', 'income-documents'] as const;
 
@@ -20,4 +22,37 @@ export const useIncomeDocuments = (filters: IncomeDocumentFilters) => {
     isError,
     refetch,
   };
+};
+
+/**
+ * Ukrycie dokumentu przestawia listę, kafle podsumowania i statystyki KSeF —
+ * wszystkie liczą z tych samych rekordów, więc muszą lecieć razem.
+ */
+const useInvalidateIncomeDocuments = () => {
+  const queryClient = useQueryClient();
+  const invalidateFinance = useInvalidateFinance();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: KSEF_REVENUE_KEY });
+    invalidateFinance();
+  };
+};
+
+/** Ukrywa dokument przychodowy ze statystyk (zostaje w bazie, wraca po przywróceniu). */
+export const useExcludeIncomeDocument = () => {
+  const invalidate = useInvalidateIncomeDocuments();
+  return useMutation({
+    mutationFn: ({ sourceKind, id }: { sourceKind: IncomeSourceKind; id: string }) =>
+      incomeDocumentsApi.exclude(sourceKind, id),
+    onSuccess: invalidate,
+  });
+};
+
+/** Przywraca ukryty dokument przychodowy do statystyk. */
+export const useRestoreIncomeDocument = () => {
+  const invalidate = useInvalidateIncomeDocuments();
+  return useMutation({
+    mutationFn: ({ sourceKind, id }: { sourceKind: IncomeSourceKind; id: string }) =>
+      incomeDocumentsApi.restore(sourceKind, id),
+    onSuccess: invalidate,
+  });
 };

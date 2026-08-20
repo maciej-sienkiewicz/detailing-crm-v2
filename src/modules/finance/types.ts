@@ -438,6 +438,8 @@ export interface IncomeDocument {
   duplicateStatus:  DuplicateStatus;
   visitId:          string | null;
   createdAt:        string;
+  /** Ukryty ze statystyk — pozycja widoczna dopiero po włączeniu „Pokaż ukryte". */
+  excluded:         boolean;
 }
 
 export interface IncomeDocumentListResponse {
@@ -455,6 +457,7 @@ export interface IncomeDocumentFilters {
   dateFrom?:      string;
   dateTo?:        string;
   onlyKsef?:      boolean;
+  includeExcluded?: boolean;
 }
 
 // ─── KSeF: Faktury przychodowe ────────────────────────────────────────────────
@@ -482,6 +485,8 @@ export interface RevenueParty {
   addressLine1: string | null;
   addressLine2: string | null;
   countryCode:  string | null;
+  /** Rachunek do przelewu — wypełniany wyłącznie po stronie sprzedawcy. */
+  bankAccount?: string | null;
 }
 
 export interface RevenueInvoiceItem {
@@ -530,6 +535,14 @@ export interface RevenueInvoice {
   customerId:         string | null;
   description:        string | null;
   note:               string | null;
+  /** Ukryta ze statystyk i z domyślnej listy dokumentów przychodowych. */
+  excluded:           boolean;
+  excludedAt:         string | null;
+  /**
+   * Adres weryfikacyjny KSeF („KOD I") — to on trafia do kodu QR na wizualizacji
+   * faktury. null, gdy faktura nie ma jeszcze skrótu dokumentu (np. przed wysyłką).
+   */
+  ksefVerificationUrl: string | null;
   createdAt:          string;
   items:              RevenueInvoiceItem[] | null;
 }
@@ -549,6 +562,7 @@ export interface RevenueInvoiceListFilters {
   duplicateStatus?: DuplicateStatus;
   dateFrom?:        string;
   dateTo?:          string;
+  includeExcluded?: boolean;
 }
 
 export interface IssueInvoiceItemRequest {

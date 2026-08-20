@@ -1,6 +1,8 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Eye, EyeOff } from 'lucide-react';
 import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
+import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
 import { formatMoney, formatDate } from '../utils/formatters';
 
 // ─── Layout (spójny z pozostałymi tabelami modułu finansowego) ───────────────
@@ -23,7 +25,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1040px;
+  min-width: 1140px;
   border-collapse: collapse;
 `;
 
@@ -112,6 +114,35 @@ const Muted = styled.span`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
+const ActionsCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+`;
+
+const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  background: ${(p) => p.theme.colors.surface};
+  color: ${(p) => (p.$variant === 'restore' ? '#15803d' : p.theme.colors.textMuted)};
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: ${(p) => (p.$variant === 'restore' ? '#f0fdf4' : '#f8fafc')};
+    border-color: ${(p) => (p.$variant === 'restore' ? '#86efac' : '#cbd5e1')};
+    color: ${(p) => (p.$variant === 'restore' ? '#166534' : p.theme.colors.text)};
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
 // ─── Słowniki prezentacji ─────────────────────────────────────────────────────
 
 const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; bg: string; fg: string }> = {
@@ -186,6 +217,17 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   isLoading,
   onSelect,
 }) => {
+  const excludeMutation = useExcludeIncomeDocument();
+  const restoreMutation = useRestoreIncomeDocument();
+  const busy = excludeMutation.isPending || restoreMutation.isPending;
+
+  /** Ukrycie to akcja wiersza, nie wejście w szczegóły — klik nie może otwierać modala. */
+  const toggleExcluded = (event: React.MouseEvent, doc: IncomeDocument) => {
+    event.stopPropagation();
+    const mutation = doc.excluded ? restoreMutation : excludeMutation;
+    mutation.mutate({ sourceKind: doc.sourceKind, id: doc.id });
+  };
+
   if (!isLoading && documents.length === 0) {
     return (
       <EmptyState>
@@ -209,13 +251,14 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
             <Th>Status KSeF</Th>
             <Th>Źródło</Th>
             <Th>Płatność</Th>
+            <Th $align="right">Akcje</Th>
           </tr>
         </Thead>
         <tbody>
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <td key={j}><div /></td>
                   ))}
                 </SkeletonRow>
@@ -228,7 +271,11 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                 return (
                   <Tr
                     key={`${doc.sourceKind}-${doc.id}`}
-                    $muted={doc.duplicateStatus === 'CONFIRMED_DUPLICATE' || doc.ksefStatus === 'REJECTED'}
+                    $muted={
+                      doc.excluded ||
+                      doc.duplicateStatus === 'CONFIRMED_DUPLICATE' ||
+                      doc.ksefStatus === 'REJECTED'
+                    }
                     onClick={() => onSelect(doc)}
                   >
                     <Td>{formatDate(doc.issueDate)}</Td>
@@ -236,6 +283,15 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     <Td>
                       <DocumentNumber>{doc.documentNumber}</DocumentNumber>
                       {doc.ksefNumber && <KsefNumber title={doc.ksefNumber}>{doc.ksefNumber}</KsefNumber>}
+                      {doc.excluded && (
+                        <Badge
+                          $bg="#f1f5f9" $fg="#475569" $border="#cbd5e1"
+                          title="Dokument nie wchodzi do statystyk ani do kafli podsumowania"
+                          style={{ marginTop: 4 }}
+                        >
+                          Ukryty ze statystyk
+                        </Badge>
+                      )}
                     </Td>
                     <Td>
                       <PartyName>{doc.counterpartyName ?? '-'}</PartyName>
@@ -272,6 +328,19 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     <Td>
                       <Badge $bg={payment.bg} $fg={payment.fg}>{payment.label}</Badge>
                       {doc.paymentLabel && <PartyNip>{doc.paymentLabel}</PartyNip>}
+                    </Td>
+                    <Td $align="right">
+                      <ActionsCell>
+                        <ActionBtn
+                          type="button"
+                          $variant={doc.excluded ? 'restore' : 'exclude'}
+                          disabled={busy}
+                          onClick={(e) => toggleExcluded(e, doc)}
+                          title={doc.excluded ? 'Przywróć do statystyk' : 'Ukryj ze statystyk'}
+                        >
+                          {doc.excluded ? <Eye size={15} /> : <EyeOff size={15} />}
+                        </ActionBtn>
+                      </ActionsCell>
                     </Td>
                   </Tr>
                 );
