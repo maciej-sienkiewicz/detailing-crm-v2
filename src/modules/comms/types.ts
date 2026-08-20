@@ -325,6 +325,43 @@ export interface ContactNoteEvent {
     createdAt: string;
 }
 
+// ── Wizytówka kontaktu ───────────────────────────────────────────────────────
+
+export interface ContactCardCustomer {
+    id: string;
+    fullName: string;
+    phone: string | null;
+    completedVisitCount: number;
+    totalSpentGross: number;
+    /** Ostatnia ODBYTA wizyta; null, gdy klient jeszcze u nas nie był. */
+    lastVisitAt: string | null;
+}
+
+export interface ContactCardVehicle {
+    id: string;
+    brand: string;
+    model: string;
+    year: number | null;
+    licensePlate: string | null;
+}
+
+export interface ContactCardVisit {
+    id: string;
+    title: string | null;
+    date: string;
+    status: string;
+    totalGross: number;
+    vehicleLabel: string;
+}
+
+export interface ContactCard {
+    email: string;
+    /** null = adresu nie ma w kartotece. */
+    customer: ContactCardCustomer | null;
+    vehicles: ContactCardVehicle[];
+    recentVisits: ContactCardVisit[];
+}
+
 // ── Słowniki prezentacyjne ───────────────────────────────────────────────────
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
