@@ -7,11 +7,11 @@
 // liście — przy dziesięciu poprawkach z rzędu to różnica między pracą a mordęgą.
 //
 // Panel szczegółów zostaje dla rzeczy większych: wyceny, historii, usunięcia.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Check } from 'lucide-react';
-import { useVehicleMetadata } from '@/modules/vehicles/hooks/useVehicleMetadata';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { useToast } from '@/common/components/Toast';
 import {
     useLeadDictionaries,
@@ -51,17 +51,6 @@ const Label = styled.div`
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: ${p => p.theme.colors.textMuted};
-`;
-
-const Select = styled.select`
-    width: 100%;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 8px 10px;
-    font-size: 13px;
-    font-family: inherit;
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.surface};
 `;
 
 const StatusList = styled.div`
@@ -145,19 +134,12 @@ export function LeadCellEditor({
     const [model, setModel] = useState(lead.vehicleModel ?? '');
     const [tags, setTags] = useState<string[]>(lead.tags);
 
-    const { data: vehicleCatalog } = useVehicleMetadata();
     const { data: dictionaries } = useLeadDictionaries();
     const updateVehicle = useUpdateLeadVehicle();
     const updateTags = useUpdateLeadTags();
     const { showError } = useToast();
     const tagActions = useTagCatalogActions((code) =>
         setTags((current) => (current.includes(code) ? current : [...current, code]))
-    );
-
-    const brands = useMemo(() => (vehicleCatalog ?? []).map((entry) => entry.marka), [vehicleCatalog]);
-    const models = useMemo(
-        () => (vehicleCatalog ?? []).find((entry) => entry.marka === brand)?.modele ?? [],
-        [vehicleCatalog, brand]
     );
 
     useEffect(() => {
@@ -219,32 +201,25 @@ export function LeadCellEditor({
 
                 {field === 'vehicle' && (
                     <>
-                        <Select
-                            autoFocus
+                        {/* Ten sam wybierak marki i modelu co przy przyjęciu pojazdu
+                            i w rezerwacji: wyszukiwarka w rozwijanej liście zamiast
+                            natywnego <select> z kilkuset pozycjami, których nie da się
+                            przefiltrować. Katalog pobiera sobie sam. */}
+                        <BrandSelect
                             value={brand}
-                            aria-label="Marka"
-                            onChange={(event) => {
-                                setBrand(event.target.value);
+                            placeholder="Marka…"
+                            onChange={(next) => {
+                                setBrand(next);
                                 // Modele są per marka — zostawiony stary nie przeszedłby walidacji.
                                 setModel('');
                             }}
-                        >
-                            <option value="">Marka…</option>
-                            {brands.map((entry) => (
-                                <option key={entry} value={entry}>{entry}</option>
-                            ))}
-                        </Select>
-                        <Select
+                        />
+                        <ModelSelect
+                            brand={brand}
                             value={model}
-                            aria-label="Model"
-                            disabled={!brand}
-                            onChange={(event) => setModel(event.target.value)}
-                        >
-                            <option value="">Model…</option>
-                            {models.map((entry) => (
-                                <option key={entry} value={entry}>{entry}</option>
-                            ))}
-                        </Select>
+                            placeholder="Model…"
+                            onChange={setModel}
+                        />
                         <Actions>
                             <SmallButton type="button" onClick={onClose}>Anuluj</SmallButton>
                             <SmallButton
