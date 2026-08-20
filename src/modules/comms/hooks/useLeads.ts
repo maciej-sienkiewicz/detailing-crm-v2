@@ -22,6 +22,7 @@ export const LEAD_ANALYTICS_KEY = [...LEADS_KEY, 'analytics'];
 export const useLeads = (filters: {
     status?: LeadStatus;
     query?: string;
+    awaitingReply?: boolean;
     page?: number;
     pageSize?: number;
 }) =>

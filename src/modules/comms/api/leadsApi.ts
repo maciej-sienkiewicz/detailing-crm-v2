@@ -19,12 +19,15 @@ export const leadsApi = {
     getLeads: async (filters: {
         status?: LeadStatus;
         query?: string;
+        /** true = tylko leady, w których ostatnie słowo należy do klienta. */
+        awaitingReply?: boolean;
         page?: number;
         pageSize?: number;
     }): Promise<LeadPage> => {
         const params = new URLSearchParams();
         if (filters.status) params.set('status', filters.status);
         if (filters.query) params.set('query', filters.query);
+        if (filters.awaitingReply) params.set('awaitingReply', 'true');
         params.set('page', String(filters.page ?? 0));
         params.set('pageSize', String(filters.pageSize ?? 25));
         const { data } = await apiClient.get(`/v1/leads?${params}`);

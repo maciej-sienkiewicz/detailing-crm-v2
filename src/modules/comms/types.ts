@@ -180,6 +180,12 @@ export interface LeadServiceItem {
     totalGross: number;
 }
 
+/**
+ * Czyj jest ruch w rozmowie. Wyliczane przez backend z korespondencji, nie ustawiane
+ * ręcznie — to fakt (kto napisał ostatni), a nie decyzja (na jakim etapie jest lead).
+ */
+export type LeadReplyState = 'AWAITING_OUR_REPLY' | 'AWAITING_CLIENT_REPLY' | 'NO_CONVERSATION';
+
 export interface Lead {
     id: string;
     source: LeadSource;
@@ -207,6 +213,11 @@ export interface Lead {
     lostReasonLabel: string | null;
     lostReason: string | null;
     services: LeadServiceItem[];
+    replyState: LeadReplyState;
+    /** Od kiedy trwa bieżące oczekiwanie; null, gdy nie ma na co czekać. */
+    waitingSince: string | null;
+    lastInboundAt: string | null;
+    lastOutboundAt: string | null;
     firstResponseAt: string | null;
     closedAt: string | null;
     createdAt: string;

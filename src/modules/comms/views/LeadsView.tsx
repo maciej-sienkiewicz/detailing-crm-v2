@@ -1,67 +1,34 @@
 // src/modules/comms/views/LeadsView.tsx
 // Pipeline leadów w języku wizualnym reszty aplikacji: wspólny PageHeader,
-// karty-powierzchnie, Badge, tokeny motywu. Szczegóły w wysuwanym panelu;
-// zamknięcie jako „przegrany" wymusza wybór powodu ze słownika.
+// karty-powierzchnie, Badge, tokeny motywu. Szczegóły w oknie LeadDetailModal —
+// tym samym, które otwiera plakietka „Lead" w podglądzie rozmowy.
 import { useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, CalendarPlus, Car, Globe, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
+import { BarChart3, Loader2, Search } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import {
-    CloseBtn,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    ModalShell,
-    ModalTitle,
-    ModalTitleGroup,
-} from '@/common/components/ModalKit';
-import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
-import type { ServiceLineItem } from '@/common/components/ServicesTable';
-import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-import { useToast } from '@/common/components/Toast';
-import {
-    useChangeLeadStatus,
-    useDeleteLead,
-    useLeadsSocket,
-    useUpdateLeadVehicle,
-    useLead,
-    useLeadDictionaries,
-    useLeadHistory,
-    useLeads,
-    useUpdateLeadServices,
-} from '../hooks/useLeads';
+import { useLeads, useLeadsSocket } from '../hooks/useLeads';
+import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
-import { LeadStatusPicker } from '../components/LeadStatusPicker';
-import { BookingFlowModal } from '@/modules/calendar';
-import { leadToBookingPrefill } from '../utils/bookingPrefill';
-import { useContactCard } from '../hooks/useComms';
-import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
+import { LeadDetailModal } from '../components/LeadDetailModal';
+import { LeadReplyBadge } from '../components/LeadReplyBadge';
+import { LeadSourceIcon } from '../components/LeadSourceIcon';
+import { CLOSED_STATUSES, formatVehicle } from '../utils/leadFormat';
 import {
     LEAD_STATUS_FLOW,
     LEAD_STATUS_LABELS,
     type Lead,
-    type LeadServiceItemInput,
     type LeadStatus,
 } from '../types';
 import {
     EmptyHint,
     FilterChip,
-    IconButton,
-    PrimaryButton,
     SurfaceCard,
-    formatDateTime,
     formatGrosze,
     formatRelativeTime,
 } from '../components/shared';
 
-/** „Marka Model" albo null, gdy nie rozpoznano — jedno miejsce na tę składankę. */
-const formatVehicle = (lead: { vehicleBrand: string | null; vehicleModel: string | null }): string | null =>
-    lead.vehicleBrand
-        ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}`
-        : null;
 
 const STATUS_BADGE_VARIANT: Record<LeadStatus, 'success' | 'error' | 'warning' | 'info' | 'primary'> = {
     NEW: 'primary',
@@ -85,6 +52,14 @@ const ViewContainer = styled.main`
 
     @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
+`;
+
+/** Cienka kreska rozdzielająca dwie osie filtrowania: etap i „czyj ruch". */
+const FilterSeparator = styled.span`
+    width: 1px;
+    align-self: stretch;
+    margin: 2px 2px;
+    background: ${p => p.theme.colors.border};
 `;
 
 const FiltersRow = styled.div`
@@ -278,278 +253,25 @@ const EditableCell = styled.button`
     }
 `;
 
-// ── Okno szczegółów ──────────────────────────────────────────────────────────
-//
-// Modal, nie panel boczny. Szczegóły leada to przede wszystkim wycena, a wycena
-// jest tabelą: nazwa usługi, netto, VAT, brutto, rabat, notatka. Wąska szpalta
-// przy krawędzi ekranu ucinała nazwy do jednej litery i ściskała liczby tak, że
-// nie dało się ich porównać — a wycena, której nie da się przeczytać, nie jest
-// wyceną. Szeroki modal daje tabeli szerokość, której potrzebuje, i pozwala
-// ustawić drobniejsze fakty (pojazd, status) obok siebie zamiast jeden pod drugim.
-
-/** Fakty, które mieszczą się w dwóch kolumnach: pojazd i status. */
-const FactGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const Panel = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 14px 16px;
-    background: ${p => p.theme.colors.surface};
-    min-width: 0;
-
-    h4 {
-        margin: 0;
-        font-size: 11px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: ${p => p.theme.colors.textMuted};
-    }
-`;
-
-/** Status w nagłówku — trzymany z dala od tytułu, tuż przed przyciskiem zamknięcia. */
-const HeaderStatus = styled.div`
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-`;
-
-/** Wyjaśnienie stanu „przegrany" — jedna linia nad treścią, nie pole formularza. */
-const LostNote = styled.div`
-    font-size: 12.5px;
-    color: #b91c1c;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: ${p => p.theme.radii.md};
-    padding: 8px 12px;
-
-    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
-`;
-
-const ModalBody = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-/** Podtytuł okna: skąd przyszedł lead i jak się z nim skontaktować. */
-const LeadIdentity = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-`;
-
-const VehicleRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: ${p => p.theme.colors.text};
-
-    svg { color: ${p => p.theme.colors.textMuted}; flex-shrink: 0; }
-    .grow { flex: 1; min-width: 0; }
-    .muted { color: ${p => p.theme.colors.textMuted}; }
-`;
-
-const VehiclePickers = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-/**
- * Wycena w trybie podglądu. Jedna kwota brutto na pozycję nie wystarczała: lead
- * jest podstawą oferty, a rozmowa o cenie toczy się raz w netto (firma), raz
- * w brutto (klient prywatny) — przeliczanie w głowie przy każdym otwarciu panelu
- * to praca, którą tabela wykonuje raz. Kolumny i kolejność jak w edytorze wyceny,
- * żeby przejście w tryb edycji nie było przeskokiem na inny układ.
- */
-const QuoteTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-
-    th {
-        text-align: right;
-        font-size: 10.5px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: ${p => p.theme.colors.textMuted};
-        padding: 0 0 6px;
-        white-space: nowrap;
-    }
-    th:first-child { text-align: left; }
-
-    td {
-        padding: 6px 0;
-        border-top: 1px solid ${p => p.theme.colors.border};
-        color: ${p => p.theme.colors.textSecondary};
-        text-align: right;
-        white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-    }
-    td:first-child {
-        text-align: left;
-        white-space: normal;
-        color: ${p => p.theme.colors.text};
-        width: 100%;
-    }
-    th + th, td + td { padding-left: 14px; }
-
-    tfoot td {
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        border-top: 1px solid ${p => p.theme.colors.text};
-    }
-
-    .note {
-        display: block;
-        font-size: 11.5px;
-        color: ${p => p.theme.colors.textMuted};
-    }
-`;
-
-
-/** Jedyna akcja nieodwracalna w tym widoku — i jedyna, która wygląda groźnie. */
-const DangerButton = styled.button`
+/** Etap i „czyj ruch" w jednej komórce tabeli, jedno pod drugim. */
+const StatusStack = styled.span`
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    align-self: flex-start;
-    border: 1px solid rgba(220, 38, 38, 0.28);
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.error};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    font-family: inherit;
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.errorLight}; }
-    &:disabled { opacity: 0.5; cursor: default; }
-`;
-
-const HistoryLine = styled.div`
-    font-size: 12px;
-    color: ${p => p.theme.colors.textSecondary};
-
-    strong { color: ${p => p.theme.colors.text}; }
-`;
-
-/**
- * Treść pierwszego pytania klienta. Zachowuje łamanie wierszy z maila i przewija się
- * w miejscu — dłuższe zapytanie nie ma prawa rozpychać panelu na cały ekran, a jego
- * skrócenie do jednej linijki zabierałoby dokładnie to, po co się tu zagląda.
- */
-const MessageQuote = styled(HistoryLine)`
-    max-height: 190px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    line-height: 1.55;
-`;
-
-// ── Dialog powodu przegranej ─────────────────────────────────────────────────
-
-const LostDialog = styled.div`
-    position: fixed;
-    inset: 0;
-    /* Ponad oknem szczegółów (ModalOverlay ma 1000) — pytanie o powód przegranej
-       pada właśnie z tamtego okna i musi być nad nim, a nie za nim. */
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(15, 23, 42, 0.45);
-    padding: 16px;
-`;
-
-const LostCard = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border-radius: ${p => p.theme.radii.xl};
-    box-shadow: ${p => p.theme.shadows.xl};
-    padding: 20px;
-    width: 380px;
-    max-width: 100%;
-    display: flex;
     flex-direction: column;
-    gap: 12px;
-
-    h4 { margin: 0; font-size: 15px; color: ${p => p.theme.colors.text}; }
-    textarea {
-        border: 1px solid ${p => p.theme.colors.border};
-        border-radius: ${p => p.theme.radii.md};
-        padding: 8px 10px;
-        font-size: 13px;
-        font-family: inherit;
-        resize: vertical;
-        min-height: 60px;
-        outline: none;
-        &:focus { border-color: ${p => p.theme.colors.primary}; }
-    }
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
 `;
-
-const ReasonOption = styled.button<{ $active: boolean }>`
-    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-    background: ${({ $active }) => ($active ? 'rgba(14, 165, 233, 0.06)' : 'transparent')};
-    color: ${p => p.theme.colors.textSecondary};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 9px 12px;
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
-`;
-
-function SourceIcon({ source }: { source: Lead['source'] }) {
-    if (source === 'PHONE') return <Phone size={13} color="#94a3b8" />;
-    if (source === 'EMAIL') return <Mail size={13} color="#94a3b8" />;
-    // Formularz ze strony — inne źródło znaczy inną rozmowę, więc i inna ikona.
-    if (source === 'FORM') return <Globe size={13} color="#94a3b8" />;
-    return <User size={13} color="#94a3b8" />;
-}
-
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>();
+    // „Do odpisania" to nie kolejny status, tylko zawężenie listy do leadów,
+    // w których ostatnie słowo należy do klienta — czyli do naszej kolejki zaległości.
+    const [awaitingReply, setAwaitingReply] = useState(false);
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
-    const [lostDialogFor, setLostDialogFor] = useState<string | null>(null);
-    const [lostReason, setLostReason] = useState<string | null>(null);
-    const [lostNote, setLostNote] = useState('');
-    // null = podgląd, tablica = otwarty edytor wyceny (ten sam co przy przyjęciu auta).
-    const [editingServices, setEditingServices] = useState<ServiceLineItem[] | null>(null);
-    // null = podgląd, obiekt = edycja pojazdu. Marka i model wybierane z katalogu,
-    // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
-    const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
-    const [deleteDialogFor, setDeleteDialogFor] = useState<string | null>(null);
-    // Otwarty kreator rezerwacji (kalendarz → formularz) dla leada o tym id.
-    const [bookingFor, setBookingFor] = useState<string | null>(null);
+    // Okno szczegółów ma otworzyć się od razu na edytorze wyceny, gdy weszliśmy
+    // do niego przez kliknięcie wartości leada w tabeli.
+    const [openServicesEditor, setOpenServicesEditor] = useState(false);
     // Edycja komórki: który lead, które pole i pod czym zaczepić chmurkę.
     const [cellEditor, setCellEditor] = useState<
         { lead: Lead; field: LeadCellField; anchor: HTMLElement } | null
@@ -557,79 +279,21 @@ export default function LeadsView() {
 
     const selectedLeadId = searchParams.get('lead');
     const selectLead = (leadId: string | null) => {
-        setEditingServices(null);
-        setEditingVehicle(null);
-        setBookingFor(null);
+        setOpenServicesEditor(false);
         setSearchParams(leadId ? { lead: leadId } : {}, { replace: true });
     };
 
-    const { data: leadPage } = useLeads({ status: statusFilter, query: query || undefined, page });
-    const { data: lead } = useLead(selectedLeadId);
-    const { data: history } = useLeadHistory(selectedLeadId);
-    const { data: dictionaries } = useLeadDictionaries();
-    // Kartoteka kontaktu — stąd bierzemy telefon i auta klienta do rezerwacji.
-    // Pobierana dopiero, gdy panel jest otwarty: lista leadów jej nie potrzebuje.
-    const { data: contactCard } = useContactCard(lead?.contactIdentifier ?? null, {
-        enabled: Boolean(lead?.contactIdentifier),
+    const { data: leadPage } = useLeads({
+        status: statusFilter,
+        query: query || undefined,
+        awaitingReply: awaitingReply || undefined,
+        page,
     });
-    const changeStatus = useChangeLeadStatus();
-    const updateVehicle = useUpdateLeadVehicle();
-    const updateServices = useUpdateLeadServices();
-    const deleteLead = useDeleteLead();
-    const { showSuccess, showError } = useToast();
+    // Zmiana statusu prosto z tabeli — razem z pytaniem o powód przegranej.
+    const status = useLeadStatusChange();
     // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
     // zamienia się w wynik bez odświeżania strony.
     useLeadsSocket();
-
-
-    const saveVehicle = (leadId: string) => {
-        if (!editingVehicle) return;
-        updateVehicle.mutate(
-            {
-                leadId,
-                vehicleBrand: editingVehicle.brand || null,
-                vehicleModel: editingVehicle.model || null,
-            },
-            {
-                onSuccess: () => {
-                    setEditingVehicle(null);
-                    showSuccess('Pojazd zapisany');
-                },
-                onError: (error) => {
-                    const message =
-                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-                    showError('Nie udało się zapisać pojazdu', message ?? 'Spróbuj ponownie');
-                },
-            }
-        );
-    };
-
-    const requestStatus = (leadId: string, status: LeadStatus) => {
-        if (status === 'LOST') {
-            setLostReason(null);
-            setLostNote('');
-            setLostDialogFor(leadId);
-            return;
-        }
-        changeStatus.mutate(
-            { leadId, status },
-            {
-                onError: (error) => {
-                    const message = (error as { response?: { data?: { message?: string } } })
-                        ?.response?.data?.message;
-                    showError('Nie udało się zmienić statusu', message);
-                },
-            }
-        );
-    };
-
-    const confirmLost = () => {
-        if (!lostDialogFor || !lostReason) return;
-        changeStatus.mutate(
-            { leadId: lostDialogFor, status: 'LOST', lostReasonCode: lostReason, lostNote: lostNote || undefined },
-            { onSuccess: () => setLostDialogFor(null) }
-        );
-    };
 
     const openCellEditor = (
         event: MouseEvent<HTMLButtonElement>,
@@ -641,44 +305,10 @@ export default function LeadsView() {
         setCellEditor({ lead: item, field, anchor: event.currentTarget });
     };
 
-    /** Wartość leada to suma wyceny — kliknięcie prowadzi do edytora usług w panelu. */
+    /** Wartość leada to suma wyceny — kliknięcie prowadzi do edytora usług w oknie. */
     const editServicesOf = (item: Lead) => {
+        setOpenServicesEditor(true);
         setSearchParams({ lead: item.id }, { replace: true });
-        setEditingVehicle(null);
-        setEditingServices(toServiceLines(item.services));
-    };
-
-    const confirmDelete = () => {
-        const leadId = deleteDialogFor;
-        if (!leadId) return;
-        // Panel zamykamy PRZED wysłaniem żądania. Otwarty odpytuje `GET /leads/{id}`
-        // i `…/history`; unieważnienie cache po usunięciu kazałoby mu pobrać leada,
-        // którego już nie ma — i obok „Lead usunięty" wyskakiwało „Nie znaleziono
-        // leada" z globalnego przechwytywacza błędów. Odmontowany panel nie pyta.
-        setDeleteDialogFor(null);
-        selectLead(null);
-        deleteLead.mutate(leadId, {
-            onSuccess: () => showSuccess('Lead usunięty', 'Korespondencja została w skrzynce'),
-            onError: (error) => {
-                const message =
-                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-                showError('Nie udało się usunąć leada', message ?? 'Spróbuj ponownie');
-            },
-        });
-    };
-
-    const saveServices = () => {
-        if (!lead || !editingServices) return;
-        const payload: LeadServiceItemInput[] = toLeadInputs(editingServices);
-        updateServices.mutate(
-            { leadId: lead.id, services: payload },
-            {
-                onSuccess: () => {
-                    setEditingServices(null);
-                    showSuccess('Zapisano usługi');
-                },
-            }
-        );
     };
 
     return (
@@ -703,15 +333,26 @@ export default function LeadsView() {
                 <FilterChip $active={!statusFilter} onClick={() => { setStatusFilter(undefined); setPage(0); }}>
                     Wszystkie
                 </FilterChip>
-                {LEAD_STATUS_FLOW.map((status) => (
+                {LEAD_STATUS_FLOW.map((option) => (
                     <FilterChip
-                        key={status}
-                        $active={statusFilter === status}
-                        onClick={() => { setStatusFilter(status); setPage(0); }}
+                        key={option}
+                        $active={statusFilter === option}
+                        onClick={() => { setStatusFilter(option); setPage(0); }}
                     >
-                        {LEAD_STATUS_LABELS[status]}
+                        {LEAD_STATUS_LABELS[option]}
                     </FilterChip>
                 ))}
+                {/* Stoi za statusami i wizualnie osobno, bo to inna oś: statusy dzielą
+                    leady po etapie, ten filtr — po tym, kto ma teraz ruch. Można je
+                    złożyć („W kontakcie" + „Do odpisania"), i o to chodzi. */}
+                <FilterSeparator />
+                <FilterChip
+                    $active={awaitingReply}
+                    title="Leady, w których ostatnie słowo należy do klienta"
+                    onClick={() => { setAwaitingReply((current) => !current); setPage(0); }}
+                >
+                    Do odpisania
+                </FilterChip>
                 <SearchBox>
                     <Search size={14} />
                     <input
@@ -750,7 +391,7 @@ export default function LeadsView() {
                             }}
                         >
                             <span className="who">
-                                <SourceIcon source={item.source} />
+                                <LeadSourceIcon source={item.source} />
                                 <span>
                                     <span className="name">{item.customerName ?? item.contactIdentifier}</span>
                                     {item.customerName && <div className="sub">{item.contactIdentifier}</div>}
@@ -806,9 +447,19 @@ export default function LeadsView() {
                                 title="Kliknij, żeby zmienić status"
                                 onClick={(event) => openCellEditor(event, item, 'status')}
                             >
-                                <Badge $variant={STATUS_BADGE_VARIANT[item.status]}>
-                                    {LEAD_STATUS_LABELS[item.status]}
-                                </Badge>
+                                {/* Etap i „czyj ruch" jedno pod drugim: to dwie odpowiedzi
+                                    na dwa różne pytania o ten sam lead, a rozdzielone
+                                    na dwie kolumny kazałyby wodzić wzrokiem w bok. */}
+                                <StatusStack>
+                                    <Badge $variant={STATUS_BADGE_VARIANT[item.status]}>
+                                        {LEAD_STATUS_LABELS[item.status]}
+                                    </Badge>
+                                    <LeadReplyBadge
+                                        replyState={item.replyState}
+                                        waitingSince={item.waitingSince}
+                                        muted={CLOSED_STATUSES.has(item.status)}
+                                    />
+                                </StatusStack>
                             </EditableCell>
 
                             <span>{formatRelativeTime(item.createdAt)}</span>
@@ -817,244 +468,15 @@ export default function LeadsView() {
                 </TableScroll>
             </SurfaceCard>
 
-            {/* Panel szczegółów znika na czas kreatora rezerwacji. Dwie nałożone
-                nakładki nie pokrywają się geometrycznie — formularz rezerwacji jest
-                przesunięty o szerokość sidebara, panel leada nie — więc jedna z nich
-                przyciemniała i rozmywała kawałek ekranu drugi raz, zostawiając widoczny
-                pionowy szew. Kreator i tak zakrywa panel w całości. */}
-            {lead && !bookingFor && (
-                <ModalShell isOpen onClose={() => selectLead(null)} maxWidth="1040px">
-                    <ModalHeader>
-                        <ModalTitleGroup>
-                            <ModalTitle>{lead.customerName ?? lead.contactIdentifier}</ModalTitle>
-                            <LeadIdentity>
-                                <SourceIcon source={lead.source} />
-                                {lead.contactIdentifier}
-                                {lead.threadId && (
-                                    <Link to={`/communication?thread=${lead.threadId}`}>
-                                        <Badge $variant="info" style={{ cursor: 'pointer' }}>
-                                            Zobacz korespondencję
-                                        </Badge>
-                                    </Link>
-                                )}
-                            </LeadIdentity>
-                        </ModalTitleGroup>
-                        {/* Status stoi w nagłówku, przy nazwie leada, bo to jego główna
-                            właściwość i najczęściej zmieniane pole — a jako osobny panel
-                            zajmował pół szerokości okna na jeden przycisk. Nagłówek jest
-                            też jedynym miejscem widocznym niezależnie od przewinięcia. */}
-                        <HeaderStatus>
-                            <LeadStatusPicker
-                                status={lead.status}
-                                disabled={changeStatus.isPending}
-                                onChange={(status) => requestStatus(lead.id, status)}
-                            />
-                        </HeaderStatus>
-                        <CloseBtn onClick={() => selectLead(null)} />
-                    </ModalHeader>
-
-                    <ModalContent>
-                        <ModalBody>
-                            {/* Powód przegranej to wyjaśnienie stanu, nie pole formularza —
-                                pokazujemy go raz, u góry, i tylko gdy jest czego wyjaśniać. */}
-                            {lead.status === 'LOST' && lead.lostReasonLabel && (
-                                <LostNote>
-                                    Przegrany: <strong>{lead.lostReasonLabel}</strong>
-                                    {lead.lostReason && <> — {lead.lostReason}</>}
-                                </LostNote>
-                            )}
-
-                            <Panel>
-                                <h4>Pojazd</h4>
-                                {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
-                                    <VehicleRow className="muted">
-                                        <Loader2 size={14} style={{ animation: 'none' }} />
-                                        Rozpoznajemy auto z korespondencji…
-                                    </VehicleRow>
-                                ) : editingVehicle === null ? (
-                                    <VehicleRow>
-                                        <Car size={15} />
-                                        <span className="grow">
-                                            {formatVehicle(lead) ?? <span className="muted">Nie rozpoznano auta</span>}
-                                        </span>
-                                        <IconButton
-                                            onClick={() => setEditingVehicle({
-                                                brand: lead.vehicleBrand ?? '',
-                                                model: lead.vehicleModel ?? '',
-                                            })}
-                                        >
-                                            {lead.vehicleBrand ? 'Zmień' : 'Uzupełnij'}
-                                        </IconButton>
-                                    </VehicleRow>
-                                ) : (
-                                    <>
-                                        {/* Ten sam wybierak co przy przyjęciu pojazdu i w rezerwacji:
-                                            wyszukiwarka w rozwijanej liście zamiast natywnego <select>
-                                            z kilkuset markami, których nie da się przefiltrować. */}
-                                        <VehiclePickers>
-                                            <BrandSelect
-                                                value={editingVehicle.brand}
-                                                placeholder="Marka…"
-                                                onChange={(brand) => setEditingVehicle({
-                                                    brand,
-                                                    // Zmiana marki zeruje model: modele są per marka,
-                                                    // a zostawiony stary nie przeszedłby walidacji.
-                                                    model: '',
-                                                })}
-                                            />
-                                            <ModelSelect
-                                                brand={editingVehicle.brand}
-                                                value={editingVehicle.model}
-                                                placeholder="Model…"
-                                                onChange={(model) => setEditingVehicle({
-                                                    brand: editingVehicle.brand,
-                                                    model,
-                                                })}
-                                            />
-                                        </VehiclePickers>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <PrimaryButton
-                                                onClick={() => saveVehicle(lead.id)}
-                                                disabled={updateVehicle.isPending}
-                                            >
-                                                {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
-                                            </PrimaryButton>
-                                            <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
-                                        </div>
-                                    </>
-                                )}
-                            </Panel>
-
-                            <Panel>
-                                <h4>Usługi i wycena</h4>
-                                {editingServices === null && (
-                                    <>
-                                        {lead.services.length === 0 && (
-                                            <HistoryLine>Nie przypisano jeszcze usług.</HistoryLine>
-                                        )}
-                                        {lead.services.length > 0 && (() => {
-                                            const rows = toQuoteRows(lead.services);
-                                            const sum = (pick: (row: typeof rows[number]) => number) =>
-                                                rows.reduce((total, row) => total + pick(row), 0);
-                                            return (
-                                                <QuoteTable>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Usługa</th>
-                                                            <th>Netto</th>
-                                                            <th>VAT</th>
-                                                            <th>Brutto</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {rows.map((row) => (
-                                                            <tr key={row.id}>
-                                                                <td>
-                                                                    {row.name}{row.quantity > 1 ? ` ×${row.quantity}` : ''}
-                                                                    {row.note && <span className="note">{row.note}</span>}
-                                                                </td>
-                                                                <td>{formatGrosze(row.netCents)}</td>
-                                                                <td>{formatGrosze(row.vatCents)}</td>
-                                                                <td>{formatGrosze(row.grossCents)}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                    <tfoot>
-                                                        <tr>
-                                                            <td>Razem</td>
-                                                            <td>{formatGrosze(sum((row) => row.netCents))}</td>
-                                                            <td>{formatGrosze(sum((row) => row.vatCents))}</td>
-                                                            <td>{formatGrosze(sum((row) => row.grossCents))}</td>
-                                                        </tr>
-                                                    </tfoot>
-                                                </QuoteTable>
-                                            );
-                                        })()}
-                                        <IconButton
-                                            style={{ alignSelf: 'flex-start' }}
-                                            onClick={() => setEditingServices(toServiceLines(lead.services))}
-                                        >
-                                            Edytuj usługi
-                                        </IconButton>
-                                    </>
-                                )}
-                                {editingServices !== null && (
-                                    <>
-                                        {/* Ten sam edytor co przy przyjęciu pojazdu: rabaty, notatka
-                                            do pozycji, korekta ceny i podpowiedzi z cennika. Lead nie
-                                            potrzebuje własnej, uboższej listy — wycena to ta sama
-                                            czynność, tylko wcześniej. */}
-                                        <EditableServicesTable
-                                            services={editingServices}
-                                            onChange={setEditingServices}
-                                        />
-                                        {/* Sumy netto / VAT / łącznie liczy sam edytor —
-                                            druga suma pod nim byłaby tą samą liczbą
-                                            napisaną drugi raz, tylko innym stylem. */}
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <PrimaryButton onClick={saveServices} disabled={updateServices.isPending}>
-                                                Zapisz
-                                            </PrimaryButton>
-                                            <IconButton onClick={() => setEditingServices(null)}>Anuluj</IconButton>
-                                        </div>
-                                    </>
-                                )}
-                            </Panel>
-
-                            <FactGrid>
-                                <Panel>
-                                    <h4>Pierwsza wiadomość</h4>
-                                    <MessageQuote>
-                                        {lead.initialMessage ?? 'Brak treści pierwszej wiadomości.'}
-                                    </MessageQuote>
-                                </Panel>
-
-                                <Panel>
-                                    <h4>Historia</h4>
-                                    {(history ?? []).length === 0 && (
-                                        <HistoryLine>Brak zmian statusu.</HistoryLine>
-                                    )}
-                                    {(history ?? []).map((entry, index) => (
-                                        <HistoryLine key={index}>
-                                            {formatDateTime(entry.createdAt)} —{' '}
-                                            <strong>{LEAD_STATUS_LABELS[entry.toStatus]}</strong>
-                                            {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
-                                            {entry.changedByName && <> · {entry.changedByName}</>}
-                                        </HistoryLine>
-                                    ))}
-                                </Panel>
-                            </FactGrid>
-                        </ModalBody>
-                    </ModalContent>
-
-                    <ModalFooter>
-                        {/* Usunięcie stoi po lewej, z dala od „Zamknij" — dwie akcje o wprost
-                            przeciwnych skutkach nie mają prawa sąsiadować pod kursorem. */}
-                        <DangerButton
-                            type="button"
-                            style={{ marginRight: 'auto' }}
-                            onClick={() => setDeleteDialogFor(lead.id)}
-                            disabled={deleteLead.isPending}
-                        >
-                            <Trash2 size={14} /> Usuń lead
-                        </DangerButton>
-                        {/* Rezerwacja to naturalne zakończenie leada, więc akcja stoi
-                            jako główna. Gdy termin już jest, przycisk prowadzi do niego
-                            zamiast pozwalać założyć drugi — backend i tak by odmówił. */}
-                        {lead.appointmentId ? (
-                            <Link to="/calendar">
-                                <IconButton type="button">
-                                    <CalendarPlus size={14} /> Zobacz w kalendarzu
-                                </IconButton>
-                            </Link>
-                        ) : (
-                            <PrimaryButton type="button" onClick={() => setBookingFor(lead.id)}>
-                                <CalendarPlus size={14} /> Stwórz rezerwację
-                            </PrimaryButton>
-                        )}
-                        <IconButton onClick={() => selectLead(null)}>Zamknij</IconButton>
-                    </ModalFooter>
-                </ModalShell>
+            {selectedLeadId && (
+                <LeadDetailModal
+                    // Remount na każdego leada: stan edycji (wycena, pojazd) należy
+                    // do jednego otwarcia i nie ma prawa przejść na następnego.
+                    key={selectedLeadId}
+                    leadId={selectedLeadId}
+                    openServicesEditor={openServicesEditor}
+                    onClose={() => selectLead(null)}
+                />
             )}
 
             {cellEditor && (
@@ -1065,62 +487,12 @@ export default function LeadsView() {
                     field={cellEditor.field}
                     anchor={cellEditor.anchor}
                     onClose={() => setCellEditor(null)}
-                    onRequestLost={(leadId) => {
-                        setLostReason(null);
-                        setLostNote('');
-                        setLostDialogFor(leadId);
-                    }}
-                    onChangeStatus={requestStatus}
+                    onRequestLost={status.requestLost}
+                    onChangeStatus={status.requestStatus}
                 />
             )}
 
-            {lead && bookingFor === lead.id && (
-                <BookingFlowModal
-                    leadId={lead.id}
-                    subtitle={lead.customerName ?? lead.contactIdentifier}
-                    prefill={leadToBookingPrefill(lead, contactCard)}
-                    onClose={() => setBookingFor(null)}
-                    onBooked={() => setBookingFor(null)}
-                />
-            )}
-
-            <ConfirmationModal
-                isOpen={deleteDialogFor !== null}
-                title="Usunąć ten lead?"
-                message="Tej operacji nie da się cofnąć. Wiadomości w skrzynce zostają nietknięte."
-                variant="danger"
-                confirmText="Usuń"
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteDialogFor(null)}
-            />
-
-            {lostDialogFor && (
-                <LostDialog onClick={() => setLostDialogFor(null)}>
-                    <LostCard onClick={(event) => event.stopPropagation()}>
-                        <h4>Dlaczego przegraliśmy to zapytanie?</h4>
-                        {(dictionaries?.lostReasons ?? []).map((reason) => (
-                            <ReasonOption
-                                key={reason.code}
-                                $active={lostReason === reason.code}
-                                onClick={() => setLostReason(reason.code)}
-                            >
-                                {reason.label}
-                            </ReasonOption>
-                        ))}
-                        <textarea
-                            placeholder="Notatka (opcjonalnie)"
-                            value={lostNote}
-                            onChange={(event) => setLostNote(event.target.value)}
-                        />
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                            <IconButton onClick={() => setLostDialogFor(null)}>Anuluj</IconButton>
-                            <PrimaryButton disabled={!lostReason || changeStatus.isPending} onClick={confirmLost}>
-                                Zamknij jako przegrany
-                            </PrimaryButton>
-                        </div>
-                    </LostCard>
-                </LostDialog>
-            )}
+            {status.lostDialog}
         </ViewContainer>
     );
 }
