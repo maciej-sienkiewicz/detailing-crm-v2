@@ -30,6 +30,7 @@ import {
     Archive,
     ArchiveRestore,
     ArrowLeft,
+    CalendarPlus,
     ChevronDown,
     Download,
     ChevronRight,
@@ -45,10 +46,12 @@ import type { CommAttachment, CommMessage, CommThread } from '../types';
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
+import { BookingFlowModal } from '@/modules/calendar';
+import { contactToBookingPrefill } from '../utils/bookingPrefill';
 import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
-import { useThreadContactBadges } from '../hooks/useComms';
+import { useContactCard, useThreadContactBadges } from '../hooks/useComms';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
@@ -509,6 +512,13 @@ function ConversationViewImpl({
     // sama z siebie, bez efektu synchronizującego stan.
     const [leadPopoverThreadId, setLeadPopoverThreadId] = useState<string | null>(null);
     const leadPopoverOpen = leadPopoverThreadId === thread.id;
+    // Kreator rezerwacji — trzymany tak samo jak popover leada: id wątku, w którym
+    // go otwarto, więc przejście do innej rozmowy zamyka go samo.
+    const [bookingThreadId, setBookingThreadId] = useState<string | null>(null);
+    const bookingOpen = bookingThreadId === thread.id;
+    // Kartoteka kontaktu — telefon i auta klienta do wypełnienia rezerwacji.
+    // Pobierana dopiero przy otwartym kreatorze; sam podgląd rozmowy jej nie potrzebuje.
+    const { data: contactCard } = useContactCard(thread.participantEmail, { enabled: bookingOpen });
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Ręczne rozwinięcia trzymamy razem z id wątku — zmiana rozmowy zeruje je sama,
@@ -647,6 +657,13 @@ function ConversationViewImpl({
                         {thread.archived ? <ArchiveRestore /> : <Archive />}
                     </IconButton>
 
+                    {/* Termin ustala się w trakcie rozmowy — przycisk stoi tam, gdzie ta
+                        rozmowa trwa, żeby nie przechodzić do kalendarza i nie przepisywać
+                        ręcznie danych klienta, które są tuż obok. */}
+                    <IconButton onClick={() => setBookingThreadId(thread.id)}>
+                        <CalendarPlus /> Stwórz rezerwację
+                    </IconButton>
+
                     {thread.leadId ? (
                         <Link to={`/leads?lead=${thread.leadId}`}>
                             <Pill $bg="#f0fdf4" $fg="#15803d" style={{ cursor: 'pointer', padding: '6px 12px' }}>
@@ -686,6 +703,18 @@ function ConversationViewImpl({
                         threadId={thread.id}
                         onClose={() => setLeadPopoverThreadId(null)}
                         onCreated={() => undefined}
+                    />
+                )}
+                {bookingOpen && (
+                    <BookingFlowModal
+                        subtitle={contactCard?.customer?.fullName ?? thread.participantName ?? thread.participantEmail}
+                        prefill={contactToBookingPrefill({
+                            email: thread.participantEmail,
+                            participantName: thread.participantName,
+                            contactCard,
+                        })}
+                        onClose={() => setBookingThreadId(null)}
+                        onBooked={() => setBookingThreadId(null)}
                     />
                 )}
             </Header>

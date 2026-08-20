@@ -9,6 +9,9 @@
 //    przy przyjęciu: lista zamknięta w menu nie rozpycha okna, gdy tagów przybędzie.
 //  • USŁUGI — schowane za przyciskiem. Wycena na etapie oznaczania to wyjątek, nie
 //    reguła: zwykle wiadomo, o czym jest rozmowa, a nie ile to będzie kosztować.
+//  • CENA — pole przy każdej wybranej pozycji. Cennik podpowiada, ale rozmowa
+//    często kończy się inną kwotą (rabat, nietypowy zakres); bez pola trzeba było
+//    utworzyć leada i od razu wejść w edycję wyceny, żeby poprawić jedną liczbę.
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Check, Minus, Plus, Search, X } from 'lucide-react';
@@ -21,6 +24,7 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
+import { MAX_2_DECIMALS, centsToInput, inputToCents } from '@/common/utils/moneyInput';
 import { useServices } from '@/modules/services';
 import { useToast } from '@/common/components/Toast';
 import { useLeadDictionaries, useMarkThreadAsLead } from '../hooks/useLeads';
@@ -122,6 +126,7 @@ const SelectedRow = styled.div`
     color: ${p => p.theme.colors.text};
 
     .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .total { min-width: 76px; text-align: right; font-variant-numeric: tabular-nums; }
     .qty {
         display: inline-flex;
         align-items: center;
@@ -143,6 +148,34 @@ const SelectedRow = styled.div`
     }
 `;
 
+/** Cena jednostkowa brutto — pole tekstowe, nie number: patrz common/utils/moneyInput. */
+const PriceField = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.sm};
+    padding: 3px 7px;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 12px;
+
+    &:focus-within {
+        border-color: ${p => p.theme.colors.primary};
+    }
+
+    input {
+        border: none;
+        outline: none;
+        width: 64px;
+        text-align: right;
+        font-family: inherit;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        color: ${p => p.theme.colors.text};
+        background: transparent;
+    }
+`;
+
 const Total = styled.div`
     margin-right: auto;
     font-size: 15px;
@@ -160,7 +193,13 @@ const Total = styled.div`
 interface SelectedService {
     serviceId: string;
     name: string;
+    /** Cena jednostkowa brutto w groszach — z cennika, dopóki ktoś jej nie poprawi. */
     priceGross: number;
+    /**
+     * Zawartość pola ceny. Trzymana osobno od [priceGross], bo w trakcie pisania
+     * bywa niepełna („12,"), a wpisanie kropki nie może przestawiać kursora.
+     */
+    priceInput: string;
     quantity: number;
 }
 
@@ -202,7 +241,35 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         setSelected((current) =>
             current.some((item) => item.serviceId === serviceId)
                 ? current.filter((item) => item.serviceId !== serviceId)
-                : [...current, { serviceId, name, priceGross, quantity: 1 }]
+                : [...current, {
+                    serviceId,
+                    name,
+                    priceGross,
+                    priceInput: centsToInput(priceGross),
+                    quantity: 1,
+                }]
+        );
+
+    /** Odrzucamy znaki, które nigdy nie zbudują ceny — patrz common/utils/moneyInput. */
+    const changePrice = (serviceId: string, raw: string) => {
+        if (!MAX_2_DECIMALS.test(raw)) return;
+        setSelected((current) =>
+            current.map((item) =>
+                item.serviceId === serviceId
+                    ? { ...item, priceInput: raw, priceGross: inputToCents(raw) }
+                    : item
+            )
+        );
+    };
+
+    /** Po wyjściu z pola pokazujemy kwotę w kanonicznej postaci („12" → „12,00"). */
+    const normalisePrice = (serviceId: string) =>
+        setSelected((current) =>
+            current.map((item) =>
+                item.serviceId === serviceId
+                    ? { ...item, priceInput: centsToInput(item.priceGross) }
+                    : item
+            )
         );
 
     const changeQuantity = (serviceId: string, delta: number) =>
@@ -217,6 +284,10 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
     const submit = () => {
         const payload: LeadServiceItemInput[] = selected.map((item) => ({
             serviceId: item.serviceId,
+            // Nazwę i cenę wysyłamy zawsze: wycena ma zapamiętać kwotę uzgodnioną
+            // w rozmowie, a nie tę, którą cennik miał akurat w chwili zapisu.
+            name: item.name,
+            priceGross: item.priceGross,
             quantity: item.quantity,
         }));
         markAsLead.mutate(
@@ -315,7 +386,17 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                                     <SelectedList>
                                         {selected.map((item) => (
                                             <SelectedRow key={item.serviceId}>
-                                                <span className="grow">{item.name}</span>
+                                                <span className="grow" title={item.name}>{item.name}</span>
+                                                <PriceField title="Cena jednostkowa brutto">
+                                                    <input
+                                                        inputMode="decimal"
+                                                        value={item.priceInput}
+                                                        onChange={(event) => changePrice(item.serviceId, event.target.value)}
+                                                        onBlur={() => normalisePrice(item.serviceId)}
+                                                        aria-label={`Cena brutto: ${item.name}`}
+                                                    />
+                                                    zł
+                                                </PriceField>
                                                 <span className="qty">
                                                     <button type="button" onClick={() => changeQuantity(item.serviceId, -1)} aria-label="Mniej">
                                                         <Minus size={11} />
@@ -325,7 +406,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                                                         <Plus size={11} />
                                                     </button>
                                                 </span>
-                                                <span>{formatGrosze(item.priceGross * item.quantity)}</span>
+                                                <span className="total">{formatGrosze(item.priceGross * item.quantity)}</span>
                                             </SelectedRow>
                                         ))}
                                     </SelectedList>

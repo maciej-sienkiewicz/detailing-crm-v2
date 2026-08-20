@@ -5,7 +5,7 @@
 import { useMemo, useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, Car, Check, Globe, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
+import { BarChart3, CalendarPlus, Car, Globe, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -34,6 +34,10 @@ import {
     useUpdateLeadServices,
 } from '../hooks/useLeads';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
+import { LeadStatusPicker } from '../components/LeadStatusPicker';
+import { BookingFlowModal } from '@/modules/calendar';
+import { leadToBookingPrefill } from '../utils/bookingPrefill';
+import { useContactCard } from '../hooks/useComms';
 import { toLeadInputs, toServiceLines, totalGrossOf } from '../utils/leadServiceLines';
 import {
     LEAD_STATUS_FLOW,
@@ -359,32 +363,6 @@ const VehiclePickers = styled.div`
     }
 `;
 
-const StatusGrid = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
-
-const StatusOption = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.border)};
-    background: ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.surface)};
-    color: ${({ $active, theme }) => ($active ? '#ffffff' : theme.colors.textSecondary)};
-    border-radius: ${p => p.theme.radii.full};
-    font-size: 12px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    padding: 5px 12px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover {
-        ${({ $active, theme }) => !$active && `background: ${theme.colors.surfaceHover};`}
-    }
-`;
-
 const ServiceLine = styled.div`
     display: flex;
     align-items: center;
@@ -459,6 +437,19 @@ const HistoryLine = styled.div`
     color: ${p => p.theme.colors.textSecondary};
 
     strong { color: ${p => p.theme.colors.text}; }
+`;
+
+/**
+ * Treść pierwszego pytania klienta. Zachowuje łamanie wierszy z maila i przewija się
+ * w miejscu — dłuższe zapytanie nie ma prawa rozpychać panelu na cały ekran, a jego
+ * skrócenie do jednej linijki zabierałoby dokładnie to, po co się tu zagląda.
+ */
+const MessageQuote = styled(HistoryLine)`
+    max-height: 190px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
 `;
 
 // ── Dialog powodu przegranej ─────────────────────────────────────────────────
@@ -538,6 +529,8 @@ export default function LeadsView() {
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
     const [deleteDialogFor, setDeleteDialogFor] = useState<string | null>(null);
+    // Otwarty kreator rezerwacji (kalendarz → formularz) dla leada o tym id.
+    const [bookingFor, setBookingFor] = useState<string | null>(null);
     // Edycja komórki: który lead, które pole i pod czym zaczepić chmurkę.
     const [cellEditor, setCellEditor] = useState<
         { lead: Lead; field: LeadCellField; anchor: HTMLElement } | null
@@ -547,6 +540,7 @@ export default function LeadsView() {
     const selectLead = (leadId: string | null) => {
         setEditingServices(null);
         setEditingVehicle(null);
+        setBookingFor(null);
         setSearchParams(leadId ? { lead: leadId } : {}, { replace: true });
     };
 
@@ -554,6 +548,11 @@ export default function LeadsView() {
     const { data: lead } = useLead(selectedLeadId);
     const { data: history } = useLeadHistory(selectedLeadId);
     const { data: dictionaries } = useLeadDictionaries();
+    // Kartoteka kontaktu — stąd bierzemy telefon i auta klienta do rezerwacji.
+    // Pobierana dopiero, gdy panel jest otwarty: lista leadów jej nie potrzebuje.
+    const { data: contactCard } = useContactCard(lead?.contactIdentifier ?? null, {
+        enabled: Boolean(lead?.contactIdentifier),
+    });
     // Ten sam katalog, którym backend kanonizuje odczyt z korespondencji — ręczna
     // korekta nie ma prawa wprowadzić wartości, których backend potem nie przyjmie.
     const { data: vehicleCatalog } = useVehicleMetadata();
@@ -907,21 +906,11 @@ export default function LeadsView() {
 
                                 <Panel>
                                     <h4>Status</h4>
-                                    <StatusGrid>
-                                        {LEAD_STATUS_FLOW.map((status) => {
-                                            const active = lead.status === status;
-                                            return (
-                                                <StatusOption
-                                                    key={status}
-                                                    $active={active}
-                                                    onClick={() => !active && requestStatus(lead.id, status)}
-                                                >
-                                                    {active && <Check size={11} />}
-                                                    {LEAD_STATUS_LABELS[status]}
-                                                </StatusOption>
-                                            );
-                                        })}
-                                    </StatusGrid>
+                                    <LeadStatusPicker
+                                        status={lead.status}
+                                        disabled={changeStatus.isPending}
+                                        onChange={(status) => requestStatus(lead.id, status)}
+                                    />
                                     {lead.status === 'LOST' && lead.lostReasonLabel && (
                                         <HistoryLine>
                                             Powód przegranej: <strong>{lead.lostReasonLabel}</strong>
@@ -987,9 +976,9 @@ export default function LeadsView() {
                             <FactGrid>
                                 <Panel>
                                     <h4>Pierwsza wiadomość</h4>
-                                    <HistoryLine>
+                                    <MessageQuote>
                                         {lead.initialMessage ?? 'Brak treści pierwszej wiadomości.'}
-                                    </HistoryLine>
+                                    </MessageQuote>
                                 </Panel>
 
                                 <Panel>
@@ -1021,6 +1010,20 @@ export default function LeadsView() {
                         >
                             <Trash2 size={14} /> Usuń lead
                         </DangerButton>
+                        {/* Rezerwacja to naturalne zakończenie leada, więc akcja stoi
+                            jako główna. Gdy termin już jest, przycisk prowadzi do niego
+                            zamiast pozwalać założyć drugi — backend i tak by odmówił. */}
+                        {lead.appointmentId ? (
+                            <Link to="/calendar">
+                                <IconButton type="button">
+                                    <CalendarPlus size={14} /> Zobacz w kalendarzu
+                                </IconButton>
+                            </Link>
+                        ) : (
+                            <PrimaryButton type="button" onClick={() => setBookingFor(lead.id)}>
+                                <CalendarPlus size={14} /> Stwórz rezerwację
+                            </PrimaryButton>
+                        )}
                         <IconButton onClick={() => selectLead(null)}>Zamknij</IconButton>
                     </ModalFooter>
                 </ModalShell>
@@ -1040,6 +1043,16 @@ export default function LeadsView() {
                         setLostDialogFor(leadId);
                     }}
                     onChangeStatus={requestStatus}
+                />
+            )}
+
+            {lead && bookingFor === lead.id && (
+                <BookingFlowModal
+                    leadId={lead.id}
+                    subtitle={lead.customerName ?? lead.contactIdentifier}
+                    prefill={leadToBookingPrefill(lead, contactCard)}
+                    onClose={() => setBookingFor(null)}
+                    onBooked={() => setBookingFor(null)}
                 />
             )}
 

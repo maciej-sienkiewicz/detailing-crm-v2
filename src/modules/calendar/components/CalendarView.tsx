@@ -998,8 +998,23 @@ const D2DTooltipAddress = styled.div`
     padding-left: 13px;
 `;
 
+export interface CalendarRangeSelection {
+    start: Date;
+    end: Date;
+    allDay: boolean;
+}
+
 interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
+    /**
+     * Tryb wskazywania terminu: kalendarz służy wyłącznie do wybrania dnia albo
+     * zakresu dni i oddania go wołającemu. Znikają przyciski zakładania rezerwacji
+     * i wizyty — w tym trybie kalendarz jest polem formularza, a nie widokiem,
+     * z którego zakłada się cokolwiek obok trwającego już procesu.
+     */
+    selectionMode?: boolean;
+    /** Wywoływane zamiast otwarcia QuickEventModal, gdy [selectionMode] jest włączony. */
+    onRangeSelected?: (range: CalendarRangeSelection) => void;
 }
 
 // Module-level singletons, survive React StrictMode double-mount.
@@ -1008,7 +1023,11 @@ let _dashboardPendingHighlight: { id: string; date: string; openPopover?: boolea
 // eventDidMount won't fire (event already rendered) and fall back to eventElMapRef.
 let _searchPendingHighlight: { id: string } | null = null;
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({
+    onViewChange,
+    selectionMode = false,
+    onRangeSelected,
+}) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isCollapsed } = useSidebar();
@@ -1467,27 +1486,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         const start = info.date;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
+        if (selectionMode) {
+            onRangeSelected?.({ start, end, allDay: Boolean(info.allDay) });
+            return;
+        }
         setSelectedEventData({ start, end, allDay: Boolean(info.allDay) });
         setQuickModalOpen(true);
-    }, []);
+    }, [selectionMode, onRangeSelected]);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
      */
     const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
-        setSelectedEventData({
+        const range = {
             start: selectInfo.start,
             end: selectInfo.end,
             allDay: selectInfo.allDay,
-        });
-        setQuickModalOpen(true);
+        };
 
         // Clear selection
         const calendarApi = calendarRef.current?.getApi();
         if (calendarApi) {
             calendarApi.unselect();
         }
-    }, []);
+
+        if (selectionMode) {
+            onRangeSelected?.(range);
+            return;
+        }
+        setSelectedEventData(range);
+        setQuickModalOpen(true);
+    }, [selectionMode, onRangeSelected]);
 
     /**
      * Handle event click - Show popover with event summary
@@ -1791,7 +1820,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             <MobileFilterBadge>{deselectedCount}</MobileFilterBadge>
                         )}
                     </MobileFilterPill>
-                    {can('VISITS_CREATE') && (
+                    {!selectionMode && can('VISITS_CREATE') && (
                         <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
                             +
                         </MobileAddBtn>
@@ -1858,7 +1887,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             ))}
                         </ViewSwitchGroup>
 
-                        {can('VISITS_CREATE') && (
+                        {!selectionMode && can('VISITS_CREATE') && (
                             <>
                                 <NewEventBtn onClick={handleMobileAddClick}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
