@@ -2,7 +2,7 @@
 // Pipeline leadów w języku wizualnym reszty aplikacji: wspólny PageHeader,
 // karty-powierzchnie, Badge, tokeny motywu. Szczegóły w wysuwanym panelu;
 // zamknięcie jako „przegrany" wymusza wybór powodu ze słownika.
-import { useMemo, useState, type MouseEvent } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { BarChart3, CalendarPlus, Car, Globe, Loader2, Mail, Phone, Search, Trash2, User } from 'lucide-react';
@@ -20,7 +20,7 @@ import {
 } from '@/common/components/ModalKit';
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
-import { useVehicleMetadata } from '@/modules/vehicles/hooks/useVehicleMetadata';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { useToast } from '@/common/components/Toast';
 import {
     useChangeLeadStatus,
@@ -38,7 +38,7 @@ import { LeadStatusPicker } from '../components/LeadStatusPicker';
 import { BookingFlowModal } from '@/modules/calendar';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { useContactCard } from '../hooks/useComms';
-import { toLeadInputs, toServiceLines, totalGrossOf } from '../utils/leadServiceLines';
+import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
 import {
     LEAD_STATUS_FLOW,
     LEAD_STATUS_LABELS,
@@ -318,6 +318,25 @@ const Panel = styled.section`
     }
 `;
 
+/** Status w nagłówku — trzymany z dala od tytułu, tuż przed przyciskiem zamknięcia. */
+const HeaderStatus = styled.div`
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+`;
+
+/** Wyjaśnienie stanu „przegrany" — jedna linia nad treścią, nie pole formularza. */
+const LostNote = styled.div`
+    font-size: 12.5px;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: ${p => p.theme.radii.md};
+    padding: 8px 12px;
+
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
+`;
+
 const ModalBody = styled.div`
     display: flex;
     flex-direction: column;
@@ -351,64 +370,64 @@ const VehiclePickers = styled.div`
     grid-template-columns: 1fr 1fr;
     gap: 8px;
 
-    select {
-        width: 100%;
-        border: 1px solid ${p => p.theme.colors.border};
-        border-radius: ${p => p.theme.radii.md};
-        padding: 8px 10px;
-        font-size: 13px;
-        font-family: inherit;
-        color: ${p => p.theme.colors.text};
-        background: #ffffff;
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        grid-template-columns: 1fr;
     }
 `;
 
-const ServiceLine = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
+/**
+ * Wycena w trybie podglądu. Jedna kwota brutto na pozycję nie wystarczała: lead
+ * jest podstawą oferty, a rozmowa o cenie toczy się raz w netto (firma), raz
+ * w brutto (klient prywatny) — przeliczanie w głowie przy każdym otwarciu panelu
+ * to praca, którą tabela wykonuje raz. Kolumny i kolejność jak w edytorze wyceny,
+ * żeby przejście w tryb edycji nie było przeskokiem na inny układ.
+ */
+const QuoteTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
     font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
 
-    .grow { flex: 1; min-width: 0; }
-    .qty {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
+    th {
+        text-align: right;
+        font-size: 10.5px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
         color: ${p => p.theme.colors.textMuted};
+        padding: 0 0 6px;
+        white-space: nowrap;
     }
-    .qty button {
-        border: 1px solid ${p => p.theme.colors.border};
-        background: ${p => p.theme.colors.surface};
-        border-radius: ${p => p.theme.radii.sm};
-        width: 18px;
-        height: 18px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: ${p => p.theme.colors.textMuted};
-        padding: 0;
+    th:first-child { text-align: left; }
+
+    td {
+        padding: 6px 0;
+        border-top: 1px solid ${p => p.theme.colors.border};
+        color: ${p => p.theme.colors.textSecondary};
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
     }
-    button.remove {
-        border: none;
-        background: none;
+    td:first-child {
+        text-align: left;
+        white-space: normal;
+        color: ${p => p.theme.colors.text};
+        width: 100%;
+    }
+    th + th, td + td { padding-left: 14px; }
+
+    tfoot td {
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        border-top: 1px solid ${p => p.theme.colors.text};
+    }
+
+    .note {
+        display: block;
+        font-size: 11.5px;
         color: ${p => p.theme.colors.textMuted};
-        cursor: pointer;
-        padding: 2px;
     }
 `;
 
-const TotalLine = styled.div`
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    font-weight: ${p => p.theme.fontWeights.bold};
-    color: ${p => p.theme.colors.text};
-    padding-top: 6px;
-    border-top: 1px dashed ${p => p.theme.colors.border};
-    font-variant-numeric: tabular-nums;
-`;
 
 /** Jedyna akcja nieodwracalna w tym widoku — i jedyna, która wygląda groźnie. */
 const DangerButton = styled.button`
@@ -553,17 +572,6 @@ export default function LeadsView() {
     const { data: contactCard } = useContactCard(lead?.contactIdentifier ?? null, {
         enabled: Boolean(lead?.contactIdentifier),
     });
-    // Ten sam katalog, którym backend kanonizuje odczyt z korespondencji — ręczna
-    // korekta nie ma prawa wprowadzić wartości, których backend potem nie przyjmie.
-    const { data: vehicleCatalog } = useVehicleMetadata();
-    const vehicleBrands = useMemo(
-        () => (vehicleCatalog ?? []).map((entry) => entry.marka),
-        [vehicleCatalog]
-    );
-    const vehicleModels = useMemo(
-        () => (vehicleCatalog ?? []).find((entry) => entry.marka === editingVehicle?.brand)?.modele ?? [],
-        [vehicleCatalog, editingVehicle?.brand]
-    );
     const changeStatus = useChangeLeadStatus();
     const updateVehicle = useUpdateLeadVehicle();
     const updateServices = useUpdateLeadServices();
@@ -573,10 +581,6 @@ export default function LeadsView() {
     // zamienia się w wynik bez odświeżania strony.
     useLeadsSocket();
 
-    const editedTotal = useMemo(
-        () => totalGrossOf(editingServices ?? []),
-        [editingServices]
-    );
 
     const saveVehicle = (leadId: string) => {
         if (!editingVehicle) return;
@@ -835,95 +839,91 @@ export default function LeadsView() {
                                 )}
                             </LeadIdentity>
                         </ModalTitleGroup>
+                        {/* Status stoi w nagłówku, przy nazwie leada, bo to jego główna
+                            właściwość i najczęściej zmieniane pole — a jako osobny panel
+                            zajmował pół szerokości okna na jeden przycisk. Nagłówek jest
+                            też jedynym miejscem widocznym niezależnie od przewinięcia. */}
+                        <HeaderStatus>
+                            <LeadStatusPicker
+                                status={lead.status}
+                                disabled={changeStatus.isPending}
+                                onChange={(status) => requestStatus(lead.id, status)}
+                            />
+                        </HeaderStatus>
                         <CloseBtn onClick={() => selectLead(null)} />
                     </ModalHeader>
 
                     <ModalContent>
                         <ModalBody>
-                            <FactGrid>
-                                <Panel>
-                                    <h4>Pojazd</h4>
-                                    {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
-                                        <VehicleRow className="muted">
-                                            <Loader2 size={14} style={{ animation: 'none' }} />
-                                            Rozpoznajemy auto z korespondencji…
-                                        </VehicleRow>
-                                    ) : editingVehicle === null ? (
-                                        <VehicleRow>
-                                            <Car size={15} />
-                                            <span className="grow">
-                                                {formatVehicle(lead) ?? <span className="muted">Nie rozpoznano auta</span>}
-                                            </span>
-                                            <IconButton
-                                                onClick={() => setEditingVehicle({
-                                                    brand: lead.vehicleBrand ?? '',
-                                                    model: lead.vehicleModel ?? '',
-                                                })}
-                                            >
-                                                {lead.vehicleBrand ? 'Zmień' : 'Uzupełnij'}
-                                            </IconButton>
-                                        </VehicleRow>
-                                    ) : (
-                                        <>
-                                            <VehiclePickers>
-                                                <select
-                                                    value={editingVehicle.brand}
-                                                    onChange={(event) => setEditingVehicle({
-                                                        brand: event.target.value,
-                                                        // Zmiana marki zeruje model: modele są per marka,
-                                                        // a zostawiony stary nie przeszedłby walidacji.
-                                                        model: '',
-                                                    })}
-                                                    aria-label="Marka"
-                                                >
-                                                    <option value="">Marka…</option>
-                                                    {vehicleBrands.map((brand) => (
-                                                        <option key={brand} value={brand}>{brand}</option>
-                                                    ))}
-                                                </select>
-                                                <select
-                                                    value={editingVehicle.model}
-                                                    onChange={(event) => setEditingVehicle({
-                                                        brand: editingVehicle.brand,
-                                                        model: event.target.value,
-                                                    })}
-                                                    disabled={!editingVehicle.brand}
-                                                    aria-label="Model"
-                                                >
-                                                    <option value="">Model…</option>
-                                                    {vehicleModels.map((model) => (
-                                                        <option key={model} value={model}>{model}</option>
-                                                    ))}
-                                                </select>
-                                            </VehiclePickers>
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <PrimaryButton
-                                                    onClick={() => saveVehicle(lead.id)}
-                                                    disabled={updateVehicle.isPending}
-                                                >
-                                                    {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
-                                                </PrimaryButton>
-                                                <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
-                                            </div>
-                                        </>
-                                    )}
-                                </Panel>
+                            {/* Powód przegranej to wyjaśnienie stanu, nie pole formularza —
+                                pokazujemy go raz, u góry, i tylko gdy jest czego wyjaśniać. */}
+                            {lead.status === 'LOST' && lead.lostReasonLabel && (
+                                <LostNote>
+                                    Przegrany: <strong>{lead.lostReasonLabel}</strong>
+                                    {lead.lostReason && <> — {lead.lostReason}</>}
+                                </LostNote>
+                            )}
 
-                                <Panel>
-                                    <h4>Status</h4>
-                                    <LeadStatusPicker
-                                        status={lead.status}
-                                        disabled={changeStatus.isPending}
-                                        onChange={(status) => requestStatus(lead.id, status)}
-                                    />
-                                    {lead.status === 'LOST' && lead.lostReasonLabel && (
-                                        <HistoryLine>
-                                            Powód przegranej: <strong>{lead.lostReasonLabel}</strong>
-                                            {lead.lostReason && <> — {lead.lostReason}</>}
-                                        </HistoryLine>
-                                    )}
-                                </Panel>
-                            </FactGrid>
+                            <Panel>
+                                <h4>Pojazd</h4>
+                                {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
+                                    <VehicleRow className="muted">
+                                        <Loader2 size={14} style={{ animation: 'none' }} />
+                                        Rozpoznajemy auto z korespondencji…
+                                    </VehicleRow>
+                                ) : editingVehicle === null ? (
+                                    <VehicleRow>
+                                        <Car size={15} />
+                                        <span className="grow">
+                                            {formatVehicle(lead) ?? <span className="muted">Nie rozpoznano auta</span>}
+                                        </span>
+                                        <IconButton
+                                            onClick={() => setEditingVehicle({
+                                                brand: lead.vehicleBrand ?? '',
+                                                model: lead.vehicleModel ?? '',
+                                            })}
+                                        >
+                                            {lead.vehicleBrand ? 'Zmień' : 'Uzupełnij'}
+                                        </IconButton>
+                                    </VehicleRow>
+                                ) : (
+                                    <>
+                                        {/* Ten sam wybierak co przy przyjęciu pojazdu i w rezerwacji:
+                                            wyszukiwarka w rozwijanej liście zamiast natywnego <select>
+                                            z kilkuset markami, których nie da się przefiltrować. */}
+                                        <VehiclePickers>
+                                            <BrandSelect
+                                                value={editingVehicle.brand}
+                                                placeholder="Marka…"
+                                                onChange={(brand) => setEditingVehicle({
+                                                    brand,
+                                                    // Zmiana marki zeruje model: modele są per marka,
+                                                    // a zostawiony stary nie przeszedłby walidacji.
+                                                    model: '',
+                                                })}
+                                            />
+                                            <ModelSelect
+                                                brand={editingVehicle.brand}
+                                                value={editingVehicle.model}
+                                                placeholder="Model…"
+                                                onChange={(model) => setEditingVehicle({
+                                                    brand: editingVehicle.brand,
+                                                    model,
+                                                })}
+                                            />
+                                        </VehiclePickers>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <PrimaryButton
+                                                onClick={() => saveVehicle(lead.id)}
+                                                disabled={updateVehicle.isPending}
+                                            >
+                                                {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                                            </PrimaryButton>
+                                            <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
+                                        </div>
+                                    </>
+                                )}
+                            </Panel>
 
                             <Panel>
                                 <h4>Usługi i wycena</h4>
@@ -932,20 +932,44 @@ export default function LeadsView() {
                                         {lead.services.length === 0 && (
                                             <HistoryLine>Nie przypisano jeszcze usług.</HistoryLine>
                                         )}
-                                        {lead.services.map((item) => (
-                                            <ServiceLine key={item.id}>
-                                                <span className="grow">
-                                                    {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
-                                                </span>
-                                                <span>{formatGrosze(item.totalGross)}</span>
-                                            </ServiceLine>
-                                        ))}
-                                        {lead.estimatedValue > 0 && (
-                                            <TotalLine>
-                                                <span>Razem</span>
-                                                <span>{formatGrosze(lead.estimatedValue)}</span>
-                                            </TotalLine>
-                                        )}
+                                        {lead.services.length > 0 && (() => {
+                                            const rows = toQuoteRows(lead.services);
+                                            const sum = (pick: (row: typeof rows[number]) => number) =>
+                                                rows.reduce((total, row) => total + pick(row), 0);
+                                            return (
+                                                <QuoteTable>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Usługa</th>
+                                                            <th>Netto</th>
+                                                            <th>VAT</th>
+                                                            <th>Brutto</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {rows.map((row) => (
+                                                            <tr key={row.id}>
+                                                                <td>
+                                                                    {row.name}{row.quantity > 1 ? ` ×${row.quantity}` : ''}
+                                                                    {row.note && <span className="note">{row.note}</span>}
+                                                                </td>
+                                                                <td>{formatGrosze(row.netCents)}</td>
+                                                                <td>{formatGrosze(row.vatCents)}</td>
+                                                                <td>{formatGrosze(row.grossCents)}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                    <tfoot>
+                                                        <tr>
+                                                            <td>Razem</td>
+                                                            <td>{formatGrosze(sum((row) => row.netCents))}</td>
+                                                            <td>{formatGrosze(sum((row) => row.vatCents))}</td>
+                                                            <td>{formatGrosze(sum((row) => row.grossCents))}</td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </QuoteTable>
+                                            );
+                                        })()}
                                         <IconButton
                                             style={{ alignSelf: 'flex-start' }}
                                             onClick={() => setEditingServices(toServiceLines(lead.services))}
@@ -964,10 +988,9 @@ export default function LeadsView() {
                                             services={editingServices}
                                             onChange={setEditingServices}
                                         />
-                                        <TotalLine>
-                                            <span>Razem</span>
-                                            <span>{formatGrosze(editedTotal)}</span>
-                                        </TotalLine>
+                                        {/* Sumy netto / VAT / łącznie liczy sam edytor —
+                                            druga suma pod nim byłaby tą samą liczbą
+                                            napisaną drugi raz, tylko innym stylem. */}
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <PrimaryButton onClick={saveServices} disabled={updateServices.isPending}>
                                                 Zapisz

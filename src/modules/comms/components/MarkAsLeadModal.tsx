@@ -9,12 +9,15 @@
 //    przy przyjęciu: lista zamknięta w menu nie rozpycha okna, gdy tagów przybędzie.
 //  • USŁUGI — schowane za przyciskiem. Wycena na etapie oznaczania to wyjątek, nie
 //    reguła: zwykle wiadomo, o czym jest rozmowa, a nie ile to będzie kosztować.
-//  • CENA — pole przy każdej wybranej pozycji. Cennik podpowiada, ale rozmowa
-//    często kończy się inną kwotą (rabat, nietypowy zakres); bez pola trzeba było
-//    utworzyć leada i od razu wejść w edycję wyceny, żeby poprawić jedną liczbę.
+//    Rozwinięta sekcja to ten sam edytor co przy przyjęciu pojazdu i w panelu
+//    leada: „Edytuj pozycję" i rabat na wiersz zamiast gołego pola z ceną. Wycena
+//    to ta sama czynność niezależnie od ekranu, więc i narzędzie ma być to samo —
+//    a rabat trzeba umieć zapisać jako rabat, nie jako niższą kwotę bez śladu.
+//    Ilości tu nie ma: pozycja z własną ceną i notatką niesie więcej niż mnożnik,
+//    a dwie takie same usługi to po prostu dwa wiersze.
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { Check, Minus, Plus, Search, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -24,14 +27,14 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { MAX_2_DECIMALS, centsToInput, inputToCents } from '@/common/utils/moneyInput';
-import { useServices } from '@/modules/services';
+import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
+import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { useToast } from '@/common/components/Toast';
 import { useLeadDictionaries, useMarkThreadAsLead } from '../hooks/useLeads';
+import { toLeadInputs, totalGrossOf } from '../utils/leadServiceLines';
 import { TagMultiSelect } from './TagMultiSelect';
 import { useTagCatalogActions } from '../hooks/useTagCatalogActions';
-import type { LeadServiceItemInput } from '../types';
-import { EmptyHint, IconButton, PrimaryButton, formatGrosze } from './shared';
+import { IconButton, PrimaryButton, formatGrosze } from './shared';
 
 const Body = styled.div`
     display: flex;
@@ -62,120 +65,6 @@ const WideButton = styled(IconButton)`
     border-style: dashed;
 `;
 
-const SearchBox = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 9px 12px;
-    color: ${p => p.theme.colors.textMuted};
-
-    input {
-        border: none;
-        outline: none;
-        flex: 1;
-        min-width: 0;
-        font-size: 13.5px;
-        font-family: inherit;
-        color: ${p => p.theme.colors.text};
-        background: transparent;
-    }
-`;
-
-const ServiceList = styled.div`
-    max-height: 190px;
-    overflow-y: auto;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-`;
-
-const ServiceRow = styled.button<{ $selected: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
-    background: ${({ $selected }) => ($selected ? '#f0f9ff' : '#ffffff')};
-    padding: 9px 12px;
-    font-family: inherit;
-    font-size: 13.5px;
-    text-align: left;
-    cursor: pointer;
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${({ $selected }) => ($selected ? '#e0f2fe' : '#f8fafc')}; }
-
-    .name { color: ${p => p.theme.colors.text}; }
-    .price { color: ${p => p.theme.colors.textMuted}; white-space: nowrap; }
-`;
-
-const SelectedList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const SelectedRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: ${p => p.theme.colors.text};
-
-    .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .total { min-width: 76px; text-align: right; font-variant-numeric: tabular-nums; }
-    .qty {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: ${p => p.theme.colors.textSecondary};
-
-        button {
-            border: 1px solid ${p => p.theme.colors.border};
-            background: #ffffff;
-            border-radius: ${p => p.theme.radii.sm};
-            width: 22px;
-            height: 22px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: ${p => p.theme.colors.textSecondary};
-        }
-    }
-`;
-
-/** Cena jednostkowa brutto — pole tekstowe, nie number: patrz common/utils/moneyInput. */
-const PriceField = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.sm};
-    padding: 3px 7px;
-    color: ${p => p.theme.colors.textMuted};
-    font-size: 12px;
-
-    &:focus-within {
-        border-color: ${p => p.theme.colors.primary};
-    }
-
-    input {
-        border: none;
-        outline: none;
-        width: 64px;
-        text-align: right;
-        font-family: inherit;
-        font-size: 13px;
-        font-variant-numeric: tabular-nums;
-        color: ${p => p.theme.colors.text};
-        background: transparent;
-    }
-`;
-
 const Total = styled.div`
     margin-right: auto;
     font-size: 15px;
@@ -190,19 +79,6 @@ const Total = styled.div`
     }
 `;
 
-interface SelectedService {
-    serviceId: string;
-    name: string;
-    /** Cena jednostkowa brutto w groszach — z cennika, dopóki ktoś jej nie poprawi. */
-    priceGross: number;
-    /**
-     * Zawartość pola ceny. Trzymana osobno od [priceGross], bo w trakcie pisania
-     * bywa niepełna („12,"), a wpisanie kropki nie może przestawiać kursora.
-     */
-    priceInput: string;
-    quantity: number;
-}
-
 interface MarkAsLeadModalProps {
     threadId: string;
     onClose: () => void;
@@ -212,18 +88,8 @@ interface MarkAsLeadModalProps {
 export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModalProps) {
     const [tags, setTags] = useState<string[]>([]);
     const [servicesOpen, setServicesOpen] = useState(false);
-    const [search, setSearch] = useState('');
-    const [selected, setSelected] = useState<SelectedService[]>([]);
+    const [services, setServices] = useState<ServiceLineItem[]>([]);
 
-    // Cennik pobieramy dopiero, gdy ktoś poprosi o usługi — dopóki sekcja jest
-    // zwinięta, oznaczenie leada nie kosztuje ani jednego zapytania o katalog.
-    const { services, isLoading } = useServices({
-        search,
-        page: 1,
-        limit: 30,
-        showInactive: false,
-        enabled: servicesOpen,
-    });
     const { data: dictionaries } = useLeadDictionaries();
     const markAsLead = useMarkThreadAsLead();
     const { showSuccess, showError } = useToast();
@@ -232,66 +98,14 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         setTags((current) => (current.includes(code) ? current : [...current, code]))
     );
 
-    const total = useMemo(
-        () => selected.reduce((sum, item) => sum + item.priceGross * item.quantity, 0),
-        [selected]
-    );
-
-    const toggleService = (serviceId: string, name: string, priceGross: number) =>
-        setSelected((current) =>
-            current.some((item) => item.serviceId === serviceId)
-                ? current.filter((item) => item.serviceId !== serviceId)
-                : [...current, {
-                    serviceId,
-                    name,
-                    priceGross,
-                    priceInput: centsToInput(priceGross),
-                    quantity: 1,
-                }]
-        );
-
-    /** Odrzucamy znaki, które nigdy nie zbudują ceny — patrz common/utils/moneyInput. */
-    const changePrice = (serviceId: string, raw: string) => {
-        if (!MAX_2_DECIMALS.test(raw)) return;
-        setSelected((current) =>
-            current.map((item) =>
-                item.serviceId === serviceId
-                    ? { ...item, priceInput: raw, priceGross: inputToCents(raw) }
-                    : item
-            )
-        );
-    };
-
-    /** Po wyjściu z pola pokazujemy kwotę w kanonicznej postaci („12" → „12,00"). */
-    const normalisePrice = (serviceId: string) =>
-        setSelected((current) =>
-            current.map((item) =>
-                item.serviceId === serviceId
-                    ? { ...item, priceInput: centsToInput(item.priceGross) }
-                    : item
-            )
-        );
-
-    const changeQuantity = (serviceId: string, delta: number) =>
-        setSelected((current) =>
-            current.map((item) =>
-                item.serviceId === serviceId
-                    ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-                    : item
-            )
-        );
+    const total = useMemo(() => totalGrossOf(services), [services]);
 
     const submit = () => {
-        const payload: LeadServiceItemInput[] = selected.map((item) => ({
-            serviceId: item.serviceId,
-            // Nazwę i cenę wysyłamy zawsze: wycena ma zapamiętać kwotę uzgodnioną
-            // w rozmowie, a nie tę, którą cennik miał akurat w chwili zapisu.
-            name: item.name,
-            priceGross: item.priceGross,
-            quantity: item.quantity,
-        }));
         markAsLead.mutate(
-            { threadId, request: { tags, services: payload } },
+            // Kwoty po rabatach, nazwa i stawka VAT — dokładnie to samo tłumaczenie,
+            // którym zapisuje wycenę panel leada. Cennik jest podpowiedzią, wycena
+            // ma zapamiętać kwotę uzgodnioną w rozmowie.
+            { threadId, request: { tags, services: toLeadInputs(services) } },
             {
                 onSuccess: (result) => {
                     showSuccess(
@@ -312,8 +126,11 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         );
     };
 
+    // Rozwinięta wycena to tabela z czterema kolumnami kwot — w 480 px byłaby
+    // nieczytelna. Okno rośnie dopiero wtedy, gdy naprawdę jest czym je wypełnić,
+    // zamiast stać szerokie przy dwóch polach.
     return (
-        <ModalShell isOpen onClose={onClose} size="sm">
+        <ModalShell isOpen onClose={onClose} size={servicesOpen ? 'lg' : 'sm'}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Oznacz jako lead</ModalTitle>
@@ -341,77 +158,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                                 <Plus /> Dodaj usługi
                             </WideButton>
                         ) : (
-                            <>
-                                <SearchBox>
-                                    <Search size={14} />
-                                    <input
-                                        autoFocus
-                                        placeholder="Szukaj usługi z cennika…"
-                                        value={search}
-                                        onChange={(event) => setSearch(event.target.value)}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => { setServicesOpen(false); setSearch(''); }}
-                                        aria-label="Zwiń wyszukiwarkę usług"
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </SearchBox>
-
-                                <ServiceList>
-                                    {isLoading && <EmptyHint>Wczytywanie cennika…</EmptyHint>}
-                                    {!isLoading && services.length === 0 && <EmptyHint>Brak usług</EmptyHint>}
-                                    {services.map((service) => {
-                                        const isSelected = selected.some((item) => item.serviceId === service.id);
-                                        return (
-                                            <ServiceRow
-                                                key={service.id}
-                                                type="button"
-                                                $selected={isSelected}
-                                                onClick={() => toggleService(service.id, service.name, service.basePriceGross)}
-                                            >
-                                                <span className="name">
-                                                    {isSelected && <Check size={13} style={{ marginRight: 4, verticalAlign: -2 }} />}
-                                                    {service.name}
-                                                </span>
-                                                <span className="price">{formatGrosze(service.basePriceGross)}</span>
-                                            </ServiceRow>
-                                        );
-                                    })}
-                                </ServiceList>
-
-                                {selected.length > 0 && (
-                                    <SelectedList>
-                                        {selected.map((item) => (
-                                            <SelectedRow key={item.serviceId}>
-                                                <span className="grow" title={item.name}>{item.name}</span>
-                                                <PriceField title="Cena jednostkowa brutto">
-                                                    <input
-                                                        inputMode="decimal"
-                                                        value={item.priceInput}
-                                                        onChange={(event) => changePrice(item.serviceId, event.target.value)}
-                                                        onBlur={() => normalisePrice(item.serviceId)}
-                                                        aria-label={`Cena brutto: ${item.name}`}
-                                                    />
-                                                    zł
-                                                </PriceField>
-                                                <span className="qty">
-                                                    <button type="button" onClick={() => changeQuantity(item.serviceId, -1)} aria-label="Mniej">
-                                                        <Minus size={11} />
-                                                    </button>
-                                                    {item.quantity}
-                                                    <button type="button" onClick={() => changeQuantity(item.serviceId, 1)} aria-label="Więcej">
-                                                        <Plus size={11} />
-                                                    </button>
-                                                </span>
-                                                <span className="total">{formatGrosze(item.priceGross * item.quantity)}</span>
-                                            </SelectedRow>
-                                        ))}
-                                    </SelectedList>
-                                )}
-                            </>
+                            <EditableServicesTable services={services} onChange={setServices} />
                         )}
                     </Field>
                 </Body>
