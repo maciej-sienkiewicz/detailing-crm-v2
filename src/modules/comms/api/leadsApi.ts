@@ -1,9 +1,12 @@
 // src/modules/comms/api/leadsApi.ts
 import { apiClient } from '@/core/apiClient';
 import type {
+    CreatedLeadIntakeWebhook,
     Lead,
     LeadAnalytics,
     DictionaryEntry,
+    LeadIntakeDelivery,
+    LeadIntakeWebhook,
     LeadDictionaries,
     LeadPage,
     LeadServiceItemInput,

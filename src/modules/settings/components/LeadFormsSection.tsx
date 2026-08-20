@@ -299,7 +299,11 @@ export function LeadFormsSection() {
                 <Note>Nie masz jeszcze żadnego podłączonego formularza.</Note>
             )}
 
-            {(webhooks ?? []).map((webhook) => (
+            {(webhooks ?? []).map((webhook) => {
+                // Token trzymamy tylko dla świeżo utworzonego wpisu — osobna zmienna,
+                // żeby TypeScript widział, że w tej gałęzi na pewno nie jest pusty.
+                const justCreated = freshToken?.id === webhook.id ? freshToken.token : null;
+                return (
                 <Card key={webhook.id}>
                     <CardHead>
                         <div className="title">
@@ -331,11 +335,11 @@ export function LeadFormsSection() {
                     </CardHead>
 
                     <CardBody>
-                        {freshToken?.id === webhook.id ? (
+                        {justCreated ? (
                             <>
                                 <TokenBox>
-                                    <code>{webhookUrl(freshToken.token)}</code>
-                                    <Button type="button" onClick={() => copy(freshToken.token)}>
+                                    <code>{webhookUrl(justCreated)}</code>
+                                    <Button type="button" onClick={() => copy(justCreated)}>
                                         <Copy /> Kopiuj
                                     </Button>
                                 </TokenBox>
@@ -391,7 +395,8 @@ export function LeadFormsSection() {
                         )}
                     </CardBody>
                 </Card>
-            ))}
+                );
+            })}
 
             <ConfirmationModal
                 isOpen={deleteFor !== null}
