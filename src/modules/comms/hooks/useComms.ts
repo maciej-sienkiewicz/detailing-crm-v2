@@ -96,6 +96,15 @@ export const useThreadContactBadges = (threadId: string | null) =>
         staleTime: 60_000,
     });
 
+/** Pozostałe rozmowy z tym adresem — pobierane dopiero po otwarciu panelu. */
+export const useRelatedThreads = (threadId: string | null, options?: { enabled?: boolean }) =>
+    useQuery({
+        queryKey: [...COMMS_THREADS_KEY, 'related', threadId],
+        queryFn: () => commsApi.getRelatedThreads(threadId!),
+        enabled: threadId !== null && (options?.enabled ?? true),
+        staleTime: 60_000,
+    });
+
 export const useContactNotes = (email: string | null, options?: { enabled?: boolean }) =>
     useQuery({
         queryKey: [...COMMS_NOTES_KEY, 'list', email],

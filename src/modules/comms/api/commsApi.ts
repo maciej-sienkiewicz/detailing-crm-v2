@@ -1,6 +1,7 @@
 // src/modules/comms/api/commsApi.ts
 import { apiClient } from '@/core/apiClient';
 import type {
+    CommThread,
     CommThreadDetail,
     CommThreadPage,
     ConnectMailAccountRequest,
@@ -118,6 +119,12 @@ export const commsApi = {
 
     getThreadContactBadges: async (threadId: string): Promise<ThreadContactBadges> => {
         const { data } = await apiClient.get(`/v1/comms/threads/${threadId}/contact-badges`);
+        return data;
+    },
+
+    /** Pozostałe rozmowy z tym adresem — panel historii korespondencji. */
+    getRelatedThreads: async (threadId: string): Promise<CommThread[]> => {
+        const { data } = await apiClient.get(`/v1/comms/threads/${threadId}/related`);
         return data;
     },
 

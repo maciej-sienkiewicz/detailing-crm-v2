@@ -606,17 +606,19 @@ export default function LeadsView() {
     };
 
     const confirmDelete = () => {
-        if (!deleteDialogFor) return;
-        deleteLead.mutate(deleteDialogFor, {
-            onSuccess: () => {
-                setDeleteDialogFor(null);
-                selectLead(null);
-                showSuccess('Lead usunięty', 'Korespondencja została w skrzynce');
-            },
+        const leadId = deleteDialogFor;
+        if (!leadId) return;
+        // Panel zamykamy PRZED wysłaniem żądania. Otwarty odpytuje `GET /leads/{id}`
+        // i `…/history`; unieważnienie cache po usunięciu kazałoby mu pobrać leada,
+        // którego już nie ma — i obok „Lead usunięty" wyskakiwało „Nie znaleziono
+        // leada" z globalnego przechwytywacza błędów. Odmontowany panel nie pyta.
+        setDeleteDialogFor(null);
+        selectLead(null);
+        deleteLead.mutate(leadId, {
+            onSuccess: () => showSuccess('Lead usunięty', 'Korespondencja została w skrzynce'),
             onError: (error) => {
                 const message =
                     (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-                setDeleteDialogFor(null);
                 showError('Nie udało się usunąć leada', message ?? 'Spróbuj ponownie');
             },
         });

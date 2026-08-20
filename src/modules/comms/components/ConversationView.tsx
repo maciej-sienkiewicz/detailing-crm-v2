@@ -47,6 +47,7 @@ import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
 import { ClientProfileModal } from './ClientProfileModal';
 import { ContactNotesPopover } from './ContactNotesPopover';
+import { ThreadHistoryPanel } from './ThreadHistoryPanel';
 import { useThreadContactBadges } from '../hooks/useComms';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
@@ -102,26 +103,38 @@ const HeaderActions = styled.div`
  * o kliencie. Świadomie ciche — szara ramka, ten sam rozmiar co adres obok. To
  * kontekst do zerknięcia, nie akcja, a nagłówek ma prowadzić wzrok do tematu wątku.
  */
-const ContextBadge = styled.button<{ $interactive?: boolean; $active?: boolean }>`
+const BADGE_TONES = {
+    /** Domyślny — szarość adresu obok. Kontekst, na który nie trzeba patrzeć. */
+    neutral: { border: '#e2e8f0', background: '#f8fafc', color: '#64748b' },
+    /** Panel otwarty — plakietka pokazuje, że to ona go trzyma. */
+    active: { border: '#0ea5e9', background: '#f0f9ff', color: '#0284c7' },
+    /**
+     * Notatki istnieją. Bursztyn, a nie czerwień: to nie ostrzeżenie, tylko „ktoś
+     * coś tu zapisał, przeczytaj, zanim odpiszesz". Cicha plakietka z liczbą, której
+     * nie da się odróżnić od pustej, nie skłoniłaby nikogo do kliknięcia.
+     */
+    filled: { border: '#fcd34d', background: '#fffbeb', color: '#b45309' },
+} as const;
+
+type BadgeTone = keyof typeof BADGE_TONES;
+
+const ContextBadge = styled.button<{ $tone?: BadgeTone }>`
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-    background: ${({ $active, theme }) => ($active ? '#f0f9ff' : theme.colors.surfaceAlt)};
-    color: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textSecondary)};
+    border: 1px solid ${({ $tone = 'neutral' }) => BADGE_TONES[$tone].border};
+    background: ${({ $tone = 'neutral' }) => BADGE_TONES[$tone].background};
+    color: ${({ $tone = 'neutral' }) => BADGE_TONES[$tone].color};
     border-radius: ${p => p.theme.radii.full};
     padding: 2px 9px;
     font-size: 11.5px;
     font-family: inherit;
     line-height: 1.7;
     white-space: nowrap;
-    cursor: ${({ $interactive }) => ($interactive ? 'pointer' : 'default')};
+    cursor: pointer;
     transition: all ${p => p.theme.transitions.fast};
 
-    &:hover {
-        border-color: ${({ $interactive, theme }) =>
-            $interactive ? theme.colors.textMuted : theme.colors.border};
-    }
+    &:hover { filter: brightness(0.96); }
 
     svg { width: 11px; height: 11px; flex-shrink: 0; }
 
@@ -520,6 +533,7 @@ function ConversationViewImpl({
     // Kotwicą chmurki notatek jest sama plakietka — trzymamy jej element, a nie flagę,
     // bo pozycja przelicza się przy przewinięciu nagłówka i zmianie szerokości okna.
     const [notesAnchor, setNotesAnchor] = useState<HTMLElement | null>(null);
+    const [historyOpen, setHistoryOpen] = useState(false);
     const { data: contactBadges } = useThreadContactBadges(thread.id);
 
     return (
@@ -542,7 +556,13 @@ function ConversationViewImpl({
 
                         {contactBadges && (
                             <>
-                                <ContextBadge as="span" title="Rozmowy z tym adresem">
+                                <ContextBadge
+                                    type="button"
+                                    $tone={historyOpen ? 'active' : 'neutral'}
+                                    aria-expanded={historyOpen}
+                                    title="Zobacz historię korespondencji z tym adresem"
+                                    onClick={() => setHistoryOpen(true)}
+                                >
                                     <MessagesSquare />
                                     {contactBadges.otherThreadCount > 0 ? (
                                         <>
@@ -556,8 +576,13 @@ function ConversationViewImpl({
 
                                 <ContextBadge
                                     type="button"
-                                    $interactive
-                                    $active={notesAnchor !== null}
+                                    $tone={
+                                        notesAnchor !== null
+                                            ? 'active'
+                                            : contactBadges.noteCount > 0
+                                              ? 'filled'
+                                              : 'neutral'
+                                    }
                                     aria-expanded={notesAnchor !== null}
                                     onClick={(event) => {
                                         const badge = event.currentTarget as HTMLElement;
@@ -595,6 +620,13 @@ function ConversationViewImpl({
                         </IconButton>
                     )}
                 </HeaderActions>
+                {historyOpen && (
+                    <ThreadHistoryPanel
+                        threadId={thread.id}
+                        email={thread.participantEmail}
+                        onClose={() => setHistoryOpen(false)}
+                    />
+                )}
                 {notesAnchor && (
                     <ContactNotesPopover
                         email={thread.participantEmail}
