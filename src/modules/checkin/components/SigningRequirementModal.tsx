@@ -111,6 +111,10 @@ interface SigningRequirementModalProps {
     customerName: string;
     /** Customer's phone number; empty/null disables the "send to phone" signing option. */
     customerPhone?: string | null;
+    /** Customer's e-mail; empty/null disables the confirmation e-mail until it is filled in here. */
+    customerEmail?: string | null;
+    /** Called after the missing e-mail is filled in from this modal. */
+    onCustomerEmailSaved?: (email: string) => void;
     protocols: ProtocolResponse[];
     onConfirm: () => void;
     hasPhotos?: boolean;
@@ -127,6 +131,8 @@ export const SigningRequirementModal = ({
     visitId,
     customerName,
     customerPhone,
+    customerEmail,
+    onCustomerEmailSaved,
     protocols,
     onConfirm,
     hasPhotos = false,
@@ -468,6 +474,8 @@ export const SigningRequirementModal = ({
                                 visitId={visitId}
                                 hasProtocol={hasProtocol}
                                 visitWelcomeEnabled={visitWelcomeEnabled}
+                                customerEmail={customerEmail}
+                                onCustomerEmailSaved={onCustomerEmailSaved}
                                 options={notifOptions}
                                 onChange={setNotifOptions}
                             />

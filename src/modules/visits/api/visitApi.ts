@@ -564,6 +564,16 @@ export const visitApi = {
         await apiClient.delete(`${BASE_PATH}/${visitId}`);
     },
 
+    /**
+     * Uzupełnia brakujący adres e-mail klienta wizyty — punktowo, bez ruszania
+     * reszty profilu. Używane przez modal "Dokumentacja i Podpisy", żeby nie
+     * odsyłać użytkownika z powrotem do formularza przyjęcia.
+     */
+    updateCustomerEmail: async (visitId: string, email: string): Promise<{ customerId: string; email: string }> => {
+        const response = await apiClient.patch(`${BASE_PATH}/${visitId}/customer-email`, { email });
+        return response.data;
+    },
+
     updateTitle: async (visitId: string, title: string): Promise<void> => {
         await apiClient.patch(`${BASE_PATH}/${visitId}/title`, { title });
     },

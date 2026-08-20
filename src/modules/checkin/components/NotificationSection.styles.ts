@@ -315,3 +315,103 @@ export const NoPhotosHint = styled.div`
     padding: 10px 0 2px;
     font-style: italic;
 `;
+
+/* ─── Missing customer e-mail (inline fix) ─────────────────── */
+
+export const MissingEmailPanel = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid ${st.border};
+    background: ${st.bgAccentAmber};
+`;
+
+export const MissingEmailNotice = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+`;
+
+export const MissingEmailIcon = styled.div`
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: ${st.accentAmber};
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+`;
+
+export const MissingEmailText = styled.div`
+    font-size: 12px;
+    line-height: 1.45;
+    color: ${st.textSecondary};
+`;
+
+export const MissingEmailForm = styled.form`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+export const EmailInput = styled.input`
+    flex: 1 1 200px;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    background: ${st.bgInput};
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
+
+    &::placeholder {
+        color: ${st.textMuted};
+    }
+
+    &:focus {
+        outline: none;
+        border-color: ${st.borderFocus};
+        box-shadow: ${st.shadowBlue};
+    }
+
+    &:disabled {
+        background: ${st.bgCardAlt};
+        cursor: not-allowed;
+    }
+`;
+
+export const SaveEmailBtn = styled.button`
+    height: 34px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #FFFFFF;
+    background: ${st.accentBlue};
+    border: none;
+    border-radius: ${st.radiusSm};
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity ${st.transition};
+
+    &:hover:not(:disabled) {
+        opacity: 0.88;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+export const MissingEmailError = styled.div`
+    font-size: 12px;
+    color: ${st.accentRed};
+    line-height: 1.4;
+`;
