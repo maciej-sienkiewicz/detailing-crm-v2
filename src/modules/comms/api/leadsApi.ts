@@ -108,6 +108,13 @@ export const leadsApi = {
         return data;
     },
 
+    updateTags: async (leadId: string, tags: string[]): Promise<Lead> => {
+        const { data } = await apiClient.put(`/v1/leads/${leadId}/tags`, { tags }, {
+            skipErrorToast: true,
+        });
+        return data;
+    },
+
     deleteLead: async (leadId: string): Promise<void> => {
         await apiClient.delete(`/v1/leads/${leadId}`, { skipErrorToast: true });
     },

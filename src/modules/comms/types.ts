@@ -172,6 +172,10 @@ export interface LeadServiceItem {
     serviceId: string | null;
     name: string;
     priceGross: number;
+    /** Netto i VAT — null dla pozycji wycenionych, zanim edytor je zapamiętywał. */
+    priceNet: number | null;
+    vatRate: number | null;
+    note: string | null;
     quantity: number;
     totalGross: number;
 }
@@ -239,6 +243,9 @@ export interface LeadServiceItemInput {
     name?: string;
     priceGross?: number;
     quantity: number;
+    priceNet?: number;
+    vatRate?: number;
+    note?: string;
 }
 
 export interface MarkThreadAsLeadRequest {

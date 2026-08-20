@@ -132,6 +132,15 @@ export const useDeleteLeadTag = () => {
     });
 };
 
+export const useUpdateLeadTags = () => {
+    const invalidate = useLeadInvalidation();
+    return useMutation({
+        mutationFn: ({ leadId, tags }: { leadId: string; tags: string[] }) =>
+            leadsApi.updateTags(leadId, tags),
+        onSuccess: (_lead, variables) => invalidate(variables.leadId),
+    });
+};
+
 export const useUpdateLeadVehicle = () => {
     const invalidate = useLeadInvalidation();
     return useMutation({

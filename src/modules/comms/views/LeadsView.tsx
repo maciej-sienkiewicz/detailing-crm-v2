@@ -2,14 +2,15 @@
 // Pipeline leadów w języku wizualnym reszty aplikacji: wspólny PageHeader,
 // karty-powierzchnie, Badge, tokeny motywu. Szczegóły w wysuwanym panelu;
 // zamknięcie jako „przegrany" wymusza wybór powodu ze słownika.
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, Car, Check, Loader2, Mail, Minus, Phone, Plus, Search, Trash2, User, X } from 'lucide-react';
+import { BarChart3, Car, Check, Loader2, Mail, Phone, Search, Trash2, User, X } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { useServices } from '@/modules/services';
+import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
+import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { useVehicleMetadata } from '@/modules/vehicles/hooks/useVehicleMetadata';
 import { useToast } from '@/common/components/Toast';
 import {
@@ -23,6 +24,8 @@ import {
     useLeads,
     useUpdateLeadServices,
 } from '../hooks/useLeads';
+import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
+import { toLeadInputs, toServiceLines, totalGrossOf } from '../utils/leadServiceLines';
 import {
     LEAD_STATUS_FLOW,
     LEAD_STATUS_LABELS,
@@ -151,20 +154,11 @@ const VehicleSpinner = styled.span`
 `;
 
 /**
- * Tagi w wierszu — wszystkie i w całości. Ucinanie ich wielokropkiem odbierało
+ * Plakietka tagu — wszystkie i w całości, bez wielokropka. Ucinanie odbierało
  * kolumnie sens: „Powłoka cer…" i „Powłoka cer…" to dwa różne tagi, których nie da
- * się odróżnić. Nazwy bywają długie, więc plakietki zawijają się do drugiej linii,
- * a wiersz rośnie — czytelność wygrywa z równą wysokością wierszy.
+ * się odróżnić. Nazwy bywają długie, więc plakietki zawijają się do drugiej linii
+ * wewnątrz komórki, a wiersz rośnie — czytelność wygrywa z równą wysokością wierszy.
  */
-const TagCell = styled.span`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-
-    .none { color: ${p => p.theme.colors.textMuted}; }
-`;
-
 const TagPill = styled.span`
     display: inline-block;
     white-space: nowrap;
@@ -176,7 +170,13 @@ const TagPill = styled.span`
     color: ${p => p.theme.colors.textSecondary};
 `;
 
-const Row = styled.button<{ $active?: boolean }>`
+/**
+ * Wiersz jest kontenerem, nie przyciskiem: komórki, które da się edytować, muszą
+ * być w środku własnymi przyciskami, a przycisk w przycisku to nieprawidłowy HTML
+ * (i przeglądarka rozstrzyga go po swojemu). Klik na wiersz otwiera panel, klik na
+ * edytowalną komórkę zatrzymuje się na niej.
+ */
+const Row = styled.div<{ $active?: boolean }>`
     display: grid;
     grid-template-columns: 1.7fr 1.1fr 2fr 0.9fr 0.9fr 0.8fr;
     gap: 10px;
@@ -228,6 +228,43 @@ const Row = styled.button<{ $active?: boolean }>`
     }
 `;
 
+/**
+ * Komórka, którą da się poprawić na miejscu. Nie krzyczy — obramowanie pojawia się
+ * dopiero pod kursorem, żeby tabela pozostała tabelą, a nie formularzem. Sygnał
+ * „to jest klikalne" ma być dostępny, gdy ktoś go szuka, a nie narzucać się reszcie.
+ */
+const EditableCell = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    min-width: 0;
+    width: 100%;
+    text-align: left;
+    border: 1px dashed transparent;
+    border-radius: ${p => p.theme.radii.sm};
+    background: transparent;
+    padding: 3px 5px;
+    margin: -3px -5px;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover, &:focus-visible {
+        border-color: ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surface};
+        outline: none;
+    }
+
+    .none { color: ${p => p.theme.colors.textMuted}; }
+    .value {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+`;
+
 // ── Panel szczegółów ─────────────────────────────────────────────────────────
 
 const DrawerOverlay = styled.div`
@@ -237,12 +274,17 @@ const DrawerOverlay = styled.div`
     z-index: 70;
 `;
 
+/**
+ * Szerszy niż typowy panel, bo mieści edytor wyceny — ten sam, co przy przyjęciu
+ * pojazdu, z kolumnami netto / VAT / brutto. Przy 440 px nazwa usługi ucinała się
+ * do jednej litery, a wycena bez czytelnej nazwy nie jest wyceną.
+ */
 const Drawer = styled.aside`
     position: fixed;
     top: 0;
     right: 0;
     bottom: 0;
-    width: 440px;
+    width: min(620px, 100vw);
     max-width: 100vw;
     background: ${p => p.theme.colors.surface};
     z-index: 71;
@@ -492,13 +534,6 @@ function SourceIcon({ source }: { source: Lead['source'] }) {
     return <User size={13} color="#94a3b8" />;
 }
 
-interface EditableServiceItem {
-    serviceId: string | null;
-    name: string;
-    priceGross: number;
-    quantity: number;
-}
-
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>();
@@ -507,12 +542,16 @@ export default function LeadsView() {
     const [lostDialogFor, setLostDialogFor] = useState<string | null>(null);
     const [lostReason, setLostReason] = useState<string | null>(null);
     const [lostNote, setLostNote] = useState('');
-    const [editingServices, setEditingServices] = useState<EditableServiceItem[] | null>(null);
-    const [serviceSearch, setServiceSearch] = useState('');
+    // null = podgląd, tablica = otwarty edytor wyceny (ten sam co przy przyjęciu auta).
+    const [editingServices, setEditingServices] = useState<ServiceLineItem[] | null>(null);
     // null = podgląd, obiekt = edycja pojazdu. Marka i model wybierane z katalogu,
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
     const [deleteDialogFor, setDeleteDialogFor] = useState<string | null>(null);
+    // Edycja komórki: który lead, które pole i pod czym zaczepić chmurkę.
+    const [cellEditor, setCellEditor] = useState<
+        { lead: Lead; field: LeadCellField; anchor: HTMLElement } | null
+    >(null);
 
     const selectedLeadId = searchParams.get('lead');
     const selectLead = (leadId: string | null) => {
@@ -536,12 +575,6 @@ export default function LeadsView() {
         () => (vehicleCatalog ?? []).find((entry) => entry.marka === editingVehicle?.brand)?.modele ?? [],
         [vehicleCatalog, editingVehicle?.brand]
     );
-    const { services: catalog } = useServices({
-        search: serviceSearch,
-        page: 1,
-        limit: 20,
-        showInactive: false,
-    });
     const changeStatus = useChangeLeadStatus();
     const updateVehicle = useUpdateLeadVehicle();
     const updateServices = useUpdateLeadServices();
@@ -552,7 +585,7 @@ export default function LeadsView() {
     useLeadsSocket();
 
     const editedTotal = useMemo(
-        () => (editingServices ?? []).reduce((sum, item) => sum + item.priceGross * item.quantity, 0),
+        () => totalGrossOf(editingServices ?? []),
         [editingServices]
     );
 
@@ -605,6 +638,23 @@ export default function LeadsView() {
         );
     };
 
+    const openCellEditor = (
+        event: MouseEvent<HTMLButtonElement>,
+        item: Lead,
+        field: LeadCellField
+    ) => {
+        // Bez tego kliknięcie doszłoby do wiersza i otworzyło panel pod chmurką.
+        event.stopPropagation();
+        setCellEditor({ lead: item, field, anchor: event.currentTarget });
+    };
+
+    /** Wartość leada to suma wyceny — kliknięcie prowadzi do edytora usług w panelu. */
+    const editServicesOf = (item: Lead) => {
+        setSearchParams({ lead: item.id }, { replace: true });
+        setEditingVehicle(null);
+        setEditingServices(toServiceLines(item.services));
+    };
+
     const confirmDelete = () => {
         const leadId = deleteDialogFor;
         if (!leadId) return;
@@ -626,12 +676,7 @@ export default function LeadsView() {
 
     const saveServices = () => {
         if (!lead || !editingServices) return;
-        const payload: LeadServiceItemInput[] = editingServices.map((item) => ({
-            serviceId: item.serviceId,
-            name: item.serviceId ? undefined : item.name,
-            priceGross: item.serviceId ? undefined : item.priceGross,
-            quantity: item.quantity,
-        }));
+        const payload: LeadServiceItemInput[] = toLeadInputs(editingServices);
         updateServices.mutate(
             { leadId: lead.id, services: payload },
             {
@@ -698,7 +743,19 @@ export default function LeadsView() {
                         <EmptyHint>Brak leadów w tym widoku</EmptyHint>
                     )}
                     {(leadPage?.items ?? []).map((item) => (
-                        <Row key={item.id} $active={item.id === selectedLeadId} onClick={() => selectLead(item.id)}>
+                        <Row
+                            key={item.id}
+                            $active={item.id === selectedLeadId}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => selectLead(item.id)}
+                            onKeyDown={(event) => {
+                                if (event.target !== event.currentTarget) return;
+                                if (event.key !== 'Enter' && event.key !== ' ') return;
+                                event.preventDefault();
+                                selectLead(item.id);
+                            }}
+                        >
                             <span className="who">
                                 <SourceIcon source={item.source} />
                                 <span>
@@ -706,29 +763,61 @@ export default function LeadsView() {
                                     {item.customerName && <div className="sub">{item.contactIdentifier}</div>}
                                 </span>
                             </span>
-                            <span className="vehicle">
-                                {item.vehicleDetectionStatus === 'PENDING' ? (
+
+                            {item.vehicleDetectionStatus === 'PENDING' ? (
+                                <span className="vehicle">
                                     <VehicleSpinner title="Rozpoznajemy auto z korespondencji">
                                         <Loader2 /> Rozpoznaję…
                                     </VehicleSpinner>
-                                ) : (
-                                    formatVehicle(item) ?? '—'
-                                )}
-                            </span>
-                            <TagCell>
+                                </span>
+                            ) : (
+                                <EditableCell
+                                    type="button"
+                                    title="Kliknij, żeby poprawić pojazd"
+                                    onClick={(event) => openCellEditor(event, item, 'vehicle')}
+                                >
+                                    <span className={formatVehicle(item) ? 'value' : 'value none'}>
+                                        {formatVehicle(item) ?? '—'}
+                                    </span>
+                                </EditableCell>
+                            )}
+
+                            <EditableCell
+                                type="button"
+                                title="Kliknij, żeby zmienić tagi"
+                                onClick={(event) => openCellEditor(event, item, 'tags')}
+                            >
                                 {item.tagLabels.length === 0 && <span className="none">—</span>}
                                 {item.tagLabels.map((label) => (
                                     <TagPill key={label}>{label}</TagPill>
                                 ))}
-                            </TagCell>
-                            <span className="value">
-                                {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '—'}
-                            </span>
-                            <span>
+                            </EditableCell>
+
+                            <EditableCell
+                                type="button"
+                                title="Kliknij, żeby otworzyć wycenę"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    editServicesOf(item);
+                                }}
+                            >
+                                {/* Wartość to suma wyceny, więc nie da się jej wpisać wprost —
+                                    kliknięcie prowadzi tam, gdzie ta liczba naprawdę powstaje. */}
+                                <span className="value" style={{ fontWeight: 600, color: '#0f172a' }}>
+                                    {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '—'}
+                                </span>
+                            </EditableCell>
+
+                            <EditableCell
+                                type="button"
+                                title="Kliknij, żeby zmienić status"
+                                onClick={(event) => openCellEditor(event, item, 'status')}
+                            >
                                 <Badge $variant={STATUS_BADGE_VARIANT[item.status]}>
                                     {LEAD_STATUS_LABELS[item.status]}
                                 </Badge>
-                            </span>
+                            </EditableCell>
+
                             <span>{formatRelativeTime(item.createdAt)}</span>
                         </Row>
                     ))}
@@ -875,16 +964,7 @@ export default function LeadsView() {
                                     )}
                                     <IconButton
                                         style={{ alignSelf: 'flex-start' }}
-                                        onClick={() =>
-                                            setEditingServices(
-                                                lead.services.map((item) => ({
-                                                    serviceId: item.serviceId,
-                                                    name: item.name,
-                                                    priceGross: item.priceGross,
-                                                    quantity: item.quantity,
-                                                }))
-                                            )
-                                        }
+                                        onClick={() => setEditingServices(toServiceLines(lead.services))}
                                     >
                                         Edytuj usługi
                                     </IconButton>
@@ -892,86 +972,14 @@ export default function LeadsView() {
                             )}
                             {editingServices !== null && (
                                 <>
-                                    {editingServices.map((item, index) => (
-                                        <ServiceLine key={`${item.serviceId}-${index}`}>
-                                            <span className="grow">{item.name}</span>
-                                            <span className="qty">
-                                                <button
-                                                    aria-label="Mniej"
-                                                    onClick={() =>
-                                                        setEditingServices(editingServices.map((current, i) =>
-                                                            i === index
-                                                                ? { ...current, quantity: Math.max(1, current.quantity - 1) }
-                                                                : current
-                                                        ))
-                                                    }
-                                                >
-                                                    <Minus size={11} />
-                                                </button>
-                                                {item.quantity}
-                                                <button
-                                                    aria-label="Więcej"
-                                                    onClick={() =>
-                                                        setEditingServices(editingServices.map((current, i) =>
-                                                            i === index
-                                                                ? { ...current, quantity: current.quantity + 1 }
-                                                                : current
-                                                        ))
-                                                    }
-                                                >
-                                                    <Plus size={11} />
-                                                </button>
-                                            </span>
-                                            <span>{formatGrosze(item.priceGross * item.quantity)}</span>
-                                            <button
-                                                className="remove"
-                                                aria-label="Usuń pozycję"
-                                                onClick={() =>
-                                                    setEditingServices(editingServices.filter((_, i) => i !== index))
-                                                }
-                                            >
-                                                <X size={13} />
-                                            </button>
-                                        </ServiceLine>
-                                    ))}
-                                    <SearchBox style={{ maxWidth: '100%' }}>
-                                        <Search size={13} />
-                                        <input
-                                            placeholder="Dodaj usługę z cennika…"
-                                            value={serviceSearch}
-                                            onChange={(event) => setServiceSearch(event.target.value)}
-                                        />
-                                    </SearchBox>
-                                    {serviceSearch && (
-                                        <div>
-                                            {catalog.slice(0, 5).map((service) => (
-                                                <ServiceLine key={service.id}>
-                                                    <button
-                                                        className="grow"
-                                                        style={{
-                                                            border: 'none', background: 'none', textAlign: 'left',
-                                                            cursor: 'pointer', color: '#0ea5e9', fontSize: 13,
-                                                            padding: '2px 0', fontFamily: 'inherit',
-                                                        }}
-                                                        onClick={() => {
-                                                            setEditingServices([
-                                                                ...editingServices,
-                                                                {
-                                                                    serviceId: service.id,
-                                                                    name: service.name,
-                                                                    priceGross: service.basePriceGross,
-                                                                    quantity: 1,
-                                                                },
-                                                            ]);
-                                                            setServiceSearch('');
-                                                        }}
-                                                    >
-                                                        + {service.name} ({formatGrosze(service.basePriceGross)})
-                                                    </button>
-                                                </ServiceLine>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {/* Ten sam edytor co przy przyjęciu pojazdu: rabaty, notatka
+                                        do pozycji, korekta ceny i podpowiedzi z cennika. Lead nie
+                                        potrzebuje własnej, uboższej listy — wycena to ta sama
+                                        czynność, tylko wcześniej. */}
+                                    <EditableServicesTable
+                                        services={editingServices}
+                                        onChange={setEditingServices}
+                                    />
                                     <TotalLine>
                                         <span>Razem</span>
                                         <span>{formatGrosze(editedTotal)}</span>
@@ -1022,6 +1030,23 @@ export default function LeadsView() {
                         </DrawerSection>
                     </Drawer>
                 </>
+            )}
+
+            {cellEditor && (
+                <LeadCellEditor
+                    // Remount na każdą komórkę zeruje pola bez efektu synchronizującego stan.
+                    key={`${cellEditor.lead.id}-${cellEditor.field}`}
+                    lead={cellEditor.lead}
+                    field={cellEditor.field}
+                    anchor={cellEditor.anchor}
+                    onClose={() => setCellEditor(null)}
+                    onRequestLost={(leadId) => {
+                        setLostReason(null);
+                        setLostNote('');
+                        setLostDialogFor(leadId);
+                    }}
+                    onChangeStatus={requestStatus}
+                />
             )}
 
             <ConfirmationModal
