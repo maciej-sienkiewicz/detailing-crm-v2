@@ -427,7 +427,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                     />
                 )}
 
-                <EmailBody $visible={sendEmail}>
+                <EmailBody $visible={sendEmail && hasCustomerEmail}>
                     <EmailBodyInner>
                         <AttachmentsLabel>Załączniki do e-maila</AttachmentsLabel>
                         <AttachmentsList>
@@ -436,7 +436,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                                 icon={<DocumentIcon />}
                                 label="Protokół przyjęcia pojazdu"
                                 checked={attachProtocol && hasProtocol}
-                                disabled={!hasProtocol}
+                                disabled={!hasProtocol || !hasCustomerEmail}
                                 onChange={v => updateEmailOptions({ attachProtocol: v })}
                             />
 
@@ -445,12 +445,13 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                                 label="Zdjęcia pojazdu"
                                 suffix={attachPhotos && selectedPhotoIds.size > 0 ? `(${selectedPhotoIds.size})` : undefined}
                                 checked={attachPhotos}
+                                disabled={!hasCustomerEmail}
                                 onChange={v => updateEmailOptions({
                                     attachPhotos: v,
                                     selectedPhotoIds: v ? selectedPhotoIds : new Set(),
                                 })}
                             >
-                                {attachPhotos && (
+                                {attachPhotos && hasCustomerEmail && (
                                     <PhotoSelector
                                         visitId={visitId}
                                         selectedIds={selectedPhotoIds}
@@ -465,6 +466,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                                 icon={<DamageIcon />}
                                 label="Model uszkodzeń pojazdu"
                                 checked={attachDamageMap}
+                                disabled={!hasCustomerEmail}
                                 onChange={v => updateEmailOptions({ attachDamageMap: v })}
                             />
 
