@@ -618,8 +618,6 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
  * żeby dzień z sześcioma wizytami nie urósł na pół ekranu.
  */
 const compactCalendarCss = css`
-    .fc-daygrid-day-frame { min-height: 0 !important; }
-
     .fc-daygrid-day-events { padding: 0 2px 2px; }
 
     .fc-daygrid-event.fc-event { margin: 1px 2px; }
@@ -642,14 +640,17 @@ const compactCalendarCss = css`
     }
 
     .fc-col-header-cell-cushion { font-size: 10.5px !important; }
+
+    .fc-daygrid-more-link {
+        font-size: 10px !important;
+        margin: 0 4px !important;
+    }
 `;
 
-const CalendarWrapper = styled.div<{ $scrollable?: boolean }>`
+const CalendarWrapper = styled.div`
     position: relative;
     flex: 1;
-    /* W trybie wyboru terminu siatka rośnie do zawartości i to ona się przewija —
-       przy overflow: hidden dolne tygodnie byłyby po prostu ucięte. */
-    overflow: ${p => (p.$scrollable ? 'hidden auto' : 'hidden')};
+    overflow: hidden;
 `;
 
 const LoadingOverlay = styled.div`
@@ -1965,7 +1966,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 eventsCount={events.length}
             />
 
-            <CalendarWrapper $scrollable={selectionMode}>
+            <CalendarWrapper>
 
                 {/* ── Agenda list view: mobile "Lista" tab ── */}
                 {agendaListActive && dateRange && (
@@ -2044,9 +2045,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
                     : {
-                        // Tryb wyboru terminu: siatka rośnie do zawartości, a przewija
-                        // się CalendarWrapper — sztywne 100% ucinałoby dolne tygodnie.
-                        height: selectionMode ? 'auto' : '100%',
+                        height: '100%',
                         opacity: isNavigating ? 0 : 1,
                         transition: 'opacity 0.22s ease',
                         pointerEvents: isNavigating ? 'none' : undefined,
@@ -2092,9 +2091,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 editable={false}
                 selectable={true}
                 selectMirror={true}
-                /* Przy wyborze terminu pokazujemy wszystkie wydarzenia dnia: „jeszcze N"
-                   ukrywa dokładnie tę informację, dla której otwiera się kalendarz. */
-                dayMaxEvents={!selectionMode}
+                /* Przy wyborze terminu twardy limit czterech pozycji zamiast „tyle, ile
+                   się zmieści": w oknie modalnym kafelek jest niski, więc automat chował
+                   pod „jeszcze N" praktycznie wszystko. Cztery mieszczą się dzięki
+                   zwężonym chipom (compactCalendarCss) i dają równe wiersze. */
+                dayMaxEvents={selectionMode ? 4 : true}
                 moreLinkText={(n) => `jeszcze ${n}`}
                 eventOrder={[
                     // When navigating from the operations list, keep the highlighted event
@@ -2299,10 +2300,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 }}
 
                 // Other options
-                // Tryb wyboru: siatka rośnie do zawartości i przewija się w oknie;
-                // rozciąganie wierszy do wysokości modala dawało kafelki bez miejsca.
-                height={selectionMode ? 'auto' : '100%'}
-                expandRows={!selectionMode}
+                height="100%"
+                expandRows={true}
             />
                 </div>
             </CalendarWrapper>
