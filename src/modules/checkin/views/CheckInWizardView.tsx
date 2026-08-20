@@ -680,6 +680,10 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     visitNumber={signingModalState.visitNumber || ''}
                     customerName={`${formData.customerData.firstName} ${formData.customerData.lastName}`}
                     customerPhone={formData.customerData.phone || null}
+                    customerEmail={formData.customerData.email || null}
+                    onCustomerEmailSaved={email => updateFormData({
+                        customerData: { ...formData.customerData, email },
+                    })}
                     protocols={signingModalState.protocols}
                     onConfirm={handleSigningModalConfirm}
                     hasPhotos={signingModalState.hasPhotos}

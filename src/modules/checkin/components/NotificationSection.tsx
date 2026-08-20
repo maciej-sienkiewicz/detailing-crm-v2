@@ -1,6 +1,9 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { LockedSection } from '@/common/components/LockedSection';
+import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
+import { visitApi } from '@/modules/visits/api/visitApi';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import type { ConfirmVisitOptions } from '@/modules/visits/types';
 import {
@@ -34,6 +37,14 @@ import {
     PhotoCheckOverlay,
     PhotoLoadingPlaceholder,
     NoPhotosHint,
+    MissingEmailPanel,
+    MissingEmailNotice,
+    MissingEmailIcon,
+    MissingEmailText,
+    MissingEmailForm,
+    EmailInput,
+    SaveEmailBtn,
+    MissingEmailError,
 } from './NotificationSection.styles';
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
@@ -122,6 +133,89 @@ const DamageIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
 );
+
+const WarningIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+    </svg>
+);
+
+/* ─── Missing customer e-mail ────────────────────────────────────────────────── */
+
+const EMAIL_PATTERN = /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+interface MissingCustomerEmailProps {
+    visitId: string;
+    onSaved: (email: string) => void;
+}
+
+/**
+ * Wysyłka e-maila wymaga adresu klienta, a ten bywa pusty — zamiast odsyłać
+ * użytkownika do formularza przyjęcia (i tracić otwarty modal), pozwalamy
+ * uzupełnić adres w miejscu.
+ */
+const MissingCustomerEmail = ({ visitId, onSaved }: MissingCustomerEmailProps) => {
+    const [email, setEmail] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const { showSuccess } = useToast();
+
+    const saveEmail = useMutation({
+        mutationFn: (value: string) => visitApi.updateCustomerEmail(visitId, value),
+        onSuccess: result => {
+            setError(null);
+            showSuccess('Adres e-mail klienta został zapisany');
+            onSaved(result.email);
+        },
+        onError: (err: unknown) => {
+            const apiMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            setError(apiMessage ?? 'Nie udało się zapisać adresu e-mail. Spróbuj jeszcze raz.');
+        },
+    });
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        const value = email.trim();
+        if (!EMAIL_PATTERN.test(value)) {
+            setError('Podaj poprawny adres e-mail.');
+            return;
+        }
+        setError(null);
+        saveEmail.mutate(value);
+    };
+
+    return (
+        <MissingEmailPanel>
+            <MissingEmailNotice>
+                <MissingEmailIcon><WarningIcon /></MissingEmailIcon>
+                <MissingEmailText>
+                    Wysyłka e-maila jest niedostępna — klient nie ma zapisanego adresu e-mail.
+                    Możesz uzupełnić go tutaj, bez wracania do formularza.
+                </MissingEmailText>
+            </MissingEmailNotice>
+
+            <MissingEmailForm onSubmit={handleSubmit} noValidate>
+                <EmailInput
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="adres@email.pl"
+                    aria-label="Adres e-mail klienta"
+                    value={email}
+                    disabled={saveEmail.isPending}
+                    onChange={e => {
+                        setEmail(e.target.value);
+                        if (error) setError(null);
+                    }}
+                />
+                <SaveEmailBtn type="submit" disabled={saveEmail.isPending || email.trim().length === 0}>
+                    {saveEmail.isPending ? 'Zapisywanie...' : 'Zapisz adres'}
+                </SaveEmailBtn>
+            </MissingEmailForm>
+
+            {error && <MissingEmailError role="alert">{error}</MissingEmailError>}
+        </MissingEmailPanel>
+    );
+};
 
 /* ─── Photo Selector ─────────────────────────────────────────────────────────── */
 
@@ -255,13 +349,19 @@ interface NotificationSectionProps {
     visitId: string;
     hasProtocol: boolean;
     visitWelcomeEnabled: boolean;
+    /** Adres e-mail klienta wizyty; pusty blokuje wysyłkę do czasu uzupełnienia. */
+    customerEmail?: string | null;
+    /** Wywoływane po zapisaniu brakującego adresu, żeby rodzic odświeżył swój stan. */
+    onCustomerEmailSaved?: (email: string) => void;
     options: NotificationOptions;
     onChange: (options: NotificationOptions) => void;
 }
 
-export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled, options, onChange }: NotificationSectionProps) => {
+export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled, customerEmail, onCustomerEmailSaved, options, onChange }: NotificationSectionProps) => {
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const { sendEmail, emailOptions } = options;
+    const hasCustomerEmail = !!customerEmail?.trim();
+    const emailDisabled = !visitWelcomeEnabled || !hasCustomerEmail;
 
     // Neutralize, don't just blur: the section is controlled by the parent and its
     // defaults can arrive as true; a blurred checkbox still submits its value.
@@ -271,6 +371,15 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [comms.isLoading, comms.enabled, options.sendSms, options.sendEmail]);
+    // Brak adresu = brak wysyłki: sam wyszarzony przełącznik nie wystarczy,
+    // bo domyślne opcje przychodzą z rodzica z sendEmail = true.
+    useEffect(() => {
+        if (!hasCustomerEmail && options.sendEmail) {
+            onChange({ ...options, sendEmail: false });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasCustomerEmail, options.sendEmail]);
+
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
     const updateEmailOptions = (patch: Partial<typeof emailOptions>) =>
@@ -300,10 +409,24 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                 label="Wyślij e-mail potwierdzający"
                 description="Szczegółowe potwierdzenie z danymi wizyty"
                 active={sendEmail}
-                disabled={!visitWelcomeEnabled}
-                disabledHint="Wyłączone globalnie w konfiguracji e-mail"
+                disabled={emailDisabled}
+                disabledHint={!visitWelcomeEnabled
+                    ? 'Wyłączone globalnie w konfiguracji e-mail'
+                    : 'Niedostępne — brak adresu e-mail klienta'}
                 onToggle={() => onChange({ ...options, sendEmail: !sendEmail })}
             >
+                {visitWelcomeEnabled && !hasCustomerEmail && (
+                    <MissingCustomerEmail
+                        visitId={visitId}
+                        onSaved={email => {
+                            // Adres uzupełniony w locie — włączamy wysyłkę, po którą
+                            // użytkownik tu przyszedł, zamiast kazać klikać przełącznik.
+                            onChange({ ...options, sendEmail: true });
+                            onCustomerEmailSaved?.(email);
+                        }}
+                    />
+                )}
+
                 <EmailBody $visible={sendEmail}>
                     <EmailBodyInner>
                         <AttachmentsLabel>Załączniki do e-maila</AttachmentsLabel>
