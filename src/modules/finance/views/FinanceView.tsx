@@ -774,6 +774,10 @@ interface IncomeFilters {
   page:          number;
 }
 
+const EMPTY_INCOME_FILTERS: IncomeFilters = {
+  documentType: '', paymentStatus: '', duplicates: false, page: 1,
+};
+
 interface IncomeTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
   onSelect: (document: IncomeDocument) => void;
@@ -785,17 +789,17 @@ interface IncomeTabContentProps {
  * „inne" z modułu finansowego.
  */
 const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, onSelect }) => {
-  const [filters, setFilters] = useState<IncomeFilters>({
-    documentType: '', paymentStatus: '', duplicates: false, page: 1,
-  });
+  const [filters, setFilters] = useState<IncomeFilters>(EMPTY_INCOME_FILTERS);
+  const [showExcluded, setShowExcluded] = useState(false);
 
   const { documents, total, isLoading, isError, refetch } = useIncomeDocuments({
     documentType:  (filters.documentType  as IncomeDocumentType) || undefined,
     paymentStatus: (filters.paymentStatus as 'PAID' | 'PENDING' | 'OVERDUE') || undefined,
-    dateFrom:      activeDateRange.dateFrom,
-    dateTo:        activeDateRange.dateTo,
-    page:          filters.page,
-    pageSize:      PAGE_SIZE,
+    dateFrom:        activeDateRange.dateFrom,
+    dateTo:          activeDateRange.dateTo,
+    includeExcluded: showExcluded || undefined,
+    page:            filters.page,
+    pageSize:        PAGE_SIZE,
   });
 
   // Podejrzane duplikaty dotyczą wyłącznie faktur z ledgera KSeF, filtr działa
@@ -837,9 +841,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
         />
         <FilterSeparator />
         {hasFilters && (
-          <ClearFiltersBtn
-            onClick={() => setFilters({ documentType: '', paymentStatus: '', duplicates: false, page: 1 })}
-          >
+          <ClearFiltersBtn onClick={() => setFilters(EMPTY_INCOME_FILTERS)}>
             Wyczyść filtry
           </ClearFiltersBtn>
         )}
@@ -850,6 +852,16 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
             type="checkbox"
             checked={filters.duplicates}
             onChange={(e) => setFilter('duplicates', e.target.checked)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+          />
+        </ToggleLabel>
+        <ToggleLabel>
+          <ToggleTrack $on={showExcluded} />
+          <ToggleText>Pokaż ukryte</ToggleText>
+          <input
+            type="checkbox"
+            checked={showExcluded}
+            onChange={(e) => { setShowExcluded(e.target.checked); setFilters((p) => ({ ...p, page: 1 })); }}
             style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
           />
         </ToggleLabel>
