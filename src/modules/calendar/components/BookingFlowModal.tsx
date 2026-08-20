@@ -16,12 +16,13 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarView, type CalendarRangeSelection } from './CalendarView';
 import { QuickEventModal, type QuickEventFormData, type QuickEventInitialData } from './QuickEventModal';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import type { EventCreationData } from '../types';
 
-const Overlay = styled.div`
+const Overlay = styled.div<{ $contentLeft: number }>`
     position: fixed;
     inset: 0;
     height: 100vh;
@@ -30,6 +31,10 @@ const Overlay = styled.div`
        oba kroki kreatora otwierają się nad oknem, z którego wyszły — panelem
        leada albo podglądem rozmowy — więc muszą leżeć nad warstwą ModalKit (1000). */
     z-index: 1300;
+    /* I ta sama geometria: formularz rezerwacji zaczyna się za sidebarem, więc
+       kalendarz też. Inaczej przejście między krokami przeskakuje o szerokość
+       sidebara, a przyciemnienie mruga na tym pasku. */
+    left: ${p => p.$contentLeft}px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -39,6 +44,7 @@ const Overlay = styled.div`
 
     @media (max-width: 640px) {
         padding: 0;
+        left: 0;
     }
 `;
 
@@ -139,6 +145,7 @@ export function BookingFlowModal({
     onBooked,
 }: BookingFlowModalProps) {
     const [range, setRange] = useState<EventCreationData | null>(null);
+    const { isCollapsed } = useSidebar();
     const { createBookingAsync } = useQuickEventCreation();
     const { showSuccess, showError } = useToast();
 
@@ -192,7 +199,10 @@ export function BookingFlowModal({
     }
 
     return createPortal(
-        <Overlay onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+        <Overlay
+            $contentLeft={isCollapsed ? 64 : 240}
+            onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+        >
             <Sheet onMouseDown={(event) => event.stopPropagation()}>
                 <SheetHeader>
                     <div>

@@ -47,7 +47,8 @@ import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
 import { BookingFlowModal } from '@/modules/calendar';
-import { contactToBookingPrefill } from '../utils/bookingPrefill';
+import { contactToBookingPrefill, leadToBookingPrefill } from '../utils/bookingPrefill';
+import { useLead } from '../hooks/useLeads';
 import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
@@ -519,6 +520,14 @@ function ConversationViewImpl({
     // Kartoteka kontaktu — telefon i auta klienta do wypełnienia rezerwacji.
     // Pobierana dopiero przy otwartym kreatorze; sam podgląd rozmowy jej nie potrzebuje.
     const { data: contactCard } = useContactCard(thread.participantEmail, { enabled: bookingOpen });
+    // Rozmowa oznaczona jako lead ma już wycenę i rozpoznane auto — rezerwacja
+    // zakładana stąd musi je przenieść tak samo jak ta z panelu leada, inaczej
+    // uzgodnione w tej właśnie korespondencji usługi trzeba by wpisać od nowa.
+    const { data: bookingLead } = useLead(bookingOpen ? thread.leadId : null);
+    // Rozmowa jest leadem, ale jego dane jeszcze lecą — kreator czeka. Otwarcie go
+    // teraz i domontowanie wyceny później znaczyłoby przemontowanie komponentu,
+    // czyli skasowanie terminu, który użytkownik zdążył już wybrać.
+    const bookingWaitsForLead = bookingOpen && thread.leadId !== null && !bookingLead;
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Ręczne rozwinięcia trzymamy razem z id wątku — zmiana rozmowy zeruje je sama,
@@ -705,14 +714,21 @@ function ConversationViewImpl({
                         onCreated={() => undefined}
                     />
                 )}
-                {bookingOpen && (
+                {bookingOpen && !bookingWaitsForLead && (
                     <BookingFlowModal
+                        /* Lead z już przypiętą rezerwacją odrzuciłby drugą — wtedy
+                           zakładamy zwykłą, bez wiązania, zamiast pokazywać błąd. */
+                        leadId={bookingLead && !bookingLead.appointmentId ? bookingLead.id : undefined}
                         subtitle={contactCard?.customer?.fullName ?? thread.participantName ?? thread.participantEmail}
-                        prefill={contactToBookingPrefill({
-                            email: thread.participantEmail,
-                            participantName: thread.participantName,
-                            contactCard,
-                        })}
+                        prefill={
+                            bookingLead
+                                ? leadToBookingPrefill(bookingLead, contactCard)
+                                : contactToBookingPrefill({
+                                    email: thread.participantEmail,
+                                    participantName: thread.participantName,
+                                    contactCard,
+                                })
+                        }
                         onClose={() => setBookingThreadId(null)}
                         onBooked={() => setBookingThreadId(null)}
                     />

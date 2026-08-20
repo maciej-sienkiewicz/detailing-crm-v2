@@ -813,7 +813,12 @@ export default function LeadsView() {
                 </TableScroll>
             </SurfaceCard>
 
-            {lead && (
+            {/* Panel szczegółów znika na czas kreatora rezerwacji. Dwie nałożone
+                nakładki nie pokrywają się geometrycznie — formularz rezerwacji jest
+                przesunięty o szerokość sidebara, panel leada nie — więc jedna z nich
+                przyciemniała i rozmywała kawałek ekranu drugi raz, zostawiając widoczny
+                pionowy szew. Kreator i tak zakrywa panel w całości. */}
+            {lead && !bookingFor && (
                 <ModalShell isOpen onClose={() => selectLead(null)} maxWidth="1040px">
                     <ModalHeader>
                         <ModalTitleGroup>
