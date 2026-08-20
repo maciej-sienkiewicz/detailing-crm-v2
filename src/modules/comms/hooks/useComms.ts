@@ -20,6 +20,8 @@ export const COMMS_KEY = ['comms'];
 export const COMMS_THREADS_KEY = [...COMMS_KEY, 'threads'];
 export const COMMS_ACCOUNTS_KEY = [...COMMS_KEY, 'accounts'];
 export const COMMS_INSIGHTS_KEY = [...COMMS_KEY, 'insights'];
+export const COMMS_BADGES_KEY = [...COMMS_KEY, 'contact-badges'];
+export const COMMS_NOTES_KEY = [...COMMS_KEY, 'notes'];
 
 export const useMailAccounts = (options?: { enabled?: boolean }) =>
     useQuery({
@@ -80,6 +82,72 @@ export const useContactInsights = (email: string | null, threadId?: string) =>
         enabled: email !== null,
         staleTime: 30_000,
     });
+
+/**
+ * Plakietki nagłówka rozmowy: ile innych wątków z tym adresem i ile notatek.
+ * Osobne zapytanie od insights, bo nagłówek musi być gotowy zaraz po kliknięciu,
+ * a insights ciągnie wizyty, rezerwacje i leady.
+ */
+export const useThreadContactBadges = (threadId: string | null) =>
+    useQuery({
+        queryKey: [...COMMS_BADGES_KEY, threadId],
+        queryFn: () => commsApi.getThreadContactBadges(threadId!),
+        enabled: threadId !== null,
+        staleTime: 60_000,
+    });
+
+export const useContactNotes = (email: string | null, options?: { enabled?: boolean }) =>
+    useQuery({
+        queryKey: [...COMMS_NOTES_KEY, 'list', email],
+        queryFn: () => commsApi.getNotes(email!),
+        enabled: email !== null && (options?.enabled ?? true),
+    });
+
+export const useContactNoteHistory = (email: string | null, options?: { enabled?: boolean }) =>
+    useQuery({
+        queryKey: [...COMMS_NOTES_KEY, 'history', email],
+        queryFn: () => commsApi.getNoteHistory(email!),
+        enabled: email !== null && (options?.enabled ?? true),
+    });
+
+/**
+ * Po każdej zmianie notatki odświeżamy listę, historię i plakietkę z licznikiem —
+ * licznik pokazujący inną liczbę niż widoczna lista jest gorszy niż brak licznika.
+ */
+const useNotesInvalidation = () => {
+    const queryClient = useQueryClient();
+    return (email: string) => {
+        queryClient.invalidateQueries({ queryKey: [...COMMS_NOTES_KEY, 'list', email] });
+        queryClient.invalidateQueries({ queryKey: [...COMMS_NOTES_KEY, 'history', email] });
+        queryClient.invalidateQueries({ queryKey: COMMS_BADGES_KEY });
+    };
+};
+
+export const useCreateContactNote = () => {
+    const invalidate = useNotesInvalidation();
+    return useMutation({
+        mutationFn: ({ email, body }: { email: string; body: string }) =>
+            commsApi.createNote(email, body),
+        onSuccess: (_note, variables) => invalidate(variables.email),
+    });
+};
+
+export const useUpdateContactNote = () => {
+    const invalidate = useNotesInvalidation();
+    return useMutation({
+        mutationFn: ({ noteId, body }: { email: string; noteId: string; body: string }) =>
+            commsApi.updateNote(noteId, body),
+        onSuccess: (_note, variables) => invalidate(variables.email),
+    });
+};
+
+export const useDeleteContactNote = () => {
+    const invalidate = useNotesInvalidation();
+    return useMutation({
+        mutationFn: ({ noteId }: { email: string; noteId: string }) => commsApi.deleteNote(noteId),
+        onSuccess: (_result, variables) => invalidate(variables.email),
+    });
+};
 
 /** Liczba nieprzeczytanych — do plakietki w menu bocznym. */
 export const useUnreadMailCount = (options?: { enabled?: boolean }): number => {

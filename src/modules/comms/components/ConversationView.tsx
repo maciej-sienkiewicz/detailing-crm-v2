@@ -35,7 +35,9 @@ import {
     ChevronRight,
     Maximize2,
     Paperclip,
+    MessagesSquare,
     Sparkles,
+    StickyNote,
     Tag,
     Wallet,
 } from 'lucide-react';
@@ -44,6 +46,8 @@ import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
 import { ClientProfileModal } from './ClientProfileModal';
+import { ContactNotesPopover } from './ContactNotesPopover';
+import { useThreadContactBadges } from '../hooks/useComms';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
@@ -91,6 +95,40 @@ const HeaderActions = styled.div`
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+`;
+
+/**
+ * Plakietki przy adresie nadawcy: ile jeszcze rozmów mamy z tym adresem i notatki
+ * o kliencie. Świadomie ciche — szara ramka, ten sam rozmiar co adres obok. To
+ * kontekst do zerknięcia, nie akcja, a nagłówek ma prowadzić wzrok do tematu wątku.
+ */
+const ContextBadge = styled.button<{ $interactive?: boolean; $active?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
+    background: ${({ $active, theme }) => ($active ? '#f0f9ff' : theme.colors.surfaceAlt)};
+    color: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textSecondary)};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 2px 9px;
+    font-size: 11.5px;
+    font-family: inherit;
+    line-height: 1.7;
+    white-space: nowrap;
+    cursor: ${({ $interactive }) => ($interactive ? 'pointer' : 'default')};
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        border-color: ${({ $interactive, theme }) =>
+            $interactive ? theme.colors.textMuted : theme.colors.border};
+    }
+
+    svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+    .count {
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        font-variant-numeric: tabular-nums;
+    }
 `;
 
 /**
@@ -389,6 +427,15 @@ const visitsLabel = (count: number): string => {
     return plural ? 'wizyty' : 'wizyt';
 };
 
+/** Odmiana „wątek/wątki/wątków" — plakietka też ma brzmieć po polsku. */
+const threadsLabel = (count: number): string => {
+    if (count === 1) return 'inny wątek';
+    const lastDigit = count % 10;
+    const lastTwo = count % 100;
+    const plural = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14);
+    return plural ? 'inne wątki' : 'innych wątków';
+};
+
 interface ConversationViewProps {
     thread: CommThread;
     /** null = treść wątku jeszcze się dociąga (nagłówek jest już poprawny). */
@@ -470,6 +517,10 @@ function ConversationViewImpl({
     }, [thread.id]);
 
     const [profileOpen, setProfileOpen] = useState(false);
+    // Kotwicą chmurki notatek jest sama plakietka — trzymamy jej element, a nie flagę,
+    // bo pozycja przelicza się przy przewinięciu nagłówka i zmianie szerokości okna.
+    const [notesAnchor, setNotesAnchor] = useState<HTMLElement | null>(null);
+    const { data: contactBadges } = useThreadContactBadges(thread.id);
 
     return (
         <Pane $hiddenOnMobile={hiddenOnMobile}>
@@ -488,6 +539,39 @@ function ConversationViewImpl({
                                 ? `${thread.participantName} · ${thread.participantEmail}`
                                 : thread.participantEmail}
                         </span>
+
+                        {contactBadges && (
+                            <>
+                                <ContextBadge as="span" title="Rozmowy z tym adresem">
+                                    <MessagesSquare />
+                                    {contactBadges.otherThreadCount > 0 ? (
+                                        <>
+                                            <span className="count">{contactBadges.otherThreadCount}</span>
+                                            {` ${threadsLabel(contactBadges.otherThreadCount)}`}
+                                        </>
+                                    ) : (
+                                        'Brak poprzednich rozmów'
+                                    )}
+                                </ContextBadge>
+
+                                <ContextBadge
+                                    type="button"
+                                    $interactive
+                                    $active={notesAnchor !== null}
+                                    aria-expanded={notesAnchor !== null}
+                                    onClick={(event) => {
+                                        const badge = event.currentTarget as HTMLElement;
+                                        setNotesAnchor((current) => (current ? null : badge));
+                                    }}
+                                >
+                                    <StickyNote />
+                                    Notatka do klienta
+                                    {contactBadges.noteCount > 0 && (
+                                        <span className="count">{contactBadges.noteCount}</span>
+                                    )}
+                                </ContextBadge>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -511,6 +595,13 @@ function ConversationViewImpl({
                         </IconButton>
                     )}
                 </HeaderActions>
+                {notesAnchor && (
+                    <ContactNotesPopover
+                        email={thread.participantEmail}
+                        anchor={notesAnchor}
+                        onClose={() => setNotesAnchor(null)}
+                    />
+                )}
                 {leadPopoverOpen && (
                     <MarkAsLeadModal
                         threadId={thread.id}

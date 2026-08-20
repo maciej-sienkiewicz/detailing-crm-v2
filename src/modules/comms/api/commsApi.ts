@@ -5,10 +5,13 @@ import type {
     CommThreadPage,
     ConnectMailAccountRequest,
     ContactInsights,
+    ContactNote,
+    ContactNoteEvent,
     MailAccountState,
     MailSignature,
     ProviderDetectResult,
     SendMailRequest,
+    ThreadContactBadges,
     ThreadListFilters,
 } from '../types';
 
@@ -109,6 +112,47 @@ export const commsApi = {
         if (threadId) params.set('threadId', threadId);
         const { data } = await apiClient.get(`/v1/comms/insights?${params}`);
         return data;
+    },
+
+    // ── Plakietki nagłówka rozmowy ───────────────────────────────────────────
+
+    getThreadContactBadges: async (threadId: string): Promise<ThreadContactBadges> => {
+        const { data } = await apiClient.get(`/v1/comms/threads/${threadId}/contact-badges`);
+        return data;
+    },
+
+    // ── Notatki o kontakcie ──────────────────────────────────────────────────
+
+    getNotes: async (email: string): Promise<{ email: string; notes: ContactNote[] }> => {
+        const { data } = await apiClient.get(`/v1/comms/notes?email=${encodeURIComponent(email)}`);
+        return data;
+    },
+
+    getNoteHistory: async (email: string): Promise<ContactNoteEvent[]> => {
+        const { data } = await apiClient.get(
+            `/v1/comms/notes/history?email=${encodeURIComponent(email)}`
+        );
+        return data;
+    },
+
+    createNote: async (email: string, body: string): Promise<ContactNote> => {
+        const { data } = await apiClient.post(
+            `/v1/comms/notes?email=${encodeURIComponent(email)}`,
+            { body },
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
+    updateNote: async (noteId: string, body: string): Promise<ContactNote> => {
+        const { data } = await apiClient.put(`/v1/comms/notes/${noteId}`, { body }, {
+            skipErrorToast: true,
+        });
+        return data;
+    },
+
+    deleteNote: async (noteId: string): Promise<void> => {
+        await apiClient.delete(`/v1/comms/notes/${noteId}`, { skipErrorToast: true });
     },
 
     // ── Załączniki ───────────────────────────────────────────────────────────

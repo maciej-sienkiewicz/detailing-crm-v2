@@ -11,8 +11,8 @@
 //    reguła: zwykle wiadomo, o czym jest rozmowa, a nie ile to będzie kosztować.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import styled from 'styled-components';
-import { Check, ChevronDown, Minus, Plus, Search, X } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { Check, ChevronDown, Loader2, Minus, Plus, Search, Trash2, X } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -24,9 +24,18 @@ import {
 } from '@/common/components/ModalKit';
 import { useServices } from '@/modules/services';
 import { useToast } from '@/common/components/Toast';
-import { useLeadDictionaries, useMarkThreadAsLead } from '../hooks/useLeads';
+import {
+    useCreateLeadTag,
+    useDeleteLeadTag,
+    useLeadDictionaries,
+    useMarkThreadAsLead,
+} from '../hooks/useLeads';
 import type { LeadServiceItemInput } from '../types';
 import { EmptyHint, IconButton, PrimaryButton, formatGrosze } from './shared';
+
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
 
 const Body = styled.div`
     display: flex;
@@ -102,7 +111,8 @@ const SelectMenu = styled.div`
 `;
 
 const SelectOption = styled.button<{ $selected: boolean }>`
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 9px;
@@ -135,6 +145,75 @@ const OptionBox = styled.span<{ $selected: boolean }>`
     color: #ffffff;
 `;
 
+/**
+ * Wiersz opcji trzyma dwa cele kliknięcia: całą pozycję (zaznacz) i kosz (usuń ze
+ * słownika). Kosz pojawia się dopiero po najechaniu na wiersz — stale widoczny przy
+ * każdym tagu robiłby z listy wyboru listę do kasowania.
+ */
+const OptionRow = styled.div`
+    display: flex;
+    align-items: stretch;
+
+    &:hover .remove { opacity: 1; }
+`;
+
+const RemoveTagButton = styled.button`
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    padding: 0 10px;
+    opacity: 0;
+    transition: opacity ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
+
+    &:hover { color: ${p => p.theme.colors.error}; }
+    &:focus-visible { opacity: 1; }
+`;
+
+const MenuFooter = styled.div`
+    border-top: 1px solid ${p => p.theme.colors.border};
+    margin-top: 4px;
+    padding: 8px 10px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.sm};
+        padding: 6px 9px;
+        font-size: 12.5px;
+        font-family: inherit;
+        color: ${p => p.theme.colors.text};
+        outline: none;
+
+        &:focus { border-color: ${p => p.theme.colors.primary}; }
+    }
+
+    button.add {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: none;
+        background: ${p => p.theme.colors.primary};
+        color: #ffffff;
+        border-radius: ${p => p.theme.radii.sm};
+        padding: 7px 10px;
+        font-size: 12.5px;
+        font-family: inherit;
+        font-weight: ${p => p.theme.fontWeights.medium};
+        cursor: pointer;
+
+        &:disabled { opacity: 0.5; cursor: default; }
+    }
+
+    svg.spin { animation: ${spin} 900ms linear infinite; }
+`;
+
 interface TagOption {
     code: string;
     label: string;
@@ -144,9 +223,13 @@ interface TagMultiSelectProps {
     options: TagOption[];
     value: string[];
     onChange: (next: string[]) => void;
+    onCreate: (label: string) => void;
+    onDelete: (option: TagOption) => void;
+    isCreating: boolean;
 }
 
-function TagMultiSelect({ options, value, onChange }: TagMultiSelectProps) {
+function TagMultiSelect({ options, value, onChange, onCreate, onDelete, isCreating }: TagMultiSelectProps) {
+    const [newLabel, setNewLabel] = useState('');
     const [open, setOpen] = useState(false);
     const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number }>({
         left: 0,
@@ -236,25 +319,64 @@ function TagMultiSelect({ options, value, onChange }: TagMultiSelectProps) {
                         aria-multiselectable
                         style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
                     >
-                        {options.length === 0 && <EmptyHint>Brak tagów</EmptyHint>}
+                        {options.length === 0 && <EmptyHint>Brak tagów — dodaj pierwszy niżej</EmptyHint>}
                         {options.map((option) => {
                             const selected = value.includes(option.code);
                             return (
-                                <SelectOption
-                                    key={option.code}
-                                    type="button"
-                                    role="option"
-                                    aria-selected={selected}
-                                    $selected={selected}
-                                    onClick={() => toggle(option.code)}
-                                >
-                                    <OptionBox $selected={selected}>
-                                        {selected && <Check size={11} strokeWidth={3} />}
-                                    </OptionBox>
-                                    {option.label}
-                                </SelectOption>
+                                <OptionRow key={option.code}>
+                                    <SelectOption
+                                        type="button"
+                                        role="option"
+                                        aria-selected={selected}
+                                        $selected={selected}
+                                        onClick={() => toggle(option.code)}
+                                    >
+                                        <OptionBox $selected={selected}>
+                                            {selected && <Check size={11} strokeWidth={3} />}
+                                        </OptionBox>
+                                        {option.label}
+                                    </SelectOption>
+                                    <RemoveTagButton
+                                        className="remove"
+                                        type="button"
+                                        aria-label={`Usuń tag ${option.label}`}
+                                        title="Usuń ze słownika"
+                                        onClick={() => onDelete(option)}
+                                    >
+                                        <Trash2 size={13} />
+                                    </RemoveTagButton>
+                                </OptionRow>
                             );
                         })}
+
+                        <MenuFooter>
+                            <input
+                                placeholder="Nowy tag…"
+                                value={newLabel}
+                                maxLength={80}
+                                onChange={(event) => setNewLabel(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') return;
+                                    // Enter w polu tagu nie ma prawa wysłać całego formularza.
+                                    event.preventDefault();
+                                    if (!newLabel.trim() || isCreating) return;
+                                    onCreate(newLabel.trim());
+                                    setNewLabel('');
+                                }}
+                            />
+                            <button
+                                className="add"
+                                type="button"
+                                disabled={!newLabel.trim() || isCreating}
+                                onClick={() => {
+                                    onCreate(newLabel.trim());
+                                    setNewLabel('');
+                                }}
+                            >
+                                {isCreating ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
+                                Dodaj
+                            </button>
+                        </MenuFooter>
                     </SelectMenu>,
                     document.body
                 )}
@@ -400,7 +522,38 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
     });
     const { data: dictionaries } = useLeadDictionaries();
     const markAsLead = useMarkThreadAsLead();
+    const createTag = useCreateLeadTag();
+    const deleteTag = useDeleteLeadTag();
     const { showSuccess, showError } = useToast();
+
+    const addTag = (label: string) =>
+        createTag.mutate(label, {
+            // Świeżo dodany tag jest z definicji tym, o który chodziło — zaznaczamy go
+            // od razu, żeby nie trzeba było go szukać na liście po dodaniu.
+            onSuccess: (entry) =>
+                setTags((current) => (current.includes(entry.code) ? current : [...current, entry.code])),
+            onError: (error) => {
+                const message =
+                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                showError('Nie udało się dodać tagu', message ?? 'Spróbuj ponownie');
+            },
+        });
+
+    const removeTag = (option: { code: string; label: string }) =>
+        deleteTag.mutate(option.code, {
+            onSuccess: () => {
+                setTags((current) => current.filter((code) => code !== option.code));
+                showSuccess(
+                    `Tag „${option.label}" usunięty`,
+                    'Leady, które go mają, zachowują go w historii'
+                );
+            },
+            onError: (error) => {
+                const message =
+                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                showError('Nie udało się usunąć tagu', message ?? 'Spróbuj ponownie');
+            },
+        });
 
     const total = useMemo(
         () => selected.reduce((sum, item) => sum + item.priceGross * item.quantity, 0),
@@ -466,6 +619,9 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                             options={dictionaries?.tags ?? []}
                             value={tags}
                             onChange={setTags}
+                            onCreate={addTag}
+                            onDelete={removeTag}
+                            isCreating={createTag.isPending}
                         />
                     </Field>
 

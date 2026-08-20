@@ -81,6 +81,57 @@ const useLeadInvalidation = () => {
     };
 };
 
+/**
+ * Usunięcie leada. Wiersz znika z listy od razu — czekanie na odświeżenie po
+ * potwierdzonym kliknięciu „Usuń" wygląda jak zawieszenie, a nie jak ostrożność.
+ */
+export const useDeleteLead = () => {
+    const queryClient = useQueryClient();
+    const invalidate = useLeadInvalidation();
+    return useMutation({
+        mutationFn: (leadId: string) => leadsApi.deleteLead(leadId),
+        onSuccess: (_result, leadId) => {
+            queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (page) => {
+                if (!page) return page;
+                if (!page.items.some((item) => item.id === leadId)) return page;
+                return {
+                    ...page,
+                    items: page.items.filter((item) => item.id !== leadId),
+                    total: Math.max(0, page.total - 1),
+                };
+            });
+            queryClient.removeQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+            // Wątek odzyskuje możliwość ponownego oznaczenia — skrzynka musi o tym wiedzieć.
+            queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY });
+            invalidate();
+        },
+    });
+};
+
+/** Nowy tag w słowniku studia. */
+export const useCreateLeadTag = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (label: string) => leadsApi.createTag(label),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: LEAD_DICTIONARIES_KEY }),
+    });
+};
+
+/**
+ * Usunięcie tagu ze słownika. Leady, które go mają, zachowują go w swojej historii —
+ * dlatego unieważniamy też listę: etykiety na wierszach przestają być aktualne.
+ */
+export const useDeleteLeadTag = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (code: string) => leadsApi.deleteTag(code),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: LEAD_DICTIONARIES_KEY });
+            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+        },
+    });
+};
+
 export const useUpdateLeadVehicle = () => {
     const invalidate = useLeadInvalidation();
     return useMutation({
