@@ -432,8 +432,22 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (initialData.serviceIds?.length) {
             setSelectedServiceIds(initialData.serviceIds);
         }
+        // Odwzorowanie pozycji na katalog musi wejść razem z listą: bez niego wiersz
+        // nie znajdzie swojej usługi i zniknie z tabeli, mimo że jest na liście.
+        if (initialData.serviceRefs) {
+            setServiceRefs(initialData.serviceRefs);
+        }
         if (initialData.servicePrices) {
             setServicePrices(initialData.servicePrices);
+        }
+        if (initialData.serviceBasePrices) {
+            setServiceBasePrices(initialData.serviceBasePrices);
+        }
+        if (initialData.serviceVatRates) {
+            setServiceVatRates(initialData.serviceVatRates);
+        }
+        if (initialData.serviceNotes) {
+            setServiceNotes(initialData.serviceNotes);
         }
         if (initialData.tempServices) {
             setTempServices(initialData.tempServices);

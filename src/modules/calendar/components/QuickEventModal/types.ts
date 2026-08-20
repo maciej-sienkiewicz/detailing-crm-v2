@@ -11,15 +11,30 @@ export interface ServiceAdjustment {
     value: number;
 }
 
-/** Pre-fill data for opening the modal from an external context (e.g. lead booking) */
+/**
+ * Pre-fill data for opening the modal from an external context (e.g. lead booking).
+ *
+ * Klucze map usługowych to identyfikatory POZYCJI (`serviceIds`), nie usług z katalogu —
+ * ta sama usługa może wystąpić w wycenie dwa razy, każda ze swoją ceną i notatką.
+ * `serviceRefs` odsyła pozycję do jej usługi w katalogu (albo do wpisu w `tempServices`).
+ */
 export interface QuickEventInitialData {
   customer?: SelectedCustomer;
   /** Open the customer section in edit mode (Zatwierdź / Anuluj) instead of confirmed. */
   customerEditing?: boolean;
   vehicle?: SelectedVehicle;
   title?: string;
+  /** Identyfikatory pozycji wyceny — kolejność decyduje o kolejności wierszy. */
   serviceIds?: string[];
-  servicePrices?: { [serviceId: string]: number };
+  /** lineId → id usługi w katalogu lub w [tempServices]. */
+  serviceRefs?: { [lineId: string]: string };
+  /** lineId → cena brutto pozycji w ZŁOTYCH (tak trzyma ją formularz). */
+  servicePrices?: { [lineId: string]: number };
+  /** lineId → cena bazowa netto w GROSZACH (to ona jedzie do API). */
+  serviceBasePrices?: { [lineId: string]: number };
+  /** lineId → stawka VAT w procentach; -1 to „zwolniony". */
+  serviceVatRates?: { [lineId: string]: number };
+  serviceNotes?: { [lineId: string]: string };
   tempServices?: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
 }
 
