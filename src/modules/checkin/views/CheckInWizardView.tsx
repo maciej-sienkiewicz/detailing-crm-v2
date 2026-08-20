@@ -1,6 +1,6 @@
 // src/modules/checkin/views/CheckInWizardView.tsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -420,6 +420,36 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const { showSuccess, showError } = useToast();
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
+    // Licznik nieudanych prób, nie flaga: użytkownik może poprawić jedno pole i
+    // kliknąć dalej ponownie — wtedy trzeba przewinąć do kolejnego błędu.
+    const [validationAttempt, setValidationAttempt] = useState(0);
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    // Lista w stopce mówi CO poprawić, ale nie GDZIE — przy dłuższym formularzu
+    // błędne pole bywa poza ekranem. Przewijamy do pierwszej kotwicy błędu w
+    // kolejności DOM, czyli w kolejności pól na formularzu, nie komunikatów.
+    useEffect(() => {
+        if (validationAttempt === 0) return;
+
+        const frame = requestAnimationFrame(() => {
+            const firstError = contentRef.current?.querySelector<HTMLElement>('[data-error-anchor]');
+            if (!firstError) return;
+
+            const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            firstError.scrollIntoView({
+                behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                // środek kadru: nagłówek i stopka są przyklejone i zasłaniają krawędzie
+                block: 'center',
+            });
+
+            const field = firstError.parentElement?.querySelector<HTMLElement>(
+                'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
+            );
+            field?.focus({ preventScroll: true });
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [validationAttempt]);
 
     // "Czy wysłać Kartę Wizyty do klienta?": visible only when the studio uses
     // the Visit Card (and has the SMS module); default comes from the settings.
@@ -459,6 +489,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const handleNext = () => {
         if (!isStepValid) {
             setShowValidationErrors(true);
+            setValidationAttempt(attempt => attempt + 1);
             return;
         }
         setShowValidationErrors(false);
@@ -468,6 +499,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const handleSubmit = async () => {
         if (!isStepValid) {
             setShowValidationErrors(true);
+            setValidationAttempt(attempt => attempt + 1);
             return;
         }
 
@@ -556,7 +588,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
                 {/* ── Main content ───────────────────────────────────────── */}
                 <ScrollArea>
-                    <ContentWrap key={currentStep}>
+                    <ContentWrap key={currentStep} ref={contentRef}>
                         {currentStep === 'verification' && (
                             <VerificationStep
                                 formData={formData}
