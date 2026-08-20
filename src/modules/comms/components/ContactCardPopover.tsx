@@ -15,15 +15,17 @@
 // albo klient, którego jeszcze nie ma.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Car, Link2, Loader2, Search, UserPlus, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from '@/modules/customers/api/customerApi';
+import { customerEditApi } from '@/modules/customers/api/customerEditApi';
 import { AddCustomerModal } from '@/modules/customers/components/AddCustomerModal';
 import { useToast } from '@/common/components/Toast';
 import type { Customer } from '@/modules/customers/types';
 import { COMMS_CONTACT_CARD_KEY, COMMS_INSIGHTS_KEY, useContactCard } from '../hooks/useComms';
+import { VehiclePhotosPopover } from './VehiclePhotosPopover';
 import { formatGrosze } from './shared';
 
 const Card = styled.div`
@@ -126,12 +128,28 @@ const Section = styled.section`
     }
 `;
 
-const VehicleLine = styled.div`
+/** Pojazd otwiera obok chmurkę ze zdjęciami — też przycisk, nie wiersz tekstu. */
+const VehicleLine = styled.button<{ $active?: boolean }>`
     display: flex;
     align-items: center;
     gap: 7px;
+    width: 100%;
     font-size: 13px;
+    font-family: inherit;
     color: ${p => p.theme.colors.text};
+    text-align: left;
+    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : 'transparent')};
+    border-radius: ${p => p.theme.radii.sm};
+    background: ${({ $active }) => ($active ? '#f0f9ff' : 'transparent')};
+    padding: 3px 5px;
+    margin: 0 -5px;
+    cursor: pointer;
+
+    &:hover, &:focus-visible {
+        border-color: ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surfaceAlt};
+        outline: none;
+    }
 
     svg { flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
     .plate {
@@ -145,12 +163,28 @@ const VehicleLine = styled.div`
     }
 `;
 
-const VisitLine = styled.div`
+/** Wizyta jest wejściem w jej kartę — stąd przycisk, nie akapit. */
+const VisitLine = styled.button`
     display: flex;
     align-items: baseline;
     gap: 8px;
+    width: 100%;
     font-size: 13px;
+    font-family: inherit;
     color: ${p => p.theme.colors.text};
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: ${p => p.theme.radii.sm};
+    background: transparent;
+    padding: 3px 5px;
+    margin: 0 -5px;
+    cursor: pointer;
+
+    &:hover, &:focus-visible {
+        border-color: ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surfaceAlt};
+        outline: none;
+    }
 
     .grow { flex: 1; min-width: 0; }
     .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -249,6 +283,40 @@ const Candidate = styled.button`
     .meta { font-size: 11.5px; color: ${p => p.theme.colors.textMuted}; }
 `;
 
+const ReplaceWarning = styled.div`
+    border: 1px solid #fcd34d;
+    background: #fffbeb;
+    border-radius: ${p => p.theme.radii.md};
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    p { margin: 0; font-size: 12.5px; line-height: 1.5; color: #713f12; }
+    code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px;
+        background: rgba(0, 0, 0, .05);
+        border-radius: 3px;
+        padding: 0 3px;
+    }
+    .actions { display: flex; gap: 6px; justify-content: flex-end; }
+`;
+
+const SmallBtn = styled.button<{ $primary?: boolean }>`
+    border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'rgba(0,0,0,.15)')};
+    background: ${({ $primary }) => ($primary ? '#b45309' : 'transparent')};
+    color: ${({ $primary }) => ($primary ? '#ffffff' : '#713f12')};
+    border-radius: ${p => p.theme.radii.sm};
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    cursor: pointer;
+
+    &:disabled { opacity: .6; cursor: default; }
+`;
+
 const ProfileLink = styled(Link)`
     font-size: 12.5px;
     color: ${p => p.theme.colors.primary};
@@ -284,8 +352,14 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
     const [candidates, setCandidates] = useState<Customer[]>([]);
     const [searching, setSearching] = useState(false);
     const [saving, setSaving] = useState(false);
+    // Klient, którego adres mielibyśmy nadpisać — czeka na potwierdzenie.
+    const [replaceFor, setReplaceFor] = useState<Customer | null>(null);
     const [addOpen, setAddOpen] = useState(false);
+    // Który pojazd ma otwartą chmurkę ze zdjęciami — trzymamy element, bo od niego
+    // liczona jest pozycja, a nie samo id.
+    const [photosFor, setPhotosFor] = useState<{ id: string; label: string; anchor: HTMLElement } | null>(null);
     const cardRef = useRef<HTMLDivElement | null>(null);
+    const navigate = useNavigate();
 
     const { data, isLoading } = useContactCard(email);
     const queryClient = useQueryClient();
@@ -313,6 +387,9 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
         const onDocClick = (event: MouseEvent) => {
             const target = event.target as Node;
             if (cardRef.current?.contains(target) || anchor.contains(target)) return;
+            // Chmurka ze zdjęciami żyje we własnym portalu — kliknięcie w niej nie może
+            // zamknąć wizytówki, z której wyszła.
+            if ((target as HTMLElement).closest?.('[data-vehicle-photos]')) return;
             // Modal zakładania klienta żyje we własnym portalu — kliknięcie w nim
             // nie może zamykać chmurki, która go otworzyła.
             if (addOpen) return;
@@ -364,21 +441,44 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
     const linkTo = async (customer: Customer) => {
         setSaving(true);
         try {
-            // Powiązanie znaczy: zapisz ten adres w kartotece. Bez tego następna
-            // wiadomość z tego samego maila znów będzie od nieznajomego.
-            await customerApi.updateCustomer(customer.id, { email });
+            // Endpoint klienta jest PATCH-em tylko z nazwy: pola, których nie prześlemy,
+            // zostają WYCZYSZCZONE (`entity.firstName = command.firstName?.trim()`).
+            // Dlatego pobieramy pełną kartotekę i odsyłamy ją w całości, podmieniając
+            // wyłącznie adres. Wysłanie samego `{ email }` skasowałoby klientowi
+            // nazwisko, telefon i adres — i to po cichu.
+            const full = await customerApi.getCustomerById(customer.id);
+            await customerEditApi.updateCustomer(customer.id, {
+                firstName: full.firstName,
+                lastName: full.lastName,
+                contact: { email, phone: full.contact?.phone ?? null },
+                homeAddress: full.homeAddress ?? null,
+            });
             refresh();
             showSuccess(
                 'Powiązano z klientem',
                 `Adres ${email} zapisany w kartotece klienta`
             );
             setLinking(false);
+            setReplaceFor(null);
         } catch (error) {
             const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
             showError('Nie udało się powiązać klienta', message ?? 'Spróbuj ponownie');
         } finally {
             setSaving(false);
         }
+    };
+
+    /**
+     * Kartoteka trzyma jeden adres, więc powiązanie z klientem, który już go ma,
+     * NADPISUJE stary. To jest utrata danych — pytamy, zamiast robić to po cichu.
+     */
+    const chooseCandidate = (candidate: Customer) => {
+        const current = candidate.contact?.email;
+        if (current && current.toLowerCase() !== email.toLowerCase()) {
+            setReplaceFor(candidate);
+            return;
+        }
+        linkTo(candidate);
     };
 
     const initialValues = useMemo(() => {
@@ -429,18 +529,37 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
                                 {(data?.vehicles ?? []).length === 0 && (
                                     <Muted>Brak aut w kartotece.</Muted>
                                 )}
-                                {(data?.vehicles ?? []).map((vehicle) => (
-                                    <VehicleLine key={vehicle.id}>
-                                        <Car size={13} />
-                                        <span>
-                                            {vehicle.brand} {vehicle.model}
-                                            {vehicle.year && ` (${vehicle.year})`}
-                                        </span>
-                                        {vehicle.licensePlate && (
-                                            <span className="plate">{vehicle.licensePlate}</span>
-                                        )}
-                                    </VehicleLine>
-                                ))}
+                                {(data?.vehicles ?? []).map((vehicle) => {
+                                    const label = [
+                                        `${vehicle.brand} ${vehicle.model}`,
+                                        vehicle.licensePlate,
+                                    ].filter(Boolean).join(' · ');
+                                    return (
+                                        <VehicleLine
+                                            key={vehicle.id}
+                                            type="button"
+                                            $active={photosFor?.id === vehicle.id}
+                                            title="Zobacz zdjęcia tego auta"
+                                            onClick={(event) => {
+                                                const row = event.currentTarget as HTMLElement;
+                                                setPhotosFor((current) =>
+                                                    current?.id === vehicle.id
+                                                        ? null
+                                                        : { id: vehicle.id, label, anchor: row }
+                                                );
+                                            }}
+                                        >
+                                            <Car size={13} />
+                                            <span>
+                                                {vehicle.brand} {vehicle.model}
+                                                {vehicle.year && ` (${vehicle.year})`}
+                                            </span>
+                                            {vehicle.licensePlate && (
+                                                <span className="plate">{vehicle.licensePlate}</span>
+                                            )}
+                                        </VehicleLine>
+                                    );
+                                })}
                             </Section>
 
                             <Section>
@@ -449,7 +568,15 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
                                     <Muted>Jeszcze żadnej wizyty.</Muted>
                                 )}
                                 {(data?.recentVisits ?? []).map((visit) => (
-                                    <VisitLine key={visit.id}>
+                                    <VisitLine
+                                        key={visit.id}
+                                        type="button"
+                                        title="Otwórz kartę wizyty"
+                                        onClick={() => {
+                                            onClose();
+                                            navigate(`/visits/${visit.id}`);
+                                        }}
+                                    >
                                         <span className="grow">
                                             <span className="title">{visit.title ?? 'Wizyta'}</span>
                                             <div className="meta">
@@ -496,7 +623,7 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
                                         key={candidate.id}
                                         type="button"
                                         disabled={saving}
-                                        onClick={() => linkTo(candidate)}
+                                        onClick={() => chooseCandidate(candidate)}
                                     >
                                         <div className="name">
                                             {[candidate.firstName, candidate.lastName].filter(Boolean).join(' ') || '(bez nazwiska)'}
@@ -508,6 +635,31 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
                                     </Candidate>
                                 ))}
                             </CandidateList>
+                            {replaceFor && (
+                                <ReplaceWarning>
+                                    <p>
+                                        <strong>
+                                            {[replaceFor.firstName, replaceFor.lastName].filter(Boolean).join(' ') || 'Ten klient'}
+                                        </strong>{' '}
+                                        ma już zapisany adres <code>{replaceFor.contact?.email}</code>.
+                                        Kartoteka trzyma jeden adres, więc zostanie on zastąpiony przez{' '}
+                                        <code>{email}</code>.
+                                    </p>
+                                    <div className="actions">
+                                        <SmallBtn type="button" onClick={() => setReplaceFor(null)}>
+                                            Anuluj
+                                        </SmallBtn>
+                                        <SmallBtn
+                                            $primary
+                                            type="button"
+                                            disabled={saving}
+                                            onClick={() => linkTo(replaceFor)}
+                                        >
+                                            Zastąp adres
+                                        </SmallBtn>
+                                    </div>
+                                </ReplaceWarning>
+                            )}
                             {saving && <Muted><Loader2 size={12} /> Zapisuję…</Muted>}
                         </>
                     )}
@@ -524,6 +676,16 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
                     </Foot>
                 )}
             </Card>
+
+            {photosFor && (
+                <VehiclePhotosPopover
+                    key={photosFor.id}
+                    vehicleId={photosFor.id}
+                    label={photosFor.label}
+                    anchor={photosFor.anchor}
+                    onClose={() => setPhotosFor(null)}
+                />
+            )}
 
             {addOpen && (
                 <AddCustomerModal
