@@ -245,6 +245,9 @@ export const AppointmentEditView = () => {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         queryClient.invalidateQueries({ queryKey: ['operations'] });
+        // Rezerwacja z leada niesie jego wycenę — backend przepisuje jedną listę
+        // usług w drugą, więc lead w pamięci podręcznej jest po tym zapisie nieaktualny.
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
     };
 
     const updateMutation = useMutation({
