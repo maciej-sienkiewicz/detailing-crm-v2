@@ -289,6 +289,35 @@ export interface CommMessageReadPayload {
     readSource: CommReadSource;
 }
 
+// ── Kontekst kontaktu w nagłówku rozmowy ─────────────────────────────────────
+
+/** Dwie liczby do plakietek: ile innych wątków i ile notatek ma ten adres. */
+export interface ThreadContactBadges {
+    email: string;
+    otherThreadCount: number;
+    noteCount: number;
+}
+
+export interface ContactNote {
+    id: string;
+    body: string;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+    edited: boolean;
+}
+
+export type ContactNoteAction = 'CREATED' | 'UPDATED' | 'DELETED';
+
+export interface ContactNoteEvent {
+    id: string;
+    action: ContactNoteAction;
+    bodyBefore: string | null;
+    bodyAfter: string | null;
+    actorName: string;
+    createdAt: string;
+}
+
 // ── Słowniki prezentacyjne ───────────────────────────────────────────────────
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {

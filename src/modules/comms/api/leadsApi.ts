@@ -3,6 +3,7 @@ import { apiClient } from '@/core/apiClient';
 import type {
     Lead,
     LeadAnalytics,
+    DictionaryEntry,
     LeadDictionaries,
     LeadPage,
     LeadServiceItemInput,
@@ -105,5 +106,18 @@ export const leadsApi = {
     assignCustomer: async (leadId: string, customerId: string): Promise<Lead> => {
         const { data } = await apiClient.put(`/v1/leads/${leadId}/customer`, { customerId });
         return data;
+    },
+
+    deleteLead: async (leadId: string): Promise<void> => {
+        await apiClient.delete(`/v1/leads/${leadId}`, { skipErrorToast: true });
+    },
+
+    createTag: async (label: string): Promise<DictionaryEntry> => {
+        const { data } = await apiClient.post('/v1/leads/tags', { label }, { skipErrorToast: true });
+        return data;
+    },
+
+    deleteTag: async (code: string): Promise<void> => {
+        await apiClient.delete(`/v1/leads/tags/${encodeURIComponent(code)}`, { skipErrorToast: true });
     },
 };

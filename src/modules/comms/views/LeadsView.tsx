@@ -5,14 +5,16 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, Car, Check, Loader2, Mail, Minus, Phone, Plus, Search, User, X } from 'lucide-react';
+import { BarChart3, Car, Check, Loader2, Mail, Minus, Phone, Plus, Search, Trash2, User, X } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { Badge } from '@/common/components/Badge';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useServices } from '@/modules/services';
 import { useVehicleMetadata } from '@/modules/vehicles/hooks/useVehicleMetadata';
 import { useToast } from '@/common/components/Toast';
 import {
     useChangeLeadStatus,
+    useDeleteLead,
     useLeadsSocket,
     useUpdateLeadVehicle,
     useLead,
@@ -111,7 +113,7 @@ const TableScroll = styled.div`
 
 const HeadRow = styled.div`
     display: grid;
-    grid-template-columns: 1.9fr 1.2fr 1.4fr 1fr 1fr 0.9fr;
+    grid-template-columns: 1.7fr 1.1fr 2fr 0.9fr 0.9fr 0.8fr;
     gap: 10px;
     padding: 12px 20px;
     font-size: 11px;
@@ -121,7 +123,7 @@ const HeadRow = styled.div`
     color: ${p => p.theme.colors.textMuted};
     background: ${p => p.theme.colors.surfaceAlt};
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    min-width: 780px;
+    min-width: 880px;
 `;
 
 const spin = keyframes`
@@ -148,22 +150,23 @@ const VehicleSpinner = styled.span`
     }
 `;
 
-/** Tagi w wierszu: dwa pierwsze plus licznik reszty — kolumna ma pozostać wąska. */
+/**
+ * Tagi w wierszu — wszystkie i w całości. Ucinanie ich wielokropkiem odbierało
+ * kolumnie sens: „Powłoka cer…" i „Powłoka cer…" to dwa różne tagi, których nie da
+ * się odróżnić. Nazwy bywają długie, więc plakietki zawijają się do drugiej linii,
+ * a wiersz rośnie — czytelność wygrywa z równą wysokością wierszy.
+ */
 const TagCell = styled.span`
     display: flex;
     align-items: center;
     gap: 4px;
-    flex-wrap: nowrap;
-    overflow: hidden;
+    flex-wrap: wrap;
 
     .none { color: ${p => p.theme.colors.textMuted}; }
 `;
 
 const TagPill = styled.span`
     display: inline-block;
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     padding: 2px 8px;
     border-radius: ${p => p.theme.radii.full};
@@ -175,11 +178,11 @@ const TagPill = styled.span`
 
 const Row = styled.button<{ $active?: boolean }>`
     display: grid;
-    grid-template-columns: 1.9fr 1.2fr 1.4fr 1fr 1fr 0.9fr;
+    grid-template-columns: 1.7fr 1.1fr 2fr 0.9fr 0.9fr 0.8fr;
     gap: 10px;
     align-items: center;
     width: 100%;
-    min-width: 780px;
+    min-width: 880px;
     text-align: left;
     padding: 12px 20px;
     border: none;
@@ -401,6 +404,28 @@ const TotalLine = styled.div`
     font-variant-numeric: tabular-nums;
 `;
 
+/** Jedyna akcja nieodwracalna w tym widoku — i jedyna, która wygląda groźnie. */
+const DangerButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    align-self: flex-start;
+    border: 1px solid rgba(220, 38, 38, 0.28);
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.error};
+    border-radius: ${p => p.theme.radii.md};
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    font-family: inherit;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.errorLight}; }
+    &:disabled { opacity: 0.5; cursor: default; }
+`;
+
 const HistoryLine = styled.div`
     font-size: 12px;
     color: ${p => p.theme.colors.textSecondary};
@@ -487,6 +512,7 @@ export default function LeadsView() {
     // null = podgląd, obiekt = edycja pojazdu. Marka i model wybierane z katalogu,
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
+    const [deleteDialogFor, setDeleteDialogFor] = useState<string | null>(null);
 
     const selectedLeadId = searchParams.get('lead');
     const selectLead = (leadId: string | null) => {
@@ -519,6 +545,7 @@ export default function LeadsView() {
     const changeStatus = useChangeLeadStatus();
     const updateVehicle = useUpdateLeadVehicle();
     const updateServices = useUpdateLeadServices();
+    const deleteLead = useDeleteLead();
     const { showSuccess, showError } = useToast();
     // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
     // zamienia się w wynik bez odświeżania strony.
@@ -576,6 +603,23 @@ export default function LeadsView() {
             { leadId: lostDialogFor, status: 'LOST', lostReasonCode: lostReason, lostNote: lostNote || undefined },
             { onSuccess: () => setLostDialogFor(null) }
         );
+    };
+
+    const confirmDelete = () => {
+        if (!deleteDialogFor) return;
+        deleteLead.mutate(deleteDialogFor, {
+            onSuccess: () => {
+                setDeleteDialogFor(null);
+                selectLead(null);
+                showSuccess('Lead usunięty', 'Korespondencja została w skrzynce');
+            },
+            onError: (error) => {
+                const message =
+                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                setDeleteDialogFor(null);
+                showError('Nie udało się usunąć leada', message ?? 'Spróbuj ponownie');
+            },
+        });
     };
 
     const saveServices = () => {
@@ -671,17 +715,9 @@ export default function LeadsView() {
                             </span>
                             <TagCell>
                                 {item.tagLabels.length === 0 && <span className="none">—</span>}
-                                {item.tagLabels.slice(0, 2).map((label) => (
+                                {item.tagLabels.map((label) => (
                                     <TagPill key={label}>{label}</TagPill>
                                 ))}
-                                {item.tagLabels.length > 2 && (
-                                    <TagPill
-                                        as="span"
-                                        title={item.tagLabels.slice(2).join(', ')}
-                                    >
-                                        +{item.tagLabels.length - 2}
-                                    </TagPill>
-                                )}
                             </TagCell>
                             <span className="value">
                                 {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '—'}
@@ -966,9 +1002,35 @@ export default function LeadsView() {
                                 </HistoryLine>
                             ))}
                         </DrawerSection>
+
+                        <DrawerSection>
+                            <h4>Usuń lead</h4>
+                            <HistoryLine>
+                                Zapytanie zniknie razem z historią statusów i tagami.
+                                Korespondencja zostanie w skrzynce i będzie ją można oznaczyć
+                                jako lead ponownie.
+                            </HistoryLine>
+                            <DangerButton
+                                type="button"
+                                onClick={() => setDeleteDialogFor(lead.id)}
+                                disabled={deleteLead.isPending}
+                            >
+                                <Trash2 size={14} /> Usuń lead
+                            </DangerButton>
+                        </DrawerSection>
                     </Drawer>
                 </>
             )}
+
+            <ConfirmationModal
+                isOpen={deleteDialogFor !== null}
+                title="Usunąć ten lead?"
+                message="Tej operacji nie da się cofnąć. Wiadomości w skrzynce zostają nietknięte."
+                variant="danger"
+                confirmText="Usuń"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteDialogFor(null)}
+            />
 
             {lostDialogFor && (
                 <LostDialog onClick={() => setLostDialogFor(null)}>
