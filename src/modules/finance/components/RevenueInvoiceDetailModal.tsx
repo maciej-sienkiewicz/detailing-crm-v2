@@ -34,11 +34,18 @@ import type { RevenueInvoice, RevenueParty } from '../types';
 // te same proporcje. Faktura to dokument, a nie lista pól — dlatego dane stron,
 // płatności i kwot mają własne wiersze, nigdy sklejenie separatorem.
 
+/**
+ * ModalContent jest kolumną flex ze scrollem, więc każdy bezpośredni element musi
+ * mieć flex-shrink: 0. Bez tego przeglądarka ściska kartkę do wysokości okna
+ * zamiast pozwolić jej wystawać — a że kartka ma overflow: hidden, dół faktury
+ * znikał bez możliwości doscrollowania.
+ */
 const Paper = styled.div`
   border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: 14px;
   background: #fff;
   overflow: hidden;
+  flex-shrink: 0;
 `;
 
 const PaperHead = styled.div`
@@ -48,6 +55,11 @@ const PaperHead = styled.div`
   gap: 16px;
   padding: 20px 24px;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+    padding: 16px 18px;
+  }
 `;
 
 const DocType = styled.div`
@@ -80,6 +92,12 @@ const HeadDates = styled.div`
   gap: 8px;
   text-align: right;
   flex-shrink: 0;
+
+  @media (max-width: 560px) {
+    flex-direction: row;
+    gap: 20px;
+    text-align: left;
+  }
 `;
 
 const HeadDateLabel = styled.span`
@@ -102,6 +120,10 @@ const HeadDateValue = styled.span`
 
 const PaperBody = styled.div`
   padding: 24px;
+
+  @media (max-width: 560px) {
+    padding: 18px;
+  }
 `;
 
 const BadgeRow = styled.div`
@@ -231,7 +253,7 @@ const TotalsRow = styled.div`
 `;
 
 const TotalsBox = styled.div`
-  min-width: 260px;
+  min-width: min(260px, 100%);
   padding: 14px 16px;
   border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: 12px;
@@ -364,6 +386,7 @@ const Badge = styled.span<{ $tone: 'green' | 'amber' | 'red' | 'slate' }>`
 `;
 
 const DuplicateBox = styled.div`
+  flex-shrink: 0;
   padding: 14px 16px;
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -383,6 +406,7 @@ const DuplicateActions = styled.div`
 `;
 
 const ErrorBox = styled.div`
+  flex-shrink: 0;
   padding: 12px 14px;
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -393,6 +417,7 @@ const ErrorBox = styled.div`
 `;
 
 const OfflineBox = styled.div`
+  flex-shrink: 0;
   padding: 12px 14px;
   background: #fffbeb;
   border: 1px solid #fde68a;
@@ -403,6 +428,7 @@ const OfflineBox = styled.div`
 `;
 
 const HiddenBox = styled.div`
+  flex-shrink: 0;
   padding: 12px 14px;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
@@ -416,6 +442,7 @@ const ActionsRow = styled.div`
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 `;
 
 // ─── Formatowanie ────────────────────────────────────────────────────────────
@@ -606,6 +633,14 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     </Badge>
                   )}
                   {invoice.excluded && <Badge $tone="slate">Ukryta ze statystyk</Badge>}
+                  {!invoice.detailsSynced && (
+                    <Badge
+                      $tone="amber"
+                      title="Pozycje, adresy i dane płatności dociągamy z treści faktury w KSeF"
+                    >
+                      Szczegóły w trakcie pobierania
+                    </Badge>
+                  )}
                   {invoice.duplicateStatus === 'CONFIRMED_DUPLICATE' && (
                     <Badge $tone="red">Potwierdzony duplikat</Badge>
                   )}
@@ -638,9 +673,10 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                   <Eyebrow>Pozycje faktury</Eyebrow>
                   {items.length === 0 ? (
                     <ItemsEmpty>
-                      Brak pozycji dla tego dokumentu.
-                      {invoice.source === 'EXTERNAL' &&
-                        ' KSeF udostępnia dla faktur zewnętrznych wyłącznie kwoty zbiorcze.'}
+                      {invoice.detailsSynced
+                        ? 'Brak pozycji dla tego dokumentu.'
+                        : 'Pozycje zostaną uzupełnione przy najbliższej synchronizacji z KSeF — ' +
+                          'pobranie treści faktury objęte jest limitem żądań, więc idzie osobno od listy.'}
                     </ItemsEmpty>
                   ) : (
                     <ItemsScroll>

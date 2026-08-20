@@ -539,6 +539,11 @@ export interface RevenueInvoice {
   excluded:           boolean;
   excludedAt:         string | null;
   /**
+   * Czy faktura ma pobrane szczegóły z XML (pozycje, adresy, płatność). false tylko
+   * dla faktur pobranych z KSeF, którym XML dołoży synchronizacja wsteczna.
+   */
+  detailsSynced:      boolean;
+  /**
    * Adres weryfikacyjny KSeF („KOD I") — to on trafia do kodu QR na wizualizacji
    * faktury. null, gdy faktura nie ma jeszcze skrótu dokumentu (np. przed wysyłką).
    */
