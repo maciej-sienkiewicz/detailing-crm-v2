@@ -30,6 +30,7 @@ import {
     Archive,
     ArchiveRestore,
     ArrowLeft,
+    CalendarCheck,
     CalendarPlus,
     ChevronDown,
     Download,
@@ -53,8 +54,9 @@ import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
 import { useContactCard, useThreadContactBadges } from '../hooks/useComms';
+import { ThreadActionsMenu, type ThreadAction } from './ThreadActionsMenu';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
-import { EmptyHint, IconButton, Pill, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
+import { EmptyHint, IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
 const Pane = styled.div<{ $hiddenOnMobile: boolean }>`
     flex: 1;
@@ -116,7 +118,13 @@ const HeaderActions = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
+    flex-shrink: 0;
+`;
+
+/** Plakietka stanu prowadząca do leada — link bez podkreśleń i koloru linku. */
+const BadgeLink = styled(Link)`
+    display: inline-flex;
+    text-decoration: none;
 `;
 
 /**
@@ -135,6 +143,10 @@ const BADGE_TONES = {
      * nie da się odróżnić od pustej, nie skłoniłaby nikogo do kliknięcia.
      */
     filled: { border: '#fcd34d', background: '#fffbeb', color: '#b45309' },
+    /** Rozmowa jest leadem. Stan, nie ostrzeżenie — dlatego chłodny błękit. */
+    lead: { border: '#bae6fd', background: '#f0f9ff', color: '#0369a1' },
+    /** Rozmowa ma już termin. Zieleń kończy ścieżkę: nie ma tu nic do zrobienia. */
+    booked: { border: '#bbf7d0', background: '#f0fdf4', color: '#15803d' },
 } as const;
 
 type BadgeTone = keyof typeof BADGE_TONES;
@@ -520,14 +532,56 @@ function ConversationViewImpl({
     // Kartoteka kontaktu — telefon i auta klienta do wypełnienia rezerwacji.
     // Pobierana dopiero przy otwartym kreatorze; sam podgląd rozmowy jej nie potrzebuje.
     const { data: contactCard } = useContactCard(thread.participantEmail, { enabled: bookingOpen });
-    // Rozmowa oznaczona jako lead ma już wycenę i rozpoznane auto — rezerwacja
-    // zakładana stąd musi je przenieść tak samo jak ta z panelu leada, inaczej
-    // uzgodnione w tej właśnie korespondencji usługi trzeba by wpisać od nowa.
-    const { data: bookingLead } = useLead(bookingOpen ? thread.leadId : null);
+    // Lead rozmowy — jeden odczyt, dwa zastosowania: plakietka stanu w nagłówku
+    // i wypełnienie kreatora rezerwacji (wycena, rozpoznane auto, klient). Bez tego
+    // usługi uzgodnione w tej właśnie korespondencji trzeba by wpisywać od nowa.
+    const { data: threadLead } = useLead(thread.leadId);
     // Rozmowa jest leadem, ale jego dane jeszcze lecą — kreator czeka. Otwarcie go
     // teraz i domontowanie wyceny później znaczyłoby przemontowanie komponentu,
     // czyli skasowanie terminu, który użytkownik zdążył już wybrać.
-    const bookingWaitsForLead = bookingOpen && thread.leadId !== null && !bookingLead;
+    const bookingWaitsForLead = bookingOpen && thread.leadId !== null && !threadLead;
+    const isBooked = Boolean(threadLead?.appointmentId);
+
+    const bookAction: ThreadAction = {
+        key: 'book',
+        label: 'Stwórz rezerwację',
+        icon: <CalendarPlus />,
+        onSelect: () => setBookingThreadId(thread.id),
+    };
+
+    /**
+     * Nagłówek pokazuje dokładnie jeden przycisk główny: następny krok tej rozmowy.
+     * Trzy równorzędne pigułki obok tematu wątku sprawiały, że żadna nie była
+     * odpowiedzią na pytanie „co mam teraz zrobić", a temat — jedyna rzecz, po którą
+     * się tu patrzy — przegrywał z nimi o uwagę.
+     *
+     * Kolejność kroków jest ta sama co w module leadów: rozmowa → lead → rezerwacja.
+     * Gdy termin już stoi, kroku nie ma i zostaje samo menu; stan mówi plakietka.
+     */
+    const primaryAction: ThreadAction | null = isBooked
+        ? null
+        : thread.leadId
+          ? bookAction
+          : {
+                key: 'lead',
+                label: 'Oznacz jako lead',
+                icon: <Tag />,
+                onSelect: () => setLeadPopoverThreadId(thread.id),
+            };
+
+    // Menu zbiera resztę: porządki i akcje, które akurat nie są krokiem następnym.
+    // Rezerwację da się założyć także bez leada i także drugą — schowana, ale nigdy
+    // niedostępna tylko dlatego, że nie stoi teraz na wierzchu.
+    const menuActions: ThreadAction[] = [
+        ...(primaryAction === bookAction ? [] : [bookAction]),
+        {
+            key: 'archive',
+            label: thread.archived ? 'Przywróć ze schowka' : 'Archiwizuj rozmowę',
+            icon: thread.archived ? <ArchiveRestore /> : <Archive />,
+            onSelect: () => onToggleArchived(thread),
+        },
+    ];
+
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Ręczne rozwinięcia trzymamy razem z id wątku — zmiana rozmowy zeruje je sama,
@@ -655,35 +709,29 @@ function ConversationViewImpl({
                                 </ContextBadge>
                             </>
                         )}
+
+                        {/* Stan rozmowy, nie akcja — dlatego stoi wśród plakietek przy
+                            adresie, a nie wśród przycisków. Kształt niesie znaczenie:
+                            pigułka mówi „tak jest", przycisk mówi „kliknij". */}
+                        {thread.leadId && (
+                            <BadgeLink to={`/leads?lead=${thread.leadId}`}>
+                                <ContextBadge as="span" $tone={isBooked ? 'booked' : 'lead'}>
+                                    {isBooked ? <CalendarCheck /> : <Sparkles />}
+                                    {isBooked ? 'Rezerwacja' : 'Lead'}
+                                </ContextBadge>
+                            </BadgeLink>
+                        )}
                     </div>
                 </div>
 
                 <HeaderActions>
-                    <IconButton
-                        onClick={() => onToggleArchived(thread)}
-                        aria-label={thread.archived ? 'Przywróć' : 'Archiwizuj'}
-                    >
-                        {thread.archived ? <ArchiveRestore /> : <Archive />}
-                    </IconButton>
-
-                    {/* Termin ustala się w trakcie rozmowy — przycisk stoi tam, gdzie ta
-                        rozmowa trwa, żeby nie przechodzić do kalendarza i nie przepisywać
-                        ręcznie danych klienta, które są tuż obok. */}
-                    <IconButton onClick={() => setBookingThreadId(thread.id)}>
-                        <CalendarPlus /> Stwórz rezerwację
-                    </IconButton>
-
-                    {thread.leadId ? (
-                        <Link to={`/leads?lead=${thread.leadId}`}>
-                            <Pill $bg="#f0fdf4" $fg="#15803d" style={{ cursor: 'pointer', padding: '6px 12px' }}>
-                                <Sparkles size={11} /> Lead
-                            </Pill>
-                        </Link>
-                    ) : (
-                        <IconButton onClick={() => setLeadPopoverThreadId(thread.id)}>
-                            <Tag /> Oznacz jako lead
-                        </IconButton>
+                    {primaryAction && (
+                        <PrimaryButton type="button" onClick={primaryAction.onSelect}>
+                            {primaryAction.icon}
+                            {primaryAction.label}
+                        </PrimaryButton>
                     )}
+                    <ThreadActionsMenu actions={menuActions} />
                 </HeaderActions>
                 {contactAnchor && (
                     <ContactCardPopover
@@ -718,11 +766,11 @@ function ConversationViewImpl({
                     <BookingFlowModal
                         /* Lead z już przypiętą rezerwacją odrzuciłby drugą — wtedy
                            zakładamy zwykłą, bez wiązania, zamiast pokazywać błąd. */
-                        leadId={bookingLead && !bookingLead.appointmentId ? bookingLead.id : undefined}
+                        leadId={threadLead && !threadLead.appointmentId ? threadLead.id : undefined}
                         subtitle={contactCard?.customer?.fullName ?? thread.participantName ?? thread.participantEmail}
                         prefill={
-                            bookingLead
-                                ? leadToBookingPrefill(bookingLead, contactCard)
+                            threadLead
+                                ? leadToBookingPrefill(threadLead, contactCard)
                                 : contactToBookingPrefill({
                                     email: thread.participantEmail,
                                     participantName: thread.participantName,
