@@ -26,7 +26,10 @@ const Overlay = styled.div`
     inset: 0;
     height: 100vh;
     height: 100dvh;
-    z-index: 1000;
+    /* Ta sama warstwa co formularz rezerwacji (QuickEventModalStyles.Overlay):
+       oba kroki kreatora otwierają się nad oknem, z którego wyszły — panelem
+       leada albo podglądem rozmowy — więc muszą leżeć nad warstwą ModalKit (1000). */
+    z-index: 1300;
     display: flex;
     align-items: center;
     justify-content: center;
