@@ -24,7 +24,6 @@
 // Komponent jest memoizowany: odświeżenie listy wątków, zdarzenie WebSocket czy
 // pisanie w wyszukiwarce nie przerysowuje treści korespondencji.
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Archive,
@@ -50,6 +49,7 @@ import { MarkAsLeadModal } from './MarkAsLeadModal';
 import { BookingFlowModal } from '@/modules/calendar';
 import { contactToBookingPrefill, leadToBookingPrefill } from '../utils/bookingPrefill';
 import { useLead } from '../hooks/useLeads';
+import { LeadDetailModal } from './LeadDetailModal';
 import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
@@ -119,12 +119,6 @@ const HeaderActions = styled.div`
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-`;
-
-/** Plakietka stanu prowadząca do leada — link bez podkreśleń i koloru linku. */
-const BadgeLink = styled(Link)`
-    display: inline-flex;
-    text-decoration: none;
 `;
 
 /**
@@ -529,6 +523,9 @@ function ConversationViewImpl({
     // go otwarto, więc przejście do innej rozmowy zamyka go samo.
     const [bookingThreadId, setBookingThreadId] = useState<string | null>(null);
     const bookingOpen = bookingThreadId === thread.id;
+    // Okno szczegółów leada — to samo, które otwiera widok leadów.
+    const [leadDetailThreadId, setLeadDetailThreadId] = useState<string | null>(null);
+    const leadDetailOpen = leadDetailThreadId === thread.id && thread.leadId !== null;
     // Kartoteka kontaktu — telefon i auta klienta do wypełnienia rezerwacji.
     // Pobierana dopiero przy otwartym kreatorze; sam podgląd rozmowy jej nie potrzebuje.
     const { data: contactCard } = useContactCard(thread.participantEmail, { enabled: bookingOpen });
@@ -712,14 +709,22 @@ function ConversationViewImpl({
 
                         {/* Stan rozmowy, nie akcja — dlatego stoi wśród plakietek przy
                             adresie, a nie wśród przycisków. Kształt niesie znaczenie:
-                            pigułka mówi „tak jest", przycisk mówi „kliknij". */}
+                            pigułka mówi „tak jest", przycisk mówi „kliknij".
+
+                            Kliknięcie otwiera szczegóły leada na miejscu. Wcześniej
+                            przerzucało na widok leadów — czyli wyrzucało z rozmowy,
+                            którą się właśnie czytało, żeby pokazać dane o tej samej
+                            rozmowie, i kazało wracać przyciskiem wstecz. */}
                         {thread.leadId && (
-                            <BadgeLink to={`/leads?lead=${thread.leadId}`}>
-                                <ContextBadge as="span" $tone={isBooked ? 'booked' : 'lead'}>
-                                    {isBooked ? <CalendarCheck /> : <Sparkles />}
-                                    {isBooked ? 'Rezerwacja' : 'Lead'}
-                                </ContextBadge>
-                            </BadgeLink>
+                            <ContextBadge
+                                type="button"
+                                $tone={isBooked ? 'booked' : 'lead'}
+                                title="Zobacz szczegóły leada"
+                                onClick={() => setLeadDetailThreadId(thread.id)}
+                            >
+                                {isBooked ? <CalendarCheck /> : <Sparkles />}
+                                {isBooked ? 'Rezerwacja' : 'Lead'}
+                            </ContextBadge>
                         )}
                     </div>
                 </div>
@@ -753,6 +758,15 @@ function ConversationViewImpl({
                         email={thread.participantEmail}
                         anchor={notesAnchor}
                         onClose={() => setNotesAnchor(null)}
+                    />
+                )}
+                {leadDetailOpen && thread.leadId && (
+                    <LeadDetailModal
+                        key={thread.leadId}
+                        leadId={thread.leadId}
+                        /* Odnośnik „Zobacz korespondencję" prowadziłby tu, gdzie stoimy. */
+                        showThreadLink={false}
+                        onClose={() => setLeadDetailThreadId(null)}
                     />
                 )}
                 {leadPopoverOpen && (
