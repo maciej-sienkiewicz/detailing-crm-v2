@@ -22,6 +22,7 @@ export const COMMS_ACCOUNTS_KEY = [...COMMS_KEY, 'accounts'];
 export const COMMS_INSIGHTS_KEY = [...COMMS_KEY, 'insights'];
 export const COMMS_BADGES_KEY = [...COMMS_KEY, 'contact-badges'];
 export const COMMS_NOTES_KEY = [...COMMS_KEY, 'notes'];
+export const COMMS_CONTACT_CARD_KEY = [...COMMS_KEY, 'contact-card'];
 
 export const useMailAccounts = (options?: { enabled?: boolean }) =>
     useQuery({
@@ -102,6 +103,15 @@ export const useRelatedThreads = (threadId: string | null, options?: { enabled?:
         queryKey: [...COMMS_THREADS_KEY, 'related', threadId],
         queryFn: () => commsApi.getRelatedThreads(threadId!),
         enabled: threadId !== null && (options?.enabled ?? true),
+        staleTime: 60_000,
+    });
+
+/** Wizytówka kontaktu — pobierana dopiero po otwarciu chmurki. */
+export const useContactCard = (email: string | null, options?: { enabled?: boolean }) =>
+    useQuery({
+        queryKey: [...COMMS_CONTACT_CARD_KEY, email],
+        queryFn: () => commsApi.getContactCard(email!),
+        enabled: email !== null && (options?.enabled ?? true),
         staleTime: 60_000,
     });
 

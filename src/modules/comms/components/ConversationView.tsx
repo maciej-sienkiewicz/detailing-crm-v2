@@ -45,7 +45,7 @@ import type { CommAttachment, CommMessage, CommThread } from '../types';
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
-import { ClientProfileModal } from './ClientProfileModal';
+import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
 import { useThreadContactBadges } from '../hooks/useComms';
@@ -88,6 +88,23 @@ const Header = styled.div`
         align-items: center;
         gap: 6px;
         flex-wrap: wrap;
+    }
+`;
+
+/** Nazwisko i adres w nagłówku — wygląda jak tekst, zachowuje się jak przycisk. */
+const IdentityButton = styled.button`
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    border-bottom: 1px dashed transparent;
+
+    &:hover, &:focus-visible {
+        border-bottom-color: ${p => p.theme.colors.textMuted};
+        outline: none;
     }
 `;
 
@@ -272,8 +289,12 @@ const GapRow = styled.button`
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
-/** Inicjały nadawcy — najszybszy sposób na „kto mówi" przy skanowaniu wątku. */
-const Avatar = styled.span<{ $hue: number; $outbound: boolean }>`
+/**
+ * Inicjały nadawcy — najszybszy sposób na „kto mówi" przy skanowaniu wątku.
+ * Przy wiadomości od klienta jest też najkrótszą drogą do pytania „a kto to
+ * właściwie jest": kliknięcie otwiera wizytówkę.
+ */
+const Avatar = styled.span<{ $hue: number; $outbound: boolean; $clickable?: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -286,6 +307,16 @@ const Avatar = styled.span<{ $hue: number; $outbound: boolean }>`
     letter-spacing: 0.02em;
     color: ${({ $outbound, $hue }) => ($outbound ? '#0369a1' : `hsl(${$hue}, 45%, 34%)`)};
     background: ${({ $outbound, $hue }) => ($outbound ? '#e0f2fe' : `hsl(${$hue}, 62%, 93%)`)};
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
+    transition: box-shadow ${p => p.theme.transitions.fast};
+
+    &:hover {
+        box-shadow: ${({ $clickable, $hue }) =>
+            $clickable ? `0 0 0 2px hsl(${$hue}, 62%, 82%)` : 'none'};
+    }
 `;
 
 const MessageHeader = styled.header`
@@ -529,11 +560,13 @@ function ConversationViewImpl({
         scrollRef.current?.scrollTo({ top: 0 });
     }, [thread.id]);
 
-    const [profileOpen, setProfileOpen] = useState(false);
     // Kotwicą chmurki notatek jest sama plakietka — trzymamy jej element, a nie flagę,
     // bo pozycja przelicza się przy przewinięciu nagłówka i zmianie szerokości okna.
     const [notesAnchor, setNotesAnchor] = useState<HTMLElement | null>(null);
     const [historyOpen, setHistoryOpen] = useState(false);
+    // Wizytówka klienta — kotwicą jest to, w co kliknięto: avatar przy wiadomości,
+    // nazwisko w nagłówku albo pasek rozpoznanego klienta.
+    const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     const { data: contactBadges } = useThreadContactBadges(thread.id);
 
     return (
@@ -547,12 +580,18 @@ function ConversationViewImpl({
                 <div className="titles">
                     <h3 title={thread.subject ?? undefined}>{thread.subject ?? '(bez tematu)'}</h3>
                     <div className="sub">
-                        {/* Jedyne miejsce w widoku, w którym stoi adres uczestnika. */}
-                        <span>
+                        {/* Jedyne miejsce w widoku, w którym stoi adres uczestnika.
+                            Zarazem wejście w wizytówkę: „kto to jest" pada najczęściej
+                            wtedy, gdy patrzy się właśnie na to nazwisko. */}
+                        <IdentityButton
+                            type="button"
+                            title="Zobacz, kto to jest"
+                            onClick={(event) => setContactAnchor(event.currentTarget)}
+                        >
                             {thread.participantName
                                 ? `${thread.participantName} · ${thread.participantEmail}`
                                 : thread.participantEmail}
-                        </span>
+                        </IdentityButton>
 
                         {contactBadges && (
                             <>
@@ -620,6 +659,14 @@ function ConversationViewImpl({
                         </IconButton>
                     )}
                 </HeaderActions>
+                {contactAnchor && (
+                    <ContactCardPopover
+                        email={thread.participantEmail}
+                        participantName={thread.participantName}
+                        anchor={contactAnchor}
+                        onClose={() => setContactAnchor(null)}
+                    />
+                )}
                 {historyOpen && (
                     <ThreadHistoryPanel
                         threadId={thread.id}
@@ -644,7 +691,10 @@ function ConversationViewImpl({
             </Header>
 
             {clientSummary && (
-                <ClientBar onClick={() => setProfileOpen(true)} title="Zobacz profil klienta">
+                <ClientBar
+                    onClick={(event) => setContactAnchor(event.currentTarget)}
+                    title="Zobacz profil klienta"
+                >
                     <Wallet size={14} />
                     <span className="text">
                         <strong>{clientSummary.name ?? thread.participantName ?? thread.participantEmail}</strong>
@@ -718,7 +768,23 @@ function ConversationViewImpl({
                     return (
                         <Article key={message.id} $outbound={outbound}>
                             <MessageHeader>
-                                <Avatar $hue={hue} $outbound={outbound}>{initials}</Avatar>
+                                {outbound ? (
+                                    <Avatar $hue={hue} $outbound>{initials}</Avatar>
+                                ) : (
+                                    <Avatar
+                                        as="button"
+                                        type="button"
+                                        $hue={hue}
+                                        $outbound={false}
+                                        $clickable
+                                        title="Zobacz, kto to jest"
+                                        onClick={(event: React.MouseEvent<HTMLElement>) =>
+                                            setContactAnchor(event.currentTarget)
+                                        }
+                                    >
+                                        {initials}
+                                    </Avatar>
+                                )}
                                 <button
                                     className="identity"
                                     onClick={() => toggleMessage(message.id, expanded)}
@@ -785,14 +851,6 @@ function ConversationViewImpl({
                 threadId={thread.id}
                 initialTo={thread.participantEmail}
                 recipientLabel={thread.participantName ?? thread.participantEmail}
-            />
-
-            <ClientProfileModal
-                isOpen={profileOpen}
-                onClose={() => setProfileOpen(false)}
-                clientName={
-                    clientSummary?.name ?? thread.participantName ?? thread.participantEmail
-                }
             />
         </Pane>
     );

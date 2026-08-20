@@ -5,6 +5,7 @@ import type {
     CommThreadDetail,
     CommThreadPage,
     ConnectMailAccountRequest,
+    ContactCard,
     ContactInsights,
     ContactNote,
     ContactNoteEvent,
@@ -125,6 +126,14 @@ export const commsApi = {
     /** Pozostałe rozmowy z tym adresem — panel historii korespondencji. */
     getRelatedThreads: async (threadId: string): Promise<CommThread[]> => {
         const { data } = await apiClient.get(`/v1/comms/threads/${threadId}/related`);
+        return data;
+    },
+
+    /** Wizytówka kontaktu spod avatara — kto to jest, kiedy był, czym jeździ. */
+    getContactCard: async (email: string): Promise<ContactCard> => {
+        const { data } = await apiClient.get(
+            `/v1/comms/contact-card?email=${encodeURIComponent(email)}`
+        );
         return data;
     },
 
