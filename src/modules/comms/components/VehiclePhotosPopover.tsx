@@ -1,24 +1,27 @@
 // src/modules/comms/components/VehiclePhotosPopover.tsx
-// Miniatury zdjęć auta — druga chmurka, obok wizytówki klienta.
+// Zdjęcia auta — druga chmurka, obok wizytówki klienta.
 //
 // Pytanie, które to zamyka, brzmi „czy to TO auto?". Odpowiada na nie obrazek,
-// nie nazwa modelu — dwa czarne kombi tej samej marki różni tylko wygląd, a nazwisko
-// klienta nie mówi nic o tym, jak wygląda jego samochód po ostatniej wizycie.
+// nie nazwa modelu — dwa czarne kombi tej samej marki różni tylko wygląd.
 //
-// Świadomie MINIATURY, nie pełne zdjęcia: chmurka ma się pojawić od razu, a galeria
-// pełnych plików potrafi ważyć kilkadziesiąt megabajtów. Pełny rozmiar jest o jedno
-// kliknięcie dalej, w kartotece pojazdu.
-import { useEffect, useRef, useState } from 'react';
+// Jedno zdjęcie na raz, a nie siatka miniatur: siatka 60 × 45 px odpowiada
+// „są jakieś zdjęcia", ale nie „to jest to auto". Strzałki i kropki pod spodem
+// mówią, że jest ich więcej, zanim ktokolwiek zacznie szukać, gdzie kliknąć.
+//
+// Szybkość rozwiązana dwuetapowo: najpierw pokazujemy MINIATURĘ (jest w odpowiedzi
+// i waży tyle co nic), a pełny plik podmienia ją dopiero, gdy się doczyta. Dzięki
+// temu chmurka pojawia się natychmiast i nie zostaje rozmyta.
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
-import { X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 
 const Card = styled.div`
     position: fixed;
     z-index: 121;
-    width: 268px;
+    width: 380px;
     max-width: calc(100vw - 24px);
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};
@@ -33,13 +36,13 @@ const Head = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
+    padding: 10px 12px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
 
     .title {
         flex: 1;
         min-width: 0;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: ${p => p.theme.fontWeights.semibold};
         color: ${p => p.theme.colors.text};
         overflow: hidden;
@@ -50,8 +53,9 @@ const Head = styled.div`
         font-size: 11.5px;
         color: ${p => p.theme.colors.textMuted};
         font-variant-numeric: tabular-nums;
+        white-space: nowrap;
     }
-    button {
+    button.close {
         border: none;
         background: transparent;
         color: ${p => p.theme.colors.textMuted};
@@ -63,38 +67,104 @@ const Head = styled.div`
     }
 `;
 
-const Grid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    padding: 8px;
-    max-height: 260px;
-    overflow-y: auto;
-`;
-
-const Thumb = styled.a`
-    display: block;
+/** Scena zdjęcia. Ciemne tło, bo zdjęcia aut bywają jasne i ciemne naprzemiennie. */
+const Stage = styled.div`
+    position: relative;
     aspect-ratio: 4 / 3;
-    border-radius: ${p => p.theme.radii.sm};
+    background: #0f172a;
     overflow: hidden;
-    background: ${p => p.theme.colors.surfaceAlt};
-    border: 1px solid ${p => p.theme.colors.border};
 
     img {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        display: block;
-        transition: transform ${p => p.theme.transitions.fast};
+        object-fit: contain;
     }
 
-    &:hover img, &:focus-visible img { transform: scale(1.06); }
-    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 1px; }
+    /* Miniatura rozciągnięta na całą scenę jest miękka — rozmycie zamienia
+       to z wady w celowy podkład, który znika, gdy dojdzie pełny plik. */
+    img.thumb { filter: blur(6px); transform: scale(1.04); }
+    img.full {
+        opacity: 0;
+        transition: opacity 180ms ease;
+    }
+    img.full.ready { opacity: 1; }
+`;
+
+const Arrow = styled.button<{ $side: 'left' | 'right' }>`
+    position: absolute;
+    top: 50%;
+    ${({ $side }) => ($side === 'left' ? 'left: 8px;' : 'right: 8px;')}
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.55);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover:not(:disabled) { background: rgba(15, 23, 42, 0.78); }
+    &:disabled { opacity: 0.35; cursor: default; }
+    &:focus-visible { outline: 2px solid #ffffff; outline-offset: 1px; }
+`;
+
+const Foot = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-top: 1px solid ${p => p.theme.colors.border};
+
+    .caption {
+        flex: 1;
+        min-width: 0;
+        font-size: 11.5px;
+        color: ${p => p.theme.colors.textMuted};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    a {
+        font-size: 11.5px;
+        color: ${p => p.theme.colors.primary};
+        text-decoration: none;
+        white-space: nowrap;
+
+        &:hover { text-decoration: underline; }
+    }
+`;
+
+const Dots = styled.div`
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding: 9px 12px 4px;
+    flex-wrap: wrap;
+`;
+
+const Dot = styled.button<{ $active: boolean }>`
+    width: ${({ $active }) => ($active ? '18px' : '6px')};
+    height: 6px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
+    cursor: pointer;
+    transition: width ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textMuted)}; }
 `;
 
 const Muted = styled.p`
     margin: 0;
-    padding: 18px 12px;
+    padding: 26px 14px;
     text-align: center;
     font-size: 12.5px;
     color: ${p => p.theme.colors.textMuted};
@@ -109,31 +179,51 @@ interface VehiclePhotosPopoverProps {
     onClose: () => void;
 }
 
-/** Ile miniatur pokazujemy. Chmurka ma być podglądem, nie galerią. */
-const THUMBNAIL_LIMIT = 12;
+/** Ile zdjęć wciągamy. Podgląd, nie galeria — pełna jest w kartotece pojazdu. */
+const PHOTO_LIMIT = 12;
+
+/** Powyżej tylu zdjęć kropki przestają być czytelne i zamieniają się w licznik. */
+const MAX_DOTS = 10;
 
 export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: VehiclePhotosPopoverProps) {
     const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+    const [index, setIndex] = useState(0);
+    // Pełne pliki, które już się doczytały — po nich poznajemy, czy podmienić podkład.
+    const [loaded, setLoaded] = useState<Record<string, boolean>>({});
     const cardRef = useRef<HTMLDivElement | null>(null);
 
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['vehicle-photos', vehicleId, THUMBNAIL_LIMIT],
-        queryFn: () => vehicleApi.getPhotoGallery(vehicleId, 1, THUMBNAIL_LIMIT),
+        queryKey: ['vehicle-photos', vehicleId, PHOTO_LIMIT],
+        queryFn: () => vehicleApi.getPhotoGallery(vehicleId, 1, PHOTO_LIMIT),
         staleTime: 5 * 60_000,
     });
+
+    const photos = data?.photos ?? [];
+    const total = data?.pagination?.total ?? photos.length;
+    const current = photos[Math.min(index, Math.max(0, photos.length - 1))];
+
+    const go = useCallback(
+        (delta: number) => {
+            setIndex((currentIndex) => {
+                const next = currentIndex + delta;
+                if (next < 0 || next >= photos.length) return currentIndex;
+                return next;
+            });
+        },
+        [photos.length]
+    );
 
     useEffect(() => {
         const place = () => {
             const rect = anchor.getBoundingClientRect();
-            const width = 268;
+            const width = 380;
             const gap = 8;
-            // Domyślnie po prawej stronie wizytówki; przy krawędzi ekranu po lewej.
             const card = anchor.closest('[role="dialog"]')?.getBoundingClientRect();
             const rightEdge = (card?.right ?? rect.right) + gap;
             const left = rightEdge + width < window.innerWidth
                 ? rightEdge
                 : Math.max(12, (card?.left ?? rect.left) - width - gap);
-            const top = Math.min(rect.top - 4, window.innerHeight - 300);
+            const top = Math.min(rect.top - 4, window.innerHeight - 420);
             setPos({ top: Math.max(12, top), left });
         };
         place();
@@ -151,16 +241,16 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
                 // Zamykamy tylko tę chmurkę — wizytówka pod spodem zostaje.
                 event.stopPropagation();
                 onClose();
+                return;
             }
+            if (event.key === 'ArrowLeft') { event.stopPropagation(); go(-1); }
+            if (event.key === 'ArrowRight') { event.stopPropagation(); go(1); }
         };
         document.addEventListener('keydown', onKey, true);
         return () => document.removeEventListener('keydown', onKey, true);
-    }, [onClose]);
+    }, [onClose, go]);
 
     if (!pos) return null;
-
-    const photos = data?.photos ?? [];
-    const total = data?.pagination?.total ?? photos.length;
 
     return createPortal(
         <Card
@@ -172,9 +262,14 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
         >
             <Head>
                 <span className="title">{label}</span>
-                {total > 0 && <span className="count">{total}</span>}
-                <button type="button" onClick={onClose} aria-label="Zamknij">
-                    <X size={13} />
+                {photos.length > 0 && (
+                    <span className="count">
+                        {index + 1} / {photos.length}
+                        {total > photos.length && ` z ${total}`}
+                    </span>
+                )}
+                <button type="button" className="close" onClick={onClose} aria-label="Zamknij">
+                    <X size={14} />
                 </button>
             </Head>
 
@@ -184,25 +279,68 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
                 <Muted>Nie mamy jeszcze zdjęć tego auta.</Muted>
             )}
 
-            {photos.length > 0 && (
-                <Grid>
-                    {photos.map((photo) => (
-                        <Thumb
-                            key={photo.id}
-                            href={photo.fullSizeUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={photo.description || photo.fileName}
-                        >
-                            <img
-                                src={photo.thumbnailUrl}
-                                alt={photo.description || photo.fileName}
-                                loading="lazy"
-                                decoding="async"
-                            />
-                        </Thumb>
-                    ))}
-                </Grid>
+            {current && (
+                <>
+                    <Stage>
+                        <img className="thumb" src={current.thumbnailUrl} alt="" aria-hidden />
+                        <img
+                            key={current.id}
+                            className={`full${loaded[current.id] ? ' ready' : ''}`}
+                            src={current.fullSizeUrl}
+                            alt={current.description || current.fileName}
+                            decoding="async"
+                            onLoad={() => setLoaded((state) => ({ ...state, [current.id]: true }))}
+                        />
+                        {/* Przy jednym zdjęciu strzałki obiecywałyby ruch, którego nie ma. */}
+                        {photos.length > 1 && (
+                            <>
+                                <Arrow
+                                    type="button"
+                                    $side="left"
+                                    aria-label="Poprzednie zdjęcie"
+                                    disabled={index === 0}
+                                    onClick={() => go(-1)}
+                                >
+                                    <ChevronLeft size={16} />
+                                </Arrow>
+                                <Arrow
+                                    type="button"
+                                    $side="right"
+                                    aria-label="Następne zdjęcie"
+                                    disabled={index >= photos.length - 1}
+                                    onClick={() => go(1)}
+                                >
+                                    <ChevronRight size={16} />
+                                </Arrow>
+                            </>
+                        )}
+                    </Stage>
+
+                    {photos.length > 1 && photos.length <= MAX_DOTS && (
+                        <Dots>
+                            {photos.map((photo, dotIndex) => (
+                                <Dot
+                                    key={photo.id}
+                                    type="button"
+                                    $active={dotIndex === index}
+                                    aria-label={`Zdjęcie ${dotIndex + 1}`}
+                                    aria-current={dotIndex === index}
+                                    onClick={() => setIndex(dotIndex)}
+                                />
+                            ))}
+                        </Dots>
+                    )}
+
+                    <Foot>
+                        <span className="caption">
+                            {current.description || current.fileName}
+                            {current.visitNumber && ` · wizyta ${current.visitNumber}`}
+                        </span>
+                        <a href={current.fullSizeUrl} target="_blank" rel="noreferrer">
+                            Pełny rozmiar
+                        </a>
+                    </Foot>
+                </>
             )}
         </Card>,
         document.body
