@@ -36,8 +36,12 @@ export interface CostExpenseItem {
     unit: string | null;
     quantity: number | null;
     unitPriceNet: number | null;
+    /** Netto z faktury; gdy sprzedawca go nie podał — wyliczone z brutto i stawki VAT. */
     netValue: number | null;
+    /** Brutto z faktury; gdy go brak — doliczone do netto wg stawki VAT. */
     grossValue: number | null;
+    /** true, gdy netto lub brutto nie było na fakturze i zostało wyliczone z drugiej kwoty. */
+    amountsDerived?: boolean;
     vatRate: string | null;
     costCategoryId: string | null;
     costCategoryName: string | null;
