@@ -538,7 +538,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   const items = invoice?.items ?? [];
 
   return (
-    <ModalShell isOpen={invoiceId !== null} onClose={close} size="xl">
+    <ModalShell isOpen={invoiceId !== null} onClose={close} size="full" fillHeight>
       <ModalHeader>
         <ModalTitleGroup>
           <ModalTitle>Podgląd faktury</ModalTitle>

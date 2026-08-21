@@ -2,19 +2,25 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ModalOverlay, ModalBox } from '@/common/styles';
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
 const SIZE_MAP: Record<ModalSize, string> = {
     sm: '480px',
     md: '560px',
     lg: '640px',
     xl: '800px',
+    /**
+     * Okno dokumentowe: podgląd faktury, protokołu, dłuższego wydruku. Treść
+     * jest wtedy sama w sobie kartką A4 i przy 800px robi się wąska kolumna,
+     * którą trzeba przewijać — a tło i tak jest rozmyte i nieużywane.
+     */
+    full: 'min(1280px, 100%)',
 };
 
 interface ModalShellProps {
     isOpen: boolean;
     onClose: () => void;
-    /** Preferred: sm=480px · md=560px · lg=640px · xl=800px */
+    /** Preferred: sm=480px · md=560px · lg=640px · xl=800px · full=prawie cały ekran */
     size?: ModalSize;
     /** @deprecated Use size instead */
     maxWidth?: string;
@@ -31,6 +37,13 @@ interface ModalShellProps {
      * around it move under the pointer. The content region scrolls inside the fixed box.
      */
     stableHeight?: boolean;
+    /**
+     * Rozciąga okno na całą dostępną wysokość zamiast dopasowywać je do treści.
+     * Dla okien dokumentowych: przy długiej fakturze znika większość przewijania,
+     * a przy krótkiej kartka ma po prostu więcej powietrza pod spodem — tak jak
+     * w czytniku PDF. Ma pierwszeństwo przed [stableHeight].
+     */
+    fillHeight?: boolean;
     children: ReactNode;
 }
 
@@ -47,7 +60,7 @@ interface ModalShellProps {
  *     <ModalFooter>...</ModalFooter>
  *   </ModalShell>
  */
-export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, children }: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
     useEffect(() => {
@@ -118,7 +131,7 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeig
             <ModalBox
                 $isOpen={isOpen}
                 $maxWidth={resolvedWidth}
-                $fixedHeight={stableHeight ? 'min(640px, 100%)' : undefined}
+                $fixedHeight={fillHeight ? '100%' : stableHeight ? 'min(640px, 100%)' : undefined}
             >
                 {children}
             </ModalBox>
