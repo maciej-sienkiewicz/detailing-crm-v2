@@ -386,6 +386,11 @@ export function RoleEditorModal({
     const renderNodes = (nodes: PermissionTreeNode[], moduleFeatureOk: boolean) => (
         groupBySection(nodes).map(group => (
             <NodeBlock key={group.section ?? group.nodes[0].code}>
+                {/* Nagłówek sekcji. Grupowanie liczyło się od dawna, ale etykieta
+                    nigdy nie trafiała na ekran — przez co „Zlecenia zbiorcze" czy
+                    „Klienci i pojazdy" wyglądały jak kolejne pozycje na jednej liście,
+                    a nie jak osobne obszary uprawnień. */}
+                {group.section && <SectionLabel>{group.section}</SectionLabel>}
                 {group.nodes.map(node => {
                     const checked = selected.has(node.code);
                     const nodeFeatureOk = moduleFeatureOk && isFeatureEnabled(node.featureKey);
