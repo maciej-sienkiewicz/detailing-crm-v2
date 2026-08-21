@@ -39,6 +39,7 @@ import {
     HeaderDatePicker,
     fmtPLN, today, oneYearAgo,
 } from '../components/shared';
+import { effectiveGross, effectiveNet, isNetDerived } from '../costAmounts';
 import {
     useCostCategories,
     useCreateCostCategory,
@@ -763,19 +764,15 @@ const ConfirmAssignModal = ({ isOpen, onClose, onConfirm, itemCount, categoryNam
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseVatRate(vatRate: string | null): number | null {
-    if (!vatRate) return null;
-    const m = vatRate.match(/(\d+(?:[.,]\d+)?)\s*%/);
-    return m ? parseFloat(m[1].replace(',', '.')) : null;
-}
-
-function effectiveGross(item: CostExpenseItem): number {
-    if (item.grossValue != null) return item.grossValue;
-    if (item.netValue != null) {
-        const rate = parseVatRate(item.vatRate);
-        return item.netValue * (1 + (rate ?? 0) / 100);
-    }
-    return 0;
+/**
+ * Netto w tabeli. Kwoty wyliczone z brutto oznaczamy „≈", żeby nie wyglądały na
+ * dane wprost z faktury — jednocześnie nie pokazując pustego pola tam, gdzie
+ * wartość da się policzyć.
+ */
+function renderNet(item: CostExpenseItem): string {
+    if (item.netValue == null && item.grossValue == null) return '-';
+    const value = fmtPLN(effectiveNet(item));
+    return isNetDerived(item) ? `≈ ${value}` : value;
 }
 
 function groupByInvoice(items: CostExpenseItem[]): CostInvoiceGroup[] {
@@ -894,7 +891,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
                                     <InvTd style={{ textAlign: 'left', color: undefined }}>{item.name ?? '-'}</InvTd>
                                     <InvTd>{item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '-'}</InvTd>
                                     <InvTd>{item.unitPriceNet != null ? fmtPLN(item.unitPriceNet) : '-'}</InvTd>
-                                    <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '-'}</InvTd>
+                                    <InvTd title={isNetDerived(item) ? 'Netto wyliczone z brutto i stawki VAT — sprzedawca nie podał go na fakturze' : undefined}>{renderNet(item)}</InvTd>
                                     <InvTd>{item.vatRate ?? '-'}</InvTd>
                                     <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                     <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
@@ -1224,7 +1221,7 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
                                             <InvTd style={{ textAlign: 'left', color: undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {item.name ?? '-'}
                                             </InvTd>
-                                            <InvTd>{item.netValue != null ? fmtPLN(item.netValue) : '-'}</InvTd>
+                                            <InvTd title={isNetDerived(item) ? 'Netto wyliczone z brutto i stawki VAT — sprzedawca nie podał go na fakturze' : undefined}>{renderNet(item)}</InvTd>
                                             <InvTd>{item.vatRate ?? '-'}</InvTd>
                                             <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                             <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
@@ -1355,9 +1352,11 @@ export const CostsView = () => {
     const invoiceGroups = useMemo(() => groupByInvoice(visibleItems), [visibleItems]);
     const nameGroups    = useMemo(() => groupByName(visibleItems),    [visibleItems]);
 
-    // KPI totals derived from stats items (gross computed from net+VAT when not in DB)
+    // KPI totals derived from stats items — obie strony kwoty liczone tym samym
+    // fallbackiem (netto ⇄ brutto wg stawki VAT), żeby różnica brutto−netto była VAT-em,
+    // a nie sumą pozycji z niewypełnioną jedną stroną.
     const totalCostGross = statsItems.reduce((s, i) => s + effectiveGross(i), 0);
-    const totalCostNet   = statsItems.reduce((s, i) => s + (i.netValue ?? 0), 0);
+    const totalCostNet   = statsItems.reduce((s, i) => s + effectiveNet(i), 0);
     const totalItems     = statsItems.length;
 
     // Źródło wykresu trendu: po wybraniu kategorii pokazujemy jej pozycje
