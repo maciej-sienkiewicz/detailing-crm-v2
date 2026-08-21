@@ -25,11 +25,15 @@ export function hasPermission(user: User | null, required: AccessRequirement): b
  * the first area the user can access otherwise, never a "no access" screen
  * for anyone with at least one permission.
  *
- * Every permission in the catalog implies VISITS_VIEW through the dependency
- * graph, so the /dashboard fallback is reachable for any non-empty permission
- * set. A user with an empty set (no role, or a role with nothing enabled)
- * lands on /worktime when they track work time, otherwise on /no-access;
- * never in a redirect loop.
+ * Prawie każde uprawnienie w katalogu pociąga za sobą VISITS_VIEW przez graf
+ * zależności, więc zapasowe /dashboard jest osiągalne dla niemal każdego
+ * niepustego zestawu. Wyjątkiem jest BATCH_ORDERS — samodzielny korzeń, który
+ * nie daje ani kalendarza, ani kartoteki — i dlatego /batch-orders musi stać
+ * na tej liście: bez tego obsługa kontrahenta lądowała po zalogowaniu na
+ * powiadomieniach, mimo że ma swój kompletny widok.
+ *
+ * Użytkownik z pustym zestawem (bez roli albo z rolą bez zaznaczeń) trafia na
+ * /notifications — nigdy w pętlę przekierowań.
  */
 export function getDefaultRoute(user: User | null): string {
     const candidates: Array<{ path: string; requires: PermissionRequirement }> = [
@@ -38,6 +42,7 @@ export function getDefaultRoute(user: User | null): string {
         { path: '/leads', requires: 'LEADS_MANAGE' },
         { path: '/finances', requires: ['FINANCE_INVOICES', 'FINANCE_MANAGE_CASH_REGISTER', 'FINANCE_VIEW_REPORTS'] },
         { path: '/statistics', requires: 'STATISTICS_VIEW' },
+        { path: '/batch-orders', requires: 'BATCH_ORDERS' },
     ];
     const match = candidates.find(({ requires }) => hasPermission(user, requires));
     if (match) return match.path;

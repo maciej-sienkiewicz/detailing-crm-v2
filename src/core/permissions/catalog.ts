@@ -33,7 +33,9 @@ export const PERMISSIONS = {
     // Zadania
     TASKS_VIEW: 'TASKS_VIEW',
     TASKS_MANAGE: 'TASKS_MANAGE',
-    // Zlecenia zbiorcze
+    // Zlecenia zbiorcze: osobna kategoria w module „Wizyty i kalendarz",
+    // niezależna od VISITS_VIEW. Obsługa kontrahenta B2B to własne stanowisko —
+    // można nadać samo to uprawnienie i widok działa w całości.
     BATCH_ORDERS: 'BATCH_ORDERS',
     // Historia aktywności: feed przecina wszystkie moduły i pokazuje również
     // zdarzenia kadrowo-płacowe oraz bezpieczeństwa, więc nie może jechać na
