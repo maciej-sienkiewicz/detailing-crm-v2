@@ -355,14 +355,23 @@ export interface TranslationKeys {
         };
         customerModal: {
             titleSelect: string;
+            titleChange: string;
             titleNew: string;
+            subtitleSelect: string;
+            subtitleChange: string;
+            subtitleNew: string;
             searchPlaceholder: string;
             searching: string;
             noResults: string;
             enterSearch: string;
+            enterSearchHint: string;
+            noResultsHint: string;
             addNewButton: string;
+            addNewHint: string;
+            cancel: string;
             backToSearch: string;
             confirmButton: string;
+            currentBadge: string;
             firstName: string;
             firstNamePlaceholder: string;
             lastName: string;

@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
-import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
 import { EditableServicesTable } from './EditableServicesTable';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
@@ -16,7 +15,17 @@ import { t } from '@/common/i18n';
 import { fromDateToLocalInput } from '@/common/dateTime';
 import { DateTimePicker } from '@/modules/calendar/components/DateTimePicker';
 import type { CheckInFormData, ServiceLineItem } from '../types';
-import { Modal } from '@/common/components/Modal';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalSubtitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
@@ -413,6 +422,119 @@ const VehicleSuggestionChip = styled.button`
     }
 `;
 
+// ─── Customer-swap decision (what happens to the car) ─────────────────────────
+
+const DecisionIntro = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    color: ${st.textSecondary};
+    line-height: 1.55;
+`;
+
+const DecisionOptions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const DecisionOption = styled.button`
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    text-align: left;
+    font-family: inherit;
+    background: ${st.bgCard};
+    border: 1.5px solid ${st.border};
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+
+    &:hover {
+        background: #F8FAFC;
+        border-color: ${st.accentBlue};
+    }
+
+    &:focus-visible {
+        outline: none;
+        border-color: ${st.accentBlue};
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+`;
+
+const DecisionOptionIcon = styled.span`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+
+    svg { width: 16px; height: 16px; }
+`;
+
+const DecisionOptionBody = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+`;
+
+const DecisionOptionTitle = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${st.text};
+    line-height: 1.35;
+`;
+
+const DecisionOptionDesc = styled.span`
+    font-size: 12.5px;
+    color: ${st.textMuted};
+    line-height: 1.45;
+`;
+
+/** Amber reminder shown in the vehicle section while the swap decision is unanswered. */
+const DecisionBanner = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: ${st.accentAmberDim};
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: ${st.radiusSm};
+    font-size: 12.5px;
+    color: ${st.textSecondary};
+    line-height: 1.45;
+`;
+
+/** Blue confirmation of the "keep the car, add the customer as an owner" decision. */
+const DecisionResolvedNote = styled(DecisionBanner)`
+    background: ${st.accentBlueDim};
+    border-color: rgba(59, 130, 246, 0.28);
+`;
+
+const DecisionBannerBtn = styled.button`
+    margin-left: auto;
+    padding: 5px 12px;
+    border: 1.5px solid ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCard};
+    color: ${st.accentBlue};
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background ${st.transition};
+
+    &:hover { background: ${st.accentBlueDim}; }
+`;
+
 // ─── Deposit toggle items ─────────────────────────────────────────────────────
 
 const DepositSection = styled.div`
@@ -776,6 +898,16 @@ export const VerificationStep = ({
     const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number } | null>(null);
     const [selectedCustomerIdForVehicles, setSelectedCustomerIdForVehicles] = useState<string | undefined>(undefined);
 
+    // Swapping the customer on a visit that already has a car leaves one open question the
+    // form cannot answer on its own: is it a different car too, or the same car with a new
+    // owner? Ask it once, right after the swap, and keep asking until it is answered.
+    const [showCustomerSwapDecision, setShowCustomerSwapDecision] = useState(false);
+    const [customerSwapDecisionPending, setCustomerSwapDecisionPending] = useState(false);
+    // Walk-ins start with no "initial" record, so a swap there can only be recognised by
+    // remembering that the operator already had someone/something else picked.
+    const [customerSwappedInSession, setCustomerSwappedInSession] = useState(false);
+    const [vehicleSwappedInSession, setVehicleSwappedInSession] = useState(false);
+
     const customerSearchQuery = [formData.customerData.firstName, formData.customerData.lastName]
         .filter(s => s.trim().length > 0).join(' ').trim();
     const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
@@ -869,6 +1001,8 @@ export const VerificationStep = ({
     useEffect(() => {
         if (!selectedCustomerIdForVehicles || vehicleAutoSelectedRef.current) return;
         if (customerVehicles.length !== 1) return;
+        // While the swap question is open the car is the operator's call, not a default.
+        if (customerSwapDecisionPending) return;
         vehicleAutoSelectedRef.current = true;
         const v = customerVehicles[0];
         onChange({
@@ -899,13 +1033,36 @@ export const VerificationStep = ({
     // so the badge is not shown until the user explicitly interacts.
     const vehicleWasPreSelected = useRef(!!formData.vehicleData?.id && !formData.isNewVehicle);
 
+    // "Aktualizujesz dane" is only true while the record is the one we started from. Once a
+    // different customer or car is picked, saying that is plainly wrong — the operator swapped
+    // the record, they did not edit the old one.
+    const customerReplaced = customerSwappedInSession || (!!initialCustomerData?.id
+        && (formData.isNewCustomer || formData.customerData.id !== initialCustomerData.id));
+
+    const vehicleReplaced = vehicleSwappedInSession || (!!initialVehicleData?.id
+        && (formData.isNewVehicle || formData.vehicleData?.id !== initialVehicleData.id));
+
     const customerBadge = formData.isNewCustomer
-        ? 'Dodasz nowego klienta'
-        : (formData.customerData.id ? 'Aktualizujesz dane istniejącego klienta' : undefined);
+        ? (customerReplaced ? 'Zmieniono klienta na nowego' : 'Dodasz nowego klienta')
+        : customerReplaced
+            ? 'Wybrano innego klienta'
+            : (formData.customerData.id ? 'Aktualizujesz dane istniejącego klienta' : undefined);
 
     const vehicleBadge = (formData.vehicleData === null)
         ? undefined
-        : ((formData.isNewVehicle || !formData.vehicleData?.id) ? 'Dodasz nowy pojazd' : 'Aktualizujesz dane istniejącego pojazdu');
+        : (formData.isNewVehicle || !formData.vehicleData?.id)
+            ? (vehicleReplaced ? 'Zmieniono pojazd na nowy' : 'Dodasz nowy pojazd')
+            : vehicleReplaced
+                ? 'Wybrano inny pojazd'
+                : 'Aktualizujesz dane istniejącego pojazdu';
+
+    const hasCustomer = !!formData.customerData.id
+        || !!(formData.customerData.firstName || formData.customerData.lastName);
+    const hasVehicle = !!formData.vehicleData
+        && !!(formData.vehicleData.id || formData.vehicleData.brand || formData.vehicleData.model);
+
+    const newCustomerLabel = [formData.customerData.firstName, formData.customerData.lastName]
+        .filter(Boolean).join(' ').trim() || 'nowo wybrany klient';
 
     const homeAddressHasData = formData.homeAddress && (
         formData.homeAddress.street ||
@@ -981,22 +1138,28 @@ export const VerificationStep = ({
             isNewCustomer: initialIsNewCustomer ?? false,
             homeAddress: initialHomeAddress !== undefined ? initialHomeAddress : formData.homeAddress,
             company: initialCompany !== undefined ? initialCompany : formData.company,
+            vehicleOwnershipAction: null,
         });
         setCustomerChoiceMade(false);
         setPendingCustomerUpdates(null);
         setShowCustomerChoice(false);
         setCustomerPromptScheduled(false);
+        setCustomerSwappedInSession(false);
+        setCustomerSwapDecisionPending(false);
+        setShowCustomerSwapDecision(false);
     };
 
     const handleResetVehicle = () => {
         onChange({
             vehicleData: (initialVehicleData === undefined) ? formData.vehicleData : (initialVehicleData ?? null),
             isNewVehicle: initialIsNewVehicle ?? false,
+            vehicleOwnershipAction: null,
         });
         setVehicleChoiceMade(false);
         setPendingVehicleUpdates(null);
         setShowVehicleChoice(false);
         setVehiclePromptScheduled(false);
+        setVehicleSwappedInSession(false);
     };
 
     const applyCustomerUpdates = (updates: Partial<CheckInFormData['customerData']>) => {
@@ -1175,6 +1338,15 @@ export const VerificationStep = ({
     };
 
     const handleCustomerSelect = async (customer: SelectedCustomer) => {
+        // Read before onChange: this is who the visit belonged to a moment ago.
+        const previousCustomerId = formData.customerData.id;
+        const swappedToDifferentCustomer = !!previousCustomerId
+            && (customer.isNew || !customer.id || customer.id !== previousCustomerId);
+        const keepsExistingVehicle = !!formData.vehicleData?.id
+            && !formData.isNewVehicle
+            && !formData.vehicleData.id.startsWith('temp-');
+        const needsVehicleDecision = swappedToDifferentCustomer && keepsExistingVehicle;
+
         const baseCustomerData = {
             customerData: {
                 id: customer.id || '',
@@ -1213,9 +1385,35 @@ export const VerificationStep = ({
         }
         setCustomerChoiceMade(true);
         setIsCustomerModalOpen(false);
+
+        if (swappedToDifferentCustomer) {
+            setCustomerSwappedInSession(true);
+        }
+
+        if (needsVehicleDecision) {
+            // A decision made for the previous customer says nothing about this one.
+            onChange({ vehicleOwnershipAction: null });
+            setCustomerSwapDecisionPending(true);
+            setShowCustomerSwapDecision(true);
+        }
     };
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
+        const previousVehicleId = formData.vehicleData?.id;
+        if (previousVehicleId && (vehicle.isNew || vehicle.id !== previousVehicleId)) {
+            setVehicleSwappedInSession(true);
+        }
+        // Picking an existing car that the visit's customer does not own yet would otherwise
+        // leave the two records unlinked. Write the customer on as an extra owner and say so
+        // in the section, rather than doing it silently or not at all.
+        const customerId = formData.customerData.id;
+        const needsOwnerLink = !vehicle.isNew
+            && !!vehicle.id
+            && !!customerId
+            && !formData.isNewCustomer
+            && !!vehicle.ownerCustomerIds
+            && !vehicle.ownerCustomerIds.includes(customerId);
+
         onChange({
             vehicleData: {
                 id: vehicle.id || `temp-${Date.now()}`,
@@ -1226,9 +1424,26 @@ export const VerificationStep = ({
                 color: vehicle.color ?? undefined,
             },
             isNewVehicle: vehicle.isNew || false,
+            vehicleOwnershipAction: needsOwnerLink ? 'ADD_CO_OWNER' : null,
         });
         setVehicleChoiceMade(true);
         setIsVehicleModalOpen(false);
+        setCustomerSwapDecisionPending(false);
+    };
+
+    /** "Podmieniamy pojazd" — send the operator straight to the new customer's cars. */
+    const chooseDifferentVehicle = () => {
+        onChange({ vehicleOwnershipAction: null });
+        setShowCustomerSwapDecision(false);
+        setIsVehicleModalOpen(true);
+    };
+
+    /** "Zostawiamy pojazd" — the new customer is written onto the car as an extra owner. */
+    const keepVehicleAndAddOwner = () => {
+        onChange({ vehicleOwnershipAction: 'ADD_CO_OWNER' });
+        setShowCustomerSwapDecision(false);
+        setCustomerSwapDecisionPending(false);
+        setVehicleChoiceMade(true);
     };
 
     const handleVehicleDetailsSave = (data: {
@@ -1297,7 +1512,7 @@ export const VerificationStep = ({
                             <DateTimePicker
                                 value={formData.visitStartAt ?? ''}
                                 onChange={(start) => {
-                                    let updates: Partial<CheckInFormData> = { visitStartAt: start };
+                                    const updates: Partial<CheckInFormData> = { visitStartAt: start };
                                     if (!formData.visitEndAt) {
                                         const d = new Date(start);
                                         if (!isNaN(d.getTime())) {
@@ -1363,7 +1578,7 @@ export const VerificationStep = ({
                         <SectionNum>2</SectionNum>
                         <SectionLabel>
                             {t.checkin.verification.customerSection}
-                            {customerChoiceMade && customerBadge && (
+                            {(customerChoiceMade || customerReplaced) && customerBadge && (
                                 <StatusPill>{customerBadge}</StatusPill>
                             )}
                         </SectionLabel>
@@ -1373,7 +1588,7 @@ export const VerificationStep = ({
                             Wycofaj zmiany
                         </ActionBtn>
                         <ActionBtn $primary onClick={() => setIsCustomerModalOpen(true)}>
-                            Wyszukaj klienta
+                            {hasCustomer ? 'Zmień klienta' : 'Wybierz klienta'}
                         </ActionBtn>
                     </SectionActions>
                 </SectionHead>
@@ -1649,7 +1864,7 @@ export const VerificationStep = ({
                         <SectionNum>3</SectionNum>
                         <SectionLabel>
                             {t.checkin.verification.vehicleSection}
-                            {(vehicleChoiceMade || formData.isNewVehicle) && vehicleBadge && (
+                            {(vehicleChoiceMade || formData.isNewVehicle || vehicleReplaced) && vehicleBadge && (
                                 <StatusPill>{vehicleBadge}</StatusPill>
                             )}
                         </SectionLabel>
@@ -1659,12 +1874,33 @@ export const VerificationStep = ({
                             Wycofaj zmiany
                         </ActionBtn>
                         <ActionBtn $primary onClick={() => setIsVehicleModalOpen(true)}>
-                            Wyszukaj pojazd
+                            {hasVehicle ? 'Zmień pojazd' : 'Wybierz pojazd'}
                         </ActionBtn>
                     </SectionActions>
                 </SectionHead>
                 <SectionBody>
                     {errors.vehicle && <FieldError>{errors.vehicle}</FieldError>}
+
+                    {customerSwapDecisionPending && (
+                        <DecisionBanner>
+                            Zmieniono klienta wizyty — zdecyduj, co dzieje się z pojazdem.
+                            <DecisionBannerBtn type="button" onClick={() => setShowCustomerSwapDecision(true)}>
+                                Wybierz
+                            </DecisionBannerBtn>
+                        </DecisionBanner>
+                    )}
+
+                    {!customerSwapDecisionPending && formData.vehicleOwnershipAction === 'ADD_CO_OWNER' && (
+                        <DecisionResolvedNote>
+                            {newCustomerLabel} zostanie dopisany jako właściciel tego pojazdu.
+                            <DecisionBannerBtn
+                                type="button"
+                                onClick={() => onChange({ vehicleOwnershipAction: null })}
+                            >
+                                Nie dopisuj
+                            </DecisionBannerBtn>
+                        </DecisionResolvedNote>
+                    )}
 
                     {selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
                         <VehicleSuggestionsWrap>
@@ -1964,34 +2200,129 @@ export const VerificationStep = ({
             )}
 
             {/* ── Modals ────────────────────────────────────────────────── */}
-            <Modal
+            <ModalShell
                 isOpen={showCustomerChoice}
                 onClose={() => setShowCustomerChoice(false)}
-                title="Aktualizacja danych klienta"
+                size="md"
             >
-                <p>Czy chcesz edytować dane istniejącego klienta czy dodać nowego?</p>
-                <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
-                    <Button $variant="secondary" onClick={confirmCustomerEditExisting}>Edytuj istniejącego</Button>
-                    <Button $variant="primary" onClick={confirmCustomerAddNew}>Dodaj jako nowego</Button>
-                </div>
-            </Modal>
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Aktualizacja danych klienta</ModalTitle>
+                        <ModalSubtitle>
+                            Zmieniasz dane klienta, który jest już w bazie. Zapisać zmianę u niego,
+                            czy założyć osobną kartotekę?
+                        </ModalSubtitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={() => setShowCustomerChoice(false)} />
+                </ModalHeader>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" onClick={confirmCustomerAddNew}>
+                        Dodaj jako nowego
+                    </SharedButton>
+                    <SharedButton $variant="primary" onClick={confirmCustomerEditExisting}>
+                        Edytuj istniejącego
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
 
-            <Modal
+            <ModalShell
                 isOpen={showVehicleChoice}
                 onClose={() => setShowVehicleChoice(false)}
-                title="Aktualizacja pojazdu"
+                size="md"
             >
-                <p>Czy chcesz edytować dane istniejącego pojazdu czy dodać nowy?</p>
-                <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
-                    <Button $variant="secondary" onClick={confirmVehicleEditExisting}>Edytuj istniejący</Button>
-                    <Button $variant="primary" onClick={confirmVehicleAddNew}>Dodaj jako nowy</Button>
-                </div>
-            </Modal>
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Aktualizacja pojazdu</ModalTitle>
+                        <ModalSubtitle>
+                            Zmieniasz dane pojazdu, który jest już w bazie. Zapisać zmianę w nim,
+                            czy dodać osobny pojazd?
+                        </ModalSubtitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={() => setShowVehicleChoice(false)} />
+                </ModalHeader>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" onClick={confirmVehicleAddNew}>
+                        Dodaj jako nowy
+                    </SharedButton>
+                    <SharedButton $variant="primary" onClick={confirmVehicleEditExisting}>
+                        Edytuj istniejący
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
+
+            {/*
+              * Raised right after the visit's customer is swapped while a car is still attached.
+              * Both answers are real operations, so neither is styled as the confirm button —
+              * they are two equal choices, and closing the window leaves the question open
+              * (a banner in the vehicle section brings it back).
+              */}
+            <ModalShell
+                isOpen={showCustomerSwapDecision}
+                onClose={() => setShowCustomerSwapDecision(false)}
+                size="lg"
+            >
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Zmieniono klienta — co z pojazdem?</ModalTitle>
+                        <ModalSubtitle>
+                            Do wizyty przypisany jest{' '}
+                            {[formData.vehicleData?.brand, formData.vehicleData?.model].filter(Boolean).join(' ') || 'pojazd'}
+                            {formData.vehicleData?.licensePlate ? ` (${formData.vehicleData.licensePlate})` : ''}.
+                        </ModalSubtitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={() => setShowCustomerSwapDecision(false)} />
+                </ModalHeader>
+                <ModalContent>
+                    <DecisionIntro>
+                        Wybierz, co ma się stać z pojazdem po zmianie klienta na {newCustomerLabel}.
+                    </DecisionIntro>
+                    <DecisionOptions>
+                        <DecisionOption type="button" onClick={chooseDifferentVehicle}>
+                            <DecisionOptionIcon>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 8h13l-2.5-2.5M20 16H7l2.5 2.5" />
+                                </svg>
+                            </DecisionOptionIcon>
+                            <DecisionOptionBody>
+                                <DecisionOptionTitle>Podmień pojazd na inny</DecisionOptionTitle>
+                                <DecisionOptionDesc>
+                                    Wybierzesz pojazd z listy pojazdów nowego klienta albo dodasz nowy.
+                                    Obecny pojazd zostanie odpięty od tej wizyty.
+                                </DecisionOptionDesc>
+                            </DecisionOptionBody>
+                        </DecisionOption>
+
+                        <DecisionOption type="button" onClick={keepVehicleAndAddOwner}>
+                            <DecisionOptionIcon>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M19 8v6M22 11h-6" />
+                                </svg>
+                            </DecisionOptionIcon>
+                            <DecisionOptionBody>
+                                <DecisionOptionTitle>Zostaw pojazd i dopisz właściciela</DecisionOptionTitle>
+                                <DecisionOptionDesc>
+                                    Wizyta zostaje przy tym samym pojeździe, a {newCustomerLabel} zostanie
+                                    dopisany do niego jako kolejny właściciel. Dotychczasowi właściciele
+                                    zostają bez zmian.
+                                </DecisionOptionDesc>
+                            </DecisionOptionBody>
+                        </DecisionOption>
+                    </DecisionOptions>
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="ghost" onClick={() => setShowCustomerSwapDecision(false)}>
+                        Zdecyduję później
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
 
             <CustomerModal
                 isOpen={isCustomerModalOpen}
                 onClose={() => setIsCustomerModalOpen(false)}
                 onSelect={handleCustomerSelect}
+                currentCustomerId={formData.customerData.id || undefined}
             />
 
             <CustomerDetailsModal
@@ -2013,7 +2344,9 @@ export const VerificationStep = ({
                 isOpen={isVehicleModalOpen}
                 onClose={() => setIsVehicleModalOpen(false)}
                 onSelect={handleVehicleSelect}
-                customerId={formData.customerData.id}
+                customerId={formData.customerData.id || undefined}
+                currentVehicleId={formData.vehicleData?.id || undefined}
+                isReplacing={hasVehicle}
             />
 
             <VehicleDetailsModal
