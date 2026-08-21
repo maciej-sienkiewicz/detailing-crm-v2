@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, centsToInput } from '@/common/utils/moneyInput';
+import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
 
@@ -113,8 +114,6 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
 
     // Per-service discount modal state
     const [discountModalId, setDiscountModalId] = useState<string | null>(null);
-    const [discountModalType, setDiscountModalType] = useState<AdjustmentType>('PERCENT');
-    const [discountModalValue, setDiscountModalValue] = useState('');
 
     // Bulk discount modal state
     const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
@@ -149,33 +148,16 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
     };
 
     const openDiscountModal = (service: ServiceLineItem) => {
-        const adj = service.adjustment;
         setDiscountModalId(service.id);
-        setDiscountModalType(adj.type);
-        setDiscountModalValue(
-            adj.value === 0 ? ''
-                : adj.type === 'PERCENT'
-                    ? String(Math.abs(adj.value))
-                    : String(adj.value / 100)
-        );
     };
 
     const closeDiscountModal = () => {
         setDiscountModalId(null);
-        setDiscountModalValue('');
     };
 
-    const applyServiceDiscount = () => {
+    const applyServiceDiscount = (adjustment: PriceAdjustment) => {
         if (!discountModalId) return;
-        const val = parseFloat(discountModalValue.replace(',', '.'));
-        const storeVal = isNaN(val) ? 0
-            : discountModalType === 'PERCENT'
-                ? -Math.abs(val)
-                : Math.round(val * 100);
-        onChange(services.map(s => s.id === discountModalId
-            ? { ...s, adjustment: { type: discountModalType, value: storeVal } }
-            : s
-        ));
+        onChange(services.map(s => s.id === discountModalId ? { ...s, adjustment } : s));
         closeDiscountModal();
     };
 
@@ -304,8 +286,6 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
     totalGross = Math.round(totalGross * 100) / 100;
 
     const discountModalService = discountModalId ? services.find(s => s.id === discountModalId) : null;
-    const discountModalPrices = discountModalService ? getServicePrice(discountModalService) : null;
-    const discountModalHasDiscount = discountModalPrices?.hasDiscount ?? false;
 
     const bulkBaseNet = Math.round(services.reduce((sum, s) => sum + s.basePriceNet, 0)) / 100;
     const bulkBaseGross = Math.round(services.reduce((sum, s) => {
@@ -470,90 +450,18 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                 </S.SummarySection>
             </S.ServicesBlock>
 
-            {/* Per-service discount modal */}
+            {/* Per-service discount modal (wspólny komponent) */}
             {discountModalId && discountModalService && (
-                <S.BulkDiscountOverlay onClick={closeDiscountModal}>
-                    <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
-                        <S.BulkDiscountHeader>
-                            <div>
-                                <S.BulkDiscountTitle>Rabat dla usługi</S.BulkDiscountTitle>
-                                <S.DiscountModalServiceName>{discountModalService.serviceName}</S.DiscountModalServiceName>
-                            </div>
-                            <S.CloseIconButton type="button" onClick={closeDiscountModal}>
-                                <IconX />
-                            </S.CloseIconButton>
-                        </S.BulkDiscountHeader>
-                        <S.BulkDiscountBody>
-                            {discountModalPrices && (
-                                <S.DiscountFromBox>
-                                    <S.DiscountFromBoxLabel>Od kwoty</S.DiscountFromBoxLabel>
-                                    <S.DiscountFromPrices>
-                                        <S.DiscountFromPrice>
-                                            <S.DiscountFromPriceValue>{discountModalPrices.baseNet.toFixed(2)} zł</S.DiscountFromPriceValue>
-                                            <S.DiscountFromPriceLabel>Netto</S.DiscountFromPriceLabel>
-                                        </S.DiscountFromPrice>
-                                        <S.DiscountFromPrice>
-                                            <S.DiscountFromPriceValue>{discountModalPrices.baseGross.toFixed(2)} zł</S.DiscountFromPriceValue>
-                                            <S.DiscountFromPriceLabel>Brutto</S.DiscountFromPriceLabel>
-                                        </S.DiscountFromPrice>
-                                    </S.DiscountFromPrices>
-                                </S.DiscountFromBox>
-                            )}
-                            <div>
-                                <S.DiscountSectionLabel>Rodzaj rabatu</S.DiscountSectionLabel>
-                                <S.DiscountTypeRow>
-                                    {DISCOUNT_TYPES.map(({ type, label }) => (
-                                        <S.DiscountTypePill
-                                            key={type}
-                                            type="button"
-                                            $selected={discountModalType === type}
-                                            onClick={() => { setDiscountModalType(type); setDiscountModalValue(''); }}
-                                        >
-                                            {label}
-                                        </S.DiscountTypePill>
-                                    ))}
-                                </S.DiscountTypeRow>
-                            </div>
-                            <div>
-                                <S.DiscountSectionLabel>Wartość</S.DiscountSectionLabel>
-                                <S.DiscountValueRow>
-                                    <S.DiscountValueInput
-                                        type="text"
-                                        inputMode="decimal"
-                                        placeholder="0"
-                                        value={discountModalValue}
-                                        onChange={(e) => { if (MAX_2_DECIMALS.test(e.target.value)) setDiscountModalValue(e.target.value); }}
-                                        autoFocus
-                                    />
-                                    <S.DiscountValueSuffix>
-                                        {discountModalType === 'PERCENT' ? '%' : 'zł'}
-                                    </S.DiscountValueSuffix>
-                                </S.DiscountValueRow>
-                            </div>
-                        </S.BulkDiscountBody>
-                        <S.BulkDiscountFooter>
-                            {discountModalHasDiscount && (
-                                <S.DiscountRemoveButton
-                                    type="button"
-                                    onClick={removeServiceDiscount}
-                                    style={{ marginRight: 'auto' }}
-                                >
-                                    Usuń rabat
-                                </S.DiscountRemoveButton>
-                            )}
-                            <S.BulkDiscountCancelBtn type="button" onClick={closeDiscountModal}>
-                                Anuluj
-                            </S.BulkDiscountCancelBtn>
-                            <S.BulkDiscountApplyBtn
-                                type="button"
-                                onClick={applyServiceDiscount}
-                                disabled={!discountModalValue || parseFloat(discountModalValue.replace(',', '.')) <= 0}
-                            >
-                                Zastosuj
-                            </S.BulkDiscountApplyBtn>
-                        </S.BulkDiscountFooter>
-                    </S.BulkDiscountCard>
-                </S.BulkDiscountOverlay>
+                <ServiceDiscountModal
+                    serviceName={discountModalService.serviceName}
+                    basePriceNet={discountModalService.basePriceNet}
+                    basePriceGross={discountModalService.basePriceGross}
+                    vatRate={discountModalService.vatRate}
+                    adjustment={discountModalService.adjustment}
+                    onApply={applyServiceDiscount}
+                    onRemove={removeServiceDiscount}
+                    onClose={closeDiscountModal}
+                />
             )}
 
             {/* Bulk VAT modal */}
