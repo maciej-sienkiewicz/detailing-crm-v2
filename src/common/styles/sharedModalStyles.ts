@@ -30,12 +30,30 @@ export const modalScaleIn = keyframes`
  * to be unreachable on a phone. `100dvh` tracks the viewport that is actually
  * visible right now, so the footer always lands on screen.
  */
-export const ModalOverlay = styled.div<{ $isOpen: boolean }>`
+/**
+ * Warstwy okien, w kolejności od spodu:
+ *
+ *   1000  MODAL_Z_INDEX     — zwykłe okno otwierane z widoku
+ *   1300  —                 — kreator rezerwacji i QuickEventModal (wychodzą Z okna,
+ *                             więc muszą leżeć nad warstwą 1000)
+ *   1400  SUBMODAL_Z_INDEX  — okno otwierane Z INNEGO OKNA: „Wprowadź cenę",
+ *                             „Nowa usługa", „Nowy klient", „Nowy kolor"
+ *
+ * Wartości nie są dowolne i nie wolno ich podnosić w pojedynkę: okno podrzędne
+ * musi leżeć nad KAŻDYM oknem, z którego da się je otworzyć. Podniesienie samego
+ * QuickEventModala do 1300 zostawiło jego okna podrzędne na 1000/1100 — czyli pod
+ * nim — i „Wprowadź cenę" otwierało się niewidoczne, a usługa nigdy nie trafiała
+ * do tabeli, bo nikt nie miał jak potwierdzić ceny.
+ */
+export const MODAL_Z_INDEX = 1000;
+export const SUBMODAL_Z_INDEX = 1400;
+
+export const ModalOverlay = styled.div<{ $isOpen: boolean; $zIndex?: number }>`
     position: fixed;
     inset: 0;
     height: 100vh;
     height: 100dvh;
-    z-index: 1000;
+    z-index: ${p => p.$zIndex ?? MODAL_Z_INDEX};
     display: flex;
     align-items: center;
     justify-content: center;

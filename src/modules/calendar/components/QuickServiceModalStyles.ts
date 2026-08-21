@@ -33,12 +33,17 @@ import {
     FormCheckboxTitle,
     FormCheckboxDescription,
     SharedButton,
+    SUBMODAL_Z_INDEX,
 } from '@/common/styles';
 
 // ─── Overlay & container ──────────────────────────────────────────────────────
 
+/**
+ * Wszystkie trzy okna z tego pliku otwiera się z innego okna — z formularza
+ * rezerwacji albo z edytora wyceny. Stąd warstwa okna podrzędnego, nie zwykłego.
+ */
 export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
-    z-index: 1100;
+    z-index: ${SUBMODAL_Z_INDEX};
     left: ${p => p.$contentLeft ?? 0}px;
 
     /* The sidebar is only docked from md up. Below that the offset (64/240px)

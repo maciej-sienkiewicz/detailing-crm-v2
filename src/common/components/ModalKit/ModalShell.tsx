@@ -18,6 +18,12 @@ interface ModalShellProps {
     size?: ModalSize;
     /** @deprecated Use size instead */
     maxWidth?: string;
+    /**
+     * Warstwa nakładki. Domyślna (1000) jest dobra dla okna otwieranego z widoku.
+     * Okno otwierane Z INNEGO OKNA musi dostać SUBMODAL_Z_INDEX — inaczej wyląduje
+     * pod tym, z którego wyszło, i będzie wyglądało na takie, które się nie otworzyło.
+     */
+    zIndex?: number;
     children: ReactNode;
 }
 
@@ -34,7 +40,7 @@ interface ModalShellProps {
  *     <ModalFooter>...</ModalFooter>
  *   </ModalShell>
  */
-export const ModalShell = ({ isOpen, onClose, size, maxWidth, children }: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
     useEffect(() => {
@@ -97,6 +103,7 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, children }: ModalS
         <ModalOverlay
             ref={overlayRef}
             $isOpen={isOpen}
+            $zIndex={zIndex}
             onMouseDown={(e) => e.target === e.currentTarget && onClose()}
             role="dialog"
             aria-modal="true"
