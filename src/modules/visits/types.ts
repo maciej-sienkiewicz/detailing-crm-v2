@@ -302,17 +302,8 @@ export interface ServicesChangesPayload {
      * Fraza z prośbą o odpowiedź „TAK" jest doklejana przez backend i nie jest częścią tego pola.
      */
     smsMessage?: string;
-}
-
-/** Propozycja treści SMS-a o zmianach w usługach (generowana przez LLM po stronie backendu). */
-export interface ServiceChangeSmsDraft {
-    message: string;
-    /** Fraza doklejana na końcu wiadomości przy wysyłce; nieedytowalna. */
-    fixedSuffix: string;
-    totalGrossBefore: number;
-    totalGrossAfter: number;
-    /** false = model nie odpowiedział i treść pochodzi z szablonu awaryjnego. */
-    aiGenerated: boolean;
+    /** true = SMS z polskimi znakami (UCS-2, drożej). Domyślnie transliterujemy na ASCII. */
+    smsUsePolishCharacters?: boolean;
 }
 
 // Visit Photos (from check-in)

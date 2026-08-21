@@ -319,25 +319,6 @@ export const useUpdateServiceStatus = (visitId: string) => {
     };
 };
 
-/**
- * Pobiera propozycję treści SMS-a dla planowanych zmian w usługach.
- * Używane przez modal potwierdzenia przed zapisem — nie modyfikuje wizyty.
- */
-export const useServiceChangeSmsDraft = (visitId: string) => {
-    const { mutate, data, isPending, isError, reset } = useMutation({
-        mutationFn: (payload: import('../types').ServicesChangesPayload) =>
-            visitApi.draftServiceChangeSms(visitId, payload),
-    });
-
-    return {
-        requestDraft: mutate,
-        draft: data,
-        isDrafting: isPending,
-        isDraftError: isError,
-        resetDraft: reset,
-    };
-};
-
 export const useSaveServicesChanges = (visitId: string) => {
     const queryClient = useQueryClient();
 

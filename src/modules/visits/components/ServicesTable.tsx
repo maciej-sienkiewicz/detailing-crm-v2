@@ -14,6 +14,7 @@ import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceMod
 import { LockedSection } from '@/common/components/LockedSection';
 import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
+import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 import { useFeature, UpsellModal } from '@/modules/subscription';
 
 const BRAND = '#0ea5e9';
@@ -2122,6 +2123,20 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         };
     };
 
+    /** Nazwy usług i cena końcowa dla treści SMS-a — wszystko już jest w komponencie. */
+    const buildSmsSummary = (): ServiceChangeSummary => {
+        const nameById = new Map(services.map(s => [s.id, s.serviceName]));
+        return {
+            addedNames: newRows.filter(r => r.serviceName.trim()).map(r => r.serviceName.trim()),
+            removedNames: Array.from(deletedIds).map(id => nameById.get(id)).filter((n): n is string => !!n),
+            priceChangedNames: Object.keys(editedPrices)
+                .filter(id => !deletedIds.has(id))
+                .map(id => nameById.get(id))
+                .filter((n): n is string => !!n),
+            totalGrossAfter: totals.totalFinalGross,
+        };
+    };
+
     const persistChanges = (payload: ServicesChangesPayload) => {
         saveServicesChanges(payload, {
             onSuccess: () => {
@@ -2139,7 +2154,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
      */
     const acceptDraft = () => {
         const payload = buildChangesPayload();
-        if (visitId && (payload.notifyCustomer || payload.requireConfirmation)) {
+        if (payload.notifyCustomer || payload.requireConfirmation) {
             setPendingSmsPayload(payload);
             return;
         }
@@ -2164,14 +2179,23 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const pricesHidden = services.length > 0 && services[0]?.basePriceNet === null;
 
     const totals = (() => {
-        if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, totalDiscountGross: 0, hasTotalDiscount: false };
+        if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, totalDiscountGross: 0, hasTotalDiscount: false, totalGrossBefore: 0 };
 
         let totalFinalNet = 0;
         let totalFinalGross = 0;
         let totalVat = 0;
         let totalOriginalGross = 0;
+        // Stan sprzed edycji w tej sesji: bez usunięć, bez zmian cen, bez nowych wierszy.
+        let totalGrossBefore = 0;
 
         services.forEach(service => {
+            const pendingEdit = (service.hasPendingChange ?? (service.status === 'PENDING'))
+                && service.pendingOperation === 'EDIT'
+                && (service.previousPriceGross ?? null) !== null;
+            totalGrossBefore += pendingEdit
+                ? (service.previousPriceGross as number)
+                : calculateServicePrice(service as Parameters<typeof calculateServicePrice>[0]).finalPriceGross;
+
             if (deletedIds.has(service.id)) return;
             const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
             const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null && (service.previousPriceGross ?? null) !== null;
@@ -2216,6 +2240,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             totalVat,
             totalDiscountGross,
             hasTotalDiscount: totalDiscountGross > 0,
+            totalGrossBefore,
         };
     })();
 
@@ -2730,14 +2755,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         })()}
 
         {/* ─── Treść SMS-a przed zapisem ─── */}
-        {pendingSmsPayload && visitId && (
+        {pendingSmsPayload && (
             <ServiceChangeSmsModal
-                visitId={visitId}
-                payload={pendingSmsPayload}
+                summary={buildSmsSummary()}
+                totalGrossBefore={totals.totalGrossBefore}
                 requireConfirmation={pendingSmsPayload.requireConfirmation}
                 isSaving={isSaving}
                 onCancel={() => setPendingSmsPayload(null)}
-                onConfirm={message => persistChanges({ ...pendingSmsPayload, smsMessage: message })}
+                onConfirm={(smsMessage, smsUsePolishCharacters) =>
+                    persistChanges({ ...pendingSmsPayload, smsMessage, smsUsePolishCharacters })}
             />
         )}
 

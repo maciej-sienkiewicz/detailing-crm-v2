@@ -2,28 +2,39 @@
 //
 // Modal potwierdzenia wysyłki SMS-a o zmianach w usługach.
 //
-// Po otwarciu odpytuje backend o propozycję treści (LLM podsumowuje co zostało
-// dodane, usunięte, przecenione i jaka jest nowa cena końcowa brutto). Treść jest
-// w pełni edytowalna, ale fraza z prośbą o odpowiedź "TAK" jest doklejana przy
-// wysyłce po stronie serwera i użytkownik nie może jej zmienić ani usunąć.
+// Treść składamy lokalnie z danych, które CRM już ma (nazwy usług + cena końcowa),
+// więc pojawia się natychmiast. Użytkownik może ją dowolnie poprawić.
+// Fraza z prośbą o odpowiedź "TAK" jest doklejana przy wysyłce po stronie serwera
+// i nie da się jej zmienić ani usunąć.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatCurrency } from '@/common/utils';
-import type { ServicesChangesPayload } from '../types';
-import { useServiceChangeSmsDraft } from '../hooks';
+import {
+    CONSENT_CALL_TO_ACTION,
+    buildServiceChangeSmsMessage,
+    hasPolishCharacters,
+    toAscii,
+} from '../utils/serviceChangeSms';
+import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 
 const BRAND = '#0ea5e9';
 const BRAND_DARK = '#0284c7';
 
-/** Domyślna fraza, gdy backend nie zdążył jej podać (np. draft się nie wczytał). */
-const DEFAULT_SUFFIX = 'Odpisz TAK aby zaakceptować.';
+/* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
+   dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
+const GSM_SINGLE = 160;
+const GSM_MULTI = 153;
+const UCS2_SINGLE = 70;
+const UCS2_MULTI = 67;
 
-/* Polskie znaki wymuszają kodowanie UCS-2: 70 znaków w jednym SMS-ie,
-   67 w każdej części wiadomości dzielonej. */
-const SINGLE_SEGMENT = 70;
-const MULTI_SEGMENT = 67;
+const segmentsFor = (length: number, polish: boolean) => {
+    const single = polish ? UCS2_SINGLE : GSM_SINGLE;
+    const multi = polish ? UCS2_MULTI : GSM_MULTI;
+    if (length === 0) return 1;
+    return length <= single ? 1 : Math.ceil(length / multi);
+};
 
 /** Polska odmiana: 1 SMS, 2-4 SMS-y, 5+ SMS-ów. */
 const smsWord = (count: number) => {
@@ -32,9 +43,6 @@ const smsWord = (count: number) => {
     const lastTwo = count % 100;
     return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? 'SMS-y' : 'SMS-ów';
 };
-
-const segmentsFor = (length: number) =>
-    length === 0 ? 1 : length <= SINGLE_SEGMENT ? 1 : Math.ceil(length / MULTI_SEGMENT);
 
 const Overlay = styled.div`
     position: fixed;
@@ -96,6 +104,7 @@ const CloseBtn = styled.button`
     transition: all 150ms ease;
 
     &:hover { color: ${st.accentRed}; background: ${st.bgAccentRed}; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
     svg { width: 15px; height: 15px; }
 `;
 
@@ -120,6 +129,7 @@ const TotalsBox = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
     padding: 10px 14px;
     background: ${st.bg};
     border: 1px solid ${st.border};
@@ -143,7 +153,7 @@ const TotalsNew = styled.span`
 const Textarea = styled.textarea`
     width: 100%;
     box-sizing: border-box;
-    min-height: 110px;
+    min-height: 104px;
     resize: vertical;
     padding: 10px 12px;
     border: 1.5px solid ${st.border};
@@ -155,11 +165,10 @@ const Textarea = styled.textarea`
     color: ${st.text};
     background: ${st.bgCard};
     outline: none;
-    transition: border-color 180ms, box-shadow 180ms;
+    transition: border-color 180ms;
 
     &:focus { border-color: ${BRAND}; }
     &::placeholder { color: ${st.textMuted}; }
-    &:disabled { background: ${st.bg}; color: ${st.textMuted}; }
 `;
 
 const LockedSuffix = styled.div`
@@ -196,14 +205,66 @@ const Counter = styled.span<{ $warn?: boolean }>`
     font-weight: ${p => p.$warn ? 700 : 500};
 `;
 
-const Notice = styled.div<{ $variant?: 'info' | 'warn' }>`
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.45;
-    color: ${p => p.$variant === 'warn' ? '#92400e' : st.textSecondary};
-    background: ${p => p.$variant === 'warn' ? st.bgAccentAmber : st.bg};
-    border: 1px solid ${p => p.$variant === 'warn' ? 'rgba(245, 158, 11, 0.35)' : st.border};
+/* ── Przełącznik polskich znaków ── */
+
+const ToggleRow = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: 10px;
+    cursor: pointer;
+`;
+
+const ToggleTexts = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const ToggleTitle = styled.span`
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
+`;
+
+const ToggleHint = styled.span`
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: ${st.textMuted};
+`;
+
+const Switch = styled.span<{ $on?: boolean }>`
+    flex-shrink: 0;
+    position: relative;
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: ${p => p.$on ? BRAND : st.borderHover};
+    transition: background 160ms ease;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: ${p => p.$on ? '21px' : '3px'};
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ffffff;
+        transition: left 160ms ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+`;
+
+const HiddenCheckbox = styled.input`
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
 `;
 
 const Footer = styled.div`
@@ -246,53 +307,31 @@ const SendBtn = styled.button`
     &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;
 
-const Spinner = styled.span`
-    display: inline-block;
-    width: 13px;
-    height: 13px;
-    margin-right: 7px;
-    vertical-align: -2px;
-    border: 2px solid rgba(14, 165, 233, 0.25);
-    border-top-color: ${BRAND};
-    border-radius: 50%;
-    animation: sms-spin 700ms linear infinite;
-
-    @keyframes sms-spin { to { transform: rotate(360deg); } }
-`;
-
 interface Props {
-    visitId: string;
-    /** Payload zmian — na jego podstawie backend liczy ceny i redaguje treść. */
-    payload: ServicesChangesPayload;
+    summary: ServiceChangeSummary;
+    /** Cena końcowa brutto przed zmianami, w groszach. */
+    totalGrossBefore: number;
     /** true = klient ma potwierdzić zmiany odpowiedzią SMS. */
     requireConfirmation: boolean;
     isSaving: boolean;
     onCancel: () => void;
-    onConfirm: (smsMessage: string) => void;
+    onConfirm: (smsMessage: string, usePolishCharacters: boolean) => void;
 }
 
 export const ServiceChangeSmsModal = ({
-    visitId,
-    payload,
+    summary,
+    totalGrossBefore,
     requireConfirmation,
     isSaving,
     onCancel,
     onConfirm,
 }: Props) => {
-    const { requestDraft, draft, isDrafting, isDraftError } = useServiceChangeSmsDraft(visitId);
-    const [message, setMessage] = useState('');
-    const [touched, setTouched] = useState(false);
-
-    // Jedno odpytanie na otwarcie modala; payload jest zamrożony przez rodzica.
-    useEffect(() => {
-        requestDraft(payload);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Propozycja z serwera wchodzi do pola tylko dopóki użytkownik go nie tknął.
-    useEffect(() => {
-        if (draft && !touched) setMessage(draft.message);
-    }, [draft, touched]);
+    // Wersja kanoniczna — z ogonkami. To, co widać w polu, zależy od przełącznika:
+    // przy wyłączonych polskich znakach pokazujemy transliterację. Dzięki temu
+    // przełączanie tam i z powrotem nie gubi treści.
+    const initialMessage = useMemo(() => buildServiceChangeSmsMessage(summary), [summary]);
+    const [message, setMessage] = useState(initialMessage);
+    const [usePolish, setUsePolish] = useState(false);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !isSaving) onCancel(); };
@@ -300,11 +339,25 @@ export const ServiceChangeSmsModal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel, isSaving]);
 
-    const suffix = draft?.fixedSuffix || DEFAULT_SUFFIX;
-    const trimmed = message.trim();
+    const displayed = usePolish ? message : toAscii(message);
+    const suffix = usePolish ? CONSENT_CALL_TO_ACTION : toAscii(CONSENT_CALL_TO_ACTION);
+
+    const handleChange = (value: string) => {
+        // Ogonek wpisany przy wyłączonym przełączniku = użytkownik jednak ich chce.
+        if (!usePolish && hasPolishCharacters(value)) {
+            setUsePolish(true);
+            setMessage(value);
+            return;
+        }
+        // Bez realnej zmiany trzymamy wersję z ogonkami, żeby przełącznik ją odzyskał.
+        if (!usePolish && value === toAscii(message)) return;
+        setMessage(value);
+    };
+
+    const trimmed = displayed.trim();
     const fullLength = (trimmed ? trimmed.length + 1 : 0) + suffix.length;
-    const segments = segmentsFor(fullLength);
-    const canSend = trimmed.length > 0 && !isDrafting && !isSaving;
+    const segments = segmentsFor(fullLength, usePolish);
+    const canSend = trimmed.length > 0 && !isSaving;
 
     return (
         <Overlay onClick={() => { if (!isSaving) onCancel(); }}>
@@ -326,38 +379,23 @@ export const ServiceChangeSmsModal = ({
                 </Header>
 
                 <Body>
-                    {draft && (
-                        <TotalsBox>
-                            <span>Cena końcowa brutto</span>
-                            {draft.totalGrossBefore !== draft.totalGrossAfter && (
-                                <>
-                                    <TotalsOld>{formatCurrency(draft.totalGrossBefore / 100)}</TotalsOld>
-                                    <span style={{ color: BRAND }}>→</span>
-                                </>
-                            )}
-                            <TotalsNew>{formatCurrency(draft.totalGrossAfter / 100)}</TotalsNew>
-                        </TotalsBox>
-                    )}
-
-                    {isDraftError && (
-                        <Notice $variant="warn">
-                            Nie udało się przygotować propozycji treści. Wpisz wiadomość samodzielnie —
-                            zmiany zapiszą się normalnie.
-                        </Notice>
-                    )}
-                    {draft && !draft.aiGenerated && !isDraftError && (
-                        <Notice $variant="warn">
-                            Propozycja pochodzi z szablonu — asystent nie odpowiedział. Sprawdź treść przed wysyłką.
-                        </Notice>
-                    )}
+                    <TotalsBox>
+                        <span>Cena końcowa brutto</span>
+                        {totalGrossBefore !== summary.totalGrossAfter && (
+                            <>
+                                <TotalsOld>{formatCurrency(totalGrossBefore / 100)}</TotalsOld>
+                                <span style={{ color: BRAND }}>→</span>
+                            </>
+                        )}
+                        <TotalsNew>{formatCurrency(summary.totalGrossAfter / 100)}</TotalsNew>
+                    </TotalsBox>
 
                     <div>
                         <SectionLabel>Treść wiadomości</SectionLabel>
                         <Textarea
-                            value={message}
-                            placeholder={isDrafting ? 'Przygotowuję podsumowanie zmian…' : 'Wpisz treść SMS-a…'}
-                            disabled={isDrafting}
-                            onChange={e => { setTouched(true); setMessage(e.target.value); }}
+                            value={displayed}
+                            placeholder="Wpisz treść SMS-a…"
+                            onChange={e => handleChange(e.target.value)}
                             autoFocus
                         />
                         <LockedSuffix title="Tej frazy nie można edytować — dopisujemy ją zawsze na końcu">
@@ -368,6 +406,23 @@ export const ServiceChangeSmsModal = ({
                             {suffix}
                         </LockedSuffix>
                     </div>
+
+                    <ToggleRow>
+                        <ToggleTexts>
+                            <ToggleTitle>Polskie znaki</ToggleTitle>
+                            <ToggleHint>
+                                {usePolish
+                                    ? 'Wiadomość idzie w UCS-2 — 70 znaków na SMS'
+                                    : 'Taniej: 160 znaków na SMS zamiast 70'}
+                            </ToggleHint>
+                        </ToggleTexts>
+                        <HiddenCheckbox
+                            type="checkbox"
+                            checked={usePolish}
+                            onChange={e => setUsePolish(e.target.checked)}
+                        />
+                        <Switch $on={usePolish} aria-hidden="true" />
+                    </ToggleRow>
 
                     <HintRow>
                         <span>Fraza z prośbą o odpowiedź jest doklejana automatycznie.</span>
@@ -380,8 +435,7 @@ export const ServiceChangeSmsModal = ({
 
                 <Footer>
                     <CancelBtn type="button" onClick={onCancel} disabled={isSaving}>Anuluj</CancelBtn>
-                    <SendBtn type="button" onClick={() => onConfirm(trimmed)} disabled={!canSend}>
-                        {isSaving && <Spinner />}
+                    <SendBtn type="button" onClick={() => onConfirm(trimmed, usePolish)} disabled={!canSend}>
                         {isSaving ? 'Zapisywanie…' : 'Wyślij i zapisz'}
                     </SendBtn>
                 </Footer>
