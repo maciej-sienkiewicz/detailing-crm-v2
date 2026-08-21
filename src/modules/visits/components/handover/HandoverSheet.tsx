@@ -135,6 +135,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                 problemsIn={handover.problemsIn}
                                 ksef={handover.ksef}
                                 sendToKsef={handover.sendToKsef}
+                                canChooseSendToKsef={handover.canChooseSendToKsef}
                                 onSendToKsefChange={handover.setSendToKsef}
                             />
                         ) : (
