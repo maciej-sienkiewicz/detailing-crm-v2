@@ -199,13 +199,19 @@ export const ValueSuffix = styled.span`
 
 export const ResultBox = styled.div`
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
+    flex-direction: column;
+    gap: 8px;
     padding: 10px 14px;
     background: rgba(16, 185, 129, 0.07);
     border: 1.5px solid rgba(16, 185, 129, 0.28);
     border-radius: 10px;
+`;
+
+export const ResultHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 `;
 
 export const ResultLabel = styled.span`
@@ -216,19 +222,22 @@ export const ResultLabel = styled.span`
     letter-spacing: 0.06em;
 `;
 
-export const ResultValue = styled.span`
-    font-size: 17px;
-    font-weight: 700;
-    color: #065f46;
+export const ResultValue = styled.span<{ $strong?: boolean }>`
+    font-size: ${p => p.$strong ? '17px' : '14px'};
+    font-weight: ${p => p.$strong ? 700 : 600};
+    color: ${p => p.$strong ? '#065f46' : '#047857'};
     font-variant-numeric: tabular-nums;
+    line-height: 1.25;
 `;
 
-export const ResultSub = styled.span`
-    display: block;
+export const SavedChip = styled.span`
     font-size: 11px;
-    font-weight: 500;
-    color: #059669;
-    text-align: right;
+    font-weight: 700;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.14);
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
 `;
 
 export const RemoveBtn = styled.button`
