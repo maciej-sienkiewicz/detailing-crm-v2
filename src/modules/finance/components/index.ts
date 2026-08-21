@@ -6,6 +6,7 @@ export { PaymentSummaryTab }       from './PaymentSummaryTab';
 export { KsefExpensesTable }       from './KsefExpensesTable';
 export { KsefSyncWidget }          from './KsefSyncWidget';
 export { KsefCredentialsPanel }    from './KsefCredentialsPanel';
+export { KsefSendingDefaultsPanel } from './KsefSendingDefaultsPanel';
 export { AddExpenseModal }         from './AddExpenseModal';
 export { InvoicePreviewModal }     from './InvoicePreviewModal';
 export { IncomeDocumentsTable }    from './IncomeDocumentsTable';

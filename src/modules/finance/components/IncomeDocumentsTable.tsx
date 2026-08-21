@@ -159,6 +159,7 @@ const KSEF_STATUS: Record<KsefRevenueStatus, { label: string; bg: string; fg: st
   ACCEPTED:     { label: 'W KSeF',        bg: '#f0fdf4', fg: '#15803d' },
   REJECTED:     { label: 'Odrzucona',     bg: '#fef2f2', fg: '#dc2626' },
   QUEUED_RETRY: { label: 'Offline24',     bg: '#fffbeb', fg: '#b45309', title: 'KSeF niedostępny: faktura zostanie dosłana automatycznie' },
+  NOT_SENT:     { label: 'Poza KSeF',     bg: '#f8fafc', fg: '#475569', title: 'Faktura wystawiona bez wysyłki do KSeF' },
 };
 
 const ORIGIN_LABEL: Record<string, string> = {

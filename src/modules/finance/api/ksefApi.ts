@@ -1,11 +1,10 @@
 import { apiClient } from '@/core';
 import type {
   KsefCredentials,
+  KsefInvoicingStatus,
   KsefTokenVerification,
   SaveKsefCredentialsRequest,
   KsefSyncStatus,
-  KsefSyncRangeRequest,
-  KsefSyncRangeResult,
   KsefExpense,
   KsefExpenseDetail,
   KsefExpenseListResponse,
@@ -56,6 +55,24 @@ export const ksefApi = {
     return response.data;
   },
 
+  // ── Gotowość do fakturowania ───────────────────────────────────────────────
+
+  /**
+   * Stan integracji w zakresie, jakiego potrzebuje ekran wydania pojazdu: czy token
+   * jest zapisany, czy ma uprawnienie do wystawiania faktur i jaka jest domyślna
+   * odpowiedź na pytanie o wysyłkę. Endpoint nie jest właścicielski, więc widzi go
+   * też pracownik wydający pojazd (w przeciwieństwie do `getCredentials`).
+   */
+  getInvoicingStatus: async (): Promise<KsefInvoicingStatus> => {
+    const response = await apiClient.get(`${BASE}/invoicing-status`, { skipErrorToast: true });
+    return response.data;
+  },
+
+  updateInvoicingSettings: async (autoSendDefault: boolean): Promise<{ autoSendDefault: boolean }> => {
+    const response = await apiClient.patch(`${BASE}/invoicing-settings`, { autoSendDefault });
+    return response.data;
+  },
+
   // ── Sync ───────────────────────────────────────────────────────────────────
 
   getSyncStatus: async (): Promise<KsefSyncStatus> => {
@@ -91,11 +108,6 @@ export const ksefApi = {
 
   createExpense: async (data: CreateExpenseRequest): Promise<KsefExpense> => {
     const response = await apiClient.post(`${BASE}/expenses`, data);
-    return response.data;
-  },
-
-  syncExpensesByRange: async (data: KsefSyncRangeRequest): Promise<KsefSyncRangeResult> => {
-    const response = await apiClient.post(`${BASE}/expenses/sync`, data);
     return response.data;
   },
 

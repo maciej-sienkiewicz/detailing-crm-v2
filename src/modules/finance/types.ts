@@ -238,6 +238,25 @@ export interface KsefCredentials {
   verification: KsefTokenVerification | null;
 }
 
+/**
+ * Gotowość studia do fakturowania w KSeF, w zakresie potrzebnym ekranowi wydania
+ * pojazdu. W odróżnieniu od [KsefCredentials] nie wymaga uprawnień właściciela
+ * i nie zawiera danych poświadczeń — wydania pojazdu dokonuje zwykły pracownik.
+ */
+export interface KsefInvoicingStatus {
+  /** Token KSeF jest zapisany, więc faktura może pojechać automatycznie. */
+  configured: boolean;
+  /** Token był kiedykolwiek weryfikowany; false = o uprawnieniach nic nie wiemy. */
+  tokenChecked: boolean;
+  tokenValid: boolean;
+  permissionsKnown: boolean;
+  /** Token ma uprawnienie InvoiceWrite (wystawianie faktur). */
+  canIssueInvoices: boolean;
+  checkedAt: string | null;
+  /** Domyślna pozycja przełącznika „Wyślij fakturę do KSeF" przy wydaniu pojazdu. */
+  autoSendDefault: boolean;
+}
+
 export interface SaveKsefCredentialsRequest {
   nip:       string;
   ksefToken: string;
@@ -254,15 +273,6 @@ export interface KsefSyncStatus {
   updatedAt:        string;
 }
 
-export interface KsefSyncRangeRequest {
-  dateFrom: string;
-  dateTo:   string;
-}
-
-export interface KsefSyncRangeResult {
-  fetched: number;
-  skipped: number;
-}
 
 // ─── KSeF: Dokumenty Kosztowe ─────────────────────────────────────────────────
 
@@ -470,7 +480,9 @@ export type KsefRevenueStatus =
   | 'SUBMITTED'
   | 'ACCEPTED'
   | 'REJECTED'
-  | 'QUEUED_RETRY';
+  | 'QUEUED_RETRY'
+  /** Wystawiona świadomie bez wysyłki do KSeF; wysyłkę można uruchomić ręcznie. */
+  | 'NOT_SENT';
 
 export type RevenueInvoiceType = 'VAT' | 'KOR';
 

@@ -24,6 +24,13 @@ interface ModalShellProps {
      * pod tym, z którego wyszło, i będzie wyglądało na takie, które się nie otworzyło.
      */
     zIndex?: number;
+    /**
+     * Hold the window at a constant height instead of letting it grow and shrink with its
+     * content. Use for anything whose body changes size while the user works in it — search
+     * pickers above all: a list that resizes the modal on every keystroke makes the buttons
+     * around it move under the pointer. The content region scrolls inside the fixed box.
+     */
+    stableHeight?: boolean;
     children: ReactNode;
 }
 
@@ -40,7 +47,7 @@ interface ModalShellProps {
  *     <ModalFooter>...</ModalFooter>
  *   </ModalShell>
  */
-export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, children }: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
     useEffect(() => {
@@ -108,7 +115,11 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, children }
             role="dialog"
             aria-modal="true"
         >
-            <ModalBox $isOpen={isOpen} $maxWidth={resolvedWidth}>
+            <ModalBox
+                $isOpen={isOpen}
+                $maxWidth={resolvedWidth}
+                $fixedHeight={stableHeight ? 'min(640px, 100%)' : undefined}
+            >
                 {children}
             </ModalBox>
         </ModalOverlay>,

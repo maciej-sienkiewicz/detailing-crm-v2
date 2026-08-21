@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
-import { Box, BoxRow, Divider, GhostAction, Muted, SectionProblems } from './HandoverKit';
+import { Box, BoxRow, Divider, GhostAction, SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { SellerPrompt } from './SellerPrompt';
@@ -217,8 +217,6 @@ export const InvoiceSection = ({
                 )}
             </Balance>
             <SectionProblems problems={problemsIn('balance')} />
-
-            <Muted>Faktura trafi do KSeF automatycznie po wydaniu pojazdu.</Muted>
         </Box>
     );
 };

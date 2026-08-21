@@ -8,10 +8,10 @@ import type {
   UpdateExpensePaymentStatusRequest,
   UpdateExpenseNoteRequest,
   SaveKsefCredentialsRequest,
-  KsefSyncRangeRequest,
 } from '../types';
 
 export const KSEF_CREDENTIALS_KEY = ['ksef', 'credentials'] as const;
+export const KSEF_INVOICING_STATUS_KEY = ['ksef', 'invoicing-status'] as const;
 export const KSEF_SYNC_STATUS_KEY = ['ksef', 'sync', 'status'] as const;
 export const KSEF_EXPENSES_KEY    = ['ksef', 'expenses']       as const;
 export const KSEF_STATISTICS_KEY  = ['ksef', 'statistics']     as const;
@@ -28,34 +28,64 @@ export const useKsefCredentials = () => {
 };
 
 /**
- * Whether invoices can reach KSeF on their own.
+ * Whether invoices can reach KSeF on their own, and under what conditions.
  *
  * Without a token the send fails at authentication, which the dispatcher reports as
  * a transient failure and queues for offline24 retry, a retry that can never
- * succeed. Call sites use this to tell the studio the truth instead, and to offer
- * the XML for manual upload.
+ * succeed. A token *without* the InvoiceWrite permission fails the same way. Call
+ * sites use this to tell the studio the truth instead, and to offer the XML for
+ * manual upload.
  *
- * The credentials endpoint is gated on the KSeF module, so it is only queried for
- * studios that have it.
+ * Reads the non-owner `invoicing-status` endpoint rather than the credentials one:
+ * the vehicle handover screen is used by ordinary staff, and the owner-only
+ * credentials call answered 403 for them — indistinguishable from "no token",
+ * which is exactly the wrong thing to tell someone standing at the counter.
+ *
+ * The endpoint is gated on the KSeF module, so it is only queried for studios
+ * that have it.
  */
 export const useKsefAutomation = (options?: { enabled?: boolean }) => {
   const ksefModule = useCapability('FINANCE_KSEF');
   const enabled = (options?.enabled ?? true) && ksefModule.enabled;
 
   const { data, isLoading } = useQuery({
-    queryKey: KSEF_CREDENTIALS_KEY,
-    queryFn:  () => ksefApi.getCredentials(),
+    queryKey: KSEF_INVOICING_STATUS_KEY,
+    queryFn:  () => ksefApi.getInvoicingStatus(),
     enabled,
   });
 
   return {
     /** The studio bought the KSeF module. */
     moduleEnabled: ksefModule.enabled,
-    /** A token is saved, so invoices are sent automatically. */
-    configured: !!data?.nip,
+    /** A token is saved, so invoices can be sent automatically. */
+    configured: !!data?.configured,
+    /**
+     * The saved token has been checked against KSeF and lacks InvoiceWrite, so an
+     * invoice sent with it will be refused. Deliberately false while the token was
+     * never verified: "we don't know" must not be shown as "you can't".
+     */
+    lacksIssuePermission:
+      !!data?.configured && !!data?.tokenChecked && !!data?.permissionsKnown && !data?.canIssueInvoices,
+    /** Studio-wide default of the "send this invoice to KSeF" switch. */
+    autoSendDefault: data?.autoSendDefault,
     /** True while the answer is still unknown; do not render a warning yet. */
     isLoading: ksefModule.isLoading || (enabled && isLoading),
   };
+};
+
+/** Gotowość integracji z KSeF w formie, w jakiej czytają ją ekrany wystawiania faktur. */
+export type KsefAutomation = ReturnType<typeof useKsefAutomation>;
+
+/** Domyślna odpowiedź studia na pytanie „wysłać fakturę do KSeF?" (Ustawienia → Faktury). */
+export const useUpdateKsefAutoSendDefault = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (autoSendDefault: boolean) => ksefApi.updateInvoicingSettings(autoSendDefault),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KSEF_INVOICING_STATUS_KEY });
+    },
+  });
 };
 
 export const useSaveKsefCredentials = () => {
@@ -65,13 +95,15 @@ export const useSaveKsefCredentials = () => {
     mutationFn: (data: SaveKsefCredentialsRequest) => ksefApi.saveCredentials(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_CREDENTIALS_KEY });
+      queryClient.invalidateQueries({ queryKey: KSEF_INVOICING_STATUS_KEY });
     },
   });
 };
 
 /**
- * Weryfikuje token w KSeF. Wynik ląduje też w GET /credentials (backend go
- * zapisuje), więc po sukcesie wystarczy unieważnić query poświadczeń.
+ * Weryfikuje token w KSeF. Wynik backend zapisuje przy poświadczeniach, więc po
+ * odpowiedzi odświeżamy zarówno panel poświadczeń, jak i gotowość do fakturowania
+ * (to z niej ekran wydania pojazdu wie o braku uprawnienia do wystawiania).
  */
 export const useVerifyKsefToken = () => {
   const queryClient = useQueryClient();
@@ -80,6 +112,7 @@ export const useVerifyKsefToken = () => {
     mutationFn: () => ksefApi.verifyCredentials(),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_CREDENTIALS_KEY });
+      queryClient.invalidateQueries({ queryKey: KSEF_INVOICING_STATUS_KEY });
     },
   });
 };
@@ -91,6 +124,7 @@ export const useDeleteKsefCredentials = () => {
     mutationFn: () => ksefApi.deleteCredentials(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_CREDENTIALS_KEY });
+      queryClient.invalidateQueries({ queryKey: KSEF_INVOICING_STATUS_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_SYNC_STATUS_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
     },
@@ -116,19 +150,6 @@ export const useTriggerKsefSync = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(KSEF_SYNC_STATUS_KEY, data);
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
-      queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
-    },
-  });
-};
-
-export const useSyncKsefByRange = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: KsefSyncRangeRequest) => ksefApi.syncExpensesByRange(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
-      queryClient.invalidateQueries({ queryKey: KSEF_SYNC_STATUS_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
     },
   });

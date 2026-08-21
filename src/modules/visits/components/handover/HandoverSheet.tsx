@@ -133,6 +133,10 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                 sellerComplete={handover.sellerComplete}
                                 company={handover.company}
                                 problemsIn={handover.problemsIn}
+                                ksef={handover.ksef}
+                                sendToKsef={handover.sendToKsef}
+                                canChooseSendToKsef={handover.canChooseSendToKsef}
+                                onSendToKsefChange={handover.setSendToKsef}
                             />
                         ) : (
                             // Moment wysokiej intencji: zamiast sekcji rozliczenia,

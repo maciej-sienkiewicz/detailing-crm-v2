@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { KsefCredentialsPanel } from '@/modules/finance/components';
+import { KsefCredentialsPanel, KsefSendingDefaultsPanel } from '@/modules/finance/components';
 import { RequireCapability } from '@/modules/subscription';
 
 const Wrap = styled.div`
@@ -23,6 +23,7 @@ export function InvoicesSection() {
                 message="Integracja z KSeF wymaga modułu Kontrola nad finansami."
             >
                 <KsefCredentialsPanel />
+                <KsefSendingDefaultsPanel />
             </RequireCapability>
         </Wrap>
     );

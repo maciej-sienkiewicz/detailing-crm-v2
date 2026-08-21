@@ -25,6 +25,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         isNewCustomer: initialData.isNewCustomer ?? false,
         vehicleData: initialData.vehicleData || null,
         isNewVehicle: initialData.isNewVehicle ?? false,
+        vehicleOwnershipAction: initialData.vehicleOwnershipAction ?? null,
         vehicleHandoff: initialData.vehicleHandoff || {
             isHandedOffByOtherPerson: false,
             contactPerson: {
@@ -208,6 +209,9 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             return {
                 mode: 'UPDATE' as const,
                 id: formData.vehicleData!.id,
+                // Only sent when the operator swapped the visit's customer and kept the car;
+                // omitted otherwise so the server leaves the vehicle's owners untouched.
+                ownership: formData.vehicleOwnershipAction ?? undefined,
                 updateData: {
                     brand: formData.vehicleData!.brand,
                     model: formData.vehicleData!.model,

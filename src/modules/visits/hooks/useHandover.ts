@@ -1,4 +1,5 @@
 import { useCapability } from '@/modules/subscription';
+import { useKsefAutomation } from '@/modules/finance/hooks';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
@@ -13,16 +14,20 @@ import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransit
 import {
     detectRate,
     invoiceGrossOf,
+    restoreDraft,
+    servicesFingerprint,
     toInvoicePayload,
     toPln,
     validateHandover,
     withDerived,
+    type HandoverDraft,
     type HandoverItem,
     type HandoverProblem,
     type HandoverState,
 } from '../types/handover';
 
-const DRAFT_PREFIX = 'handover:v1:';
+const DRAFT_PREFIX = 'handover:v2:';
+const LEGACY_DRAFT_PREFIX = 'handover:v1:';
 const DUE_DATE_DAYS = 14;
 
 const draftKey = (visitId: string) => `${DRAFT_PREFIX}${visitId}`;
@@ -171,18 +176,28 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             remainderMethod: 'CASH',
             exemptionBasis: '',
             protocolSigned: false,
+            sendToKsef: null,
         };
     }, [visit, priceOf, totals.gross]);
+
+    // Odcisk usług, z których powstały pozycje faktury — decyduje, czy zapisany
+    // draft opisuje jeszcze tę samą wizytę (patrz restoreDraft).
+    const fingerprint = useMemo(
+        () => servicesFingerprint(visit.services, service => priceOf(service as ServiceLineItem).finalPriceGross),
+        [visit.services, priceOf]
+    );
 
     // Ekran jest montowany dopiero przy otwarciu, więc odtworzenie draftu
     // wystarczy zrobić raz, w inicjalizatorze stanu.
     const [state, setState] = useState<HandoverState>(() => {
         const fresh = buildInitialState();
         try {
-            const stored = window.localStorage.getItem(draftKey(visit.id));
-            return stored ? { ...fresh, ...JSON.parse(stored) } : fresh;
+            // Drafty sprzed wprowadzenia odcisku usług nie dają się zweryfikować,
+            // więc znikają zamiast wracać jako nieaktualne pozycje.
+            window.localStorage.removeItem(`${LEGACY_DRAFT_PREFIX}${visit.id}`);
+            return restoreDraft(fresh, window.localStorage.getItem(draftKey(visit.id)), fingerprint);
         } catch {
-            // Uszkodzony draft nie może blokować wydania, startujemy od nowa.
+            // Brak dostępu do localStorage (tryb prywatny) nie może blokować wydania.
             return fresh;
         }
     });
@@ -193,15 +208,40 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // egzekwuje tę samą regułę (jawna faktura -> 402, paragon pomijany).
     const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
 
+    // Stan integracji z KSeF (token, jego uprawnienia, domyślna odpowiedź studia).
+    // Pytamy tylko wtedy, gdy faktura w ogóle wchodzi w grę — wizyta bezpłatna ani
+    // paragon nie mają czego wysyłać.
+    const ksef = useKsefAutomation({
+        enabled: canIssueDocuments && !isFreeVisit && state.documentType === 'INVOICE',
+    });
+
+    /**
+     * Czy wysyłka jest w ogóle w zasięgu tego studia. Bez zapisanego tokenu nie ma
+     * czym wysłać, więc nie ma też czego wybierać: przełącznik jest wyłączony
+     * i zablokowany, zamiast obiecywać wysyłkę, która skończy się w kolejce retry.
+     * Studio bez modułu KSeF zachowuje się jak dotąd — o wysyłce nie decyduje.
+     */
+    const canChooseSendToKsef = ksef.moduleEnabled && !ksef.isLoading && ksef.configured;
+
+    /**
+     * Rozstrzygnięta odpowiedź na pytanie „wysłać do KSeF?": wybór użytkownika,
+     * a zanim go dokona — domyślna wartość z ustawień studia. Do czasu wczytania
+     * ustawień zakładamy wysyłkę, bo tak działał system, zanim przełącznik powstał.
+     */
+    const sendToKsef =
+        (!ksef.moduleEnabled || ksef.isLoading || ksef.configured) &&
+        (state.sendToKsef ?? ksef.autoSendDefault ?? true);
+
     // ── Draft: zamknięcie okna nie kasuje pracy ──────────────────────────────
     useEffect(() => {
         if (!isOpen || result) return;
         try {
-            window.localStorage.setItem(draftKey(visit.id), JSON.stringify(state));
+            const draft: HandoverDraft = { servicesFingerprint: fingerprint, state };
+            window.localStorage.setItem(draftKey(visit.id), JSON.stringify(draft));
         } catch {
             // Brak miejsca / tryb prywatny: draft to wygoda, nie warunek działania.
         }
-    }, [state, isOpen, result, visit.id]);
+    }, [state, fingerprint, isOpen, result, visit.id]);
 
     const clearDraft = useCallback(() => {
         try {
@@ -215,6 +255,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         (changes: Partial<HandoverState>) => setState(prev => ({ ...prev, ...changes })),
         []
     );
+
+    const setSendToKsef = useCallback((value: boolean) => patch({ sendToKsef: value }), [patch]);
 
     // ── Wyliczenia pochodne ──────────────────────────────────────────────────
     const invoiceGross = useMemo(() => invoiceGrossOf(state.items), [state.items]);
@@ -251,7 +293,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                 },
                 invoice:
                     documentType === 'INVOICE' && canIssueDocuments
-                        ? toInvoicePayload(state, totals.gross)
+                        ? toInvoicePayload(state, totals.gross, sendToKsef)
                         : undefined,
             });
         },
@@ -280,6 +322,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         // stan
         state,
         patch,
+        ksef,
+        sendToKsef,
+        canChooseSendToKsef,
+        setSendToKsef,
         problems,
         problemsIn,
         canSubmit: problems.length === 0 && !isSubmitting,

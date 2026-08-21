@@ -1,7 +1,7 @@
 // src/modules/appointments/hooks/useAppointmentForm.ts
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { appointmentSchema } from '../utils/appointmentSchema';
 import { appointmentApi } from '../api/appointmentApi';
 import type { AppointmentCreateRequest } from '../types';
@@ -54,6 +54,10 @@ export const useCustomerSearch = (query: string) => {
         queryKey: ['appointments', 'customers', 'search', query],
         queryFn: () => appointmentApi.searchCustomers(query),
         enabled: query.length >= 0,
+        // Hold the previous matches on screen while the next query is in flight: emptying
+        // the list between keystrokes makes a search picker flicker and, in a fixed-height
+        // list, is the difference between a calm result set and a strobe.
+        placeholderData: keepPreviousData,
     });
 };
 
