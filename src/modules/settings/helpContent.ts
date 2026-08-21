@@ -340,5 +340,14 @@ export const INVOICES_HELP: HelpContent = {
                 'Autoryzacja połączenia z KSeF',
             ],
         },
+        {
+            id: 'auto-send-default',
+            label: 'Domyślna wysyłka faktur do KSeF',
+            description: 'Ustawia początkową pozycję przełącznika „Wyślij fakturę do KSeF" w oknie wydania pojazdu. Nie jest to blokada: osoba wydająca pojazd decyduje o każdej fakturze osobno. Faktura wystawiona bez wysyłki zostaje zapisana w CRM ze statusem „Poza KSeF" i można ją wysłać później z listy dokumentów przychodowych albo pobrać jej plik XML i wgrać ręcznie.',
+            usedIn: [
+                'Wydanie pojazdu: przełącznik wysyłki faktury',
+                'Dokumenty przychodowe: status „Poza KSeF"',
+            ],
+        },
     ],
 };

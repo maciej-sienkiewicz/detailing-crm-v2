@@ -107,14 +107,29 @@ interface ToggleProps {
     label?: string;
     size?: 'sm' | 'md' | 'lg';
     disabled?: boolean;
+    /** Pozwala powiązać przełącznik z zewnętrznym <label htmlFor>, gdy opis żyje obok. */
+    inputId?: string;
+    /** Nazwa dla czytnika ekranu, gdy przełącznik nie ma własnego widocznego [label]. */
+    ariaLabel?: string;
 }
 
-export const Toggle = ({ checked, onChange, label, size = 'md', disabled = false }: ToggleProps) => {
+export const Toggle = ({
+    checked,
+    onChange,
+    label,
+    size = 'md',
+    disabled = false,
+    inputId,
+    ariaLabel,
+}: ToggleProps) => {
     return (
         <ToggleContainer>
             <ToggleSwitch $size={size}>
                 <ToggleInput
+                    id={inputId}
                     type="checkbox"
+                    role="switch"
+                    aria-label={ariaLabel ?? label}
                     checked={checked}
                     onChange={(e) => onChange(e.target.checked)}
                     disabled={disabled}

@@ -46,7 +46,73 @@ export interface HandoverState {
     exemptionBasis: string;
     /** Protokół podpisany papierowo. Trafia do payloadu jako signatureObtained. */
     protocolSigned: boolean;
+    /**
+     * Czy fakturę wysłać do KSeF. `null` = użytkownik nie ruszył przełącznika, więc
+     * obowiązuje domyślna odpowiedź studia z ustawień. Trzymamy `null` zamiast
+     * kopiować domyślną wartość, bo stan powstaje zanim ustawienia się wczytają —
+     * skopiowana wartość byłaby zgadywaniem, które potem trudno odróżnić od wyboru.
+     */
+    sendToKsef: boolean | null;
 }
+
+// ─── Draft ekranu wydania ─────────────────────────────────────────────────────
+
+/**
+ * Draft zapisywany w localStorage: stan wraz z odciskiem usług, na których
+ * powstały pozycje faktury.
+ */
+export interface HandoverDraft {
+    servicesFingerprint: string;
+    state: HandoverState;
+}
+
+/**
+ * Odcisk usług wizyty: identyfikator, nazwa i kwota brutto każdej z nich.
+ * Zmiana czegokolwiek z tej listy unieważnia pozycje faktury zapisane w draftcie,
+ * bo to właśnie z tej listy powstały.
+ */
+export const servicesFingerprint = (
+    services: Array<{ id: string; serviceName: string }>,
+    grossOf: (service: { id: string; serviceName: string }) => number
+): string => services.map(service => `${service.id}:${service.serviceName}:${grossOf(service)}`).join('|');
+
+/**
+ * Stan początkowy ekranu z uwzględnieniem zapisanego draftu.
+ *
+ * Draft odtwarzamy w całości tylko wtedy, gdy dotyczy tej samej listy usług.
+ * Inaczej pozycje sprzed zmiany wracałyby jako obraz wizyty, której już nie ma:
+ * dopisanie usługi za 1200 zł kończyło się komunikatem „wizyta ma jedną pozycję
+ * za 0 zł", bo odtwarzaliśmy nieaktualne pozycje zamiast przeliczyć je od nowa.
+ * Zachowujemy z draftu tylko to, czego usługi nie dotyczą — nabywcę i wybory
+ * dotyczące zapłaty — żeby ręcznie wpisane dane nie przepadały.
+ */
+export const restoreDraft = (
+    fresh: HandoverState,
+    stored: string | null,
+    fingerprint: string
+): HandoverState => {
+    if (!stored) return fresh;
+
+    let draft: HandoverDraft | null = null;
+    try {
+        draft = JSON.parse(stored) as HandoverDraft;
+    } catch {
+        // Uszkodzony draft nie może blokować wydania, startujemy od nowa.
+        return fresh;
+    }
+    if (!draft?.state) return fresh;
+
+    if (draft.servicesFingerprint !== fingerprint) {
+        return {
+            ...fresh,
+            buyer: draft.state.buyer ?? fresh.buyer,
+            paymentMethod: draft.state.paymentMethod ?? fresh.paymentMethod,
+            documentType: draft.state.documentType ?? fresh.documentType,
+            sendToKsef: draft.state.sendToKsef ?? fresh.sendToKsef,
+        };
+    }
+    return { ...fresh, ...draft.state };
+};
 
 // ─── Arytmetyka kwot (grosze) ─────────────────────────────────────────────────
 
@@ -180,8 +246,18 @@ export const validateHandover = ({ state, visitGross, sellerComplete }: Validate
     return problems;
 };
 
-/** Stan ekranu → payload faktury dla POST /visits/{id}/complete. */
-export const toInvoicePayload = (state: HandoverState, visitGross: number): CompleteInvoicePayload => {
+/**
+ * Stan ekranu → payload faktury dla POST /visits/{id}/complete.
+ *
+ * [sendToKsef] przekazujemy jawnie (rozwiązane już z domyślnej wartości studia),
+ * żeby na serwer poszła decyzja widoczna na ekranie, a nie druga interpretacja
+ * tego samego ustawienia.
+ */
+export const toInvoicePayload = (
+    state: HandoverState,
+    visitGross: number,
+    sendToKsef: boolean
+): CompleteInvoicePayload => {
     const remainder = visitGross - invoiceGrossOf(state.items);
     const nip = normalizeNip(state.buyer.nip);
 
@@ -205,5 +281,6 @@ export const toInvoicePayload = (state: HandoverState, visitGross: number): Comp
         exemptionLegalBasis: state.items.some(i => i.vatRate === 'zw')
             ? state.exemptionBasis.trim()
             : undefined,
+        sendToKsef,
     };
 };

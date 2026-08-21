@@ -586,6 +586,14 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               </DuplicateBox>
             )}
 
+            {invoice.ksefStatus === 'NOT_SENT' && (
+              <OfflineBox>
+                Faktura została wystawiona bez wysyłki do KSeF — dokument istnieje w CRM,
+                ale nie w KSeF. Możesz pobrać jego plik XML i wgrać go ręcznie albo wysłać
+                fakturę przyciskiem poniżej.
+              </OfflineBox>
+            )}
+
             {invoice.ksefStatus === 'QUEUED_RETRY' && (
               <OfflineBox>
                 KSeF był niedostępny w chwili wystawienia (tryb offline24). Faktura zostanie
@@ -823,13 +831,17 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                 </SharedButton>
               )}
               {invoice.source === 'CRM' &&
-                ['PENDING', 'QUEUED_RETRY', 'SUBMITTED'].includes(invoice.ksefStatus) && (
+                ['PENDING', 'QUEUED_RETRY', 'SUBMITTED', 'NOT_SENT'].includes(invoice.ksefStatus) && (
                 <SharedButton
                   $variant="secondary" $size="sm" disabled={busy}
                   onClick={() => run(() => retryMutation.mutateAsync(invoice.id))}
                 >
                   <RefreshCw size={14} />
-                  {retryMutation.isPending ? 'Wysyłanie...' : 'Ponów wysyłkę do KSeF'}
+                  {retryMutation.isPending
+                    ? 'Wysyłanie...'
+                    : invoice.ksefStatus === 'NOT_SENT'
+                      ? 'Wyślij do KSeF'
+                      : 'Ponów wysyłkę do KSeF'}
                 </SharedButton>
               )}
               <SharedButton
