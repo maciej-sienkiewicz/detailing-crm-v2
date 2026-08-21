@@ -7,6 +7,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { BarChart3, Loader2, Search } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { useLeads, useLeadsSocket } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
@@ -239,6 +240,7 @@ const EditableCell = styled.button`
     display: flex;
     align-items: center;
     gap: 4px;
+    /* Zawijanie jest dla tagów, które bywają liczne. */
     flex-wrap: wrap;
     min-width: 0;
     width: 100%;
@@ -260,6 +262,9 @@ const EditableCell = styled.button`
 
     .none { color: ${p => p.theme.colors.textMuted}; }
     .value {
+        /* Bazowy rozmiar 0, więc przy logo marki obok tekst kurczy się w tej
+           samej linii zamiast spaść pod nie — zawijanie zostaje dla tagów. */
+        flex: 1 1 0;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -458,6 +463,11 @@ export default function LeadsView() {
                                     title="Kliknij, żeby poprawić pojazd"
                                     onClick={(event) => openCellEditor(event, item, 'vehicle')}
                                 >
+                                    {/* Awatar marki, ten sam co w module pojazdów: w kolumnie
+                                        pełnej podobnych do siebie napisów logo jest znakiem,
+                                        który wpada w oko przed przeczytaniem nazwy. Bez marki
+                                        nie ma czego pokazać — zostaje samo „—". */}
+                                    {item.vehicleBrand && <CarLogoImage brand={item.vehicleBrand} size="xs" />}
                                     <span className={formatVehicle(item) ? 'value' : 'value none'}>
                                         {formatVehicle(item) ?? '—'}
                                     </span>

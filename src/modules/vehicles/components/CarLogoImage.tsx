@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { getCarLogoUrl } from '../services/carLogos';
 
-type Size = 'sm' | 'md' | 'lg';
+type Size = 'xs' | 'sm' | 'md' | 'lg';
 
 interface CarLogoImageProps {
     brand: string | null | undefined;
@@ -11,8 +11,10 @@ interface CarLogoImageProps {
 }
 
 // Wysokość kontenera, szerokość auto (logo samo dyktuje proporcje).
-const SIZE_H: Record<Size, number> = { sm: 24, md: 36, lg: 48 };
-const SIZE_MAX_W: Record<Size, number> = { sm: 40, md: 60, lg: 80 };
+// „xs" jest dla gęstych tabel: logo ma tam być znakiem rozpoznawczym marki,
+// a nie elementem, który podnosi wysokość każdego wiersza.
+const SIZE_H: Record<Size, number> = { xs: 18, sm: 24, md: 36, lg: 48 };
+const SIZE_MAX_W: Record<Size, number> = { xs: 28, sm: 40, md: 60, lg: 80 };
 
 const shimmer = keyframes`
     0%   { background-position: -200% 0; }
