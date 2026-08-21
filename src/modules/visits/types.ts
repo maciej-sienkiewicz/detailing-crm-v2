@@ -297,6 +297,22 @@ export interface ServicesChangesPayload {
     deleted: Array<{
         serviceLineItemId: string;
     }>;
+    /**
+     * Treść SMS-a zatwierdzona przez użytkownika w modalu przed zapisem.
+     * Fraza z prośbą o odpowiedź „TAK" jest doklejana przez backend i nie jest częścią tego pola.
+     */
+    smsMessage?: string;
+}
+
+/** Propozycja treści SMS-a o zmianach w usługach (generowana przez LLM po stronie backendu). */
+export interface ServiceChangeSmsDraft {
+    message: string;
+    /** Fraza doklejana na końcu wiadomości przy wysyłce; nieedytowalna. */
+    fixedSuffix: string;
+    totalGrossBefore: number;
+    totalGrossAfter: number;
+    /** false = model nie odpowiedział i treść pochodzi z szablonu awaryjnego. */
+    aiGenerated: boolean;
 }
 
 // Visit Photos (from check-in)
