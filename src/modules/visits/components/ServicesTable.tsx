@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, resolveBaseNet } from '@/common/utils/priceAdjustment';
-import type { AdjustmentType } from '@/common/utils/priceAdjustment';
+import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
@@ -12,6 +12,7 @@ import { ServiceInlineRow } from './ServiceInlineRow';
 import type { NewRow } from './ServiceInlineRow';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { LockedSection } from '@/common/components/LockedSection';
+import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import { useFeature, UpsellModal } from '@/modules/subscription';
 
 const BRAND = '#0ea5e9';
@@ -1061,6 +1062,66 @@ const EditorPreviewNew = styled.span`
     letter-spacing: -0.3px;
 `;
 
+const EditorModeRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 4px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+`;
+
+const EditorModeTab = styled.button<{ $active?: boolean }>`
+    padding: 9px 10px;
+    font-size: 13px;
+    font-weight: ${p => p.$active ? 700 : 500};
+    font-family: inherit;
+    color: ${p => p.$active ? BRAND_DARK : st.textMuted};
+    background: ${p => p.$active ? st.bgCard : 'transparent'};
+    border: 1.5px solid ${p => p.$active ? BRAND : 'transparent'};
+    border-radius: ${st.radiusSm};
+    cursor: pointer;
+    transition: all 140ms ease;
+
+    &:hover { color: ${BRAND_DARK}; }
+`;
+
+const EditorListBox = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+`;
+
+const EditorListLabel = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+const EditorListPrices = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.textSecondary};
+    font-variant-numeric: tabular-nums;
+`;
+
+const EditorPreviewSub = styled.span`
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: ${st.textMuted};
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+`;
+
 const EditorSavedChip = styled.span`
     font-size: 11px;
     font-weight: 700;
@@ -1407,12 +1468,10 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
 
 /* Editor uses only the true discount types; setting a price is done via the price fields */
 const EDITOR_DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
-    { type: 'PERCENT', label: '%' },
-    { type: 'FIXED_NET', label: '−Netto' },
-    { type: 'FIXED_GROSS', label: '−Brutto' },
+    { type: 'PERCENT', label: 'Procent' },
+    { type: 'FIXED_NET', label: 'Kwota netto' },
+    { type: 'FIXED_GROSS', label: 'Kwota brutto' },
 ];
-
-const QUICK_DISCOUNTS = [5, 10, 15, 20];
 
 const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
@@ -1597,8 +1656,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     /* ── Draft discount modal ── */
     const [draftDiscountId, setDraftDiscountId] = useState<string | null>(null);
-    const [draftDiscountType, setDraftDiscountType] = useState<AdjustmentType>('PERCENT');
-    const [draftDiscountValue, setDraftDiscountValue] = useState('');
 
     const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: AdjustmentType; value: number } }>>({}); // id → price override
 
@@ -1701,13 +1758,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         closeEditor();
     };
 
+    /** Powrót do ceny cennikowej: kasuje rabat i ręczną cenę, przywraca stawkę VAT usługi. */
     const removeEditorDiscount = () => {
         if (!editorId) return;
         const service = services.find(s => s.id === editorId);
         if (!service) { closeEditor(); return; }
         setEditedPrices(prev => ({
             ...prev,
-            [editorId]: { basePriceNet: service.basePriceNet, vatRate: edVatRate, adjustment: { type: 'PERCENT', value: 0 } },
+            [editorId]: { basePriceNet: service.basePriceNet, vatRate: service.vatRate, adjustment: { type: 'PERCENT', value: 0 } },
         }));
         closeEditor();
     };
@@ -1744,11 +1802,19 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         }
     };
 
-    const pickQuickDiscount = (pct: number) => {
-        setEdMode('DISCOUNT');
-        setEdAdjType('PERCENT');
-        setEdDiscountValue(String(pct));
-        setEdDirty(true);
+    /** Explicit switch between "set a price" and "give a discount". */
+    const switchEditorMode = (mode: 'SET' | 'DISCOUNT') => {
+        if (mode === edMode) return;
+        if (mode === 'SET') {
+            const service = services.find(s => s.id === editorId);
+            if (service) {
+                const { finalNetCents, finalGrossCents } = editorPreview(service);
+                setEdNetStr(eFmt(finalNetCents / 100));
+                setEdGrossStr(eFmt(finalGrossCents / 100));
+            }
+            setEdLastField('gross');
+        }
+        setEdMode(mode);
     };
 
     const handleEdDiscountValueChange = (val: string) => {
@@ -1898,30 +1964,17 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
 
     const openDraftDiscount = (draftId: string) => {
-        const row = newRows.find(r => r.draftId === draftId);
-        if (!row) return;
-        const adj = row.adjustment;
-        const isDiscount = (adj.type === 'PERCENT' || adj.type === 'FIXED_NET' || adj.type === 'FIXED_GROSS') && adj.value !== 0;
+        if (!newRows.some(r => r.draftId === draftId)) return;
         setDraftDiscountId(draftId);
-        setDraftDiscountType(isDiscount ? adj.type as AdjustmentType : 'PERCENT');
-        setDraftDiscountValue(isDiscount
-            ? (adj.type === 'PERCENT' ? String(Math.abs(adj.value)) : String(adj.value / 100))
-            : '');
     };
 
     const closeDraftDiscount = () => {
         setDraftDiscountId(null);
-        setDraftDiscountValue('');
     };
 
-    const applyDraftDiscount = () => {
+    const applyDraftDiscount = (adjustment: PriceAdjustment) => {
         if (!draftDiscountId) return;
-        const parsedVal = parseFloat(draftDiscountValue.replace(',', '.'));
-        if (isNaN(parsedVal) || parsedVal <= 0) return;
-        const storeVal = draftDiscountType === 'PERCENT'
-            ? -Math.abs(parsedVal)
-            : Math.round(parsedVal * 100);
-        updateRow(draftDiscountId, { adjustment: { type: draftDiscountType, value: storeVal } });
+        updateRow(draftDiscountId, { adjustment });
         closeDraftDiscount();
     };
 
@@ -1936,13 +1989,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     useEffect(() => {
         if (!isInEditMode) return;
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') triggerHighlight(); };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [isInEditMode, triggerHighlight]);
-
-    useEffect(() => {
-        if (!isInEditMode) return;
         const onDocClick = (e: MouseEvent) => {
             if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
                 triggerHighlight();
@@ -1952,13 +1998,39 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         return () => document.removeEventListener('mousedown', onDocClick);
     }, [isInEditMode, triggerHighlight]);
 
-    const discardDraft = () => {
+    const discardDraft = useCallback(() => {
         setNewRows([]);
         setDeletedIds(new Set());
         setEditedPrices({});
-        closeEditor();
-        closeDraftDiscount();
-    };
+        setEditorId(null);
+        setEdDirty(false);
+        setDraftDiscountId(null);
+    }, []);
+
+    // ESC zamyka to, co jest na wierzchu: najpierw modal, potem sekcję edycji.
+    // Sekcję z wprowadzonymi zmianami tylko podświetlamy, żeby nie zgubić pracy.
+    const anyModalOpen = isQuickServiceOpen || bulkDiscountOpen || bulkDiscountConflictOpen
+        || bulkVatOpen || isConfirmOpen || upsellOpen || editorId !== null || draftDiscountId !== null;
+
+    useEffect(() => {
+        if (!isInEditMode && !anyModalOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (isQuickServiceOpen || isConfirmOpen || upsellOpen) return; // własna obsługa w modalu
+            if (bulkDiscountConflictOpen) { setBulkDiscountConflictOpen(false); return; }
+            if (bulkDiscountOpen) { setBulkDiscountOpen(false); return; }
+            if (bulkVatOpen) { setBulkVatOpen(false); return; }
+            if (draftDiscountId) { closeDraftDiscount(); return; }
+            if (editorId) { closeEditor(); return; }
+            if (!isInEditMode) return;
+            if (hasChanges) triggerHighlight(); else discardDraft();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isInEditMode, anyModalOpen, hasChanges, isQuickServiceOpen, isConfirmOpen, upsellOpen,
+        bulkDiscountConflictOpen, bulkDiscountOpen, bulkVatOpen, draftDiscountId, editorId,
+        triggerHighlight, discardDraft]);
+
 
     const acceptDraft = () => {
         const validNewRows = newRows.filter(r => r.serviceName.trim());
@@ -2321,7 +2393,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             </TotalRow>
             )}
 
-            {hasChanges && (
+            {isInEditMode && (
                 <DraftBar>
                     <DraftBarSmsWrap>
                         <LockedSection
@@ -2351,10 +2423,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         </LockedSection>
                     </DraftBarSmsWrap>
                     <DraftBarActions>
-                        <DiscardBtn onClick={discardDraft} disabled={isSaving} $highlighting={isHighlighting}>
-                            Odrzuć
+                        <DiscardBtn
+                            onClick={discardDraft}
+                            disabled={isSaving}
+                            $highlighting={isHighlighting}
+                            title="Zamknij bez zapisywania (Esc)"
+                        >
+                            {hasChanges ? 'Odrzuć' : 'Zamknij'}
                         </DiscardBtn>
-                        <AcceptBtn onClick={acceptDraft} disabled={isSaving} $highlighting={isHighlighting}>
+                        <AcceptBtn onClick={acceptDraft} disabled={isSaving || !hasChanges} $highlighting={isHighlighting}>
                             {isSaving ? 'Zapisywanie...' : 'Zaakceptuj'}
                         </AcceptBtn>
                     </DraftBarActions>
@@ -2371,71 +2448,20 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             />
         </div>
 
-        {/* ─── Draft row discount modal ─── */}
+        {/* ─── Draft row discount modal (wspólny komponent) ─── */}
         {draftDiscountId && (() => {
             const draftRow = newRows.find(r => r.draftId === draftDiscountId);
             if (!draftRow) return null;
-            const parsedVal = parseFloat(draftDiscountValue.replace(',', '.'));
-            const applyDisabled = !draftDiscountValue || isNaN(parsedVal) || parsedVal <= 0;
-            const hasExisting = draftRow.adjustment.value !== 0;
             return (
-                <DiscountModalOverlay onClick={closeDraftDiscount}>
-                    <DiscountModalCard onClick={e => e.stopPropagation()}>
-                        <DiscountModalHeader>
-                            <div>
-                                <DiscountModalTitle>Rabat dla usługi</DiscountModalTitle>
-                                <DiscountModalSubtitle>{draftRow.serviceName || 'Nowa usługa'}</DiscountModalSubtitle>
-                            </div>
-                            <DiscountCloseBtn type="button" onClick={closeDraftDiscount}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </DiscountCloseBtn>
-                        </DiscountModalHeader>
-                        <DiscountModalBody>
-                            <div>
-                                <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
-                                <DiscountTypeRow>
-                                    {EDITOR_DISCOUNT_TYPES.map(({ type, label }) => (
-                                        <DiscountTypePill
-                                            key={type}
-                                            type="button"
-                                            $selected={draftDiscountType === type}
-                                            onClick={() => { setDraftDiscountType(type); setDraftDiscountValue(''); }}
-                                        >
-                                            {label}
-                                        </DiscountTypePill>
-                                    ))}
-                                </DiscountTypeRow>
-                            </div>
-                            <div>
-                                <DiscountSectionLabel>Wartość</DiscountSectionLabel>
-                                <DiscountValueRow>
-                                    <DiscountValueInput
-                                        type="text"
-                                        inputMode="decimal"
-                                        placeholder="0"
-                                        value={draftDiscountValue}
-                                        onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setDraftDiscountValue(e.target.value); }}
-                                        autoFocus
-                                    />
-                                    <DiscountValueSuffix>
-                                        {draftDiscountType === 'PERCENT' ? '%' : 'zł'}
-                                    </DiscountValueSuffix>
-                                </DiscountValueRow>
-                            </div>
-                        </DiscountModalBody>
-                        <DiscountModalFooter>
-                            {hasExisting && (
-                                <DiscountRemoveBtn type="button" onClick={removeDraftDiscount}>Usuń rabat</DiscountRemoveBtn>
-                            )}
-                            <DiscountCancelBtn type="button" onClick={closeDraftDiscount} style={{ marginLeft: hasExisting ? undefined : 'auto' }}>
-                                Anuluj
-                            </DiscountCancelBtn>
-                            <DiscountApplyBtn type="button" onClick={applyDraftDiscount} disabled={applyDisabled}>
-                                Zastosuj
-                            </DiscountApplyBtn>
-                        </DiscountModalFooter>
-                    </DiscountModalCard>
-                </DiscountModalOverlay>
+                <ServiceDiscountModal
+                    serviceName={draftRow.serviceName}
+                    basePriceNet={draftRow.basePriceNet}
+                    vatRate={draftRow.vatRate}
+                    adjustment={draftRow.adjustment}
+                    onApply={applyDraftDiscount}
+                    onRemove={removeDraftDiscount}
+                    onClose={closeDraftDiscount}
+                />
             );
         })()}
 
@@ -2447,16 +2473,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             const listGross = preview.listGross;
             const changed = preview.finalGrossCents !== listGross;
             const existingAdj = editedPrices[svc.id]?.adjustment ?? svc.adjustment;
-            const hasExistingDiscount = (existingAdj.type === 'PERCENT' || existingAdj.type === 'FIXED_NET' || existingAdj.type === 'FIXED_GROSS') && existingAdj.value !== 0;
+            // Każda odchyłka od cennika (rabat lub ręczna cena) daje możliwość powrotu do ceny cennikowej.
+            const hasCustomPrice = existingAdj.value !== 0;
 
             const discountValNum = parseFloat(edDiscountValue.replace(',', '.'));
             const discountInvalid = edMode === 'DISCOUNT' && (isNaN(discountValNum) || discountValNum <= 0);
             const setInvalid = edMode === 'SET' && eParse(edNetStr) === null;
             const applyDisabled = discountInvalid || setInvalid;
-
-            // In discount mode the price fields show the computed result
-            const displayNet = edMode === 'DISCOUNT' ? eFmt(preview.finalNetCents / 100) : edNetStr;
-            const displayGross = edMode === 'DISCOUNT' ? eFmt(preview.finalGrossCents / 100) : edGrossStr;
 
             return (
                 <DiscountModalOverlay onClick={closeEditor}>
@@ -2466,116 +2489,134 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 <DiscountModalTitle>Cena usługi</DiscountModalTitle>
                                 <DiscountModalSubtitle>{svc.serviceName}</DiscountModalSubtitle>
                             </div>
-                            <DiscountCloseBtn type="button" onClick={closeEditor}>
+                            <DiscountCloseBtn type="button" onClick={closeEditor} aria-label="Zamknij">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </DiscountCloseBtn>
                         </DiscountModalHeader>
                         <DiscountModalBody>
-                            <div>
-                                <DiscountSectionLabel>Cena dla klienta</DiscountSectionLabel>
-                                <EditorGrid>
-                                    <EditorField>
-                                        <EditorFieldLabel>Netto</EditorFieldLabel>
-                                        <EditorPriceInput
-                                            type="text" inputMode="decimal" placeholder="0.00"
-                                            value={displayNet}
-                                            onChange={e => handleEdNetChange(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
-                                        />
-                                    </EditorField>
-                                    <EditorField>
-                                        <EditorFieldLabel>Brutto</EditorFieldLabel>
-                                        <EditorPriceInput
-                                            type="text" inputMode="decimal" placeholder="0.00" autoFocus
-                                            value={displayGross}
-                                            onChange={e => handleEdGrossChange(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); if (e.key === 'Escape') closeEditor(); }}
-                                        />
-                                    </EditorField>
-                                    <EditorField>
-                                        <EditorFieldLabel>VAT</EditorFieldLabel>
-                                        <EditorVatSelect
-                                            value={edVatRate}
-                                            onChange={e => handleEdVatChange(Number(e.target.value))}
-                                        >
-                                            {([23, 8, 5, 0, -1] as const).map(rate => (
-                                                <option key={rate} value={rate}>{rate === -1 ? 'zw.' : `${rate}%`}</option>
-                                            ))}
-                                        </EditorVatSelect>
-                                    </EditorField>
-                                </EditorGrid>
-                            </div>
+                            <EditorListBox>
+                                <EditorListLabel>Cena z cennika</EditorListLabel>
+                                <EditorListPrices>
+                                    {formatCurrency(listGross / 100)} brutto · {formatCurrency(listNet / 100)} netto
+                                </EditorListPrices>
+                            </EditorListBox>
 
-                            <div>
-                                <DiscountSectionLabel>Rabat od ceny cennikowej</DiscountSectionLabel>
-                                <DiscountTypeRow style={{ marginBottom: 8 }}>
-                                    {QUICK_DISCOUNTS.map(pct => (
-                                        <DiscountTypePill
-                                            key={pct}
-                                            type="button"
-                                            $selected={edMode === 'DISCOUNT' && edAdjType === 'PERCENT' && edDiscountValue === String(pct)}
-                                            onClick={() => pickQuickDiscount(pct)}
-                                        >
-                                            −{pct}%
-                                        </DiscountTypePill>
-                                    ))}
-                                </DiscountTypeRow>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <DiscountTypeRow>
+                            <EditorModeRow role="tablist">
+                                <EditorModeTab
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={edMode === 'SET'}
+                                    $active={edMode === 'SET'}
+                                    onClick={() => switchEditorMode('SET')}
+                                >
+                                    Wpisz cenę
+                                </EditorModeTab>
+                                <EditorModeTab
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={edMode === 'DISCOUNT'}
+                                    $active={edMode === 'DISCOUNT'}
+                                    onClick={() => switchEditorMode('DISCOUNT')}
+                                >
+                                    Udziel rabatu
+                                </EditorModeTab>
+                            </EditorModeRow>
+
+                            {edMode === 'SET' ? (
+                                <div>
+                                    <DiscountSectionLabel>Cena dla klienta</DiscountSectionLabel>
+                                    <EditorGrid>
+                                        <EditorField>
+                                            <EditorFieldLabel>Netto</EditorFieldLabel>
+                                            <EditorPriceInput
+                                                type="text" inputMode="decimal" placeholder="0.00"
+                                                value={edNetStr}
+                                                onChange={e => handleEdNetChange(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
+                                            />
+                                        </EditorField>
+                                        <EditorField>
+                                            <EditorFieldLabel>Brutto</EditorFieldLabel>
+                                            <EditorPriceInput
+                                                type="text" inputMode="decimal" placeholder="0.00" autoFocus
+                                                value={edGrossStr}
+                                                onChange={e => handleEdGrossChange(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
+                                            />
+                                        </EditorField>
+                                        <EditorField>
+                                            <EditorFieldLabel>Stawka VAT</EditorFieldLabel>
+                                            <EditorVatSelect
+                                                value={edVatRate}
+                                                onChange={e => handleEdVatChange(Number(e.target.value))}
+                                            >
+                                                {([23, 8, 5, 0, -1] as const).map(rate => (
+                                                    <option key={rate} value={rate}>{rate === -1 ? 'zw.' : `${rate}%`}</option>
+                                                ))}
+                                            </EditorVatSelect>
+                                        </EditorField>
+                                    </EditorGrid>
+                                </div>
+                            ) : (
+                                <div>
+                                    <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
+                                    <DiscountTypeRow style={{ marginBottom: 10 }}>
                                         {EDITOR_DISCOUNT_TYPES.map(({ type, label }) => (
                                             <DiscountTypePill
                                                 key={type}
                                                 type="button"
-                                                $selected={edMode === 'DISCOUNT' && edAdjType === type}
-                                                onClick={() => { setEdMode('DISCOUNT'); setEdAdjType(type); setEdDiscountValue(''); setEdDirty(true); }}
+                                                $selected={edAdjType === type}
+                                                onClick={() => { setEdAdjType(type); setEdDiscountValue(''); }}
                                             >
                                                 {label}
                                             </DiscountTypePill>
                                         ))}
                                     </DiscountTypeRow>
-                                    <DiscountValueRow style={{ flex: 1, minWidth: 140 }}>
+                                    <DiscountSectionLabel>Wysokość rabatu</DiscountSectionLabel>
+                                    <DiscountValueRow>
                                         <DiscountValueInput
-                                            $compact
                                             type="text" inputMode="decimal"
                                             placeholder="0"
-                                            value={edMode === 'DISCOUNT' ? edDiscountValue : ''}
+                                            autoFocus
+                                            value={edDiscountValue}
                                             onChange={e => handleEdDiscountValueChange(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
                                         />
-                                        <DiscountValueSuffix>{edMode === 'DISCOUNT' && edAdjType !== 'PERCENT' ? 'zł' : '%'}</DiscountValueSuffix>
+                                        <DiscountValueSuffix>{edAdjType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
                                     </DiscountValueRow>
                                 </div>
-                            </div>
+                            )}
 
                             <EditorPreview>
-                                <EditorPreviewLine>
-                                    <EditorPreviewLabel>Cennik</EditorPreviewLabel>
-                                    {changed ? (
-                                        <>
-                                            <EditorPreviewOld>{formatCurrency(listGross / 100)}</EditorPreviewOld>
-                                            <span style={{ color: BRAND, fontSize: 12 }}>→</span>
-                                            <EditorPreviewNew>{formatCurrency(preview.finalGrossCents / 100)}</EditorPreviewNew>
-                                        </>
-                                    ) : (
-                                        <EditorPreviewNew>{formatCurrency(listGross / 100)}</EditorPreviewNew>
-                                    )}
-                                </EditorPreviewLine>
+                                <div>
+                                    <EditorPreviewLine>
+                                        <EditorPreviewLabel>Do zapłaty</EditorPreviewLabel>
+                                        {changed && (
+                                            <>
+                                                <EditorPreviewOld>{formatCurrency(listGross / 100)}</EditorPreviewOld>
+                                                <span style={{ color: BRAND, fontSize: 12 }}>→</span>
+                                            </>
+                                        )}
+                                        <EditorPreviewNew>{formatCurrency(preview.finalGrossCents / 100)}</EditorPreviewNew>
+                                    </EditorPreviewLine>
+                                    <EditorPreviewSub>
+                                        netto {formatCurrency(preview.finalNetCents / 100)} · VAT {fmtVat(edVatRate)}
+                                    </EditorPreviewSub>
+                                </div>
                                 {changed && preview.savedGross > 0 && (
-                                    <EditorSavedChip>−{formatCurrency(preview.savedGross / 100)}</EditorSavedChip>
+                                    <EditorSavedChip>Taniej o {formatCurrency(preview.savedGross / 100)}</EditorSavedChip>
                                 )}
                             </EditorPreview>
-                            <PriceSub style={{ textAlign: 'left', marginTop: -8 }}>
-                                netto {formatCurrency(preview.finalNetCents / 100)} · cennikowa netto {formatCurrency(listNet / 100)}
-                            </PriceSub>
                         </DiscountModalBody>
                         <DiscountModalFooter>
-                            {hasExistingDiscount && (
-                                <DiscountRemoveBtn type="button" onClick={removeEditorDiscount}>Usuń rabat</DiscountRemoveBtn>
+                            {hasCustomPrice && (
+                                <DiscountRemoveBtn type="button" onClick={removeEditorDiscount}>Przywróć cenę z cennika</DiscountRemoveBtn>
                             )}
-                            <DiscountCancelBtn type="button" onClick={closeEditor} style={{ marginLeft: hasExistingDiscount ? undefined : 'auto' }}>
+                            <DiscountCancelBtn type="button" onClick={closeEditor} style={{ marginLeft: hasCustomPrice ? undefined : 'auto' }}>
                                 Anuluj
                             </DiscountCancelBtn>
                             <DiscountApplyBtn type="button" onClick={applyEditor} disabled={applyDisabled}>
-                                Zastosuj
+                                Zapisz cenę
                             </DiscountApplyBtn>
                         </DiscountModalFooter>
                     </DiscountModalCard>
