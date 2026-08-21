@@ -150,40 +150,53 @@ const TotalsNew = styled.span`
     color: ${BRAND_DARK};
 `;
 
+/* Jedna wspólna ramka wokół pola tekstowego i doklejanej frazy — nic jej nie
+   "przecina" niezależnie od długości tekstu ani liczby linii w polu. */
+const FieldGroup = styled.div<{ $focused?: boolean }>`
+    border: 1.5px solid ${p => p.$focused ? BRAND : st.border};
+    border-radius: 10px;
+    background: ${st.bgCard};
+    overflow: hidden;
+    transition: border-color 180ms;
+    ${p => p.$focused && `box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);`}
+`;
+
 const Textarea = styled.textarea`
+    display: block;
     width: 100%;
     box-sizing: border-box;
     min-height: 104px;
     resize: vertical;
     padding: 10px 12px;
-    border: 1.5px solid ${st.border};
-    border-radius: 10px 10px 0 0;
-    border-bottom: none;
+    border: none;
     font-family: inherit;
     font-size: 14px;
     line-height: 1.5;
     color: ${st.text};
-    background: ${st.bgCard};
+    background: transparent;
     outline: none;
-    transition: border-color 180ms;
 
-    &:focus { border-color: ${BRAND}; }
     &::placeholder { color: ${st.textMuted}; }
 `;
 
 const LockedSuffix = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    border: 1.5px solid ${st.border};
-    border-radius: 0 0 10px 10px;
+    border-top: 1.5px solid ${st.border};
     background: ${st.bg};
     font-size: 14px;
     line-height: 1.5;
     color: ${st.textSecondary};
 
-    svg { width: 13px; height: 13px; flex-shrink: 0; color: ${st.textMuted}; }
+    svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 2px; color: ${st.textMuted}; }
+`;
+
+const LockedSuffixText = styled.span`
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
 `;
 
 const HintRow = styled.div`
@@ -339,8 +352,13 @@ export const ServiceChangeSmsModal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel, isSaving]);
 
+    const [fieldFocused, setFieldFocused] = useState(false);
+
     const displayed = usePolish ? message : toAscii(message);
-    const suffix = usePolish ? CONSENT_CALL_TO_ACTION : toAscii(CONSENT_CALL_TO_ACTION);
+    // Fraza o potwierdzeniu ma sens tylko wtedy, gdy klient faktycznie ma na co odpisać.
+    const suffix = requireConfirmation
+        ? (usePolish ? CONSENT_CALL_TO_ACTION : toAscii(CONSENT_CALL_TO_ACTION))
+        : null;
 
     const handleChange = (value: string) => {
         // Ogonek wpisany przy wyłączonym przełączniku = użytkownik jednak ich chce.
@@ -355,7 +373,7 @@ export const ServiceChangeSmsModal = ({
     };
 
     const trimmed = displayed.trim();
-    const fullLength = (trimmed ? trimmed.length + 1 : 0) + suffix.length;
+    const fullLength = (trimmed ? trimmed.length : 0) + (suffix ? (trimmed ? 1 : 0) + suffix.length : 0);
     const segments = segmentsFor(fullLength, usePolish);
     const canSend = trimmed.length > 0 && !isSaving;
 
@@ -392,19 +410,25 @@ export const ServiceChangeSmsModal = ({
 
                     <div>
                         <SectionLabel>Treść wiadomości</SectionLabel>
-                        <Textarea
-                            value={displayed}
-                            placeholder="Wpisz treść SMS-a…"
-                            onChange={e => handleChange(e.target.value)}
-                            autoFocus
-                        />
-                        <LockedSuffix title="Tej frazy nie można edytować — dopisujemy ją zawsze na końcu">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" />
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                            {suffix}
-                        </LockedSuffix>
+                        <FieldGroup $focused={fieldFocused}>
+                            <Textarea
+                                value={displayed}
+                                placeholder="Wpisz treść SMS-a…"
+                                onChange={e => handleChange(e.target.value)}
+                                onFocus={() => setFieldFocused(true)}
+                                onBlur={() => setFieldFocused(false)}
+                                autoFocus
+                            />
+                            {suffix && (
+                                <LockedSuffix title="Tej frazy nie można edytować — dopisujemy ją zawsze na końcu">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    <LockedSuffixText>{suffix}</LockedSuffixText>
+                                </LockedSuffix>
+                            )}
+                        </FieldGroup>
                     </div>
 
                     <ToggleRow>
@@ -425,7 +449,11 @@ export const ServiceChangeSmsModal = ({
                     </ToggleRow>
 
                     <HintRow>
-                        <span>Fraza z prośbą o odpowiedź jest doklejana automatycznie.</span>
+                        <span>
+                            {suffix
+                                ? 'Fraza z prośbą o odpowiedź jest doklejana automatycznie.'
+                                : 'Klient nie musi potwierdzać — SMS jest informacyjny.'}
+                        </span>
                         <Counter $warn={segments > 2}>
                             <span>{fullLength} znaków</span>
                             <span>{segments} {smsWord(segments)}</span>

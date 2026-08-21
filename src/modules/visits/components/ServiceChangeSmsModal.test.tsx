@@ -130,3 +130,34 @@ describe('ServiceChangeSmsModal — polskie znaki', () => {
         expect(onConfirm).toHaveBeenCalledWith(toAscii(buildServiceChangeSmsMessage(summary)), false);
     });
 });
+
+describe('ServiceChangeSmsModal — fraza o potwierdzeniu', () => {
+    it('jest widoczna, gdy klient ma potwierdzić zmiany', () => {
+        renderModal({ requireConfirmation: true });
+
+        expect(screen.getByText(toAscii('Odpisz TAK aby zaakceptować.'))).toBeInTheDocument();
+    });
+
+    it('znika, gdy nie wymagamy potwierdzenia — SMS jest tylko informacyjny', () => {
+        renderModal({ requireConfirmation: false });
+
+        expect(screen.queryByText(/Odpisz TAK/)).not.toBeInTheDocument();
+    });
+
+    it('nie jest wliczana do długości SMS-a, gdy nie ma potwierdzenia', () => {
+        renderModal({ requireConfirmation: false });
+
+        const messageOnly = toAscii(buildServiceChangeSmsMessage(summary)).trim();
+        expect(screen.getByText(`${messageOnly.length} znaków`)).toBeInTheDocument();
+    });
+
+    it('nie wysyła frazy w treści, gdy nie wymagamy potwierdzenia', async () => {
+        const user = userEvent.setup();
+        const { onConfirm } = renderModal({ requireConfirmation: false });
+
+        await user.click(screen.getByRole('button', { name: 'Wyślij i zapisz' }));
+
+        const [sentMessage] = onConfirm.mock.calls[0];
+        expect(sentMessage).not.toMatch(/Odpisz TAK/);
+    });
+});
