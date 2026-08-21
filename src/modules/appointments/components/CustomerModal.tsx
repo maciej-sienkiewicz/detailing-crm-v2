@@ -1,7 +1,6 @@
 // src/modules/appointments/components/CustomerModal.tsx
 import { useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
-import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { useCustomerSearch } from '../hooks/useAppointmentForm';
 import {
@@ -9,107 +8,71 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
+    ModalSubtitle,
     ModalContent,
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
-import { EmptyState } from '@/common/components/EmptyState';
+import {
+    FormGrid,
+    FormField,
+    FieldLabel,
+    InputShell,
+    BareInput,
+    FormErrorMsg,
+} from '@/common/components/Form';
+import {
+    PickerSearch,
+    PickerScroll,
+    PickerRow,
+    PickerAvatar,
+    PickerRowMain,
+    PickerRowTitle,
+    PickerRowSub,
+    PickerRowMeta,
+    PickerAddRow,
+    PickerEmpty,
+    initialsOf,
+} from '@/common/components/PickerList';
+import { PhoneInput } from '@/common/components/PhoneInput';
 import { t } from '@/common/i18n';
 import type { Customer, SelectedCustomer } from '../types';
-import { PhoneInput } from '@/common/components/PhoneInput';
-
-const SearchInput = styled(Input)`
-    font-size: ${props => props.theme.fontSizes.md};
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    width: 100%;
-`;
-
-const CustomerTable = styled.div`
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    overflow: hidden;
-    max-height: 400px;
-    overflow-y: auto;
-`;
-
-const CustomerRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: 2fr 2fr 1fr;
-        gap: ${props => props.theme.spacing.md};
-    }
-
-    &:hover {
-        background-color: ${props => props.theme.colors.surfaceHover};
-        transform: translateX(4px);
-        border-left: 3px solid ${props => props.theme.colors.primary};
-        padding-left: calc(${props => props.theme.spacing.lg} - 3px);
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const CustomerHeader = styled(CustomerRow)`
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    cursor: default;
-
-    &:hover {
-        background-color: ${props => props.theme.colors.surfaceAlt};
-        transform: none;
-        border-left: none;
-        padding-left: ${props => props.theme.spacing.lg};
-    }
-`;
-
-const CustomerCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const PrimaryText = styled.span`
-    color: ${props => props.theme.colors.text};
-    font-weight: ${props => props.theme.fontWeights.medium};
-`;
-
-const SecondaryText = styled.span`
-    color: ${props => props.theme.colors.textSecondary};
-    font-size: ${props => props.theme.fontSizes.sm};
-`;
 
 interface CustomerModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSelect: (customer: SelectedCustomer) => void;
+    /**
+     * Id of the customer already attached to the record being edited. Present means the
+     * user is replacing someone, so the modal says "Zmień klienta" and marks that row.
+     */
+    currentCustomerId?: string;
 }
 
 type CustomerMode = 'search' | 'new';
 
-export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps) => {
+const EMPTY_FORM = { firstName: '', lastName: '', phone: '', email: '' };
+
+export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: CustomerModalProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [mode, setMode] = useState<CustomerMode>('search');
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
-    });
+    const [formData, setFormData] = useState(EMPTY_FORM);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const debouncedQuery = useDebounce(searchQuery, 200);
     const { data: customers, isLoading } = useCustomerSearch(debouncedQuery);
+
+    // Reopening the modal must not resurrect the previous session's half-typed search
+    // or a form the user abandoned, so every close path clears it. ModalShell routes
+    // Escape and the backdrop through onClose too, so this covers all of them.
+    const handleClose = () => {
+        setSearchQuery('');
+        setMode('search');
+        setFormData(EMPTY_FORM);
+        setErrors({});
+        onClose();
+    };
 
     const handleCustomerClick = (customer: Customer) => {
         onSelect({
@@ -120,7 +83,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
             email: customer.email,
             isNew: false,
         });
-        onClose();
+        handleClose();
     };
 
     const validateForm = (): boolean => {
@@ -161,122 +124,157 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
             ...formData,
             isNew: true,
         });
-        onClose();
+        handleClose();
     };
 
-    const modalTitle =
-        mode === 'new' ? t.appointments.customerModal.titleNew :
-        t.appointments.customerModal.titleSelect;
+    const isReplacing = !!currentCustomerId;
+    const modalTitle = mode === 'new'
+        ? t.appointments.customerModal.titleNew
+        : (isReplacing ? t.appointments.customerModal.titleChange : t.appointments.customerModal.titleSelect);
+    const modalSubtitle = mode === 'new'
+        ? t.appointments.customerModal.subtitleNew
+        : (isReplacing ? t.appointments.customerModal.subtitleChange : t.appointments.customerModal.subtitleSelect);
+
+    const hasQuery = searchQuery.trim().length > 0;
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose}>
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{modalTitle}</ModalTitle>
+                    <ModalSubtitle>{modalSubtitle}</ModalSubtitle>
                 </ModalTitleGroup>
-                <CloseBtn onClick={onClose} />
+                <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
             <ModalContent>
                 {mode === 'search' ? (
                     <>
-                        <SearchInput
-                            type="text"
-                            placeholder={t.appointments.customerModal.searchPlaceholder}
+                        <PickerSearch
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={setSearchQuery}
+                            placeholder={t.appointments.customerModal.searchPlaceholder}
+                            autoFocus
                         />
 
-                        {!searchQuery || searchQuery.trim() === '' ? (
-                            <EmptyState title="Zacznij wpisywać, żeby zobaczyć listę klientów" />
+                        {!hasQuery ? (
+                            <PickerEmpty
+                                title={t.appointments.customerModal.enterSearch}
+                                description={t.appointments.customerModal.enterSearchHint}
+                            />
                         ) : isLoading ? (
-                            <EmptyState title={t.appointments.customerModal.searching} />
+                            <PickerEmpty title={t.appointments.customerModal.searching} />
                         ) : customers && customers.length > 0 ? (
-                            <CustomerTable>
-                                <CustomerHeader>
-                                    <div>{t.customers.table.customer}</div>
-                                    <div>{t.customers.table.contact}</div>
-                                    <div></div>
-                                </CustomerHeader>
+                            <PickerScroll>
                                 {customers.map((customer) => (
-                                    <CustomerRow
+                                    <PickerRow
                                         key={customer.id}
+                                        type="button"
+                                        $selected={customer.id === currentCustomerId}
                                         onClick={() => handleCustomerClick(customer)}
                                     >
-                                        <CustomerCell>
-                                            <PrimaryText>
+                                        <PickerAvatar>{initialsOf(customer.firstName, customer.lastName)}</PickerAvatar>
+                                        <PickerRowMain>
+                                            <PickerRowTitle>
                                                 {customer.firstName} {customer.lastName}
-                                            </PrimaryText>
-                                        </CustomerCell>
-                                        <CustomerCell>
-                                            <SecondaryText>{customer.email}</SecondaryText>
-                                            <SecondaryText>{customer.phone}</SecondaryText>
-                                        </CustomerCell>
-                                        <CustomerCell></CustomerCell>
-                                    </CustomerRow>
+                                            </PickerRowTitle>
+                                            <PickerRowSub>
+                                                {[customer.phone, customer.email].filter(Boolean).join(' · ') || '—'}
+                                            </PickerRowSub>
+                                        </PickerRowMain>
+                                        {customer.id === currentCustomerId && (
+                                            <PickerRowMeta>{t.appointments.customerModal.currentBadge}</PickerRowMeta>
+                                        )}
+                                    </PickerRow>
                                 ))}
-                            </CustomerTable>
+                            </PickerScroll>
                         ) : (
-                            <EmptyState title={t.appointments.customerModal.noResults} />
+                            <PickerEmpty
+                                title={t.appointments.customerModal.noResults}
+                                description={t.appointments.customerModal.noResultsHint}
+                            />
                         )}
+
+                        <PickerAddRow
+                            label={t.appointments.customerModal.addNewButton}
+                            hint={t.appointments.customerModal.addNewHint}
+                            onClick={() => setMode('new')}
+                        />
                     </>
                 ) : (
                     <FormGrid>
-                        <FieldGroup>
-                            <Label>{t.appointments.customerModal.firstName}</Label>
-                            <Input
-                                value={formData.firstName}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, firstName: capitalizeFirst(e.target.value) })
-                                }
-                                placeholder={t.appointments.customerModal.firstNamePlaceholder}
-                            />
-                            {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
-                        </FieldGroup>
+                        <FormField>
+                            <FieldLabel htmlFor="customer-modal-first-name">
+                                {t.appointments.customerModal.firstName}
+                            </FieldLabel>
+                            <InputShell $hasError={!!errors.firstName}>
+                                <BareInput
+                                    id="customer-modal-first-name"
+                                    value={formData.firstName}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, firstName: capitalizeFirst(e.target.value) })
+                                    }
+                                    placeholder={t.appointments.customerModal.firstNamePlaceholder}
+                                    autoFocus
+                                />
+                            </InputShell>
+                            {errors.firstName && <FormErrorMsg>{errors.firstName}</FormErrorMsg>}
+                        </FormField>
 
-                        <FieldGroup>
-                            <Label>{t.appointments.customerModal.lastName}</Label>
-                            <Input
-                                value={formData.lastName}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, lastName: capitalizeFirst(e.target.value) })
-                                }
-                                placeholder={t.appointments.customerModal.lastNamePlaceholder}
-                            />
-                            {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
-                        </FieldGroup>
+                        <FormField>
+                            <FieldLabel htmlFor="customer-modal-last-name">
+                                {t.appointments.customerModal.lastName}
+                            </FieldLabel>
+                            <InputShell $hasError={!!errors.lastName}>
+                                <BareInput
+                                    id="customer-modal-last-name"
+                                    value={formData.lastName}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, lastName: capitalizeFirst(e.target.value) })
+                                    }
+                                    placeholder={t.appointments.customerModal.lastNamePlaceholder}
+                                />
+                            </InputShell>
+                            {errors.lastName && <FormErrorMsg>{errors.lastName}</FormErrorMsg>}
+                        </FormField>
 
-                        <FieldGroup>
-                            <Label>{t.appointments.customerModal.phone}</Label>
+                        <FormField>
+                            <FieldLabel htmlFor="customer-modal-phone">
+                                {t.appointments.customerModal.phone}
+                            </FieldLabel>
                             <PhoneInput
+                                id="customer-modal-phone"
                                 value={formData.phone}
-                                onChange={(value) =>
-                                    setFormData({ ...formData, phone: value })
-                                }
+                                onChange={(value) => setFormData({ ...formData, phone: value || '' })}
+                                hasError={!!errors.phone}
                                 placeholder={t.appointments.customerModal.phonePlaceholder}
                             />
-                            {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
-                        </FieldGroup>
+                            {errors.phone && <FormErrorMsg>{errors.phone}</FormErrorMsg>}
+                        </FormField>
 
-                        <FieldGroup>
-                            <Label>{t.appointments.customerModal.email}</Label>
-                            <Input
-                                value={formData.email}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, email: e.target.value })
-                                }
-                                placeholder={t.appointments.customerModal.emailPlaceholder}
-                            />
-                            {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
-                        </FieldGroup>
+                        <FormField>
+                            <FieldLabel htmlFor="customer-modal-email">
+                                {t.appointments.customerModal.email}
+                            </FieldLabel>
+                            <InputShell $hasError={!!errors.email}>
+                                <BareInput
+                                    id="customer-modal-email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder={t.appointments.customerModal.emailPlaceholder}
+                                />
+                            </InputShell>
+                            {errors.email && <FormErrorMsg>{errors.email}</FormErrorMsg>}
+                        </FormField>
                     </FormGrid>
                 )}
             </ModalContent>
 
             <ModalFooter>
                 {mode === 'search' ? (
-                    <SharedButton $variant="primary" onClick={() => setMode('new')}>
-                        {t.appointments.customerModal.addNewButton}
+                    <SharedButton $variant="secondary" onClick={handleClose}>
+                        {t.appointments.customerModal.cancel}
                     </SharedButton>
                 ) : (
                     <>
