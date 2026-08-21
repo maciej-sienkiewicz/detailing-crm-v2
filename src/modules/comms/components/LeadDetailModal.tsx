@@ -38,6 +38,7 @@ import {
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { BookingFlowModal } from '@/modules/calendar';
 import { useToast } from '@/common/components/Toast';
 import {
@@ -673,7 +674,11 @@ export function LeadDetailModal({
                                     </CellValue>
                                 ) : (
                                     <CellValue $empty={!formatVehicle(lead)}>
-                                        <Car />
+                                        {/* Awatar marki zamiast rodzajowej ikonki auta — ten sam
+                                            znak, którym auto oznaczone jest w module pojazdów.
+                                            Gdy marki nie znamy, nie ma czego pokazać: ikonka auta
+                                            obok „Nie rozpoznano" udawałaby, że coś tu jednak jest. */}
+                                        {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="sm" />}
                                         <span>{formatVehicle(lead) ?? 'Nie rozpoznano'}</span>
                                     </CellValue>
                                 )}
