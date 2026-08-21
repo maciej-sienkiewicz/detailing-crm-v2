@@ -7,7 +7,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { BarChart3, Loader2, Search } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
-import { Badge } from '@/common/components/Badge';
 import { useLeads, useLeadsSocket } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
@@ -15,7 +14,9 @@ import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadReplyBadge } from '../components/LeadReplyBadge';
 import { LeadSourceIcon } from '../components/LeadSourceIcon';
 import { CLOSED_STATUSES, formatVehicle } from '../utils/leadFormat';
+import { leadReplyTone, type ReplyTone } from '../utils/leadReply';
 import {
+    LEAD_STATUS_COLORS,
     LEAD_STATUS_FLOW,
     LEAD_STATUS_LABELS,
     type Lead,
@@ -29,15 +30,6 @@ import {
     formatRelativeTime,
 } from '../components/shared';
 
-
-const STATUS_BADGE_VARIANT: Record<LeadStatus, 'success' | 'error' | 'warning' | 'info' | 'primary'> = {
-    NEW: 'primary',
-    IN_PROGRESS: 'warning',
-    CONFIRMED: 'success',
-    COMPLETED: 'success',
-    LOST: 'error',
-    NO_SHOW: 'error',
-};
 
 // ── Layout strony (jak ViewContainer w statystykach) ─────────────────────────
 
@@ -104,9 +96,9 @@ const TableScroll = styled.div`
 
 const HeadRow = styled.div`
     display: grid;
-    grid-template-columns: 1.7fr 1.1fr 2fr 0.9fr 0.9fr 0.8fr;
+    grid-template-columns: 1.7fr 1.1fr 1.6fr 0.8fr 1.3fr 0.8fr;
     gap: 10px;
-    padding: 12px 20px;
+    padding: 12px 20px 12px 23px;
     font-size: 11px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     letter-spacing: 0.05em;
@@ -164,15 +156,16 @@ const TagPill = styled.span`
  * (i przeglądarka rozstrzyga go po swojemu). Klik na wiersz otwiera panel, klik na
  * edytowalną komórkę zatrzymuje się na niej.
  */
-const Row = styled.div<{ $active?: boolean }>`
+const Row = styled.div<{ $active?: boolean; $tone: ReplyTone }>`
+    position: relative;
     display: grid;
-    grid-template-columns: 1.7fr 1.1fr 2fr 0.9fr 0.9fr 0.8fr;
+    grid-template-columns: 1.7fr 1.1fr 1.6fr 0.8fr 1.3fr 0.8fr;
     gap: 10px;
     align-items: center;
     width: 100%;
     min-width: 880px;
     text-align: left;
-    padding: 12px 20px;
+    padding: 12px 20px 12px 23px;
     border: none;
     border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
     background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
@@ -184,6 +177,27 @@ const Row = styled.div<{ $active?: boolean }>`
 
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
     &:last-child { border-bottom: none; }
+
+    /*
+     * Pasek pilności przy lewej krawędzi. Zaległość jest cechą całego leada,
+     * a nie zawartością którejś komórki, więc mieszka na wierszu — i, co
+     * ważniejsze, nie zabiera ani piksela szerokości tabeli. Skanuje się go
+     * jednym spojrzeniem w dół listy, czego żadna plakietka w środku wiersza
+     * nie potrafi. Sam kolor niczego nie niesie: to samo mówi znacznik
+     * tekstowy w kolumnie „Status".
+     */
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: ${({ $tone, theme }) =>
+            $tone === 'due' ? theme.colors.error
+            : $tone === 'stale' ? theme.colors.warning
+            : 'transparent'};
+    }
 
     .who {
         font-weight: ${p => p.theme.fontWeights.semibold};
@@ -258,8 +272,37 @@ const StatusStack = styled.span`
     display: inline-flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: 2px;
     min-width: 0;
+`;
+
+/**
+ * Etap leada: kropka i etykieta zdaniem, dokładnie tak jak w LeadStatusPicker,
+ * który tę samą wartość pokazuje w oknie szczegółów.
+ *
+ * Wypełniona plakietka w każdym wierszu nie wyróżnia niczego — jeśli świeci
+ * cała kolumna, nie świeci nic — a wersalikami i odstępem między literami
+ * zjada szerokość, przez którą treść wchodziła na sąsiednią kolumnę. Kropka
+ * niesie ten sam kolor na kilkunastu pikselach, a nazwa pisana normalnie
+ * czyta się szybciej niż KAPITALIKAMI.
+ */
+const StatusLine = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    color: ${p => p.theme.colors.text};
+    white-space: nowrap;
+`;
+
+const StatusDot = styled.span<{ $color: string }>`
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: ${p => p.$color};
 `;
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -380,6 +423,11 @@ export default function LeadsView() {
                         <Row
                             key={item.id}
                             $active={item.id === selectedLeadId}
+                            $tone={leadReplyTone(
+                                item.replyState,
+                                item.waitingSince,
+                                CLOSED_STATUSES.has(item.status)
+                            )}
                             role="button"
                             tabIndex={0}
                             onClick={() => selectLead(item.id)}
@@ -451,9 +499,10 @@ export default function LeadsView() {
                                     na dwa różne pytania o ten sam lead, a rozdzielone
                                     na dwie kolumny kazałyby wodzić wzrokiem w bok. */}
                                 <StatusStack>
-                                    <Badge $variant={STATUS_BADGE_VARIANT[item.status]}>
+                                    <StatusLine>
+                                        <StatusDot $color={LEAD_STATUS_COLORS[item.status].fg} />
                                         {LEAD_STATUS_LABELS[item.status]}
-                                    </Badge>
+                                    </StatusLine>
                                     <LeadReplyBadge
                                         replyState={item.replyState}
                                         waitingSince={item.waitingSince}
