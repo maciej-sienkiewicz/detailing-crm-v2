@@ -161,14 +161,20 @@ export const ServiceDiscountModal = ({
 
                     {preview && (
                         <S.ResultBox>
-                            <S.ResultLabel>Po rabacie</S.ResultLabel>
-                            <div>
-                                <S.ResultValue>{fmt(preview.finalGrossCents)}</S.ResultValue>
-                                <S.ResultSub>
-                                    netto {fmt(preview.finalNetCents)}
-                                    {savedGross > 0 && ` · taniej o ${fmt(savedGross)}`}
-                                </S.ResultSub>
-                            </div>
+                            <S.ResultHead>
+                                <S.ResultLabel>Po rabacie</S.ResultLabel>
+                                {savedGross > 0 && <S.SavedChip>Taniej o {fmt(savedGross)}</S.SavedChip>}
+                            </S.ResultHead>
+                            <S.FromPrices>
+                                <S.FromPrice>
+                                    <S.ResultValue>{fmt(preview.finalNetCents)}</S.ResultValue>
+                                    <S.FromPriceLabel>Netto</S.FromPriceLabel>
+                                </S.FromPrice>
+                                <S.FromPrice>
+                                    <S.ResultValue $strong>{fmt(preview.finalGrossCents)}</S.ResultValue>
+                                    <S.FromPriceLabel>Brutto</S.FromPriceLabel>
+                                </S.FromPrice>
+                            </S.FromPrices>
                         </S.ResultBox>
                     )}
                 </S.Body>

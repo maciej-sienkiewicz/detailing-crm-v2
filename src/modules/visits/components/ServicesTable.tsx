@@ -1024,10 +1024,9 @@ const EditorPriceInput = styled.input`
 
 const EditorPreview = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
     background: ${st.bg};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
@@ -1035,7 +1034,8 @@ const EditorPreview = styled.div`
 
 const EditorPreviewLine = styled.div`
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
     font-variant-numeric: tabular-nums;
     flex-wrap: wrap;
@@ -1050,16 +1050,11 @@ const EditorPreviewLabel = styled.span`
 `;
 
 const EditorPreviewOld = styled.span`
-    font-size: 13px;
+    font-size: 11px;
+    font-weight: 500;
     color: ${st.textMuted};
     text-decoration: line-through;
-`;
-
-const EditorPreviewNew = styled.span`
-    font-size: 17px;
-    font-weight: 800;
-    color: ${BRAND_DARK};
-    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
 `;
 
 const EditorModeRow = styled.div`
@@ -1089,10 +1084,9 @@ const EditorModeTab = styled.button<{ $active?: boolean }>`
 
 const EditorListBox = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 14px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
     background: ${st.bg};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
@@ -1106,20 +1100,87 @@ const EditorListLabel = styled.span`
     letter-spacing: 0.06em;
 `;
 
-const EditorListPrices = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${st.textSecondary};
-    font-variant-numeric: tabular-nums;
+/* Netto → brutto → VAT: ta sama kolejność kolumn co w polach edycji ceny,
+   dzięki czemu cennik, formularz i podsumowanie czyta się w jednej linii. */
+const EditorSummaryGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr 84px;
+    gap: 10px;
+
+    @media (max-width: 400px) {
+        grid-template-columns: 1fr 1fr;
+        > *:last-child { grid-column: 1 / -1; }
+    }
 `;
 
-const EditorPreviewSub = styled.span`
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
+const EditorSummaryCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+const EditorSummaryLabel = styled.span`
+    font-size: 10px;
+    font-weight: 700;
     color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+const EditorSummaryValue = styled.span<{ $strong?: boolean }>`
+    font-size: ${p => p.$strong ? '17px' : '14px'};
+    font-weight: ${p => p.$strong ? 800 : 600};
+    color: ${p => p.$strong ? BRAND_DARK : st.textSecondary};
+    letter-spacing: ${p => p.$strong ? '-0.3px' : 'normal'};
     font-variant-numeric: tabular-nums;
-    margin-top: 2px;
+    line-height: 1.25;
+`;
+
+/* Pole wartości rabatu ma wyglądać i mierzyć dokładnie tyle, co pola ceny. */
+const EditorInputWrap = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1.5px solid ${st.border};
+    border-radius: 9px;
+    background: ${st.bgCard};
+    transition: border-color 180ms, box-shadow 180ms;
+
+    &:focus-within {
+        border-color: ${BRAND};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+`;
+
+const EditorBareInput = styled.input`
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${st.text};
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+
+    &::placeholder { color: ${st.textMuted}; font-weight: 500; }
+`;
+
+const EditorUnit = styled.span`
+    flex-shrink: 0;
+    min-width: 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: ${st.textSecondary};
+`;
+
+const EditorNarrowField = styled(EditorField)`
+    max-width: 220px;
 `;
 
 const EditorSavedChip = styled.span`
@@ -2496,9 +2557,20 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         <DiscountModalBody>
                             <EditorListBox>
                                 <EditorListLabel>Cena z cennika</EditorListLabel>
-                                <EditorListPrices>
-                                    {formatCurrency(listGross / 100)} brutto · {formatCurrency(listNet / 100)} netto
-                                </EditorListPrices>
+                                <EditorSummaryGrid>
+                                    <EditorSummaryCell>
+                                        <EditorSummaryLabel>Netto</EditorSummaryLabel>
+                                        <EditorSummaryValue>{formatCurrency(listNet / 100)}</EditorSummaryValue>
+                                    </EditorSummaryCell>
+                                    <EditorSummaryCell>
+                                        <EditorSummaryLabel>Brutto</EditorSummaryLabel>
+                                        <EditorSummaryValue>{formatCurrency(listGross / 100)}</EditorSummaryValue>
+                                    </EditorSummaryCell>
+                                    <EditorSummaryCell>
+                                        <EditorSummaryLabel>VAT</EditorSummaryLabel>
+                                        <EditorSummaryValue>{fmtVat(svc.vatRate ?? edVatRate)}</EditorSummaryValue>
+                                    </EditorSummaryCell>
+                                </EditorSummaryGrid>
                             </EditorListBox>
 
                             <EditorModeRow role="tablist">
@@ -2572,40 +2644,47 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             </DiscountTypePill>
                                         ))}
                                     </DiscountTypeRow>
-                                    <DiscountSectionLabel>Wysokość rabatu</DiscountSectionLabel>
-                                    <DiscountValueRow>
-                                        <DiscountValueInput
-                                            type="text" inputMode="decimal"
-                                            placeholder="0"
-                                            autoFocus
-                                            value={edDiscountValue}
-                                            onChange={e => handleEdDiscountValueChange(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
-                                        />
-                                        <DiscountValueSuffix>{edAdjType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
-                                    </DiscountValueRow>
+                                    <EditorNarrowField>
+                                        <EditorFieldLabel>Wysokość rabatu</EditorFieldLabel>
+                                        <EditorInputWrap>
+                                            <EditorBareInput
+                                                type="text" inputMode="decimal"
+                                                placeholder="0"
+                                                autoFocus
+                                                value={edDiscountValue}
+                                                onChange={e => handleEdDiscountValueChange(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
+                                            />
+                                            <EditorUnit>{edAdjType === 'PERCENT' ? '%' : 'zł'}</EditorUnit>
+                                        </EditorInputWrap>
+                                    </EditorNarrowField>
                                 </div>
                             )}
 
                             <EditorPreview>
-                                <div>
-                                    <EditorPreviewLine>
-                                        <EditorPreviewLabel>Do zapłaty</EditorPreviewLabel>
+                                <EditorPreviewLine>
+                                    <EditorPreviewLabel>Do zapłaty</EditorPreviewLabel>
+                                    {changed && preview.savedGross > 0 && (
+                                        <EditorSavedChip>Taniej o {formatCurrency(preview.savedGross / 100)}</EditorSavedChip>
+                                    )}
+                                </EditorPreviewLine>
+                                <EditorSummaryGrid>
+                                    <EditorSummaryCell>
+                                        <EditorSummaryLabel>Netto</EditorSummaryLabel>
+                                        <EditorSummaryValue>{formatCurrency(preview.finalNetCents / 100)}</EditorSummaryValue>
+                                    </EditorSummaryCell>
+                                    <EditorSummaryCell>
+                                        <EditorSummaryLabel>Brutto</EditorSummaryLabel>
+                                        <EditorSummaryValue $strong>{formatCurrency(preview.finalGrossCents / 100)}</EditorSummaryValue>
                                         {changed && (
-                                            <>
-                                                <EditorPreviewOld>{formatCurrency(listGross / 100)}</EditorPreviewOld>
-                                                <span style={{ color: BRAND, fontSize: 12 }}>→</span>
-                                            </>
+                                            <EditorPreviewOld>{formatCurrency(listGross / 100)}</EditorPreviewOld>
                                         )}
-                                        <EditorPreviewNew>{formatCurrency(preview.finalGrossCents / 100)}</EditorPreviewNew>
-                                    </EditorPreviewLine>
-                                    <EditorPreviewSub>
-                                        netto {formatCurrency(preview.finalNetCents / 100)} · VAT {fmtVat(edVatRate)}
-                                    </EditorPreviewSub>
-                                </div>
-                                {changed && preview.savedGross > 0 && (
-                                    <EditorSavedChip>Taniej o {formatCurrency(preview.savedGross / 100)}</EditorSavedChip>
-                                )}
+                                    </EditorSummaryCell>
+                                    <EditorSummaryCell>
+                                        <EditorSummaryLabel>VAT</EditorSummaryLabel>
+                                        <EditorSummaryValue>{fmtVat(edVatRate)}</EditorSummaryValue>
+                                    </EditorSummaryCell>
+                                </EditorSummaryGrid>
                             </EditorPreview>
                         </DiscountModalBody>
                         <DiscountModalFooter>
