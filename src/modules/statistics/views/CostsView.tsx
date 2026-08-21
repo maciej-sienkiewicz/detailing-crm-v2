@@ -838,7 +838,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
     const totalGross = items.reduce((s, i) => s + effectiveGross(i), 0);
 
     return (
-        <ModalShell isOpen onClose={onClose} maxWidth="720px">
+        <ModalShell isOpen onClose={onClose} size="full">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>

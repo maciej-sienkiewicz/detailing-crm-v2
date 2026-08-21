@@ -24,12 +24,21 @@ const shimmer = keyframes`
 
 // ─── Document layout ─────────────────────────────────────────────────────────
 
+/**
+ * Kartka dokumentu.
+ *
+ * `flex: 1 0 auto` niesie dwie rzeczy naraz. Zero przy shrink jest konieczne:
+ * ModalContent jest kolumną flex ze scrollem i bez tego przeglądarka ściska
+ * kartkę do wysokości okna, ucinając dół faktury. Jedynka przy grow sprawia,
+ * że w oknie rozciągniętym na całą wysokość kartka wypełnia je do końca,
+ * zamiast zostawiać pod sobą pusty biały pas.
+ */
 const Paper = styled.div`
   border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: 14px;
   background: #fff;
   overflow: hidden;
-  flex-shrink: 0;
+  flex: 1 0 auto;
 `;
 
 const PaperHead = styled.div`
@@ -384,7 +393,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
   };
 
   return (
-    <ModalShell isOpen={expenseId !== null} onClose={onClose} size="xl">
+    <ModalShell isOpen={expenseId !== null} onClose={onClose} size="full" fillHeight>
       <ModalHeader>
         <ModalTitleGroup>
           <ModalTitle>Podgląd faktury</ModalTitle>
