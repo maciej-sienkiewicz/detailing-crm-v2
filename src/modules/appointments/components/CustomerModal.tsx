@@ -24,7 +24,10 @@ import {
 } from '@/common/components/Form';
 import {
     PickerSearch,
-    PickerScroll,
+    PickerPane,
+    PickerResults,
+    PickerStatus,
+    PickerSkeleton,
     PickerRow,
     PickerAvatar,
     PickerRowMain,
@@ -61,7 +64,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const debouncedQuery = useDebounce(searchQuery, 200);
-    const { data: customers, isLoading } = useCustomerSearch(debouncedQuery);
+    const { data: customers, isLoading, isFetching, isPlaceholderData } = useCustomerSearch(debouncedQuery);
 
     // Reopening the modal must not resurrect the previous session's half-typed search
     // or a form the user abandoned, so every close path clears it. ModalShell routes
@@ -136,9 +139,24 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
         : (isReplacing ? t.appointments.customerModal.subtitleChange : t.appointments.customerModal.subtitleSelect);
 
     const hasQuery = searchQuery.trim().length > 0;
+    const results = customers ?? [];
+    // Rows for the query still in flight are the previous query's (keepPreviousData), which
+    // is what keeps the list from blanking between keystrokes. Placeholders appear only when
+    // there is nothing worth holding on to: the first load, or a stale-but-empty list.
+    const isStale = hasQuery && isPlaceholderData;
+    const showSkeleton = hasQuery && (isLoading || (isStale && results.length === 0));
+    const statusText = !hasQuery
+        ? ''
+        : showSkeleton
+            ? t.appointments.customerModal.searching
+            : isStale
+                ? t.appointments.customerModal.searching
+            : results.length > 0
+                ? `${t.appointments.customerModal.resultsCount}: ${results.length}`
+                : t.appointments.customerModal.noResults;
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg" stableHeight>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{modalTitle}</ModalTitle>
@@ -155,45 +173,49 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
                             onChange={setSearchQuery}
                             placeholder={t.appointments.customerModal.searchPlaceholder}
                             autoFocus
+                            loading={hasQuery && isFetching}
                         />
 
-                        {!hasQuery ? (
-                            <PickerEmpty
-                                title={t.appointments.customerModal.enterSearch}
-                                description={t.appointments.customerModal.enterSearchHint}
-                            />
-                        ) : isLoading ? (
-                            <PickerEmpty title={t.appointments.customerModal.searching} />
-                        ) : customers && customers.length > 0 ? (
-                            <PickerScroll>
-                                {customers.map((customer) => (
-                                    <PickerRow
-                                        key={customer.id}
-                                        type="button"
-                                        $selected={customer.id === currentCustomerId}
-                                        onClick={() => handleCustomerClick(customer)}
-                                    >
-                                        <PickerAvatar>{initialsOf(customer.firstName, customer.lastName)}</PickerAvatar>
-                                        <PickerRowMain>
-                                            <PickerRowTitle>
-                                                {customer.firstName} {customer.lastName}
-                                            </PickerRowTitle>
-                                            <PickerRowSub>
-                                                {[customer.phone, customer.email].filter(Boolean).join(' · ') || '—'}
-                                            </PickerRowSub>
-                                        </PickerRowMain>
-                                        {customer.id === currentCustomerId && (
-                                            <PickerRowMeta>{t.appointments.customerModal.currentBadge}</PickerRowMeta>
-                                        )}
-                                    </PickerRow>
-                                ))}
-                            </PickerScroll>
-                        ) : (
-                            <PickerEmpty
-                                title={t.appointments.customerModal.noResults}
-                                description={t.appointments.customerModal.noResultsHint}
-                            />
-                        )}
+                        <PickerPane>
+                            <PickerStatus>{statusText}</PickerStatus>
+                            <PickerResults aria-busy={isFetching} $stale={isStale}>
+                                {showSkeleton ? (
+                                    <PickerSkeleton />
+                                ) : !hasQuery ? (
+                                    <PickerEmpty
+                                        title={t.appointments.customerModal.enterSearch}
+                                        description={t.appointments.customerModal.enterSearchHint}
+                                    />
+                                ) : results.length > 0 ? (
+                                    results.map((customer) => (
+                                        <PickerRow
+                                            key={customer.id}
+                                            type="button"
+                                            $selected={customer.id === currentCustomerId}
+                                            onClick={() => handleCustomerClick(customer)}
+                                        >
+                                            <PickerAvatar>{initialsOf(customer.firstName, customer.lastName)}</PickerAvatar>
+                                            <PickerRowMain>
+                                                <PickerRowTitle>
+                                                    {customer.firstName} {customer.lastName}
+                                                </PickerRowTitle>
+                                                <PickerRowSub>
+                                                    {[customer.phone, customer.email].filter(Boolean).join(' · ') || '—'}
+                                                </PickerRowSub>
+                                            </PickerRowMain>
+                                            {customer.id === currentCustomerId && (
+                                                <PickerRowMeta>{t.appointments.customerModal.currentBadge}</PickerRowMeta>
+                                            )}
+                                        </PickerRow>
+                                    ))
+                                ) : (
+                                    <PickerEmpty
+                                        title={t.appointments.customerModal.noResults}
+                                        description={t.appointments.customerModal.noResultsHint}
+                                    />
+                                )}
+                            </PickerResults>
+                        </PickerPane>
 
                         <PickerAddRow
                             label={t.appointments.customerModal.addNewButton}

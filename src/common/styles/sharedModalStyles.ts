@@ -86,7 +86,7 @@ export const ModalOverlay = styled.div<{ $isOpen: boolean; $zIndex?: number }>`
 
 // ─── Modal box ────────────────────────────────────────────────────────────────
 
-export const ModalBox = styled.div<{ $isOpen: boolean; $maxWidth?: string }>`
+export const ModalBox = styled.div<{ $isOpen: boolean; $maxWidth?: string; $fixedHeight?: string }>`
     background: #ffffff;
     border-radius: 24px;
     box-shadow:
@@ -95,6 +95,10 @@ export const ModalBox = styled.div<{ $isOpen: boolean; $maxWidth?: string }>`
         0 16px 40px -8px rgba(0, 0, 0, 0.16);
     width: 100%;
     max-width: ${p => p.$maxWidth ?? '520px'};
+    /* Opt-in constant height: the box keeps its size while its content changes, so a
+       search that returns 1 result and one that returns 20 do not resize the window
+       under the user's cursor. Capped by max-height below on short viewports. */
+    ${p => p.$fixedHeight ? `height: ${p.$fixedHeight};` : ''}
     /* 100% of the overlay's content box, i.e. viewport minus padding and safe
        areas. Header and footer are flex-shrink:0, so whatever is left goes to
        ModalContent, which scrolls. The footer can never be pushed off-screen. */

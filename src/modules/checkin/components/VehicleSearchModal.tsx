@@ -1,6 +1,6 @@
 // src/modules/checkin/components/VehicleSearchModal.tsx
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/common/hooks';
 import {
     ModalShell,
@@ -25,9 +25,10 @@ import {
 } from '@/common/components/Form';
 import {
     PickerSearch,
-    PickerGroup,
-    PickerGroupLabel,
-    PickerScroll,
+    PickerPane,
+    PickerResults,
+    PickerStatus,
+    PickerSkeleton,
     PickerRow,
     PickerAvatar,
     PickerRowMain,
@@ -107,7 +108,7 @@ export const VehicleSearchModal = ({
     const debouncedQuery = useDebounce(searchQuery, 300);
     const hasQuery = debouncedQuery.trim().length > 0;
 
-    const { data: vehicleResponse, isLoading } = useQuery({
+    const { data: vehicleResponse, isLoading, isFetching, isPlaceholderData } = useQuery({
         queryKey: ['vehicles', debouncedQuery],
         queryFn: () => vehicleApi.getVehicles({
             search: debouncedQuery,
@@ -115,6 +116,9 @@ export const VehicleSearchModal = ({
             limit: 50,
         }),
         enabled: isOpen && mode === 'search' && hasQuery,
+        // Keep the previous matches visible while the next query runs, so typing does not
+        // strobe the list between results and an empty box.
+        placeholderData: keepPreviousData,
     });
 
     // The car the customer already owns is by far the most likely pick, so it is offered
@@ -189,48 +193,60 @@ export const VehicleSearchModal = ({
             : 'Znajdź pojazd po marce, modelu lub numerze rejestracyjnym.');
 
     const vehicles = vehicleResponse?.data || [];
+    // Before anything is typed the list shows the customer's own cars; after that it shows
+    // the search. Either way it is one list in one region, so the window never resizes.
+    const isStale = hasQuery && isPlaceholderData;
+    const isLoadingList = hasQuery
+        ? (isLoading || (isStale && vehicles.length === 0))
+        : (!!customerId && isLoadingCustomerVehicles);
+
+    const statusText = hasQuery
+        ? (isLoadingList || isStale
+            ? 'Wyszukiwanie…'
+            : vehicles.length > 0
+                ? `Znaleziono: ${vehicles.length}`
+                : 'Nie znaleziono pojazdów')
+        : (isLoadingList
+            ? 'Wczytywanie pojazdów klienta…'
+            : customerVehicles.length > 0
+                ? 'Pojazdy tego klienta'
+                : '');
 
     const renderSearchResults = () => {
+        if (isLoadingList) {
+            return <PickerSkeleton />;
+        }
+
         if (!hasQuery) {
-            if (customerId && isLoadingCustomerVehicles) {
-                return <PickerEmpty title="Wczytywanie pojazdów klienta..." />;
-            }
             if (customerVehicles.length > 0) {
-                return (
-                    <PickerGroup>
-                        <PickerGroupLabel>Pojazdy tego klienta</PickerGroupLabel>
-                        <PickerScroll>
-                            {customerVehicles.map((v) => (
-                                <PickerRow
-                                    key={v.id}
-                                    type="button"
-                                    $selected={v.id === currentVehicleId}
-                                    onClick={() => {
-                                        onSelect({
-                                            id: v.id,
-                                            brand: v.brand,
-                                            model: v.model,
-                                            yearOfProduction: v.year,
-                                            licensePlate: v.licensePlate || undefined,
-                                            isNew: false,
-                                            ownerCustomerIds: customerId ? [customerId] : undefined,
-                                        });
-                                        handleClose();
-                                    }}
-                                >
-                                    <PickerAvatar><CarIcon /></PickerAvatar>
-                                    <PickerRowMain>
-                                        <PickerRowTitle>{v.brand} {v.model}</PickerRowTitle>
-                                        <PickerRowSub>
-                                            {[v.licensePlate, v.year].filter(Boolean).join(' · ') || '—'}
-                                        </PickerRowSub>
-                                    </PickerRowMain>
-                                    {v.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
-                                </PickerRow>
-                            ))}
-                        </PickerScroll>
-                    </PickerGroup>
-                );
+                return customerVehicles.map((v) => (
+                    <PickerRow
+                        key={v.id}
+                        type="button"
+                        $selected={v.id === currentVehicleId}
+                        onClick={() => {
+                            onSelect({
+                                id: v.id,
+                                brand: v.brand,
+                                model: v.model,
+                                yearOfProduction: v.year,
+                                licensePlate: v.licensePlate || undefined,
+                                isNew: false,
+                                ownerCustomerIds: customerId ? [customerId] : undefined,
+                            });
+                            handleClose();
+                        }}
+                    >
+                        <PickerAvatar><CarIcon /></PickerAvatar>
+                        <PickerRowMain>
+                            <PickerRowTitle>{v.brand} {v.model}</PickerRowTitle>
+                            <PickerRowSub>
+                                {[v.licensePlate, v.year].filter(Boolean).join(' · ') || '—'}
+                            </PickerRowSub>
+                        </PickerRowMain>
+                        {v.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
+                    </PickerRow>
+                ));
             }
             return (
                 <PickerEmpty
@@ -238,10 +254,6 @@ export const VehicleSearchModal = ({
                     description="Wpisz markę, model lub numer rejestracyjny."
                 />
             );
-        }
-
-        if (isLoading) {
-            return <PickerEmpty title="Wyszukiwanie..." />;
         }
 
         if (vehicles.length === 0) {
@@ -253,35 +265,31 @@ export const VehicleSearchModal = ({
             );
         }
 
-        return (
-            <PickerScroll>
-                {vehicles.map((vehicle) => (
-                    <PickerRow
-                        key={vehicle.id}
-                        type="button"
-                        $selected={vehicle.id === currentVehicleId}
-                        onClick={() => handleVehicleClick(vehicle)}
-                    >
-                        <PickerAvatar><CarIcon /></PickerAvatar>
-                        <PickerRowMain>
-                            <PickerRowTitle>{vehicle.brand} {vehicle.model}</PickerRowTitle>
-                            <PickerRowSub>
-                                {[
-                                    vehicle.licensePlate,
-                                    vehicle.yearOfProduction,
-                                    vehicle.owners[0]?.customerName,
-                                ].filter(Boolean).join(' · ') || '—'}
-                            </PickerRowSub>
-                        </PickerRowMain>
-                        {vehicle.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
-                    </PickerRow>
-                ))}
-            </PickerScroll>
-        );
+        return vehicles.map((vehicle) => (
+            <PickerRow
+                key={vehicle.id}
+                type="button"
+                $selected={vehicle.id === currentVehicleId}
+                onClick={() => handleVehicleClick(vehicle)}
+            >
+                <PickerAvatar><CarIcon /></PickerAvatar>
+                <PickerRowMain>
+                    <PickerRowTitle>{vehicle.brand} {vehicle.model}</PickerRowTitle>
+                    <PickerRowSub>
+                        {[
+                            vehicle.licensePlate,
+                            vehicle.yearOfProduction,
+                            vehicle.owners[0]?.customerName,
+                        ].filter(Boolean).join(' · ') || '—'}
+                    </PickerRowSub>
+                </PickerRowMain>
+                {vehicle.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
+            </PickerRow>
+        ));
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg" stableHeight>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{modalTitle}</ModalTitle>
@@ -298,9 +306,15 @@ export const VehicleSearchModal = ({
                             onChange={setSearchQuery}
                             placeholder="Szukaj po marce, modelu lub numerze rejestracyjnym..."
                             autoFocus
+                            loading={hasQuery && isFetching}
                         />
 
-                        {renderSearchResults()}
+                        <PickerPane>
+                            <PickerStatus>{statusText}</PickerStatus>
+                            <PickerResults aria-busy={isFetching} $stale={isStale}>
+                                {renderSearchResults()}
+                            </PickerResults>
+                        </PickerPane>
 
                         <PickerAddRow
                             label="Dodaj nowy pojazd"
