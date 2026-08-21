@@ -366,6 +366,7 @@ export interface TranslationKeys {
             enterSearch: string;
             enterSearchHint: string;
             noResultsHint: string;
+            resultsCount: string;
             addNewButton: string;
             addNewHint: string;
             cancel: string;

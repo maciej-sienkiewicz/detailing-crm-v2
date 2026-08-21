@@ -260,6 +260,7 @@ export const pl: TranslationKeys = {
             enterSearch: 'Zacznij pisać, aby wyszukać klienta',
             enterSearchHint: 'Wpisz nazwisko, numer telefonu lub adres e-mail.',
             noResultsHint: 'Sprawdź pisownię albo dodaj klienta jako nowego.',
+            resultsCount: 'Znaleziono',
             addNewButton: 'Dodaj nowego klienta',
             addNewHint: 'Otworzy formularz nowego klienta',
             cancel: 'Anuluj',

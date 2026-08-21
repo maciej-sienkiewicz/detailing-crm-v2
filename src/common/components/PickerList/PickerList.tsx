@@ -13,7 +13,11 @@
  * <PickerEmpty> when there is nothing to show.
  */
 import type { ReactNode } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
 
 // ─── Search field ─────────────────────────────────────────────────────────────
 
@@ -21,6 +25,7 @@ const SearchWrap = styled.div`
     position: relative;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     background: #ffffff;
     border: 1.5px solid #e2e8f0;
     border-radius: 10px;
@@ -76,16 +81,31 @@ const ClearBtn = styled.button`
     svg { width: 13px; height: 13px; margin-left: 0; color: currentColor; }
 `;
 
+const Spinner = styled.span`
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    margin-right: 13px;
+    border: 2px solid #e2e8f0;
+    border-top-color: var(--brand-primary, #0ea5e9);
+    border-radius: 50%;
+    animation: ${spin} 700ms linear infinite;
+
+    @media (prefers-reduced-motion: reduce) { animation-duration: 2s; }
+`;
+
 interface PickerSearchProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
     autoFocus?: boolean;
+    /** Shows a spinner in place of the clear button while a query is in flight. */
+    loading?: boolean;
     'aria-label'?: string;
 }
 
 /** Search field for a picker modal: magnifier, one input, a clear button once typed. */
-export const PickerSearch = ({ value, onChange, placeholder, autoFocus, ...rest }: PickerSearchProps) => (
+export const PickerSearch = ({ value, onChange, placeholder, autoFocus, loading, ...rest }: PickerSearchProps) => (
     <SearchWrap>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7" />
@@ -100,7 +120,8 @@ export const PickerSearch = ({ value, onChange, placeholder, autoFocus, ...rest 
             autoComplete="off"
             aria-label={rest['aria-label'] ?? placeholder}
         />
-        {value.length > 0 && (
+        {loading && <Spinner aria-hidden="true" />}
+        {!loading && value.length > 0 && (
             <ClearBtn type="button" onClick={() => onChange('')} aria-label="Wyczyść wyszukiwanie">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -113,31 +134,40 @@ export const PickerSearch = ({ value, onChange, placeholder, autoFocus, ...rest 
 
 // ─── Groups & rows ────────────────────────────────────────────────────────────
 
-/** Caption above a group of rows, e.g. "Pojazdy tego klienta". */
-export const PickerGroupLabel = styled.p`
-    margin: 0 0 8px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-`;
-
-export const PickerGroup = styled.div`
+/**
+ * Status line + results, kept together as one block so the caption sits tight above the
+ * list instead of inheriting the modal content's larger rhythm. Give it the room that is
+ * left in the modal; the list scrolls inside it.
+ */
+export const PickerPane = styled.div`
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     min-width: 0;
 `;
 
-/** Scroll container for a long result list; keeps the modal footer reachable. */
-export const PickerScroll = styled.div`
+/**
+ * The results region. It claims all the space the modal has left and scrolls inside it,
+ * which is what keeps the window still: one result, twenty results, a spinner or an empty
+ * state all occupy exactly the same block, so nothing below the list ever moves.
+ *
+ * Requires a parent with a settled height — pair it with `stableHeight` on ModalShell.
+ */
+export const PickerResults = styled.div<{ $stale?: boolean }>`
+    flex: 1;
+    min-height: 0;
+    /* Results for the previous query, still on screen while the next one loads. Dimmed
+       rather than removed: replacing them would empty the list on every keystroke. */
+    opacity: ${p => p.$stale ? 0.55 : 1};
+    transition: opacity 150ms ease;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: 340px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* Room for the focus ring of the first/last row, which would otherwise be clipped. */
     padding: 2px;
     margin: -2px;
 
@@ -145,10 +175,22 @@ export const PickerScroll = styled.div`
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+`;
 
-    @media (max-height: 640px) {
-        max-height: 220px;
-    }
+/**
+ * One-line caption above the results — "Znaleziono 5 klientów", "Pojazdy tego klienta".
+ * Always rendered, so its line is part of the layout whether or not there is anything to
+ * count, and the list below it never shifts by a line height.
+ */
+export const PickerStatus = styled.p`
+    flex-shrink: 0;
+    margin: 0;
+    min-height: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 `;
 
 export const PickerRow = styled.button<{ $selected?: boolean }>`
@@ -256,6 +298,7 @@ const AddRowBtn = styled.button`
     align-items: center;
     gap: 10px;
     width: 100%;
+    flex-shrink: 0;
     min-width: 0;
     padding: 12px 14px;
     text-align: left;
@@ -331,12 +374,51 @@ export const PickerAddRow = ({ label, hint, onClick }: PickerAddRowProps) => (
     </AddRowBtn>
 );
 
+// ─── Loading placeholder ──────────────────────────────────────────────────────
+
+const shimmer = keyframes`
+    from { background-position: 100% 0; }
+    to   { background-position: -100% 0; }
+`;
+
+const SkeletonRow = styled.div`
+    flex-shrink: 0;
+    height: 62px;
+    border: 1.5px solid #eef2f6;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #f8fafc 25%, #eef2f6 50%, #f8fafc 75%);
+    background-size: 200% 100%;
+    animation: ${shimmer} 1.4s linear infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        background: #f8fafc;
+    }
+
+    @media (max-width: 480px) {
+        height: 56px;
+    }
+`;
+
+/**
+ * Placeholder rows for the first load. Shaped like real rows so the list does not
+ * announce itself with a jump when the data lands.
+ */
+export const PickerSkeleton = ({ rows = 4 }: { rows?: number }) => (
+    <>
+        {Array.from({ length: rows }, (_, i) => <SkeletonRow key={i} aria-hidden="true" />)}
+    </>
+);
+
 // ─── Empty / status states ────────────────────────────────────────────────────
 
 const EmptyWrap = styled.div`
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 28px 20px;
     border: 1.5px dashed #e2e8f0;

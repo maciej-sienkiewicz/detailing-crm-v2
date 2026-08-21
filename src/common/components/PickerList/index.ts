@@ -1,8 +1,9 @@
 export {
     PickerSearch,
-    PickerGroup,
-    PickerGroupLabel,
-    PickerScroll,
+    PickerPane,
+    PickerResults,
+    PickerStatus,
+    PickerSkeleton,
     PickerRow,
     PickerAvatar,
     PickerRowMain,
