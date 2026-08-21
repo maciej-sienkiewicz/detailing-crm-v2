@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { SUBMODAL_Z_INDEX } from '@/common/styles';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useCapability } from '../hooks/useCapability';
 import { useFeature } from '../hooks/useFeature';
@@ -81,10 +82,14 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
     );
 }
 
+/**
+ * Warstwa okna podrzędnego: upsell wyskakuje z formularza rezerwacji, gdy ktoś
+ * włącza tam powiadomienia SMS. Na zwykłej warstwie 1000 schowałby się pod nim.
+ */
 const Backdrop = styled.div`
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: ${SUBMODAL_Z_INDEX};
     display: flex;
     align-items: center;
     justify-content: center;

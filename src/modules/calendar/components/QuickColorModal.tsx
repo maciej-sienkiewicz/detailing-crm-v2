@@ -10,7 +10,7 @@ import {
     ModalContent,
     ModalFooter,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { SharedButton, SUBMODAL_Z_INDEX } from '@/common/styles';
 
 const FieldGroup = styled.div`
     display: flex;
@@ -175,7 +175,7 @@ export const QuickColorModal = ({ isOpen, onClose, onColorCreate }: QuickColorMo
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px" zIndex={SUBMODAL_Z_INDEX}>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <ModalHeader>
                     <ModalTitleGroup>
