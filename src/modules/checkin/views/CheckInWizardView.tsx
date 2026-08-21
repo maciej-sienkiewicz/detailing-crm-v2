@@ -10,7 +10,6 @@ import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
-import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
@@ -289,32 +288,6 @@ const FooterActions = styled.div`
     }
 `;
 
-const VisitCardCheckboxLabel = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-right: 8px;
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.textSecondary};
-    cursor: pointer;
-    user-select: none;
-
-    @media (max-width: 767px) {
-        width: 100%;
-        margin-right: 0;
-        margin-bottom: 2px;
-    }
-`;
-
-const VisitCardCheckbox = styled.input.attrs({ type: 'checkbox' })`
-    width: 16px;
-    height: 16px;
-    accent-color: ${st.accentBlue};
-    cursor: pointer;
-    flex-shrink: 0;
-`;
-
 const BackBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -451,15 +424,11 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         return () => cancelAnimationFrame(frame);
     }, [validationAttempt]);
 
-    // "Czy wysłać Kartę Wizyty do klienta?": visible only when the studio uses
-    // the Visit Card (and has the SMS module); default comes from the settings.
-    const { visitCardActive, sendByDefault: visitCardSendByDefault } = useVisitCardSettings();
-    const [sendVisitCard, setSendVisitCard] = useState(false);
-    useEffect(() => {
-        setSendVisitCard(visitCardSendByDefault);
-    }, [visitCardSendByDefault]);
-
-    const sendVisitCardAfterCreation = (visitId: string) => {
+    // "Czy wysłać Kartę Wizyty do klienta?" mieszka teraz w oknie „Dokumentacja
+    // i Podpisy", obok pozostałych powiadomień dla klienta. Kartę wysyłamy dopiero
+    // po potwierdzeniu wizyty — a nie zaraz po jej utworzeniu, kiedy operator wciąż
+    // może wizytę anulować.
+    const sendVisitCardAfterConfirmation = (visitId: string) => {
         visitCardApi.sendCardLink(visitId)
             .then(result => {
                 if (result.emailSent || result.smsSent) showSuccess(result.message);
@@ -516,16 +485,14 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 hasPhotos: (formData.photos?.length ?? 0) > 0,
                 hasDamageMap: (formData.damagePoints?.length ?? 0) > 0,
             });
-            if (visitCardActive && sendVisitCard) {
-                sendVisitCardAfterCreation(result.visitId);
-            }
         } catch {
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
         }
     };
 
-    const handleSigningModalConfirm = () => {
+    const handleSigningModalConfirm = ({ sendVisitCard }: { sendVisitCard: boolean }) => {
         if (signingModalState.visitId) {
+            if (sendVisitCard) sendVisitCardAfterConfirmation(signingModalState.visitId);
             const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
             showSuccess(`Wizyta ${visitNumber} rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
@@ -653,16 +620,6 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
                         {/* Navigation */}
                         <FooterActions>
-                            {isLastStep && visitCardActive && (
-                                <VisitCardCheckboxLabel>
-                                    <VisitCardCheckbox
-                                        checked={sendVisitCard}
-                                        onChange={e => setSendVisitCard(e.target.checked)}
-                                        disabled={isSubmitting}
-                                    />
-                                    Wyślij SMS z linkiem do Karty Wizyty.
-                                </VisitCardCheckboxLabel>
-                            )}
                             {!isFirstStep && (
                                 <BackBtn onClick={previousStep} disabled={isSubmitting}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

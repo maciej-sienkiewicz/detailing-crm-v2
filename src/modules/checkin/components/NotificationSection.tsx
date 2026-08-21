@@ -5,6 +5,7 @@ import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { useVisitPhotos } from '@/modules/visits/hooks';
+import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import type { ConfirmVisitOptions } from '@/modules/visits/types';
 import {
     Section,
@@ -50,8 +51,9 @@ import {
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 
 export interface NotificationOptions {
-    sendSms: boolean;
     sendEmail: boolean;
+    /** SMS z linkiem do Karty Wizyty, wysyłany po potwierdzeniu wizyty. */
+    sendVisitCard: boolean;
     emailOptions: {
         attachProtocol: boolean;
         attachPhotos: boolean;
@@ -65,8 +67,10 @@ export const defaultNotificationOptions = (
     visitWelcomeEnabled = true,
     hasPhotos = false,
     hasDamageMap = false,
+    visitCardSendByDefault = false,
 ): NotificationOptions => ({
     sendEmail: visitWelcomeEnabled,
+    sendVisitCard: visitCardSendByDefault,
     emailOptions: {
         attachProtocol: hasProtocol,
         attachPhotos: hasPhotos,
@@ -359,18 +363,19 @@ interface NotificationSectionProps {
 
 export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled, customerEmail, onCustomerEmailSaved, options, onChange }: NotificationSectionProps) => {
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
-    const { sendEmail, emailOptions } = options;
+    const { visitCardActive } = useVisitCardSettings();
+    const { sendEmail, sendVisitCard, emailOptions } = options;
     const hasCustomerEmail = !!customerEmail?.trim();
     const emailDisabled = !visitWelcomeEnabled || !hasCustomerEmail;
 
     // Neutralize, don't just blur: the section is controlled by the parent and its
     // defaults can arrive as true; a blurred checkbox still submits its value.
     useEffect(() => {
-        if (!comms.isLoading && !comms.enabled && (options.sendSms || options.sendEmail)) {
-            onChange({ ...options, sendSms: false, sendEmail: false });
+        if (!comms.isLoading && !comms.enabled && (options.sendEmail || options.sendVisitCard)) {
+            onChange({ ...options, sendEmail: false, sendVisitCard: false });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [comms.isLoading, comms.enabled, options.sendSms, options.sendEmail]);
+    }, [comms.isLoading, comms.enabled, options.sendEmail, options.sendVisitCard]);
     // Brak adresu = brak wysyłki: sam wyszarzony przełącznik nie wystarczy,
     // bo domyślne opcje przychodzą z rodzica z sendEmail = true.
     useEffect(() => {
@@ -379,6 +384,15 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasCustomerEmail, options.sendEmail]);
+
+    // Ten sam powód co przy e-mailu: sam brak przełącznika nie wystarczy, bo domyślna
+    // wartość przychodzi z ustawień studia i może być włączona mimo wyłączonej Karty.
+    useEffect(() => {
+        if (sendVisitCard && !visitCardActive) {
+            onChange({ ...options, sendVisitCard: false });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sendVisitCard, visitCardActive]);
 
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
@@ -474,6 +488,16 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                     </EmailBodyInner>
                 </EmailBody>
             </NotifCardToggle>
+
+            {visitCardActive && (
+                <NotifCardToggle
+                    icon={<SmsIcon />}
+                    label="Wyślij SMS z linkiem do Karty Wizyty"
+                    description="Klient otworzy Kartę Wizyty i sam domówi dodatkowe usługi"
+                    active={sendVisitCard}
+                    onToggle={() => onChange({ ...options, sendVisitCard: !sendVisitCard })}
+                />
+            )}
             </LockedSection>
         </Section>
     );

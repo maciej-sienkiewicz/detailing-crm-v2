@@ -16,6 +16,7 @@ import { useSignatureRequestsSocket } from '../hooks/useSignatureRequestsSocket'
 import type { SignatureRequestSocketEvent } from '../hooks/useSignatureRequestsSocket';
 import { DocumentPreview } from './DocumentPreview';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
+import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import type { NotificationOptions } from './NotificationSection';
 import type { ProtocolResponse } from '../types';
 import {
@@ -116,7 +117,12 @@ interface SigningRequirementModalProps {
     /** Called after the missing e-mail is filled in from this modal. */
     onCustomerEmailSaved?: (email: string) => void;
     protocols: ProtocolResponse[];
-    onConfirm: () => void;
+    /**
+     * Wizyta potwierdzona. `sendVisitCard` niesie decyzję z przełącznika „Wyślij SMS
+     * z linkiem do Karty Wizyty" — samą wysyłkę robi właściciel kreatora, razem
+     * z własnymi komunikatami.
+     */
+    onConfirm: (result: { sendVisitCard: boolean }) => void;
     hasPhotos?: boolean;
     hasDamageMap?: boolean;
 }
@@ -157,7 +163,11 @@ export const SigningRequirementModal = ({
         staleTime: 30_000,
     });
 
-    const [notifOptions, setNotifOptions] = useState<NotificationOptions>(() => defaultNotificationOptions(true, visitWelcomeEnabled, hasPhotos, hasDamageMap));
+    const { sendByDefault: visitCardSendByDefault } = useVisitCardSettings();
+
+    const [notifOptions, setNotifOptions] = useState<NotificationOptions>(
+        () => defaultNotificationOptions(true, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault),
+    );
 
     const cancelVisitMutation = useMutation({
         mutationFn: () => {
@@ -177,7 +187,7 @@ export const SigningRequirementModal = ({
         },
         onSuccess: () => {
             onClose();
-            onConfirm();
+            onConfirm({ sendVisitCard: notifOptions.sendVisitCard });
         },
     });
 
@@ -188,9 +198,9 @@ export const SigningRequirementModal = ({
             setPreviewProtocolId(null);
             setTabletPickerProtocolId(null);
             setSigningByProtocol({});
-            setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap));
+            setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault));
         }
-    }, [isOpen, hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap]);
+    }, [isOpen, hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault]);
 
     // Close tablet picker when clicking outside
     useEffect(() => {
