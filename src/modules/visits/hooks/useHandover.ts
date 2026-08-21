@@ -216,11 +216,21 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     });
 
     /**
+     * Czy wysyłka jest w ogóle w zasięgu tego studia. Bez zapisanego tokenu nie ma
+     * czym wysłać, więc nie ma też czego wybierać: przełącznik jest wyłączony
+     * i zablokowany, zamiast obiecywać wysyłkę, która skończy się w kolejce retry.
+     * Studio bez modułu KSeF zachowuje się jak dotąd — o wysyłce nie decyduje.
+     */
+    const canChooseSendToKsef = ksef.moduleEnabled && !ksef.isLoading && ksef.configured;
+
+    /**
      * Rozstrzygnięta odpowiedź na pytanie „wysłać do KSeF?": wybór użytkownika,
      * a zanim go dokona — domyślna wartość z ustawień studia. Do czasu wczytania
      * ustawień zakładamy wysyłkę, bo tak działał system, zanim przełącznik powstał.
      */
-    const sendToKsef = state.sendToKsef ?? ksef.autoSendDefault ?? true;
+    const sendToKsef =
+        (!ksef.moduleEnabled || ksef.isLoading || ksef.configured) &&
+        (state.sendToKsef ?? ksef.autoSendDefault ?? true);
 
     // ── Draft: zamknięcie okna nie kasuje pracy ──────────────────────────────
     useEffect(() => {
@@ -314,6 +324,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         patch,
         ksef,
         sendToKsef,
+        canChooseSendToKsef,
         setSendToKsef,
         problems,
         problemsIn,

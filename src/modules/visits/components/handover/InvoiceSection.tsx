@@ -4,14 +4,12 @@ import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
-import { Toggle } from '@/common/components/Toggle';
-import { Box, BoxRow, Divider, GhostAction, Muted, SectionProblems } from './HandoverKit';
+import { Box, BoxRow, Divider, GhostAction, SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { SellerPrompt } from './SellerPrompt';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { formatNip, normalizeNip, type HandoverProblem, type HandoverState } from '../../types/handover';
-import type { KsefAutomation } from '@/modules/finance/hooks';
 
 const BuyerLine = styled.div`
     display: flex;
@@ -75,9 +73,6 @@ interface InvoiceSectionProps {
     sellerComplete: boolean;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
-    ksef: KsefAutomation;
-    sendToKsef: boolean;
-    onSendToKsefChange: (value: boolean) => void;
 }
 
 /**
@@ -98,9 +93,6 @@ export const InvoiceSection = ({
     sellerComplete,
     company,
     problemsIn,
-    ksef,
-    sendToKsef,
-    onSendToKsefChange,
 }: InvoiceSectionProps) => {
     const [isBuyerOpen, setBuyerOpen] = useState(false);
     const [areItemsOpen, setItemsOpen] = useState(false);
@@ -110,21 +102,6 @@ export const InvoiceSection = ({
     const isCompanyBuyer = nip.length > 0;
     const balanceState: 'ok' | 'under' | 'over' =
         remainder === 0 ? 'ok' : remainder > 0 ? 'under' : 'over';
-
-    /**
-     * Podpowiedź pod przełącznikiem mówi, co się stanie, a nie co przełącznik robi.
-     * Wyłączona wysyłka to legalny wybór (faktura powstaje i jest zapisana), więc
-     * nie straszymy: informujemy, że dokument czeka na ręczną wysyłkę.
-     */
-    const sendHint = !sendToKsef
-        ? 'Faktura zostanie wystawiona i zapisana, ale nie pojedzie do KSeF. Wyślesz ją później z listy dokumentów przychodowych.'
-        : ksef.isLoading
-          ? 'Sprawdzamy konfigurację KSeF…'
-          : !ksef.configured
-            ? 'Brak tokenu KSeF: fakturę trzeba będzie wgrać do KSeF ręcznie.'
-            : ksef.lacksIssuePermission
-              ? 'Token bez uprawnienia do wystawiania faktur: KSeF odrzuci tę wysyłkę.'
-              : 'Faktura trafi do KSeF automatycznie po wydaniu pojazdu.';
 
     const addressSummary = [state.buyer.addressLine1, state.buyer.addressLine2]
         .map(part => part.trim())
@@ -240,47 +217,6 @@ export const InvoiceSection = ({
                 )}
             </Balance>
             <SectionProblems problems={problemsIn('balance')} />
-
-            {/* ── Wysyłka do KSeF ─────────────────────────────────────────── */}
-            {ksef.moduleEnabled && (
-                <>
-                    <Divider />
-                    <SendRow>
-                        <SendTexts>
-                            <SendLabel htmlFor="handover-send-ksef">Wyślij fakturę do KSeF</SendLabel>
-                            <Muted>{sendHint}</Muted>
-                        </SendTexts>
-                        <Toggle
-                            checked={sendToKsef}
-                            onChange={onSendToKsefChange}
-                            size="sm"
-                            inputId="handover-send-ksef"
-                            ariaLabel="Wyślij fakturę do KSeF"
-                        />
-                    </SendRow>
-                </>
-            )}
         </Box>
     );
 };
-
-const SendRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-`;
-
-const SendTexts = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-`;
-
-const SendLabel = styled.label`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-    cursor: pointer;
-`;
