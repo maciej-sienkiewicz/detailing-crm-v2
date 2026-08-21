@@ -6,8 +6,8 @@ import { Box, BoxRow, Money, Muted, Pill, PillRow, Section, SectionLabel } from 
 import { InvoiceSection } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { documentTypes } from './paymentOptions';
-import { useKsefAutomation } from '@/modules/finance/hooks';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
+import type { KsefAutomation } from '@/modules/finance/hooks';
 import type { InvoiceType } from '../../types/stateTransitions';
 
 const AmountBox = styled(Box)`
@@ -54,6 +54,9 @@ interface SettlementSectionProps {
     sellerComplete: boolean;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
+    ksef: KsefAutomation;
+    sendToKsef: boolean;
+    onSendToKsefChange: (value: boolean) => void;
 }
 
 /**
@@ -73,12 +76,16 @@ export const SettlementSection = ({
     sellerComplete,
     company,
     problemsIn,
+    ksef,
+    sendToKsef,
+    onSendToKsefChange,
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
 
-    // Only meaningful once an invoice is actually on the table; the hook itself
-    // skips the request for studios without the KSeF module.
-    const ksef = useKsefAutomation({ enabled: !isFreeVisit && state.documentType === 'INVOICE' });
+    // Ostrzegamy dopiero, gdy znamy odpowiedź: `configured` jest false także w trakcie
+    // ładowania, a to pokazałoby „brak tokenu" studiom, które token mają.
+    const ksefAnswerKnown =
+        state.documentType === 'INVOICE' && !ksef.isLoading && ksef.moduleEnabled;
 
     if (isFreeVisit) {
         return (
@@ -137,7 +144,9 @@ export const SettlementSection = ({
                 </Group>
             </Box>
 
-            {state.documentType === 'INVOICE' && !ksef.isLoading && ksef.moduleEnabled && !ksef.configured && (
+            {/* Brak tokenu jest przeszkodą tylko dla wysyłki: przy przełączniku
+                wyłączonym nic nie zawiedzie, więc nie ma o czym ostrzegać. */}
+            {ksefAnswerKnown && sendToKsef && !ksef.configured && (
                 <KsefNotice>
                     <KsefNoticeIcon aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -156,6 +165,36 @@ export const SettlementSection = ({
                 </KsefNotice>
             )}
 
+            {/* Token bez uprawnienia InvoiceWrite kończy wysyłkę odmową uwierzytelnienia,
+                którą dispatcher zapisuje jako błąd przejściowy i wstawia do kolejki
+                offline24 — a ta próba nie ma szans się udać. Lepiej powiedzieć to przed
+                wydaniem niż zostawić fakturę w kolejce, która nigdy nie zadziała. */}
+            {ksefAnswerKnown && ksef.configured && ksef.lacksIssuePermission && (
+                <KsefNotice>
+                    <KsefNoticeIcon aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    </KsefNoticeIcon>
+                    <div>
+                        <KsefNoticeTitle>
+                            Token KSeF nie ma uprawnienia do wystawiania faktur
+                        </KsefNoticeTitle>
+                        Zapisany token pozwala tylko odczytywać faktury.{' '}
+                        {sendToKsef
+                            ? 'KSeF odrzuci wysyłkę tej faktury: wystawimy ją i zapiszemy, ' +
+                              'a plik XML pobierzesz po wydaniu pojazdu i wgrasz ręcznie.'
+                            : 'Dopóki token się nie zmieni, żadnej faktury z tego studia ' +
+                              'nie da się wysłać automatycznie.'}{' '}
+                        Trwałe rozwiązanie: wygeneruj w KSeF token z uprawnieniem{' '}
+                        <strong>InvoiceWrite</strong> i zapisz go w{' '}
+                        <strong>Ustawienia → Faktury</strong>.
+                    </div>
+                </KsefNotice>
+            )}
+
             {state.documentType === 'INVOICE' && (
                 <InvoiceSection
                     state={state}
@@ -167,6 +206,9 @@ export const SettlementSection = ({
                     sellerComplete={sellerComplete}
                     company={company}
                     problemsIn={problemsIn}
+                    ksef={ksef}
+                    sendToKsef={sendToKsef}
+                    onSendToKsefChange={onSendToKsefChange}
                 />
             )}
         </Section>

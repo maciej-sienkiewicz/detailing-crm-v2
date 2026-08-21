@@ -1,6 +1,7 @@
 import { apiClient } from '@/core';
 import type {
   KsefCredentials,
+  KsefInvoicingStatus,
   KsefTokenVerification,
   SaveKsefCredentialsRequest,
   KsefSyncStatus,
@@ -53,6 +54,24 @@ export const ksefApi = {
    */
   verifyCredentials: async (): Promise<KsefTokenVerification> => {
     const response = await apiClient.post(`${BASE}/credentials/verify`, {});
+    return response.data;
+  },
+
+  // ── Gotowość do fakturowania ───────────────────────────────────────────────
+
+  /**
+   * Stan integracji w zakresie, jakiego potrzebuje ekran wydania pojazdu: czy token
+   * jest zapisany, czy ma uprawnienie do wystawiania faktur i jaka jest domyślna
+   * odpowiedź na pytanie o wysyłkę. Endpoint nie jest właścicielski, więc widzi go
+   * też pracownik wydający pojazd (w przeciwieństwie do `getCredentials`).
+   */
+  getInvoicingStatus: async (): Promise<KsefInvoicingStatus> => {
+    const response = await apiClient.get(`${BASE}/invoicing-status`, { skipErrorToast: true });
+    return response.data;
+  },
+
+  updateInvoicingSettings: async (autoSendDefault: boolean): Promise<{ autoSendDefault: boolean }> => {
+    const response = await apiClient.patch(`${BASE}/invoicing-settings`, { autoSendDefault });
     return response.data;
   },
 

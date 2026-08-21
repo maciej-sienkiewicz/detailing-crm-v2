@@ -50,6 +50,11 @@ export interface CompleteInvoicePayload {
     buyerEmail?: string;
     remainderPaymentMethod?: PaymentMethod;
     exemptionLegalBasis?: string;
+    /**
+     * Czy fakturę wysłać do KSeF od razu po wystawieniu. Pominięcie pola oznacza
+     * „użyj domyślnej odpowiedzi studia" (Ustawienia → Faktury), nie „wyślij".
+     */
+    sendToKsef?: boolean;
 }
 
 export interface TransitionToReadyPayload {
