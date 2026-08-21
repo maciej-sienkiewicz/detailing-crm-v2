@@ -13,6 +13,7 @@ import type { NewRow } from './ServiceInlineRow';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { LockedSection } from '@/common/components/LockedSection';
 import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
+import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
 import { useFeature, UpsellModal } from '@/modules/subscription';
 
 const BRAND = '#0ea5e9';
@@ -1738,6 +1739,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [bulkDiscountConflictOpen, setBulkDiscountConflictOpen] = useState(false);
     const [bulkDiscountUseEdited, setBulkDiscountUseEdited] = useState(false);
 
+    /* ── Modal z treścią SMS-a (pokazywany przed zapisem, gdy informujemy klienta) ── */
+    const [pendingSmsPayload, setPendingSmsPayload] = useState<ServicesChangesPayload | null>(null);
+
     /* ── Bulk VAT modal ── */
     const [bulkVatOpen, setBulkVatOpen] = useState(false);
     const [bulkVatRate, setBulkVatRate] = useState<number>(23);
@@ -2071,13 +2075,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     // ESC zamyka to, co jest na wierzchu: najpierw modal, potem sekcję edycji.
     // Sekcję z wprowadzonymi zmianami tylko podświetlamy, żeby nie zgubić pracy.
     const anyModalOpen = isQuickServiceOpen || bulkDiscountOpen || bulkDiscountConflictOpen
-        || bulkVatOpen || isConfirmOpen || upsellOpen || editorId !== null || draftDiscountId !== null;
+        || bulkVatOpen || isConfirmOpen || upsellOpen || editorId !== null || draftDiscountId !== null
+        || pendingSmsPayload !== null;
 
     useEffect(() => {
         if (!isInEditMode && !anyModalOpen) return;
         const onKey = (e: KeyboardEvent) => {
             if (e.key !== 'Escape') return;
-            if (isQuickServiceOpen || isConfirmOpen || upsellOpen) return; // własna obsługa w modalu
+            if (isQuickServiceOpen || isConfirmOpen || upsellOpen || pendingSmsPayload) return; // własna obsługa w modalu
             if (bulkDiscountConflictOpen) { setBulkDiscountConflictOpen(false); return; }
             if (bulkDiscountOpen) { setBulkDiscountOpen(false); return; }
             if (bulkVatOpen) { setBulkVatOpen(false); return; }
@@ -2090,13 +2095,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         return () => window.removeEventListener('keydown', onKey);
     }, [isInEditMode, anyModalOpen, hasChanges, isQuickServiceOpen, isConfirmOpen, upsellOpen,
         bulkDiscountConflictOpen, bulkDiscountOpen, bulkVatOpen, draftDiscountId, editorId,
-        triggerHighlight, discardDraft]);
+        pendingSmsPayload, triggerHighlight, discardDraft]);
 
 
-    const acceptDraft = () => {
+    const buildChangesPayload = (): ServicesChangesPayload => {
         const validNewRows = newRows.filter(r => r.serviceName.trim());
         const effectiveNotify = smsFeature.enabled ? notifyCustomer : false;
-        const payload: ServicesChangesPayload = {
+        return {
             notifyCustomer: effectiveNotify,
             requireConfirmation: effectiveNotify ? requireConfirmation : false,
             added: validNewRows.map(r => ({
@@ -2115,9 +2120,30 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             })),
             deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
         };
+    };
+
+    const persistChanges = (payload: ServicesChangesPayload) => {
         saveServicesChanges(payload, {
-            onSuccess: () => { setNewRows([]); setDeletedIds(new Set()); setEditedPrices({}); },
+            onSuccess: () => {
+                setNewRows([]);
+                setDeletedIds(new Set());
+                setEditedPrices({});
+                setPendingSmsPayload(null);
+            },
         });
+    };
+
+    /**
+     * Gdy klient ma dostać SMS-a, najpierw pokazujemy jego treść do akceptacji —
+     * zapis leci dopiero po zatwierdzeniu wiadomości w modalu.
+     */
+    const acceptDraft = () => {
+        const payload = buildChangesPayload();
+        if (visitId && (payload.notifyCustomer || payload.requireConfirmation)) {
+            setPendingSmsPayload(payload);
+            return;
+        }
+        persistChanges(payload);
     };
 
     const openConfirm = (service: ServiceLineItem, action: 'approve' | 'reject') => {
@@ -2702,6 +2728,18 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </DiscountModalOverlay>
             );
         })()}
+
+        {/* ─── Treść SMS-a przed zapisem ─── */}
+        {pendingSmsPayload && visitId && (
+            <ServiceChangeSmsModal
+                visitId={visitId}
+                payload={pendingSmsPayload}
+                requireConfirmation={pendingSmsPayload.requireConfirmation}
+                isSaving={isSaving}
+                onCancel={() => setPendingSmsPayload(null)}
+                onConfirm={message => persistChanges({ ...pendingSmsPayload, smsMessage: message })}
+            />
+        )}
 
         {/* Bulk VAT modal */}
         {bulkVatOpen && (

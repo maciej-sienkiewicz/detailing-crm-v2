@@ -15,7 +15,7 @@ import type {
     ConfirmVisitOptions,
     TechnicalNoteHistoryResponse,
 } from '../types';
-import type { ServicesChangesPayload } from '../types';
+import type { ServicesChangesPayload, ServiceChangeSmsDraft } from '../types';
 
 const USE_MOCKS = false;
 const BASE_PATH = '/visits';
@@ -476,6 +476,18 @@ export const visitApi = {
         }
         const response = await apiClient.patch(
             `${BASE_PATH}/${visitId}/services/${serviceLineItemId}/status`,
+            payload
+        );
+        return response.data;
+    },
+
+    /** Prosi backend o propozycję treści SMS-a dla planowanych zmian; nic nie zapisuje. */
+    draftServiceChangeSms: async (
+        visitId: string,
+        payload: ServicesChangesPayload
+    ): Promise<ServiceChangeSmsDraft> => {
+        const response = await apiClient.post(
+            `${BASE_PATH}/${visitId}/services/sms-draft`,
             payload
         );
         return response.data;
