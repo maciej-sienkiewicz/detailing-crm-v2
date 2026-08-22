@@ -104,3 +104,22 @@ export const formatPeriodTick = (iso: string, monthly: boolean): string => {
         ? MONTHS_NOMINATIVE[date.getMonth()].slice(0, 3)
         : `${date.getDate()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
 };
+
+/**
+ * Kwota bez groszy: „47 900 zł", nie „47 900,00 zł".
+ *
+ * Na ekranie, który cały jest o pieniądzach, dwa miejsca po przecinku są szumem
+ * przy każdej liczbie naraz — nikt nie podejmuje decyzji o 47 groszach, a przecinek
+ * rozbija rytm cyfr dokładnie tam, gdzie kwota ma uderzyć. Grosze zostają tam,
+ * gdzie mają znaczenie: na fakturach i w wycenach.
+ *
+ * Zwykła spacja jako separator tysięcy, nie niełamliwa z Intl: kwota-bohater ma
+ * 52 px i na telefonie musi mieć prawo złamać się między grupami cyfr zamiast
+ * wyjechać poza ekran.
+ */
+export const formatMoney = (grosze: number): string => {
+    const zloty = Math.round(grosze / 100);
+    const digits = String(Math.abs(zloty));
+    const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return `${zloty < 0 ? '−' : ''}${grouped} zł`;
+};

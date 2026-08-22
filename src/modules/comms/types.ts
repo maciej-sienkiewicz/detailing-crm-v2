@@ -333,6 +333,31 @@ export interface TimelinePoint {
     winRate: number | null;
 }
 
+/**
+ * Pieniądze czekające na odpowiedź — stan BIEŻĄCY, nie okno raportu.
+ * Zaległa rozmowa nie przestaje być zaległa dlatego, że ktoś przełączył widok
+ * na „ostatnie 30 dni".
+ */
+export interface AwaitingWork {
+    value: number;
+    count: number;
+    oldest: {
+        leadId: string;
+        name: string;
+        vehicle: string | null;
+        value: number;
+        waitingDays: number;
+    } | null;
+}
+
+/** Wyciek pieniędzy: [code] to kod powodu albo NO_REPLY. */
+export interface Leak {
+    code: string;
+    label: string;
+    value: number;
+    count: number;
+}
+
 export interface LeadAnalytics {
     from: string;
     to: string;
@@ -358,6 +383,10 @@ export interface LeadAnalytics {
     vehicleOutliers: VehicleOutlier[];
     timeline: TimelinePoint[];
     bySource: LeadSourceStat[];
+    awaiting: AwaitingWork;
+    leaks: Leak[];
+    wonValuePrevious: number;
+    confirmedValueThisWeek: number;
 }
 
 // ── Zdarzenia WebSocket (topic dashboardu) ───────────────────────────────────
