@@ -474,6 +474,18 @@ export interface CommMessageReadPayload {
     readSource: CommReadSource;
 }
 
+// ── Notatki na leadzie ───────────────────────────────────────────────────────
+
+/** „Oddzwoniłem, prosił o kontakt po 15" — ślad pracy, którego nie niesie korespondencja. */
+export interface LeadNote {
+    id: string;
+    content: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // ── Lead z formularza (mail od robota formularzy) ────────────────────────────
 
 /**
