@@ -53,7 +53,7 @@ import {
     UserPlus,
     UserRound,
 } from 'lucide-react';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
 import {
     CloseBtn,
@@ -681,6 +681,8 @@ export function LeadDetailModal({
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    // Drugie pytanie przy leadzie z rezerwacją: czy termin w kalendarzu idzie razem z nim.
+    const [deleteAppointmentDialogOpen, setDeleteAppointmentDialogOpen] = useState(false);
     const [booking, setBooking] = useState(false);
     // Wizytówka kontaktu — ta sama co w skrzynce, razem z „połącz" i „załóż".
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
@@ -741,21 +743,30 @@ export function LeadDetailModal({
     };
 
     const confirmDelete = () => {
+        setDeleteDialogOpen(false);
+        // Lead z rezerwacją: rezerwacja to osobna rzecz w kalendarzu i jej los jest
+        // osobną decyzją — pada w drugim pytaniu, a nie w domyślnej regule, której
+        // nikt nie widzi.
+        if (lead?.appointmentId) {
+            setDeleteAppointmentDialogOpen(true);
+            return;
+        }
+        performDelete(false);
+    };
+
+    const performDelete = (deleteAppointment: boolean) => {
         // Okno zamykamy PRZED wysłaniem żądania. Otwarte odpytuje `GET /leads/{id}`
         // i `…/history`; unieważnienie cache po usunięciu kazałoby mu pobrać leada,
         // którego już nie ma — i obok „Lead usunięty" wyskakiwało „Nie znaleziono
         // leada" z globalnego przechwytywacza błędów. Odmontowane okno nie pyta.
-        setDeleteDialogOpen(false);
+        //
+        // Toasty (sukces i błąd) mieszkają w useDeleteLead: callbacki podane do
+        // `mutate` nie odpalają się po odmontowaniu komponentu — tak właśnie ginął
+        // po cichu komunikat błędu przy leadzie z rezerwacją.
+        setDeleteAppointmentDialogOpen(false);
         onClose();
         onDeleted?.();
-        deleteLead.mutate(leadId, {
-            onSuccess: () => showSuccess('Lead usunięty', 'Korespondencja została w skrzynce'),
-            onError: (error) => {
-                const message =
-                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-                showError('Nie udało się usunąć leada', message ?? 'Spróbuj ponownie');
-            },
-        });
+        deleteLead.mutate({ leadId, deleteAppointment });
     };
 
     if (!lead) return null;
@@ -1257,6 +1268,21 @@ export function LeadDetailModal({
                 confirmText="Usuń"
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteDialogOpen(false)}
+            />
+
+            {/* Drugie pytanie, tylko dla leada z rezerwacją. „Nie" jest pełnoprawną
+                decyzją (lead znika, termin zostaje w kalendarzu), a zamknięcie okna —
+                rezygnacją z całego usuwania, po której nie dzieje się nic. */}
+            <ChoiceModal
+                isOpen={deleteAppointmentDialogOpen}
+                title="Czy usunąć również rezerwację?"
+                message="Ten lead ma rezerwację w kalendarzu. Możesz usunąć ją razem z leadem albo zostawić jako samodzielny termin."
+                variant="danger"
+                primaryText="Tak, usuń rezerwację"
+                onPrimary={() => performDelete(true)}
+                secondaryText="Nie, zostaw termin"
+                onSecondary={() => performDelete(false)}
+                onDismiss={() => setDeleteAppointmentDialogOpen(false)}
             />
 
             {status.lostDialog}

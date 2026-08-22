@@ -121,8 +121,15 @@ export const leadsApi = {
         return data;
     },
 
-    deleteLead: async (leadId: string): Promise<void> => {
-        await apiClient.delete(`/v1/leads/${leadId}`, { skipErrorToast: true });
+    /**
+     * [deleteAppointment] = true kasuje razem z leadem jego rezerwację; false
+     * zostawia ją w kalendarzu. Decyzja pada w oknie potwierdzenia.
+     */
+    deleteLead: async (leadId: string, deleteAppointment = false): Promise<void> => {
+        await apiClient.delete(
+            `/v1/leads/${leadId}?deleteAppointment=${deleteAppointment}`,
+            { skipErrorToast: true }
+        );
     },
 
     // ── Webhooki formularzy ──────────────────────────────────────────────────
