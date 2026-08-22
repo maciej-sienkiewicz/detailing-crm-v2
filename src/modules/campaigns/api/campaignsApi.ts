@@ -1,13 +1,12 @@
 import { apiClient } from '@/core';
 import type {
-  AudienceCriteria,
   AudienceEstimate,
+  AudienceEstimateParams,
   Campaign,
   CampaignRecipient,
   CampaignRequest,
   CampaignSettings,
   CampaignStats,
-  RecipientChannel,
   RecipientStatus,
   TestSendRequest,
 } from '../types';
@@ -76,16 +75,8 @@ export async function fetchRecipients(
   return data;
 }
 
-export async function estimateAudience(
-  audience: AudienceCriteria,
-  channel: RecipientChannel,
-  smsTemplate?: string
-): Promise<AudienceEstimate> {
-  const { data } = await apiClient.post<AudienceEstimate>(`${BASE}/audience/estimate`, {
-    audience,
-    channel,
-    smsTemplate,
-  });
+export async function estimateAudience(params: AudienceEstimateParams): Promise<AudienceEstimate> {
+  const { data } = await apiClient.post<AudienceEstimate>(`${BASE}/audience/estimate`, params);
   return data;
 }
 

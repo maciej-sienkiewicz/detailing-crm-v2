@@ -13,6 +13,8 @@ import { Repeat, Send } from 'lucide-react';
 import { KIND_DESCRIPTIONS, KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '../constants';
 import type { CampaignKind, CampaignStatus } from '../types';
 
+import { PrimaryButton as PrimaryButtonBase } from '@/modules/comms/components/shared';
+
 export {
     EmptyHint,
     FilterChip,
@@ -322,10 +324,17 @@ export const TimelineItem = styled.li<{ $color: string }>`
     }
 `;
 
-/** Pole tekstowe / liczbowe w tokenach motywu — jedno na cały moduł. */
-export const TextField = styled.input`
+/**
+ * Pole tekstowe / liczbowe w tokenach motywu — jedno na cały moduł.
+ *
+ * [$invalid] to nie ozdoba, tylko odpowiedź na pytanie „dlaczego nie mogę iść
+ * dalej": czerwona ramka zapala się dopiero wtedy, gdy ktoś spróbował przejść
+ * dalej bez wypełnienia pola, i gaśnie z pierwszym wpisanym znakiem. Pole puste
+ * od początku nie jest jeszcze błędem.
+ */
+export const TextField = styled.input<{ $invalid?: boolean }>`
     padding: 9px 14px;
-    border: 1px solid ${p => p.theme.colors.border};
+    border: 1px solid ${({ $invalid, theme }) => ($invalid ? theme.colors.error : theme.colors.border)};
     border-radius: ${p => p.theme.radii.md};
     font-size: 14px;
     font-family: inherit;
@@ -334,7 +343,75 @@ export const TextField = styled.input`
     transition: border-color ${p => p.theme.transitions.fast};
 
     &::placeholder { color: ${p => p.theme.colors.textMuted}; }
-    &:focus { outline: none; border-color: ${p => p.theme.colors.primary}; }
+    &:focus {
+        outline: none;
+        border-color: ${({ $invalid, theme }) => ($invalid ? theme.colors.error : theme.colors.primary)};
+    }
+`;
+
+/**
+ * Akcja główna, która nie może jeszcze zadziałać — ale odpowiada na kliknięcie.
+ *
+ * `disabled` w HTML-u wycisza przycisk całkowicie: nie da się go kliknąć, nie da
+ * się na niego wejść tabulatorem, a przeglądarka nie mówi, czego brakuje. Ktoś,
+ * kto nie zauważył pustego pola dwa ekrany wyżej, zostaje z martwym przyciskiem
+ * i bez podpowiedzi. `aria-disabled` zachowuje komunikat „to jeszcze nie zadziała"
+ * i dla oka, i dla czytnika ekranu, a kliknięcie zostaje, żeby okno mogło zrobić
+ * jedyną sensowną rzecz: przewinąć do brakującego pola i je wskazać.
+ */
+export const GuardedButton = styled(PrimaryButtonBase)`
+    &[aria-disabled='true'] {
+        opacity: 0.45;
+        box-shadow: none;
+        background: ${p => p.theme.colors.textMuted};
+        cursor: default;
+    }
+    &[aria-disabled='true']:hover {
+        background: ${p => p.theme.colors.textMuted};
+        box-shadow: none;
+    }
+`;
+
+/**
+ * Pole wyboru odbiorcy. Natywny [input type=checkbox] przemalowany akcentem
+ * motywu — własna implementacja z div-ów traci obsługę klawiatury i czytników
+ * ekranu, a nie daje w zamian nic poza kształtem.
+ */
+export const CheckBox = styled.input.attrs({ type: 'checkbox' })`
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin: 0;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.sm};
+    background: ${p => p.theme.colors.surface};
+    cursor: pointer;
+    display: inline-grid;
+    place-content: center;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &::before {
+        content: '';
+        width: 9px;
+        height: 9px;
+        transform: scale(0);
+        transition: transform ${p => p.theme.transitions.fast};
+        background: #ffffff;
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }
+
+    &:checked, &:indeterminate {
+        background: ${p => p.theme.colors.primary};
+        border-color: ${p => p.theme.colors.primary};
+    }
+    &:checked::before { transform: scale(1); }
+    &:indeterminate::before {
+        transform: scale(1);
+        clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%);
+    }
+    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 2px; }
+    &:disabled { opacity: 0.4; cursor: default; }
 `;
 
 export const SelectField = styled.select`
