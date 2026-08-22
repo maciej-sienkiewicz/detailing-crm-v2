@@ -465,6 +465,31 @@ export interface CommMessageReadPayload {
     readSource: CommReadSource;
 }
 
+// ── Lead z formularza (mail od robota formularzy) ────────────────────────────
+
+/**
+ * Nadawca oznaczony jako formularz ze strony. Każdy mail z tego adresu przechodzi
+ * przez odczyt LLM-em i automatycznie staje się leadem — klient jest w TREŚCI
+ * maila, nie w polu nadawcy.
+ */
+export interface FormMailSource {
+    id: string;
+    senderEmail: string;
+    active: boolean;
+    createdByName: string | null;
+    createdAt: string;
+    leadCount: number;
+    lastLeadAt: string | null;
+}
+
+export interface MarkFormLeadResult {
+    sourceId: string;
+    senderEmail: string;
+    status: 'CREATED' | 'REJECTED' | 'FAILED' | 'ALREADY_PROCESSED';
+    leadId: string | null;
+    reason: string | null;
+}
+
 // ── Kontekst kontaktu w nagłówku rozmowy ─────────────────────────────────────
 
 /** Dwie liczby do plakietek: ile innych wątków i ile notatek ma ten adres. */

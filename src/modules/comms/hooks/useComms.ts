@@ -23,6 +23,7 @@ export const COMMS_INSIGHTS_KEY = [...COMMS_KEY, 'insights'];
 export const COMMS_BADGES_KEY = [...COMMS_KEY, 'contact-badges'];
 export const COMMS_NOTES_KEY = [...COMMS_KEY, 'notes'];
 export const COMMS_CONTACT_CARD_KEY = [...COMMS_KEY, 'contact-card'];
+export const COMMS_FORM_SOURCES_KEY = [...COMMS_KEY, 'form-sources'];
 
 export const useMailAccounts = (options?: { enabled?: boolean }) =>
     useQuery({
@@ -114,6 +115,39 @@ export const useContactCard = (email: string | null, options?: { enabled?: boole
         enabled: email !== null && (options?.enabled ?? true),
         staleTime: 60_000,
     });
+
+// ── Lead z formularza ────────────────────────────────────────────────────────
+
+/**
+ * Oznaczeni nadawcy-formularze. Jedna krótka lista na całą skrzynkę, z cache —
+ * czyta ją nagłówek każdej rozmowy, żeby pokazać plakietkę „Formularz".
+ */
+export const useFormMailSources = () =>
+    useQuery({
+        queryKey: COMMS_FORM_SOURCES_KEY,
+        queryFn: commsApi.getFormSources,
+        staleTime: 60_000,
+    });
+
+export const useMarkMessageAsFormLead = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (messageId: string) => commsApi.markMessageAsFormLead(messageId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: COMMS_FORM_SOURCES_KEY });
+        },
+    });
+};
+
+export const useDeactivateFormSource = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (sourceId: string) => commsApi.deactivateFormSource(sourceId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: COMMS_FORM_SOURCES_KEY });
+        },
+    });
+};
 
 export const useContactNotes = (email: string | null, options?: { enabled?: boolean }) =>
     useQuery({
