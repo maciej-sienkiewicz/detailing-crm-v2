@@ -417,7 +417,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     const navigate = useNavigate();
 
     const { awaiting } = data;
-    const total = data.wonValue + data.pipelineValue + data.lostValue;
+    const total = data.wonValue + data.pipelineValue + data.silentValue + data.lostValue;
     const wonDelta = data.wonValue - data.wonValuePrevious;
 
     return (
@@ -495,6 +495,11 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                     amount: formatMoney(data.pipelineValue),
                     raw: data.pipelineValue,
                     onClick: () => navigate('/leads'),
+                }}
+                silent={{
+                    amount: formatMoney(data.silentValue),
+                    raw: data.silentValue,
+                    onClick: () => navigate('/leads?awaiting=1'),
                 }}
                 gone={{
                     amount: formatMoney(data.lostValue),
@@ -622,8 +627,15 @@ function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }
                             tick: formatPeriodTick(point.periodStart, monthly),
                             won: point.wonValue,
                             open: point.openValue,
+                            silent: point.silentValue,
                             lost: point.lostValue,
-                            caption: `${formatPeriod(point.periodStart, monthly)}: zatrzymane ${formatMoney(point.wonValue)}, w grze ${formatMoney(point.openValue)}, stracone ${formatMoney(point.lostValue)}`,
+                            caption: [
+                                formatPeriod(point.periodStart, monthly),
+                                `zatrzymane ${formatMoney(point.wonValue)}`,
+                                point.openValue > 0 ? `w grze ${formatMoney(point.openValue)}` : null,
+                                point.silentValue > 0 ? `ucichło ${formatMoney(point.silentValue)}` : null,
+                                `stracone ${formatMoney(point.lostValue)}`,
+                            ].filter(Boolean).join(', ').replace(',', ':'),
                         }))}
                         tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
                     />
@@ -769,13 +781,15 @@ function RhythmPanel({ data }: { data: LeadAnalytics }) {
 
 function ServicesPanel({ data }: { data: LeadAnalytics }) {
     // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy —
-    // to jedno zdarzenie.
+    // to jedno zdarzenie. Kolejność przychodzi z backendu: od tych, w których
+    // wygrywamy najczęściej, bo pierwszy wiersz ma być odpowiedzią na pytanie karty.
     const categories = data.categories.filter((entry) => entry.count >= 3).slice(0, 8);
     const rated = categories.filter((entry) => entry.conversionRate !== null);
-    const best = [...rated].sort((a, b) => (b.conversionRate ?? 0) - (a.conversionRate ?? 0))[0];
-    const worst = [...rated].sort((a, b) => (a.conversionRate ?? 0) - (b.conversionRate ?? 0))[0];
+    const best = rated[0];
+    const worst = rated[rated.length - 1];
 
     return (
+        <>
         <WideCard
             question="W czym wygrywamy, w czym przegrywamy"
             answer={
@@ -802,6 +816,80 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
                             lost: entry.lost,
                             open: Math.max(0, entry.count - entry.completed - entry.lost),
                             winRate: entry.conversionRate,
+                        }))}
+                    />
+                    <WinLossLegend />
+                </>
+            )}
+        </WideCard>
+
+        {/* Dwie osie pojazdu, bo odpowiadają na dwa różne pytania. Wielkość mówi
+            o pracy: ile lakieru, ile wykrojów folii, czy auto zmieści się na
+            stanowisku. Klasa rynkowa mówi o rozmowie o cenie — właściciel Dacii
+            i właściciel Porsche mogą przyjechać tym samym kompaktem i zupełnie
+            inaczej zareagować na wycenę. */}
+        <SegmentCard
+            question="W jakich autach wygrywamy"
+            hint="Klasa marki decyduje o rozmowie o cenie."
+            rows={data.byMarketTier}
+        />
+        <SegmentCard
+            question="Jakiej wielkości auta wygrywamy"
+            hint="Wielkość decyduje o nakładzie pracy i o tym, co się zmieści na stanowisku."
+            rows={data.bySizeSegment}
+        />
+        </>
+    );
+}
+
+/**
+ * Wygrane i przegrane w jednym podziale aut.
+ *
+ * Segment z jednym rozstrzygniętym zapytaniem to nie jest wiedza o tym, w czym
+ * wygrywamy — to jedno zdarzenie, a pokazane obok segmentów z dwudziestoma
+ * wygląda na równorzędny wniosek. Próg trzech odsiewa je, nie ukrywając niczego
+ * istotnego.
+ */
+function SegmentCard({
+    question,
+    hint,
+    rows,
+}: {
+    question: string;
+    hint: string;
+    rows: LeadAnalytics['bySizeSegment'];
+}) {
+    const solid = rows.filter((row) => row.won + row.lost >= 3);
+    const best = solid.find((row) => row.winRate !== null);
+
+    return (
+        <WideCard
+            question={question}
+            answer={
+                solid.length === 0
+                    ? 'Za mało rozstrzygniętych rozmów, żeby porównać segmenty. Auta rozpoznają się same z korespondencji — wróć tu, gdy uzbiera się ich więcej.'
+                    : (
+                        <>
+                            Najlepiej idzie w segmencie <strong>{best?.label ?? '—'}</strong>{' '}
+                            ({percent(best?.winRate)}).
+                        </>
+                    )
+            }
+            footnote={solid.length > 0 ? hint : undefined}
+        >
+            {solid.length > 0 && (
+                <>
+                    <WinLossBars
+                        rows={solid.map((row) => ({
+                            key: row.code,
+                            label: row.label,
+                            note: row.averageValue
+                                ? `średnio ${formatMoney(row.averageValue)}`
+                                : undefined,
+                            won: row.won,
+                            lost: row.lost,
+                            open: Math.max(0, row.count - row.won - row.lost),
+                            winRate: row.winRate,
                         }))}
                     />
                     <WinLossLegend />

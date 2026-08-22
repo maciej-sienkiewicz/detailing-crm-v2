@@ -12,7 +12,7 @@ import styled, { css } from 'styled-components';
 import { ChevronRight } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { cardEntrance } from '@/modules/statistics/components/shared/animations';
-import { LOST, OPEN, WON } from './tokens';
+import { LOST, OPEN, SILENT, WON } from './tokens';
 
 /**
  * Wspólna powierzchnia robocza: biała karta z hairline'ową ramką, promieniem 14px
@@ -239,6 +239,16 @@ const InPlay = styled(Segment)`
 `;
 
 /**
+ * Rozmowy, które ucichły — otwarte dłużej niż klient realnie potrzebuje na decyzję.
+ * Kreskowany kontur w tej samej szarości: to wciąż brak rozstrzygnięcia, ale już
+ * nie pipeline.
+ */
+const Silent = styled(Segment)`
+    background: ${SILENT};
+    border: 1px dashed #c3ccd8;
+`;
+
+/**
  * Strata jako dziura, nie jako blok. Sam kontur z pustym środkiem czyta się jak
  * brak, a nie jak trzeci wynik — i to jest dokładnie to, czym jest.
  */
@@ -316,13 +326,22 @@ const Key = styled.div<{ $clickable?: boolean }>`
     }
 `;
 
-const Swatch = styled.i<{ $kind: 'kept' | 'play' | 'gone' }>`
+const Swatch = styled.i<{ $kind: 'kept' | 'play' | 'silent' | 'gone' }>`
     width: 10px;
     height: 10px;
     border-radius: 3px;
     flex-shrink: 0;
-    background: ${p => (p.$kind === 'kept' ? WON : p.$kind === 'play' ? OPEN : 'transparent')};
-    border: ${p => (p.$kind === 'gone' ? `1px solid ${LOST}99` : 'none')};
+    background: ${p => (
+        p.$kind === 'kept' ? WON
+        : p.$kind === 'play' ? OPEN
+        : p.$kind === 'silent' ? SILENT
+        : 'transparent'
+    )};
+    border: ${p => (
+        p.$kind === 'gone' ? `1px solid ${LOST}99`
+        : p.$kind === 'silent' ? '1px dashed #c3ccd8'
+        : 'none'
+    )};
 `;
 
 const Delta = styled.p`
@@ -335,12 +354,13 @@ interface LedgerProps {
     total: string;
     kept: { amount: string; raw: number };
     inPlay: { amount: string; raw: number; onClick?: () => void };
+    silent: { amount: string; raw: number; onClick?: () => void };
     gone: { amount: string; raw: number; onClick?: () => void };
     delta?: ReactNode;
 }
 
-export function MoneyLedger({ total, kept, inPlay, gone, delta }: LedgerProps) {
-    const sum = Math.max(1, kept.raw + inPlay.raw + gone.raw);
+export function MoneyLedger({ total, kept, inPlay, silent, gone, delta }: LedgerProps) {
+    const sum = Math.max(1, kept.raw + inPlay.raw + silent.raw + gone.raw);
     const share = (value: number) => `${(value / sum) * 100}%`;
 
     return (
@@ -357,6 +377,9 @@ export function MoneyLedger({ total, kept, inPlay, gone, delta }: LedgerProps) {
                 )}
                 {inPlay.raw > 0 && (
                     <InPlay style={{ width: share(inPlay.raw) }} title={`Wciąż w grze ${inPlay.amount}`} />
+                )}
+                {silent.raw > 0 && (
+                    <Silent style={{ width: share(silent.raw) }} title={`Ucichło ${silent.amount}`} />
                 )}
                 {gone.raw > 0 && (
                     <Gone style={{ width: share(gone.raw) }} title={`Poszło do konkurencji ${gone.amount}`} />
@@ -386,6 +409,21 @@ export function MoneyLedger({ total, kept, inPlay, gone, delta }: LedgerProps) {
                         {inPlay.onClick && <ChevronRight />}
                     </span>
                 </Key>
+                {silent.raw > 0 && (
+                    <Key
+                        as={silent.onClick ? 'button' : 'div'}
+                        type={silent.onClick ? 'button' : undefined}
+                        $clickable={Boolean(silent.onClick)}
+                        onClick={silent.onClick}
+                        style={{ flex: `1 1 ${share(silent.raw)}`, minWidth: 120 }}
+                    >
+                        <span className="name"><Swatch $kind="silent" /> Ucichło</span>
+                        <span className="amount">
+                            {silent.amount}
+                            {silent.onClick && <ChevronRight />}
+                        </span>
+                    </Key>
+                )}
                 <Key
                     as={gone.onClick ? 'button' : 'div'}
                     type={gone.onClick ? 'button' : undefined}

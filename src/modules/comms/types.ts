@@ -334,7 +334,24 @@ export interface TimelinePoint {
     /** Wartość zapytań okresu w rozbiciu na wynik — grosze. */
     wonValue: number;
     lostValue: number;
+    /** Rozmowy wciąż żywe: otwarte i młodsze niż okno decyzji. */
     openValue: number;
+    /** Otwarte, ale starsze niż okno decyzji — formalnie żywe, w praktyce ucichłe. */
+    silentValue: number;
+}
+
+/**
+ * Wygrane i przegrane w jednym segmencie aut. Dwie osie: wielkość mówi o pracy
+ * (ile lakieru, ile wykrojów folii), klasa rynkowa o rozmowie o cenie.
+ */
+export interface SegmentStat {
+    code: string;
+    label: string;
+    count: number;
+    won: number;
+    lost: number;
+    winRate: number | null;
+    averageValue: number | null;
 }
 
 /**
@@ -384,6 +401,8 @@ export interface LeadAnalytics {
     wonValue: number;
     lostValue: number;
     pipelineValue: number;
+    /** Otwarte, ale starsze niż okno decyzji — osobno, bo to już nie jest pipeline. */
+    silentValue: number;
     categories: LeadCategoryStat[];
     lostReasons: {
         code: string;
@@ -400,6 +419,8 @@ export interface LeadAnalytics {
     vehicleOutliers: VehicleOutlier[];
     timeline: TimelinePoint[];
     weekdayMatrix: WeekdayMatrixRow[];
+    bySizeSegment: SegmentStat[];
+    byMarketTier: SegmentStat[];
     bySource: LeadSourceStat[];
     awaiting: AwaitingWork;
     leaks: Leak[];

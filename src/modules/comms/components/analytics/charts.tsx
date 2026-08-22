@@ -16,7 +16,7 @@ import { Fragment, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { cardEntrance } from '@/modules/statistics/components/shared/animations';
-import { LOST, MAGNITUDE, MUTED_COLUMN, OPEN, TRACK, WON, percent } from './tokens';
+import { LOST, MAGNITUDE, MUTED_COLUMN, OPEN, SILENT, TRACK, WON, percent } from './tokens';
 
 // ── Karta z pytaniem i odpowiedzią ──────────────────────────────────────────
 
@@ -64,10 +64,18 @@ const CardHead = styled.header`
     strong { font-weight: ${p => p.theme.fontWeights.bold}; }
 `;
 
+/*
+ * `&&` podbija swoistość: w nagłówku karty stoi reguła `CardHead p`, która jest
+ * bardziej swoista niż zwykła klasa i nadpisywała przypisowi rozmiar oraz kolor
+ * odpowiedzi. Przypis, który wygląda jak odpowiedź, przestaje być przypisem.
+ */
 const Hint = styled.p`
-    margin: 0;
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textMuted};
+    && {
+        margin: 0;
+        font-size: 12.5px;
+        font-weight: ${p => p.theme.fontWeights.normal};
+        color: ${st.textMuted};
+    }
 `;
 
 interface AnalyticsCardProps {
@@ -380,10 +388,27 @@ const BarRow = styled.div`
     color: ${p => p.theme.colors.textSecondary};
 
     .name {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+        color: ${p => p.theme.colors.text};
+    }
+    .name b {
+        font-weight: ${p => p.theme.fontWeights.medium};
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: ${p => p.theme.colors.text};
+    }
+    /* Dopisek pod nazwą, nie w nawiasie obok: w wąskiej kolumnie nawias ucinał
+       się wielokropkiem i znikała dokładnie ta liczba, dla której go dodano. */
+    .name small {
+        font-size: 11px;
+        color: ${st.textMuted};
+        font-variant-numeric: tabular-nums;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .meta {
         text-align: right;
@@ -484,6 +509,8 @@ interface WinLossBarsProps {
     rows: {
         key: string;
         label: string;
+        /** Dopisek pod nazwą — u nas średnia wycena segmentu. */
+        note?: string;
         won: number;
         lost: number;
         open: number;
@@ -507,7 +534,10 @@ export function WinLossBars({ rows }: WinLossBarsProps) {
                 const scale = (value: number) => `${(value / max) * 100}%`;
                 return (
                     <BarRow key={row.key}>
-                        <span className="name" title={row.label}>{row.label}</span>
+                        <span className="name" title={row.label}>
+                            <b>{row.label}</b>
+                            {row.note && <small>{row.note}</small>}
+                        </span>
                         <SplitTrack
                             title={`${row.label}: ${row.won} wygranych, ${row.lost} przegranych, ${row.open} w toku`}
                             style={{ width: total === 0 ? 0 : undefined }}
@@ -703,15 +733,24 @@ const StackSlot = styled.div`
  * na części. Szczelina 2px zostaje: bez niej granica gubi się dokładnie tam,
  * gdzie siedzi treść.
  */
-const StackPiece = styled.div<{ $kind: 'won' | 'open' | 'lost'; $top: boolean; $bottom: boolean }>`
+const StackPiece = styled.div<{
+    $kind: 'won' | 'open' | 'silent' | 'lost';
+    $top: boolean;
+    $bottom: boolean;
+}>`
     width: 100%;
     border-radius: ${p => `${p.$top ? '5px 5px' : '0 0'} ${p.$bottom ? '5px 5px' : '0 0'}`};
-    background: ${p => (p.$kind === 'won'
-        ? `linear-gradient(180deg, #3b82f6 0%, ${WON} 100%)`
-        : p.$kind === 'open'
-            ? `linear-gradient(180deg, #dbe3ee 0%, ${OPEN} 100%)`
-            : 'transparent')};
-    border: ${p => (p.$kind === 'lost' ? `1px solid ${LOST}66` : 'none')};
+    background: ${p => (
+        p.$kind === 'won' ? `linear-gradient(180deg, #3b82f6 0%, ${WON} 100%)`
+        : p.$kind === 'open' ? `linear-gradient(180deg, #dbe3ee 0%, ${OPEN} 100%)`
+        : p.$kind === 'silent' ? SILENT
+        : 'transparent'
+    )};
+    border: ${p => (
+        p.$kind === 'lost' ? `1px solid ${LOST}66`
+        : p.$kind === 'silent' ? '1px dashed #c3ccd8'
+        : 'none'
+    )};
     ${p => p.$kind === 'lost' && `background: repeating-linear-gradient(135deg, ${LOST}0d, ${LOST}0d 5px, ${LOST}26 5px, ${LOST}26 8px);`}
 `;
 
@@ -727,6 +766,7 @@ export function MoneyLegend() {
         <Legend>
             <span><i style={{ background: `linear-gradient(180deg, #3b82f6, ${WON})` }} /> zatrzymane</span>
             <span><i style={{ background: OPEN }} /> w grze</span>
+            <span><i style={{ background: SILENT, border: '1px dashed #c3ccd8' }} /> ucichło</span>
             <span>
                 <i style={{
                     background: `repeating-linear-gradient(135deg, ${LOST}0d, ${LOST}0d 3px, ${LOST}40 3px, ${LOST}40 5px)`,
@@ -742,6 +782,7 @@ export interface MoneyColumn {
     tick: string;
     won: number;
     open: number;
+    silent: number;
     lost: number;
     caption: string;
 }
@@ -764,7 +805,7 @@ interface MoneyColumnsProps {
  */
 export function MoneyColumns({ columns, height = 170, tickEvery = 1 }: MoneyColumnsProps) {
     const [hovered, setHovered] = useState<number | null>(null);
-    const max = Math.max(1, ...columns.map(c => c.won + c.open + c.lost));
+    const max = Math.max(1, ...columns.map(c => c.won + c.open + c.silent + c.lost));
     // Minimum trzech pikseli na niezerowy kawałek: kwota, która jest, musi być
     // widoczna, ale zero ma zostać zerem.
     const piece = (value: number) => (value === 0 ? 0 : Math.max(3, (value / max) * height));
@@ -790,14 +831,22 @@ export function MoneyColumns({ columns, height = 170, tickEvery = 1 }: MoneyColu
                             <StackPiece
                                 $kind="lost"
                                 $top
-                                $bottom={column.open === 0 && column.won === 0}
+                                $bottom={column.silent === 0 && column.open === 0 && column.won === 0}
                                 style={{ height: piece(column.lost) }}
+                            />
+                        )}
+                        {column.silent > 0 && (
+                            <StackPiece
+                                $kind="silent"
+                                $top={column.lost === 0}
+                                $bottom={column.open === 0 && column.won === 0}
+                                style={{ height: piece(column.silent) }}
                             />
                         )}
                         {column.open > 0 && (
                             <StackPiece
                                 $kind="open"
-                                $top={column.lost === 0}
+                                $top={column.lost === 0 && column.silent === 0}
                                 $bottom={column.won === 0}
                                 style={{ height: piece(column.open) }}
                             />
@@ -805,7 +854,7 @@ export function MoneyColumns({ columns, height = 170, tickEvery = 1 }: MoneyColu
                         {column.won > 0 && (
                             <StackPiece
                                 $kind="won"
-                                $top={column.lost === 0 && column.open === 0}
+                                $top={column.lost === 0 && column.silent === 0 && column.open === 0}
                                 $bottom
                                 style={{ height: piece(column.won) }}
                             />

@@ -22,17 +22,36 @@ const isoDay = (base: Date, offsetDays: number): string => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-/** [won, open, lost, created, winRate] dla ośmiu kolejnych tygodni. */
-const WEEKS: [number, number, number, number, number | null][] = [
-    [820000, 1240000, 1960000, 11, 0.42],
-    [1460000, 980000, 1180000, 14, 0.58],
-    [640000, 1720000, 2340000, 9, 0.31],
-    [2180000, 1130000, 1420000, 16, 0.63],
-    [1290000, 1640000, 2870000, 12, 0.44],
-    [2740000, 890000, 1060000, 18, 0.72],
-    [1930000, 2310000, 1480000, 15, 0.57],
-    [1520000, 3180000, 940000, 13, 0.61],
+/**
+ * [won, open, silent, lost, created, winRate] dla ośmiu kolejnych tygodni.
+ *
+ * Rozmowy „w grze" pojawiają się WYŁĄCZNIE w dwóch ostatnich tygodniach, bo tyle
+ * realnie trwa decyzja o detailingu: kto pyta o mycie, decyduje w dzień, kto
+ * o powłokę — po obejrzeniu auta i jednej rozmowie o cenie. Otwarte zapytanie
+ * sprzed miesiąca nie jest pipeline'em, tylko czymś, czego nikt nie zamknął;
+ * w starszych tygodniach stoi więc w kolumnie „ucichło", i to w małych kwotach,
+ * bo to ma być wyjątek, a nie reguła.
+ */
+const WEEKS: [number, number, number, number, number, number | null][] = [
+    [820000, 0, 190000, 1960000, 11, 0.42],
+    [1460000, 0, 0, 1180000, 14, 0.58],
+    [640000, 0, 320000, 2340000, 9, 0.31],
+    [2180000, 0, 0, 1420000, 16, 0.63],
+    [1290000, 0, 240000, 2870000, 12, 0.44],
+    [2740000, 0, 0, 1060000, 18, 0.72],
+    [1930000, 0, 0, 1120000, 15, 0.57],
+    [1520000, 0, 0, 480000, 13, 0.61],
 ];
+
+/**
+ * Pieniądze wciąż w grze, doklejane do DWÓCH OSTATNICH tygodni wybranego zakresu —
+ * bez względu na to, ile ich w nim jest.
+ *
+ * Wpisanie ich na sztywno w ostatnie wiersze tablicy wywracało się przy krótszym
+ * zakresie: miesięczny wykres brał cztery pierwsze tygodnie i nie miał ani złotówki
+ * w grze, co jest odwrotnością prawdy — w grze są zawsze te najświeższe rozmowy.
+ */
+const OPEN_TAIL: [number, number] = [1840000, 4260000];
 
 /**
  * Pełny komplet danych analitycznych do trybu pokazowego.
@@ -46,14 +65,17 @@ const WEEKS: [number, number, number, number, number | null][] = [
 export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
     const weeksInPeriod = Math.floor((to.getTime() - from.getTime()) / (7 * 24 * 3600 * 1000)) + 1;
     const weeks = WEEKS.slice(0, Math.min(WEEKS.length, Math.max(4, weeksInPeriod)));
-    const timeline = weeks.map(([wonValue, openValue, lostValue, created, winRate], index) => ({
+    const timeline = weeks.map(([wonValue, , silentValue, lostValue, created, winRate], index) => ({
         periodStart: isoDay(from, index * 7),
         created,
         won: Math.round(created * (winRate ?? 0) * 0.6),
         lost: Math.round(created * (1 - (winRate ?? 0)) * 0.5),
         winRate,
         wonValue,
-        openValue,
+        openValue: index === weeks.length - 1
+            ? OPEN_TAIL[1]
+            : index === weeks.length - 2 ? OPEN_TAIL[0] : 0,
+        silentValue,
         lostValue,
     }));
 
@@ -65,8 +87,10 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
         conversionRate: 0.53,
 
         wonValue: 12580000,
-        lostValue: 13250000,
-        pipelineValue: 13090000,
+        lostValue: 12430000,
+        // Tylko dwa ostatnie tygodnie: dłużej otwarte rozmowy stoją w „ucichło".
+        pipelineValue: 6100000,
+        silentValue: 750000,
         wonValuePrevious: 10940000,
         confirmedValueThisWeek: 486000,
 
@@ -85,25 +109,31 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
         // Największa pozycja to cena, ale zaraz za nią cisza — i to ona jest tu
         // pointą przykładu: da się ją naprawić w tym tygodniu i za zero złotych.
         leaks: [
-            { code: 'PRICE', label: 'Za drogo', value: 5820000, count: 12 },
-            { code: 'NO_REPLY', label: 'Nikt nie odpisał', value: 3960000, count: 8 },
-            { code: 'SLOT', label: 'Brak terminu', value: 2310000, count: 6 },
-            { code: 'UNKNOWN', label: 'Bez podanego powodu', value: 1160000, count: 5 },
+            { code: 'TOO_EXPENSIVE', label: 'Za drogo', value: 4180000, count: 11 },
+            { code: 'NO_REPLY', label: 'Nikt nie odpisał', value: 2960000, count: 6 },
+            { code: 'NO_AVAILABILITY', label: 'Brak wolnego terminu', value: 2310000, count: 5 },
+            { code: 'CHOSE_COMPETITOR', label: 'Wybrał konkurencję', value: 1240000, count: 4 },
+            { code: 'SILENT', label: 'Rozmowa ucichła', value: 750000, count: 3 },
+            { code: 'TOO_FAR', label: 'Za daleko od studia', value: 620000, count: 3 },
+            { code: 'UNKNOWN', label: 'Bez podanego powodu', value: 380000, count: 2 },
         ],
 
+        // Posortowane jak z backendu: od tych, w których wygrywamy najczęściej.
         categories: [
-            { code: 'ppf', label: 'Folia ochronna PPF', count: 13, completed: 5, lost: 4, conversionRate: 0.56 },
             { code: 'cer', label: 'Powłoka ceramiczna', count: 24, completed: 15, lost: 5, conversionRate: 0.75 },
+            { code: 'ppf', label: 'Folia ochronna PPF', count: 13, completed: 5, lost: 4, conversionRate: 0.56 },
             { code: 'kor', label: 'Korekta lakieru', count: 21, completed: 9, lost: 8, conversionRate: 0.53 },
-            { code: 'tap', label: 'Pranie tapicerki', count: 22, completed: 6, lost: 12, conversionRate: 0.33 },
-            { code: 'myc', label: 'Mycie detailingowe', count: 28, completed: 8, lost: 14, conversionRate: 0.36 },
+            { code: 'myc', label: 'Mycie i pielęgnacja', count: 28, completed: 8, lost: 14, conversionRate: 0.36 },
+            { code: 'wnt', label: 'Detailing wnętrza', count: 22, completed: 6, lost: 12, conversionRate: 0.33 },
         ],
 
         lostReasons: [
-            { code: 'PRICE', label: 'Za drogo', count: 12, share: 0.39 },
-            { code: 'NO_REPLY', label: 'Nikt nie odpisał', count: 8, share: 0.26 },
-            { code: 'SLOT', label: 'Brak terminu', count: 6, share: 0.19 },
-            { code: 'OTHER', label: 'Inny powód', count: 5, share: 0.16 },
+            { code: 'TOO_EXPENSIVE', label: 'Za drogo', count: 11, share: 0.35 },
+            { code: 'NO_RESPONSE', label: 'Klient przestał odpowiadać', count: 7, share: 0.23 },
+            { code: 'NO_AVAILABILITY', label: 'Brak wolnego terminu', count: 5, share: 0.16 },
+            { code: 'CHOSE_COMPETITOR', label: 'Wybrał konkurencję', count: 4, share: 0.13 },
+            { code: 'TOO_FAR', label: 'Za daleko od studia', count: 3, share: 0.10 },
+            { code: 'OTHER', label: 'Inny powód', count: 1, share: 0.03 },
         ],
 
         medianFirstResponseMinutes: 143,
@@ -113,14 +143,29 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
         decisionsByWeekday: [5, 8, 6, 12, 9, 3, 1].map((count, index) => ({ weekday: index + 1, count })),
         inquiriesByMonthDay: Array.from({ length: 31 }, (_, index) => ({ day: index + 1, count: 0 })),
 
-        // Przekątna od lewego dołu do prawej góry: tanie w poniedziałki, drogie
-        // w soboty. To jest ten odczyt, dla którego macierz w ogóle istnieje.
+        /*
+         * Rytm tygodnia odwzorowuje sposób, w jaki ludzie realnie planują:
+         *
+         * • FOLIA PPF i POWŁOKA CERAMICZNA — piątek i sobota. To decyzja na kilka
+         *   tysięcy, przy nowym aucie, podejmowana wtedy, gdy właściciel ma czas
+         *   usiąść, przeczytać wycenę i pogadać. W środku tygodnia takich rozmów
+         *   po prostu nie ma kto prowadzić.
+         * • KOREKTA LAKIERU — rozłożona równo. Bierze się z niezadowolenia ze stanu
+         *   lakieru, a to nie ma dnia tygodnia; człowiek pisze wtedy, kiedy zauważy.
+         * • DETAILING WNĘTRZA — poniedziałek i wtorek. Bezpośrednia konsekwencja
+         *   weekendu: dzieci, pies, wyjazd, rozlana kawa w niedzielę.
+         * • MYCIE I PIELĘGNACJA — poniedziałek oraz czwartek/piątek. Dwie różne
+         *   sprawy: sprzątanie po weekendzie i przygotowanie auta na nadchodzący.
+         *
+         * Efekt uboczny jest tu treścią: przekątna od lewego dołu do prawej góry.
+         * Tanie usługi na początku tygodnia, drogie pod weekend.
+         */
         weekdayMatrix: [
-            { code: 'ppf', label: 'Folia ochronna PPF', averageValue: 984000, counts: [0, 1, 0, 2, 3, 6, 1], total: 13 },
-            { code: 'cer', label: 'Powłoka ceramiczna', averageValue: 421000, counts: [1, 2, 2, 4, 5, 8, 2], total: 24 },
-            { code: 'kor', label: 'Korekta lakieru', averageValue: 186000, counts: [4, 4, 3, 3, 3, 3, 1], total: 21 },
-            { code: 'tap', label: 'Pranie tapicerki', averageValue: 61000, counts: [7, 5, 4, 3, 2, 1, 0], total: 22 },
-            { code: 'myc', label: 'Mycie detailingowe', averageValue: 28000, counts: [10, 7, 6, 3, 2, 0, 0], total: 28 },
+            { code: 'ppf', label: 'Folia ochronna PPF', averageValue: 984000, counts: [0, 1, 1, 2, 4, 5, 0], total: 13 },
+            { code: 'cer', label: 'Powłoka ceramiczna', averageValue: 421000, counts: [1, 2, 2, 4, 7, 7, 1], total: 24 },
+            { code: 'kor', label: 'Korekta lakieru', averageValue: 186000, counts: [3, 3, 3, 4, 3, 4, 1], total: 21 },
+            { code: 'myc', label: 'Mycie i pielęgnacja', averageValue: 34000, counts: [8, 3, 2, 6, 7, 2, 0], total: 28 },
+            { code: 'wnt', label: 'Detailing wnętrza', averageValue: 61000, counts: [8, 6, 3, 2, 2, 1, 0], total: 22 },
         ],
 
         responseImpact: {
@@ -135,6 +180,27 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
             fastWinRate: 0.67,
             slowWinRate: 0.17,
         },
+
+        /*
+         * Dwie osie pojazdu. Premium wygrywa najczęściej nie dlatego, że klienci
+         * są bogatsi, tylko dlatego, że przychodzą po konkretną usługę i porównują
+         * ją z ceną serwisu autoryzowanego — a nie z myjnią za rogiem. Budżetowe
+         * przegrywają na cenie i to jest normalne, nie do naprawienia.
+         */
+        byMarketTier: [
+            { code: 'PREMIUM', label: 'Premium', count: 38, won: 21, lost: 8, winRate: 0.72, averageValue: 486000 },
+            { code: 'LUXURY', label: 'Luksusowe', count: 6, won: 3, lost: 2, winRate: 0.60, averageValue: 1240000 },
+            { code: 'MAINSTREAM', label: 'Popularne', count: 48, won: 17, lost: 19, winRate: 0.47, averageValue: 172000 },
+            { code: 'BUDGET', label: 'Budżetowe', count: 16, won: 3, lost: 11, winRate: 0.21, averageValue: 68000 },
+        ],
+        bySizeSegment: [
+            { code: 'SPORT', label: 'Sportowe', count: 7, won: 4, lost: 1, winRate: 0.80, averageValue: 892000 },
+            { code: 'SUV', label: 'SUV / crossover', count: 31, won: 15, lost: 7, winRate: 0.68, averageValue: 412000 },
+            { code: 'E', label: 'Klasa wyższa (E)', count: 14, won: 6, lost: 4, winRate: 0.60, averageValue: 524000 },
+            { code: 'D', label: 'Klasa średnia (D)', count: 26, won: 10, lost: 9, winRate: 0.53, averageValue: 248000 },
+            { code: 'C', label: 'Kompakt (C)', count: 22, won: 7, lost: 12, winRate: 0.37, averageValue: 138000 },
+            { code: 'B', label: 'Małe (B)', count: 8, won: 2, lost: 5, winRate: 0.29, averageValue: 74000 },
+        ],
 
         vehicleOutliers: [
             { label: 'Porsche', count: 9, won: 6, closed: 7, winRate: 0.86, direction: 'ABOVE' },
