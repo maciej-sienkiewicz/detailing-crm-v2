@@ -12,6 +12,15 @@ export interface MailAccountState {
     status: MailAccountStatus;
     lastError: string | null;
     lastSyncAt: string | null;
+    /**
+     * Skrzynka nie domknęła jeszcze pierwszego pełnego przebiegu synchronizacji —
+     * pierwszy import trwa albo zaraz wystartuje. Widoki poczty i leadów pokazują
+     * wtedy stan „trwa synchronizacja" zamiast list rosnących z sekundy na sekundę.
+     */
+    initialSyncInProgress: boolean;
+    /** Postęp bieżącego importu; null, gdy przebieg akurat nie trwa. */
+    syncTotal: number | null;
+    syncProcessed: number | null;
 }
 
 export interface ProviderDetectResult {

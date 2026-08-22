@@ -30,6 +30,7 @@ import { commsApi } from '../api/commsApi';
 import {
     useContactInsights,
     useMailAccounts,
+    useMailboxSyncState,
     useMarkThreadRead,
     usePrefetchThread,
     useSetThreadArchived,
@@ -39,6 +40,7 @@ import {
 } from '../hooks/useComms';
 import type { CommThread } from '../types';
 import { ConversationView } from '../components/ConversationView';
+import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import {
     EmptyHint,
@@ -311,6 +313,7 @@ export default function MailView() {
     );
 
     const { data: accounts } = useMailAccounts();
+    const mailboxSync = useMailboxSyncState();
     const prefetchThread = usePrefetchThread();
     const filters = useMemo(
         () => ({
@@ -385,6 +388,20 @@ export default function MailView() {
     // inaczej kolumny znikałyby i wracały przy każdym przełączeniu wątku.
     const conversationOpen = Boolean(selectedThreadId);
     const fullMessage = openMessages?.find((message) => message.id === fullMessageId) ?? null;
+
+    // Pierwsza synchronizacja w toku: jeden spokojny ekran zamiast listy, która
+    // rośnie z sekundy na sekundę, i lawiny powiadomień. Stan sprawdzamy PRZED
+    // renderem list — połowicznie zsynchronizowana skrzynka wygląda jak zepsuta,
+    // nie jak niepełna.
+    if (mailboxSync.syncing) {
+        return (
+            <Screen>
+                <AppCard>
+                    <MailboxSyncPanel />
+                </AppCard>
+            </Screen>
+        );
+    }
 
     if (accounts && accountsConnected.length === 0) {
         return (
