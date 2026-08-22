@@ -76,21 +76,22 @@ export const useLeadDictionaries = () =>
     });
 
 /**
- * Analityka za ostatnie [days] dni.
+ * Analityka za wskazany okres.
  *
- * Granicę okna liczy queryFn, a nie komponent. Data policzona w trakcie renderu
- * zmieniałaby się co milisekundę, więc razem z nią zmieniałby się klucz zapytania:
- * każdy przerysowanie widoku byłoby nowym zapytaniem, a pamięć podręczna nie
- * trafiałaby nigdy. Klucz stoi na liczbie dni, która jest stabilna.
+ * Granice przychodzą gotowe z widoku i są zaokrąglone do dnia, więc klucz
+ * zapytania jest stabilny. Wcześniej data liczyła się w trakcie renderu i
+ * zmieniała co milisekundę razem z kluczem — każde przerysowanie widoku było
+ * nowym zapytaniem, a pamięć podręczna nie trafiała nigdy.
  */
-export const useLeadAnalytics = (days: number) =>
-    useQuery({
-        queryKey: [...LEAD_ANALYTICS_KEY, days],
-        queryFn: () => leadsApi.getAnalytics(
-            new Date(Date.now() - days * 24 * 3600 * 1000).toISOString()
-        ),
+export const useLeadAnalytics = (from: Date, to: Date) => {
+    const fromIso = from.toISOString();
+    const toIso = to.toISOString();
+    return useQuery({
+        queryKey: [...LEAD_ANALYTICS_KEY, fromIso, toIso],
+        queryFn: () => leadsApi.getAnalytics(fromIso, toIso),
         staleTime: 5 * 60_000,
     });
+};
 
 /** Liczba nowych leadów — plakietka w menu bocznym. */
 export const useNewLeadsCount = (options?: { enabled?: boolean }): number => {

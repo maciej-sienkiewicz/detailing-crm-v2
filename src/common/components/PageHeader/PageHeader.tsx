@@ -64,7 +64,9 @@ const HeroHeading = styled.h1`
 const HeroSubtitle = styled.div`
   margin: 0;
   font-size: 14px;
-  color: #475569;
+  /* slate-400, nie slate-600: na granatowym tle nagłówka ciemniejszy odcień dawał
+     kontrast ~2:1 i podtytuł był praktycznie niewidoczny. Teraz ~5:1. */
+  color: #94a3b8;
   font-weight: 500;
   display: flex;
   align-items: center;

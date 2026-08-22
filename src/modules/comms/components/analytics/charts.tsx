@@ -14,22 +14,27 @@
 // • Cienkie znaki, zaokrąglone końce, wygaszona siatka. Grube nasycone bloki krzyczą.
 import { useState, type ReactNode } from 'react';
 import styled from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { cardEntrance } from '@/modules/statistics/components/shared/animations';
 import { LOST, MAGNITUDE, MUTED_COLUMN, OPEN, TRACK, WON, percent } from './tokens';
 
 // ── Karta z pytaniem i odpowiedzią ──────────────────────────────────────────
 
+/** Ta sama karta co w module statystyk — użytkownik ma czuć jedną aplikację. */
 const CardBox = styled.section`
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 18px 20px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    padding: 22px 24px;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
+    ${cardEntrance}
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 14px 14px 16px;
+        padding: 18px 16px;
     }
 `;
 
@@ -40,11 +45,11 @@ const CardHead = styled.header`
 
     h3 {
         margin: 0;
-        font-size: 11px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        letter-spacing: 0.06em;
+        font-size: ${st.fontXs};
+        font-weight: 700;
+        letter-spacing: 0.6px;
         text-transform: uppercase;
-        color: ${p => p.theme.colors.textMuted};
+        color: ${st.textMuted};
     }
 
     /* Odpowiedź, nie podtytuł: to jest treść karty, wykres jest przypisem. */
@@ -258,8 +263,11 @@ const RateLabel = styled.div`
     display: flex;
     justify-content: space-between;
     font-size: 10.5px;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textMuted};
     margin-bottom: 4px;
+
+    /* Podpis skali stoi przy górnej linii odniesienia, bo to ona znaczy 100%. */
+    span:last-child { font-variant-numeric: tabular-nums; }
 `;
 
 interface RateLineProps {
@@ -307,10 +315,12 @@ export function RateLine({ points, height = 56 }: RateLineProps) {
                     {/* Dwie linie odniesienia: 100% u góry i 0% u dołu. Bez górnej
                         podpis „100%" nie ma się o co zaczepić i wysokość punktu
                         pozostaje nie do odczytania. */}
-                    <line x1="0" y1="0" x2={width} y2="0" stroke={TRACK} strokeWidth="1"
+                    <line x1="0" y1="0.5" x2={width} y2="0.5" stroke={st.border} strokeWidth="1"
                           vectorEffect="non-scaling-stroke" />
-                    <line x1="0" y1={height} x2={width} y2={height} stroke={TRACK} strokeWidth="1"
-                          vectorEffect="non-scaling-stroke" />
+                    <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke={st.border}
+                          strokeWidth="1" strokeDasharray="2 4" vectorEffect="non-scaling-stroke" />
+                    <line x1="0" y1={height - 0.5} x2={width} y2={height - 0.5} stroke={st.border}
+                          strokeWidth="1" vectorEffect="non-scaling-stroke" />
                     {segments.map((segment) => (
                         <polyline
                             key={segment}
