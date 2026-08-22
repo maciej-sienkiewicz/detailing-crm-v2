@@ -20,11 +20,29 @@
 // Kolor niesie znaczenie i nic poza tym: etap leada, pilność odpowiedzi, akcja
 // główna. Kwota jest dominantą przez rozmiar, nie przez barwę — liczba pieniędzy
 // pomalowana na kolor wygląda jak ostrzeżenie, a nie jak fakt.
+//
+// Akcja główna jest jedna i wynika ze stanu leada, a nie z tego, gdzie akurat
+// stoi przycisk. Lead z zaległą odpowiedzią woła „odpisz", lead wyceniony bez
+// terminu — „umów", lead z rezerwacją — „zobacz termin". Stały przycisk w rogu
+// zostawiałby rozpoznanie właściwego ruchu użytkownikowi, a to jest dokładnie
+// ta praca, którą ma wykonać za niego okno. Reszta dróg (kartoteka, telefon,
+// wizyta) stoi przy swoim obiekcie, nie w stopce: stopka z pięcioma równymi
+// przyciskami nie podpowiada niczego.
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { CalendarPlus, Car, Loader2, MessageSquare, Trash2 } from 'lucide-react';
-import { Badge } from '@/common/components/Badge';
+import {
+    CalendarCheck,
+    CalendarPlus,
+    Car,
+    ExternalLink,
+    Loader2,
+    MessageSquare,
+    Phone,
+    Send,
+    Trash2,
+    UserRound,
+} from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
     CloseBtn,
@@ -44,6 +62,7 @@ import { useToast } from '@/common/components/Toast';
 import {
     useDeleteLead,
     useLead,
+    useLeadAppointment,
     useLeadHistory,
     useUpdateLeadServices,
     useUpdateLeadVehicle,
@@ -52,7 +71,7 @@ import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { useContactCard } from '../hooks/useComms';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
-import { CLOSED_STATUSES, formatVehicle } from '../utils/leadFormat';
+import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
 import { describeReplyState, leadReplyTone, type ReplyTone } from '../utils/leadReply';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadServiceItemInput } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
@@ -276,6 +295,51 @@ const LostNote = styled.div`
     strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
 `;
 
+/**
+ * Potwierdzenie terminu — bliźniak [LostNote], tylko po drugiej stronie wyniku.
+ * Rezerwacja jest tym, po co ten lead w ogóle istniał, więc gdy już jest, musi
+ * być widoczna nad wszystkim innym, a nie tylko domyślna z etapu „Rezerwacja".
+ */
+const BookedNote = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: ${p => p.theme.colors.success};
+    background: ${p => p.theme.colors.successLight};
+    border: 1px solid ${p => p.theme.colors.success}33;
+    border-radius: ${p => p.theme.radii.md};
+    padding: 9px 12px;
+
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .spacer { flex: 1; }
+`;
+
+/**
+ * Droga do innego rekordu — kartoteka klienta, wizyta, kalendarz. Odnośnik
+ * tekstowy, nie przycisk: nawigacja nie jest akcją na leadzie i nie ma prawa
+ * konkurować wagą z „umów" ani „odpisz". Wcześniej stała tu plakietka udająca
+ * przycisk, co psuło jedno i drugie — plakietka przestaje znaczyć „stan",
+ * a odnośnik i tak nie wygląda na klikalny.
+ */
+const QuietLink = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-size: 12.5px;
+    color: ${p => p.theme.colors.primary};
+    cursor: pointer;
+
+    svg { width: 13px; height: 13px; }
+    &:hover { text-decoration: underline; }
+`;
+
 const ModalBody = styled.div`
     display: flex;
     flex-direction: column;
@@ -468,9 +532,9 @@ export interface LeadDetailModalProps {
     /** Otworzyć od razu edytor wyceny — wejście „kliknięto wartość w tabeli". */
     openServicesEditor?: boolean;
     /**
-     * Odnośnik do korespondencji w nagłówku. Wyłączany tam, gdzie okno otwarto
-     * właśnie z tej korespondencji: przycisk prowadzący w miejsce, w którym się stoi,
-     * to nie skrót, tylko zagadka.
+     * Droga do korespondencji („Odpisz klientowi" / „Napisz wiadomość"). Wyłączana
+     * tam, gdzie okno otwarto właśnie z tej korespondencji: przycisk prowadzący
+     * w miejsce, w którym się stoi, to nie skrót, tylko zagadka.
      */
     showThreadLink?: boolean;
     /** Wywoływane po usunięciu leada — okno jest wtedy już zamknięte. */
@@ -484,8 +548,11 @@ export function LeadDetailModal({
     showThreadLink = true,
     onDeleted,
 }: LeadDetailModalProps) {
+    const navigate = useNavigate();
     const { data: lead } = useLead(leadId);
     const { data: history } = useLeadHistory(leadId);
+    // Termin rezerwacji dobierany osobno — lead niesie samo `appointmentId`.
+    const { data: appointment } = useLeadAppointment(lead?.appointmentId ?? null);
     // null = podgląd, tablica = otwarty edytor wyceny (ten sam co przy przyjęciu auta).
     const [editingServices, setEditingServices] = useState<ServiceLineItem[] | null>(null);
     // null = podgląd, obiekt = edycja pojazdu. Marka i model wybierane z katalogu,
@@ -576,6 +643,24 @@ export function LeadDetailModal({
     const reply = closed || lead.replyState === 'NO_CONVERSATION' || !lead.waitingSince
         ? null
         : describeReplyState(lead.replyState, lead.waitingSince);
+    const appointmentAt = appointment?.schedule?.startDateTime ?? null;
+    /** Wątek istnieje i nie stoimy właśnie w nim. */
+    const canWrite = showThreadLink && Boolean(lead.threadId);
+    const phone = lead.source === 'PHONE' ? lead.contactIdentifier : contactCard?.customer?.phone ?? null;
+    const openThread = () => navigate(`/communication?thread=${lead.threadId}`);
+    /**
+     * Kalendarz nie ma trasy per rezerwacja: skacze się do niego z datą, żeby
+     * najpierw trafił w odpowiedni miesiąc, a potem podświetlił wydarzenie.
+     * Ten sam kontrakt co w kanale aktywności i na pulpicie.
+     */
+    const openAppointment = () => navigate('/calendar', {
+        state: {
+            highlightEventId: lead.appointmentId,
+            highlightDate: appointmentAt ?? '',
+            openEventPopover: true,
+        },
+    });
+
     const quoteRows = toQuoteRows(lead.services);
     const quoteTotal = (pick: (row: typeof quoteRows[number]) => number) =>
         quoteRows.reduce((total, row) => total + pick(row), 0);
@@ -604,14 +689,20 @@ export function LeadDetailModal({
                 <ModalHeader>
                     <ModalTitleGroup>
                         <ModalTitle>{lead.customerName ?? lead.contactIdentifier}</ModalTitle>
+                        {/* Drogi do innych rekordów stoją przy tożsamości klienta,
+                            bo dotyczą klienta, a nie leada — w stopce konkurowałyby
+                            wagą z jedyną akcją, która ma tam stać. */}
                         <LeadIdentity>
                             <LeadSourceIcon source={lead.source} />
                             {lead.contactIdentifier}
-                            {showThreadLink && lead.threadId && (
-                                <Link to={`/communication?thread=${lead.threadId}`}>
-                                    <Badge $variant="info" style={{ cursor: 'pointer' }}>
-                                        Zobacz korespondencję
-                                    </Badge>
+                            {phone && (
+                                <QuietLink as="a" href={`tel:${phone.replace(/\s/g, '')}`}>
+                                    <Phone /> Zadzwoń
+                                </QuietLink>
+                            )}
+                            {lead.customerId && (
+                                <Link to={`/customers/${lead.customerId}`}>
+                                    <QuietLink as="span"><UserRound /> Kartoteka klienta</QuietLink>
                                 </Link>
                             )}
                         </LeadIdentity>
@@ -645,6 +736,31 @@ export function LeadDetailModal({
                                     {lead.lostReason && <> — {lead.lostReason}</>}
                                 </span>
                             </LostNote>
+                        )}
+
+                        {/* Rezerwacja to wynik, po który cały lead istniał — gdy jest,
+                            mówimy o niej wprost i z terminem. Sam etap „Rezerwacja"
+                            w nagłówku nie odpowiada na pytanie „na kiedy". */}
+                        {lead.appointmentId && (
+                            <BookedNote>
+                                <CalendarCheck />
+                                <span>
+                                    {appointmentAt ? (
+                                        <>
+                                            {describeAppointmentMoment(appointmentAt).lead}{' '}
+                                            <strong>{describeAppointmentMoment(appointmentAt).moment}</strong>
+                                        </>
+                                    ) : (
+                                        'Rezerwacja została utworzona'
+                                    )}
+                                </span>
+                                <span className="spacer" />
+                                {lead.visitId && (
+                                    <Link to={`/visits/${lead.visitId}`}>
+                                        <QuietLink as="span"><ExternalLink /> Zobacz wizytę</QuietLink>
+                                    </Link>
+                                )}
+                            </BookedNote>
                         )}
 
                         {/* Pasek podsumowania: cztery odpowiedzi, po które ktoś tu wchodzi,
@@ -869,8 +985,9 @@ export function LeadDetailModal({
                 </ModalContent>
 
                 <ModalFooter>
-                    {/* Usunięcie stoi po lewej, z dala od „Zamknij" — dwie akcje o wprost
-                        przeciwnych skutkach nie mają prawa sąsiadować pod kursorem. */}
+                    {/* Usunięcie stoi po lewej, z dala od akcji głównej — dwie akcje
+                        o wprost przeciwnych skutkach nie mają prawa sąsiadować pod
+                        kursorem. */}
                     <DangerButton
                         type="button"
                         style={{ marginRight: 'auto' }}
@@ -879,20 +996,69 @@ export function LeadDetailModal({
                     >
                         <Trash2 size={14} /> Usuń lead
                     </DangerButton>
-                    {/* Rezerwacja to naturalne zakończenie leada, więc akcja stoi
-                        jako główna. Gdy termin już jest, przycisk prowadzi do niego
-                        zamiast pozwalać założyć drugi — backend i tak by odmówił. */}
-                    {lead.appointmentId ? (
-                        <Link to="/calendar">
-                            <IconButton type="button">
-                                <CalendarPlus size={14} /> Zobacz w kalendarzu
+
+                    {/*
+                        Akcja główna wynika ze stanu leada — w tej kolejności:
+
+                        1. zalegamy z odpowiedzią → „Odpisz klientowi". Zaległość jest
+                           pilniejsza od wszystkiego innego: klient czeka teraz, a termin
+                           poczeka do jutra.
+                        2. jest już termin → „Zobacz rezerwację". Drugiej się nie założy
+                           (backend odmówi), więc oferowanie jej byłoby ślepą uliczką.
+                        3. lead zamknięty → „Napisz wiadomość". Zrealizowanego ani
+                           przegranego nie umawia się ponownie jednym kliknięciem, ale
+                           odezwać się do klienta zawsze wolno.
+                        4. w pozostałych → „Stwórz rezerwację", czyli po co ten moduł jest.
+
+                        Akcja drugorzędna to zawsze ta z pary „napisz / umów", która nie
+                        została główną. Dwie akcje w stopce, nie pięć: przy pięciu równych
+                        przyciskach żaden nie jest podpowiedzią.
+                    */}
+                    {(() => {
+                        const write = canWrite && (
+                            <IconButton type="button" onClick={openThread}>
+                                <Send size={14} /> Napisz wiadomość
                             </IconButton>
-                        </Link>
-                    ) : (
-                        <PrimaryButton type="button" onClick={() => setBooking(true)}>
-                            <CalendarPlus size={14} /> Stwórz rezerwację
-                        </PrimaryButton>
-                    )}
+                        );
+                        const writePrimary = canWrite && (
+                            <PrimaryButton type="button" onClick={openThread}>
+                                <Send size={14} /> Odpisz klientowi
+                            </PrimaryButton>
+                        );
+                        const book = (
+                            <IconButton type="button" onClick={() => setBooking(true)}>
+                                <CalendarPlus size={14} /> Stwórz rezerwację
+                            </IconButton>
+                        );
+                        const bookPrimary = (
+                            <PrimaryButton type="button" onClick={() => setBooking(true)}>
+                                <CalendarPlus size={14} /> Stwórz rezerwację
+                            </PrimaryButton>
+                        );
+
+                        if (lead.appointmentId) {
+                            return (
+                                <>
+                                    {write}
+                                    <PrimaryButton type="button" onClick={openAppointment}>
+                                        <CalendarCheck size={14} /> Zobacz rezerwację
+                                    </PrimaryButton>
+                                </>
+                            );
+                        }
+                        if (closed) {
+                            return canWrite ? (
+                                <PrimaryButton type="button" onClick={openThread}>
+                                    <Send size={14} /> Napisz wiadomość
+                                </PrimaryButton>
+                            ) : book;
+                        }
+                        if (replyTone === 'due' && canWrite) {
+                            return (<>{book}{writePrimary}</>);
+                        }
+                        return (<>{write}{bookPrimary}</>);
+                    })()}
+
                     <IconButton onClick={onClose}>Zamknij</IconButton>
                 </ModalFooter>
             </ModalShell>
