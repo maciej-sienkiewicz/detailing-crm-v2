@@ -9,7 +9,9 @@ import type {
     ContactInsights,
     ContactNote,
     ContactNoteEvent,
+    FormMailSource,
     MailAccountState,
+    MarkFormLeadResult,
     MailSignature,
     ProviderDetectResult,
     SendMailRequest,
@@ -121,6 +123,32 @@ export const commsApi = {
     getThreadContactBadges: async (threadId: string): Promise<ThreadContactBadges> => {
         const { data } = await apiClient.get(`/v1/comms/threads/${threadId}/contact-badges`);
         return data;
+    },
+
+    // ── Lead z formularza ────────────────────────────────────────────────────
+
+    /**
+     * Oznacza mail jako lead z formularza: rejestruje nadawcę i od razu przepuszcza
+     * tę wiadomość przez odczyt LLM-em. Odpowiedź potrafi zająć parę sekund —
+     * wraca gotowy lead, nie obietnica.
+     */
+    markMessageAsFormLead: async (messageId: string): Promise<MarkFormLeadResult> => {
+        const { data } = await apiClient.post(
+            `/v1/comms/messages/${messageId}/mark-form-lead`,
+            undefined,
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
+    getFormSources: async (): Promise<FormMailSource[]> => {
+        const { data } = await apiClient.get('/v1/comms/form-sources');
+        return data;
+    },
+
+    /** Wyłącza automat dla nadawcy; ponowne oznaczenie dowolnego maila włącza go z powrotem. */
+    deactivateFormSource: async (sourceId: string): Promise<void> => {
+        await apiClient.delete(`/v1/comms/form-sources/${sourceId}`);
     },
 
     /** Pozostałe rozmowy z tym adresem — panel historii korespondencji. */

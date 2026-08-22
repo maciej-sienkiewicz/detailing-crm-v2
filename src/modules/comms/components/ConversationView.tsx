@@ -34,6 +34,7 @@ import {
     ChevronDown,
     Download,
     ChevronRight,
+    FileInput,
     Maximize2,
     Paperclip,
     MessagesSquare,
@@ -53,7 +54,8 @@ import { LeadDetailModal } from './LeadDetailModal';
 import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
-import { useContactCard, useThreadContactBadges } from '../hooks/useComms';
+import { useContactCard, useFormMailSources, useThreadContactBadges } from '../hooks/useComms';
+import { MarkAsFormLeadModal } from './MarkAsFormLeadModal';
 import { ThreadActionsMenu, type ThreadAction } from './ThreadActionsMenu';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { EmptyHint, IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
@@ -526,6 +528,15 @@ function ConversationViewImpl({
     // Okno szczegółów leada — to samo, które otwiera widok leadów.
     const [leadDetailThreadId, setLeadDetailThreadId] = useState<string | null>(null);
     const leadDetailOpen = leadDetailThreadId === thread.id && thread.leadId !== null;
+    // Okno „Lead z formularza" — trzymane jak pozostałe: id wątku, w którym je otwarto.
+    const [formLeadThreadId, setFormLeadThreadId] = useState<string | null>(null);
+    const formLeadOpen = formLeadThreadId === thread.id;
+    // Oznaczeni nadawcy-formularze: jedna cache'owana lista na całą skrzynkę.
+    // Z niej bierze się plakietka „Formularz" przy adresie robota.
+    const { data: formSources } = useFormMailSources();
+    const activeFormSource = formSources?.find(
+        (entry) => entry.active && entry.senderEmail === thread.participantEmail.trim().toLowerCase()
+    );
     // Kartoteka kontaktu — telefon i auta klienta do wypełnienia rezerwacji.
     // Pobierana dopiero przy otwartym kreatorze; sam podgląd rozmowy jej nie potrzebuje.
     const { data: contactCard } = useContactCard(thread.participantEmail, { enabled: bookingOpen });
@@ -571,6 +582,15 @@ function ConversationViewImpl({
     // niedostępna tylko dlatego, że nie stoi teraz na wierzchu.
     const menuActions: ThreadAction[] = [
         ...(primaryAction === bookAction ? [] : [bookAction]),
+        // Mail od robota formularzy: klient jest w treści, nie w polu nadawcy —
+        // dlatego to osobna akcja, a nie zwykłe „Oznacz jako lead" (tamto wzięłoby
+        // adres robota za kontakt klienta).
+        {
+            key: 'form-lead',
+            label: 'Lead z formularza',
+            icon: <FileInput />,
+            onSelect: () => setFormLeadThreadId(thread.id),
+        },
         {
             key: 'archive',
             label: thread.archived ? 'Przywróć ze schowka' : 'Archiwizuj rozmowę',
@@ -578,6 +598,14 @@ function ConversationViewImpl({
             onSelect: () => onToggleArchived(thread),
         },
     ];
+
+    // Do odczytu idzie ostatnia wiadomość PRZYCHODZĄCA — wątek formularza potrafi
+    // zbierać zgłoszenia wielu klientów pod wspólnym tematem, więc liczy się
+    // konkretna wiadomość, nie wątek.
+    const latestInboundId = useMemo(
+        () => (messages ?? []).slice().reverse().find((m) => m.direction === 'INBOUND')?.id ?? null,
+        [messages]
+    );
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -726,6 +754,21 @@ function ConversationViewImpl({
                                 {isBooked ? 'Rezerwacja' : 'Lead'}
                             </ContextBadge>
                         )}
+
+                        {/* Nadawca-robot formularza: maile stąd automatycznie stają się
+                            leadami. Stan, nie akcja — ale kliknięcie otwiera zarządzanie,
+                            bo to jedyne miejsce, w którym automat da się wyłączyć. */}
+                        {activeFormSource && (
+                            <ContextBadge
+                                type="button"
+                                $tone="lead"
+                                title="Maile z tego adresu automatycznie stają się leadami — kliknij, aby zarządzać"
+                                onClick={() => setFormLeadThreadId(thread.id)}
+                            >
+                                <FileInput />
+                                Formularz
+                            </ContextBadge>
+                        )}
                     </div>
                 </div>
 
@@ -774,6 +817,13 @@ function ConversationViewImpl({
                         threadId={thread.id}
                         onClose={() => setLeadPopoverThreadId(null)}
                         onCreated={() => undefined}
+                    />
+                )}
+                {formLeadOpen && (
+                    <MarkAsFormLeadModal
+                        senderEmail={thread.participantEmail}
+                        messageId={latestInboundId}
+                        onClose={() => setFormLeadThreadId(null)}
                     />
                 )}
                 {bookingOpen && !bookingWaitsForLead && (
