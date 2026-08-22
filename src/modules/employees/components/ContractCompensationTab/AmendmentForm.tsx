@@ -7,6 +7,7 @@ import type {
 } from '../../types';
 import { ETAT_HOURS } from './constants';
 import { buildInitialCompensation, calcHourlyPreview } from './helpers';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import {
     InlineFormWrapper, FormTitle, FormSectionLabel, FormSeparator, FormRow,
     Field, Label, Input, Select,
@@ -129,6 +130,7 @@ export const AmendmentForm = ({ contractType, initialEtatFraction, onSave, onCan
                                 type="number"
                                 value={monthlySalary}
                                 onChange={e => setMonthlySalary(e.target.value)}
+                                onKeyDown={handleZeroAwareKeyDown(monthlySalary, setMonthlySalary)}
                                 placeholder="np. 6000"
                                 min={0}
                                 step={0.01}
@@ -151,6 +153,7 @@ export const AmendmentForm = ({ contractType, initialEtatFraction, onSave, onCan
                         type="number"
                         value={hourlyRate}
                         onChange={e => setHourlyRate(e.target.value)}
+                        onKeyDown={handleZeroAwareKeyDown(hourlyRate, setHourlyRate)}
                         placeholder="np. 45.00"
                         min={0}
                         step={0.01}

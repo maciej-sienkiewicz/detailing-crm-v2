@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { formatMoneyAmount } from '../hooks/usePriceCalculator';
 import { useServicePricing } from '../hooks/useServicePricing';
 import { FieldGroup, Label, Input, Select, TextArea } from '@/common/components/Form';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { Badge } from '@/common/components/Badge';
 import { t } from '@/common/i18n';
 import type { ServiceLineItem, AdjustmentType } from '../types';
@@ -471,6 +472,23 @@ export const ServiceItem = ({
                                         },
                                     });
                                 }}
+                                onKeyDown={handleZeroAwareKeyDown(
+                                    String(
+                                        item.adjustment.type === 'PERCENT'
+                                            ? item.adjustment.value
+                                            : formatMoneyAmount(Math.abs(item.adjustment.value))
+                                    ),
+                                    v => {
+                                        const isMoneyType = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'].includes(item.adjustment.type);
+                                        const value = parseFloat(v) || 0;
+                                        onUpdate({
+                                            adjustment: {
+                                                ...item.adjustment,
+                                                value: isMoneyType ? Math.round(Math.abs(value) * 100) : value,
+                                            },
+                                        });
+                                    }
+                                )}
                                 placeholder="0.00"
                             />
                         </FieldGroup>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import {
     useContracts,
     useCreateContract,
@@ -542,6 +543,7 @@ const CompensationFields = ({
                                 type="number"
                                 value={monthlySalaryPln}
                                 onChange={e => onMonthlyChange(e.target.value)}
+                                onKeyDown={handleZeroAwareKeyDown(monthlySalaryPln, onMonthlyChange)}
                                 placeholder="np. 6000"
                                 min={0}
                                 step={0.01}
@@ -568,6 +570,7 @@ const CompensationFields = ({
                         type="number"
                         value={hourlyRatePln}
                         onChange={e => onHourlyChange(e.target.value)}
+                        onKeyDown={handleZeroAwareKeyDown(hourlyRatePln, onHourlyChange)}
                         placeholder="np. 45.00"
                         min={0}
                         step={0.01}

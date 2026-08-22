@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useCurrentCompensation, useCompensationHistory, useSetCompensation } from '../hooks/useCompensation';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type {
     EmploymentMode,
     EtatFraction,
@@ -515,6 +516,7 @@ const AddComponentModal = ({ onClose, onSave }: AddComponentModalProps) => {
                             step={type === 'PERCENTAGE_OF_REVENUE' ? 0.01 : 0.01}
                             value={value}
                             onChange={e => setValue(e.target.value)}
+                            onKeyDown={handleZeroAwareKeyDown(value, setValue)}
                         />
                     </Field>
                     <Field>

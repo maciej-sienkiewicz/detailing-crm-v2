@@ -12,7 +12,7 @@ import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { formatCurrency } from '@/common/utils';
-import { MAX_2_DECIMALS, centsToInput } from '@/common/utils/moneyInput';
+import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
@@ -322,6 +322,7 @@ export function BatchServicesModal({ onClose }: Props) {
                         inputMode="decimal"
                         value={draft.netInput}
                         onChange={e => handleNetChange(e.target.value)}
+                        onKeyDown={handleZeroAwareKeyDown(draft.netInput, handleNetChange)}
                         placeholder="0,00"
                     />
                 </S.EditPriceField>
@@ -332,6 +333,7 @@ export function BatchServicesModal({ onClose }: Props) {
                         inputMode="decimal"
                         value={draft.grossInput}
                         onChange={e => handleGrossChange(e.target.value)}
+                        onKeyDown={handleZeroAwareKeyDown(draft.grossInput, handleGrossChange)}
                         placeholder="0,00"
                     />
                 </S.EditPriceField>

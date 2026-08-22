@@ -14,7 +14,7 @@ import {
     FormErrorMsg, FormAlertBanner,
 } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
-import { MAX_2_DECIMALS, centsToInput, inputToCents } from '@/common/utils/moneyInput';
+import { MAX_2_DECIMALS, centsToInput, inputToCents, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
@@ -750,6 +750,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                             inputMode="decimal"
                                             value={svc.netDisplay}
                                             onChange={e => updateNet(idx, e.target.value)}
+                                            onKeyDown={handleZeroAwareKeyDown(svc.netDisplay, val => updateNet(idx, val))}
                                             placeholder="0,00"
                                         />
                                     </PriceField>
@@ -760,6 +761,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                             inputMode="decimal"
                                             value={svc.grossDisplay}
                                             onChange={e => updateGross(idx, e.target.value)}
+                                            onKeyDown={handleZeroAwareKeyDown(svc.grossDisplay, val => updateGross(idx, val))}
                                             placeholder="0,00"
                                         />
                                     </PriceField>

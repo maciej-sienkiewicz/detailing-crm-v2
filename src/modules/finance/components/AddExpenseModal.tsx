@@ -14,6 +14,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import {
     FormGrid,
     FormField,
@@ -443,6 +444,9 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                         placeholder="0.00"
                                         value={form.netAmount}
                                         onChange={handleNetChange}
+                                        onKeyDown={handleZeroAwareKeyDown(form.netAmount, v =>
+                                            handleNetChange({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)
+                                        )}
                                         autoComplete="new-password"
                                     />
                                 </InputShell>
@@ -461,6 +465,9 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                         placeholder="0.00"
                                         value={form.grossAmount}
                                         onChange={handleGrossChange}
+                                        onKeyDown={handleZeroAwareKeyDown(form.grossAmount, v =>
+                                            handleGrossChange({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)
+                                        )}
                                         autoComplete="new-password"
                                     />
                                 </InputShell>

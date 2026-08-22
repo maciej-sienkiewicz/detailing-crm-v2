@@ -23,6 +23,7 @@ import {
 } from '@/common/components/Form';
 import { useIssueRevenueInvoice } from '../hooks/useKsefRevenue';
 import { formatMoney, inputValueToGrosze } from '../utils/formatters';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { RevenueVatRate } from '../types';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -371,6 +372,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
                 <BareInput
                   value={item.price}
                   onChange={(e) => updateItem(index, { price: e.target.value })}
+                  onKeyDown={handleZeroAwareKeyDown(item.price, v => updateItem(index, { price: v }))}
                   placeholder="0,00"
                   inputMode="decimal"
                 />

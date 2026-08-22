@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useCashRegister, useCashHistory, useAdjustCash } from '../hooks/useFinance';
 import { formatMoney, formatDate, inputValueToGrosze } from '../utils/formatters';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -376,6 +377,7 @@ export const CashRegisterPanel: React.FC = () => {
                 placeholder="0,00"
                 value={amountDisplay}
                 onChange={(e) => setAmountDisplay(e.target.value)}
+                onKeyDown={handleZeroAwareKeyDown(amountDisplay, setAmountDisplay)}
               />
             </FieldGroup>
 

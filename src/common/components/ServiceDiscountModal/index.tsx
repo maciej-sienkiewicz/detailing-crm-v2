@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { applyAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
-import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
+import { MAX_2_DECIMALS, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import * as S from './styles';
 
 const TYPE_LABELS: Record<AdjustmentType, string> = {
@@ -152,7 +152,10 @@ export const ServiceDiscountModal = ({
                                 placeholder="0"
                                 value={value}
                                 onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setValue(e.target.value); }}
-                                onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') submit();
+                                    handleZeroAwareKeyDown(value, setValue)(e);
+                                }}
                                 autoFocus
                             />
                             <S.ValueSuffix>{type === 'PERCENT' ? '%' : 'zł'}</S.ValueSuffix>

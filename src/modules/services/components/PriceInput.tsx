@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { calculateGrossFromNet, calculateNetFromGross, formatMoneyAmount, parseMoneyInput } from '../utils/priceCalculator';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { VatRate } from '../types';
 
 const Container = styled.div`
@@ -209,6 +210,7 @@ export const PriceInput = ({
                             inputMode="decimal"
                             value={netValue}
                             onChange={(e) => handleNetChange(e.target.value)}
+                            onKeyDown={handleZeroAwareKeyDown(netValue, handleNetChange)}
                             onFocus={() => { setNetFocused(true); if (parseFloat(netValue.replace(',', '.')) === 0) setNetValue(''); }}
                             onBlur={handleNetBlur}
                             placeholder="0.00"
@@ -225,6 +227,7 @@ export const PriceInput = ({
                             inputMode="decimal"
                             value={grossValue}
                             onChange={(e) => handleGrossChange(e.target.value)}
+                            onKeyDown={handleZeroAwareKeyDown(grossValue, handleGrossChange)}
                             onFocus={() => { setGrossFocused(true); if (parseFloat(grossValue.replace(',', '.')) === 0) setGrossValue(''); }}
                             onBlur={handleGrossBlur}
                             placeholder="0.00"

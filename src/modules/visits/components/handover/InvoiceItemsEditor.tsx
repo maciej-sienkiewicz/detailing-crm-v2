@@ -5,6 +5,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Muted } from './HandoverKit';
 import type { HandoverItem, VatRateCode } from '../../types/handover';
 import { withDerived } from '../../types/handover';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 
 const Wrap = styled.div`
     display: flex;
@@ -148,6 +149,7 @@ export const InvoiceItemsEditor = ({
                             aria-label={`Netto pozycji ${index + 1}`}
                             title={item.mode === 'GROSS' ? 'Wyliczone z brutto' : 'Kwota wpisana'}
                             onChange={e => updateItem(index, { net: e.target.value })}
+                            onKeyDown={handleZeroAwareKeyDown(item.net, val => updateItem(index, { net: val }))}
                             $compact
                         />
                     </DerivedShell>
@@ -158,6 +160,7 @@ export const InvoiceItemsEditor = ({
                             aria-label={`Brutto pozycji ${index + 1}`}
                             title={item.mode === 'NET' ? 'Wyliczone z netto' : 'Kwota wpisana'}
                             onChange={e => updateItem(index, { gross: e.target.value })}
+                            onKeyDown={handleZeroAwareKeyDown(item.gross, val => updateItem(index, { gross: val }))}
                             $compact
                         />
                     </DerivedShell>

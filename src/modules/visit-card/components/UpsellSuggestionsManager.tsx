@@ -16,6 +16,7 @@ import styled from 'styled-components';
 import { FieldGroup, Label, Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
 import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjustment';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
 import type { Service, VatRate } from '@/modules/services/types';
@@ -621,6 +622,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                                     placeholder={adjustmentType === 'PERCENT' ? 'np. 10' : 'np. 50,00'}
                                     value={adjustmentInput}
                                     onChange={e => setAdjustmentInput(e.target.value)}
+                                    onKeyDown={handleZeroAwareKeyDown(adjustmentInput, setAdjustmentInput)}
                                     disabled={busy}
                                 />
                             </FieldGroup>
