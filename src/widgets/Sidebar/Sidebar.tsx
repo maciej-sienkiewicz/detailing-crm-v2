@@ -23,6 +23,7 @@ import {
     UserRoundCog,
     Images,
     Activity,
+    CircleAlert,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -35,6 +36,7 @@ import { useMyTasksUnreadCount } from '@/modules/notifications';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import type { MenuItem } from './SidebarMenuItem';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
+import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import {
     Overlay,
     SidebarContainer,
@@ -70,6 +72,7 @@ const buildMenuSections = (
     unreadNotifications: number,
     can: (required: PermissionRequirement) => boolean,
     trackWorkTime: boolean,
+    onReportProblem: () => void,
 ): MenuSection[] => {
     const canSeeDashboard = can(ANY_DASHBOARD);
     const sections: GuardedMenuSection[] = [
@@ -117,6 +120,7 @@ const buildMenuSections = (
             title: 'Portal',
             items: [
                 { path: '/settings',   label: 'Ustawienia', icon: Settings },
+                { label: 'Zgłoś problem', icon: CircleAlert, onClick: onReportProblem },
             ],
         },
     ];
@@ -155,6 +159,7 @@ export const Sidebar = () => {
     const { getProfiles, addOrUpdateProfile } = useKnownProfiles();
 
     const [showSwitcher, setShowSwitcher] = useState(false);
+    const [showReportProblem, setShowReportProblem] = useState(false);
 
     const { can } = usePermissions();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
@@ -164,7 +169,7 @@ export const Sidebar = () => {
 
     // Persistent WebSocket connection for the entire CRM session
     useCommsSocket();
-    const menuSections = buildMenuSections(newLeadsCount, unreadMailCount, unreadNotifications, can, user?.trackWorkTime ?? false);
+    const menuSections = buildMenuSections(newLeadsCount, unreadMailCount, unreadNotifications, can, user?.trackWorkTime ?? false, () => setShowReportProblem(true));
 
     // Register the current user in localStorage so the switcher can list them.
     // Runs whenever the logged-in user changes (login / PIN switch).
@@ -283,6 +288,10 @@ export const Sidebar = () => {
 
             {showSwitcher && (
                 <UserSwitcherPanel onClose={() => setShowSwitcher(false)} />
+            )}
+
+            {showReportProblem && (
+                <ReportProblemModal onClose={() => setShowReportProblem(false)} />
             )}
         </>
     );
