@@ -100,15 +100,53 @@ export const useLeadAnalytics = (from: Date, to: Date) => {
     });
 };
 
-/** Liczba nowych leadów — plakietka w menu bocznym. */
+/**
+ * Plakietka przy „Leady" w menu: nowe PLUS otwarte z zaległą odpowiedzią.
+ *
+ * Sama liczba nowych kłamała: lead „w kontakcie", w którym klient odpisał wczoraj,
+ * jest pilniejszy niż świeży, a plakietka milczała. Klucz celowo pod prefiksem
+ * `list` — każde unieważnienie listy leadów (mutacje, socket) odświeża i licznik,
+ * bez osobnego okablowania.
+ */
 export const useNewLeadsCount = (options?: { enabled?: boolean }): number => {
     const { data } = useQuery({
-        queryKey: [...LEADS_KEY, 'list', { status: 'NEW' as LeadStatus, page: 0, pageSize: 1 }],
-        queryFn: () => leadsApi.getLeads({ status: 'NEW', page: 0, pageSize: 1 }),
-        select: (page) => page.total,
+        queryKey: [...LEADS_KEY, 'list', 'attention-count'],
+        queryFn: leadsApi.getAttentionCount,
         enabled: options?.enabled ?? true,
+        staleTime: 60_000,
     });
     return Number(data ?? 0);
+};
+
+// ── Notatki na leadzie ───────────────────────────────────────────────────────
+
+export const useLeadNotes = (leadId: string | null) =>
+    useQuery({
+        queryKey: [...LEADS_KEY, 'notes', leadId],
+        queryFn: () => leadsApi.getNotes(leadId!),
+        enabled: leadId !== null,
+    });
+
+export const useAddLeadNote = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ leadId, content }: { leadId: string; content: string }) =>
+            leadsApi.addNote(leadId, content),
+        onSuccess: (_note, { leadId }) => {
+            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'notes', leadId] });
+        },
+    });
+};
+
+export const useDeleteLeadNote = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ leadId, noteId }: { leadId: string; noteId: string }) =>
+            leadsApi.deleteNote(leadId, noteId),
+        onSuccess: (_result, { leadId }) => {
+            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'notes', leadId] });
+        },
+    });
 };
 
 const useLeadInvalidation = () => {

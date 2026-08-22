@@ -8,6 +8,7 @@ import type {
     LeadIntakeDelivery,
     LeadIntakeWebhook,
     LeadDictionaries,
+    LeadNote,
     LeadPage,
     LeadServiceItemInput,
     LeadStatus,
@@ -47,6 +48,28 @@ export const leadsApi = {
     getDictionaries: async (): Promise<LeadDictionaries> => {
         const { data } = await apiClient.get('/v1/leads/dictionaries');
         return data;
+    },
+
+    // ── Notatki na leadzie ───────────────────────────────────────────────────
+
+    getNotes: async (leadId: string): Promise<LeadNote[]> => {
+        const { data } = await apiClient.get(`/v1/leads/${leadId}/notes`);
+        return data;
+    },
+
+    addNote: async (leadId: string, content: string): Promise<LeadNote> => {
+        const { data } = await apiClient.post(`/v1/leads/${leadId}/notes`, { content });
+        return data;
+    },
+
+    deleteNote: async (leadId: string, noteId: string): Promise<void> => {
+        await apiClient.delete(`/v1/leads/${leadId}/notes/${noteId}`);
+    },
+
+    /** Nowe + otwarte z zaległą odpowiedzią — plakietka przy „Leady" w menu. */
+    getAttentionCount: async (): Promise<number> => {
+        const { data } = await apiClient.get('/v1/leads/attention-count');
+        return Number(data?.count ?? 0);
     },
 
     getAnalytics: async (from?: string, to?: string): Promise<LeadAnalytics> => {

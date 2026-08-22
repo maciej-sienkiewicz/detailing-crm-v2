@@ -49,7 +49,9 @@ import {
     MessageSquare,
     Phone,
     Send,
+    StickyNote,
     Trash2,
+    X,
     UserPlus,
     UserRound,
 } from 'lucide-react';
@@ -71,10 +73,13 @@ import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { BookingFlowModal } from '@/modules/calendar';
 import { useToast } from '@/common/components/Toast';
 import {
+    useAddLeadNote,
     useDeleteLead,
+    useDeleteLeadNote,
     useLead,
     useLeadAppointment,
     useLeadHistory,
+    useLeadNotes,
     useUpdateLeadServices,
     useUpdateLeadVehicle,
 } from '../hooks/useLeads';
@@ -554,6 +559,76 @@ const HistoryLine = styled.div`
     strong { color: ${p => p.theme.colors.text}; }
 `;
 
+// ─── Notatki ──────────────────────────────────────────────────────────────────
+
+const NoteComposer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    textarea {
+        font-family: inherit;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: ${p => p.theme.colors.text};
+        background: ${p => p.theme.colors.surface};
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.md};
+        padding: 8px 10px;
+        resize: vertical;
+        min-height: 54px;
+
+        &:focus-visible {
+            outline: none;
+            border-color: ${p => p.theme.colors.primary};
+        }
+    }
+`;
+
+const NoteItemRow = styled.div`
+    position: relative;
+    padding: 8px 10px;
+    border-radius: ${p => p.theme.radii.md};
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: ${p => p.theme.colors.text};
+    /* Notatka to często jedno zdanie z entera w środku — zachowujemy łamania. */
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    .meta {
+        margin-top: 4px;
+        font-size: 11px;
+        color: ${p => p.theme.colors.textMuted};
+    }
+
+    .remove {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: none;
+        border: none;
+        background: none;
+        padding: 2px;
+        cursor: pointer;
+        color: ${p => p.theme.colors.textMuted};
+        border-radius: ${p => p.theme.radii.sm};
+
+        svg { width: 13px; height: 13px; display: block; }
+        &:hover { color: ${p => p.theme.colors.error}; background: ${p => p.theme.colors.surfaceAlt}; }
+    }
+
+    &:hover .remove { display: block; }
+`;
+
+const NoteList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
 /**
  * Historia jako oś czasu, nie jako lista linijek.
  *
@@ -705,6 +780,25 @@ export function LeadDetailModal({
     const updateServices = useUpdateLeadServices();
     const deleteLead = useDeleteLead();
     const { showSuccess, showError } = useToast();
+
+    // Notatki: „oddzwoniłem, prosił o kontakt po 15". Ślad pracy, którego nie
+    // niesie korespondencja (telefon nie zostawia maila) ani historia statusów.
+    const { data: notes } = useLeadNotes(leadId);
+    const addNote = useAddLeadNote();
+    const deleteNote = useDeleteLeadNote();
+    const [noteDraft, setNoteDraft] = useState('');
+
+    const submitNote = () => {
+        const content = noteDraft.trim();
+        if (!content) return;
+        addNote.mutate(
+            { leadId, content },
+            {
+                onSuccess: () => setNoteDraft(''),
+                onError: () => showError('Nie udało się zapisać notatki', 'Spróbuj ponownie'),
+            }
+        );
+    };
 
     const saveVehicle = () => {
         if (!editingVehicle) return;
@@ -1146,6 +1240,59 @@ export function LeadDetailModal({
                                         <MessageQuote>{lead.initialMessage}</MessageQuote>
                                     ) : (
                                         <HistoryLine>Brak treści pierwszej wiadomości.</HistoryLine>
+                                    )}
+                                </Panel>
+
+                                <Panel $quiet>
+                                    <h4><StickyNote /> Notatki</h4>
+                                    <NoteComposer>
+                                        <textarea
+                                            placeholder="Np. oddzwoniłem, klient prosił o kontakt po 15…"
+                                            value={noteDraft}
+                                            onChange={(event) => setNoteDraft(event.target.value)}
+                                            /* Ctrl/Cmd+Enter zapisuje — sam Enter łamie
+                                               linię, jak w każdym polu wielolinijkowym. */
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                                                    event.preventDefault();
+                                                    submitNote();
+                                                }
+                                            }}
+                                        />
+                                        {noteDraft.trim() && (
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <PrimaryButton
+                                                    type="button"
+                                                    onClick={submitNote}
+                                                    disabled={addNote.isPending}
+                                                >
+                                                    {addNote.isPending ? 'Zapisywanie…' : 'Dodaj notatkę'}
+                                                </PrimaryButton>
+                                                <IconButton type="button" onClick={() => setNoteDraft('')}>
+                                                    Anuluj
+                                                </IconButton>
+                                            </div>
+                                        )}
+                                    </NoteComposer>
+                                    {(notes ?? []).length > 0 && (
+                                        <NoteList>
+                                            {(notes ?? []).map((note) => (
+                                                <NoteItemRow key={note.id}>
+                                                    {note.content}
+                                                    <div className="meta">
+                                                        {formatDateTime(note.createdAt)}, {note.createdByName}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="remove"
+                                                        title="Usuń notatkę"
+                                                        onClick={() => deleteNote.mutate({ leadId, noteId: note.id })}
+                                                    >
+                                                        <X />
+                                                    </button>
+                                                </NoteItemRow>
+                                            ))}
+                                        </NoteList>
                                     )}
                                 </Panel>
 
