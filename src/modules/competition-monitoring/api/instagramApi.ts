@@ -6,6 +6,7 @@ import type {
     ReportBrief,
     ContentPage,
     GenerateInstagramPostRequest,
+    GrowthSummary,
     HashtagStat,
     Heatmap,
     Insight,
@@ -69,6 +70,18 @@ export const instagramApi = {
 
     getBenchmark: async (weeks: WeeksOption): Promise<Benchmark> => {
         const response = await apiClient.get<Benchmark>(`${ANALYTICS_PATH}/benchmark`, { params: { weeks } });
+        return response.data;
+    },
+
+    /**
+     * Podsumowanie AI przyrostów obserwujących za cały okres. Backend cache'uje
+     * odpowiedź i limituje generowanie (1/15 min) — 429 obsługujemy lokalnie.
+     */
+    getGrowthSummary: async (weeks: WeeksOption): Promise<GrowthSummary> => {
+        const response = await apiClient.get<GrowthSummary>(`${ANALYTICS_PATH}/benchmark/growth-summary`, {
+            params: { weeks },
+            skipErrorToast: true,
+        });
         return response.data;
     },
 
