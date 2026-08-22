@@ -154,9 +154,21 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         padding: 4px 0 0;
     }
 
-    /* Other month days */
+    /* Other month days.
+
+       FullCalendar samo przygasza te kafelki regułą
+       .fc .fc-day-other .fc-daygrid-day-top { opacity: .3 } — nałożone na
+       jasnoszarą cyfrę dawało to kolor praktycznie biały. Dzień z końcówki
+       poprzedniego miesiąca wyglądał jak kafelek BEZ daty, więc nie dało się
+       powiedzieć, którego dnia dotyczy wydarzenie stojące tuż pod spodem.
+       Przezroczystość zdejmujemy i wygaszamy wprost kolorem: cyfra ma być
+       czytelna, ale wyraźnie drugorzędna wobec bieżącego miesiąca (#475569). */
+    .fc .fc-day-other .fc-daygrid-day-top {
+        opacity: 1;
+    }
+
     .fc-day-other .fc-daygrid-day-number {
-        color: #cbd5e1;
+        color: #94a3b8;
         font-weight: 400;
     }
 
