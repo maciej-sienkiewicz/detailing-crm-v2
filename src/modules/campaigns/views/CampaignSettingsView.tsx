@@ -1,73 +1,44 @@
+// src/modules/campaigns/views/CampaignSettingsView.tsx
+// Wspólne reguły wysyłki. Trzy panele, jedna akcja główna na dole — ten sam
+// układ i te same klocki, co w reszcie modułu.
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { PageHeader } from '@/common/components/PageHeader';
+import { ArrowLeft, Check, Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useCampaignSettings } from '../hooks/useCampaigns';
-import { Eyebrow, MutedText, Page, SectionCard } from '../components/shared';
+import {
+  Field,
+  FieldLabel,
+  HintText,
+  MutedText,
+  Panel,
+  PrimaryButton,
+  TextAreaField,
+  TextField,
+  ViewContainer,
+} from '../components/shared';
 import type { CampaignSettings } from '../types';
 
-const Field = styled.div`
+const TimeRow = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 16px;
+  flex-wrap: wrap;
 `;
 
-const Label = styled.label`
-  font-size: 13px;
-  font-weight: 600;
-  color: ${(p) => p.theme.colors.text};
-`;
-
-const Input = styled.input`
-  padding: 10px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
-  max-width: 220px;
-
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 10px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
-  max-width: 560px;
-  min-height: 70px;
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
-`;
-
-const SaveBtn = styled.button`
-  background: #0ea5e9;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  padding: 10px 24px;
-  border-radius: 9999px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 180ms ease;
-  align-self: flex-start;
-
-  &:hover:not(:disabled) { background: #0284c7; transform: translateY(-1px); }
-  &:disabled { opacity: 0.5; cursor: default; }
+/**
+ * Stopka ustawień. Jedna akcja główna i nic obok niej — „Zapisz" wygląda tu
+ * inaczej po zapisie, żeby potwierdzenie nie musiało być osobnym komunikatem
+ * gdzieś z boku ekranu.
+ */
+const SaveRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
 `;
 
 export function CampaignSettingsView() {
+  const navigate = useNavigate();
   const { settings, isLoading, save, isSaving } = useCampaignSettings();
   const [form, setForm] = useState<CampaignSettings | null>(null);
   const [saved, setSaved] = useState(false);
@@ -76,7 +47,9 @@ export function CampaignSettingsView() {
     if (settings && !form) setForm(settings);
   }, [settings, form]);
 
-  if (isLoading || !form) return <Page><MutedText>Wczytywanie...</MutedText></Page>;
+  if (isLoading || !form) {
+    return <ViewContainer><MutedText>Wczytywanie…</MutedText></ViewContainer>;
+  }
 
   const set = (patch: Partial<CampaignSettings>) => {
     setSaved(false);
@@ -84,65 +57,97 @@ export function CampaignSettingsView() {
   };
 
   return (
-    <Page>
-      <PageHeader title="Ustawienia wysyłki" subtitle="Wspólne reguły dla wszystkich kampanii" />
+    <ViewContainer>
+      <PageHeader
+        title="Ustawienia wysyłki"
+        subtitle="Wspólne reguły dla wszystkich kampanii"
+        actions={
+          <PageHeaderGhostButton onClick={() => navigate('/campaigns')}>
+            <ArrowLeft /> Wróć do kampanii
+          </PageHeaderGhostButton>
+        }
+      />
 
-      <SectionCard style={{ margin: '20px 0 16px' }}>
-        <Eyebrow>Godziny ciszy</Eyebrow>
-        <MutedText style={{ display: 'block', marginBottom: 12 }}>
-          Wiadomości zaplanowane na noc wyślemy następnego dnia rano.
-        </MutedText>
-        <div style={{ display: 'flex', gap: 16 }}>
+      <Panel>
+        <h4>Godziny ciszy</h4>
+        <HintText>Wiadomości zaplanowane na noc wyślemy następnego dnia rano.</HintText>
+        <TimeRow>
           <Field>
-            <Label>Od</Label>
-            <Input type="time" value={form.quietHoursStart}
-              onChange={(e) => set({ quietHoursStart: e.target.value })} />
+            <FieldLabel>Od</FieldLabel>
+            <TextField
+              style={{ maxWidth: 140 }}
+              type="time"
+              value={form.quietHoursStart}
+              onChange={(e) => set({ quietHoursStart: e.target.value })}
+            />
           </Field>
           <Field>
-            <Label>Do</Label>
-            <Input type="time" value={form.quietHoursEnd}
-              onChange={(e) => set({ quietHoursEnd: e.target.value })} />
+            <FieldLabel>Do</FieldLabel>
+            <TextField
+              style={{ maxWidth: 140 }}
+              type="time"
+              value={form.quietHoursEnd}
+              onChange={(e) => set({ quietHoursEnd: e.target.value })}
+            />
           </Field>
-        </div>
-      </SectionCard>
+        </TimeRow>
+      </Panel>
 
-      <SectionCard style={{ marginBottom: 16 }}>
-        <Eyebrow>Limit częstotliwości</Eyebrow>
-        <MutedText style={{ display: 'block', marginBottom: 12 }}>
+      <Panel>
+        <h4>Limit częstotliwości</h4>
+        <HintText>
           Klient nie dostanie kolejnej kampanii wcześniej niż po tylu dniach od poprzedniej.
           Nie dotyczy powiadomień o wizytach.
-        </MutedText>
+        </HintText>
         <Field>
-          <Label>Minimalny odstęp (dni)</Label>
-          <Input type="number" min={0} max={90} value={form.frequencyCapDays}
-            onChange={(e) => set({ frequencyCapDays: Number(e.target.value) })} />
+          <FieldLabel>Minimalny odstęp (dni)</FieldLabel>
+          <TextField
+            style={{ maxWidth: 140 }}
+            type="number"
+            min={0}
+            max={90}
+            value={form.frequencyCapDays}
+            onChange={(e) => set({ frequencyCapDays: Number(e.target.value) })}
+          />
         </Field>
-      </SectionCard>
+      </Panel>
 
-      <SectionCard style={{ marginBottom: 16 }}>
-        <Eyebrow>Stopki wiadomości</Eyebrow>
-        <Field>
-          <Label>Stopka SMS</Label>
-          <TextArea value={form.smsFooter ?? ''} placeholder="np. Rezygnacja: odpisz STOP"
-            onChange={(e) => set({ smsFooter: e.target.value })} />
-          <MutedText>Doliczana do każdego SMS-a kampanii, wlicza się w limit znaków.</MutedText>
+      <Panel>
+        <h4>Stopki wiadomości</h4>
+        <Field style={{ maxWidth: 620 }}>
+          <FieldLabel>Stopka SMS</FieldLabel>
+          <TextAreaField
+            style={{ minHeight: 70 }}
+            value={form.smsFooter ?? ''}
+            placeholder="np. Rezygnacja: odpisz STOP"
+            onChange={(e) => set({ smsFooter: e.target.value })}
+          />
+          <HintText>Doliczana do każdego SMS-a kampanii, wlicza się w limit znaków.</HintText>
         </Field>
-        <Field>
-          <Label>Stopka e-mail</Label>
-          <TextArea value={form.emailFooter ?? ''} placeholder="np. dane studia i informacja o rezygnacji"
-            onChange={(e) => set({ emailFooter: e.target.value })} />
+        <Field style={{ maxWidth: 620 }}>
+          <FieldLabel>Stopka e-mail</FieldLabel>
+          <TextAreaField
+            style={{ minHeight: 70 }}
+            value={form.emailFooter ?? ''}
+            placeholder="np. dane studia i informacja o rezygnacji"
+            onChange={(e) => set({ emailFooter: e.target.value })}
+          />
         </Field>
-      </SectionCard>
+      </Panel>
 
-      <SaveBtn
-        disabled={isSaving}
-        onClick={async () => {
-          await save(form);
-          setSaved(true);
-        }}
-      >
-        {isSaving ? 'Zapisywanie...' : saved ? 'Zapisano' : 'Zapisz ustawienia'}
-      </SaveBtn>
-    </Page>
+      <SaveRow>
+        <PrimaryButton
+          type="button"
+          disabled={isSaving}
+          onClick={async () => {
+            await save(form);
+            setSaved(true);
+          }}
+        >
+          {saved ? <Check /> : <Save />}
+          {isSaving ? 'Zapisywanie…' : saved ? 'Zapisano' : 'Zapisz ustawienia'}
+        </PrimaryButton>
+      </SaveRow>
+    </ViewContainer>
   );
 }

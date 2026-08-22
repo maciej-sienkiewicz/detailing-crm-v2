@@ -6,7 +6,12 @@ import { servicesApi } from '@/modules/services/api/servicesApi';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
+import { Chip, ChipRow, IconButton } from './shared';
 import type { AudienceCriteria, CustomerTypeFilter } from '../types';
+
+// Chip kryterium ma jedną definicję na cały moduł — tu tylko przechodzi dalej,
+// żeby kreator i okno kampanii nie musiały wiedzieć, skąd go brać.
+export { Chip, ChipRow };
 
 // ─── Chipy filtrów w ludzkim języku (jedna reprezentacja w całym module) ──────
 
@@ -33,32 +38,15 @@ export function audienceChips(a: AudienceCriteria, serviceNames: Map<string, str
   return chips;
 }
 
-export const ChipRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-`;
-
-export const Chip = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 12px;
-  font-weight: 600;
-`;
-
 // ─── Sekcje ───────────────────────────────────────────────────────────────────
 
 const Section = styled.div`
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  background: #ffffff;
+  border-radius: ${(p) => p.theme.radii.lg};
+  background: ${(p) => p.theme.colors.surface};
   overflow: hidden;
 
-  & + & { margin-top: 10px; }
+  & + & { margin-top: 8px; }
 `;
 
 const SectionHead = styled.button<{ $open: boolean }>`
@@ -72,26 +60,30 @@ const SectionHead = styled.button<{ $open: boolean }>`
   cursor: pointer;
   padding: 13px 16px;
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   color: ${(p) => p.theme.colors.text};
 
   svg {
     width: 15px;
     height: 15px;
-    stroke-width: 1.75;
     color: ${(p) => p.theme.colors.textMuted};
-    transition: transform 180ms ease;
+    transition: transform ${(p) => p.theme.transitions.normal};
     transform: rotate(${(p) => (p.$open ? '180deg' : '0deg')});
   }
 `;
 
+/**
+ * Kropka przy nazwie sekcji: „tutaj coś jest ustawione". Jedyny kolor w tym
+ * panelu i jedyne miejsce, w którym niesie informację — bez niej trzeba by
+ * rozwinąć pięć sekcji, żeby dowiedzieć się, które zawężają listę odbiorców.
+ */
 const ActiveDot = styled.span`
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #0ea5e9;
+  background: ${(p) => p.theme.colors.primary};
   margin-left: 8px;
 `;
 
@@ -118,31 +110,29 @@ const FieldLabel = styled.label`
 const NumInput = styled.input`
   width: 110px;
   padding: 8px 12px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.md};
   font-size: 14px;
   font-family: inherit;
+  background: ${(p) => p.theme.colors.surface};
+  color: ${(p) => p.theme.colors.text};
+  transition: border-color ${(p) => p.theme.transitions.fast};
 
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
+  &::placeholder { color: ${(p) => p.theme.colors.textMuted}; }
+  &:focus { outline: none; border-color: ${(p) => p.theme.colors.primary}; }
 `;
 
 const Select = styled.select`
   padding: 8px 12px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.md};
   font-size: 14px;
   font-family: inherit;
-  background: #ffffff;
+  background: ${(p) => p.theme.colors.surface};
+  color: ${(p) => p.theme.colors.text};
+  transition: border-color ${(p) => p.theme.transitions.fast};
 
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
+  &:focus { outline: none; border-color: ${(p) => p.theme.colors.primary}; }
 `;
 
 const SelectWrap = styled.div`
@@ -152,41 +142,38 @@ const SelectWrap = styled.div`
 
 const RemovableChip = styled(Chip)`
   cursor: pointer;
+  transition: all ${(p) => p.theme.transitions.fast};
+
   &::after { content: '×'; margin-left: 6px; font-weight: 700; }
+  &:hover {
+    border-color: ${(p) => p.theme.colors.error};
+    color: ${(p) => p.theme.colors.error};
+  }
 `;
 
 const LogicHint = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: #f1f5f9;
+  padding: 5px 10px;
+  border-radius: ${(p) => p.theme.radii.md};
+  background: ${(p) => p.theme.colors.surfaceAlt};
   color: ${(p) => p.theme.colors.textSecondary};
   font-size: 12px;
   line-height: 1.4;
 
   strong {
-    font-weight: 700;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
     color: ${(p) => p.theme.colors.text};
-    letter-spacing: 0.02em;
   }
 `;
 
-const AddBtn = styled.button`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 9999px;
-  background: #0ea5e9;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 180ms ease;
-
-  &:hover { background: #0284c7; transform: translateY(-1px); }
-`;
+/*
+ * „Dodaj" jest tu dopiskiem do pary pól, a nie akcją całego ekranu — dlatego
+ * przycisk neutralny. Wypełniony błękitem konkurował wagą z „Dalej" w stopce
+ * kreatora, choć dorzuca jedną markę do listy.
+ */
+const AddBtn = IconButton;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

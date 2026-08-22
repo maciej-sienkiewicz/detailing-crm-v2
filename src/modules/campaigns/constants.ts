@@ -15,16 +15,28 @@ export const STATUS_LABELS: Record<CampaignStatus, string> = {
   ARCHIVED: 'Zarchiwizowana',
 };
 
-export const STATUS_VARIANTS: Record<CampaignStatus, 'success' | 'error' | 'warning' | 'info' | 'primary'> = {
-  DRAFT: 'info',
-  SCHEDULED: 'warning',
-  SENDING: 'primary',
-  COMPLETED: 'success',
-  CANCELLED: 'info',
-  FAILED: 'error',
-  ACTIVE: 'success',
-  PAUSED: 'warning',
-  ARCHIVED: 'info',
+/**
+ * Kolor etapu kampanii — kropka, nie wypełniona plakietka.
+ *
+ * Ten sam język, którym etap leada oznaczony jest w tabeli leadów i w wybieraku
+ * statusu: siedmiopikselowa kropka niesie barwę, a nazwa pisana normalnie czyta
+ * się szybciej niż KAPITALIKAMI. Wypełniona plakietka w każdym wierszu nie
+ * wyróżnia niczego — jeśli świeci cała kolumna, nie świeci nic.
+ *
+ * Barwy niosą znaczenie i nic poza tym: zielony = idzie zgodnie z planem,
+ * bursztyn = czeka albo stoi, czerwony = coś nie wyszło, szary = nic się nie
+ * dzieje. Kanał, rodzaj kampanii ani „ładny akcent" koloru nie dostają.
+ */
+export const STATUS_COLORS: Record<CampaignStatus, string> = {
+  DRAFT: '#94a3b8',
+  SCHEDULED: '#d97706',
+  SENDING: '#0284c7',
+  COMPLETED: '#15803d',
+  CANCELLED: '#94a3b8',
+  FAILED: '#b91c1c',
+  ACTIVE: '#15803d',
+  PAUSED: '#a16207',
+  ARCHIVED: '#cbd5e1',
 };
 
 export const KIND_LABELS = {
@@ -70,12 +82,5 @@ export const PLACEHOLDERS: { token: string; label: string }[] = [
   { token: '{{dni_od_wizyty}}', label: 'Dni od wizyty' },
 ];
 
-// ─── Kolory kafli KPI (semantyka design systemu) ──────────────────────────────
-
-export const TILE_STYLES = {
-  active: { accentColor: '#16a34a', bgGradient: '', iconBg: '#dcfce7' },
-  scheduled: { accentColor: '#d97706', bgGradient: '', iconBg: '#fef3c7' },
-  sent: { accentColor: '#0ea5e9', bgGradient: '', iconBg: '#e0f2fe' },
-  credits: { accentColor: '#64748b', bgGradient: '', iconBg: '#f1f5f9' },
-  creditsLow: { accentColor: '#dc2626', bgGradient: '', iconBg: '#fee2e2' },
-} as const;
+/** Poniżej tego progu doładowanie przestaje być formalnością — mówimy o tym wprost. */
+export const LOW_CREDITS_THRESHOLD = 200;
