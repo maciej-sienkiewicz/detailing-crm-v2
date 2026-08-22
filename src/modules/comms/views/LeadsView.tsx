@@ -5,10 +5,11 @@
 import { useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { BarChart3, Loader2, Search } from 'lucide-react';
+import { ArrowRight, BarChart3, Loader2, Search } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
-import { useLeads, useLeadsSocket } from '../hooks/useLeads';
+import { formatMoney } from '../components/analytics/tokens';
+import { useLeadAnalytics, useLeads, useLeadsSocket } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
 import { LeadDetailModal } from '../components/LeadDetailModal';
@@ -31,6 +32,58 @@ import {
     formatRelativeTime,
 } from '../components/shared';
 
+
+/**
+ * Pasek zaległości nad listą — to samo zdanie, co bohater analityki.
+ *
+ * Właściciel wchodzi codziennie tutaj, a nie do analityki. Kwota czekająca na
+ * odpowiedź musi stać tam, gdzie on faktycznie bywa; ekran analityki jest lekturą
+ * tygodniową. Bez tej duplikacji zbudowalibyśmy ładny widok, na który nikt nie
+ * ma powodu wchodzić.
+ *
+ * Pasek pojawia się wyłącznie wtedy, gdy jest zaległość. Cisza nie zajmuje miejsca.
+ */
+const OwedStrip = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-left: 3px solid ${p => p.theme.colors.error};
+    border-radius: ${p => p.theme.radii.lg};
+    background: ${p => p.theme.colors.surface};
+    padding: 12px 16px;
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+
+    .amount {
+        font-size: 20px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .text {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        color: ${p => p.theme.colors.textSecondary};
+    }
+    .text strong {
+        color: ${p => p.theme.colors.text};
+        font-weight: ${p => p.theme.fontWeights.semibold};
+    }
+    svg { width: 16px; height: 16px; flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        flex-wrap: wrap;
+        .text { flex-basis: 100%; }
+    }
+`;
 
 // ── Layout strony (jak ViewContainer w statystykach) ─────────────────────────
 
@@ -311,10 +364,25 @@ const StatusDot = styled.span<{ $color: string }>`
 `;
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>();
+    /*
+     * Filtry startowe czytane z adresu, jeden raz, przy pierwszym renderze.
+     *
+     * Analityka prowadzi tu z konkretnym pytaniem: „pokaż mi te zaległe rozmowy",
+     * „pokaż przegrane". Bez tego kliknięcie kwoty wysyłałoby na nieprzefiltrowaną
+     * listę i użytkownik musiałby odtworzyć filtr ręcznie — czyli kwota na
+     * poprzednim ekranie byłaby twierdzeniem, a nie dowodem.
+     *
+     * Tylko wartość początkowa: dalej filtrami rządzą przyciski, więc kliknięcie
+     * „Wszystkie" nie ma prawa zostać cofnięte przez parametr, który wciąż wisi
+     * w adresie.
+     */
+    const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(() => {
+        const requested = searchParams.get('status');
+        return LEAD_STATUS_FLOW.includes(requested as LeadStatus) ? (requested as LeadStatus) : undefined;
+    });
     // „Do odpisania" to nie kolejny status, tylko zawężenie listy do leadów,
     // w których ostatnie słowo należy do klienta — czyli do naszej kolejki zaległości.
-    const [awaitingReply, setAwaitingReply] = useState(false);
+    const [awaitingReply, setAwaitingReply] = useState(() => searchParams.get('awaiting') === '1');
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
     // Okno szczegółów ma otworzyć się od razu na edytorze wyceny, gdy weszliśmy
@@ -328,6 +396,9 @@ export default function LeadsView() {
     const selectedLeadId = searchParams.get('lead');
     const selectLead = (leadId: string | null) => {
         setOpenServicesEditor(false);
+        // Parametry filtrów zostały już przeczytane do stanu; w adresie zostaje
+        // wyłącznie otwarty lead, żeby odświeżenie strony nie przywracało filtru,
+        // który użytkownik w międzyczasie zdjął.
         setSearchParams(leadId ? { lead: leadId } : {}, { replace: true });
     };
 
@@ -342,6 +413,10 @@ export default function LeadsView() {
     // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
     // zamienia się w wynik bez odświeżania strony.
     useLeadsSocket();
+    // Zaległości do paska nad listą. Ta sama pamięć podręczna co w analityce,
+    // więc przejście między widokami nie kosztuje drugiego zapytania.
+    const { data: analytics } = useLeadAnalytics(30);
+    const owed = analytics?.awaiting;
 
     const openCellEditor = (
         event: MouseEvent<HTMLButtonElement>,
@@ -376,6 +451,30 @@ export default function LeadsView() {
                     </Link>
                 }
             />
+
+            {owed && owed.count > 0 && !awaitingReply && (
+                <OwedStrip
+                    type="button"
+                    title="Pokaż rozmowy, w których czekamy z odpowiedzią"
+                    onClick={() => { setAwaitingReply(true); setPage(0); }}
+                >
+                    {/* Bez groszy: to jest kwota-hasło, nie pozycja na fakturze. */}
+                    <span className="amount">{formatMoney(owed.value)}</span>
+                    <span className="text">
+                        czeka na Twoją odpowiedź w{' '}
+                        <strong>{owed.count} {owed.count === 1 ? 'rozmowie' : 'rozmowach'}</strong>
+                        {owed.oldest && (
+                            <>
+                                {' — najdłużej '}
+                                <strong>{owed.oldest.name}</strong>
+                                {owed.oldest.vehicle && <>, {owed.oldest.vehicle}</>}
+                                {owed.oldest.waitingDays > 0 && <>, {owed.oldest.waitingDays} dni</>}
+                            </>
+                        )}
+                    </span>
+                    <ArrowRight />
+                </OwedStrip>
+            )}
 
             <FiltersRow>
                 <FilterChip $active={!statusFilter} onClick={() => { setStatusFilter(undefined); setPage(0); }}>

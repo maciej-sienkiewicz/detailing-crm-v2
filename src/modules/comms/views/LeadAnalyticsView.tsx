@@ -1,41 +1,49 @@
 // src/modules/comms/views/LeadAnalyticsView.tsx
-// Analityka leadów zbudowana wokół pytań, a nie wokół danych, które akurat mamy.
+// Analityka leadów jako rachunek pieniędzy, nie jako raport ze wskaźnikami.
 //
-// Każda karta zadaje jedno pytanie właściciela studia i odpowiada na nie zdaniem
-// po polsku; wykres pod spodem to zdanie uzasadnia. Odwrotna kolejność — wykres,
-// a pod nim domysły — dokłada pracy zamiast ją zdejmować, a to jest jedyny powód,
-// dla którego ten widok istnieje.
+// ── Dlaczego nie ma tu ani jednego procentu na pierwszym ekranie ────────────
 //
-// Czego tu świadomie NIE MA:
+// Właściciel studia myśli w złotówkach. Procent wymaga tłumaczenia na pieniądze,
+// zanim cokolwiek znaczy, i nie ma skali odniesienia: „skuteczność 41%" to ocena
+// szkolna bez kryteriów. Przy rozrzucie wartości zleceń od czterystu złotych do
+// dwunastu tysięcy procent dodatkowo kłamie — miesiąc z dziesięcioma przegranymi
+// praniami tapicerki i jedną wygraną powłoką ceramiczną to dziewięć procent
+// konwersji i bardzo dobry miesiąc.
 //
-// • Mapy ciepła dzień × godzina. 7 × 24 = 168 komórek; studio z czterdziestoma
-//   zapytaniami miesięcznie zapełni je średnio w jednej czwartej, więc rysunek
-//   pokazywałby głównie przypadek. Rytm tygodnia i rytm miesiąca mówią to samo
-//   na próbie, która wytrzymuje.
-// • Prognoz. Do przewidywania trzeba szeregu, który ma sezonowość i długość;
-//   przy kilkuset leadach prognoza jest zgadywaniem w przebraniu wykresu.
-// • Statystyk per pracownik. To narzędzie dla studia, w którym zapytaniami
-//   zajmuje się jedna albo dwie osoby — ranking na takiej próbie ocenia szczęście.
-// • Lejka wszystkich sześciu statusów. Powtarzał to, co mówi kafel skuteczności,
-//   tylko dłużej.
+// ── Cztery pasma i koniec ──────────────────────────────────────────────────
+//
+// 1. Zdanie-bohater: ile pieniędzy czeka na Twoją odpowiedź. Pierwsza fiksacja
+//    wzroku ustawia ramę dla reszty ekranu — liczba PRZESZŁA robi z tego raport,
+//    liczba OTWARTA robi z tego warsztat. Tylko drugie ma powód, żeby wracać.
+// 2. Rachunek zapytań: jedna belka pieniędzy, które przeszły przez drzwi.
+// 3. Gdzie wyciekły: powody straty w złotówkach, każdy klikalny.
+// 4. Czytanie tygodniowe: rytm, odstępstwa, usługi, kanały — cicho, poniżej zgięcia.
+//
+// Ekran się KOŃCZY. Żadnego nieskończonego strumienia kart: taki, który ma koniec,
+// zostaje przeczytany, a taki bez końca zostaje przewinięty.
+//
+// ── Czego tu świadomie nie ma ──────────────────────────────────────────────
+//
+// • Rzędu sześciu kafli o równej wadze. Jeśli wszystko jest wyróżnione, nic nie
+//   jest — a ikonka w kolorowym kółku pod pastelowym gradientem to dekoracja
+//   niosąca zero informacji.
+// • Liczby zapytań jako metryki. To wejście, nie wyjście, i wejście, na które
+//   z tego ekranu nie ma wpływu. Rośnie niezależnie od pieniędzy, a studio jest
+//   ograniczone mocą przerobową, nie popytem: więcej zapytań bez większej mocy
+//   to więcej odmów, nie większy przychód.
+// • Rozkładu zapytań na dni miesiąca. Nie istnieje mechanizm, przez który trzeci
+//   dzień miesiąca miałby generować zapytania; przy tym wolumenie był to wykres
+//   szumu z podpisem sugerującym prawidłowość.
+// • Lejka sześciu statusów, wykresów kołowych, prognoz.
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import {
-    ArrowLeft,
-    Banknote,
-    CalendarClock,
-    Clock3,
-    Inbox,
-    Target,
-    TrendingDown,
-    TrendingUp,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
-import { StatTile } from '@/common/components/StatTile';
 import { useLeadAnalytics } from '../hooks/useLeads';
 import type { LeadAnalytics } from '../types';
-import { EmptyHint, FilterChip, formatGrosze } from '../components/shared';
+import { EmptyHint, FilterChip, PrimaryButton } from '../components/shared';
+import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
 import {
     AnalyticsCard,
     ColumnChart,
@@ -47,13 +55,11 @@ import {
     type Column,
 } from '../components/analytics/charts';
 import {
-    LOST,
     RESPONSE_LABELS,
     SOURCE_LABELS,
     WEEKDAY_FULL,
     WEEKDAY_LABELS,
-    formatDays,
-    formatMinutes,
+    formatMoney,
     formatPeriod,
     formatPeriodTick,
     percent,
@@ -63,9 +69,9 @@ import {
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 22px;
     padding: ${p => p.theme.spacing.md};
-    max-width: 1400px;
+    max-width: 1180px;
     margin: 0 auto;
     width: 100%;
 
@@ -73,20 +79,52 @@ const ViewContainer = styled.main`
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
-const TileRow = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
+const RangeRow = styled.div`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+/** Pasmo 3 i 4 rozdzielone kreską, nie odstępem: tu kończy się „dziś", zaczyna „kiedyś". */
+const Divider = styled.hr`
+    margin: 6px 0 0;
+    border: none;
+    border-top: 1px solid ${p => p.theme.colors.border};
 `;
 
 /**
- * Dwie kolumny kart na monitorze, jedna na telefonie. Karty, które odpowiadają na
- * jedno pytanie w parze (rytm tygodnia, trend), zajmują całą szerokość — rozdzielone
- * kazałyby porównywać dwa rysunki oddalone od siebie o pół ekranu.
+ * Czytanie tygodniowe — zwinięte domyślnie.
+ *
+ * Te dane są prawdziwe i czasem cenne, ale żadna z nich nie zmienia pieniędzy
+ * w ciągu tygodnia. Rozłożone na pierwszym ekranie rozmyłyby jedyne trzy liczby,
+ * które to potrafią; schowane za jednym kliknięciem nic nie tracą.
  */
-const CardGrid = styled.div`
+const MoreToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+
+    svg {
+        width: 15px;
+        height: 15px;
+        transition: transform ${p => p.theme.transitions.fast};
+    }
+    &[aria-expanded='true'] svg { transform: rotate(180deg); }
+    &:hover { color: ${p => p.theme.colors.text}; }
+`;
+
+const QuietGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 16px;
     align-items: start;
 `;
@@ -95,7 +133,6 @@ const WideCard = styled(AnalyticsCard)`
     grid-column: 1 / -1;
 `;
 
-/** Rytm tygodnia to dwa osobne rysunki obok siebie, nie jeden z dwiema seriami. */
 const SplitCharts = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -120,7 +157,6 @@ const TrendStack = styled.div`
     gap: 12px;
 `;
 
-/** Odstępstwo: znak, etykieta i liczba — kolor jest tu trzecim sygnałem, nie jedynym. */
 const OutlierRow = styled.div<{ $above: boolean }>`
     display: flex;
     align-items: center;
@@ -180,16 +216,13 @@ const peakOf = (stats: { count: number }[]): { index: number; count: number } | 
 export default function LeadAnalyticsView() {
     const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]['key']>('30');
     const range = RANGES.find((entry) => entry.key === rangeKey)!;
-    // Granicę okna wylicza hook w momencie pobrania. Data policzona tutaj, w trakcie
-    // renderu, zmieniałaby się co milisekundę i wraz z nią klucz zapytania — każde
-    // przerysowanie widoku strzelałoby do serwera od nowa.
     const { data, isLoading } = useLeadAnalytics(range.days);
 
     return (
         <ViewContainer>
             <PageHeader
-                title="Analityka leadów"
-                subtitle={`Ostatnie ${range.key === '365' ? '12 miesięcy' : range.label}`}
+                title="Pieniądze w zapytaniach"
+                subtitle={`Rachunek za ostatnie ${range.key === '365' ? '12 miesięcy' : range.label}`}
                 actions={
                     <Link to="/leads">
                         <PageHeaderGhostButton as="span">
@@ -199,7 +232,7 @@ export default function LeadAnalyticsView() {
                 }
             />
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <RangeRow>
                 {RANGES.map((entry) => (
                     <FilterChip
                         key={entry.key}
@@ -209,22 +242,153 @@ export default function LeadAnalyticsView() {
                         {entry.label}
                     </FilterChip>
                 ))}
-            </div>
+            </RangeRow>
 
             {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
-            {data && data.totalCreated === 0 && (
-                <EmptyHint>Brak zapytań w tym okresie — nie ma czego liczyć.</EmptyHint>
-            )}
-            {data && data.totalCreated > 0 && <Report data={data} monthly={range.key === '365'} />}
+            {data && <Report data={data} monthly={range.key === '365'} />}
         </ViewContainer>
     );
 }
 
 function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+    const navigate = useNavigate();
+    const [moreOpen, setMoreOpen] = useState(false);
+
+    const { awaiting } = data;
+    const total = data.wonValue + data.pipelineValue + data.lostValue;
+    const wonDelta = data.wonValue - data.wonValuePrevious;
+
+    return (
+        <>
+            {/* ── Pasmo 1 ─────────────────────────────────────────────────────
+                Zaległość, a nie „zarobiłeś". Sprawy niedokończone zostają w głowie
+                i wytwarzają ciśnienie powrotu — a ta kwota zmienia się wyłącznie
+                dlatego, że użytkownik coś zrobił. Nazwisko i auto w zdaniu obok
+                sprawiają, że to jest JEGO klient, a nie abstrakcja, którą wygenerowałby
+                dowolny szablon. */}
+            {awaiting.count > 0 ? (
+                <Hero
+                    lead="Czeka na Ciebie"
+                    amount={formatMoney(awaiting.value)}
+                    body={
+                        <>
+                            w <strong>{awaiting.count} {conversationWord(awaiting.count)}</strong>, w których
+                            piłka jest po Twojej stronie.
+                            {awaiting.oldest && (
+                                <>
+                                    {' '}Najdłużej czeka <strong>{awaiting.oldest.name}</strong>
+                                    {awaiting.oldest.vehicle && <> — {awaiting.oldest.vehicle}</>}
+                                    {awaiting.oldest.value > 0 && <>, {formatMoney(awaiting.oldest.value)}</>}
+                                    {', '}
+                                    {dayWord(awaiting.oldest.waitingDays)}.
+                                </>
+                            )}
+                        </>
+                    }
+                    action={
+                        <PrimaryButton type="button" onClick={() => navigate('/leads?awaiting=1')}>
+                            Odpisz im <ArrowRight size={14} />
+                        </PrimaryButton>
+                    }
+                    // Domknięcie pętli — nagroda za to, co użytkownik zrobił po ostatniej
+                    // wizycie. Osobno od zastrzeżenia o zakresie, bo tamto jest przypisem,
+                    // a to jest kwitem.
+                    reward={
+                        data.confirmedValueThisWeek > 0
+                            ? `W tym tygodniu zamieniłeś w rezerwacje ${formatMoney(data.confirmedValueThisWeek)}.`
+                            : undefined
+                    }
+                    note="Liczone niezależnie od wybranego okresu."
+                />
+            ) : (
+                <Hero
+                    lead="Nikt nie czeka na odpowiedź"
+                    amount={formatMoney(data.pipelineValue)}
+                    body={
+                        <>
+                            Rzadka rzecz — w każdej rozmowie ostatnie słowo należy do klienta.
+                            Tyle masz wciąż <strong>w grze</strong>.
+                        </>
+                    }
+                    action={
+                        <PrimaryButton type="button" onClick={() => navigate('/leads')}>
+                            Zobacz otwarte zapytania <ArrowRight size={14} />
+                        </PrimaryButton>
+                    }
+                />
+            )}
+
+            {/* ── Pasmo 2 ─────────────────────────────────────────────────────
+                Belka pokazuje pieniądze OKNA, a zdanie-bohater stan bieżący. Przy
+                pustym oknie belka narysowałaby trzy zera i wyglądała na awarię,
+                więc zamiast niej idzie jedno zdanie. */}
+            {total === 0 ? (
+                <EmptyHint>W tym okresie nie wpłynęło ani jedno zapytanie.</EmptyHint>
+            ) : (
+            <MoneyLedger
+                total={formatMoney(total)}
+                kept={{ amount: formatMoney(data.wonValue), raw: data.wonValue }}
+                inPlay={{
+                    amount: formatMoney(data.pipelineValue),
+                    raw: data.pipelineValue,
+                    onClick: () => navigate('/leads'),
+                }}
+                gone={{
+                    amount: formatMoney(data.lostValue),
+                    raw: data.lostValue,
+                    onClick: () => navigate('/leads?status=LOST'),
+                }}
+                delta={
+                    data.wonValuePrevious > 0 || data.wonValue > 0 ? (
+                        <>
+                            Zatrzymane pieniądze:{' '}
+                            {wonDelta === 0
+                                ? 'tyle samo co w poprzednim okresie.'
+                                : `o ${formatMoney(Math.abs(wonDelta))} ${wonDelta > 0 ? 'więcej' : 'mniej'} niż w poprzednim okresie.`}
+                        </>
+                    ) : null
+                }
+            />
+            )}
+
+            {/* ── Pasmo 3 ───────────────────────────────────────────────────── */}
+            {data.leaks.length > 0 && (
+                <LeakList
+                    rows={data.leaks.map((leak) => ({
+                        code: leak.code,
+                        label: leak.label,
+                        amount: formatMoney(leak.value),
+                        raw: leak.value,
+                        count: `${leak.count} ${conversationCount(leak.count)}`,
+                    }))}
+                    onPick={() => navigate('/leads?status=LOST')}
+                />
+            )}
+
+            {/* ── Pasmo 4 ───────────────────────────────────────────────────── */}
+            <Divider />
+            <MoreToggle
+                type="button"
+                aria-expanded={moreOpen}
+                onClick={() => setMoreOpen((open) => !open)}
+            >
+                <ChevronDown /> {moreOpen ? 'Zwiń czytanie tygodniowe' : 'Czytanie tygodniowe — rytm, usługi, odstępstwa'}
+            </MoreToggle>
+
+            {moreOpen && <WeeklyReading data={data} monthly={monthly} />}
+        </>
+    );
+}
+
+/**
+ * Materiał, który nie zmienia pieniędzy w ciągu tygodnia, więc nie ma prawa
+ * konkurować z tym, co zmienia. Prawdziwy i czasem cenny — ale przeczytany raz na
+ * jakiś czas, nie codziennie.
+ */
+function WeeklyReading({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     const enoughForRhythm = data.totalCreated >= MIN_LEADS_FOR_RHYTHM;
     const inquiryPeak = peakOf(data.inquiriesByWeekday);
     const decisionPeak = peakOf(data.decisionsByWeekday);
-    const monthPeak = peakOf(data.inquiriesByMonthDay);
 
     const weekdayColumns = (stats: { weekday: number; count: number }[], peakIndex: number | null): Column[] =>
         stats.map((entry, index) => ({
@@ -236,14 +400,11 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
         }));
 
     // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy —
-    // to jedno zdarzenie. Próg trzech odsiewa je, nie ukrywając niczego istotnego.
+    // to jedno zdarzenie.
     const categories = data.categories.filter((entry) => entry.count >= 3).slice(0, 8);
-    const bestCategory = [...categories]
-        .filter((entry) => entry.conversionRate !== null)
-        .sort((a, b) => (b.conversionRate ?? 0) - (a.conversionRate ?? 0))[0];
-    const worstCategory = [...categories]
-        .filter((entry) => entry.conversionRate !== null)
-        .sort((a, b) => (a.conversionRate ?? 0) - (b.conversionRate ?? 0))[0];
+    const rated = categories.filter((entry) => entry.conversionRate !== null);
+    const bestCategory = [...rated].sort((a, b) => (b.conversionRate ?? 0) - (a.conversionRate ?? 0))[0];
+    const worstCategory = [...rated].sort((a, b) => (a.conversionRate ?? 0) - (b.conversionRate ?? 0))[0];
 
     const bestSource = [...data.bySource]
         .filter((entry) => entry.winRate !== null && entry.closed >= 5)
@@ -252,14 +413,14 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     const impact = data.responseImpact;
     const responseAnswer = (() => {
         if (impact.verdict === 'NOT_ENOUGH_DATA') {
-            return 'Za mało rozstrzygniętych zapytań, żeby cokolwiek stwierdzić. Wróć tu przy szerszym zakresie.';
+            return 'Za mało rozstrzygniętych rozmów, żeby cokolwiek stwierdzić. Wróć tu przy szerszym zakresie.';
         }
         if (impact.verdict === 'FASTER_WINS') {
             const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
             return (
                 <>
                     <strong>Tak — szybka odpowiedź się opłaca.</strong> Odpisując w ciągu doby wygrywasz{' '}
-                    {percent(impact.fastWinRate)} zapytań, później {percent(impact.slowWinRate)}. Różnica{' '}
+                    {percent(impact.fastWinRate)} rozmów, później {percent(impact.slowWinRate)}. Różnica{' '}
                     {points(gap)}.
                 </>
             );
@@ -274,302 +435,206 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     })();
 
     return (
-        <>
-            <TileRow>
-                <StatTile
-                    icon={Inbox}
-                    value={data.totalCreated}
-                    label="Zapytania"
-                    accentColor="#0ea5e9"
-                    bgGradient="linear-gradient(180deg, rgba(14,165,233,0.06) 0%, #ffffff 55%)"
-                    iconBg="rgba(14,165,233,0.12)"
-                    subContent="w wybranym okresie"
-                />
-                <StatTile
-                    icon={Target}
-                    value={percent(data.conversionRate)}
-                    label="Skuteczność"
-                    accentColor="#16a34a"
-                    bgGradient="linear-gradient(180deg, rgba(22,163,74,0.06) 0%, #ffffff 55%)"
-                    iconBg="rgba(22,163,74,0.12)"
-                    subContent="wygrane / rozstrzygnięte"
-                />
-                <StatTile
-                    icon={Banknote}
-                    value={formatGrosze(data.wonValue)}
-                    label="Wygrane"
-                    accentColor="#16a34a"
-                    bgGradient="linear-gradient(180deg, rgba(22,163,74,0.06) 0%, #ffffff 55%)"
-                    iconBg="rgba(22,163,74,0.12)"
-                />
-                {/* Ile pieniędzy przeszło obok. Jedna liczba, zero analizy — i jedyna,
-                    która sama z siebie każe otworzyć listę przegranych. */}
-                <StatTile
-                    icon={TrendingDown}
-                    value={formatGrosze(data.lostValue)}
-                    label="Przegrane"
-                    accentColor="#dc2626"
-                    bgGradient="linear-gradient(180deg, rgba(220,38,38,0.06) 0%, #ffffff 55%)"
-                    iconBg="rgba(220,38,38,0.12)"
-                    subContent="wartość utraconych zapytań"
-                />
-                <StatTile
-                    icon={Clock3}
-                    value={formatMinutes(data.medianFirstResponseMinutes)}
-                    label="Pierwsza odpowiedź"
-                    accentColor="#7c3aed"
-                    bgGradient="linear-gradient(180deg, rgba(124,58,237,0.06) 0%, #ffffff 55%)"
-                    iconBg="rgba(124,58,237,0.12)"
-                    subContent="mediana czasu reakcji"
-                />
-                {/* Po ilu dniach ciszy można odpuścić — jedyna liczba, która pozwala
-                    przestać wracać do zapytań, z których nic nie będzie. */}
-                <StatTile
-                    icon={CalendarClock}
-                    value={formatDays(data.medianDaysToDecision)}
-                    label="Czas do decyzji"
-                    accentColor="#0f766e"
-                    bgGradient="linear-gradient(180deg, rgba(15,118,110,0.06) 0%, #ffffff 55%)"
-                    iconBg="rgba(15,118,110,0.12)"
-                    subContent="mediana od zapytania do rezerwacji"
-                />
-            </TileRow>
-
-            <CardGrid>
-                <WideCard
-                    question="Jak to szło w czasie"
-                    answer={
-                        data.timeline.length < 2
-                            ? 'Okres jest za krótki, żeby mówić o trendzie.'
-                            : `Zapytania i skuteczność w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
-                    }
-                >
-                    {data.timeline.length >= 2 && (
-                        <TrendStack>
-                            <ColumnChart
-                                columns={data.timeline.map((point) => ({
-                                    key: point.periodStart,
-                                    tick: formatPeriodTick(point.periodStart, monthly),
-                                    value: point.created,
-                                    caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań, ${point.won} wygranych`,
-                                }))}
-                                height={130}
-                                tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
-                            />
-                            {/* Osobny rysunek, nie druga oś na tym samym: dwie skale na
-                                jednym wykresie dobiera się arbitralnie i produkują
-                                zależność, której w danych nie ma. */}
-                            <RateLine
-                                points={data.timeline.map((point) => ({
-                                    key: point.periodStart,
-                                    rate: point.winRate,
-                                    caption: `${formatPeriod(point.periodStart, monthly)}: skuteczność ${percent(point.winRate)}`,
-                                }))}
-                            />
-                        </TrendStack>
-                    )}
-                </WideCard>
-
-                <WideCard
-                    question="Rytm tygodnia"
-                    answer={
-                        !enoughForRhythm
-                            ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
-                            : (
-                                <>
-                                    Najwięcej zapytań przychodzi w{' '}
-                                    <strong>{inquiryPeak ? WEEKDAY_FULL[inquiryPeak.index] : '—'}</strong>
-                                    {decisionPeak && (
-                                        <>
-                                            , a decyzje zapadają najczęściej we{' '}
-                                            <strong>{WEEKDAY_FULL[decisionPeak.index]}</strong>
-                                        </>
-                                    )}
-                                    .
-                                </>
-                            )
-                    }
-                >
-                    <SplitCharts>
-                        <div>
-                            <h4>Kiedy pytają</h4>
-                            <ColumnChart
-                                columns={weekdayColumns(data.inquiriesByWeekday, inquiryPeak?.index ?? null)}
-                                height={110}
-                            />
-                        </div>
-                        <div>
-                            <h4>Kiedy się decydują</h4>
-                            {decisionPeak ? (
-                                <ColumnChart
-                                    columns={weekdayColumns(data.decisionsByWeekday, decisionPeak.index)}
-                                    height={110}
-                                />
-                            ) : (
-                                <EmptyChart>Brak rezerwacji z tego okresu.</EmptyChart>
-                            )}
-                        </div>
-                    </SplitCharts>
-                </WideCard>
-
-                <WideCard
-                    question="Rytm miesiąca"
-                    answer={
-                        !enoughForRhythm
-                            ? 'Za mało zapytań, żeby rozkład na dni miesiąca cokolwiek znaczył.'
-                            : (
-                                <>
-                                    Szczyt wypada <strong>{monthPeak?.index !== undefined ? monthPeak.index + 1 : '—'}. dnia miesiąca</strong>
-                                    {' '}({monthPeak?.count} zapytań).
-                                </>
-                            )
-                    }
-                >
-                    <ColumnChart
-                        columns={data.inquiriesByMonthDay.map((entry) => ({
-                            key: String(entry.day),
-                            tick: String(entry.day),
-                            value: entry.count,
-                            caption: `${entry.day}. dnia: ${entry.count} zapytań`,
-                            highlighted: entry.day === (monthPeak ? monthPeak.index + 1 : -1),
-                        }))}
-                        height={100}
-                        tickEvery={5}
-                    />
-                </WideCard>
-
-                <AnalyticsCard
-                    question="W czym wygrywamy, w czym przegrywamy"
-                    answer={
-                        categories.length === 0
-                            ? 'Za mało rozstrzygniętych zapytań w poszczególnych usługach.'
-                            : (
-                                <>
-                                    Najlepiej idzie w usłudze{' '}
-                                    <strong>{bestCategory?.label ?? '—'}</strong> ({percent(bestCategory?.conversionRate)}),
-                                    najgorzej w <strong>{worstCategory?.label ?? '—'}</strong>{' '}
-                                    ({percent(worstCategory?.conversionRate)}).
-                                </>
-                            )
-                    }
-                >
-                    {categories.length === 0 ? (
-                        <EmptyChart>Wróć tu, gdy zamkniesz więcej zapytań.</EmptyChart>
-                    ) : (
-                        <>
-                            <WinLossBars
-                                rows={categories.map((entry) => ({
-                                    key: entry.code ?? 'none',
-                                    label: entry.label,
-                                    won: entry.completed,
-                                    lost: entry.lost,
-                                    open: Math.max(0, entry.count - entry.completed - entry.lost),
-                                    winRate: entry.conversionRate,
-                                }))}
-                            />
-                            <WinLossLegend />
-                        </>
-                    )}
-                </AnalyticsCard>
-
-                <AnalyticsCard question="Czy czas odpowiedzi wpływa na skuteczność" answer={responseAnswer}>
-                    <RankedBars
-                        rows={impact.buckets
-                            .filter((bucket) => bucket.count > 0)
-                            .map((bucket) => ({
-                                key: bucket.key,
-                                label: RESPONSE_LABELS[bucket.key] ?? bucket.key,
-                                value: bucket.winRate ?? 0,
-                                meta: `${percent(bucket.winRate)} z ${bucket.closed}`,
+        <QuietGrid>
+            <WideCard
+                question="Jak to szło w czasie"
+                answer={
+                    data.timeline.length < 2
+                        ? 'Okres jest za krótki, żeby mówić o trendzie.'
+                        : `Zapytania i skuteczność w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
+                }
+            >
+                {data.timeline.length >= 2 && (
+                    <TrendStack>
+                        <ColumnChart
+                            columns={data.timeline.map((point) => ({
+                                key: point.periodStart,
+                                tick: formatPeriodTick(point.periodStart, monthly),
+                                value: point.created,
+                                caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań, ${point.won} wygranych`,
                             }))}
-                    />
-                    <EmptyChart>
-                        Słupek to skuteczność w danym przedziale, liczba obok — na ilu rozstrzygniętych
-                        zapytaniach się opiera.
-                    </EmptyChart>
-                </AnalyticsCard>
-
-                <AnalyticsCard
-                    question="Czy coś odstaje"
-                    answer={
-                        data.vehicleOutliers.length === 0
-                            ? 'Nie wykryto odstępstw — żadna marka nie odbiega wyraźnie od Twojej średniej skuteczności.'
-                            : 'Marki, przy których wynik wyraźnie różni się od średniej.'
-                    }
-                >
-                    {data.vehicleOutliers.length > 0 && (
-                        <OutlierList>
-                            {data.vehicleOutliers.map((outlier) => {
-                                const above = outlier.direction === 'ABOVE';
-                                const Icon = above ? TrendingUp : TrendingDown;
-                                return (
-                                    <OutlierRow key={outlier.label} $above={above}>
-                                        <Icon />
-                                        <span className="name">{outlier.label}</span>
-                                        <span>
-                                            {above ? 'wygrywamy częściej' : 'przegrywamy częściej'}
-                                            {' — '}
-                                            {outlier.won} z {outlier.closed}
-                                        </span>
-                                        <span className="spacer" />
-                                        <span className="rate">{percent(outlier.winRate)}</span>
-                                    </OutlierRow>
-                                );
-                            })}
-                        </OutlierList>
-                    )}
-                </AnalyticsCard>
-
-                <AnalyticsCard
-                    question="Skąd przychodzą zapytania"
-                    answer={
-                        bestSource
-                            ? (
-                                <>
-                                    Najskuteczniejszy kanał to{' '}
-                                    <strong>{SOURCE_LABELS[bestSource.source] ?? bestSource.source}</strong>{' '}
-                                    ({percent(bestSource.winRate)}).
-                                </>
-                            )
-                            : 'Za mało rozstrzygniętych zapytań, żeby porównać kanały.'
-                    }
-                >
-                    <RankedBars
-                        rows={data.bySource.map((entry) => ({
-                            key: entry.source,
-                            label: SOURCE_LABELS[entry.source] ?? entry.source,
-                            value: entry.count,
-                            meta: `${entry.count}, skut. ${percent(entry.winRate)}`,
-                        }))}
-                    />
-                </AnalyticsCard>
-
-                <AnalyticsCard
-                    question="Dlaczego przegrywamy"
-                    answer={
-                        data.lostReasons.length === 0
-                            ? 'Żaden przegrany lead nie ma podanego powodu — bez tego nie da się nic poprawić.'
-                            : (
-                                <>
-                                    Najczęstszy powód to <strong>{data.lostReasons[0].label}</strong>{' '}
-                                    ({percent(data.lostReasons[0].share)} przegranych).
-                                </>
-                            )
-                    }
-                >
-                    {data.lostReasons.length > 0 && (
-                        <RankedBars
-                            color={LOST}
-                            rows={data.lostReasons.map((entry) => ({
-                                key: entry.code,
-                                label: entry.label,
-                                value: entry.count,
-                                meta: `${entry.count}, ${percent(entry.share)}`,
+                            height={130}
+                            tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
+                        />
+                        {/* Osobny rysunek, nie druga oś na tym samym: dwie skale na
+                            jednym wykresie dobiera się arbitralnie i produkują
+                            zależność, której w danych nie ma. */}
+                        <RateLine
+                            points={data.timeline.map((point) => ({
+                                key: point.periodStart,
+                                rate: point.winRate,
+                                caption: `${formatPeriod(point.periodStart, monthly)}: skuteczność ${percent(point.winRate)}`,
                             }))}
                         />
-                    )}
-                </AnalyticsCard>
-            </CardGrid>
-        </>
+                    </TrendStack>
+                )}
+            </WideCard>
+
+            <WideCard
+                question="Rytm tygodnia"
+                answer={
+                    !enoughForRhythm
+                        ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
+                        : (
+                            <>
+                                Najwięcej zapytań przychodzi w{' '}
+                                <strong>{inquiryPeak ? WEEKDAY_FULL[inquiryPeak.index] : '—'}</strong>
+                                {decisionPeak && (
+                                    <>
+                                        , a decyzje zapadają najczęściej we{' '}
+                                        <strong>{WEEKDAY_FULL[decisionPeak.index]}</strong>
+                                    </>
+                                )}
+                                .
+                            </>
+                        )
+                }
+            >
+                <SplitCharts>
+                    <div>
+                        <h4>Kiedy pytają</h4>
+                        <ColumnChart
+                            columns={weekdayColumns(data.inquiriesByWeekday, inquiryPeak?.index ?? null)}
+                            height={110}
+                        />
+                    </div>
+                    <div>
+                        <h4>Kiedy się decydują</h4>
+                        {decisionPeak ? (
+                            <ColumnChart
+                                columns={weekdayColumns(data.decisionsByWeekday, decisionPeak.index)}
+                                height={110}
+                            />
+                        ) : (
+                            <EmptyChart>Brak rezerwacji z tego okresu.</EmptyChart>
+                        )}
+                    </div>
+                </SplitCharts>
+            </WideCard>
+
+            <AnalyticsCard
+                question="W czym wygrywamy, w czym przegrywamy"
+                answer={
+                    rated.length === 0
+                        ? 'Za mało rozstrzygniętych rozmów w poszczególnych usługach.'
+                        : (
+                            <>
+                                Najlepiej idzie w usłudze <strong>{bestCategory.label}</strong>{' '}
+                                ({percent(bestCategory.conversionRate)}), najgorzej w{' '}
+                                <strong>{worstCategory.label}</strong> ({percent(worstCategory.conversionRate)}).
+                            </>
+                        )
+                }
+            >
+                {categories.length === 0 ? (
+                    <EmptyChart>Wróć tu, gdy zamkniesz więcej rozmów.</EmptyChart>
+                ) : (
+                    <>
+                        <WinLossBars
+                            rows={categories.map((entry) => ({
+                                key: entry.code ?? 'none',
+                                label: entry.label,
+                                won: entry.completed,
+                                lost: entry.lost,
+                                open: Math.max(0, entry.count - entry.completed - entry.lost),
+                                winRate: entry.conversionRate,
+                            }))}
+                        />
+                        <WinLossLegend />
+                    </>
+                )}
+            </AnalyticsCard>
+
+            <AnalyticsCard question="Czy czas odpowiedzi wpływa na skuteczność" answer={responseAnswer}>
+                <RankedBars
+                    rows={impact.buckets
+                        .filter((bucket) => bucket.count > 0)
+                        .map((bucket) => ({
+                            key: bucket.key,
+                            label: RESPONSE_LABELS[bucket.key] ?? bucket.key,
+                            value: bucket.winRate ?? 0,
+                            meta: `${percent(bucket.winRate)} z ${bucket.closed}`,
+                        }))}
+                />
+                <EmptyChart>
+                    Słupek to skuteczność w danym przedziale, liczba obok — na ilu rozstrzygniętych
+                    rozmowach się opiera.
+                </EmptyChart>
+            </AnalyticsCard>
+
+            <AnalyticsCard
+                question="Czy coś odstaje"
+                answer={
+                    data.vehicleOutliers.length === 0
+                        ? 'Nie wykryto odstępstw — żadna marka nie odbiega wyraźnie od Twojej średniej.'
+                        : 'Marki, przy których wynik wyraźnie różni się od średniej.'
+                }
+            >
+                {data.vehicleOutliers.length > 0 && (
+                    <OutlierList>
+                        {data.vehicleOutliers.map((outlier) => {
+                            const above = outlier.direction === 'ABOVE';
+                            const Icon = above ? TrendingUp : TrendingDown;
+                            return (
+                                <OutlierRow key={outlier.label} $above={above}>
+                                    <Icon />
+                                    <span className="name">{outlier.label}</span>
+                                    <span>
+                                        {above ? 'wygrywamy częściej' : 'przegrywamy częściej'}
+                                        {' — '}{outlier.won} z {outlier.closed}
+                                    </span>
+                                    <span className="spacer" />
+                                    <span className="rate">{percent(outlier.winRate)}</span>
+                                </OutlierRow>
+                            );
+                        })}
+                    </OutlierList>
+                )}
+            </AnalyticsCard>
+
+            <AnalyticsCard
+                question="Skąd przychodzą zapytania"
+                answer={
+                    bestSource
+                        ? (
+                            <>
+                                Najskuteczniejszy kanał to{' '}
+                                <strong>{SOURCE_LABELS[bestSource.source] ?? bestSource.source}</strong>{' '}
+                                ({percent(bestSource.winRate)}).
+                            </>
+                        )
+                        : 'Za mało rozstrzygniętych rozmów, żeby porównać kanały.'
+                }
+            >
+                <RankedBars
+                    rows={data.bySource.map((entry) => ({
+                        key: entry.source,
+                        label: SOURCE_LABELS[entry.source] ?? entry.source,
+                        value: entry.count,
+                        meta: `${entry.count}, skut. ${percent(entry.winRate)}`,
+                    }))}
+                />
+            </AnalyticsCard>
+        </QuietGrid>
     );
+}
+
+/** „1 rozmowie", „3 rozmowach" — miejscownik, bo zdanie brzmi „w 11 rozmowach". */
+function conversationWord(count: number): string {
+    return count === 1 ? 'rozmowie' : 'rozmowach';
+}
+
+/** „1 rozmowa", „3 rozmowy", „11 rozmów" — mianownik, gdy liczba stoi sama. */
+function conversationCount(count: number): string {
+    if (count === 1) return 'rozmowa';
+    const rest = count % 10;
+    const teens = count % 100;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? 'rozmowy' : 'rozmów';
+}
+
+/** „czeka 1 dzień", „czeka 6 dni", „od dziś". */
+function dayWord(days: number): string {
+    if (days <= 0) return 'od dziś';
+    if (days === 1) return 'czeka 1 dzień';
+    return `czeka ${days} dni`;
 }
