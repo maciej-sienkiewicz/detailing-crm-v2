@@ -80,7 +80,9 @@ import {
     WinLossLegend,
 } from '../components/analytics/charts';
 import {
+    MARKET_TIER_HINTS,
     RESPONSE_LABELS,
+    SIZE_SEGMENT_HINTS,
     SOURCE_LABELS,
     WEEKDAY_FULL,
     WEEKDAY_LABELS,
@@ -264,6 +266,172 @@ const Tab = styled.button<{ $active: boolean }>`
 `;
 
 const WideCard = styled(AnalyticsCard)``;
+
+// ── Filtr segmentu auta na zakładce „Usługi" ────────────────────────────────
+//
+// Wygrywamy w premium — ale czy w SUV-ach, czy w sportowych? Bez filtra to
+// pytanie nie ma gdzie paść: kafle segmentów pokazują sumę wszystkich aut
+// naraz, a sama suma tego rozróżnienia nie widzi. Domyślnie wszystko, filtr
+// dokłada precyzję temu, kto już wie, czego szuka.
+
+const SegmentFilterBar = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+`;
+
+const SegmentFilterField = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: ${st.textMuted};
+`;
+
+const SegmentFilterSelect = styled.select`
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    color: ${st.text};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: border-color ${st.transition};
+
+    &:hover { border-color: ${st.borderHover}; }
+    &:focus-visible { outline: none; border-color: ${st.borderFocus}; }
+`;
+
+const SegmentFilterReset = styled.button`
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    color: ${st.accentBlue};
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+`;
+
+type SegmentFilters = { size: string | null; tier: string | null };
+
+function SegmentFilterBarRow({
+    data,
+    filters,
+    onChange,
+}: {
+    data: LeadAnalytics;
+    filters: SegmentFilters;
+    onChange: (next: SegmentFilters) => void;
+}) {
+    const active = filters.size !== null || filters.tier !== null;
+    return (
+        <SegmentFilterBar>
+            <SegmentFilterField>
+                Segment rynkowy
+                <SegmentFilterSelect
+                    value={filters.tier ?? 'ALL'}
+                    onChange={(e) => onChange({ ...filters, tier: e.target.value === 'ALL' ? null : e.target.value })}
+                >
+                    <option value="ALL">Wszystkie</option>
+                    {data.byMarketTier.map((row) => (
+                        <option key={row.code} value={row.code}>{row.label}</option>
+                    ))}
+                </SegmentFilterSelect>
+            </SegmentFilterField>
+            <SegmentFilterField>
+                Wielkość
+                <SegmentFilterSelect
+                    value={filters.size ?? 'ALL'}
+                    onChange={(e) => onChange({ ...filters, size: e.target.value === 'ALL' ? null : e.target.value })}
+                >
+                    <option value="ALL">Wszystkie</option>
+                    {data.bySizeSegment.map((row) => (
+                        <option key={row.code} value={row.code}>{row.label}</option>
+                    ))}
+                </SegmentFilterSelect>
+            </SegmentFilterField>
+            {active && (
+                <SegmentFilterReset onClick={() => onChange({ size: null, tier: null })}>
+                    Wyczyść filtr
+                </SegmentFilterReset>
+            )}
+        </SegmentFilterBar>
+    );
+}
+
+/** Fakty spełniające aktywne filtry segmentu — jeden filtr wspólny dla całej zakładki. */
+function factsMatching(facts: LeadAnalytics['leadFacts'], filters: SegmentFilters) {
+    return facts.filter((fact) =>
+        (filters.size === null || fact.sizeSegment === filters.size) &&
+        (filters.tier === null || fact.marketTier === filters.tier)
+    );
+}
+
+/** Wygrane/przegrane po usłudze, przeliczone z surowych faktów pod aktywny filtr. */
+function categoryStatsFromFacts(
+    facts: LeadAnalytics['leadFacts'],
+    labelByCode: Map<string, string>
+): LeadAnalytics['categories'] {
+    const byCode = new Map<string, { count: number; completed: number; lost: number }>();
+    facts.forEach((fact) => {
+        const codes = fact.categories.length > 0 ? fact.categories : [NO_TAG_CODE];
+        codes.forEach((code) => {
+            const row = byCode.get(code) ?? { count: 0, completed: 0, lost: 0 };
+            row.count += 1;
+            if (fact.won) row.completed += 1;
+            if (fact.lost) row.lost += 1;
+            byCode.set(code, row);
+        });
+    });
+    return Array.from(byCode.entries())
+        .map(([code, row]) => ({
+            code: code === NO_TAG_CODE ? null : code,
+            label: labelByCode.get(code) ?? code,
+            count: row.count,
+            completed: row.completed,
+            lost: row.lost,
+            conversionRate: row.completed + row.lost === 0 ? null : row.completed / (row.completed + row.lost),
+        }))
+        .sort((a, b) => (b.conversionRate ?? -1) - (a.conversionRate ?? -1) || b.count - a.count);
+}
+
+const NO_TAG_CODE = '__none__';
+
+/** Wygrane/przegrane po segmencie auta, przeliczone z surowych faktów pod aktywny filtr drugiej osi. */
+function segmentStatsFromFacts(
+    facts: LeadAnalytics['leadFacts'],
+    axis: 'sizeSegment' | 'marketTier',
+    labelByCode: Map<string, string>
+): LeadAnalytics['bySizeSegment'] {
+    const byCode = new Map<string, { count: number; won: number; lost: number; valueSum: number; priced: number }>();
+    facts.forEach((fact) => {
+        const code = fact[axis];
+        if (code === null) return;
+        const row = byCode.get(code) ?? { count: 0, won: 0, lost: 0, valueSum: 0, priced: 0 };
+        row.count += 1;
+        if (fact.won) row.won += 1;
+        if (fact.lost) row.lost += 1;
+        if (fact.value > 0) { row.valueSum += fact.value; row.priced += 1; }
+        byCode.set(code, row);
+    });
+    return Array.from(byCode.entries())
+        .map(([code, row]) => ({
+            code,
+            label: labelByCode.get(code) ?? code,
+            count: row.count,
+            won: row.won,
+            lost: row.lost,
+            winRate: row.won + row.lost === 0 ? null : row.won / (row.won + row.lost),
+            averageValue: row.priced === 0 ? null : Math.round(row.valueSum / row.priced),
+        }))
+        .sort((a, b) => (b.winRate ?? -1) - (a.winRate ?? -1) || b.count - a.count);
+}
 
 const TrendStack = styled.div`
     display: flex;
@@ -780,13 +948,29 @@ function RhythmPanel({ data }: { data: LeadAnalytics }) {
 }
 
 function ServicesPanel({ data }: { data: LeadAnalytics }) {
+    // Jeden filtr wspólny dla całej zakładki: „wygrywamy w premium, ale w
+    // sportowych czy w SUV-ach?" jest pytaniem o przecięcie dwóch osi naraz,
+    // więc filtr musi działać na obie karty pojazdu i na kartę usług jednocześnie.
+    const [filters, setFilters] = useState<SegmentFilters>({ size: null, tier: null });
+    const filtered = factsMatching(data.leadFacts, filters);
+
+    const categoryLabels = new Map<string, string>(
+        data.categories.map((entry) => [entry.code ?? NO_TAG_CODE, entry.label])
+    );
+    const sizeLabels = new Map(data.bySizeSegment.map((row) => [row.code, row.label]));
+    const tierLabels = new Map(data.byMarketTier.map((row) => [row.code, row.label]));
+
     // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy —
-    // to jedno zdarzenie. Kolejność przychodzi z backendu: od tych, w których
-    // wygrywamy najczęściej, bo pierwszy wiersz ma być odpowiedzią na pytanie karty.
-    const categories = data.categories.filter((entry) => entry.count >= 3).slice(0, 8);
+    // to jedno zdarzenie. Bez filtra kolejność przychodzi z backendu; pod
+    // filtrem liczy się z surowych faktów tym samym sposobem.
+    const categorySource = filters.size === null && filters.tier === null
+        ? data.categories
+        : categoryStatsFromFacts(filtered, categoryLabels);
+    const categories = categorySource.filter((entry) => entry.count >= 3).slice(0, 8);
     const rated = categories.filter((entry) => entry.conversionRate !== null);
     const best = rated[0];
     const worst = rated[rated.length - 1];
+    const filterActive = filters.size !== null || filters.tier !== null;
 
     return (
         <>
@@ -803,9 +987,15 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
                         </>
                     )
             }
+            footnote="Filtr segmentu auta obejmuje tę kartę i obie karty pojazdu poniżej."
         >
+            <SegmentFilterBarRow data={data} filters={filters} onChange={setFilters} />
             {categories.length === 0 ? (
-                <EmptyChart>Wróć tu, gdy zamkniesz więcej rozmów.</EmptyChart>
+                <EmptyChart>
+                    {filterActive
+                        ? 'Za mało rozstrzygniętych rozmów w tym segmencie — spróbuj szerszego filtra.'
+                        : 'Wróć tu, gdy zamkniesz więcej rozmów.'}
+                </EmptyChart>
             ) : (
                 <>
                     <WinLossBars
@@ -827,16 +1017,22 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
             o pracy: ile lakieru, ile wykrojów folii, czy auto zmieści się na
             stanowisku. Klasa rynkowa mówi o rozmowie o cenie — właściciel Dacii
             i właściciel Porsche mogą przyjechać tym samym kompaktem i zupełnie
-            inaczej zareagować na wycenę. */}
+            inaczej zareagować na wycenę. Każda karta przyjmuje filtr TYLKO z
+            drugiej osi: filtrowanie karty wielkości po wielkości pokazałoby
+            jeden wiersz równy filtrowi, czyli nic. */}
         <SegmentCard
             question="W jakich autach wygrywamy"
-            hint="Klasa marki decyduje o rozmowie o cenie."
-            rows={data.byMarketTier}
+            hint="Klasa marki decyduje o rozmowie o cenie. Najedź na wiersz, żeby zobaczyć przykładowe marki."
+            rows={filters.size === null ? data.byMarketTier : segmentStatsFromFacts(filtered, 'marketTier', tierLabels)}
+            hints={MARKET_TIER_HINTS}
+            crossFilterNote={filters.size !== null ? sizeLabels.get(filters.size) ?? filters.size : null}
         />
         <SegmentCard
             question="Jakiej wielkości auta wygrywamy"
-            hint="Wielkość decyduje o nakładzie pracy i o tym, co się zmieści na stanowisku."
-            rows={data.bySizeSegment}
+            hint="Wielkość decyduje o nakładzie pracy i o tym, co się zmieści na stanowisku. Najedź na wiersz, żeby zobaczyć przykładowe marki."
+            rows={filters.tier === null ? data.bySizeSegment : segmentStatsFromFacts(filtered, 'sizeSegment', sizeLabels)}
+            hints={SIZE_SEGMENT_HINTS}
+            crossFilterNote={filters.tier !== null ? tierLabels.get(filters.tier) ?? filters.tier : null}
         />
         </>
     );
@@ -854,17 +1050,23 @@ function SegmentCard({
     question,
     hint,
     rows,
+    hints,
+    crossFilterNote,
 }: {
     question: string;
     hint: string;
     rows: LeadAnalytics['bySizeSegment'];
+    /** Definicja segmentu z przykładowymi markami — tooltip po najechaniu na wiersz. */
+    hints: Record<string, string>;
+    /** Etykieta drugiej osi, jeśli filtr jest aktywny — dopisek do pytania karty. */
+    crossFilterNote: string | null;
 }) {
     const solid = rows.filter((row) => row.won + row.lost >= 3);
     const best = solid.find((row) => row.winRate !== null);
 
     return (
         <WideCard
-            question={question}
+            question={crossFilterNote ? `${question} — ${crossFilterNote}` : question}
             answer={
                 solid.length === 0
                     ? 'Za mało rozstrzygniętych rozmów, żeby porównać segmenty. Auta rozpoznają się same z korespondencji — wróć tu, gdy uzbiera się ich więcej.'
@@ -886,6 +1088,7 @@ function SegmentCard({
                             note: row.averageValue
                                 ? `średnio ${formatMoney(row.averageValue)}`
                                 : undefined,
+                            hint: hints[row.code] ? `${row.label}: ${hints[row.code]}` : row.label,
                             won: row.won,
                             lost: row.lost,
                             open: Math.max(0, row.count - row.won - row.lost),

@@ -355,6 +355,22 @@ export interface SegmentStat {
 }
 
 /**
+ * Jeden lead jako surowy fakt do przekrojowego filtrowania w interfejsie —
+ * karta „Usługi" pyta też „w czym wygrywamy w segmencie premium", a to jest
+ * przecięcie osi, którego backend nie wylicza z góry.
+ */
+export interface LeadFact {
+    /** Kody tagów usług; puste, gdy lead nie ma żadnego (liczy się jako „Bez tagu"). */
+    categories: string[];
+    sizeSegment: string | null;
+    marketTier: string | null;
+    won: boolean;
+    lost: boolean;
+    /** Wycena leada (grosze). */
+    value: number;
+}
+
+/**
  * Wiersz macierzy „usługa × dzień tygodnia".
  * [counts] ma zawsze siedem pozycji: poniedziałek → niedziela.
  */
@@ -421,6 +437,8 @@ export interface LeadAnalytics {
     weekdayMatrix: WeekdayMatrixRow[];
     bySizeSegment: SegmentStat[];
     byMarketTier: SegmentStat[];
+    /** Surowe fakty do przekrojowego filtrowania „usługa × segment auta". */
+    leadFacts: LeadFact[];
     bySource: LeadSourceStat[];
     awaiting: AwaitingWork;
     leaks: Leak[];

@@ -63,6 +63,31 @@ export const SOURCE_LABELS: Record<string, string> = {
     MANUAL: 'Dodane ręcznie',
 };
 
+/**
+ * Definicje segmentów pojazdu do tooltipa nad wierszem — te same, których LLM
+ * używa do klasyfikacji marki i modelu (patrz VehicleSegmentService w backendzie).
+ * Ta sama treść w dwóch miejscach z rozmysłem: to ma być jedna definicja
+ * segmentu, widoczna właścicielowi tak samo, jak widzi ją model.
+ */
+export const SIZE_SEGMENT_HINTS: Record<string, string> = {
+    A: 'Miejskie mini — np. Fiat 500, Toyota Aygo, Kia Picanto.',
+    B: 'Małe miejskie — np. Skoda Fabia, Toyota Yaris, Renault Clio.',
+    C: 'Kompakty — np. VW Golf, Toyota Corolla, Ford Focus.',
+    D: 'Klasa średnia — np. VW Passat, BMW serii 3, Skoda Superb.',
+    E: 'Klasa wyższa — np. Audi A6, BMW serii 5, Mercedes klasy E.',
+    F: 'Limuzyny reprezentacyjne — np. Mercedes klasy S, BMW serii 7, Porsche Panamera.',
+    SUV: 'SUV-y i crossovery każdej wielkości — np. Ford Puma, Hyundai Tucson, Volvo XC90.',
+    VAN: 'Vany i minivany, 5–9 miejsc — np. VW Sharan, Ford Galaxy.',
+    SPORT: 'Auta sportowe: coupé, kabriolety, superauta — np. Porsche 911, Mazda MX-5.',
+};
+
+export const MARKET_TIER_HINTS: Record<string, string> = {
+    BUDGET: 'Najtańsze w zakupie i serwisie — np. Dacia, Łada, MG.',
+    MAINSTREAM: 'Złoty środek rynku — np. Toyota, VW, Skoda, Kia, Ford, Hyundai, Renault.',
+    PREMIUM: 'Droższe, lepsze materiały i prestiż marki — np. Mercedes-Benz, BMW, Audi, Volvo, Lexus, Alfa Romeo.',
+    LUXURY: 'Małe serie i rzemiosło — np. Rolls-Royce, Bentley, Aston Martin, Ferrari.',
+};
+
 /** „62%" albo „—". Bez miejsc po przecinku: to nie jest pomiar laboratoryjny. */
 export const percent = (value: number | null | undefined): string =>
     value === null || value === undefined ? '—' : `${Math.round(value * 100)}%`;
