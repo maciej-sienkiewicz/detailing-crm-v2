@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
+import { useDeleteCustomer } from '../hooks/useDeleteCustomer';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerActiveData, useCustomerDeletedVisits } from '../hooks/useCustomerVisits';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
@@ -429,7 +430,7 @@ export const CustomerDetailView = () => {
     const [isAddVehicleOpen,  setIsAddVehicleOpen]  = useState(false);
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showDeleteBlocked, setShowDeleteBlocked] = useState(false);
+    const deleteCustomer = useDeleteCustomer();
     const [isKebabOpen,  setIsKebabOpen]  = useState(false);
     const [kebabPos,     setKebabPos]     = useState<{ top: number; right: number } | null>(null);
     const kebabRef = useRef<HTMLDivElement>(null);
@@ -1184,29 +1185,25 @@ export const CustomerDetailView = () => {
                 />
             )}
 
+            {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,
+                a co zostaje — „nie można cofnąć" bez tej informacji brzmiałoby
+                jak skasowanie całej historii współpracy. */}
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
-                title="Usuń klienta"
-                message={`Czy na pewno chcesz usunąć klienta ${fullName}? Tej operacji nie można cofnąć.`}
+                title={`Usunąć klienta ${fullName}?`}
+                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane — wymaga tego prawo."
                 variant="danger"
-                confirmText="Usuń klienta"
+                confirmText="Usuń dane klienta"
                 cancelText="Anuluj"
                 onConfirm={() => {
                     setShowDeleteConfirm(false);
-                    setShowDeleteBlocked(true);
+                    // Nawigacja od razu: widok odpytuje szczegóły klienta, którego
+                    // za chwilę nie będzie. Toasty mieszkają w useDeleteCustomer,
+                    // więc przeżyją odmontowanie tego widoku.
+                    navigate('/customers');
+                    if (customerId) deleteCustomer.mutate(customerId);
                 }}
                 onCancel={() => setShowDeleteConfirm(false)}
-            />
-
-            <ConfirmationModal
-                isOpen={showDeleteBlocked}
-                title="Usunięcie niemożliwe"
-                message="Nie usuniemy klienta dopóki kancelaria nam nie odpowie co możemy trzymać, a czego nie możemy."
-                variant="info"
-                confirmText="Rozumiem"
-                cancelText="Zamknij"
-                onConfirm={() => setShowDeleteBlocked(false)}
-                onCancel={() => setShowDeleteBlocked(false)}
             />
         </ViewContainer>
     );
