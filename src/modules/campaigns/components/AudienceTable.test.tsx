@@ -50,6 +50,7 @@ const renderTable = (props: Partial<Parameters<typeof AudienceTable>[0]> = {}) =
     const onExcludedChange = vi.fn();
     const onPageChange = vi.fn();
     const onSearchChange = vi.fn();
+    const onIncludeUnnamedChange = vi.fn();
     render(
         <ThemeProvider theme={theme}>
             <AudienceTable
@@ -62,11 +63,13 @@ const renderTable = (props: Partial<Parameters<typeof AudienceTable>[0]> = {}) =
                 onPageChange={onPageChange}
                 search=""
                 onSearchChange={onSearchChange}
+                includeUnnamed={false}
+                onIncludeUnnamedChange={onIncludeUnnamedChange}
                 {...props}
             />
         </ThemeProvider>
     );
-    return { onExcludedChange, onPageChange, onSearchChange };
+    return { onExcludedChange, onPageChange, onSearchChange, onIncludeUnnamedChange };
 };
 
 /** Pola wyboru wierszy, bez tego w nagłówku („zaznacz wszystkich na stronie"). */
@@ -132,6 +135,17 @@ describe('AudienceTable', () => {
     it('pusty wynik wyszukiwania tłumaczy, że to fraza, a nie brak klientów', () => {
         renderTable({ estimate: estimateOf([]), search: 'Kowal' });
         expect(screen.getByText(/Nikt na liście nie pasuje/)).toBeTruthy();
+    });
+
+    it('klienci bez nazwiska są domyślnie poza kampanią, a przełącznik ich wpuszcza', async () => {
+        // To nie jest filtr widoku: zaznaczenie zmienia kryteria odbiorców, więc
+        // przechodzi do kampanii i obowiązuje też przy przeliczeniu w dniu wysyłki.
+        const { onIncludeUnnamedChange } = renderTable();
+        const toggle = screen.getByRole('checkbox', { name: /bez nazwiska/i });
+        expect((toggle as HTMLInputElement).checked).toBe(false);
+
+        await userEvent.click(toggle);
+        expect(onIncludeUnnamedChange).toHaveBeenCalledWith(true);
     });
 
     it('przy niewybranej usłudze automatu tłumaczy, czego brakuje, zamiast pokazywać zero', () => {

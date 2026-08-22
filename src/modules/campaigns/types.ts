@@ -41,6 +41,16 @@ export interface AudienceCriteria {
   vehicleYearMax?: number | null;
   customerType: CustomerTypeFilter;
   customerCreatedAfter?: string | null;
+  /**
+   * Czy obejmować klientów bez imienia i nazwiska (kartoteki założone „na numer").
+   *
+   * Backend domyślnie zwraca `true`, bo kampanie zapisane przed wprowadzeniem tego
+   * pola nie miały takiego filtra i ich grupa odbiorców nie ma prawa zmienić się
+   * sama. Nowe kampanie startują z `false`: wiadomość otwierająca się od „Cześć !"
+   * szkodzi bardziej, niż pomaga, a takiego klienta i tak nie da się rozpoznać
+   * na liście odbiorców.
+   */
+  includeUnnamedCustomers: boolean;
   includeCustomerIds: string[];
   excludeCustomerIds: string[];
 }
@@ -50,6 +60,7 @@ export const emptyAudience = (): AudienceCriteria => ({
   servicesUsedNoneOf: [],
   vehicleBrands: [],
   customerType: 'ALL',
+  includeUnnamedCustomers: false,
   includeCustomerIds: [],
   excludeCustomerIds: [],
 });

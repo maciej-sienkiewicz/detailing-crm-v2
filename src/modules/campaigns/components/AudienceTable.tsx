@@ -41,7 +41,36 @@ const Head = styled.h4`
     }
 `;
 
-/** Wyszukiwarka w nagłówku panelu — ten sam kształt, co nad tabelą leadów. */
+/**
+ * Pasek narzędzi listy: czym ją przeszukać i kogo w ogóle na niej pokazywać.
+ * Osobny wiersz pod nagłówkiem, bo w samym nagłówku (tytuł, licznik, wyszukiwarka,
+ * przełącznik) zrobił się tłok i nic nie było już pierwsze.
+ */
+const Toolbar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+`;
+
+/**
+ * Przełącznik zasięgu listy. Nie jest ozdobą widoku: klienci bez nazwiska wchodzą
+ * albo nie wchodzą do kampanii, a decyzja zapisuje się razem z nią — więc etykieta
+ * musi mówić o wysyłce, a nie o pokazywaniu.
+ */
+const ScopeToggle = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+`;
+
+/** Wyszukiwarka w pasku narzędzi — ten sam kształt, co nad tabelą leadów. */
 const SearchBox = styled.div`
     display: flex;
     align-items: center;
@@ -51,7 +80,7 @@ const SearchBox = styled.div`
     padding: 5px 12px;
     color: ${p => p.theme.colors.textMuted};
     background: ${p => p.theme.colors.surface};
-    flex: 0 1 260px;
+    flex: 0 1 280px;
     min-width: 180px;
     transition: border-color ${p => p.theme.transitions.fast};
 
@@ -233,6 +262,9 @@ interface Props {
     onPageChange: (page: number) => void;
     search: string;
     onSearchChange: (next: string) => void;
+    /** Czy kampania obejmuje klientów bez imienia i nazwiska. */
+    includeUnnamed: boolean;
+    onIncludeUnnamedChange: (next: boolean) => void;
     /** Warunek kampanii automatycznej nie wskazuje jeszcze żadnej usługi. */
     awaitingTrigger?: boolean;
 }
@@ -247,6 +279,8 @@ export function AudienceTable({
     onPageChange,
     search,
     onSearchChange,
+    includeUnnamed,
+    onIncludeUnnamedChange,
     awaitingTrigger,
 }: Props) {
     /*
@@ -299,7 +333,18 @@ export function AudienceTable({
         <Panel>
             <Head>
                 Odbiorcy
-                {!awaitingTrigger && (
+                <span className="spacer" />
+                {isEstimating ? (
+                    <Working><Loader2 /> przeliczam…</Working>
+                ) : estimate && estimate.matched > 0 ? (
+                    <span className="count">
+                        <strong>{estimate.eligible}</strong> z {estimate.matched} dostanie wiadomość
+                    </span>
+                ) : null}
+            </Head>
+
+            {!awaitingTrigger && (
+                <Toolbar>
                     <SearchBox>
                         <Search />
                         <input
@@ -314,16 +359,16 @@ export function AudienceTable({
                             </button>
                         )}
                     </SearchBox>
-                )}
-                <span className="spacer" />
-                {isEstimating ? (
-                    <Working><Loader2 /> przeliczam…</Working>
-                ) : estimate && estimate.matched > 0 ? (
-                    <span className="count">
-                        <strong>{estimate.eligible}</strong> z {estimate.matched} dostanie wiadomość
-                    </span>
-                ) : null}
-            </Head>
+
+                    <ScopeToggle title="Kartoteki założone tylko na numer telefonu. Wiadomość z pustym miejscem zamiast imienia wygląda jak błąd, dlatego domyślnie ich nie zapraszamy.">
+                        <CheckBox
+                            checked={includeUnnamed}
+                            onChange={(e) => onIncludeUnnamedChange(e.target.checked)}
+                        />
+                        Pokaż klientów bez nazwiska
+                    </ScopeToggle>
+                </Toolbar>
+            )}
 
             {awaitingTrigger ? (
                 <EmptyHint>
@@ -336,7 +381,12 @@ export function AudienceTable({
                         ? 'Przeliczam listę…'
                         : searching
                             ? `Nikt na liście nie pasuje do „${search.trim()}".`
-                            : 'Żaden klient nie pasuje do tych kryteriów.'}
+                            : includeUnnamed
+                                ? 'Żaden klient nie pasuje do tych kryteriów.'
+                                /* Najczęstszy powód pustej listy w studiu, które
+                                   zakłada kartoteki na numer telefonu — mówimy o nim
+                                   wprost, zamiast zostawiać zagadkę. */
+                                : 'Żaden klient z uzupełnionym nazwiskiem nie pasuje do tych kryteriów. Klienci bez nazwiska są ukryci — pokaż ich przełącznikiem powyżej.'}
                 </EmptyHint>
             ) : (
                 <>

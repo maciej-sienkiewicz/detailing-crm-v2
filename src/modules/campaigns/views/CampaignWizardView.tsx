@@ -22,7 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { AlertTriangle, ArrowLeft, ArrowRight, Coins, Repeat, Send } from 'lucide-react';
-import { Stepper } from '@/common/components/Stepper/Stepper';
+import { WizardSteps } from '../components/WizardSteps';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
@@ -487,8 +487,6 @@ export function CampaignWizardView() {
 
   const chips = useMemo(() => audienceChips(audience, serviceNames), [audience, serviceNames]);
 
-  const stepIndex = STEPS.findIndex((s) => s.id === step);
-  const completedSteps = STEPS.slice(0, stepIndex).map((s) => s.id);
   const visibleSteps = isEdit ? STEPS.filter((s) => s.id !== 'scenario') : STEPS;
 
   const hasName = name.trim().length > 0;
@@ -664,10 +662,9 @@ export function CampaignWizardView() {
         }
       />
 
-      <Stepper
+      <WizardSteps
         steps={visibleSteps}
         currentStepId={step}
-        completedSteps={completedSteps}
         onStepClick={(id) => jumpToStep(id as StepId)}
       />
 
@@ -761,9 +758,14 @@ export function CampaignWizardView() {
 
           <AudienceLayout>
             <AudienceMain>
-              {/* Filtry siedzą na cichym tle: białe karty sekcji czytają się wtedy jako
-                  warstwa nad podłożem, a nie jako biel na bieli. */}
-              <Panel $quiet>
+              {/*
+                Biała powierzchnia, nie ciche tło. Wariant [$quiet] siada na
+                surfaceAlt (#f1f5f9), a tło strony to #eef2f7 — różnica jest tak
+                mała, że panel przestawał mieć krawędź i sąsiadujący z nim panel
+                prognozy wyglądał, jakby stał w innej linii. Sekcje filtrów są
+                w środku wierszami, nie kartami, więc bieli na bieli tu nie ma.
+              */}
+              <Panel>
                 <h4>Kogo szukamy</h4>
                 <AudienceBuilder value={audience} onChange={changeAudience} />
               </Panel>
@@ -778,6 +780,10 @@ export function CampaignWizardView() {
                 onPageChange={setAudiencePage}
                 search={audienceSearch}
                 onSearchChange={changeAudienceSearch}
+                includeUnnamed={audience.includeUnnamedCustomers}
+                onIncludeUnnamedChange={(next) =>
+                  changeAudience({ ...audience, includeUnnamedCustomers: next })
+                }
                 awaitingTrigger={awaitingTrigger}
               />
             </AudienceMain>
