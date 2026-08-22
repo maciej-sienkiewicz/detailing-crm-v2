@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
+import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { leadsApi } from '../api/leadsApi';
 import { COMMS_THREADS_KEY } from './useComms';
 import type {
@@ -37,6 +38,27 @@ export const useLead = (leadId: string | null) =>
         queryKey: [...LEADS_KEY, 'detail', leadId],
         queryFn: () => leadsApi.getLead(leadId!),
         enabled: leadId !== null,
+    });
+
+/**
+ * Termin rezerwacji powiązanej z leadem.
+ *
+ * Lead niesie samo `appointmentId`, więc datę trzeba dobrać osobno. Świadomie
+ * nie dokładamy jej do payloadu leada: WebSocket podmienia wiersz w tabeli tym
+ * samym kształtem co REST, więc każde pole doklejone tylko w jednym z tych
+ * miejsc gaśnie na ekranie po pierwszej zmianie statusu. Zapytanie idzie dopiero
+ * przy otwartym oknie i tylko dla leada, który rezerwację faktycznie ma.
+ */
+export const useLeadAppointment = (appointmentId: string | null) =>
+    useQuery({
+        queryKey: ['lead-appointment', appointmentId],
+        queryFn: () => appointmentApi.getAppointment(appointmentId!) as Promise<{
+            schedule?: { startDateTime?: string };
+        }>,
+        enabled: appointmentId !== null,
+        staleTime: 60_000,
+        // Rezerwacji mogło już nie być (usunięta poza CRM-em) — bez ponawiania.
+        retry: false,
     });
 
 export const useLeadHistory = (leadId: string | null) =>
