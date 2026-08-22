@@ -9,10 +9,33 @@ export const Overlay = styled(ModalOverlay)`
 export { ModalBox as ModalContainer };
 export { ModalFooter as Footer };
 
+/**
+ * Nagłówek do lewej, jak w każdym innym oknie aplikacji.
+ *
+ * Wyśrodkowana kolumna z wielkim kółkiem ikony nad tytułem to język okien
+ * systemowych, a nie tej aplikacji: reszta modali ma tytuł przy lewej krawędzi
+ * i krzyżyk w prawym górnym rogu. Dwa różne układy okna w jednym produkcie
+ * każą czytać każde od nowa.
+ */
 export const Header = styled.div`
-    padding: 32px 28px 24px;
-    text-align: center;
+    padding: 24px 28px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
     position: relative;
+
+    @media (max-width: 640px) {
+        padding: 18px 18px 14px;
+    }
+`;
+
+export const HeaderText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    /* Miejsce na krzyżyk w rogu — inaczej długi tytuł wchodzi pod niego. */
+    padding-right: 28px;
 `;
 
 export const CloseButton = styled.button`
@@ -45,27 +68,31 @@ const iconPalette: Record<ConfirmationVariant, { bg: string; color: string }> = 
     info:    { bg: '#dbeafe', color: '#3b82f6' },
 };
 
+/**
+ * Znak wariantu przy tytule, nie nad nim. Kolor niesie tu jedyną informację,
+ * jaką ma nieść: czy to pytanie o coś nieodwracalnego, czy zwykłe potwierdzenie.
+ */
 export const IconContainer = styled.div<{ $variant: ConfirmationVariant }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
     background: ${p => iconPalette[p.$variant].bg};
     color: ${p => iconPalette[p.$variant].color};
 
-    svg { width: 28px; height: 28px; stroke-width: 2.5; }
+    svg { width: 18px; height: 18px; stroke-width: 2.25; }
 `;
 
 export const Title = styled.h2`
     font-family: 'Inter', sans-serif;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     color: #0f172a;
     letter-spacing: -0.1px;
-    margin: 0 0 10px;
+    margin: 0;
     line-height: 1.3;
 `;
 
@@ -83,45 +110,45 @@ const confirmPalette: Record<ConfirmationVariant, { bg: string; hover: string }>
     info:    { bg: '#0ea5e9', hover: '#0284c7' },
 };
 
+/*
+ * Przyciski szerokie na tyle, ile trzeba na napis — nie na pół okna.
+ *
+ * `flex: 1` rozciągał je na połowę szerokości modala każdy, przez co zwykłe
+ * „Anuluj" wyglądało jak akcja główna strony. Wymiary i promienie są teraz te
+ * same, co w stopkach pozostałych okien (IconButton / PrimaryButton).
+ */
 export const CancelButton = styled.button`
-    flex: 1;
-    padding: 11px 20px;
+    padding: 8px 18px;
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     color: #475569;
-    background: #f1f5f9;
-    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 999px;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 150ms ease;
 
     &:hover {
-        background: #e2e8f0;
+        background: #f8fafc;
         color: #0f172a;
-        border-color: #cbd5e1;
+        border-color: #94a3b8;
     }
 `;
 
 export const ConfirmButton = styled.button<{ $variant: ConfirmationVariant }>`
-    flex: 1;
-    padding: 11px 20px;
+    padding: 8px 18px;
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     color: #ffffff;
     background: ${p => confirmPalette[p.$variant].bg};
-    border: none;
+    border: 1px solid transparent;
     border-radius: 999px;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 150ms ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
 
-    &:hover {
-        background: ${p => confirmPalette[p.$variant].hover};
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-    }
-
-    &:active { transform: translateY(0); }
+    &:hover { background: ${p => confirmPalette[p.$variant].hover}; }
 `;

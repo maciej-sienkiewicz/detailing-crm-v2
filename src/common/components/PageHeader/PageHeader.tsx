@@ -1,10 +1,15 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface PageHeaderProps {
-  title: string;
+  /**
+   * Zwykle tekst. Węzeł przyjmujemy dlatego, że w kreatorach tytułem strony jest
+   * nazwa tworzonego obiektu — i wtedy najlepszym miejscem na jej wpisanie jest
+   * właśnie ten nagłówek, a nie osobne pole gdzieś niżej.
+   */
+  title: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
 }

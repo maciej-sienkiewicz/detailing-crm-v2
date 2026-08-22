@@ -132,6 +132,8 @@ export interface AudienceEstimate {
   /** Jedna strona listy odbiorców — całość liczy `matched`. */
   sample: AudienceCustomer[];
   sampleOffset: number;
+  /** Długość listy, po której stronicujemy — mniejsza od `matched`, gdy działa wyszukiwarka. */
+  sampleTotal: number;
   /** Okno prognozy dla kampanii automatycznej (dni); null dla jednorazowej. */
   projectionHorizonDays: number | null;
 }
@@ -158,6 +160,8 @@ export interface AudienceEstimateParams {
   trigger?: AudienceTriggerProjection | null;
   sampleLimit?: number;
   sampleOffset?: number;
+  /** Fraza z wyszukiwarki nad tabelą — zawęża listę, nie liczniki. */
+  sampleSearch?: string;
 }
 
 export interface CampaignRecipient {

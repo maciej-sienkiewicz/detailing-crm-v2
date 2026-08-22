@@ -5,7 +5,7 @@
 // wypisuje człowieka z wysyłki — i jedynym, w którym da się to cofnąć. Te dwie
 // rzeczy muszą działać w obie strony, także dla kogoś, kto jest już odznaczony.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -41,6 +41,7 @@ const estimateOf = (sample: AudienceCustomer[], overrides: Partial<AudienceEstim
     estimatedCredits: sample.length,
     sample,
     sampleOffset: 0,
+    sampleTotal: sample.length,
     projectionHorizonDays: null,
     ...overrides,
 });
@@ -48,6 +49,7 @@ const estimateOf = (sample: AudienceCustomer[], overrides: Partial<AudienceEstim
 const renderTable = (props: Partial<Parameters<typeof AudienceTable>[0]> = {}) => {
     const onExcludedChange = vi.fn();
     const onPageChange = vi.fn();
+    const onSearchChange = vi.fn();
     render(
         <ThemeProvider theme={theme}>
             <AudienceTable
@@ -58,11 +60,13 @@ const renderTable = (props: Partial<Parameters<typeof AudienceTable>[0]> = {}) =
                 onExcludedChange={onExcludedChange}
                 page={0}
                 onPageChange={onPageChange}
+                search=""
+                onSearchChange={onSearchChange}
                 {...props}
             />
         </ThemeProvider>
     );
-    return { onExcludedChange, onPageChange };
+    return { onExcludedChange, onPageChange, onSearchChange };
 };
 
 /** Pola wyboru wierszy, bez tego w nagłówku („zaznacz wszystkich na stronie"). */
@@ -114,6 +118,20 @@ describe('AudienceTable', () => {
 
         await userEvent.click(headerBox);
         expect(onExcludedChange).toHaveBeenCalledWith(['a', 'b']);
+    });
+
+    it('wyszukiwanie zgłasza frazę dopiero po chwili ciszy', async () => {
+        const { onSearchChange } = renderTable();
+        fireEvent.change(screen.getByLabelText('Szukaj wśród odbiorców'), { target: { value: 'Kowal' } });
+
+        // Zaraz po wpisaniu nic jeszcze nie leci na serwer.
+        expect(onSearchChange).not.toHaveBeenCalled();
+        await waitFor(() => expect(onSearchChange).toHaveBeenCalledWith('Kowal'), { timeout: 1500 });
+    });
+
+    it('pusty wynik wyszukiwania tłumaczy, że to fraza, a nie brak klientów', () => {
+        renderTable({ estimate: estimateOf([]), search: 'Kowal' });
+        expect(screen.getByText(/Nikt na liście nie pasuje/)).toBeTruthy();
     });
 
     it('przy niewybranej usłudze automatu tłumaczy, czego brakuje, zamiast pokazywać zero', () => {
