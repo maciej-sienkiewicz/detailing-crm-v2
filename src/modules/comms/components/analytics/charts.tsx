@@ -511,6 +511,8 @@ interface WinLossBarsProps {
         label: string;
         /** Dopisek pod nazwą — u nas średnia wycena segmentu. */
         note?: string;
+        /** Tooltip po najechaniu na nazwę — np. definicja segmentu z przykładowymi markami. */
+        hint?: string;
         won: number;
         lost: number;
         open: number;
@@ -534,7 +536,7 @@ export function WinLossBars({ rows }: WinLossBarsProps) {
                 const scale = (value: number) => `${(value / max) * 100}%`;
                 return (
                     <BarRow key={row.key}>
-                        <span className="name" title={row.label}>
+                        <span className="name" title={row.hint ?? row.label}>
                             <b>{row.label}</b>
                             {row.note && <small>{row.note}</small>}
                         </span>

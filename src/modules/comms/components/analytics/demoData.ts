@@ -15,7 +15,7 @@
 // Wszystko jest deterministyczne i wyliczone z podanej daty, bez sięgania po zegar:
 // funkcja czysta daje się przetestować, a widok nie zmienia się przy każdym
 // przerysowaniu.
-import type { LeadAnalytics } from '../../types';
+import type { LeadAnalytics, LeadFact } from '../../types';
 
 const isoDay = (base: Date, offsetDays: number): string => {
     const date = new Date(base.getFullYear(), base.getMonth(), base.getDate() + offsetDays);
@@ -52,6 +52,98 @@ const WEEKS: [number, number, number, number, number, number | null][] = [
  * w grze, co jest odwrotnością prawdy — w grze są zawsze te najświeższe rozmowy.
  */
 const OPEN_TAIL: [number, number] = [1840000, 4260000];
+
+// Posortowane jak z backendu: od tych, w których wygrywamy najczęściej.
+const DEMO_CATEGORIES = [
+    { code: 'cer', label: 'Powłoka ceramiczna', count: 24, completed: 15, lost: 5, conversionRate: 0.75 },
+    { code: 'ppf', label: 'Folia ochronna PPF', count: 13, completed: 5, lost: 4, conversionRate: 0.56 },
+    { code: 'kor', label: 'Korekta lakieru', count: 21, completed: 9, lost: 8, conversionRate: 0.53 },
+    { code: 'myc', label: 'Mycie i pielęgnacja', count: 28, completed: 8, lost: 14, conversionRate: 0.36 },
+    { code: 'wnt', label: 'Detailing wnętrza', count: 22, completed: 6, lost: 12, conversionRate: 0.33 },
+];
+
+/*
+ * Dwie osie pojazdu. Premium wygrywa najczęściej nie dlatego, że klienci
+ * są bogatsi, tylko dlatego, że przychodzą po konkretną usługę i porównują
+ * ją z ceną serwisu autoryzowanego — a nie z myjnią za rogiem. Budżetowe
+ * przegrywają na cenie i to jest normalne, nie do naprawienia.
+ */
+const DEMO_MARKET_TIERS = [
+    { code: 'PREMIUM', label: 'Premium', count: 38, won: 21, lost: 8, winRate: 0.72, averageValue: 486000 },
+    { code: 'LUXURY', label: 'Luksusowe', count: 6, won: 3, lost: 2, winRate: 0.60, averageValue: 1240000 },
+    { code: 'MAINSTREAM', label: 'Popularne', count: 48, won: 17, lost: 19, winRate: 0.47, averageValue: 172000 },
+    { code: 'BUDGET', label: 'Budżetowe', count: 16, won: 3, lost: 11, winRate: 0.21, averageValue: 68000 },
+];
+const DEMO_SIZE_SEGMENTS = [
+    { code: 'SPORT', label: 'Sportowe', count: 7, won: 4, lost: 1, winRate: 0.80, averageValue: 892000 },
+    { code: 'SUV', label: 'SUV / crossover', count: 31, won: 15, lost: 7, winRate: 0.68, averageValue: 412000 },
+    { code: 'E', label: 'Klasa wyższa (E)', count: 14, won: 6, lost: 4, winRate: 0.60, averageValue: 524000 },
+    { code: 'D', label: 'Klasa średnia (D)', count: 26, won: 10, lost: 9, winRate: 0.53, averageValue: 248000 },
+    { code: 'C', label: 'Kompakt (C)', count: 22, won: 7, lost: 12, winRate: 0.37, averageValue: 138000 },
+    { code: 'B', label: 'Małe (B)', count: 8, won: 2, lost: 5, winRate: 0.29, averageValue: 74000 },
+];
+
+/**
+ * Surowe fakty do przekrojowego filtrowania „usługa × segment auta" w trybie
+ * pokazowym — ten sam kształt, jaki oddaje backend.
+ *
+ * Rozłożone cyklicznie po usługach i segmentach, z jednym świadomym wyjątkiem:
+ * w segmencie Premium × Sportowe wygrane są przycięte, a w Premium × SUV
+ * podbite. To jest dokładnie ta historia, po którą sięga się po filtr —
+ * „wygrywamy w premium, ale głównie w SUV-ach, nie w sportowych" — a bez niej
+ * przykład nie pokazywałby, po co w ogóle filtrować.
+ */
+// Średnia wycena usługi — te same liczby co w weekdayMatrix poniżej, żeby
+// przefiltrowany przekrój w trybie pokazowym trzymał się tej samej ceny.
+const DEMO_CATEGORY_VALUE: Record<string, number> = {
+    ppf: 984000,
+    cer: 421000,
+    kor: 186000,
+    myc: 34000,
+    wnt: 61000,
+};
+
+const buildDemoLeadFacts = (): LeadFact[] => {
+    const sizeCodes = DEMO_SIZE_SEGMENTS.map((s) => s.code);
+    const tierCodes = DEMO_MARKET_TIERS.map((t) => t.code);
+    const facts: LeadFact[] = [];
+    let sizeCursor = 0;
+    let tierCursor = 0;
+
+    DEMO_CATEGORIES.forEach((category) => {
+        const open = Math.max(0, category.count - category.completed - category.lost);
+        const outcomes: Array<'won' | 'lost' | 'open'> = [
+            ...Array(category.completed).fill('won' as const),
+            ...Array(category.lost).fill('lost' as const),
+            ...Array(open).fill('open' as const),
+        ];
+        outcomes.forEach((outcome) => {
+            facts.push({
+                categories: [category.code],
+                sizeSegment: sizeCodes[sizeCursor % sizeCodes.length],
+                marketTier: tierCodes[tierCursor % tierCodes.length],
+                won: outcome === 'won',
+                lost: outcome === 'lost',
+                value: DEMO_CATEGORY_VALUE[category.code] ?? 0,
+            });
+            sizeCursor += 1;
+            tierCursor += 3;
+        });
+    });
+
+    facts.forEach((fact, index) => {
+        if (fact.marketTier === 'PREMIUM' && fact.sizeSegment === 'SPORT' && fact.won && index % 2 === 0) {
+            fact.won = false;
+            fact.lost = true;
+        }
+        if (fact.marketTier === 'PREMIUM' && fact.sizeSegment === 'SUV' && fact.lost && index % 3 === 0) {
+            fact.lost = false;
+            fact.won = true;
+        }
+    });
+
+    return facts;
+};
 
 /**
  * Pełny komplet danych analitycznych do trybu pokazowego.
@@ -119,13 +211,7 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
         ],
 
         // Posortowane jak z backendu: od tych, w których wygrywamy najczęściej.
-        categories: [
-            { code: 'cer', label: 'Powłoka ceramiczna', count: 24, completed: 15, lost: 5, conversionRate: 0.75 },
-            { code: 'ppf', label: 'Folia ochronna PPF', count: 13, completed: 5, lost: 4, conversionRate: 0.56 },
-            { code: 'kor', label: 'Korekta lakieru', count: 21, completed: 9, lost: 8, conversionRate: 0.53 },
-            { code: 'myc', label: 'Mycie i pielęgnacja', count: 28, completed: 8, lost: 14, conversionRate: 0.36 },
-            { code: 'wnt', label: 'Detailing wnętrza', count: 22, completed: 6, lost: 12, conversionRate: 0.33 },
-        ],
+        categories: DEMO_CATEGORIES,
 
         lostReasons: [
             { code: 'TOO_EXPENSIVE', label: 'Za drogo', count: 11, share: 0.35 },
@@ -181,26 +267,11 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
             slowWinRate: 0.17,
         },
 
-        /*
-         * Dwie osie pojazdu. Premium wygrywa najczęściej nie dlatego, że klienci
-         * są bogatsi, tylko dlatego, że przychodzą po konkretną usługę i porównują
-         * ją z ceną serwisu autoryzowanego — a nie z myjnią za rogiem. Budżetowe
-         * przegrywają na cenie i to jest normalne, nie do naprawienia.
-         */
-        byMarketTier: [
-            { code: 'PREMIUM', label: 'Premium', count: 38, won: 21, lost: 8, winRate: 0.72, averageValue: 486000 },
-            { code: 'LUXURY', label: 'Luksusowe', count: 6, won: 3, lost: 2, winRate: 0.60, averageValue: 1240000 },
-            { code: 'MAINSTREAM', label: 'Popularne', count: 48, won: 17, lost: 19, winRate: 0.47, averageValue: 172000 },
-            { code: 'BUDGET', label: 'Budżetowe', count: 16, won: 3, lost: 11, winRate: 0.21, averageValue: 68000 },
-        ],
-        bySizeSegment: [
-            { code: 'SPORT', label: 'Sportowe', count: 7, won: 4, lost: 1, winRate: 0.80, averageValue: 892000 },
-            { code: 'SUV', label: 'SUV / crossover', count: 31, won: 15, lost: 7, winRate: 0.68, averageValue: 412000 },
-            { code: 'E', label: 'Klasa wyższa (E)', count: 14, won: 6, lost: 4, winRate: 0.60, averageValue: 524000 },
-            { code: 'D', label: 'Klasa średnia (D)', count: 26, won: 10, lost: 9, winRate: 0.53, averageValue: 248000 },
-            { code: 'C', label: 'Kompakt (C)', count: 22, won: 7, lost: 12, winRate: 0.37, averageValue: 138000 },
-            { code: 'B', label: 'Małe (B)', count: 8, won: 2, lost: 5, winRate: 0.29, averageValue: 74000 },
-        ],
+        // Dwie osie pojazdu — patrz komentarz przy DEMO_MARKET_TIERS / DEMO_SIZE_SEGMENTS.
+        byMarketTier: DEMO_MARKET_TIERS,
+        bySizeSegment: DEMO_SIZE_SEGMENTS,
+        // Surowe fakty pod filtr karty „Usługi" — patrz buildDemoLeadFacts.
+        leadFacts: buildDemoLeadFacts(),
 
         vehicleOutliers: [
             { label: 'Porsche', count: 9, won: 6, closed: 7, winRate: 0.86, direction: 'ABOVE' },
