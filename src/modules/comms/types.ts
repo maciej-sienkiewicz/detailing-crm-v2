@@ -264,6 +264,75 @@ export interface MarkThreadAsLeadRequest {
     services: LeadServiceItemInput[];
 }
 
+/** 1 = poniedziałek … 7 = niedziela; backend zawsze przysyła komplet siedmiu. */
+export interface WeekdayStat {
+    weekday: number;
+    count: number;
+}
+
+/** Dzień miesiąca 1–31; komplet, także z zerami. */
+export interface MonthDayStat {
+    day: number;
+    count: number;
+}
+
+export interface LeadCategoryStat {
+    code: string | null;
+    label: string;
+    count: number;
+    completed: number;
+    lost: number;
+    conversionRate: number | null;
+}
+
+export interface LeadSourceStat {
+    source: string;
+    count: number;
+    won: number;
+    closed: number;
+    winRate: number | null;
+}
+
+export type ResponseBucketKey = 'UNDER_1H' | 'UNDER_4H' | 'UNDER_24H' | 'OVER_24H' | 'NO_REPLY';
+
+export interface ResponseBucket {
+    key: ResponseBucketKey;
+    count: number;
+    won: number;
+    closed: number;
+    winRate: number | null;
+}
+
+/**
+ * „Nie wykryto zależności" jest pełnoprawną odpowiedzią i przychodzi z backendu
+ * jako werdykt, a nie jako brak danych do narysowania. Ocena próby zapada tam,
+ * gdzie są liczby; okno tylko ją wypowiada.
+ */
+export interface ResponseImpact {
+    buckets: ResponseBucket[];
+    verdict: 'FASTER_WINS' | 'NO_RELATION' | 'NOT_ENOUGH_DATA';
+    fastWinRate: number | null;
+    slowWinRate: number | null;
+}
+
+export interface VehicleOutlier {
+    label: string;
+    count: number;
+    won: number;
+    closed: number;
+    winRate: number;
+    direction: 'ABOVE' | 'BELOW';
+}
+
+/** [periodStart] to poniedziałek tygodnia albo pierwszy dzień miesiąca (YYYY-MM-DD). */
+export interface TimelinePoint {
+    periodStart: string;
+    created: number;
+    won: number;
+    lost: number;
+    winRate: number | null;
+}
+
 export interface LeadAnalytics {
     from: string;
     to: string;
@@ -271,14 +340,9 @@ export interface LeadAnalytics {
     byStatus: Record<string, number>;
     conversionRate: number | null;
     wonValue: number;
+    lostValue: number;
     pipelineValue: number;
-    categories: {
-        code: string | null;
-        label: string;
-        count: number;
-        completed: number;
-        conversionRate: number | null;
-    }[];
+    categories: LeadCategoryStat[];
     lostReasons: {
         code: string;
         label: string;
@@ -286,6 +350,14 @@ export interface LeadAnalytics {
         share: number;
     }[];
     medianFirstResponseMinutes: number | null;
+    medianDaysToDecision: number | null;
+    inquiriesByWeekday: WeekdayStat[];
+    decisionsByWeekday: WeekdayStat[];
+    inquiriesByMonthDay: MonthDayStat[];
+    responseImpact: ResponseImpact;
+    vehicleOutliers: VehicleOutlier[];
+    timeline: TimelinePoint[];
+    bySource: LeadSourceStat[];
 }
 
 // ── Zdarzenia WebSocket (topic dashboardu) ───────────────────────────────────
