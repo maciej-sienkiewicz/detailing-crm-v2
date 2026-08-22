@@ -59,6 +59,7 @@ export function audienceChips(a: AudienceCriteria, serviceNames: Map<string, str
     chips.push(`Marka: ${a.vehicleBrands.map((b) => (b.model ? `${b.brand} ${b.model}` : b.brand)).join(' lub ')}`);
   if (a.vehicleYearMin != null) chips.push(`Rocznik: od ${a.vehicleYearMin}`);
   if (a.vehicleYearMax != null) chips.push(`Rocznik: do ${a.vehicleYearMax}`);
+  if (a.includeUnnamedCustomers) chips.push('Także klienci bez nazwiska');
   if (a.customerType === 'COMPANY') chips.push('Tylko firmy');
   if (a.customerType === 'INDIVIDUAL') chips.push('Tylko klienci indywidualni');
   if (a.excludeCustomerIds.length > 0) chips.push(`Odznaczono ręcznie: ${a.excludeCustomerIds.length}`);
@@ -68,13 +69,15 @@ export function audienceChips(a: AudienceCriteria, serviceNames: Map<string, str
 
 // ─── Sekcja ───────────────────────────────────────────────────────────────────
 
+/**
+ * Sekcja jako wiersz listy, nie jako osobna karta.
+ *
+ * Pięć białych kart w białym panelu to biel na bieli i pięć ramek rysujących
+ * granice tam, gdzie nic się nie kończy. Wiersze rozdzielone włoskową kreską
+ * czytają się jako jedna lista kryteriów — czyli jako to, czym są.
+ */
 const Section = styled.div`
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.lg};
-  background: ${(p) => p.theme.colors.surface};
-  overflow: hidden;
-
-  & + & { margin-top: 8px; }
+  & + & { border-top: 1px solid ${(p) => p.theme.colors.surfaceAlt}; }
 `;
 
 const SectionHead = styled.button<{ $open: boolean }>`
@@ -85,7 +88,11 @@ const SectionHead = styled.button<{ $open: boolean }>`
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 12px 14px;
+  /* Ujemny margines wchodzi w wyściółkę panelu, żeby podświetlenie pod kursorem
+     sięgało jego krawędzi — wiersz listy, a nie prostokąt pływający w środku. */
+  padding: 11px 16px;
+  margin: 0 -16px;
+  width: calc(100% + 32px);
   font-family: inherit;
   text-align: left;
 
@@ -139,11 +146,10 @@ const ActiveDot = styled.span`
 `;
 
 const SectionBody = styled.div`
-  padding: 4px 14px 16px;
+  padding: 2px 0 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  border-top: 1px solid ${(p) => p.theme.colors.surfaceAlt};
 `;
 
 /**

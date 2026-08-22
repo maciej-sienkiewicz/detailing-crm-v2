@@ -21,9 +21,10 @@ const Panel = styled.div`
   top: 24px;
   background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.xl};
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+  /* Ta sama krawędź i ten sam promień, co panel filtrów obok — dominanta bierze
+     się z czterdziestopikselowej liczby, nie z grubszego cienia pod ramką. */
+  border-radius: ${(p) => p.theme.radii.lg};
+  padding: 18px;
 `;
 
 const BigNumber = styled.div<{ $dim: boolean }>`
