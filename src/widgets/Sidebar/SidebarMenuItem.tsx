@@ -1,13 +1,16 @@
 import { type LucideIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { MenuItemLink, MenuItemIcon, MenuItemText, MenuItemBadge } from './SidebarStyles';
+import { MenuItemLink, MenuItemButton, MenuItemIcon, MenuItemText, MenuItemBadge } from './SidebarStyles';
 
 export interface MenuItem {
-    path: string;
     label: string;
     icon: LucideIcon;
     badge?: string | number;
     alert?: boolean;
+    /** Navigation entry. Mutually exclusive with `onClick`. */
+    path?: string;
+    /** Standalone action entry (e.g. opens a modal) instead of navigating. */
+    onClick?: () => void;
 }
 
 interface SidebarMenuItemProps {
@@ -18,18 +21,33 @@ interface SidebarMenuItemProps {
 
 export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuItemProps) => {
     const location = useLocation();
-    const pathOnly = item.path.split('?')[0];
-    const itemSearch = item.path.includes('?') ? item.path.slice(item.path.indexOf('?')) : null;
+    const Icon = item.icon;
+
+    if (item.onClick) {
+        return (
+            <MenuItemButton type="button" $isCollapsed={isCollapsed} onClick={item.onClick}>
+                <MenuItemIcon $isActive={false}>
+                    <Icon />
+                </MenuItemIcon>
+                <MenuItemText $isCollapsed={isCollapsed}>
+                    {item.label}
+                </MenuItemText>
+            </MenuItemButton>
+        );
+    }
+
+    const path = item.path ?? '';
+    const pathOnly = path.split('?')[0];
+    const itemSearch = path.includes('?') ? path.slice(path.indexOf('?')) : null;
     const isActive = itemSearch
         ? location.pathname === pathOnly && location.search === itemSearch
         : location.pathname.startsWith(pathOnly);
-    const Icon = item.icon;
 
     const hasAlert = item.alert && !isActive;
 
     return (
         <MenuItemLink
-            to={item.path}
+            to={path}
             $isActive={isActive}
             $isCollapsed={isCollapsed}
             $hasAlert={hasAlert}

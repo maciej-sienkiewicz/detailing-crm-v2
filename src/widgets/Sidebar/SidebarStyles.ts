@@ -388,6 +388,46 @@ export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boo
     `}
 `;
 
+export const MenuItemButton = styled.button<{ $isCollapsed: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 9px 12px;
+    margin-bottom: 1px;
+    border: none;
+    background: transparent;
+    color: ${S.text};
+    text-decoration: none;
+    border-radius: 10px;
+    transition: background-color 180ms ease, color 180ms ease;
+    position: relative;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
+    }
+
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        padding: 10px 12px;
+        font-size: 14px;
+        margin-bottom: 2px;
+    }
+
+    &:hover {
+        background-color: ${S.bgHover};
+        color: ${S.textHover};
+    }
+`;
+
 export const MenuItemIcon = styled.span<{ $isActive: boolean }>`
     width: 18px;
     height: 18px;
