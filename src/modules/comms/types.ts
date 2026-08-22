@@ -331,6 +331,23 @@ export interface TimelinePoint {
     won: number;
     lost: number;
     winRate: number | null;
+    /** Wartość zapytań okresu w rozbiciu na wynik — grosze. */
+    wonValue: number;
+    lostValue: number;
+    openValue: number;
+}
+
+/**
+ * Wiersz macierzy „usługa × dzień tygodnia".
+ * [counts] ma zawsze siedem pozycji: poniedziałek → niedziela.
+ */
+export interface WeekdayMatrixRow {
+    code: string | null;
+    label: string;
+    /** Średnia wycena leadów tej usługi, które zostały wycenione; null gdy żaden. */
+    averageValue: number | null;
+    counts: number[];
+    total: number;
 }
 
 /**
@@ -382,6 +399,7 @@ export interface LeadAnalytics {
     responseImpact: ResponseImpact;
     vehicleOutliers: VehicleOutlier[];
     timeline: TimelinePoint[];
+    weekdayMatrix: WeekdayMatrixRow[];
     bySource: LeadSourceStat[];
     awaiting: AwaitingWork;
     leaks: Leak[];
