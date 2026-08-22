@@ -28,9 +28,9 @@ import { COMMS_CONTACT_CARD_KEY, COMMS_INSIGHTS_KEY, useContactCard } from '../h
 import { VehiclePhotosPopover } from './VehiclePhotosPopover';
 import { formatGrosze } from './shared';
 
-const Card = styled.div`
+const Card = styled.div<{ $z: number }>`
     position: fixed;
-    z-index: 120;
+    z-index: ${p => p.$z};
     width: 360px;
     max-width: calc(100vw - 24px);
     background: ${p => p.theme.colors.surface};
@@ -337,15 +337,26 @@ function splitName(full: string | null): { firstName: string; lastName: string }
     return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
 }
 
+/** Nad skrzynką wystarczy 120; otwarta z okna musi przebić jego 1000. */
+const DEFAULT_Z_INDEX = 120;
+
 interface ContactCardPopoverProps {
     email: string;
     /** Nazwa z wątku — podpowiedź przy zakładaniu kartoteki. */
     participantName: string | null;
     anchor: HTMLElement;
     onClose: () => void;
+    /** Warstwa, na której ma stanąć wizytówka i okno zakładania kartoteki. */
+    zIndex?: number;
 }
 
-export function ContactCardPopover({ email, participantName, anchor, onClose }: ContactCardPopoverProps) {
+export function ContactCardPopover({
+    email,
+    participantName,
+    anchor,
+    onClose,
+    zIndex = DEFAULT_Z_INDEX,
+}: ContactCardPopoverProps) {
     const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
     const [linking, setLinking] = useState(false);
     const [query, setQuery] = useState('');
@@ -492,7 +503,13 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
 
     return createPortal(
         <>
-            <Card ref={cardRef} style={{ top: pos.top, left: pos.left }} role="dialog" aria-label="Wizytówka klienta">
+            <Card
+                ref={cardRef}
+                $z={zIndex}
+                style={{ top: pos.top, left: pos.left }}
+                role="dialog"
+                aria-label="Wizytówka klienta"
+            >
                 <Head>
                     <div className="who">
                         <div className="name">{customer?.fullName ?? participantName ?? email}</div>
@@ -690,6 +707,7 @@ export function ContactCardPopover({ email, participantName, anchor, onClose }: 
             {addOpen && (
                 <AddCustomerModal
                     isOpen
+                    zIndex={zIndex + 1}
                     onClose={() => setAddOpen(false)}
                     initialValues={initialValues}
                     onSuccess={() => {
