@@ -28,22 +28,33 @@
 // ta praca, którą ma wykonać za niego okno. Reszta dróg (kartoteka, telefon,
 // wizyta) stoi przy swoim obiekcie, nie w stopce: stopka z pięcioma równymi
 // przyciskami nie podpowiada niczego.
+//
+// Na telefonie kolejność jest inna niż na monitorze, bo inne jest pytanie.
+// Przy szerokim oknie widać wszystko naraz i pierwsza jest kwota. Na ekranie,
+// po którym się przewija, pierwsze musi być to, co decyduje o działaniu: czyj
+// jest ruch. Kwota wyceny znika — kilka centymetrów niżej stoi tabela usług
+// z tą samą sumą, a ta sama liczba dwa razy na jednym ekranie to nie jest
+// podkreślenie, tylko szum.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
+    AlertTriangle,
     CalendarCheck,
     CalendarPlus,
     Car,
     ExternalLink,
     Loader2,
+    Mail,
     MessageSquare,
     Phone,
     Send,
     Trash2,
+    UserPlus,
     UserRound,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { SUBMODAL_Z_INDEX } from '@/common/styles';
 import {
     CloseBtn,
     ModalContent,
@@ -69,6 +80,7 @@ import {
 } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { useContactCard } from '../hooks/useComms';
+import { ContactCardPopover } from './ContactCardPopover';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
 import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
@@ -93,6 +105,17 @@ const BodyGrid = styled.div`
 
     @media (max-width: ${p => p.theme.breakpoints.md}) {
         grid-template-columns: minmax(0, 1fr);
+    }
+`;
+
+/**
+ * Na telefonie nagłówek ma prawo się złamać: nazwa klienta i krzyżyk w pierwszej
+ * linii, wybierak etapu z kopertą pod nimi. Wciśnięte w jedną linijkę zostawiały
+ * nazwisku kilkanaście pikseli i wielokropek zamiast nazwiska.
+ */
+const LeadHeader = styled(ModalHeader)`
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        flex-wrap: wrap;
     }
 `;
 
@@ -148,6 +171,11 @@ const Summary = styled.section<{ $tone: ReplyTone }>`
     display: flex;
     flex-wrap: wrap;
     gap: 0 4px;
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        flex-direction: column;
+        padding: 10px 14px 10px 17px;
+    }
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.lg};
     background: ${p => p.theme.colors.surface};
@@ -172,7 +200,7 @@ const Summary = styled.section<{ $tone: ReplyTone }>`
  * w rzędzie bez podziału czytają się jak jedno zdanie, a to są cztery odpowiedzi
  * na cztery różne pytania.
  */
-const SummaryCell = styled.div`
+const SummaryCell = styled.div<{ $order?: number; $hideOnPhone?: boolean }>`
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -186,8 +214,17 @@ const SummaryCell = styled.div`
         border-left: none;
     }
 
+    /*
+     * Na telefonie pasek staje się kolumną, więc kreska pionowa nie ma czego
+     * rozdzielać. Świadomie bez kreski poziomej w zamian: kolejność komórek jest
+     * tu przestawiona przez order, a :first-of-type liczy elementy w kolejności
+     * dokumentu, nie widoku — kreska wylądowałaby nad środkiem paska. Odstęp
+     * i wersalikowa etykieta rozdzielają wystarczająco.
+     */
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 8px 0;
+        display: ${p => (p.$hideOnPhone ? 'none' : 'flex')};
+        order: ${p => p.$order ?? 0};
+        padding: 5px 0;
         border-left: none;
     }
 `;
@@ -278,6 +315,14 @@ const HeaderStatus = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+
+    /* Na telefonie schodzi pod nazwę klienta, na całą szerokość: obok tytułu
+       zostawiał mu kilkanaście pikseli i wielokropek zamiast nazwiska. */
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        order: 3;
+        width: 100%;
+        justify-content: flex-start;
+    }
 `;
 
 /** Wyjaśnienie stanu „przegrany" — jedna linia nad treścią, nie pole formularza. */
@@ -338,6 +383,63 @@ const QuietLink = styled.button`
 
     svg { width: 13px; height: 13px; }
     &:hover { text-decoration: underline; }
+`;
+
+/**
+ * Pasek klienta — pokazywany tylko wtedy, gdy jest o czym mówić.
+ *
+ * Dwa powody, wzajemnie się wykluczające: kontakt nie ma kartoteki (jest co
+ * zrobić) albo ma za sobą odwołane rezerwacje i porzucone zapytania (jest o czym
+ * wiedzieć przed obiecaniem terminu). Klient znany i bez historii porzuceń nie
+ * dostaje paska w ogóle — brak sygnału też jest informacją i nie zajmuje miejsca.
+ *
+ * Ton [$warn] jest ostrzeżeniem, nie wyrokiem: liczby są podane wprost, żeby dało
+ * się je zważyć samemu, a nie zaufać etykiecie „podwyższone ryzyko".
+ */
+const ClientNote = styled.div<{ $warn?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: ${({ $warn, theme }) => ($warn ? theme.colors.warning : theme.colors.textSecondary)};
+    background: ${({ $warn, theme }) => ($warn ? theme.colors.warningLight : theme.colors.surfaceAlt)};
+    border: 1px solid ${({ $warn, theme }) => ($warn ? `${theme.colors.warning}33` : theme.colors.border)};
+    border-radius: ${p => p.theme.radii.md};
+    padding: 9px 12px;
+
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .spacer { flex: 1; }
+`;
+
+/**
+ * Kontrolka ikonowa w nagłówku — droga do korespondencji.
+ *
+ * Etykieta tekstowa robiła z tego najszerszy element nagłówka, choć to nie jest
+ * akcja główna; na telefonie zabierała całą linijkę. Ikona koperty jest tu
+ * jednoznaczna (kontakt przyszedł mailem), a nazwa siedzi w podpowiedzi
+ * i w [aria-label], więc czytnik ekranu nic nie traci.
+ */
+const IconAction = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    svg { width: 16px; height: 16px; }
+    &:hover {
+        border-color: ${p => p.theme.colors.primary};
+        color: ${p => p.theme.colors.primary};
+    }
 `;
 
 const ModalBody = styled.div`
@@ -526,6 +628,26 @@ const MessageQuote = styled.blockquote`
     padding-left: 12px;
 `;
 
+/** „1 odwołana rezerwacja", „2 odwołane rezerwacje", „5 odwołanych rezerwacji". */
+const bookingWord = (count: number): string => {
+    if (count === 1) return 'odwołana rezerwacja';
+    const rest = count % 10;
+    const teens = count % 100;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14)
+        ? 'odwołane rezerwacje'
+        : 'odwołanych rezerwacji';
+};
+
+/** „1 porzucone zapytanie", „2 porzucone zapytania", „5 porzuconych zapytań". */
+const leadWord = (count: number): string => {
+    if (count === 1) return 'porzucone zapytanie';
+    const rest = count % 10;
+    const teens = count % 100;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14)
+        ? 'porzucone zapytania'
+        : 'porzuconych zapytań';
+};
+
 export interface LeadDetailModalProps {
     leadId: string;
     onClose: () => void;
@@ -560,6 +682,8 @@ export function LeadDetailModal({
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [booking, setBooking] = useState(false);
+    // Wizytówka kontaktu — ta sama co w skrzynce, razem z „połącz" i „załóż".
+    const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     // Edytor wyceny otwarty od pierwszej klatki, gdy wejściem było kliknięcie wartości.
     // Wystarczy stan początkowy: okno montuje się na jedno otwarcie jednego leada,
     // więc nie ma czego dosynchronizowywać efektem.
@@ -661,6 +785,11 @@ export function LeadDetailModal({
         },
     });
 
+    // Kontakt bez kartoteki: nie znamy historii, nie podepniemy wizyty ani pojazdu.
+    const unknownContact = Boolean(contactCard) && contactCard?.customer === null;
+    const risk = contactCard?.risk;
+    const abandoned = (risk?.abandonedBookings ?? 0) + (risk?.abandonedLeads ?? 0);
+
     const quoteRows = toQuoteRows(lead.services);
     const quoteTotal = (pick: (row: typeof quoteRows[number]) => number) =>
         quoteRows.reduce((total, row) => total + pick(row), 0);
@@ -686,7 +815,7 @@ export function LeadDetailModal({
     return (
         <>
             <ModalShell isOpen onClose={onClose} maxWidth="1040px">
-                <ModalHeader>
+                <LeadHeader>
                     <ModalTitleGroup>
                         <ModalTitle>{lead.customerName ?? lead.contactIdentifier}</ModalTitle>
                         {/* Drogi do innych rekordów stoją przy tożsamości klienta,
@@ -715,6 +844,16 @@ export function LeadDetailModal({
                         pole do zmiany, tylko fakt, i stojąc tuż obok wybieraka
                         wyglądało na drugi taki sam przełącznik. */}
                     <HeaderStatus>
+                        {canWrite && (
+                            <IconAction
+                                type="button"
+                                onClick={openThread}
+                                title="Przejdź do korespondencji"
+                                aria-label="Przejdź do korespondencji"
+                            >
+                                <Mail />
+                            </IconAction>
+                        )}
                         <LeadStatusPicker
                             status={lead.status}
                             disabled={status.isPending}
@@ -722,7 +861,7 @@ export function LeadDetailModal({
                         />
                     </HeaderStatus>
                     <CloseBtn onClick={onClose} />
-                </ModalHeader>
+                </LeadHeader>
 
                 <ModalContent>
                     <ModalBody>
@@ -736,6 +875,44 @@ export function LeadDetailModal({
                                     {lead.lostReason && <> — {lead.lostReason}</>}
                                 </span>
                             </LostNote>
+                        )}
+
+                        {/* Pasek klienta pojawia się tylko wtedy, gdy niesie decyzję
+                            albo ostrzeżenie. Znany klient bez porzuceń nie dostaje
+                            nic — cisza też jest informacją i nie zajmuje miejsca. */}
+                        {unknownContact && (
+                            <ClientNote>
+                                <UserPlus />
+                                <span>Tego kontaktu nie ma jeszcze w kartotece klientów.</span>
+                                <span className="spacer" />
+                                <QuietLink
+                                    type="button"
+                                    onClick={(event) => setContactAnchor(event.currentTarget)}
+                                >
+                                    Połącz albo załóż kartotekę
+                                </QuietLink>
+                            </ClientNote>
+                        )}
+
+                        {abandoned > 0 && (
+                            <ClientNote $warn>
+                                <AlertTriangle />
+                                <span>
+                                    {/* Liczby wprost, bez etykiety „podwyższone ryzyko":
+                                        jedno odwołanie sprzed roku i trzy z ostatniego
+                                        miesiąca to nie jest ta sama sprawa, a ocenić to
+                                        potrafi tylko człowiek, który zna klienta. */}
+                                    {[
+                                        risk?.abandonedBookings
+                                            ? `${risk.abandonedBookings} ${bookingWord(risk.abandonedBookings)}`
+                                            : null,
+                                        risk?.abandonedLeads
+                                            ? `${risk.abandonedLeads} ${leadWord(risk.abandonedLeads)}`
+                                            : null,
+                                    ].filter(Boolean).join(', ')}
+                                    {' w historii tego kontaktu.'}
+                                </span>
+                            </ClientNote>
                         )}
 
                         {/* Rezerwacja to wynik, po który cały lead istniał — gdy jest,
@@ -766,7 +943,10 @@ export function LeadDetailModal({
                         {/* Pasek podsumowania: cztery odpowiedzi, po które ktoś tu wchodzi,
                             zanim zacznie cokolwiek czytać. */}
                         <Summary $tone={replyTone}>
-                            <SummaryCell>
+                            {/* Kwota znika na telefonie: tabela usług kilka centymetrów
+                                niżej podaje tę samą sumę, a ta sama liczba dwa razy na
+                                jednym ekranie to szum, nie podkreślenie. */}
+                            <SummaryCell $hideOnPhone>
                                 <CellLabel>Wartość wyceny</CellLabel>
                                 {quoteRows.length > 0 ? (
                                     <>
@@ -781,7 +961,7 @@ export function LeadDetailModal({
                                 )}
                             </SummaryCell>
 
-                            <SummaryCell>
+                            <SummaryCell $order={2}>
                                 <CellLabel>Pojazd</CellLabel>
                                 {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
                                     <CellValue $empty>
@@ -809,7 +989,9 @@ export function LeadDetailModal({
                                 </CellLink>
                             </SummaryCell>
 
-                            <SummaryCell>
+                            {/* Na telefonie pierwsze: to jedyna komórka, która mówi,
+                                czy trzeba coś zrobić teraz. */}
+                            <SummaryCell $order={1}>
                                 <CellLabel>Czyj ruch</CellLabel>
                                 {reply ? (
                                     <ToneValue $tone={reply.tone} title={reply.title}>
@@ -824,7 +1006,7 @@ export function LeadDetailModal({
                                 {reply && <CellNote>{reply.title}</CellNote>}
                             </SummaryCell>
 
-                            <SummaryCell>
+                            <SummaryCell $order={3}>
                                 <CellLabel>Zapytanie</CellLabel>
                                 <CellValue><span>{formatRelativeTime(lead.createdAt)}</span></CellValue>
                                 <CellNote>{formatDateTime(lead.createdAt)}</CellNote>
@@ -1010,40 +1192,18 @@ export function LeadDetailModal({
                            odezwać się do klienta zawsze wolno.
                         4. w pozostałych → „Stwórz rezerwację", czyli po co ten moduł jest.
 
-                        Akcja drugorzędna to zawsze ta z pary „napisz / umów", która nie
-                        została główną. Dwie akcje w stopce, nie pięć: przy pięciu równych
-                        przyciskach żaden nie jest podpowiedzią.
+                        Poza akcją główną stopka niesie najwyżej jeden przycisk, i tylko
+                        wtedy, gdy umówienie terminu nie jest tym głównym. Zwykłe przejście
+                        do korespondencji zeszło do ikony koperty w nagłówku: jako pełny
+                        przycisk konkurowało wagą z jedyną akcją, która ma tu stać, a na
+                        telefonie zabierało całą linijkę.
                     */}
                     {(() => {
-                        const write = canWrite && (
-                            <IconButton type="button" onClick={openThread}>
-                                <Send size={14} /> Napisz wiadomość
-                            </IconButton>
-                        );
-                        const writePrimary = canWrite && (
-                            <PrimaryButton type="button" onClick={openThread}>
-                                <Send size={14} /> Odpisz klientowi
-                            </PrimaryButton>
-                        );
-                        const book = (
-                            <IconButton type="button" onClick={() => setBooking(true)}>
-                                <CalendarPlus size={14} /> Stwórz rezerwację
-                            </IconButton>
-                        );
-                        const bookPrimary = (
-                            <PrimaryButton type="button" onClick={() => setBooking(true)}>
-                                <CalendarPlus size={14} /> Stwórz rezerwację
-                            </PrimaryButton>
-                        );
-
                         if (lead.appointmentId) {
                             return (
-                                <>
-                                    {write}
-                                    <PrimaryButton type="button" onClick={openAppointment}>
-                                        <CalendarCheck size={14} /> Zobacz rezerwację
-                                    </PrimaryButton>
-                                </>
+                                <PrimaryButton type="button" onClick={openAppointment}>
+                                    <CalendarCheck size={14} /> Zobacz rezerwację
+                                </PrimaryButton>
                             );
                         }
                         if (closed) {
@@ -1051,17 +1211,43 @@ export function LeadDetailModal({
                                 <PrimaryButton type="button" onClick={openThread}>
                                     <Send size={14} /> Napisz wiadomość
                                 </PrimaryButton>
-                            ) : book;
+                            ) : null;
                         }
                         if (replyTone === 'due' && canWrite) {
-                            return (<>{book}{writePrimary}</>);
+                            return (
+                                <>
+                                    <IconButton type="button" onClick={() => setBooking(true)}>
+                                        <CalendarPlus size={14} /> Stwórz rezerwację
+                                    </IconButton>
+                                    <PrimaryButton type="button" onClick={openThread}>
+                                        <Send size={14} /> Odpisz klientowi
+                                    </PrimaryButton>
+                                </>
+                            );
                         }
-                        return (<>{write}{bookPrimary}</>);
+                        return (
+                            <PrimaryButton type="button" onClick={() => setBooking(true)}>
+                                <CalendarPlus size={14} /> Stwórz rezerwację
+                            </PrimaryButton>
+                        );
                     })()}
 
                     <IconButton onClick={onClose}>Zamknij</IconButton>
                 </ModalFooter>
             </ModalShell>
+
+            {/* Wizytówka to ten sam komponent co w skrzynce — z wyszukiwarką klientów
+                i zakładaniem kartoteki. Druga, uboższa kopia tego formularza w oknie
+                leada rozjechałaby się z pierwszą przy najbliższej zmianie. */}
+            {contactAnchor && (
+                <ContactCardPopover
+                    email={lead.contactIdentifier}
+                    participantName={lead.customerName}
+                    anchor={contactAnchor}
+                    zIndex={SUBMODAL_Z_INDEX}
+                    onClose={() => setContactAnchor(null)}
+                />
+            )}
 
             <ConfirmationModal
                 isOpen={deleteDialogOpen}

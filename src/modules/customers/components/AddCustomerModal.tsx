@@ -28,6 +28,8 @@ interface AddCustomerModalProps {
     onClose: () => void;
     onSuccess: (customer: Customer) => void;
     initialValues?: Partial<Pick<CreateCustomerFormData, 'firstName' | 'lastName' | 'email' | 'phone'>>;
+    /** Wyżej niż domyślnie, gdy okno otwiera się z innego okna. */
+    zIndex?: number;
 }
 
 export const AddCustomerModal = ({
@@ -35,6 +37,7 @@ export const AddCustomerModal = ({
     onClose,
     onSuccess,
     initialValues,
+    zIndex,
 }: AddCustomerModalProps) => {
     const methods = useForm<CreateCustomerFormData>({
         resolver: (values, context, options) => {
@@ -102,7 +105,7 @@ export const AddCustomerModal = ({
     }, [methods, onClose, resetMutation]);
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg" zIndex={zIndex}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{t.customers.form.title}</ModalTitle>

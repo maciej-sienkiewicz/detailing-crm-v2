@@ -397,12 +397,25 @@ export interface ContactCardVisit {
     vehicleLabel: string;
 }
 
+/**
+ * Surowe liczby, nie ocena. Próg, od którego dwa odwołania są problemem, zależy
+ * od tego, jak studio pracuje — a liczbę da się pokazać i wyjaśnić. „Podwyższone
+ * ryzyko" bez podania czego dotyczy to zarzut, którego nie sposób sprawdzić.
+ */
+export interface ContactCardRisk {
+    /** Rezerwacje odwołane albo porzucone; zawsze 0 dla kontaktu spoza kartoteki. */
+    abandonedBookings: number;
+    /** Wcześniejsze zapytania zamknięte jako przegrane albo bez pojawienia się. */
+    abandonedLeads: number;
+}
+
 export interface ContactCard {
     email: string;
     /** null = adresu nie ma w kartotece. */
     customer: ContactCardCustomer | null;
     vehicles: ContactCardVehicle[];
     recentVisits: ContactCardVisit[];
+    risk: ContactCardRisk;
 }
 
 // ── Słowniki prezentacyjne ───────────────────────────────────────────────────
