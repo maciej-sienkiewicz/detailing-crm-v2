@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
-import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { apiClient } from '@/core/apiClient';
+import { useToast } from '@/common/components/Toast';
 import { leadsApi } from '../api/leadsApi';
 import { COMMS_THREADS_KEY } from './useComms';
 import type {
@@ -52,9 +53,15 @@ export const useLead = (leadId: string | null) =>
 export const useLeadAppointment = (appointmentId: string | null) =>
     useQuery({
         queryKey: ['lead-appointment', appointmentId],
-        queryFn: () => appointmentApi.getAppointment(appointmentId!) as Promise<{
-            schedule?: { startDateTime?: string };
-        }>,
+        // Wprost przez apiClient z wyciszonym globalnym toastem: rezerwacji mogło
+        // już nie być, a „Rezerwacja nie została znaleziona" wyskakujące przy
+        // otwieraniu leada to nie jest błąd użytkownika, tylko brak daty do pokazania.
+        queryFn: async () => {
+            const { data } = await apiClient.get(`/v1/appointments/${appointmentId}`, {
+                skipErrorToast: true,
+            });
+            return data as { schedule?: { startDateTime?: string } };
+        },
         enabled: appointmentId !== null,
         staleTime: 60_000,
         // Rezerwacji mogło już nie być (usunięta poza CRM-em) — bez ponawiania.
@@ -119,13 +126,21 @@ const useLeadInvalidation = () => {
 /**
  * Usunięcie leada. Wiersz znika z listy od razu — czekanie na odświeżenie po
  * potwierdzonym kliknięciu „Usuń" wygląda jak zawieszenie, a nie jak ostrożność.
+ *
+ * Toasty stoją TUTAJ, a nie przy wywołaniu `mutate`: okno leada zamyka się przed
+ * wysłaniem żądania (patrz komentarz przy confirmDelete), a callbacki przekazane
+ * do `mutate` nie odpalają się po odmontowaniu komponentu. Tak właśnie ginął
+ * po cichu błąd „lead ma rezerwację" — żądanie padało, komunikatu nie było.
+ * Callbacki z opcji `useMutation` odpalają się zawsze.
  */
 export const useDeleteLead = () => {
     const queryClient = useQueryClient();
     const invalidate = useLeadInvalidation();
+    const { showSuccess, showError } = useToast();
     return useMutation({
-        mutationFn: (leadId: string) => leadsApi.deleteLead(leadId),
-        onSuccess: (_result, leadId) => {
+        mutationFn: ({ leadId, deleteAppointment }: { leadId: string; deleteAppointment?: boolean }) =>
+            leadsApi.deleteLead(leadId, deleteAppointment ?? false),
+        onSuccess: (_result, { leadId, deleteAppointment }) => {
             queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (page) => {
                 if (!page) return page;
                 if (!page.items.some((item) => item.id === leadId)) return page;
@@ -139,6 +154,17 @@ export const useDeleteLead = () => {
             // Wątek odzyskuje możliwość ponownego oznaczenia — skrzynka musi o tym wiedzieć.
             queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY });
             invalidate();
+            showSuccess(
+                'Lead usunięty',
+                deleteAppointment
+                    ? 'Rezerwacja została usunięta razem z nim'
+                    : 'Korespondencja została w skrzynce'
+            );
+        },
+        onError: (error) => {
+            const message =
+                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Nie udało się usunąć leada', message ?? 'Spróbuj ponownie');
         },
     });
 };
