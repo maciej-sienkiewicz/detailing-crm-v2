@@ -57,7 +57,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useLeadAnalytics } from '../hooks/useLeads';
@@ -65,6 +65,7 @@ import type { LeadAnalytics } from '../types';
 import { EmptyHint, PrimaryButton } from '../components/shared';
 import { PeriodPicker } from '../components/analytics/PeriodPicker';
 import { buildPeriod, type Period } from '../components/analytics/period';
+import { buildDemoAnalytics } from '../components/analytics/demoData';
 import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
 import {
     AnalyticsCard,
@@ -109,6 +110,107 @@ const ViewContainer = styled.main`
  * między kartami wyżej: prawo bliskości robi z tego osobną grupę bez rysowania
  * ani jednej kreski więcej.
  */
+/**
+ * Pusta analityka nie kończy się na „wróć tu potem".
+ *
+ * Studio, które dopiero zaczyna, widzi tu same komunikaty o braku danych i nie ma
+ * jak się dowiedzieć, po co w ogóle ma zbierać leady — a to jest dokładnie ten
+ * moment, w którym warto mu to pokazać. Pusty ekran uczy, że tu nic nie ma;
+ * wypełniony przykładem uczy, co tu będzie, gdy zapytania zaczną spływać.
+ */
+const EmptyCard = styled.section`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+
+    h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${st.text};
+    }
+    p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: ${st.textSecondary};
+        max-width: 58ch;
+    }
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        padding: 28px 18px;
+    }
+`;
+
+/** Zaproszenie do trybu pokazowego przy szczupłych, ale prawdziwych danych. */
+const ThinDataBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border-radius: ${st.radius};
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
+    font-size: 13px;
+    color: ${st.textSecondary};
+
+    .grow { flex: 1; min-width: 200px; }
+`;
+
+/**
+ * Pasek trybu pokazowego. Widoczny przez cały czas jego trwania i utrzymany
+ * w tonie ostrzeżenia, bo jedynym realnym niebezpieczeństwem tej funkcji jest
+ * pomylenie przykładu z własnym wynikiem. Przycisk wyjścia stoi w tym samym
+ * pasku: droga powrotna ma być tam, gdzie informacja o tym, że się w czymś jest.
+ */
+const DemoBanner = styled.div`
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border-radius: ${st.radius};
+    background: ${p => p.theme.colors.warningLight};
+    border: 1px solid ${p => p.theme.colors.warning}55;
+    box-shadow: ${st.shadowSm};
+    font-size: 13px;
+    color: #92400e;
+
+    svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .grow { flex: 1; min-width: 180px; }
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
+`;
+
+const DemoButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid ${st.border};
+    background: ${st.bgCard};
+    color: ${st.text};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    padding: 9px 16px;
+    border-radius: ${st.radiusFull};
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 160ms ease;
+
+    svg { width: 15px; height: 15px; }
+    &:hover { border-color: ${st.borderHover}; box-shadow: ${st.shadowSm}; }
+`;
+
 const DeepHeading = styled.div`
     margin-top: 18px;
     display: flex;
@@ -207,15 +309,33 @@ const OutlierList = styled.div`
 /** Poniżej tylu zapytań każdy „najczęstszy dzień" jest przypadkiem, nie prawidłowością. */
 const MIN_LEADS_FOR_RHYTHM = 20;
 
+/**
+ * Poniżej tylu zapytań w okresie prawie każda karta i tak powie „za mało danych",
+ * więc proponujemy podgląd na przykładzie. Próg celowo niski: przy dwunastu
+ * zapytaniach część kart już coś znaczy i podsuwanie zmyślonych liczb komuś,
+ * kto ma własne, byłoby zabieraniem uwagi prawdziwym danym.
+ */
+const THIN_DATA_BELOW = 10;
+
 export default function LeadAnalyticsView() {
     // Okres ustalany raz, przy wejściu. „Ten miesiąc" jest domyślny, bo to jest
     // pytanie, które właściciel zadaje sobie najczęściej: jak mi idzie TERAZ.
     const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
+    // Tryb pokazowy trzymany na widoku, nie w adresie: to jest sposób oglądania,
+    // a nie miejsce w aplikacji — nikt nie powinien wysłać komuś odnośnika, który
+    // otwiera się na zmyślonych liczbach.
+    const [demo, setDemo] = useState(false);
     const { data, isLoading } = useLeadAnalytics(period.from, period.to);
 
     // Trend rysujemy miesiącami dopiero przy zakresie dłuższym niż kwartał —
     // rok w tygodniach to 52 słupki, w których ginie kształt.
     const monthly = period.to.getTime() - period.from.getTime() > 120 * 24 * 3600 * 1000;
+
+    const thin = Boolean(data) && data!.totalCreated < THIN_DATA_BELOW;
+    // Oś czasu przykładu zaczyna się na początku wybranego okresu, żeby podpisy
+    // pod wykresem zgadzały się z zakresem w nagłówku. Przykład z datami sprzed
+    // roku wyglądałby na zepsuty, a nie na przykład.
+    const shown = demo ? buildDemoAnalytics(period.from, period.to) : data;
 
     return (
         <ViewContainer>
@@ -238,7 +358,57 @@ export default function LeadAnalyticsView() {
             />
 
             {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
-            {data && <Report data={data} monthly={monthly} />}
+
+            {/* Pasek trybu pokazowego widoczny przez cały czas jego trwania:
+                jedynym realnym niebezpieczeństwem tej funkcji jest pomylenie
+                przykładu z własnym wynikiem. */}
+            {demo && (
+                <DemoBanner role="status">
+                    <Sparkles />
+                    <span className="grow">
+                        <strong>To są przykładowe dane.</strong> Tak wygląda ten widok w studiu,
+                        do którego spływa około stu zapytań w miesiącu. Twoje liczby są ukryte.
+                    </span>
+                    <DemoButton type="button" onClick={() => setDemo(false)}>
+                        <EyeOff /> Schowaj
+                    </DemoButton>
+                </DemoBanner>
+            )}
+
+            {/* Zero zapytań: nie ma czego pokazać, więc zamiast sześciu kart
+                z komunikatem „brak danych" idzie jedno wyjaśnienie i zaproszenie. */}
+            {!demo && data && data.totalCreated === 0 && (
+                <EmptyCard>
+                    <h2>Jeszcze nic tu nie ma</h2>
+                    <p>
+                        W wybranym okresie nie wpłynęło ani jedno zapytanie, więc nie ma czego
+                        liczyć. Ten widok wypełni się sam, gdy zaczną spływać — a do tego czasu
+                        możesz zobaczyć, co będzie tu pokazywał.
+                    </p>
+                    <DemoButton type="button" onClick={() => setDemo(true)}>
+                        <Eye /> Pokaż, jak może wyglądać ten widok
+                    </DemoButton>
+                </EmptyCard>
+            )}
+
+            {/* Zapytania są, ale za mało, żeby większość kart cokolwiek znaczyła.
+                Prawdziwe liczby zostają na ekranie — ukrycie ich byłoby gorsze niż
+                pokazanie szczupłych. Przykład jest propozycją, nie podmianą. */}
+            {!demo && thin && data && data.totalCreated > 0 && (
+                <ThinDataBar>
+                    <span className="grow">
+                        {data.totalCreated} {data.totalCreated === 1 ? 'zapytanie' : 'zapytań'} w tym
+                        okresie to za mało, żeby te liczby coś znaczyły.
+                    </span>
+                    <DemoButton type="button" onClick={() => setDemo(true)}>
+                        <Eye /> Pokaż, jak może wyglądać ten widok
+                    </DemoButton>
+                </ThinDataBar>
+            )}
+
+            {shown && (demo || shown.totalCreated > 0) && (
+                <Report data={shown} monthly={demo ? false : monthly} />
+            )}
         </ViewContainer>
     );
 }
