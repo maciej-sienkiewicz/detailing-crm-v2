@@ -8,6 +8,7 @@
 // filtra, przyciski, pusty stan) są tu dlatego **re-eksportowane** z modułu
 // komunikacji, a nie skopiowane: jedna definicja to jedyna gwarancja, że oba
 // moduły nie rozjadą się przy następnej zmianie.
+import { useState } from 'react';
 import styled from 'styled-components';
 import { Repeat, Send } from 'lucide-react';
 import { KIND_DESCRIPTIONS, KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '../constants';
@@ -467,4 +468,195 @@ export const HintText = styled.p`
     font-size: 12px;
     color: ${p => p.theme.colors.textMuted};
     line-height: 1.5;
+`;
+
+// ─── System pól filtrów ───────────────────────────────────────────────────────
+//
+// Sekcje kryteriów odbiorców miały wcześniej tyle wzorów pola, ile pól: liczba
+// wizyt to były dwa gołe inputy obok siebie, dni — input i luźny napis „dni temu",
+// pieniądze — input bez waluty, a typ klienta zwykły <select>. Każdy wiersz trzeba
+// było odczytać osobno, bo żaden nie wyglądał jak poprzedni.
+//
+// Poniżej jest jeden zestaw klocków, z których zbudowane są wszystkie: wiersz ma
+// etykietę nad kontrolką, kontrolki mają stałe szerokości, a jednostka („dni",
+// „zł") siedzi wewnątrz pola jako przyrostek, nie obok niego jako osobny wyraz.
+
+/** Wiersz filtra: etykieta nad kontrolką, stała rytmika w całej sekcji. */
+export const FilterRow = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+`;
+
+export const FilterLabel = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    color: ${p => p.theme.colors.text};
+`;
+
+/** Dwie kolumny filtrów na szerokim ekranie, jedna na wąskim. */
+export const FilterGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px 16px;
+    align-items: start;
+`;
+
+/**
+ * Ramka kontrolki. Wszystko, co przyjmuje wartość — pole liczbowe, zakres, lista —
+ * dostaje tę samą ramkę, ten sam promień i tę samą reakcję na fokus. Dzięki temu
+ * „gdzie mogę pisać" rozpoznaje się kształtem, a nie zgadywaniem.
+ */
+const controlFrame = `
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    background: #ffffff;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+`;
+
+const ControlBox = styled.div<{ $focused?: boolean }>`
+    ${controlFrame}
+    border: 1px solid ${({ $focused, theme }) => ($focused ? theme.colors.primary : theme.colors.border)};
+    box-shadow: ${({ $focused, theme }) => ($focused ? `0 0 0 3px ${theme.colors.primary}1f` : 'none')};
+    overflow: hidden;
+
+    input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        font: inherit;
+        font-size: 13.5px;
+        color: ${p => p.theme.colors.text};
+        padding: 8px 10px;
+
+        &::placeholder { color: ${p => p.theme.colors.textMuted}; }
+        /* Strzałki spinnera zjadają połowę wąskiego pola i nikt ich nie używa. */
+        &[type='number'] { -moz-appearance: textfield; }
+        &[type='number']::-webkit-outer-spin-button,
+        &[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    }
+`;
+
+/** Jednostka w polu, nie obok niego: „180 dni" czyta się jak jedna wartość. */
+const Unit = styled.span`
+    flex-shrink: 0;
+    padding: 0 10px 0 2px;
+    font-size: 12.5px;
+    color: ${p => p.theme.colors.textMuted};
+    white-space: nowrap;
+`;
+
+const RangeDash = styled.span`
+    flex-shrink: 0;
+    width: 1px;
+    align-self: stretch;
+    margin: 6px 0;
+    background: ${p => p.theme.colors.border};
+`;
+
+interface NumberFieldProps {
+    value: number | null;
+    onChange: (next: number | null) => void;
+    placeholder?: string;
+    unit?: string;
+    min?: number;
+    max?: number;
+    ariaLabel?: string;
+}
+
+/** Pojedyncza liczba z jednostką: „180 dni", „2020 rok". */
+export function NumberField({ value, onChange, placeholder, unit, min, max, ariaLabel }: NumberFieldProps) {
+    const [focused, setFocused] = useState(false);
+    return (
+        <ControlBox $focused={focused}>
+            <input
+                type="number"
+                inputMode="numeric"
+                min={min}
+                max={max}
+                aria-label={ariaLabel}
+                placeholder={placeholder}
+                value={value ?? ''}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+            />
+            {unit && <Unit>{unit}</Unit>}
+        </ControlBox>
+    );
+}
+
+interface RangeFieldProps {
+    from: number | null;
+    to: number | null;
+    onChange: (next: { from: number | null; to: number | null }) => void;
+    unit?: string;
+    min?: number;
+    fromLabel?: string;
+    toLabel?: string;
+}
+
+/**
+ * Zakres „od–do" jako jedna kontrolka, nie dwa osobne pola.
+ *
+ * Dwa inputy obok siebie to dwie wartości; ta sama ramka z kreską w środku to
+ * jeden przedział — a użytkownik myśli tu przedziałem („od trzech do pięciu wizyt"),
+ * nie dwiema niezależnymi liczbami.
+ */
+export function RangeField({ from, to, onChange, unit, min, fromLabel = 'od', toLabel = 'do' }: RangeFieldProps) {
+    const [focused, setFocused] = useState(false);
+    const parse = (raw: string): number | null => (raw === '' ? null : Number(raw));
+    return (
+        <ControlBox $focused={focused}>
+            <input
+                type="number"
+                inputMode="numeric"
+                min={min}
+                aria-label={fromLabel}
+                placeholder={fromLabel}
+                value={from ?? ''}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onChange={(e) => onChange({ from: parse(e.target.value), to })}
+            />
+            <RangeDash />
+            <input
+                type="number"
+                inputMode="numeric"
+                min={min}
+                aria-label={toLabel}
+                placeholder={toLabel}
+                value={to ?? ''}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onChange={(e) => onChange({ from, to: parse(e.target.value) })}
+            />
+            {unit && <Unit>{unit}</Unit>}
+        </ControlBox>
+    );
+}
+
+/** Lista rozwijana w tej samej ramce, co pola liczbowe. */
+export const FilterSelect = styled.select`
+    ${controlFrame}
+    width: 100%;
+    border: 1px solid ${p => p.theme.colors.border};
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 13.5px;
+    color: ${p => p.theme.colors.text};
+    cursor: pointer;
+
+    &:focus {
+        outline: none;
+        border-color: ${p => p.theme.colors.primary};
+        box-shadow: 0 0 0 3px ${p => p.theme.colors.primary}1f;
+    }
 `;

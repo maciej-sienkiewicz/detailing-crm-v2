@@ -1,24 +1,29 @@
 // src/modules/campaigns/components/AudienceTable.tsx
-// Lista odbiorców kampanii — tabela, w której da się kogoś wypisać.
+// Lista odbiorców kampanii — tabela, w której da się kogoś wypisać i kogoś znaleźć.
 //
-// Wcześniej stała tu „próbka" bez żadnej kontroli: kolumna nazwisk i krzyżyk przy
-// każdym wierszu. Krzyżyk to gest jednokierunkowy — po kliknięciu klient znikał
-// z listy i nie było jak go przywrócić, więc pomyłka kosztowała cofnięcie całego
-// filtra. Pole wyboru mówi wprost dwie rzeczy naraz: kto to dostanie i że da się
-// to zmienić w obie strony. Domyślnie zaznaczeni są wszyscy — kampania z definicji
-// idzie do całej grupy, a odznaczenie jest wyjątkiem, nie regułą.
+// Cztery kolumny, bo tyle wystarcza, żeby rozpoznać człowieka: kto, pod jaki numer,
+// kiedy był ostatnio. Model auta i osobna kolumna „status" tylko rozpychały tabelę
+// na całą szerokość ekranu — powód, dla którego ktoś nie dostanie wiadomości, stoi
+// teraz drugą linijką pod nazwiskiem, czyli tam, gdzie i tak pada wzrok.
 //
-// Wiersze, których wypisał system (brak zgody, brak numeru, STOP, limit częstości),
-// nie mają aktywnego pola wyboru: to nie jest decyzja użytkownika i udawanie, że
-// jest, byłoby obietnicą bez pokrycia. Zostają widoczne razem z powodem, bo
-// „czemu wyszło mniej, niż się spodziewałem" to pierwsze pytanie po wysyłce.
+// Pole wyboru zamiast krzyżyka: krzyżyk to gest jednokierunkowy, po którym klient
+// znikał z listy i nie było jak go przywrócić. Domyślnie zaznaczeni są wszyscy —
+// kampania z definicji idzie do całej grupy, odznaczenie jest wyjątkiem.
+//
+// Wiersze wypisane przez system (brak zgody, brak numeru, STOP, limit częstości)
+// mają pole nieaktywne: to nie jest decyzja użytkownika i udawanie, że jest, byłoby
+// obietnicą bez pokrycia.
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { AUDIENCE_PAGE_SIZE, ELIGIBILITY_LABELS } from '../constants';
 import type { AudienceEstimate, RecipientChannel } from '../types';
 import { CheckBox, EmptyHint, MutedText, Panel, QuietLink } from './shared';
 
 const Head = styled.h4`
+    flex-wrap: wrap;
+    gap: 10px;
+
     .spacer { flex: 1; }
 
     .count {
@@ -28,10 +33,57 @@ const Head = styled.h4`
         font-size: 11.5px;
         color: ${p => p.theme.colors.textMuted};
         font-variant-numeric: tabular-nums;
+        white-space: nowrap;
     }
     .count strong {
         color: ${p => p.theme.colors.text};
         font-weight: ${p => p.theme.fontWeights.semibold};
+    }
+`;
+
+/** Wyszukiwarka w nagłówku panelu — ten sam kształt, co nad tabelą leadów. */
+const SearchBox = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 5px 12px;
+    color: ${p => p.theme.colors.textMuted};
+    background: ${p => p.theme.colors.surface};
+    flex: 0 1 260px;
+    min-width: 180px;
+    transition: border-color ${p => p.theme.transitions.fast};
+
+    &:focus-within { border-color: ${p => p.theme.colors.primary}; }
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 0;
+        font-size: 12.5px;
+        background: transparent;
+        color: ${p => p.theme.colors.text};
+        font-family: inherit;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: ${p => p.theme.fontWeights.normal};
+
+        &::placeholder { color: ${p => p.theme.colors.textMuted}; }
+    }
+
+    button {
+        border: none;
+        background: none;
+        padding: 0;
+        cursor: pointer;
+        color: ${p => p.theme.colors.textMuted};
+        display: inline-flex;
+
+        &:hover { color: ${p => p.theme.colors.text}; }
     }
 `;
 
@@ -43,7 +95,7 @@ const Scroll = styled.div`
 
 const Table = styled.table`
     width: 100%;
-    min-width: 640px;
+    min-width: 460px;
     border-collapse: collapse;
     font-size: 13px;
 
@@ -60,7 +112,7 @@ const Table = styled.table`
     }
 
     td {
-        padding: 8px;
+        padding: 7px 8px;
         border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
         color: ${p => p.theme.colors.textSecondary};
         vertical-align: middle;
@@ -68,29 +120,39 @@ const Table = styled.table`
 
     tr:last-child td { border-bottom: none; }
 
-    th.pick, td.pick { width: 28px; padding-left: 2px; padding-right: 2px; }
-    td.who {
-        color: ${p => p.theme.colors.text};
-        font-weight: ${p => p.theme.fontWeights.medium};
-    }
-    td.contact { overflow-wrap: anywhere; }
-    td.when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    th.pick, td.pick { width: 26px; padding-left: 2px; padding-right: 2px; }
+    th.when, td.when { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    td.contact { white-space: nowrap; font-variant-numeric: tabular-nums; }
 `;
 
 /**
- * Wiersz wypisany — przygaszony, nie przekreślony i nie czerwony. Brak zgody
- * marketingowej to normalny stan bazy klientów, a nie błąd, o którym trzeba krzyczeć;
- * czerwień w tym module znaczy „coś nie wyszło".
+ * Nazwisko, a pod nim — tylko gdy jest o czym mówić — powód, dla którego ten
+ * człowiek nie dostanie wiadomości. Osobna kolumna „status" byłaby pusta
+ * w dziewięciu wierszach na dziesięć.
  */
+const Who = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+
+    .name {
+        color: ${p => p.theme.colors.text};
+        font-weight: ${p => p.theme.fontWeights.medium};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .reason {
+        font-size: 11.5px;
+        color: ${p => p.theme.colors.textMuted};
+        white-space: nowrap;
+    }
+`;
+
 const Row = styled.tr<{ $off?: boolean }>`
     opacity: ${p => (p.$off ? 0.55 : 1)};
     transition: opacity ${p => p.theme.transitions.fast};
-`;
-
-const Reason = styled.span<{ $manual?: boolean }>`
-    font-size: 12px;
-    color: ${({ $manual, theme }) => ($manual ? theme.colors.text : theme.colors.textMuted)};
-    white-space: nowrap;
 `;
 
 const Footer = styled.div`
@@ -141,6 +203,9 @@ const Working = styled.span`
     gap: 6px;
     font-size: 12px;
     color: ${p => p.theme.colors.textMuted};
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: ${p => p.theme.fontWeights.normal};
 
     svg {
         width: 13px;
@@ -166,6 +231,8 @@ interface Props {
     onExcludedChange: (next: string[]) => void;
     page: number;
     onPageChange: (page: number) => void;
+    search: string;
+    onSearchChange: (next: string) => void;
     /** Warunek kampanii automatycznej nie wskazuje jeszcze żadnej usługi. */
     awaitingTrigger?: boolean;
 }
@@ -178,13 +245,30 @@ export function AudienceTable({
     onExcludedChange,
     page,
     onPageChange,
+    search,
+    onSearchChange,
     awaitingTrigger,
 }: Props) {
+    /*
+     * Wpisywanie idzie do lokalnego stanu, a dopiero po chwili ciszy do zapytania:
+     * inaczej każda litera kasowałaby wynik poprzedniej i lista migałaby przy pisaniu.
+     *
+     * Pole jest tu jedynym źródłem frazy — nadrzędny [search] wraca wyłącznie stąd,
+     * więc nie ma czego z nim synchronizować w drugą stronę.
+     */
+    const [draft, setDraft] = useState(search);
+    useEffect(() => {
+        if (draft === search) return;
+        const timer = setTimeout(() => onSearchChange(draft), 300);
+        return () => clearTimeout(timer);
+    }, [draft, search, onSearchChange]);
+
     const rows = estimate?.sample ?? [];
-    const total = estimate?.matched ?? 0;
+    const listTotal = estimate?.sampleTotal ?? 0;
     const offset = estimate?.sampleOffset ?? page * AUDIENCE_PAGE_SIZE;
-    const lastPage = Math.max(0, Math.ceil(total / AUDIENCE_PAGE_SIZE) - 1);
+    const lastPage = Math.max(0, Math.ceil(listTotal / AUDIENCE_PAGE_SIZE) - 1);
     const excludedSet = new Set(excluded);
+    const searching = search.trim().length > 0;
 
     /** Wiersze, o których decyduje użytkownik — reszta jest poza jego zasięgiem. */
     const decidable = rows.filter(
@@ -209,16 +293,34 @@ export function AudienceTable({
         );
     };
 
+    const empty = !awaitingTrigger && listTotal === 0;
+
     return (
         <Panel>
             <Head>
                 Odbiorcy
+                {!awaitingTrigger && (
+                    <SearchBox>
+                        <Search />
+                        <input
+                            value={draft}
+                            placeholder="Szukaj po nazwisku lub numerze…"
+                            aria-label="Szukaj wśród odbiorców"
+                            onChange={(e) => setDraft(e.target.value)}
+                        />
+                        {draft && (
+                            <button type="button" aria-label="Wyczyść wyszukiwanie" onClick={() => setDraft('')}>
+                                <X size={13} />
+                            </button>
+                        )}
+                    </SearchBox>
+                )}
                 <span className="spacer" />
                 {isEstimating ? (
                     <Working><Loader2 /> przeliczam…</Working>
-                ) : total > 0 ? (
+                ) : estimate && estimate.matched > 0 ? (
                     <span className="count">
-                        <strong>{estimate?.eligible ?? 0}</strong> z {total} dostanie wiadomość
+                        <strong>{estimate.eligible}</strong> z {estimate.matched} dostanie wiadomość
                     </span>
                 ) : null}
             </Head>
@@ -228,9 +330,13 @@ export function AudienceTable({
                     Wybierz usługę w warunku wysyłki — dopiero ona wyznacza, kogo ta kampania
                     odezwie.
                 </EmptyHint>
-            ) : total === 0 ? (
+            ) : empty ? (
                 <EmptyHint>
-                    {isEstimating ? 'Przeliczam listę…' : 'Żaden klient nie pasuje do tych kryteriów.'}
+                    {isEstimating
+                        ? 'Przeliczam listę…'
+                        : searching
+                            ? `Nikt na liście nie pasuje do „${search.trim()}".`
+                            : 'Żaden klient nie pasuje do tych kryteriów.'}
                 </EmptyHint>
             ) : (
                 <>
@@ -250,9 +356,7 @@ export function AudienceTable({
                                     </th>
                                     <th>Klient</th>
                                     <th>{channel === 'SMS' ? 'Telefon' : 'E-mail'}</th>
-                                    <th>Pojazd</th>
-                                    <th>Ostatnia wizyta</th>
-                                    <th>Status</th>
+                                    <th className="when">Ostatnia wizyta</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -275,19 +379,20 @@ export function AudienceTable({
                                                     }
                                                 />
                                             </td>
-                                            <td className="who">{fullName(r.firstName, r.lastName)}</td>
+                                            <td>
+                                                <Who>
+                                                    <span className="name">{fullName(r.firstName, r.lastName)}</span>
+                                                    {r.eligibility !== 'ELIGIBLE' && (
+                                                        <span className="reason">
+                                                            {ELIGIBILITY_LABELS[r.eligibility]}
+                                                        </span>
+                                                    )}
+                                                </Who>
+                                            </td>
                                             <td className="contact">
                                                 {(channel === 'SMS' ? r.phone : r.email) ?? '—'}
                                             </td>
-                                            <td>
-                                                {[r.vehicleBrand, r.vehicleModel].filter(Boolean).join(' ') || '—'}
-                                            </td>
                                             <td className="when">{formatVisit(r.lastVisitDate)}</td>
-                                            <td>
-                                                <Reason $manual={manual}>
-                                                    {ELIGIBILITY_LABELS[r.eligibility]}
-                                                </Reason>
-                                            </td>
                                         </Row>
                                     );
                                 })}
@@ -304,7 +409,7 @@ export function AudienceTable({
                                 </QuietLink>
                             </MutedText>
                         ) : (
-                            <MutedText>Wszyscy zaznaczeni.</MutedText>
+                            <MutedText>{searching ? `Znaleziono ${listTotal}.` : 'Wszyscy zaznaczeni.'}</MutedText>
                         )}
 
                         {lastPage > 0 && (
@@ -318,7 +423,7 @@ export function AudienceTable({
                                     <ChevronLeft />
                                 </PageButton>
                                 <span>
-                                    {offset + 1}–{Math.min(offset + rows.length, total)} z {total}
+                                    {offset + 1}–{Math.min(offset + rows.length, listTotal)} z {listTotal}
                                 </span>
                                 <PageButton
                                     type="button"

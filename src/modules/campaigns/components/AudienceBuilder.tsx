@@ -1,3 +1,19 @@
+// src/modules/campaigns/components/AudienceBuilder.tsx
+// Kryteria odbiorców — pięć sekcji, jeden wzór pola.
+//
+// Wcześniej każde pole wyglądało inaczej: liczba wizyt to były dwa gołe inputy
+// obok siebie, dni — input i luźny wyraz „dni temu" wiszący z boku, pieniądze —
+// input bez waluty, typ klienta zwykły <select> innej wysokości niż reszta.
+// Każdy wiersz trzeba było odczytać osobno, bo żaden nie wyglądał jak poprzedni.
+// Teraz wszystko stoi na jednym zestawie klocków (NumberField, RangeField,
+// FilterSelect): ta sama ramka, ta sama wysokość, ta sama reakcja na fokus,
+// a jednostka („dni", „zł") siedzi wewnątrz pola, nie obok niego.
+//
+// Druga zmiana jest o pamięci, nie o urodzie: sekcje zwijały się nawzajem
+// (otwarcie jednej zamykało poprzednią), a złożony filtr buduje się z kilku
+// naraz — nie dało się zobaczyć dwóch warunków jednocześnie. Teraz otwiera się
+// ich dowolnie wiele, a zwinięta sekcja pokazuje w nagłówku, co w niej ustawiono,
+// więc stanu filtra nie trzeba trzymać w głowie.
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +22,17 @@ import { servicesApi } from '@/modules/services/api/servicesApi';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
-import { Chip, ChipRow, IconButton } from './shared';
+import {
+  Chip,
+  ChipRow,
+  FilterGrid,
+  FilterLabel,
+  FilterRow,
+  FilterSelect,
+  IconButton,
+  NumberField,
+  RangeField,
+} from './shared';
 import type { AudienceCriteria, CustomerTypeFilter } from '../types';
 
 // Chip kryterium ma jedną definicję na cały moduł — tu tylko przechodzi dalej,
@@ -25,6 +51,8 @@ export function audienceChips(a: AudienceCriteria, serviceNames: Map<string, str
   if (a.revenueTotalGrossMax != null) chips.push(`Wydatki: do ${(a.revenueTotalGrossMax / 100).toLocaleString('pl-PL')} zł`);
   if (a.servicesUsedAnyOf.length > 0)
     chips.push(`Korzystał z: ${a.servicesUsedAnyOf.map((id) => serviceNames.get(id) ?? 'usługa').join(' lub ')}`);
+  if (a.serviceLastUsedOlderThanDays != null)
+    chips.push(`Ostatnie wykonanie: ponad ${a.serviceLastUsedOlderThanDays} dni temu`);
   if (a.servicesUsedNoneOf.length > 0)
     chips.push(`Nie korzystał z: ${a.servicesUsedNoneOf.map((id) => serviceNames.get(id) ?? 'usługa').join(', ')}`);
   if (a.vehicleBrands.length > 0)
@@ -33,12 +61,12 @@ export function audienceChips(a: AudienceCriteria, serviceNames: Map<string, str
   if (a.vehicleYearMax != null) chips.push(`Rocznik: do ${a.vehicleYearMax}`);
   if (a.customerType === 'COMPANY') chips.push('Tylko firmy');
   if (a.customerType === 'INDIVIDUAL') chips.push('Tylko klienci indywidualni');
-  if (a.excludeCustomerIds.length > 0) chips.push(`Wykluczono ręcznie: ${a.excludeCustomerIds.length}`);
+  if (a.excludeCustomerIds.length > 0) chips.push(`Odznaczono ręcznie: ${a.excludeCustomerIds.length}`);
   if (a.includeCustomerIds.length > 0) chips.push(`Dopisano ręcznie: ${a.includeCustomerIds.length}`);
   return chips;
 }
 
-// ─── Sekcje ───────────────────────────────────────────────────────────────────
+// ─── Sekcja ───────────────────────────────────────────────────────────────────
 
 const Section = styled.div`
   border: 1px solid ${(p) => p.theme.colors.border};
@@ -53,91 +81,99 @@ const SectionHead = styled.button<{ $open: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 13px 16px;
+  padding: 12px 14px;
   font-family: inherit;
-  font-size: 13.5px;
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.text};
+  text-align: left;
+
+  .name {
+    font-size: 13.5px;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.text};
+    white-space: nowrap;
+  }
+
+  /*
+   * Streszczenie zwiniętej sekcji. Wcześniej stała tu sama kropka — mówiła
+   * „coś tu jest", ale nie „co", więc sprawdzenie własnego filtra wymagało
+   * rozwinięcia pięciu sekcji po kolei.
+   */
+  .summary {
+    flex: 1;
+    min-width: 0;
+    font-size: 12.5px;
+    color: ${(p) => p.theme.colors.textSecondary};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .empty {
+    flex: 1;
+    font-size: 12.5px;
+    color: ${(p) => p.theme.colors.textMuted};
+  }
 
   svg {
     width: 15px;
     height: 15px;
+    flex-shrink: 0;
     color: ${(p) => p.theme.colors.textMuted};
     transition: transform ${(p) => p.theme.transitions.normal};
     transform: rotate(${(p) => (p.$open ? '180deg' : '0deg')});
   }
+
+  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
 `;
 
-/**
- * Kropka przy nazwie sekcji: „tutaj coś jest ustawione". Jedyny kolor w tym
- * panelu i jedyne miejsce, w którym niesie informację — bez niej trzeba by
- * rozwinąć pięć sekcji, żeby dowiedzieć się, które zawężają listę odbiorców.
- */
+/** Kropka „ta sekcja zawęża listę" — jedyny kolor w panelu i jedyny, który coś znaczy. */
 const ActiveDot = styled.span`
-  display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  flex-shrink: 0;
   background: ${(p) => p.theme.colors.primary};
-  margin-left: 8px;
 `;
 
 const SectionBody = styled.div`
-  padding: 0 16px 16px;
+  padding: 4px 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  border-top: 1px solid ${(p) => p.theme.colors.surfaceAlt};
 `;
 
-const FieldRow = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
-const FieldLabel = styled.label`
-  font-size: 13px;
+/**
+ * Wyjaśnienie logiki wyboru. Zdanie, nie plakietka: „LUB, nie I" jest ostrzeżeniem
+ * przed cichym nieporozumieniem, które kosztuje wysyłkę do złej grupy.
+ */
+const LogicHint = styled.p`
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: ${(p) => p.theme.radii.md};
+  background: ${(p) => p.theme.colors.surfaceAlt};
   color: ${(p) => p.theme.colors.textSecondary};
-  min-width: 150px;
+  font-size: 12px;
+  line-height: 1.45;
+
+  strong {
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.text};
+  }
 `;
 
-const NumInput = styled.input`
-  width: 110px;
-  padding: 8px 12px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  font-size: 14px;
-  font-family: inherit;
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
-  transition: border-color ${(p) => p.theme.transitions.fast};
+const BrandRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
 
-  &::placeholder { color: ${(p) => p.theme.colors.textMuted}; }
-  &:focus { outline: none; border-color: ${(p) => p.theme.colors.primary}; }
-`;
-
-const Select = styled.select`
-  padding: 8px 12px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  font-size: 14px;
-  font-family: inherit;
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
-  transition: border-color ${(p) => p.theme.transitions.fast};
-
-  &:focus { outline: none; border-color: ${(p) => p.theme.colors.primary}; }
-`;
-
-const SelectWrap = styled.div`
-  width: 180px;
-  flex-shrink: 0;
+  @media (max-width: 599px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 const RemovableChip = styled(Chip)`
@@ -150,30 +186,6 @@ const RemovableChip = styled(Chip)`
     color: ${(p) => p.theme.colors.error};
   }
 `;
-
-const LogicHint = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: ${(p) => p.theme.radii.md};
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  color: ${(p) => p.theme.colors.textSecondary};
-  font-size: 12px;
-  line-height: 1.4;
-
-  strong {
-    font-weight: ${(p) => p.theme.fontWeights.semibold};
-    color: ${(p) => p.theme.colors.text};
-  }
-`;
-
-/*
- * „Dodaj" jest tu dopiskiem do pary pól, a nie akcją całego ekranu — dlatego
- * przycisk neutralny. Wypełniony błękitem konkurował wagą z „Dalej" w stopce
- * kreatora, choć dorzuca jedną markę do listy.
- */
-const AddBtn = IconButton;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -194,215 +206,287 @@ export function useServiceCatalog() {
   return { services, serviceNames: names };
 }
 
-const num = (v: string): number | null => (v === '' ? null : Number(v));
+const zloty = (grosze: number | null | undefined): number | null =>
+  grosze == null ? null : Math.round(grosze / 100);
 
 export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
-  const [open, setOpen] = useState<SectionId | null>(null);
+  // Zbiór, nie pojedyncza wartość: złożony filtr buduje się z kilku sekcji naraz.
+  const [open, setOpen] = useState<Set<SectionId>>(new Set());
   const [brandDraft, setBrandDraft] = useState('');
   const [modelDraft, setModelDraft] = useState('');
 
-  const handleBrandChange = (brand: string) => {
-    setBrandDraft(brand);
-    setModelDraft('');
+  const set = (patch: Partial<AudienceCriteria>) => onChange({ ...value, ...patch });
+  const toggle = (id: SectionId) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  /** To samo zdanie, którym filtr opisany jest w podsumowaniu kampanii. */
+  const summaries: Record<SectionId, string[]> = {
+    visits: [
+      value.visitCountMin != null ? `od ${value.visitCountMin} wizyt` : null,
+      value.visitCountMax != null ? `do ${value.visitCountMax} wizyt` : null,
+      value.lastVisitOlderThanDays != null ? `ostatnia ponad ${value.lastVisitOlderThanDays} dni temu` : null,
+      value.lastVisitNewerThanDays != null ? `ostatnia w ciągu ${value.lastVisitNewerThanDays} dni` : null,
+    ].filter((x): x is string => x !== null),
+    revenue: [
+      value.revenueTotalGrossMin != null ? `od ${zloty(value.revenueTotalGrossMin)!.toLocaleString('pl-PL')} zł` : null,
+      value.revenueTotalGrossMax != null ? `do ${zloty(value.revenueTotalGrossMax)!.toLocaleString('pl-PL')} zł` : null,
+    ].filter((x): x is string => x !== null),
+    services: [
+      value.servicesUsedAnyOf.length > 0 ? `korzystał z ${value.servicesUsedAnyOf.length}` : null,
+      value.serviceLastUsedOlderThanDays != null ? `ostatnio ponad ${value.serviceLastUsedOlderThanDays} dni temu` : null,
+      value.servicesUsedNoneOf.length > 0 ? `nie korzystał z ${value.servicesUsedNoneOf.length}` : null,
+    ].filter((x): x is string => x !== null),
+    vehicles: [
+      value.vehicleBrands.length > 0
+        ? value.vehicleBrands.map((b) => (b.model ? `${b.brand} ${b.model}` : b.brand)).join(', ')
+        : null,
+      value.vehicleYearMin != null ? `od ${value.vehicleYearMin}` : null,
+      value.vehicleYearMax != null ? `do ${value.vehicleYearMax}` : null,
+    ].filter((x): x is string => x !== null),
+    customer: value.customerType === 'COMPANY'
+      ? ['tylko firmy']
+      : value.customerType === 'INDIVIDUAL'
+        ? ['tylko indywidualni']
+        : [],
   };
 
-  const set = (patch: Partial<AudienceCriteria>) => onChange({ ...value, ...patch });
-  const toggle = (id: SectionId) => setOpen(open === id ? null : id);
-
-  const sectionActive: Record<SectionId, boolean> = {
-    visits:
-      value.visitCountMin != null || value.visitCountMax != null ||
-      value.lastVisitOlderThanDays != null || value.lastVisitNewerThanDays != null,
-    revenue: value.revenueTotalGrossMin != null || value.revenueTotalGrossMax != null,
-    services: value.servicesUsedAnyOf.length > 0 || value.servicesUsedNoneOf.length > 0,
-    vehicles: value.vehicleBrands.length > 0 || value.vehicleYearMin != null || value.vehicleYearMax != null,
-    customer: value.customerType !== 'ALL',
+  const section = (id: SectionId, name: string, hint: string, body: React.ReactNode) => {
+    const active = summaries[id].length > 0;
+    const isOpen = open.has(id);
+    return (
+      <Section>
+        <SectionHead
+          type="button"
+          $open={isOpen}
+          aria-expanded={isOpen}
+          onClick={() => toggle(id)}
+        >
+          {active && <ActiveDot />}
+          <span className="name">{name}</span>
+          {active ? (
+            <span className="summary" title={summaries[id].join(' · ')}>
+              {summaries[id].join(' · ')}
+            </span>
+          ) : (
+            <span className="empty">{hint}</span>
+          )}
+          <ChevronDown />
+        </SectionHead>
+        {isOpen && <SectionBody>{body}</SectionBody>}
+      </Section>
+    );
   };
 
   return (
     <div>
-      {/* ── Wizyty ── */}
-      <Section>
-        <SectionHead $open={open === 'visits'} onClick={() => toggle('visits')}>
-          <span>Wizyty {sectionActive.visits && <ActiveDot />}</span>
-          <ChevronDown />
-        </SectionHead>
-        {open === 'visits' && (
-          <SectionBody>
-            <FieldRow>
-              <FieldLabel>Liczba wizyt (od-do)</FieldLabel>
-              <NumInput type="number" min={0} placeholder="od" value={value.visitCountMin ?? ''}
-                onChange={(e) => set({ visitCountMin: num(e.target.value) })} />
-              <NumInput type="number" min={0} placeholder="do" value={value.visitCountMax ?? ''}
-                onChange={(e) => set({ visitCountMax: num(e.target.value) })} />
-            </FieldRow>
-            <FieldRow>
-              <FieldLabel>Ostatnia wizyta ponad</FieldLabel>
-              <NumInput type="number" min={1} placeholder="np. 180" value={value.lastVisitOlderThanDays ?? ''}
-                onChange={(e) => set({ lastVisitOlderThanDays: num(e.target.value) })} />
-              <FieldLabel as="span">dni temu</FieldLabel>
-            </FieldRow>
-            <FieldRow>
-              <FieldLabel>Ostatnia wizyta w ciągu</FieldLabel>
-              <NumInput type="number" min={1} placeholder="np. 30" value={value.lastVisitNewerThanDays ?? ''}
-                onChange={(e) => set({ lastVisitNewerThanDays: num(e.target.value) })} />
-              <FieldLabel as="span">dni</FieldLabel>
-            </FieldRow>
-          </SectionBody>
-        )}
-      </Section>
+      {section('visits', 'Wizyty', 'bez ograniczeń', (
+        <FilterGrid>
+          <FilterRow>
+            <FilterLabel>Liczba wizyt</FilterLabel>
+            <RangeField
+              from={value.visitCountMin ?? null}
+              to={value.visitCountMax ?? null}
+              min={0}
+              unit="wizyt"
+              onChange={({ from, to }) => set({ visitCountMin: from, visitCountMax: to })}
+            />
+          </FilterRow>
+          <FilterRow>
+            <FilterLabel>
+              Ostatnia wizyta dawniej niż
+              <InfoTooltip text="Klienci, którzy nie byli w studiu dłużej niż podana liczba dni. Typowy filtr kampanii przypominającej." />
+            </FilterLabel>
+            <NumberField
+              value={value.lastVisitOlderThanDays ?? null}
+              min={1}
+              unit="dni temu"
+              placeholder="np. 180"
+              ariaLabel="Ostatnia wizyta dawniej niż (dni)"
+              onChange={(next) => set({ lastVisitOlderThanDays: next })}
+            />
+          </FilterRow>
+          <FilterRow>
+            <FilterLabel>
+              Ostatnia wizyta w ciągu
+              <InfoTooltip text="Klienci, którzy byli w studiu w podanym okresie. Przydatne, gdy kampania ma trafić tylko do świeżych klientów." />
+            </FilterLabel>
+            <NumberField
+              value={value.lastVisitNewerThanDays ?? null}
+              min={1}
+              unit="dni"
+              placeholder="np. 30"
+              ariaLabel="Ostatnia wizyta w ciągu (dni)"
+              onChange={(next) => set({ lastVisitNewerThanDays: next })}
+            />
+          </FilterRow>
+        </FilterGrid>
+      ))}
 
-      {/* ── Przychody ── */}
-      <Section>
-        <SectionHead $open={open === 'revenue'} onClick={() => toggle('revenue')}>
-          <span>Wydatki klienta {sectionActive.revenue && <ActiveDot />}</span>
-          <ChevronDown />
-        </SectionHead>
-        {open === 'revenue' && (
-          <SectionBody>
-            <FieldRow>
-              <FieldLabel>Łączne wydatki brutto (zł)</FieldLabel>
-              <NumInput type="number" min={0} placeholder="od"
-                value={value.revenueTotalGrossMin != null ? value.revenueTotalGrossMin / 100 : ''}
-                onChange={(e) => set({ revenueTotalGrossMin: e.target.value === '' ? null : Math.round(Number(e.target.value) * 100) })} />
-              <NumInput type="number" min={0} placeholder="do"
-                value={value.revenueTotalGrossMax != null ? value.revenueTotalGrossMax / 100 : ''}
-                onChange={(e) => set({ revenueTotalGrossMax: e.target.value === '' ? null : Math.round(Number(e.target.value) * 100) })} />
-            </FieldRow>
-          </SectionBody>
-        )}
-      </Section>
-
-      {/* ── Usługi ── */}
-      <Section>
-        <SectionHead $open={open === 'services'} onClick={() => toggle('services')}>
-          <span>Usługi {sectionActive.services && <ActiveDot />}</span>
-          <ChevronDown />
-        </SectionHead>
-        {open === 'services' && (
-          <SectionBody>
-            <FieldRow>
-              <FieldLabel>
-                Korzystał z usługi
-                <InfoTooltip text="Klient musi mieć w historii co najmniej jedną wizytę z tą usługą. Przy kilku usługach wystarczy jedna z nich, kampania trafi do klientów, którzy mieli dowolną z zaznaczonych (logika LUB)." />
-              </FieldLabel>
-              <SelectWrap style={{ width: 260 }}>
-                <ServiceMultiSelect
-                  selectedIds={value.servicesUsedAnyOf}
-                  onChange={(ids) => set({ servicesUsedAnyOf: ids })}
-                />
-              </SelectWrap>
-            </FieldRow>
-            {value.servicesUsedAnyOf.length > 1 && (
-              <LogicHint>
-                Wystarczy, że klient miał <strong>dowolną</strong> z wybranych usług (logika LUB, nie I).
-              </LogicHint>
-            )}
-            <FieldRow>
-              <FieldLabel>
-                Ostatnie wykonanie ponad
-                <InfoTooltip text="Dotyczy usług wybranych powyżej. Filtruje klientów, u których ostatni raz dana usługa była wykonana dawniej niż podana liczba dni temu." />
-              </FieldLabel>
-              <NumInput type="number" min={1} placeholder="np. 180" value={value.serviceLastUsedOlderThanDays ?? ''}
-                onChange={(e) => set({ serviceLastUsedOlderThanDays: num(e.target.value) })} />
-              <FieldLabel as="span">dni temu</FieldLabel>
-            </FieldRow>
-            <FieldRow>
-              <FieldLabel>
-                Nigdy nie korzystał z
-                <InfoTooltip text="Wyklucza klientów, którzy mieli w historii którąkolwiek z wybranych usług (logika LUB). Przy kilku usługach wystarczy jedna, żeby klient został wykluczony." />
-              </FieldLabel>
-              <SelectWrap style={{ width: 260 }}>
-                <ServiceMultiSelect
-                  selectedIds={value.servicesUsedNoneOf}
-                  onChange={(ids) => set({ servicesUsedNoneOf: ids })}
-                />
-              </SelectWrap>
-            </FieldRow>
-            {value.servicesUsedNoneOf.length > 1 && (
-              <LogicHint>
-                Klient zostanie wykluczony, jeśli miał <strong>którąkolwiek</strong> z wybranych usług (logika LUB).
-              </LogicHint>
-            )}
-          </SectionBody>
-        )}
-      </Section>
-
-      {/* ── Pojazdy ── */}
-      <Section>
-        <SectionHead $open={open === 'vehicles'} onClick={() => toggle('vehicles')}>
-          <span>Pojazdy {sectionActive.vehicles && <ActiveDot />}</span>
-          <ChevronDown />
-        </SectionHead>
-        {open === 'vehicles' && (
-          <SectionBody>
-            <FieldRow>
-              <FieldLabel>Marka / model</FieldLabel>
-              <SelectWrap>
-                <BrandSelect value={brandDraft} onChange={handleBrandChange} placeholder="Wybierz markę" />
-              </SelectWrap>
-              <SelectWrap>
-                <ModelSelect brand={brandDraft} value={modelDraft} onChange={setModelDraft} placeholder="Model (opcjonalnie)" />
-              </SelectWrap>
-              <AddBtn type="button" onClick={() => {
-                if (!brandDraft.trim()) return;
+      {section('revenue', 'Wydatki klienta', 'bez ograniczeń', (
+        <FilterGrid>
+          <FilterRow>
+            <FilterLabel>
+              Łącznie wydał
+              <InfoTooltip text="Suma brutto wszystkich zakończonych wizyt tego klienta." />
+            </FilterLabel>
+            <RangeField
+              from={zloty(value.revenueTotalGrossMin)}
+              to={zloty(value.revenueTotalGrossMax)}
+              min={0}
+              unit="zł"
+              onChange={({ from, to }) =>
                 set({
-                  vehicleBrands: [...value.vehicleBrands, { brand: brandDraft.trim(), model: modelDraft.trim() || null }],
-                });
-                setBrandDraft('');
-                setModelDraft('');
-              }}>
-                Dodaj
-              </AddBtn>
-            </FieldRow>
-            {value.vehicleBrands.length > 0 && (
-              <>
-                <ChipRow>
-                  {value.vehicleBrands.map((b, i) => (
-                    <RemovableChip key={`${b.brand}-${i}`}
-                      onClick={() => set({ vehicleBrands: value.vehicleBrands.filter((_, idx) => idx !== i) })}>
-                      {b.model ? `${b.brand} ${b.model}` : b.brand}
-                    </RemovableChip>
-                  ))}
-                </ChipRow>
-                {value.vehicleBrands.length > 1 && (
-                  <LogicHint>
-                    Kampania trafi do klientów z <strong>dowolnym</strong> z powyższych pojazdów (logika LUB, nie I).
-                  </LogicHint>
-                )}
-              </>
-            )}
-            <FieldRow>
-              <FieldLabel>Rocznik (od-do)</FieldLabel>
-              <NumInput type="number" placeholder="od" value={value.vehicleYearMin ?? ''}
-                onChange={(e) => set({ vehicleYearMin: num(e.target.value) })} />
-              <NumInput type="number" placeholder="do" value={value.vehicleYearMax ?? ''}
-                onChange={(e) => set({ vehicleYearMax: num(e.target.value) })} />
-            </FieldRow>
-          </SectionBody>
-        )}
-      </Section>
+                  revenueTotalGrossMin: from == null ? null : Math.round(from * 100),
+                  revenueTotalGrossMax: to == null ? null : Math.round(to * 100),
+                })
+              }
+            />
+          </FilterRow>
+        </FilterGrid>
+      ))}
 
-      {/* ── Klient ── */}
-      <Section>
-        <SectionHead $open={open === 'customer'} onClick={() => toggle('customer')}>
-          <span>Typ klienta {sectionActive.customer && <ActiveDot />}</span>
-          <ChevronDown />
-        </SectionHead>
-        {open === 'customer' && (
-          <SectionBody>
-            <FieldRow>
-              <FieldLabel>Pokaż</FieldLabel>
-              <Select value={value.customerType}
-                onChange={(e) => set({ customerType: e.target.value as CustomerTypeFilter })}>
-                <option value="ALL">Wszystkich klientów</option>
-                <option value="INDIVIDUAL">Tylko indywidualnych</option>
-                <option value="COMPANY">Tylko firmy</option>
-              </Select>
-            </FieldRow>
-          </SectionBody>
-        )}
-      </Section>
+      {section('services', 'Usługi', 'wszystkie', (
+        <>
+          <FilterGrid>
+            <FilterRow>
+              <FilterLabel>
+                Korzystał z usługi
+                <InfoTooltip text="Klient musi mieć w historii co najmniej jedną wizytę z tą usługą. Przy kilku usługach wystarczy jedna z nich (logika LUB)." />
+              </FilterLabel>
+              <ServiceMultiSelect
+                selectedIds={value.servicesUsedAnyOf}
+                onChange={(ids) => set({ servicesUsedAnyOf: ids })}
+              />
+            </FilterRow>
+            <FilterRow>
+              <FilterLabel>
+                Ostatnie wykonanie dawniej niż
+                <InfoTooltip text="Dotyczy usług wybranych obok. Filtruje klientów, u których dana usługa była ostatnio wykonana dawniej niż podana liczba dni temu." />
+              </FilterLabel>
+              <NumberField
+                value={value.serviceLastUsedOlderThanDays ?? null}
+                min={1}
+                unit="dni temu"
+                placeholder="np. 180"
+                ariaLabel="Ostatnie wykonanie dawniej niż (dni)"
+                onChange={(next) => set({ serviceLastUsedOlderThanDays: next })}
+              />
+            </FilterRow>
+          </FilterGrid>
+          {value.servicesUsedAnyOf.length > 1 && (
+            <LogicHint>
+              Wystarczy, że klient miał <strong>dowolną</strong> z wybranych usług — nie wszystkie.
+            </LogicHint>
+          )}
+
+          <FilterGrid>
+            <FilterRow>
+              <FilterLabel>
+                Nigdy nie korzystał z
+                <InfoTooltip text="Wyklucza klientów, którzy mieli w historii którąkolwiek z wybranych usług (logika LUB)." />
+              </FilterLabel>
+              <ServiceMultiSelect
+                selectedIds={value.servicesUsedNoneOf}
+                onChange={(ids) => set({ servicesUsedNoneOf: ids })}
+              />
+            </FilterRow>
+          </FilterGrid>
+          {value.servicesUsedNoneOf.length > 1 && (
+            <LogicHint>
+              Klient wypadnie z listy, jeśli miał <strong>którąkolwiek</strong> z wybranych usług.
+            </LogicHint>
+          )}
+        </>
+      ))}
+
+      {section('vehicles', 'Pojazdy', 'wszystkie', (
+        <>
+          <FilterRow>
+            <FilterLabel>Marka i model</FilterLabel>
+            <BrandRow>
+              <BrandSelect
+                value={brandDraft}
+                onChange={(brand) => { setBrandDraft(brand); setModelDraft(''); }}
+                placeholder="Wybierz markę"
+              />
+              <ModelSelect
+                brand={brandDraft}
+                value={modelDraft}
+                onChange={setModelDraft}
+                placeholder="Model (opcjonalnie)"
+              />
+              <IconButton
+                type="button"
+                disabled={!brandDraft.trim()}
+                onClick={() => {
+                  if (!brandDraft.trim()) return;
+                  set({
+                    vehicleBrands: [
+                      ...value.vehicleBrands,
+                      { brand: brandDraft.trim(), model: modelDraft.trim() || null },
+                    ],
+                  });
+                  setBrandDraft('');
+                  setModelDraft('');
+                }}
+              >
+                Dodaj
+              </IconButton>
+            </BrandRow>
+          </FilterRow>
+
+          {value.vehicleBrands.length > 0 && (
+            <ChipRow>
+              {value.vehicleBrands.map((b, i) => (
+                <RemovableChip
+                  key={`${b.brand}-${b.model ?? ''}-${i}`}
+                  title="Kliknij, żeby usunąć"
+                  onClick={() => set({ vehicleBrands: value.vehicleBrands.filter((_, idx) => idx !== i) })}
+                >
+                  {b.model ? `${b.brand} ${b.model}` : b.brand}
+                </RemovableChip>
+              ))}
+            </ChipRow>
+          )}
+          {value.vehicleBrands.length > 1 && (
+            <LogicHint>
+              Kampania trafi do klientów z <strong>dowolnym</strong> z powyższych pojazdów.
+            </LogicHint>
+          )}
+
+          <FilterGrid>
+            <FilterRow>
+              <FilterLabel>Rocznik</FilterLabel>
+              <RangeField
+                from={value.vehicleYearMin ?? null}
+                to={value.vehicleYearMax ?? null}
+                min={1900}
+                onChange={({ from, to }) => set({ vehicleYearMin: from, vehicleYearMax: to })}
+              />
+            </FilterRow>
+          </FilterGrid>
+        </>
+      ))}
+
+      {section('customer', 'Typ klienta', 'wszyscy', (
+        <FilterGrid>
+          <FilterRow>
+            <FilterLabel>Pokaż</FilterLabel>
+            <FilterSelect
+              value={value.customerType}
+              onChange={(e) => set({ customerType: e.target.value as CustomerTypeFilter })}
+            >
+              <option value="ALL">Wszystkich klientów</option>
+              <option value="INDIVIDUAL">Tylko indywidualnych</option>
+              <option value="COMPANY">Tylko firmy</option>
+            </FilterSelect>
+          </FilterRow>
+        </FilterGrid>
+      ))}
     </div>
   );
 }

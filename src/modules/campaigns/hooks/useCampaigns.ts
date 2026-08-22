@@ -93,11 +93,12 @@ export const useDuplicateCampaign = () => useInvalidatingMutation(api.duplicateC
  * wtedy pyta, co zrobić z ręcznymi odznaczeniami — bez tego pytanie wyskakiwałoby
  * po każdym naciśnięciu klawisza w polu filtra.
  *
- * Stronicowanie celowo NIE jest opóźniane: przewracanie strony to gest, nie pisanie,
- * a pół sekundy zwłoki przy kliknięciu „dalej" czuć od razu.
+ * Stronicowanie i wyszukiwarka celowo NIE są opóźniane tutaj: przewracanie strony
+ * to gest, nie pisanie, a frazę z wyszukiwarki opóźnia już samo pole nad tabelą —
+ * dwa opóźnienia jedno na drugim dałyby prawie sekundę zwłoki na literę.
  */
 export function useAudienceEstimate(params: AudienceEstimateParams) {
-  const { sampleOffset, ...slow } = params;
+  const { sampleOffset, sampleSearch, ...slow } = params;
   // Sygnaturą jest treść parametrów, nie tożsamość obiektu: kreator odtwarza obiekt
   // kryteriów przy każdym renderze, a to nie jest zmiana filtra.
   const slowKey = JSON.stringify(slow);
@@ -109,12 +110,13 @@ export function useAudienceEstimate(params: AudienceEstimateParams) {
   }, [slowKey]);
 
   const applied: AudienceEstimateParams = {
-    ...(JSON.parse(debouncedKey) as Omit<AudienceEstimateParams, 'sampleOffset'>),
+    ...(JSON.parse(debouncedKey) as Omit<AudienceEstimateParams, 'sampleOffset' | 'sampleSearch'>),
     sampleOffset,
+    sampleSearch,
   };
 
   const { data, isFetching } = useQuery<AudienceEstimate>({
-    queryKey: ['campaigns', 'estimate', debouncedKey, sampleOffset ?? 0],
+    queryKey: ['campaigns', 'estimate', debouncedKey, sampleOffset ?? 0, sampleSearch ?? ''],
     queryFn: () => api.estimateAudience(applied),
     placeholderData: (prev) => prev,
   });

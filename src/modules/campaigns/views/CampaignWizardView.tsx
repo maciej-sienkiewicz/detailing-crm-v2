@@ -18,7 +18,7 @@
 //   czego brakuje, i przewija do tego pola;
 // · podgląd przed wysłaniem — treść widać tak, jak zobaczy ją klient, w trakcie
 //   pisania, a nie dopiero po zapisaniu kampanii.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { AlertTriangle, ArrowLeft, ArrowRight, Coins, Repeat, Send } from 'lucide-react';
@@ -59,10 +59,15 @@ import {
   ChipRow,
   Field,
   FieldLabel,
+  FilterGrid,
+  FilterLabel,
+  FilterRow,
+  FilterSelect,
   GuardedButton,
   HintText,
   IconButton,
   Note,
+  NumberField,
   Panel,
   QuietLink,
   SelectField,
@@ -166,26 +171,106 @@ const NavRight = styled.div`
   gap: 14px;
 `;
 
-const InlineRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-/** Komunikat pod polem, którego brakuje — pojawia się dopiero po próbie przejścia dalej. */
-const FieldError = styled.p`
-  margin: 0;
-  font-size: 12px;
-  color: ${(p) => p.theme.colors.error};
-`;
-
 const ScheduleNote = styled.p`
   margin: 0;
   font-size: 13px;
   color: ${(p) => p.theme.colors.textSecondary};
   max-width: 620px;
   line-height: 1.55;
+`;
+
+/**
+ * Nazwa kampanii wpisywana wprost w tytule strony.
+ *
+ * Wcześniej stała w osobnej sekcji „Kampania" rozciągniętej na całą szerokość
+ * ekranu wokół jednego pola na jedną trzecią tej szerokości — panel bez treści
+ * i pole bez kontekstu. Nazwa jest tożsamością tworzonego obiektu, więc jej
+ * miejsce jest tam, gdzie tożsamość zwykle stoi: w tytule. Nagłówek przestaje
+ * być ozdobą, a lista sekcji poniżej zaczyna się od rzeczy, która naprawdę
+ * potrzebuje szerokości.
+ */
+const NameInput = styled.input<{ $invalid?: boolean }>`
+  width: 100%;
+  max-width: 560px;
+  border: none;
+  border-bottom: 1px ${(p) => (p.$invalid ? 'solid' : 'dashed')}
+    ${(p) => (p.$invalid ? '#fca5a5' : 'rgba(241, 245, 249, 0.28)')};
+  background: transparent;
+  padding: 0 0 5px;
+  margin: 0;
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: ${(p) => p.theme.fontWeights.bold};
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  color: #f1f5f9;
+  outline: none;
+  transition: border-color ${(p) => p.theme.transitions.fast};
+
+  &::placeholder { color: rgba(241, 245, 249, 0.4); }
+  &:hover { border-bottom-color: rgba(241, 245, 249, 0.5); }
+  &:focus { border-bottom-color: ${(p) => p.theme.colors.primary}; }
+
+  @media (min-width: ${(p) => p.theme.breakpoints.md}) { font-size: 32px; }
+`;
+
+/**
+ * Komunikat o brakującej nazwie — pod polem, na ciemnym tle nagłówka.
+ * Element wierszowy, bo mieszka wewnątrz nagłówka strony (h1), gdzie akapit
+ * jest niepoprawny.
+ */
+const NameError = styled.span`
+  display: block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: ${(p) => p.theme.fontWeights.normal};
+  letter-spacing: 0;
+  color: #fca5a5;
+`;
+
+/**
+ * Fakty w nagłówku: na którym kroku jesteśmy i co już wiadomo o kampanii.
+ *
+ * Podtytuł „Do kogo ma trafić?" powtarzał nazwę kroku, którą widać w Stepperze
+ * dwadzieścia pikseli niżej — czyli nie niósł nic. Postęp i decyzje podjęte do
+ * tej pory niosą: „Krok 2 z 4 · Jednorazowa · 412 odbiorców" mówi, ile zostało
+ * i co się właśnie buduje.
+ */
+const HeaderFacts = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #94a3b8;
+  font-size: 13.5px;
+
+  strong {
+    color: #e2e8f0;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    font-variant-numeric: tabular-nums;
+  }
+  .sep { color: #334155; }
+`;
+
+/**
+ * Krok „Odbiorcy": po lewej praca (filtry, a pod nimi imienna lista), po prawej
+ * jej wynik — jedna liczba, która jedzie z ekranem. Tabela jest w kolumnie, więc
+ * nie rozpycha się na całą szerokość monitora dla czterech kolumn danych.
+ */
+const AudienceLayout = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 1099px) { grid-template-columns: minmax(0, 1fr); }
+`;
+
+const AudienceMain = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
 `;
 
 /** Podsumowanie: pary „pytanie — odpowiedź", odpowiedzi cięższe od pytań. */
@@ -221,13 +306,6 @@ const STEPS: { id: StepId; label: string }[] = [
   { id: 'content', label: 'Treść' },
   { id: 'summary', label: 'Podsumowanie' },
 ];
-
-const STEP_QUESTIONS: Record<StepId, string> = {
-  scenario: 'Raz czy stale?',
-  audience: 'Do kogo ma trafić?',
-  content: 'Co mają przeczytać?',
-  summary: 'Wszystko się zgadza?',
-};
 
 type ScheduleMode = 'NOW' | 'AT' | 'ACTIVATE';
 
@@ -288,6 +366,15 @@ export function CampaignWizardView() {
 
   // Krok „Odbiorcy": strona tabeli i los ręcznych odznaczeń.
   const [audiencePage, setAudiencePage] = useState(0);
+  const [audienceSearch, setAudienceSearch] = useState('');
+  /*
+   * Stała tożsamość, bo tabela odmierza po niej opóźnienie wpisywania — funkcja
+   * tworzona na nowo przy każdym renderze kasowałaby ten odmierzany czas w kółko.
+   */
+  const changeAudienceSearch = useCallback((next: string) => {
+    setAudienceSearch(next);
+    setAudiencePage(0);
+  }, []);
   /** Zmieniono filtr, a na liście wiszą ręczne odznaczenia — trzeba o nie zapytać. */
   const [exclusionQuestionPending, setExclusionQuestionPending] = useState(false);
   /** Użytkownik już powiedział „zachowaj" — nie pytamy przy każdej kolejnej zmianie. */
@@ -350,6 +437,7 @@ export function CampaignWizardView() {
     trigger: triggerProjection,
     sampleLimit: AUDIENCE_PAGE_SIZE,
     sampleOffset: audiencePage * AUDIENCE_PAGE_SIZE,
+    sampleSearch: audienceSearch.trim() || undefined,
   });
 
   /*
@@ -522,8 +610,53 @@ export function CampaignWizardView() {
   return (
     <ViewContainer>
       <PageHeader
-        title={isEdit ? existing?.name || 'Edycja kampanii' : 'Nowa kampania'}
-        subtitle={STEP_QUESTIONS[step]}
+        title={
+          <>
+            <NameInput
+              ref={nameRef}
+              $invalid={nameMissing}
+              value={name}
+              placeholder="Nazwa kampanii…"
+              aria-label="Nazwa kampanii"
+              aria-invalid={nameMissing}
+              aria-describedby={nameMissing ? 'campaign-name-error' : undefined}
+              onChange={(e) => { setName(e.target.value); if (nameMissing) setNameMissing(false); }}
+            />
+            {nameMissing && (
+              <NameError id="campaign-name-error">
+                Nadaj kampanii nazwę — po niej odnajdziesz ją na liście. Klient jej nie zobaczy.
+              </NameError>
+            )}
+          </>
+        }
+        subtitle={
+          <HeaderFacts>
+            <span>
+              Krok <strong>{visibleSteps.findIndex((s) => s.id === step) + 1}</strong> z{' '}
+              <strong>{visibleSteps.length}</strong>
+            </span>
+            {step !== 'scenario' && (
+              <>
+                <span className="sep">·</span>
+                <span>{kind === 'AUTOMATIC' ? 'Automatyczna' : 'Jednorazowa'}</span>
+              </>
+            )}
+            {(step === 'content' || step === 'summary') && (
+              <>
+                <span className="sep">·</span>
+                <span>
+                  {content.channel === 'BOTH' ? 'SMS i e-mail' : content.channel === 'SMS' ? 'SMS' : 'E-mail'}
+                </span>
+              </>
+            )}
+            {step !== 'scenario' && estimate && !awaitingTrigger && (
+              <>
+                <span className="sep">·</span>
+                <span><strong>{estimate.eligible}</strong> odbiorców</span>
+              </>
+            )}
+          </HeaderFacts>
+        }
         actions={
           <PageHeaderGhostButton onClick={leaveWizard}>
             {isEdit ? 'Odrzuć zmiany' : 'Anuluj'}
@@ -560,30 +693,6 @@ export function CampaignWizardView() {
       {/* ── Krok 2: Odbiorcy ── */}
       {step === 'audience' && (
         <>
-          <Panel>
-            <h4>Kampania</h4>
-            <Field style={{ maxWidth: 460 }}>
-              <FieldLabel htmlFor="campaign-name">Nazwa</FieldLabel>
-              <TextField
-                id="campaign-name"
-                ref={nameRef}
-                $invalid={nameMissing}
-                value={name}
-                onChange={(e) => { setName(e.target.value); if (nameMissing) setNameMissing(false); }}
-                placeholder="np. Życzenia świąteczne 2026"
-                aria-invalid={nameMissing}
-                aria-describedby={nameMissing ? 'campaign-name-error' : undefined}
-              />
-              {nameMissing ? (
-                <FieldError id="campaign-name-error">
-                  Nazwa jest potrzebna, żeby odnaleźć tę kampanię na liście. Nie zobaczy jej klient.
-                </FieldError>
-              ) : (
-                <HintText>Widoczna tylko dla Ciebie — po niej odnajdziesz kampanię na liście.</HintText>
-              )}
-            </Field>
-          </Panel>
-
           {kind === 'AUTOMATIC' && (
             <Panel>
               <h4>Warunek wysyłki</h4>
@@ -591,87 +700,94 @@ export function CampaignWizardView() {
                 Kampania sprawdza ten warunek codziennie i odzywa się do każdego klienta,
                 który go spełni. Zmiana warunku od razu przelicza listę poniżej.
               </HintText>
-              <Field style={{ maxWidth: 460 }}>
-                <FieldLabel>
-                  Po usłudze
-                  <InfoTooltip text="Kampania uruchomi się dla klientów, u których ta usługa była wykonana X dni temu. Przy kilku usługach wystarczy, że klient miał choćby jedną z nich (logika LUB)." />
-                </FieldLabel>
-                <ServiceMultiSelect
-                  selectedIds={trigger.serviceIds}
-                  onChange={(ids) => changeTrigger({ ...trigger, serviceIds: ids })}
-                />
-                <HintText>
-                  {trigger.serviceIds.length > 1
-                    ? 'Wystarczy, że klient miał wykonaną dowolną z wybranych usług (logika LUB).'
-                    : 'Możesz wybrać kilka usług: warunek spełni każda z nich (logika LUB).'}
-                </HintText>
-              </Field>
-              <Field>
-                <FieldLabel>
-                  Wyślij po
-                  <InfoTooltip text="Liczba dni od wykonania usługi. System sprawdza codziennie i wysyła w dniu, w którym wizyta jest stara o dokładnie tyle dni." />
-                </FieldLabel>
-                <InlineRow>
-                  <TextField
-                    style={{ width: 90, textAlign: 'center' }}
-                    type="number"
+              <FilterGrid>
+                <FilterRow>
+                  <FilterLabel>
+                    Po usłudze
+                    <InfoTooltip text="Kampania uruchomi się dla klientów, u których ta usługa była wykonana X dni temu. Przy kilku usługach wystarczy, że klient miał choćby jedną z nich (logika LUB)." />
+                  </FilterLabel>
+                  <ServiceMultiSelect
+                    selectedIds={trigger.serviceIds}
+                    onChange={(ids) => changeTrigger({ ...trigger, serviceIds: ids })}
+                  />
+                </FilterRow>
+                <FilterRow>
+                  <FilterLabel>
+                    Wyślij po
+                    <InfoTooltip text="Liczba dni od wykonania usługi. System sprawdza codziennie i wysyła w dniu, w którym wizyta jest stara o dokładnie tyle dni." />
+                  </FilterLabel>
+                  <NumberField
+                    value={trigger.afterDays}
                     min={1}
                     max={3650}
-                    value={trigger.afterDays}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      if (!isNaN(v) && v > 0) changeTrigger({ ...trigger, afterDays: v });
-                    }}
+                    unit="dniach"
+                    ariaLabel="Liczba dni od wykonania usługi"
+                    onChange={(next) => { if (next != null && next > 0) changeTrigger({ ...trigger, afterDays: next }); }}
                   />
-                  <HintText style={{ fontSize: 14 }}>dniach od wykonania usługi, o</HintText>
+                </FilterRow>
+                <FilterRow>
+                  <FilterLabel>
+                    O godzinie
+                    <InfoTooltip text="Pora dnia, o której wyjdą wiadomości. Godziny ciszy z ustawień wysyłki mają pierwszeństwo." />
+                  </FilterLabel>
                   <TextField
-                    style={{ width: 110 }}
                     type="time"
                     value={trigger.sendTime}
+                    aria-label="Godzina wysyłki"
                     onChange={(e) => setTrigger({ ...trigger, sendTime: e.target.value })}
                   />
-                </InlineRow>
-              </Field>
-              <Field style={{ maxWidth: 460 }}>
-                <FieldLabel>
-                  Pomiń, jeśli klient był w międzyczasie
-                  <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane, bo chroni przed wysyłaniem do klientów, którzy sami wrócili." />
-                </FieldLabel>
-                <SelectField
-                  value={trigger.onlyIfNoVisitSince ? 'yes' : 'no'}
-                  onChange={(e) => changeTrigger({ ...trigger, onlyIfNoVisitSince: e.target.value === 'yes' })}
-                >
-                  <option value="yes">Tak (zalecane)</option>
-                  <option value="no">Nie, wyślij zawsze</option>
-                </SelectField>
-              </Field>
+                </FilterRow>
+                <FilterRow>
+                  <FilterLabel>
+                    Klient wrócił w międzyczasie
+                    <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane, bo chroni przed wysyłaniem do klientów, którzy sami wrócili." />
+                  </FilterLabel>
+                  <FilterSelect
+                    value={trigger.onlyIfNoVisitSince ? 'yes' : 'no'}
+                    onChange={(e) => changeTrigger({ ...trigger, onlyIfNoVisitSince: e.target.value === 'yes' })}
+                  >
+                    <option value="yes">Pomiń go (zalecane)</option>
+                    <option value="no">Wyślij mimo to</option>
+                  </FilterSelect>
+                </FilterRow>
+              </FilterGrid>
+              {trigger.serviceIds.length > 1 && (
+                <HintText>
+                  Wystarczy, że klient miał wykonaną dowolną z wybranych usług — nie wszystkie.
+                </HintText>
+              )}
             </Panel>
           )}
 
-          <TwoCols>
-            {/* Filtry siedzą na cichym tle: białe karty sekcji czytają się wtedy jako
-                warstwa nad podłożem, a nie jako biel na bieli. */}
-            <Panel $quiet>
-              <h4>Kogo szukamy</h4>
-              <AudienceBuilder value={audience} onChange={changeAudience} />
-            </Panel>
+          <AudienceLayout>
+            <AudienceMain>
+              {/* Filtry siedzą na cichym tle: białe karty sekcji czytają się wtedy jako
+                  warstwa nad podłożem, a nie jako biel na bieli. */}
+              <Panel $quiet>
+                <h4>Kogo szukamy</h4>
+                <AudienceBuilder value={audience} onChange={changeAudience} />
+              </Panel>
+
+              <AudienceTable
+                estimate={estimate}
+                isEstimating={isEstimating}
+                channel={estimateChannel}
+                excluded={audience.excludeCustomerIds}
+                onExcludedChange={changeExcluded}
+                page={audiencePage}
+                onPageChange={setAudiencePage}
+                search={audienceSearch}
+                onSearchChange={changeAudienceSearch}
+                awaitingTrigger={awaitingTrigger}
+              />
+            </AudienceMain>
+
             <AudienceEstimatePanel
               estimate={estimate}
               isEstimating={isEstimating}
               awaitingTrigger={awaitingTrigger}
             />
-          </TwoCols>
-
-          <AudienceTable
-            estimate={estimate}
-            isEstimating={isEstimating}
-            channel={estimateChannel}
-            excluded={audience.excludeCustomerIds}
-            onExcludedChange={changeExcluded}
-            page={audiencePage}
-            onPageChange={setAudiencePage}
-            awaitingTrigger={awaitingTrigger}
-          />
+          </AudienceLayout>
 
           <NavRow>
             {!isEdit ? (
@@ -852,24 +968,26 @@ export function CampaignWizardView() {
       */}
       <ConfirmationModal
         isOpen={askAboutExclusions}
-        variant="info"
-        title="Zachować ręczne odznaczenia?"
+        variant="warning"
+        title="Wyczyścić ręczne odznaczenia?"
         message={
           `Lista odbiorców przeliczyła się po zmianie filtrów, a ${audience.excludeCustomerIds.length} ` +
-          `${audience.excludeCustomerIds.length === 1 ? 'osoba została' : 'osób zostało'} przez Ciebie ` +
-          'odznaczona wcześniej. Zachowane odznaczenia obowiązują też na nowej liście — również ' +
-          'w dniu wysyłki.'
+          `${audience.excludeCustomerIds.length === 1 ? 'osoba jest' : 'osób jest'} przez Ciebie ` +
+          'odznaczona. Zachowane odznaczenia obowiązują też na nowej liście, również w dniu wysyłki.'
         }
-        confirmText="Zachowaj odznaczenia"
-        cancelText="Zaznacz wszystkich"
-        onConfirm={() => {
-          setExclusionQuestionPending(false);
-          setExclusionsAcknowledged(true);
-        }}
+        confirmText="Wyczyść odznaczenia"
+        cancelText="Zachowaj"
+        /*
+         * Pytamy o czynność, nie o stan, bo ConfirmationModal po potwierdzeniu woła
+         * także [onCancel] — gdyby to „zachowaj" siedziało pod przyciskiem
+         * potwierdzenia, kliknięcie natychmiast czyściłoby to, co miało zachować.
+         * Przy takim ustawieniu obie drogi są bezpieczne, a wyjście Escape'em
+         * i kliknięciem w tło znaczy „zachowaj", czyli nie niszczy niczyjej pracy.
+         */
+        onConfirm={() => setAudience({ ...audience, excludeCustomerIds: [] })}
         onCancel={() => {
           setExclusionQuestionPending(false);
-          setExclusionsAcknowledged(false);
-          setAudience({ ...audience, excludeCustomerIds: [] });
+          setExclusionsAcknowledged(true);
         }}
       />
     </ViewContainer>

@@ -72,9 +72,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
     return createPortal(
         <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
-            <S.ModalContainer $isOpen={isOpen} $maxWidth="420px">
+            <S.ModalContainer $isOpen={isOpen} $maxWidth="460px">
                 <S.Header>
-                    <S.CloseButton type="button" onClick={onCancel}>
+                    <S.CloseButton type="button" onClick={onCancel} aria-label="Zamknij">
                         <IconX />
                     </S.CloseButton>
 
@@ -82,8 +82,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         {icon}
                     </S.IconContainer>
 
-                    <S.Title>{title}</S.Title>
-                    <S.Message>{message}</S.Message>
+                    <S.HeaderText>
+                        <S.Title>{title}</S.Title>
+                        <S.Message>{message}</S.Message>
+                    </S.HeaderText>
                 </S.Header>
 
                 <S.Footer>
