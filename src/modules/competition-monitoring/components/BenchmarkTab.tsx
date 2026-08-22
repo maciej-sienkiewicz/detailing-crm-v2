@@ -1,14 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
     Bar, BarChart, CartesianGrid, ComposedChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { Star } from 'lucide-react';
+import { Sparkles, Star, X } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Benchmark, BenchmarkRow } from '../types';
+import type { Benchmark, BenchmarkRow, GrowthSummary, WeeksOption } from '../types';
 import { PROFILE_COLORS } from '../types';
-import { Card, CardTitle, CardHint, MetricCell, SelfTag, formatNumber } from './MetricBits';
+import { instagramApi } from '../api/instagramApi';
+import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
 import { WeekExplainPanel } from './WeekExplainPanel';
 
 /**
@@ -137,10 +138,129 @@ const TooltipBox = styled.div`
     color: ${st.text};
 `;
 
+// ─── Pager tygodni + podsumowanie AI ─────────────────────────────────────────
+
+const PagerRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 6px;
+`;
+
+const PagerLabel = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.textSecondary};
+    white-space: nowrap;
+`;
+
+const SummarizeBtn = styled(Pill)`
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
+`;
+
+const SummaryLoading = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px dashed ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+
+    strong { display: block; font-size: ${st.fontSm}; color: ${st.text}; }
+    span { display: block; font-size: ${st.fontXs}; color: ${st.textMuted}; margin-top: 2px; }
+`;
+
+const SummaryPanel = styled.div`
+    margin-top: 12px;
+    padding: 14px 16px;
+    border: 1px solid ${st.border};
+    border-left: 3px solid ${st.accentBlue};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+`;
+
+const SummaryHead = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+
+    strong {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: ${st.fontSm};
+        color: ${st.text};
+    }
+`;
+
+const SummaryMeta = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+const SummaryCloseBtn = styled.button`
+    margin-left: auto;
+    border: none;
+    background: none;
+    color: ${st.textMuted};
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+
+    &:hover { color: ${st.text}; }
+`;
+
+const SummaryText = styled.p`
+    margin: 0;
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+    line-height: 1.65;
+    white-space: pre-wrap;
+`;
+
+const SummaryError = styled.p`
+    margin: 10px 0 0;
+    font-size: ${st.fontXs};
+    color: ${st.accentRed};
+`;
+
 const MAX_CHART_PROFILES = 4;
 
 const formatWeekTick = (weekStart: string) =>
     new Date(weekStart).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+
+/** Poniedziałek tygodnia ISO dla daty YYYY-MM-DD. */
+const isoMonday = (date: string) => {
+    const d = new Date(`${date}T00:00:00Z`);
+    const day = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - day);
+    return d.toISOString().slice(0, 10);
+};
+
+const addDays = (date: string, days: number) => {
+    const d = new Date(`${date}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+};
+
+const formatDayShort = (date: string) =>
+    new Date(`${date}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+
+type SummaryState =
+    | { phase: 'idle' }
+    | { phase: 'loading' }
+    | { phase: 'done'; data: GrowthSummary }
+    | { phase: 'error'; message: string };
 
 export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) => {
     // Na wykresach: self + pierwsi konkurenci (klik w wiersz tabeli zmienia wybór)
@@ -191,13 +311,6 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     // do tygodni przy dłuższych oknach (żeby słupki były czytelne).
     const followerDeltaWeekly = benchmark.weeks > 8;
     const followerDeltas = useMemo(() => {
-        const isoMonday = (date: string) => {
-            const d = new Date(`${date}T00:00:00Z`);
-            const day = (d.getUTCDay() + 6) % 7;
-            d.setUTCDate(d.getUTCDate() - day);
-            return d.toISOString().slice(0, 10);
-        };
-
         const byBucket = new Map<string, Record<string, number | string>>();
         benchmark.followers
             .filter(series => selected.includes(series.profileId))
@@ -218,6 +331,50 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             });
         return [...byBucket.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
     }, [benchmark.followers, selected, followerDeltaWeekly]);
+
+    // ── Pager tygodni (tylko granulacja dzienna, np. okres "Miesiąc") ─────────
+    // Pełny okres dziennych słupków byłby nieczytelny, więc pokazujemy jeden
+    // tydzień naraz; przyciski przesuwają okno w granicach wybranego okresu.
+    const [weekOffset, setWeekOffset] = useState(0);
+    useEffect(() => setWeekOffset(0), [benchmark.weeks]);
+
+    const maxWeekOffset = benchmark.weeks - 1;
+    const visibleWeekStart = useMemo(
+        () => addDays(isoMonday(new Date().toISOString().slice(0, 10)), -7 * weekOffset),
+        [weekOffset]
+    );
+    const visibleWeekEnd = addDays(visibleWeekStart, 6);
+
+    const visibleDeltas = useMemo(
+        () =>
+            followerDeltaWeekly
+                ? followerDeltas
+                : followerDeltas.filter(row => {
+                      const date = String(row.date);
+                      return date >= visibleWeekStart && date <= visibleWeekEnd;
+                  }),
+        [followerDeltas, followerDeltaWeekly, visibleWeekStart, visibleWeekEnd]
+    );
+
+    // ── Podsumowanie AI całego okresu ─────────────────────────────────────────
+    const [summary, setSummary] = useState<SummaryState>({ phase: 'idle' });
+
+    const handleSummarize = async () => {
+        if (summary.phase === 'loading') return;
+        setSummary({ phase: 'loading' });
+        try {
+            const data = await instagramApi.getGrowthSummary(benchmark.weeks as WeeksOption);
+            setSummary({ phase: 'done', data });
+        } catch (err: unknown) {
+            const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
+            const message =
+                response?.status === 429
+                    ? response.data?.message ??
+                      'Podsumowanie AI można generować raz na 15 minut. Spróbuj ponownie później.'
+                    : response?.data?.message ?? 'Nie udało się wygenerować podsumowania. Spróbuj ponownie.';
+            setSummary({ phase: 'error', message });
+        }
+    };
 
     const annotations = useMemo(
         () => benchmark.annotations.filter(a => !a.profileId || selected.includes(a.profileId)),
@@ -366,14 +523,49 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         czyta się tak samo dobrze, liczy się zmiana, nie wielkość konta.
                         {' '}Kliknij słupek, aby zobaczyć, co w tym tygodniu wydarzyło się na profilu.
                     </CardHint>
+                    {followerDeltas.length > 0 && (
+                        <PagerRow>
+                            {!followerDeltaWeekly && (
+                                <>
+                                    <Pill
+                                        onClick={() => setWeekOffset(offset => Math.min(offset + 1, maxWeekOffset))}
+                                        disabled={weekOffset >= maxWeekOffset}
+                                    >
+                                        ← Poprzedni tydzień
+                                    </Pill>
+                                    <PagerLabel>
+                                        {formatDayShort(visibleWeekStart)} – {formatDayShort(visibleWeekEnd)}
+                                    </PagerLabel>
+                                    <Pill
+                                        onClick={() => setWeekOffset(offset => Math.max(offset - 1, 0))}
+                                        disabled={weekOffset === 0}
+                                    >
+                                        Następny tydzień →
+                                    </Pill>
+                                </>
+                            )}
+                            <SummarizeBtn
+                                $active
+                                onClick={handleSummarize}
+                                disabled={summary.phase === 'loading'}
+                            >
+                                <Sparkles size={13} /> Podsumuj cały okres
+                            </SummarizeBtn>
+                        </PagerRow>
+                    )}
                     {followerDeltas.length === 0 ? (
                         <HintNote>
                             Historia obserwujących buduje się od dnia dodania profilu, pierwsze słupki
                             pojawią się po 2 dniach zbierania danych.
                         </HintNote>
+                    ) : visibleDeltas.length === 0 ? (
+                        <HintNote>
+                            Brak danych w tym tygodniu — historia obserwujących buduje się od dnia
+                            dodania profilu. Przejdź do nowszego tygodnia.
+                        </HintNote>
                     ) : (
                         <ResponsiveContainer width="100%" height={280}>
-                            <BarChart data={followerDeltas} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                            <BarChart data={visibleDeltas} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                                 <CartesianGrid stroke={st.border} strokeDasharray="3 3" vertical={false} />
                                 <XAxis
                                     dataKey="date"
@@ -432,6 +624,37 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 ))}
                             </BarChart>
                         </ResponsiveContainer>
+                    )}
+                    {summary.phase === 'loading' && (
+                        <SummaryLoading>
+                            <Spinner />
+                            <div>
+                                <strong>Analizuję przyrosty obserwujących…</strong>
+                                <span>
+                                    AI porównuje trendy i szuka wzorców w całym okresie.
+                                    To może potrwać kilkanaście sekund.
+                                </span>
+                            </div>
+                        </SummaryLoading>
+                    )}
+                    {summary.phase === 'error' && <SummaryError>{summary.message}</SummaryError>}
+                    {summary.phase === 'done' && (
+                        <SummaryPanel>
+                            <SummaryHead>
+                                <strong><Sparkles size={13} /> Podsumowanie okresu</strong>
+                                <SummaryMeta>
+                                    {summary.data.fromCache ? 'z pamięci podręcznej · ' : ''}
+                                    wygenerowano {summary.data.generatedAt}
+                                </SummaryMeta>
+                                <SummaryCloseBtn
+                                    onClick={() => setSummary({ phase: 'idle' })}
+                                    aria-label="Zamknij podsumowanie"
+                                >
+                                    <X size={14} />
+                                </SummaryCloseBtn>
+                            </SummaryHead>
+                            <SummaryText>{summary.data.summary}</SummaryText>
+                        </SummaryPanel>
                     )}
                     {explain && (
                         <WeekExplainPanel

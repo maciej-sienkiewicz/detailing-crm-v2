@@ -183,7 +183,8 @@ export const Pill = styled.button<{ $active?: boolean }>`
     transition: all ${st.transition};
     white-space: nowrap;
 
-    &:hover { border-color: ${st.borderHover}; }
+    &:hover:not(:disabled) { border-color: ${st.borderHover}; }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
 export const SelfTag = styled.span`

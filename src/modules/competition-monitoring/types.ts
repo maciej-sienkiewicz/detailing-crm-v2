@@ -139,6 +139,14 @@ export interface Benchmark {
     annotations: ChartAnnotation[];
 }
 
+/** Podsumowanie AI przyrostów obserwujących za cały wybrany okres. */
+export interface GrowthSummary {
+    summary: string;
+    generatedAt: string;
+    weeks: number;
+    fromCache: boolean;
+}
+
 // ─── Treści ───────────────────────────────────────────────────────────────────
 
 export type ContentFormat = 'PHOTO' | 'REELS' | 'CAROUSEL';
