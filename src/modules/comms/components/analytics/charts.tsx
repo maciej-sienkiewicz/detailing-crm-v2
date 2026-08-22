@@ -12,7 +12,7 @@
 //   i produkują korelację, której w danych nie ma — dlatego „ile zapytań" i „jaka
 //   skuteczność" stoją pod sobą jako dwa osobne rysunki, a nie jeden z dwiema osiami.
 // • Cienkie znaki, zaokrąglone końce, wygaszona siatka. Grube nasycone bloki krzyczą.
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { cardEntrance } from '@/modules/statistics/components/shared/animations';
@@ -73,16 +73,19 @@ const Hint = styled.p`
 interface AnalyticsCardProps {
     question: string;
     answer: ReactNode;
+    /** Druga odpowiedź, która mieści się w zdaniu i nie zasługuje na własny rysunek. */
+    footnote?: ReactNode;
     children?: ReactNode;
     className?: string;
 }
 
-export function AnalyticsCard({ question, answer, children, className }: AnalyticsCardProps) {
+export function AnalyticsCard({ question, answer, footnote, children, className }: AnalyticsCardProps) {
     return (
         <CardBox className={className}>
             <CardHead>
                 <h3>{question}</h3>
                 <p>{answer}</p>
+                {footnote && <Hint>{footnote}</Hint>}
             </CardHead>
             {children}
         </CardBox>
@@ -518,5 +521,303 @@ export function WinLossBars({ rows }: WinLossBarsProps) {
                 );
             })}
         </div>
+    );
+}
+
+// ── Macierz: usługa × dzień tygodnia ────────────────────────────────────────
+
+const MatrixGrid = styled.div`
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) repeat(7, minmax(0, 1fr)) minmax(84px, auto);
+    gap: 3px;
+    align-items: center;
+    min-width: 620px;
+`;
+
+const MatrixScroll = styled.div`
+    overflow-x: auto;
+    /* Macierz nie skaluje się w dół bez utraty czytelności — siedem kolumn poniżej
+       620px daje kratki, w których nie mieści się liczba. Na telefonie przewija
+       się w bok, tak jak tabela. */
+    margin: 0 -4px;
+    padding: 0 4px;
+`;
+
+const MatrixHead = styled.span`
+    font-size: 10.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: ${st.textMuted};
+    text-align: center;
+    padding-bottom: 4px;
+`;
+
+const MatrixRowLabel = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    padding-right: 10px;
+
+    .name {
+        font-size: 12.5px;
+        font-weight: ${p => p.theme.fontWeights.medium};
+        color: ${st.text};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .avg {
+        font-size: 11px;
+        color: ${st.textMuted};
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
+/**
+ * Komórka macierzy. Nasycenie jednego odcienia niesie liczbę — ramp sekwencyjny,
+ * bo to jest wielkość, a nie tożsamość. Liczba stoi w środku, więc kolor nigdy
+ * nie jest jedynym nośnikiem: macierz da się przeczytać po wydrukowaniu na
+ * czarno-białej drukarce i przez kogoś, kto tych odcieni nie rozróżnia.
+ */
+const MatrixCell = styled.div<{ $intensity: number }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    background: ${p => (p.$intensity === 0
+        ? st.bgCardAlt
+        : `rgba(37, 99, 235, ${0.10 + p.$intensity * 0.72})`)};
+    color: ${p => (p.$intensity > 0.55 ? '#fff' : p.$intensity === 0 ? st.textMuted : st.text)};
+    font-weight: ${p => (p.$intensity > 0.55 ? 700 : 500)};
+    cursor: default;
+    transition: transform 140ms ease;
+
+    &:hover { transform: scale(1.06); }
+`;
+
+const MatrixTotal = styled.span`
+    text-align: right;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: ${st.textSecondary};
+    padding-left: 8px;
+    white-space: nowrap;
+`;
+
+const MatrixScale = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: ${st.textMuted};
+
+    i {
+        display: inline-block;
+        width: 46px;
+        height: 9px;
+        border-radius: 5px;
+        background: linear-gradient(90deg, rgba(37, 99, 235, 0.10), rgba(37, 99, 235, 0.82));
+    }
+`;
+
+export interface MatrixRow {
+    key: string;
+    label: string;
+    /** Podpis pod nazwą — u nas średnia wycena. */
+    note: string;
+    counts: number[];
+    total: number;
+}
+
+interface WeekdayMatrixProps {
+    rows: MatrixRow[];
+    dayLabels: string[];
+    /** Nazwa jednostki do podpowiedzi: „3 zapytania w sobotę, Powłoka ceramiczna". */
+    describeCell: (row: MatrixRow, dayIndex: number, count: number) => string;
+}
+
+export function WeekdayMatrix({ rows, dayLabels, describeCell }: WeekdayMatrixProps) {
+    // Skala wspólna dla całej macierzy: gdyby każdy wiersz normalizował się osobno,
+    // usługa z trzema zapytaniami świeciłaby tak samo mocno jak ta z trzydziestoma.
+    const max = Math.max(1, ...rows.flatMap(row => row.counts));
+
+    return (
+        <>
+            <MatrixScroll>
+                <MatrixGrid>
+                    <span />
+                    {dayLabels.map(day => <MatrixHead key={day}>{day}</MatrixHead>)}
+                    <MatrixHead style={{ textAlign: 'right' }}>Razem</MatrixHead>
+
+                    {rows.map(row => (
+                        <Fragment key={row.key}>
+                            <MatrixRowLabel>
+                                <span className="name" title={row.label}>{row.label}</span>
+                                <span className="avg">{row.note}</span>
+                            </MatrixRowLabel>
+                            {row.counts.map((count, index) => (
+                                <MatrixCell
+                                    key={dayLabels[index]}
+                                    $intensity={count / max}
+                                    title={describeCell(row, index, count)}
+                                >
+                                    {count > 0 ? count : ''}
+                                </MatrixCell>
+                            ))}
+                            <MatrixTotal>{row.total}</MatrixTotal>
+                        </Fragment>
+                    ))}
+                </MatrixGrid>
+            </MatrixScroll>
+            <MatrixScale>
+                <span>mniej</span><i /><span>więcej zapytań</span>
+            </MatrixScale>
+        </>
+    );
+}
+
+// ── Pieniądze w czasie ──────────────────────────────────────────────────────
+
+const StackSlot = styled.div`
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 2px;
+    cursor: default;
+    max-width: 46px;
+    margin: 0 auto;
+`;
+
+/**
+ * Kawałek słupka. Zaokrąglenie tylko na skrajnych narożnikach całego stosu —
+ * przy zaokrągleniu każdego kawałka z osobna trzy segmenty czytają się jak trzy
+ * osobne pastylki wiszące jedna nad drugą, a nie jak jeden słupek podzielony
+ * na części. Szczelina 2px zostaje: bez niej granica gubi się dokładnie tam,
+ * gdzie siedzi treść.
+ */
+const StackPiece = styled.div<{ $kind: 'won' | 'open' | 'lost'; $top: boolean; $bottom: boolean }>`
+    width: 100%;
+    border-radius: ${p => `${p.$top ? '5px 5px' : '0 0'} ${p.$bottom ? '5px 5px' : '0 0'}`};
+    background: ${p => (p.$kind === 'won'
+        ? `linear-gradient(180deg, #3b82f6 0%, ${WON} 100%)`
+        : p.$kind === 'open'
+            ? `linear-gradient(180deg, #dbe3ee 0%, ${OPEN} 100%)`
+            : 'transparent')};
+    border: ${p => (p.$kind === 'lost' ? `1px solid ${LOST}66` : 'none')};
+    ${p => p.$kind === 'lost' && `background: repeating-linear-gradient(135deg, ${LOST}0d, ${LOST}0d 5px, ${LOST}26 5px, ${LOST}26 8px);`}
+`;
+
+/**
+ * Legenda słupków pieniędzy — własna, nie ta od wykresu usług.
+ *
+ * Legenda musi wyglądać jak znak, który opisuje. Tam segment straty jest pełną
+ * czerwienią, tutaj pustym konturem ze szrafurą, więc jedna legenda dla obu
+ * kłamałaby o jednym z nich. Nazwy te same co w rachunku wyżej.
+ */
+export function MoneyLegend() {
+    return (
+        <Legend>
+            <span><i style={{ background: `linear-gradient(180deg, #3b82f6, ${WON})` }} /> zatrzymane</span>
+            <span><i style={{ background: OPEN }} /> w grze</span>
+            <span>
+                <i style={{
+                    background: `repeating-linear-gradient(135deg, ${LOST}0d, ${LOST}0d 3px, ${LOST}40 3px, ${LOST}40 5px)`,
+                    border: `1px solid ${LOST}66`,
+                }} /> stracone
+            </span>
+        </Legend>
+    );
+}
+
+export interface MoneyColumn {
+    key: string;
+    tick: string;
+    won: number;
+    open: number;
+    lost: number;
+    caption: string;
+}
+
+interface MoneyColumnsProps {
+    columns: MoneyColumn[];
+    height?: number;
+    tickEvery?: number;
+}
+
+/**
+ * Pieniądze okresu, ułożone tak samo jak w rachunku zapytań: zatrzymane na dole,
+ * w grze pośrodku, stracone na górze. Wysokość słupka to wartość wszystkich
+ * zapytań danego okresu.
+ *
+ * Świadomie nie liczba zapytań. Czternaście pytań o mycie i trzy o folię to ta
+ * sama liczba i zupełnie inny miesiąc — sztuki mierzą ruch, a ruch sam w sobie
+ * nie jest ani przychodem, ani problemem. Ten sam podział kolorów co w belce
+ * wyżej znaczy, że nie trzeba się go uczyć drugi raz.
+ */
+export function MoneyColumns({ columns, height = 170, tickEvery = 1 }: MoneyColumnsProps) {
+    const [hovered, setHovered] = useState<number | null>(null);
+    const max = Math.max(1, ...columns.map(c => c.won + c.open + c.lost));
+    // Minimum trzech pikseli na niezerowy kawałek: kwota, która jest, musi być
+    // widoczna, ale zero ma zostać zerem.
+    const piece = (value: number) => (value === 0 ? 0 : Math.max(3, (value / max) * height));
+
+    return (
+        <ColumnsFrame>
+            {hovered !== null && (
+                <Tooltip style={{ left: `${((hovered + 0.5) / columns.length) * 100}%` }}>
+                    {columns[hovered].caption}
+                </Tooltip>
+            )}
+            <ColumnsRow $height={height}>
+                {columns.map((column, index) => (
+                    <StackSlot
+                        key={column.key}
+                        title={column.caption}
+                        onMouseEnter={() => setHovered(index)}
+                        onMouseLeave={() => setHovered(null)}
+                    >
+                        {/* Kolejność od góry: stracone, w grze, zatrzymane — tak samo
+                            jak w belce rachunku, tylko pionowo. */}
+                        {column.lost > 0 && (
+                            <StackPiece
+                                $kind="lost"
+                                $top
+                                $bottom={column.open === 0 && column.won === 0}
+                                style={{ height: piece(column.lost) }}
+                            />
+                        )}
+                        {column.open > 0 && (
+                            <StackPiece
+                                $kind="open"
+                                $top={column.lost === 0}
+                                $bottom={column.won === 0}
+                                style={{ height: piece(column.open) }}
+                            />
+                        )}
+                        {column.won > 0 && (
+                            <StackPiece
+                                $kind="won"
+                                $top={column.lost === 0 && column.open === 0}
+                                $bottom
+                                style={{ height: piece(column.won) }}
+                            />
+                        )}
+                    </StackSlot>
+                ))}
+            </ColumnsRow>
+            <TicksRow>
+                {columns.map((column, index) => (
+                    <span key={column.key}>{index % tickEvery === 0 ? column.tick : ''}</span>
+                ))}
+            </TicksRow>
+        </ColumnsFrame>
     );
 }

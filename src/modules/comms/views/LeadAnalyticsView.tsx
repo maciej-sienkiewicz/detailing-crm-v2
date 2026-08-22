@@ -70,11 +70,13 @@ import {
     AnalyticsCard,
     ColumnChart,
     EmptyChart,
+    MoneyColumns,
+    MoneyLegend,
     RankedBars,
     RateLine,
+    WeekdayMatrix,
     WinLossBars,
     WinLossLegend,
-    type Column,
 } from '../components/analytics/charts';
 import {
     RESPONSE_LABELS,
@@ -161,36 +163,6 @@ const Tab = styled.button<{ $active: boolean }>`
 
 const WideCard = styled(AnalyticsCard)``;
 
-/**
- * Dwa rysunki obok siebie, rozdzielone kreską. Bez niej czternaście słupków
- * czyta się jako jeden wykres, a to są dwie różne serie z dwiema różnymi
- * skalami — „kiedy pytają" i „kiedy się decydują" nie mają wspólnego maksimum.
- */
-const SplitCharts = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1px 1fr;
-    gap: 28px;
-
-    h4 {
-        margin: 0 0 8px;
-        font-size: 11.5px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.textSecondary};
-    }
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        grid-template-columns: 1fr;
-        gap: 18px;
-        .rule { display: none; }
-    }
-`;
-
-const SplitRule = styled.span.attrs({ className: 'rule', 'aria-hidden': true })`
-    display: block;
-    align-self: stretch;
-    background: ${st.border};
-`;
-
 const TrendStack = styled.div`
     display: flex;
     flex-direction: column;
@@ -234,18 +206,6 @@ const OutlierList = styled.div`
 
 /** Poniżej tylu zapytań każdy „najczęstszy dzień" jest przypadkiem, nie prawidłowością. */
 const MIN_LEADS_FOR_RHYTHM = 20;
-
-const peakOf = (stats: { count: number }[]): { index: number; count: number } | null => {
-    let best = -1;
-    let bestIndex = -1;
-    stats.forEach((entry, index) => {
-        if (entry.count > best) {
-            best = entry.count;
-            bestIndex = index;
-        }
-    });
-    return best <= 0 ? null : { index: bestIndex, count: best };
-};
 
 export default function LeadAnalyticsView() {
     // Okres ustalany raz, przy wejściu. „Ten miesiąc" jest domyślny, bo to jest
@@ -413,11 +373,14 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
 
 /** Pytania pogłębione — po jednym na ekran, w kolejności od najczęściej zadawanego. */
 const DEEP_TABS = [
-    { key: 'trend', label: 'Trend' },
-    { key: 'rhythm', label: 'Rytm tygodnia' },
+    { key: 'trend', label: 'Pieniądze w czasie' },
+    { key: 'rhythm', label: 'Kiedy co przychodzi' },
     { key: 'services', label: 'Usługi' },
     { key: 'speed', label: 'Czas odpowiedzi' },
     { key: 'who', label: 'Marki i kanały' },
+    // Liczba zapytań na końcu i nigdzie indziej: to jest miara ruchu, nie wyniku,
+    // i wpuszczona wyżej przykrywałaby te, które mówią o pieniądzach.
+    { key: 'volume', label: 'Liczba zapytań' },
 ] as const;
 
 type DeepTab = (typeof DEEP_TABS)[number]['key'];
@@ -452,32 +415,49 @@ function DeepRead({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) 
             {tab === 'services' && <ServicesPanel data={data} />}
             {tab === 'speed' && <SpeedPanel data={data} />}
             {tab === 'who' && <WhoPanel data={data} />}
+            {tab === 'volume' && <VolumePanel data={data} monthly={monthly} />}
         </>
     );
 }
 
 function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+    const last = data.timeline[data.timeline.length - 1];
+    const previous = data.timeline[data.timeline.length - 2];
+    const delta = last && previous ? last.wonValue - previous.wonValue : null;
+
     return (
         <WideCard
-            question="Jak to szło w czasie"
+            question="Pieniądze w czasie"
             answer={
                 data.timeline.length < 2
                     ? 'Okres jest za krótki, żeby mówić o trendzie.'
-                    : `Zapytania i skuteczność w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
+                    : delta === null || delta === 0
+                        ? `Wartość zapytań i to, ile z nich zatrzymujesz, w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
+                        : (
+                            <>
+                                W ostatnim {monthly ? 'miesiącu' : 'tygodniu'} zatrzymałeś{' '}
+                                <strong>{formatMoney(last.wonValue)}</strong> — o {formatMoney(Math.abs(delta))}{' '}
+                                {delta > 0 ? 'więcej' : 'mniej'} niż {monthly ? 'miesiąc' : 'tydzień'} wcześniej.
+                            </>
+                        )
             }
         >
             {data.timeline.length >= 2 && (
                 <TrendStack>
-                    <ColumnChart
+                    {/* Ten sam podział kolorów co w rachunku wyżej — zatrzymane,
+                        w grze, stracone. Nie trzeba się go uczyć drugi raz. */}
+                    <MoneyColumns
                         columns={data.timeline.map((point) => ({
                             key: point.periodStart,
                             tick: formatPeriodTick(point.periodStart, monthly),
-                            value: point.created,
-                            caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań, ${point.won} wygranych`,
+                            won: point.wonValue,
+                            open: point.openValue,
+                            lost: point.lostValue,
+                            caption: `${formatPeriod(point.periodStart, monthly)}: zatrzymane ${formatMoney(point.wonValue)}, w grze ${formatMoney(point.openValue)}, stracone ${formatMoney(point.lostValue)}`,
                         }))}
-                        height={150}
                         tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
                     />
+                    <MoneyLegend />
                     {/* Osobny rysunek, nie druga oś na tym samym: dwie skale na
                         jednym wykresie dobiera się arbitralnie i produkują
                         zależność, której w danych nie ma. */}
@@ -494,59 +474,125 @@ function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }
     );
 }
 
-function RhythmPanel({ data }: { data: LeadAnalytics }) {
-    const enough = data.totalCreated >= MIN_LEADS_FOR_RHYTHM;
-    const inquiryPeak = peakOf(data.inquiriesByWeekday);
-    const decisionPeak = peakOf(data.decisionsByWeekday);
-
-    const columns = (stats: { weekday: number; count: number }[], peakIndex: number | null): Column[] =>
-        stats.map((entry, index) => ({
-            key: String(entry.weekday),
-            tick: WEEKDAY_LABELS[index],
-            value: entry.count,
-            caption: `${WEEKDAY_LABELS[index]}: ${entry.count}`,
-            highlighted: index === peakIndex,
-        }));
-
+/**
+ * Liczba zapytań — świadomie ostatnia i osobna.
+ *
+ * To jest miara ruchu, nie wyniku: rośnie niezależnie od pieniędzy, a studio jest
+ * ograniczone mocą przerobową, nie popytem. Bywa przydatna („czy reklama w ogóle
+ * dowozi"), więc zostaje — ale nie w miejscu, w którym przykrywałaby liczby
+ * mówiące o przychodzie.
+ */
+function VolumePanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+    const total = data.timeline.reduce((sum, point) => sum + point.created, 0);
     return (
         <WideCard
-            question="Rytm tygodnia"
+            question="Ile zapytań przychodziło"
             answer={
-                !enough
-                    ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
+                data.timeline.length < 2
+                    ? 'Okres jest za krótki, żeby mówić o trendzie.'
                     : (
                         <>
-                            Najwięcej zapytań przychodzi w{' '}
-                            <strong>{inquiryPeak ? WEEKDAY_FULL[inquiryPeak.index] : '—'}</strong>
-                            {decisionPeak && (
-                                <>
-                                    , a decyzje zapadają najczęściej we{' '}
-                                    <strong>{WEEKDAY_FULL[decisionPeak.index]}</strong>
-                                </>
-                            )}
-                            .
+                            <strong>{total}</strong> zapytań w tym okresie. Sama liczba nie mówi o pieniądzach —
+                            czternaście pytań o mycie i trzy o folię to ta sama liczba i zupełnie inny miesiąc.
                         </>
                     )
             }
         >
-            <SplitCharts>
-                <div>
-                    <h4>Kiedy pytają</h4>
-                    <ColumnChart
-                        columns={columns(data.inquiriesByWeekday, inquiryPeak?.index ?? null)}
-                        height={130}
-                    />
-                </div>
-                <SplitRule />
-                <div>
-                    <h4>Kiedy się decydują</h4>
-                    {decisionPeak ? (
-                        <ColumnChart columns={columns(data.decisionsByWeekday, decisionPeak.index)} height={130} />
-                    ) : (
-                        <EmptyChart>Brak rezerwacji z tego okresu.</EmptyChart>
-                    )}
-                </div>
-            </SplitCharts>
+            {data.timeline.length >= 2 && (
+                <ColumnChart
+                    columns={data.timeline.map((point) => ({
+                        key: point.periodStart,
+                        tick: formatPeriodTick(point.periodStart, monthly),
+                        value: point.created,
+                        caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań`,
+                    }))}
+                    height={150}
+                    tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
+                />
+            )}
+        </WideCard>
+    );
+}
+
+/**
+ * Macierz „która usługa, w który dzień".
+ *
+ * Zwykły słupek „ile zapytań w poniedziałek" mówił tylko, kiedy jest ruch — a ruch
+ * sam w sobie nie jest ani przychodem, ani problemem. Wiersze ustawione od
+ * najdroższej usługi zamieniają ten sam materiał w pytanie, które ma konsekwencje
+ * w grafiku: czy drogie zapytania przychodzą w innych dniach niż tanie.
+ */
+function RhythmPanel({ data }: { data: LeadAnalytics }) {
+    const enough = data.totalCreated >= MIN_LEADS_FOR_RHYTHM;
+    const rows = data.weekdayMatrix;
+
+    // Porównujemy droższą połowę wierszy z tańszą. Połowa, nie pojedynczy wiersz:
+    // jedna usługa z trzema zapytaniami wskazywałaby dzień przypadkiem.
+    const priced = rows.filter((row) => row.averageValue !== null);
+    const half = Math.ceil(priced.length / 2);
+    const peakDay = (group: typeof rows): number | null => {
+        if (group.length === 0) return null;
+        const sums = Array.from({ length: 7 }, (_, day) => group.reduce((s, row) => s + row.counts[day], 0));
+        const best = Math.max(...sums);
+        return best === 0 ? null : sums.indexOf(best);
+    };
+    const expensiveDay = peakDay(priced.slice(0, half));
+    const cheapDay = peakDay(priced.slice(half));
+
+    /*
+     * Dzień decyzji jako zdanie, nie jako drugi wykres obok macierzy. Odpowiedź
+     * mieści się w sześciu słowach, a osobny rysunek obok niej odbierałby macierzy
+     * status jedynego elementu, na którym ma spocząć wzrok.
+     */
+    const decisionDay = (() => {
+        const best = Math.max(...data.decisionsByWeekday.map((entry) => entry.count));
+        if (best <= 0) return null;
+        return data.decisionsByWeekday.findIndex((entry) => entry.count === best);
+    })();
+
+    return (
+        <WideCard
+            question="Kiedy co przychodzi"
+            answer={
+                !enough || rows.length === 0
+                    ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
+                    : expensiveDay !== null && cheapDay !== null && expensiveDay !== cheapDay
+                        ? (
+                            <>
+                                O najdroższe usługi klienci pytają najczęściej w{' '}
+                                <strong>{WEEKDAY_FULL[expensiveDay]}</strong>, o najtańsze w{' '}
+                                <strong>{WEEKDAY_FULL[cheapDay]}</strong>.
+                            </>
+                        )
+                        : 'Drogie i tanie zapytania rozkładają się na tydzień podobnie — nie ma dnia, który wymagałby innej obsady.'
+            }
+            footnote={
+                enough && decisionDay !== null
+                    ? <>Decyzje zapadają najczęściej we <strong>{WEEKDAY_FULL[decisionDay]}</strong>.</>
+                    : undefined
+            }
+        >
+            {rows.length === 0 ? (
+                <EmptyChart>Brak zapytań w tym okresie.</EmptyChart>
+            ) : (
+                <WeekdayMatrix
+                    dayLabels={WEEKDAY_LABELS}
+                    rows={rows.map((row) => ({
+                        key: row.code ?? row.label,
+                        label: row.label,
+                        note: row.averageValue === null
+                            ? 'brak wycen'
+                            : `średnio ${formatMoney(row.averageValue)}`,
+                        counts: row.counts,
+                        total: row.total,
+                    }))}
+                    describeCell={(row, dayIndex, count) =>
+                        count === 0
+                            ? `${row.label}: brak zapytań w ${WEEKDAY_FULL[dayIndex]}`
+                            : `${row.label}: ${count} w ${WEEKDAY_FULL[dayIndex]}`
+                    }
+                />
+            )}
         </WideCard>
     );
 }
