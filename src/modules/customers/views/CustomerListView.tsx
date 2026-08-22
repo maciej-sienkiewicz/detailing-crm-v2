@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useCustomers } from '../hooks/useCustomers';
+import { useDeleteCustomer } from '../hooks/useDeleteCustomer';
 import { useCustomerSearch } from '../hooks/useCustomerSearch';
 import { useCustomerPagination } from '../hooks/useCustomerPagination';
 import { useBreakpoint } from '@/common/hooks/useBreakpoint';
@@ -232,7 +233,7 @@ export const CustomerListView = () => {
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-    const [showDeleteBlocked, setShowDeleteBlocked] = useState(false);
+    const deleteCustomer = useDeleteCustomer();
     const [activeTab, setActiveTab] = useState<CustomerTab>('all');
     const [sortBy, setSortBy] = useState<CustomerSortField>('lastActivity');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -412,26 +413,22 @@ export const CustomerListView = () => {
                 filteredCount={pagination?.totalItems ?? 0}
             />
 
+            {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,
+                a co zostaje — „nie można cofnąć" bez tej informacji brzmiałoby
+                jak skasowanie całej historii współpracy. */}
             <ConfirmationModal
                 isOpen={pendingDeleteId !== null}
-                title="Usuń klienta"
-                message="Czy na pewno chcesz usunąć tego klienta? Tej operacji nie można cofnąć."
+                title="Usunąć tego klienta?"
+                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane — wymaga tego prawo."
                 variant="danger"
-                confirmText="Usuń klienta"
+                confirmText="Usuń dane klienta"
                 cancelText="Anuluj"
-                onConfirm={() => { setPendingDeleteId(null); setShowDeleteBlocked(true); }}
+                onConfirm={() => {
+                    const id = pendingDeleteId;
+                    setPendingDeleteId(null);
+                    if (id) deleteCustomer.mutate(id);
+                }}
                 onCancel={() => setPendingDeleteId(null)}
-            />
-
-            <ConfirmationModal
-                isOpen={showDeleteBlocked}
-                title="Usunięcie niemożliwe"
-                message="Nie usuniemy klienta dopóki kancelaria nam nie odpowie co możemy trzymać, a czego nie możemy."
-                variant="info"
-                confirmText="Rozumiem"
-                cancelText="Zamknij"
-                onConfirm={() => setShowDeleteBlocked(false)}
-                onCancel={() => setShowDeleteBlocked(false)}
             />
         </ViewContainer>
     );
