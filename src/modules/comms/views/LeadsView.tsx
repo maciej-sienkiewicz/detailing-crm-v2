@@ -11,6 +11,8 @@ import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { formatMoney } from '../components/analytics/tokens';
 import { buildPeriod } from '../components/analytics/period';
 import { useLeadAnalytics, useLeads, useLeadsSocket } from '../hooks/useLeads';
+import { useMailboxSyncState } from '../hooks/useComms';
+import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
 import { LeadDetailModal } from '../components/LeadDetailModal';
@@ -414,6 +416,7 @@ export default function LeadsView() {
     // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
     // zamienia się w wynik bez odświeżania strony.
     useLeadsSocket();
+    const mailboxSync = useMailboxSyncState();
     /*
      * Zaległości do paska nad listą. Okres bieżącego miesiąca, ten sam co domyślny
      * w analityce — dzięki temu przejście między widokami trafia w tę samą pamięć
@@ -439,6 +442,20 @@ export default function LeadsView() {
         setOpenServicesEditor(true);
         setSearchParams({ lead: item.id }, { replace: true });
     };
+
+    // Pierwsza synchronizacja skrzynki w toku: leady dopiero powstają z nadciągającej
+    // poczty, więc tabela rosnąca z sekundy na sekundę wyglądałaby jak zepsuta,
+    // nie jak niepełna. Jeden spokojny ekran z postępem zamiast tego.
+    if (mailboxSync.syncing) {
+        return (
+            <ViewContainer>
+                <PageHeader title="Leady" subtitle="Zapytania od potencjalnych klientów" />
+                <SurfaceCard>
+                    <MailboxSyncPanel />
+                </SurfaceCard>
+            </ViewContainer>
+        );
+    }
 
     return (
         <ViewContainer>

@@ -32,6 +32,45 @@ export const useMailAccounts = (options?: { enabled?: boolean }) =>
         enabled: options?.enabled ?? true,
     });
 
+/**
+ * Czy trwa pierwsza synchronizacja którejś ze skrzynek — i jak daleko zaszła.
+ *
+ * Pierwszy import potrafi trwać minuty; przez ten czas widoki poczty i leadów
+ * pokazują stan „trwa synchronizacja" zamiast list, które rosną z sekundy na
+ * sekundę, i zamiast lawiny powiadomień. Dopóki trwa, konta odpytujemy co parę
+ * sekund — pasek postępu bez odświeżania byłby martwy; po zakończeniu odpytywanie
+ * gaśnie samo.
+ */
+export const useMailboxSyncState = () => {
+    const { data: accounts } = useQuery({
+        queryKey: COMMS_ACCOUNTS_KEY,
+        queryFn: commsApi.getAccounts,
+        refetchInterval: (query) =>
+            query.state.data?.some(
+                (account) => account.initialSyncInProgress && account.status === 'ACTIVE'
+            )
+                ? 4_000
+                : false,
+    });
+
+    // Tylko konta ACTIVE: skrzynka z odrzuconym hasłem nigdy się nie zsynchronizuje
+    // i ma pokazywać swój błąd, a nie wieczny ekran „trwa synchronizacja".
+    const syncingAccounts = (accounts ?? []).filter(
+        (account) => account.initialSyncInProgress && account.status === 'ACTIVE'
+    );
+    const total = syncingAccounts.reduce((sum, account) => sum + (account.syncTotal ?? 0), 0);
+    const processed = syncingAccounts.reduce((sum, account) => sum + (account.syncProcessed ?? 0), 0);
+
+    return {
+        /** false także wtedy, gdy konta jeszcze się nie wczytały — widok nie ma migać. */
+        syncing: syncingAccounts.length > 0,
+        /** Ułamek 0–1 albo null, gdy przebieg jeszcze nie zgłosił liczby wiadomości. */
+        progress: total > 0 ? Math.min(1, processed / total) : null,
+        processed,
+        total,
+    };
+};
+
 export const useThreads = (filters: ThreadListFilters) =>
     useQuery({
         queryKey: [...COMMS_THREADS_KEY, 'list', filters],
@@ -310,6 +349,9 @@ export const useDisconnectAccount = () => {
 
 // ── WebSocket: żywa skrzynka ─────────────────────────────────────────────────
 
+/** Najwyżej jedno powiadomienie „Nowa wiadomość" na tyle milisekund. */
+const NEW_MAIL_TOAST_THROTTLE_MS = 15_000;
+
 /**
  * Subskrypcja zdarzeń komunikacji na topicu dashboardu. Payloady niosą tylko id —
  * po zdarzeniu odświeżamy dane przez REST, więc cache nigdy nie rozjeżdża się
@@ -319,6 +361,10 @@ export function useCommsSocket(): void {
     const { isAuthenticated, user } = useAuth();
     const queryClient = useQueryClient();
     const { showInfo } = useToast();
+    // Jedna paczka poczty (sync co 3 minuty po nocy) to jedno powiadomienie, nie
+    // dziesięć. Toast mówi „zajrzyj do skrzynki" — drugi w tej samej minucie nie
+    // niesie żadnej nowej informacji, tylko frustrację.
+    const lastNewMailToastAt = useRef(0);
 
     const handleMessage = useCallback(
         (message: IMessage) => {
@@ -336,7 +382,8 @@ export function useCommsSocket(): void {
                     queryClient.invalidateQueries({
                         queryKey: [...COMMS_THREADS_KEY, 'detail', payload.threadId],
                     });
-                    if (payload.newMessage) {
+                    if (payload.newMessage && Date.now() - lastNewMailToastAt.current > NEW_MAIL_TOAST_THROTTLE_MS) {
+                        lastNewMailToastAt.current = Date.now();
                         showInfo('Nowa wiadomość', 'Masz nową wiadomość w skrzynce');
                     }
                     break;
