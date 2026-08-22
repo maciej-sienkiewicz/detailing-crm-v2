@@ -11,7 +11,7 @@ import { useVehicleDeletedVisits } from '../hooks/useVehicleDeletedVisits';
 import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
-import { VehicleAuditTimeline } from '../components/VehicleAuditTimeline';
+import { EntityActivityTimeline } from '@/modules/activity';
 import { VehicleComments } from '../components/VehicleComments';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
@@ -691,7 +691,7 @@ export const VehicleDetailView = () => {
                                 </ChevronIcon>
                             </CollapsibleHeader>
                             <CollapsibleBody $visible={isAuditOpen} id="audit-section">
-                                <VehicleAuditTimeline vehicleId={vehicleId!} />
+                                <EntityActivityTimeline scope={{ vehicleId: vehicleId! }} />
                             </CollapsibleBody>
                         </CollapsibleSection>
 

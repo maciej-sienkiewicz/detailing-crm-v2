@@ -43,4 +43,27 @@ export const activityApi = {
         const res = await apiClient.get<ActivityFilterOptions>(`${BASE}/filters`);
         return res.data;
     },
+
+    /**
+     * Historia wokół jednego obiektu — sekcje „Historia zmian" na kartach wizyty,
+     * klienta i pojazdu. Ten sam feed co zakładka Aktywność, zawężony parametrami
+     * customerId/vehicleId/visitId, które backend czyta jako „wszystko wokół tego
+     * obiektu" (nie tylko wpisy jego własnego modułu).
+     */
+    getEntityFeed: async (
+        scope: ActivityEntityScope,
+        cursor: string | null,
+        limit = 20,
+    ): Promise<ActivityFeedPage> => {
+        const params: Record<string, string | number> = { limit, ...scope };
+        if (cursor) params.cursor = cursor;
+        const res = await apiClient.get<ActivityFeedPage>(`${BASE}/feed`, { params });
+        return res.data;
+    },
 };
+
+/** Dokładnie jeden z trzech — karta zna swój obiekt. */
+export type ActivityEntityScope =
+    | { customerId: string }
+    | { vehicleId: string }
+    | { visitId: string };

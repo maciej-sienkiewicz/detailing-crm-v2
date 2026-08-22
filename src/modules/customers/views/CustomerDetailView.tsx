@@ -15,7 +15,7 @@ import { CustomerCommunicationList } from '../components/CustomerCommunicationLi
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { DocumentsManager } from '../components/DocumentsManager';
 import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
-import { AuditTimeline } from '@/common/components/AuditTimeline';
+import { EntityActivityTimeline } from '@/modules/activity';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { AddVehicleModal } from '../components/AddVehicleModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -1153,7 +1153,7 @@ export const CustomerDetailView = () => {
                                 </ChevronIcon>
                             </CollapsibleHeader>
                             <CollapsibleBody $visible={isAuditOpen} id="audit-section">
-                                <AuditTimeline module="CUSTOMER" entityId={customerId!} />
+                                <EntityActivityTimeline scope={{ customerId: customerId! }} />
                             </CollapsibleBody>
                         </CollapsibleSection>
 

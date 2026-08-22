@@ -28,7 +28,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
-import { AuditTimeline } from '@/common/components/AuditTimeline';
+import { EntityActivityTimeline } from '@/modules/activity';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useVirtualKeyboard } from '@/common/hooks';
 
@@ -1093,7 +1093,7 @@ export const VisitDetailView = () => {
                                 </ChevronIcon>
                             </SectionHeader>
                             <SectionBody $visible={isAuditOpen} id="audit-section">
-                                <AuditTimeline module="VISIT" entityId={visitId!} />
+                                <EntityActivityTimeline scope={{ visitId: visitId! }} />
                             </SectionBody>
                         </Section>
                         </MobileTabPanel>}
