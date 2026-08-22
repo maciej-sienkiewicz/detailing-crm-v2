@@ -18,6 +18,16 @@ export const LOST = '#dc2626';
 /** Wciąż otwarte: brak rozstrzygnięcia to brak koloru, nie trzeci wynik. */
 export const OPEN = '#cbd5e1';
 
+/**
+ * Rozmowy formalnie otwarte, ale starsze niż okno decyzji.
+ *
+ * Osobny, wyraźnie bledszy odcień tej samej szarości co „w grze": to jest ten sam
+ * rodzaj rzeczy — brak rozstrzygnięcia — tylko wystygły. Gdyby dostały kolor straty,
+ * przypisalibyśmy im wynik, którego nie mamy; gdyby zostały w „w grze", zawyżałyby
+ * pipeline dokładnie o pieniądze, których nie będzie.
+ */
+export const SILENT = '#e7ebf1';
+
 /** Jedna seria wielkości (ile zapytań, ile z którego kanału). */
 export const MAGNITUDE = '#2563eb';
 
