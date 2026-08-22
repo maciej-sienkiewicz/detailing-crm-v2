@@ -1,15 +1,21 @@
+// src/modules/campaigns/components/AudienceEstimatePanel.tsx
+// Odpowiedź na jedno pytanie: ilu ludzi to dostanie.
+//
+// Filtrów obok jest kilkanaście i wszystkie ważą tyle samo; jedyna liczba, dla
+// której ktoś je w ogóle ustawia, stoi tutaj i jest największym elementem kroku.
+// Hierarchia rozmiarem, nie barwą — liczba odbiorców pomalowana na kolor
+// wyglądałaby jak ostrzeżenie, a nie jak fakt.
+//
+// Pod liczbą stoi rachunek, nie wykres: „pasuje 480, minus 41 bez zgody, minus 12
+// bez numeru". Różnica między tym, czego ktoś się spodziewał, a tym, co wyjdzie,
+// jest jedyną rzeczą, o którą pyta po wysyłce — więc pokazujemy ją przed.
+//
+// Sama lista odbiorców przeniosła się do [AudienceTable]: w wąskiej kolumnie była
+// nieczytelna, a jako tabela na pełnej szerokości może mieć pola wyboru.
 import styled from 'styled-components';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
-import type { AudienceCriteria, AudienceEstimate } from '../types';
+import type { AudienceEstimate } from '../types';
 
-/**
- * Panel prognozy — jedyny element kroku „Odbiorcy", który ma się rzucić w oczy.
- *
- * Filtrów po lewej jest kilkanaście i wszystkie ważą tyle samo; jedyna liczba,
- * dla której ktoś je w ogóle ustawia, stoi tutaj i jest największa na ekranie.
- * Hierarchia rozmiarem, nie barwą: liczba odbiorców pomalowana na kolor
- * wyglądałaby jak ostrzeżenie, a nie jak fakt.
- */
 const Panel = styled.div`
   position: sticky;
   top: 24px;
@@ -42,6 +48,14 @@ const BigLabel = styled.div`
   align-items: center;
 `;
 
+/** Okno prognozy automatu — zdanie, nie plakietka: to warunek odczytu liczby wyżej. */
+const HorizonNote = styled.p`
+  margin: -8px 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
 const BreakdownLabel = styled.span`
   display: inline-flex;
   align-items: center;
@@ -49,7 +63,7 @@ const BreakdownLabel = styled.span`
 
 const Breakdown = styled.ul`
   list-style: none;
-  margin: 0 0 14px;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -58,6 +72,7 @@ const Breakdown = styled.ul`
   li {
     display: flex;
     justify-content: space-between;
+    gap: 10px;
     font-size: 13px;
     color: ${(p) => p.theme.colors.textSecondary};
     font-variant-numeric: tabular-nums;
@@ -69,59 +84,14 @@ const Breakdown = styled.ul`
   }
 `;
 
-const RecipientList = styled.div`
-  max-height: 340px;
-  overflow-y: auto;
-  border-top: 1px solid ${(p) => p.theme.colors.border};
-  margin-top: 4px;
-`;
-
-const RecipientRow = styled.div<{ $excluded?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 2px;
-  border-bottom: 1px solid ${(p) => p.theme.colors.surfaceAlt};
-  opacity: ${(p) => (p.$excluded ? 0.5 : 1)};
-
-  &:last-child { border-bottom: none; }
-`;
-
-const RecipientName = styled.div`
-  font-size: 13px;
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.text};
-`;
-
-const RecipientMeta = styled.div`
-  font-size: 12px;
-  color: ${(p) => p.theme.colors.textMuted};
-`;
-
-const ExcludeBtn = styled.button`
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: ${(p) => p.theme.colors.textMuted};
-  font-size: 16px;
-  line-height: 1;
-  padding: 4px 6px;
-  border-radius: ${(p) => p.theme.radii.sm};
-  transition: all ${(p) => p.theme.transitions.fast};
-
-  &:hover {
-    background: ${(p) => p.theme.colors.errorLight};
-    color: ${(p) => p.theme.colors.error};
-  }
-`;
-
 const CostRow = styled.div`
   display: flex;
   justify-content: space-between;
+  gap: 10px;
   font-size: 13px;
   font-weight: ${(p) => p.theme.fontWeights.semibold};
   color: ${(p) => p.theme.colors.text};
+  margin-top: 14px;
   padding-top: 10px;
   border-top: 1px solid ${(p) => p.theme.colors.border};
   font-variant-numeric: tabular-nums;
@@ -130,23 +100,37 @@ const CostRow = styled.div`
 interface Props {
   estimate: AudienceEstimate | undefined;
   isEstimating: boolean;
-  audience: AudienceCriteria;
-  onChangeAudience?: (next: AudienceCriteria) => void;
   showCost?: boolean;
+  /** Kampania automatyczna bez wybranej usługi — liczba nie ma jeszcze o czym mówić. */
+  awaitingTrigger?: boolean;
 }
 
-export function AudienceEstimatePanel({ estimate, isEstimating, audience, onChangeAudience, showCost }: Props) {
+export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaitingTrigger }: Props) {
   const e = estimate;
 
   return (
     <Panel>
-      <BigNumber $dim={isEstimating}>{e ? e.eligible : '-'}</BigNumber>
+      <BigNumber $dim={isEstimating}>{awaitingTrigger ? '—' : e ? e.eligible : '—'}</BigNumber>
       <BigLabel>
-        Odbiorców dostanie wiadomość
-        <InfoTooltip text="Finalna liczba klientów po odjęciu wszystkich wykluczeń systemowych (brak zgody, brak kontaktu, STOP, limit częstości)." />
+        {e?.projectionHorizonDays ? 'Odezwiemy się do tylu klientów' : 'Odbiorców dostanie wiadomość'}
+        <InfoTooltip text="Finalna liczba klientów po odjęciu wszystkich wykluczeń systemowych (brak zgody, brak kontaktu, STOP, limit częstości) oraz odznaczonych ręcznie." />
       </BigLabel>
 
-      {e && (
+      {awaitingTrigger ? (
+        <HorizonNote>
+          Kampania automatyczna wychodzi od warunku, nie od filtrów. Wybierz usługę, po której
+          ma się odezwać — dopiero wtedy da się policzyć, kogo obejmie.
+        </HorizonNote>
+      ) : (
+        e?.projectionHorizonDays != null && (
+          <HorizonNote>
+            Prognoza na najbliższe <strong>{e.projectionHorizonDays} dni</strong>: tylu klientów
+            przejdzie w tym czasie przez warunek. Kampania działa dalej — to nie jest limit.
+          </HorizonNote>
+        )
+      )}
+
+      {e && !awaitingTrigger && (
         <Breakdown>
           <li>
             <BreakdownLabel>
@@ -191,49 +175,23 @@ export function AudienceEstimatePanel({ estimate, isEstimating, audience, onChan
               <strong>−{e.frequencyCapped}</strong>
             </li>
           )}
+          {e.excludedManually > 0 && (
+            <li>
+              <BreakdownLabel>
+                Odznaczeni ręcznie
+                <InfoTooltip text="Klienci, których odznaczyłeś w tabeli odbiorców. Odznaczenie zapisuje się razem z kampanią i przetrwa ponowne przeliczenie listy w dniu wysyłki." />
+              </BreakdownLabel>
+              <strong>−{e.excludedManually}</strong>
+            </li>
+          )}
         </Breakdown>
       )}
 
-      {showCost && e?.estimatedCredits != null && (
+      {showCost && !awaitingTrigger && e?.estimatedCredits != null && (
         <CostRow>
           <span>Szacowany koszt</span>
           <span>{e.estimatedCredits} kredytów SMS</span>
         </CostRow>
-      )}
-
-      {e && e.sample.length > 0 && (
-        <RecipientList>
-          {e.sample.map((c) => {
-            const excluded = c.eligibility !== 'ELIGIBLE';
-            return (
-              <RecipientRow key={c.customerId} $excluded={excluded}>
-                <div>
-                  <RecipientName>
-                    {[c.firstName, c.lastName].filter(Boolean).join(' ') || 'Klient'}
-                  </RecipientName>
-                  <RecipientMeta>
-                    {[c.phone ?? c.email, [c.vehicleBrand, c.vehicleModel].filter(Boolean).join(' ')]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </RecipientMeta>
-                </div>
-                {onChangeAudience && !excluded && (
-                  <ExcludeBtn
-                    title="Wyklucz z kampanii"
-                    onClick={() =>
-                      onChangeAudience({
-                        ...audience,
-                        excludeCustomerIds: [...audience.excludeCustomerIds, c.customerId],
-                      })
-                    }
-                  >
-                    ×
-                  </ExcludeBtn>
-                )}
-              </RecipientRow>
-            );
-          })}
-        </RecipientList>
       )}
     </Panel>
   );

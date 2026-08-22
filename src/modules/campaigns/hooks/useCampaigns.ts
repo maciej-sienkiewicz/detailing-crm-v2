@@ -2,11 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import * as api from '../api/campaignsApi';
 import type {
-  AudienceCriteria,
   AudienceEstimate,
+  AudienceEstimateParams,
   CampaignRequest,
   CampaignSettings,
-  RecipientChannel,
   RecipientStatus,
 } from '../types';
 
@@ -85,29 +84,42 @@ export const useArchiveCampaign = () => useInvalidatingMutation(api.archiveCampa
 export const useDuplicateCampaign = () => useInvalidatingMutation(api.duplicateCampaign);
 
 /**
- * Estymacja odbiorców z debounce 500 ms: licznik w kreatorze przelicza się
- * podczas edycji filtrów, poprzednia wartość zostaje na czas przeliczania
+ * Estymacja odbiorców z debounce 500 ms: licznik i tabela w kreatorze przeliczają
+ * się podczas edycji filtrów, poprzednia wartość zostaje na czas przeliczania
  * (placeholderData), więc liczba nie znika ani nie skacze.
+ *
+ * Zwracane `appliedKey` to podpis parametrów, na których policzono aktualny wynik.
+ * Kreator poznaje po nim moment, w którym lista naprawdę się odświeżyła, i dopiero
+ * wtedy pyta, co zrobić z ręcznymi odznaczeniami — bez tego pytanie wyskakiwałoby
+ * po każdym naciśnięciu klawisza w polu filtra.
+ *
+ * Stronicowanie celowo NIE jest opóźniane: przewracanie strony to gest, nie pisanie,
+ * a pół sekundy zwłoki przy kliknięciu „dalej" czuć od razu.
  */
-export function useAudienceEstimate(
-  audience: AudienceCriteria,
-  channel: RecipientChannel,
-  smsTemplate?: string
-) {
-  const [debounced, setDebounced] = useState(audience);
+export function useAudienceEstimate(params: AudienceEstimateParams) {
+  const { sampleOffset, ...slow } = params;
+  // Sygnaturą jest treść parametrów, nie tożsamość obiektu: kreator odtwarza obiekt
+  // kryteriów przy każdym renderze, a to nie jest zmiana filtra.
+  const slowKey = JSON.stringify(slow);
+  const [debouncedKey, setDebouncedKey] = useState(slowKey);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(audience), 500);
+    const timer = setTimeout(() => setDebouncedKey(slowKey), 500);
     return () => clearTimeout(timer);
-  }, [audience]);
+  }, [slowKey]);
+
+  const applied: AudienceEstimateParams = {
+    ...(JSON.parse(debouncedKey) as Omit<AudienceEstimateParams, 'sampleOffset'>),
+    sampleOffset,
+  };
 
   const { data, isFetching } = useQuery<AudienceEstimate>({
-    queryKey: ['campaigns', 'estimate', debounced, channel, smsTemplate ?? ''],
-    queryFn: () => api.estimateAudience(debounced, channel, smsTemplate),
+    queryKey: ['campaigns', 'estimate', debouncedKey, sampleOffset ?? 0],
+    queryFn: () => api.estimateAudience(applied),
     placeholderData: (prev) => prev,
   });
 
-  return { estimate: data, isEstimating: isFetching };
+  return { estimate: data, isEstimating: isFetching, appliedKey: debouncedKey };
 }
 
 export function useCampaignSettings() {

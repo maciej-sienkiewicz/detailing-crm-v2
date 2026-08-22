@@ -17,7 +17,9 @@ export type RecipientStatus =
 export type CustomerTypeFilter = 'ALL' | 'INDIVIDUAL' | 'COMPANY';
 
 export type AudienceEligibility =
-  | 'ELIGIBLE' | 'OPTED_OUT' | 'NO_CONSENT' | 'NO_ADDRESS' | 'FREQUENCY_CAP';
+  | 'ELIGIBLE' | 'OPTED_OUT' | 'NO_CONSENT' | 'NO_ADDRESS' | 'FREQUENCY_CAP'
+  /** Odznaczony ręcznie w kreatorze — widoczny na liście, poza wysyłką. */
+  | 'EXCLUDED_MANUALLY';
 
 export interface VehicleBrandFilter {
   brand: string;
@@ -123,9 +125,39 @@ export interface AudienceEstimate {
   noAddress: number;
   frequencyCapped: number;
   eligible: number;
+  /** Odznaczeni ręcznie — wliczeni do `matched`, ale nie do `eligible`. */
+  excludedManually: number;
   estimatedSmsSegments: number | null;
   estimatedCredits: number | null;
+  /** Jedna strona listy odbiorców — całość liczy `matched`. */
   sample: AudienceCustomer[];
+  sampleOffset: number;
+  /** Okno prognozy dla kampanii automatycznej (dni); null dla jednorazowej. */
+  projectionHorizonDays: number | null;
+}
+
+/**
+ * Warunek kampanii automatycznej w wersji „na próbę".
+ *
+ * Osobny od [TriggerConfig], bo kreator pyta o prognozę także wtedy, gdy usługa nie
+ * jest jeszcze wybrana — a warunek bez usługi nie jest poprawnym [TriggerConfig].
+ */
+export interface AudienceTriggerProjection {
+  serviceIds: string[];
+  afterDays: number;
+  onlyIfNoVisitSince: boolean;
+  /** Ile dni w przód obejmuje prognoza. */
+  horizonDays: number;
+}
+
+/** Parametry pytania „kto to dostanie" — jeden obiekt, bo jest ich już sześć. */
+export interface AudienceEstimateParams {
+  audience: AudienceCriteria;
+  channel: RecipientChannel;
+  smsTemplate?: string;
+  trigger?: AudienceTriggerProjection | null;
+  sampleLimit?: number;
+  sampleOffset?: number;
 }
 
 export interface CampaignRecipient {

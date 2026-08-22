@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Mail, MessageSquare } from 'lucide-react';
 import { smsMeta } from '../utils/sms';
-import type { Campaign } from '../types';
+import type { CampaignChannel } from '../types';
 
 // Podstawiane wartości w podglądzie, dają klientowi realistyczny obraz
 // tego, co dostanie odbiorca. Nie idą nigdzie na backend.
@@ -260,22 +260,41 @@ const EmptyState = styled.div`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
-  campaign: Campaign;
+  smsTemplate?: string | null;
+  emailSubject?: string | null;
+  emailBody?: string | null;
+  /**
+   * Kanał wymuszający ramkę podglądu, nawet gdy treści jeszcze nie ma.
+   *
+   * W kreatorze podgląd stoi obok edytora i wypełnia się w trakcie pisania — pusta
+   * ramka pokazuje, gdzie wyląduje tekst. W oknie gotowej kampanii nie ma czego
+   * wymuszać: pokazujemy to, co w niej naprawdę jest.
+   */
+  channel?: CampaignChannel;
+  /**
+   * `stacked` układa kanały jeden pod drugim niezależnie od szerokości okna —
+   * dla wąskiej kolumny podglądu w kreatorze, której zapytanie o szerokość ekranu
+   * i tak nie widzi.
+   */
+  layout?: 'auto' | 'stacked';
 }
 
-export function ContentPreview({ campaign }: Props) {
-  const hasSms = !!campaign.smsTemplate?.trim();
-  const hasEmail = !!(campaign.emailSubject?.trim() || campaign.emailBody?.trim());
+export function ContentPreview({
+  smsTemplate,
+  emailSubject: subject,
+  emailBody: body,
+  channel,
+  layout = 'auto',
+}: Props) {
+  const hasSms = !!smsTemplate?.trim() || channel === 'SMS' || channel === 'BOTH';
+  const hasEmail = !!(subject?.trim() || body?.trim()) || channel === 'EMAIL' || channel === 'BOTH';
 
-  const smsBody = useMemo(() => renderPlaceholders(campaign.smsTemplate), [campaign.smsTemplate]);
-  const emailSubject = useMemo(() => renderPlaceholders(campaign.emailSubject), [campaign.emailSubject]);
-  const emailBody = useMemo(() => renderPlaceholders(campaign.emailBody), [campaign.emailBody]);
-  const smsInfo = useMemo(
-    () => (campaign.smsTemplate ? smsMeta(campaign.smsTemplate) : null),
-    [campaign.smsTemplate],
-  );
+  const smsBody = useMemo(() => renderPlaceholders(smsTemplate), [smsTemplate]);
+  const emailSubject = useMemo(() => renderPlaceholders(subject), [subject]);
+  const emailBody = useMemo(() => renderPlaceholders(body), [body]);
+  const smsInfo = useMemo(() => (smsTemplate ? smsMeta(smsTemplate) : null), [smsTemplate]);
 
-  const cols: 1 | 2 = hasSms && hasEmail ? 2 : 1;
+  const cols: 1 | 2 = hasSms && hasEmail && layout === 'auto' ? 2 : 1;
 
   if (!hasSms && !hasEmail) {
     return (

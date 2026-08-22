@@ -1,4 +1,4 @@
-import type { CampaignStatus, RecipientStatus } from './types';
+import type { AudienceEligibility, CampaignStatus, RecipientStatus } from './types';
 
 // ─── Słownik statusów (język rozdziela światy: jednorazowe "zaplanowane/wysłane",
 //     automatyczne "działa/wstrzymana", patrz docs/campaigns-module-views.md §2) ──
@@ -84,3 +84,22 @@ export const PLACEHOLDERS: { token: string; label: string }[] = [
 
 /** Poniżej tego progu doładowanie przestaje być formalnością — mówimy o tym wprost. */
 export const LOW_CREDITS_THRESHOLD = 200;
+
+/**
+ * Dlaczego ktoś z listy nie dostanie wiadomości. Jedno zdanie na powód — bo to
+ * jedyna odpowiedź na pytanie „czemu wyszło mniej, niż się spodziewałem".
+ */
+export const ELIGIBILITY_LABELS: Record<AudienceEligibility, string> = {
+  ELIGIBLE: 'Otrzyma',
+  NO_CONSENT: 'Brak zgody marketingowej',
+  NO_ADDRESS: 'Brak numeru / adresu',
+  OPTED_OUT: 'Wypisany (STOP)',
+  FREQUENCY_CAP: 'Niedawno kontaktowany',
+  EXCLUDED_MANUALLY: 'Odznaczony ręcznie',
+};
+
+/** Ile odbiorców pokazuje jedna strona tabeli w kreatorze. */
+export const AUDIENCE_PAGE_SIZE = 25;
+
+/** Ile dni w przód patrzy prognoza kampanii automatycznej. */
+export const TRIGGER_HORIZON_DAYS = 30;

@@ -388,11 +388,20 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
      */
     const projectionAudience: AudienceCriteria = campaign?.audience ?? emptyAudience();
     const projectionChannel: RecipientChannel = campaign?.channel === 'EMAIL' ? 'EMAIL' : 'SMS';
-    const { estimate } = useAudienceEstimate(
-        projectionAudience,
-        projectionChannel,
-        campaign?.smsTemplate ?? undefined,
-    );
+    const { estimate } = useAudienceEstimate({
+        audience: projectionAudience,
+        channel: projectionChannel,
+        smsTemplate: campaign?.smsTemplate ?? undefined,
+        // Kampania automatyczna: pierwszym sitem jest warunek, nie kryteria odbiorców.
+        trigger: campaign?.kind === 'AUTOMATIC' && campaign.trigger
+            ? {
+                serviceIds: campaign.trigger.serviceIds,
+                afterDays: campaign.trigger.afterDays,
+                onlyIfNoVisitSince: campaign.trigger.onlyIfNoVisitSince,
+                horizonDays: 30,
+            }
+            : null,
+    });
 
     const filteredRecipients = useMemo(() => {
         if (!search.trim()) return recipients;
@@ -575,7 +584,11 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             <Column>
                                 {/* Powierzchnia robocza: to, co klient naprawdę zobaczy. */}
                                 <Panel>
-                                    <ContentPreview campaign={c} />
+                                    <ContentPreview
+                                        smsTemplate={c.smsTemplate}
+                                        emailSubject={c.emailSubject}
+                                        emailBody={c.emailBody}
+                                    />
                                 </Panel>
 
                                 <Panel>
