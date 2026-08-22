@@ -9,6 +9,7 @@ import { ArrowRight, BarChart3, Loader2, Search } from 'lucide-react';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { formatMoney } from '../components/analytics/tokens';
+import { buildPeriod } from '../components/analytics/period';
 import { useLeadAnalytics, useLeads, useLeadsSocket } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
@@ -413,9 +414,14 @@ export default function LeadsView() {
     // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
     // zamienia się w wynik bez odświeżania strony.
     useLeadsSocket();
-    // Zaległości do paska nad listą. Ta sama pamięć podręczna co w analityce,
-    // więc przejście między widokami nie kosztuje drugiego zapytania.
-    const { data: analytics } = useLeadAnalytics(30);
+    /*
+     * Zaległości do paska nad listą. Okres bieżącego miesiąca, ten sam co domyślny
+     * w analityce — dzięki temu przejście między widokami trafia w tę samą pamięć
+     * podręczną i nie kosztuje drugiego zapytania. Same zaległości i tak liczą się
+     * poza oknem, więc wybór okresu na nie nie wpływa.
+     */
+    const [statsPeriod] = useState(() => buildPeriod('current', new Date()));
+    const { data: analytics } = useLeadAnalytics(statsPeriod.from, statsPeriod.to);
     const owed = analytics?.awaiting;
 
     const openCellEditor = (

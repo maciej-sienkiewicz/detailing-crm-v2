@@ -8,16 +8,60 @@
 // kłamie: miesiąc z dziesięcioma przegranymi praniami tapicerki i jedną wygraną
 // powłoką to dziewięć procent i świetny miesiąc.
 import type { ReactNode } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import { ChevronRight } from 'lucide-react';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { cardEntrance } from '@/modules/statistics/components/shared/animations';
 import { LOST, OPEN, WON } from './tokens';
+
+/**
+ * Wspólna powierzchnia robocza: biała karta z hairline'ową ramką, promieniem 14px
+ * i miękkim cieniem — dokładnie ta sama, którą ma moduł statystyk.
+ *
+ * Sekcje bez tła kładły treść wprost na teksturze heksagonów z tła aplikacji.
+ * Tekstura jest tam po to, żeby coś się delikatnie działo POD interfejsem, a nie
+ * pod zdaniem, które ktoś czyta — litery na wzorze męczą przy pierwszym akapicie.
+ * Osobno: karta niesie informację o głębi. Biel z ramką mówi „to jest powierzchnia
+ * robocza", tło strony mówi „to jest kontekst". Bez tej różnicy wszystko leży
+ * na jednym planie i nic nie jest ważniejsze.
+ */
+const surface = css`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    ${cardEntrance}
+`;
 
 // ── Zdanie-bohater ──────────────────────────────────────────────────────────
 
-const HeroBand = styled.section`
+const HeroBand = styled.section<{ $urgent: boolean }>`
+    ${surface}
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 4px 0 8px;
+    padding: 26px 28px 24px;
+
+    /*
+     * Czerwona listwa przy krawędzi, gdy jest zaległość — ten sam znak pilności,
+     * co przy wierszu tabeli leadów. Kto nauczył się go tam, rozumie go tutaj bez
+     * tłumaczenia, a listwa nie zabiera ani piksela szerokości treści.
+     */
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: ${p => (p.$urgent ? p.theme.colors.error : p.theme.colors.success)};
+    }
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        padding: 20px 18px 18px;
+    }
 `;
 
 const HeroLead = styled.span`
@@ -93,11 +137,13 @@ interface HeroProps {
     action?: ReactNode;
     reward?: string;
     note?: ReactNode;
+    /** Jest zaległość — listwa przy krawędzi robi się czerwona. */
+    urgent?: boolean;
 }
 
-export function Hero({ lead, amount, body, action, reward, note }: HeroProps) {
+export function Hero({ lead, amount, body, action, reward, note, urgent = false }: HeroProps) {
     return (
-        <HeroBand>
+        <HeroBand $urgent={urgent}>
             <HeroLead>{lead}</HeroLead>
             <HeroAmount>{amount}</HeroAmount>
             <HeroBody>{body}</HeroBody>
@@ -115,26 +161,44 @@ export function Hero({ lead, amount, body, action, reward, note }: HeroProps) {
 // ── Rachunek zapytań: jedna belka pieniędzy ─────────────────────────────────
 
 const LedgerBox = styled.section`
+    ${surface}
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 18px 20px 20px;
+    gap: 16px;
+    padding: 22px 24px 24px;
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 14px;
+        padding: 18px 16px;
     }
 `;
 
+/** Nagłówek karty w języku modułu statystyk: mały, wersalikami, wygaszony. */
 const LedgerTitle = styled.h3`
     margin: 0;
-    font-size: 15px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${p => p.theme.colors.text};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: ${st.textMuted};
+`;
 
-    strong { font-weight: ${p => p.theme.fontWeights.bold}; }
+const LedgerTotal = styled.p`
+    margin: 0;
+    font-size: 26px;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    letter-spacing: -0.02em;
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+
+    span {
+        display: block;
+        font-size: 12.5px;
+        font-weight: ${p => p.theme.fontWeights.normal};
+        letter-spacing: 0;
+        color: ${st.textMuted};
+        margin-top: 2px;
+    }
 `;
 
 /**
@@ -145,57 +209,71 @@ const LedgerTitle = styled.h3`
  */
 const Bar = styled.div`
     display: flex;
-    /* Dwa piksele tła między odcinkami — bez szczeliny granica gubi się dokładnie
+    /* Trzy piksele tła między odcinkami — bez szczeliny granica gubi się dokładnie
        tam, gdzie siedzi cała treść. */
-    gap: 2px;
-    height: 22px;
+    gap: 3px;
+    height: 30px;
 `;
 
-const Kept = styled.div`
-    background: ${WON};
-    border-radius: 4px;
-    min-width: 3px;
+const Segment = styled.div`
+    border-radius: 7px;
+    min-width: 4px;
+    transition: filter 160ms ease, transform 160ms ease;
+
+    &:hover { filter: brightness(0.94); }
 `;
 
-const InPlay = styled.div`
+/**
+ * Pionowy gradient w obrębie JEDNEGO odcienia, nie tęcza. To jest zwykłe
+ * cieniowanie bryły — nadaje paskowi materialność, której płaski prostokąt nie ma,
+ * i nie koduje przy tym żadnej dodatkowej informacji, więc niczego nie zaciemnia.
+ */
+const Kept = styled(Segment)`
+    background: linear-gradient(180deg, #3b82f6 0%, ${WON} 100%);
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.28);
+`;
+
+const InPlay = styled(Segment)`
     /* Wygaszone wypełnienie: to są pieniądze, których jeszcze nie masz. */
-    background: ${OPEN};
-    border-radius: 4px;
-    min-width: 3px;
+    background: linear-gradient(180deg, #dbe3ee 0%, ${OPEN} 100%);
 `;
 
 /**
  * Strata jako dziura, nie jako blok. Sam kontur z pustym środkiem czyta się jak
  * brak, a nie jak trzeci wynik — i to jest dokładnie to, czym jest.
  */
-const Gone = styled.div`
-    border: 1.5px solid ${LOST};
+const Gone = styled(Segment)`
+    border: 1px solid ${LOST}66;
     background: repeating-linear-gradient(
         135deg,
-        transparent,
-        transparent 5px,
-        ${LOST}22 5px,
-        ${LOST}22 7px
+        ${LOST}0d,
+        ${LOST}0d 6px,
+        ${LOST}26 6px,
+        ${LOST}26 9px
     );
-    border-radius: 4px;
-    min-width: 3px;
 `;
 
+/**
+ * Podpisy siedzą pod swoimi odcinkami, a nie w równej siatce trzech kolumn.
+ * Ta sama szerokość co odcinek nad nimi wiąże etykietę z paskiem prawem
+ * bliskości — w równej siatce „Poszło do konkurencji" stało pod środkiem
+ * odcinka „w grze" i trzeba było wodzić wzrokiem w górę i w dół, żeby sprawdzić,
+ * co do czego należy.
+ */
 const Keys = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    display: flex;
+    gap: 3px;
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        grid-template-columns: 1fr;
-        gap: 6px;
+        flex-direction: column;
+        gap: 10px;
     }
 `;
 
 const Key = styled.div<{ $clickable?: boolean }>`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
     text-align: left;
     border: none;
@@ -212,23 +290,39 @@ const Key = styled.div<{ $clickable?: boolean }>`
         color: ${p => p.theme.colors.textMuted};
     }
     .amount {
-        font-size: 19px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 20px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        color: ${st.text};
         font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
     }
-    &:hover .amount {
-        text-decoration: ${p => (p.$clickable ? 'underline' : 'none')};
+    .amount svg {
+        width: 15px;
+        height: 15px;
+        color: ${st.textMuted};
+        opacity: 0;
+        transition: opacity 160ms ease, transform 160ms ease;
+    }
+    &:hover .amount svg { opacity: 1; transform: translateX(2px); }
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
     }
 `;
 
 const Swatch = styled.i<{ $kind: 'kept' | 'play' | 'gone' }>`
     width: 10px;
     height: 10px;
-    border-radius: 2px;
+    border-radius: 3px;
     flex-shrink: 0;
     background: ${p => (p.$kind === 'kept' ? WON : p.$kind === 'play' ? OPEN : 'transparent')};
-    border: ${p => (p.$kind === 'gone' ? `1.5px solid ${LOST}` : 'none')};
+    border: ${p => (p.$kind === 'gone' ? `1px solid ${LOST}99` : 'none')};
 `;
 
 const Delta = styled.p`
@@ -251,21 +345,31 @@ export function MoneyLedger({ total, kept, inPlay, gone, delta }: LedgerProps) {
 
     return (
         <LedgerBox>
-            <LedgerTitle>
-                Przez Twoje drzwi przeszło <strong>{total}</strong>
-            </LedgerTitle>
+            <LedgerTitle>Rachunek zapytań</LedgerTitle>
+            <LedgerTotal>
+                {total}
+                <span>tyle pieniędzy przeszło przez Twoje drzwi w tym okresie</span>
+            </LedgerTotal>
 
             <Bar aria-hidden>
-                {kept.raw > 0 && <Kept style={{ width: share(kept.raw) }} />}
-                {inPlay.raw > 0 && <InPlay style={{ width: share(inPlay.raw) }} />}
-                {gone.raw > 0 && <Gone style={{ width: share(gone.raw) }} />}
+                {kept.raw > 0 && (
+                    <Kept style={{ width: share(kept.raw) }} title={`Zatrzymałeś ${kept.amount}`} />
+                )}
+                {inPlay.raw > 0 && (
+                    <InPlay style={{ width: share(inPlay.raw) }} title={`Wciąż w grze ${inPlay.amount}`} />
+                )}
+                {gone.raw > 0 && (
+                    <Gone style={{ width: share(gone.raw) }} title={`Poszło do konkurencji ${gone.amount}`} />
+                )}
             </Bar>
 
             {/* Kwoty podpisane wprost przy każdym odcinku: kolor nigdy nie niesie
                 znaczenia sam, więc belka działa też wydrukowana i dla kogoś, kto
                 tych barw nie rozróżnia. */}
+            {/* Szerokość podpisu = szerokość jego odcinka, z podłogą, żeby wąski
+                odcinek nie ścisnął etykiety do wielokropka. */}
             <Keys>
-                <Key as="div">
+                <Key as="div" style={{ flex: `1 1 ${share(kept.raw)}`, minWidth: 120 }}>
                     <span className="name"><Swatch $kind="kept" /> Zatrzymałeś</span>
                     <span className="amount">{kept.amount}</span>
                 </Key>
@@ -274,18 +378,26 @@ export function MoneyLedger({ total, kept, inPlay, gone, delta }: LedgerProps) {
                     type={inPlay.onClick ? 'button' : undefined}
                     $clickable={Boolean(inPlay.onClick)}
                     onClick={inPlay.onClick}
+                    style={{ flex: `1 1 ${share(inPlay.raw)}`, minWidth: 120 }}
                 >
                     <span className="name"><Swatch $kind="play" /> Wciąż w grze</span>
-                    <span className="amount">{inPlay.amount}</span>
+                    <span className="amount">
+                        {inPlay.amount}
+                        {inPlay.onClick && <ChevronRight />}
+                    </span>
                 </Key>
                 <Key
                     as={gone.onClick ? 'button' : 'div'}
                     type={gone.onClick ? 'button' : undefined}
                     $clickable={Boolean(gone.onClick)}
                     onClick={gone.onClick}
+                    style={{ flex: `1 1 ${share(gone.raw)}`, minWidth: 150 }}
                 >
                     <span className="name"><Swatch $kind="gone" /> Poszło do konkurencji</span>
-                    <span className="amount">{gone.amount}</span>
+                    <span className="amount">
+                        {gone.amount}
+                        {gone.onClick && <ChevronRight />}
+                    </span>
                 </Key>
             </Keys>
 
@@ -297,42 +409,56 @@ export function MoneyLedger({ total, kept, inPlay, gone, delta }: LedgerProps) {
 // ── Gdzie wyciekły pieniądze ────────────────────────────────────────────────
 
 const LeakBox = styled.section`
+    ${surface}
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    /* Węższa niż strona z rozmysłem: na pełnej szerokości między nazwą powodu
-       a kwotą zostaje pół ekranu pustego toru i wzrok musi przez nie przejechać
-       przy każdym wierszu. To jest pionowy trzon F-patternu, nie belka. */
-    max-width: 780px;
+    gap: 4px;
+    padding: 22px 24px 16px;
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        padding: 18px 16px 12px;
+    }
 `;
 
 const LeakTitle = styled.h3`
-    margin: 0;
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textMuted};
 `;
 
 const LeakRow = styled.button`
     display: grid;
-    grid-template-columns: minmax(120px, 210px) minmax(0, 1fr) minmax(104px, auto);
+    grid-template-columns: minmax(120px, 220px) minmax(0, 1fr) minmax(104px, auto) 16px;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
     text-align: left;
     border: none;
     background: none;
-    padding: 7px 0;
+    padding: 12px 8px;
+    margin: 0 -8px;
+    border-radius: ${st.radiusSm};
     font: inherit;
     font-size: 13px;
     color: ${p => p.theme.colors.textSecondary};
     cursor: pointer;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    border-bottom: 1px solid ${st.border};
+    transition: background 160ms ease;
 
-    &:last-child { border-bottom: none; }
-    &:hover .amount { text-decoration: underline; }
+    &:last-of-type { border-bottom: none; }
+    &:hover { background: ${st.bgCardAlt}; }
+    &:hover .go { opacity: 1; transform: translateX(2px); }
+
+    .go {
+        width: 16px;
+        height: 16px;
+        color: ${st.textMuted};
+        opacity: 0;
+        transition: opacity 160ms ease, transform 160ms ease;
+    }
 
     .name {
         color: ${p => p.theme.colors.text};
@@ -358,21 +484,22 @@ const LeakRow = styled.button`
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
         grid-template-columns: minmax(0, 1fr) minmax(88px, auto);
-        .track { display: none; }
+        gap: 10px;
+        .track, .go { display: none; }
     }
 `;
 
 const LeakTrack = styled.div`
-    height: 8px;
-    border-radius: 4px;
-    background: ${p => p.theme.colors.surfaceAlt};
+    height: 10px;
+    border-radius: 5px;
+    background: ${st.bgCardAlt};
     overflow: hidden;
 `;
 
 const LeakFill = styled.div`
     height: 100%;
-    border-radius: 4px;
-    background: ${LOST};
+    border-radius: 5px;
+    background: linear-gradient(180deg, #ef4444 0%, ${LOST} 100%);
 `;
 
 interface LeakListProps {
@@ -393,7 +520,7 @@ export function LeakList({ rows, onPick }: LeakListProps) {
     const max = Math.max(1, ...rows.map(r => r.raw));
     return (
         <LeakBox>
-            <LeakTitle>Gdzie wyciekły te pieniądze</LeakTitle>
+            <LeakTitle>Dlaczego utraciliśmy te pieniądze</LeakTitle>
             {rows.map((row) => (
                 <LeakRow key={row.code} type="button" onClick={() => onPick?.(row.code)}>
                     <span className="name">{row.label}</span>
@@ -404,6 +531,7 @@ export function LeakList({ rows, onPick }: LeakListProps) {
                         {row.amount}
                         <span className="count">{row.count}</span>
                     </span>
+                    <ChevronRight className="go" />
                 </LeakRow>
             ))}
         </LeakBox>

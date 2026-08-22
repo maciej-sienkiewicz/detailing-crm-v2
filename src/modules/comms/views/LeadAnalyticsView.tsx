@@ -22,6 +22,25 @@
 // Ekran się KOŃCZY. Żadnego nieskończonego strumienia kart: taki, który ma koniec,
 // zostaje przeczytany, a taki bez końca zostaje przewinięty.
 //
+// ── Reguły dołożone przy przeprojektowaniu ─────────────────────────────────
+//
+//  8. Jedna karta = jedno pytanie = jedna odpowiedź zdaniem. Karta bez zdania
+//     jest surowcem, nie produktem — analizę zostawia czytelnikowi.
+//  9. Prawo Millera: najwyżej 3–4 obiekty do porównania naraz. Sześć wykresów
+//     obok siebie to nie wybór, tylko paraliż — dlatego materiał pogłębiony
+//     idzie zakładkami, po jednym pytaniu na ekran.
+// 10. Prawo bliskości rządzi kartami: odstęp MIĘDZY grupami wyraźnie większy
+//     niż wewnątrz grupy, inaczej wszystko czyta się jako jedna ściana.
+// 11. Karta niesie głębię. Biel z ramką = powierzchnia robocza, tło strony =
+//     kontekst. Treść położona wprost na teksturze tła nie ma ani jednego,
+//     ani drugiego — i męczy przy pierwszym akapicie.
+// 12. Okres jest właściwością widoku, nie sekcją w nim. Miejsce ma w nagłówku,
+//     obok tytułu, a nie jako pasek, który zabiera pierwszy ruch wzroku kwocie.
+// 13. Zakresy nazywają się tak, jak nazywa je użytkownik. „Ostatnie 90 dni" nie
+//     odpowiada żadnemu wydarzeniu w roku właściciela firmy; miesiąc odpowiada
+//     każdemu — księgowa, podatek, pensje i ZUS chodzą w tym rytmie.
+// 14. Ruch tylko jako informacja: wejście karty tak, tańczący wykres nie.
+//
 // ── Czego tu świadomie nie ma ──────────────────────────────────────────────
 //
 // • Rzędu sześciu kafli o równej wadze. Jeśli wszystko jest wyróżnione, nic nie
@@ -38,11 +57,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useLeadAnalytics } from '../hooks/useLeads';
 import type { LeadAnalytics } from '../types';
-import { EmptyHint, FilterChip, PrimaryButton } from '../components/shared';
+import { EmptyHint, PrimaryButton } from '../components/shared';
+import { PeriodPicker } from '../components/analytics/PeriodPicker';
+import { buildPeriod, type Period } from '../components/analytics/period';
 import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
 import {
     AnalyticsCard,
@@ -79,64 +101,75 @@ const ViewContainer = styled.main`
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
-const RangeRow = styled.div`
+/**
+ * Pasmo pogłębione — nagłówek sekcji, który mówi, że tu kończy się „dziś",
+ * a zaczyna „przy okazji". Odstęp nad nim jest wyraźnie większy niż odstępy
+ * między kartami wyżej: prawo bliskości robi z tego osobną grupę bez rysowania
+ * ani jednej kreski więcej.
+ */
+const DeepHeading = styled.div`
+    margin-top: 18px;
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
+    flex-direction: column;
+    gap: 4px;
 
-/** Pasmo 3 i 4 rozdzielone kreską, nie odstępem: tu kończy się „dziś", zaczyna „kiedyś". */
-const Divider = styled.hr`
-    margin: 6px 0 0;
-    border: none;
-    border-top: 1px solid ${p => p.theme.colors.border};
+    h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${st.text};
+    }
+    p {
+        margin: 0;
+        font-size: 13px;
+        color: ${st.textMuted};
+    }
 `;
 
 /**
- * Czytanie tygodniowe — zwinięte domyślnie.
+ * Zakładki zamiast siatki kart.
  *
- * Te dane są prawdziwe i czasem cenne, ale żadna z nich nie zmienia pieniędzy
- * w ciągu tygodnia. Rozłożone na pierwszym ekranie rozmyłyby jedyne trzy liczby,
- * które to potrafią; schowane za jednym kliknięciem nic nie tracą.
+ * Sześć wykresów obok siebie nie jest wyborem, tylko paraliżem: wzrok nie ma
+ * gdzie usiąść, bo nic nie jest ważniejsze od reszty. Jedno pytanie na ekran
+ * przywraca zasadę „jeden dominujący element", a nic nie ginie — wszystko jest
+ * o jedno kliknięcie dalej i podpisane pytaniem, którego dotyczy.
  */
-const MoreToggle = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    align-self: flex-start;
-    border: none;
-    background: none;
-    padding: 0;
-    font: inherit;
+const Tabs = styled.div`
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+`;
+
+const Tab = styled.button<{ $active: boolean }>`
+    border: 1px solid ${p => (p.$active ? 'transparent' : st.border)};
+    background: ${p => (p.$active ? st.text : st.bgCard)};
+    color: ${p => (p.$active ? '#f8fafc' : st.textSecondary)};
+    font-family: inherit;
     font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${p => p.theme.colors.textSecondary};
+    font-weight: ${p => (p.$active ? p.theme.fontWeights.semibold : p.theme.fontWeights.medium)};
+    padding: 9px 16px;
+    border-radius: ${st.radiusFull};
+    white-space: nowrap;
     cursor: pointer;
+    transition: all 160ms ease;
 
-    svg {
-        width: 15px;
-        height: 15px;
-        transition: transform ${p => p.theme.transitions.fast};
-    }
-    &[aria-expanded='true'] svg { transform: rotate(180deg); }
-    &:hover { color: ${p => p.theme.colors.text}; }
+    &:hover { border-color: ${p => (p.$active ? 'transparent' : st.borderHover)}; }
 `;
 
-const QuietGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 16px;
-    align-items: start;
-`;
+const WideCard = styled(AnalyticsCard)``;
 
-const WideCard = styled(AnalyticsCard)`
-    grid-column: 1 / -1;
-`;
-
+/**
+ * Dwa rysunki obok siebie, rozdzielone kreską. Bez niej czternaście słupków
+ * czyta się jako jeden wykres, a to są dwie różne serie z dwiema różnymi
+ * skalami — „kiedy pytają" i „kiedy się decydują" nie mają wspólnego maksimum.
+ */
 const SplitCharts = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 28px;
 
     h4 {
         margin: 0 0 8px;
@@ -148,7 +181,14 @@ const SplitCharts = styled.div`
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
         grid-template-columns: 1fr;
         gap: 18px;
+        .rule { display: none; }
     }
+`;
+
+const SplitRule = styled.span.attrs({ className: 'rule', 'aria-hidden': true })`
+    display: block;
+    align-self: stretch;
+    background: ${st.border};
 `;
 
 const TrendStack = styled.div`
@@ -192,12 +232,6 @@ const OutlierList = styled.div`
     gap: 8px;
 `;
 
-const RANGES = [
-    { key: '30', label: '30 dni', days: 30 },
-    { key: '90', label: '90 dni', days: 90 },
-    { key: '365', label: 'Rok', days: 365 },
-] as const;
-
 /** Poniżej tylu zapytań każdy „najczęstszy dzień" jest przypadkiem, nie prawidłowością. */
 const MIN_LEADS_FOR_RHYTHM = 20;
 
@@ -214,45 +248,43 @@ const peakOf = (stats: { count: number }[]): { index: number; count: number } | 
 };
 
 export default function LeadAnalyticsView() {
-    const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]['key']>('30');
-    const range = RANGES.find((entry) => entry.key === rangeKey)!;
-    const { data, isLoading } = useLeadAnalytics(range.days);
+    // Okres ustalany raz, przy wejściu. „Ten miesiąc" jest domyślny, bo to jest
+    // pytanie, które właściciel zadaje sobie najczęściej: jak mi idzie TERAZ.
+    const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
+    const { data, isLoading } = useLeadAnalytics(period.from, period.to);
+
+    // Trend rysujemy miesiącami dopiero przy zakresie dłuższym niż kwartał —
+    // rok w tygodniach to 52 słupki, w których ginie kształt.
+    const monthly = period.to.getTime() - period.from.getTime() > 120 * 24 * 3600 * 1000;
 
     return (
         <ViewContainer>
+            {/* Okres siedzi w nagłówku, bo jest właściwością całego widoku, tak
+                samo jak jego tytuł. Jako pasek pod spodem zabierał pierwszy ruch
+                wzroku kwocie, która ma go dostać. */}
             <PageHeader
                 title="Pieniądze w zapytaniach"
-                subtitle={`Rachunek za ostatnie ${range.key === '365' ? '12 miesięcy' : range.label}`}
+                subtitle={`Rachunek za ${period.label}`}
                 actions={
-                    <Link to="/leads">
-                        <PageHeaderGhostButton as="span">
-                            <ArrowLeft /> Wróć do leadów
-                        </PageHeaderGhostButton>
-                    </Link>
+                    <>
+                        <PeriodPicker value={period} onChange={setPeriod} />
+                        <Link to="/leads">
+                            <PageHeaderGhostButton as="span">
+                                <ArrowLeft /> Leady
+                            </PageHeaderGhostButton>
+                        </Link>
+                    </>
                 }
             />
 
-            <RangeRow>
-                {RANGES.map((entry) => (
-                    <FilterChip
-                        key={entry.key}
-                        $active={rangeKey === entry.key}
-                        onClick={() => setRangeKey(entry.key)}
-                    >
-                        {entry.label}
-                    </FilterChip>
-                ))}
-            </RangeRow>
-
             {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
-            {data && <Report data={data} monthly={range.key === '365'} />}
+            {data && <Report data={data} monthly={monthly} />}
         </ViewContainer>
     );
 }
 
 function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     const navigate = useNavigate();
-    const [moreOpen, setMoreOpen] = useState(false);
 
     const { awaiting } = data;
     const total = data.wonValue + data.pipelineValue + data.lostValue;
@@ -268,6 +300,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                 dowolny szablon. */}
             {awaiting.count > 0 ? (
                 <Hero
+                    urgent
                     lead="Czeka na Ciebie"
                     amount={formatMoney(awaiting.value)}
                     body={
@@ -365,32 +398,108 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                 />
             )}
 
-            {/* ── Pasmo 4 ───────────────────────────────────────────────────── */}
-            <Divider />
-            <MoreToggle
-                type="button"
-                aria-expanded={moreOpen}
-                onClick={() => setMoreOpen((open) => !open)}
-            >
-                <ChevronDown /> {moreOpen ? 'Zwiń czytanie tygodniowe' : 'Czytanie tygodniowe — rytm, usługi, odstępstwa'}
-            </MoreToggle>
-
-            {moreOpen && <WeeklyReading data={data} monthly={monthly} />}
+            {/* ── Pasmo 4 ─────────────────────────────────────────────────────
+                Jedno pytanie na ekran. Wszystko jest o jedno kliknięcie dalej
+                i podpisane pytaniem, którego dotyczy — nic nie ginie, a wzrok
+                ma gdzie usiąść. */}
+            <DeepHeading>
+                <h2>Skąd się te pieniądze biorą</h2>
+                <p>Materiał do przeczytania raz na jakiś czas. Jedno pytanie naraz.</p>
+            </DeepHeading>
+            <DeepRead data={data} monthly={monthly} />
         </>
     );
 }
 
+/** Pytania pogłębione — po jednym na ekran, w kolejności od najczęściej zadawanego. */
+const DEEP_TABS = [
+    { key: 'trend', label: 'Trend' },
+    { key: 'rhythm', label: 'Rytm tygodnia' },
+    { key: 'services', label: 'Usługi' },
+    { key: 'speed', label: 'Czas odpowiedzi' },
+    { key: 'who', label: 'Marki i kanały' },
+] as const;
+
+type DeepTab = (typeof DEEP_TABS)[number]['key'];
+
 /**
  * Materiał, który nie zmienia pieniędzy w ciągu tygodnia, więc nie ma prawa
- * konkurować z tym, co zmienia. Prawdziwy i czasem cenny — ale przeczytany raz na
- * jakiś czas, nie codziennie.
+ * konkurować z tym, co zmienia. Prawdziwy i czasem cenny — ale czytany raz na
+ * jakiś czas, po jednym pytaniu, a nie sześcioma wykresami naraz.
  */
-function WeeklyReading({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
-    const enoughForRhythm = data.totalCreated >= MIN_LEADS_FOR_RHYTHM;
+function DeepRead({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+    const [tab, setTab] = useState<DeepTab>('trend');
+
+    return (
+        <>
+            <Tabs role="tablist" aria-label="Pytania pogłębione">
+                {DEEP_TABS.map((entry) => (
+                    <Tab
+                        key={entry.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === entry.key}
+                        $active={tab === entry.key}
+                        onClick={() => setTab(entry.key)}
+                    >
+                        {entry.label}
+                    </Tab>
+                ))}
+            </Tabs>
+
+            {tab === 'trend' && <TrendPanel data={data} monthly={monthly} />}
+            {tab === 'rhythm' && <RhythmPanel data={data} />}
+            {tab === 'services' && <ServicesPanel data={data} />}
+            {tab === 'speed' && <SpeedPanel data={data} />}
+            {tab === 'who' && <WhoPanel data={data} />}
+        </>
+    );
+}
+
+function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+    return (
+        <WideCard
+            question="Jak to szło w czasie"
+            answer={
+                data.timeline.length < 2
+                    ? 'Okres jest za krótki, żeby mówić o trendzie.'
+                    : `Zapytania i skuteczność w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
+            }
+        >
+            {data.timeline.length >= 2 && (
+                <TrendStack>
+                    <ColumnChart
+                        columns={data.timeline.map((point) => ({
+                            key: point.periodStart,
+                            tick: formatPeriodTick(point.periodStart, monthly),
+                            value: point.created,
+                            caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań, ${point.won} wygranych`,
+                        }))}
+                        height={150}
+                        tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
+                    />
+                    {/* Osobny rysunek, nie druga oś na tym samym: dwie skale na
+                        jednym wykresie dobiera się arbitralnie i produkują
+                        zależność, której w danych nie ma. */}
+                    <RateLine
+                        points={data.timeline.map((point) => ({
+                            key: point.periodStart,
+                            rate: point.winRate,
+                            caption: `${formatPeriod(point.periodStart, monthly)}: skuteczność ${percent(point.winRate)}`,
+                        }))}
+                    />
+                </TrendStack>
+            )}
+        </WideCard>
+    );
+}
+
+function RhythmPanel({ data }: { data: LeadAnalytics }) {
+    const enough = data.totalCreated >= MIN_LEADS_FOR_RHYTHM;
     const inquiryPeak = peakOf(data.inquiriesByWeekday);
     const decisionPeak = peakOf(data.decisionsByWeekday);
 
-    const weekdayColumns = (stats: { weekday: number; count: number }[], peakIndex: number | null): Column[] =>
+    const columns = (stats: { weekday: number; count: number }[], peakIndex: number | null): Column[] =>
         stats.map((entry, index) => ({
             key: String(entry.weekday),
             tick: WEEKDAY_LABELS[index],
@@ -399,19 +508,96 @@ function WeeklyReading({ data, monthly }: { data: LeadAnalytics; monthly: boolea
             highlighted: index === peakIndex,
         }));
 
+    return (
+        <WideCard
+            question="Rytm tygodnia"
+            answer={
+                !enough
+                    ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
+                    : (
+                        <>
+                            Najwięcej zapytań przychodzi w{' '}
+                            <strong>{inquiryPeak ? WEEKDAY_FULL[inquiryPeak.index] : '—'}</strong>
+                            {decisionPeak && (
+                                <>
+                                    , a decyzje zapadają najczęściej we{' '}
+                                    <strong>{WEEKDAY_FULL[decisionPeak.index]}</strong>
+                                </>
+                            )}
+                            .
+                        </>
+                    )
+            }
+        >
+            <SplitCharts>
+                <div>
+                    <h4>Kiedy pytają</h4>
+                    <ColumnChart
+                        columns={columns(data.inquiriesByWeekday, inquiryPeak?.index ?? null)}
+                        height={130}
+                    />
+                </div>
+                <SplitRule />
+                <div>
+                    <h4>Kiedy się decydują</h4>
+                    {decisionPeak ? (
+                        <ColumnChart columns={columns(data.decisionsByWeekday, decisionPeak.index)} height={130} />
+                    ) : (
+                        <EmptyChart>Brak rezerwacji z tego okresu.</EmptyChart>
+                    )}
+                </div>
+            </SplitCharts>
+        </WideCard>
+    );
+}
+
+function ServicesPanel({ data }: { data: LeadAnalytics }) {
     // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy —
     // to jedno zdarzenie.
     const categories = data.categories.filter((entry) => entry.count >= 3).slice(0, 8);
     const rated = categories.filter((entry) => entry.conversionRate !== null);
-    const bestCategory = [...rated].sort((a, b) => (b.conversionRate ?? 0) - (a.conversionRate ?? 0))[0];
-    const worstCategory = [...rated].sort((a, b) => (a.conversionRate ?? 0) - (b.conversionRate ?? 0))[0];
+    const best = [...rated].sort((a, b) => (b.conversionRate ?? 0) - (a.conversionRate ?? 0))[0];
+    const worst = [...rated].sort((a, b) => (a.conversionRate ?? 0) - (b.conversionRate ?? 0))[0];
 
-    const bestSource = [...data.bySource]
-        .filter((entry) => entry.winRate !== null && entry.closed >= 5)
-        .sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0))[0];
+    return (
+        <WideCard
+            question="W czym wygrywamy, w czym przegrywamy"
+            answer={
+                rated.length === 0
+                    ? 'Za mało rozstrzygniętych rozmów w poszczególnych usługach.'
+                    : (
+                        <>
+                            Najlepiej idzie w usłudze <strong>{best.label}</strong>{' '}
+                            ({percent(best.conversionRate)}), najgorzej w <strong>{worst.label}</strong>{' '}
+                            ({percent(worst.conversionRate)}).
+                        </>
+                    )
+            }
+        >
+            {categories.length === 0 ? (
+                <EmptyChart>Wróć tu, gdy zamkniesz więcej rozmów.</EmptyChart>
+            ) : (
+                <>
+                    <WinLossBars
+                        rows={categories.map((entry) => ({
+                            key: entry.code ?? 'none',
+                            label: entry.label,
+                            won: entry.completed,
+                            lost: entry.lost,
+                            open: Math.max(0, entry.count - entry.completed - entry.lost),
+                            winRate: entry.conversionRate,
+                        }))}
+                    />
+                    <WinLossLegend />
+                </>
+            )}
+        </WideCard>
+    );
+}
 
+function SpeedPanel({ data }: { data: LeadAnalytics }) {
     const impact = data.responseImpact;
-    const responseAnswer = (() => {
+    const answer = (() => {
         if (impact.verdict === 'NOT_ENOUGH_DATA') {
             return 'Za mało rozstrzygniętych rozmów, żeby cokolwiek stwierdzić. Wróć tu przy szerszym zakresie.';
         }
@@ -435,134 +621,33 @@ function WeeklyReading({ data, monthly }: { data: LeadAnalytics; monthly: boolea
     })();
 
     return (
-        <QuietGrid>
+        <WideCard question="Czy czas odpowiedzi wpływa na skuteczność" answer={answer}>
+            <RankedBars
+                rows={impact.buckets
+                    .filter((bucket) => bucket.count > 0)
+                    .map((bucket) => ({
+                        key: bucket.key,
+                        label: RESPONSE_LABELS[bucket.key] ?? bucket.key,
+                        value: bucket.winRate ?? 0,
+                        meta: `${percent(bucket.winRate)} z ${bucket.closed}`,
+                    }))}
+            />
+            <EmptyChart>
+                Słupek to skuteczność w danym przedziale, liczba obok — na ilu rozstrzygniętych
+                rozmowach się opiera.
+            </EmptyChart>
+        </WideCard>
+    );
+}
+
+function WhoPanel({ data }: { data: LeadAnalytics }) {
+    const bestSource = [...data.bySource]
+        .filter((entry) => entry.winRate !== null && entry.closed >= 5)
+        .sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0))[0];
+
+    return (
+        <>
             <WideCard
-                question="Jak to szło w czasie"
-                answer={
-                    data.timeline.length < 2
-                        ? 'Okres jest za krótki, żeby mówić o trendzie.'
-                        : `Zapytania i skuteczność w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
-                }
-            >
-                {data.timeline.length >= 2 && (
-                    <TrendStack>
-                        <ColumnChart
-                            columns={data.timeline.map((point) => ({
-                                key: point.periodStart,
-                                tick: formatPeriodTick(point.periodStart, monthly),
-                                value: point.created,
-                                caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań, ${point.won} wygranych`,
-                            }))}
-                            height={130}
-                            tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
-                        />
-                        {/* Osobny rysunek, nie druga oś na tym samym: dwie skale na
-                            jednym wykresie dobiera się arbitralnie i produkują
-                            zależność, której w danych nie ma. */}
-                        <RateLine
-                            points={data.timeline.map((point) => ({
-                                key: point.periodStart,
-                                rate: point.winRate,
-                                caption: `${formatPeriod(point.periodStart, monthly)}: skuteczność ${percent(point.winRate)}`,
-                            }))}
-                        />
-                    </TrendStack>
-                )}
-            </WideCard>
-
-            <WideCard
-                question="Rytm tygodnia"
-                answer={
-                    !enoughForRhythm
-                        ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
-                        : (
-                            <>
-                                Najwięcej zapytań przychodzi w{' '}
-                                <strong>{inquiryPeak ? WEEKDAY_FULL[inquiryPeak.index] : '—'}</strong>
-                                {decisionPeak && (
-                                    <>
-                                        , a decyzje zapadają najczęściej we{' '}
-                                        <strong>{WEEKDAY_FULL[decisionPeak.index]}</strong>
-                                    </>
-                                )}
-                                .
-                            </>
-                        )
-                }
-            >
-                <SplitCharts>
-                    <div>
-                        <h4>Kiedy pytają</h4>
-                        <ColumnChart
-                            columns={weekdayColumns(data.inquiriesByWeekday, inquiryPeak?.index ?? null)}
-                            height={110}
-                        />
-                    </div>
-                    <div>
-                        <h4>Kiedy się decydują</h4>
-                        {decisionPeak ? (
-                            <ColumnChart
-                                columns={weekdayColumns(data.decisionsByWeekday, decisionPeak.index)}
-                                height={110}
-                            />
-                        ) : (
-                            <EmptyChart>Brak rezerwacji z tego okresu.</EmptyChart>
-                        )}
-                    </div>
-                </SplitCharts>
-            </WideCard>
-
-            <AnalyticsCard
-                question="W czym wygrywamy, w czym przegrywamy"
-                answer={
-                    rated.length === 0
-                        ? 'Za mało rozstrzygniętych rozmów w poszczególnych usługach.'
-                        : (
-                            <>
-                                Najlepiej idzie w usłudze <strong>{bestCategory.label}</strong>{' '}
-                                ({percent(bestCategory.conversionRate)}), najgorzej w{' '}
-                                <strong>{worstCategory.label}</strong> ({percent(worstCategory.conversionRate)}).
-                            </>
-                        )
-                }
-            >
-                {categories.length === 0 ? (
-                    <EmptyChart>Wróć tu, gdy zamkniesz więcej rozmów.</EmptyChart>
-                ) : (
-                    <>
-                        <WinLossBars
-                            rows={categories.map((entry) => ({
-                                key: entry.code ?? 'none',
-                                label: entry.label,
-                                won: entry.completed,
-                                lost: entry.lost,
-                                open: Math.max(0, entry.count - entry.completed - entry.lost),
-                                winRate: entry.conversionRate,
-                            }))}
-                        />
-                        <WinLossLegend />
-                    </>
-                )}
-            </AnalyticsCard>
-
-            <AnalyticsCard question="Czy czas odpowiedzi wpływa na skuteczność" answer={responseAnswer}>
-                <RankedBars
-                    rows={impact.buckets
-                        .filter((bucket) => bucket.count > 0)
-                        .map((bucket) => ({
-                            key: bucket.key,
-                            label: RESPONSE_LABELS[bucket.key] ?? bucket.key,
-                            value: bucket.winRate ?? 0,
-                            meta: `${percent(bucket.winRate)} z ${bucket.closed}`,
-                        }))}
-                />
-                <EmptyChart>
-                    Słupek to skuteczność w danym przedziale, liczba obok — na ilu rozstrzygniętych
-                    rozmowach się opiera.
-                </EmptyChart>
-            </AnalyticsCard>
-
-            <AnalyticsCard
                 question="Czy coś odstaje"
                 answer={
                     data.vehicleOutliers.length === 0
@@ -590,9 +675,9 @@ function WeeklyReading({ data, monthly }: { data: LeadAnalytics; monthly: boolea
                         })}
                     </OutlierList>
                 )}
-            </AnalyticsCard>
+            </WideCard>
 
-            <AnalyticsCard
+            <WideCard
                 question="Skąd przychodzą zapytania"
                 answer={
                     bestSource
@@ -614,8 +699,8 @@ function WeeklyReading({ data, monthly }: { data: LeadAnalytics; monthly: boolea
                         meta: `${entry.count}, skut. ${percent(entry.winRate)}`,
                     }))}
                 />
-            </AnalyticsCard>
-        </QuietGrid>
+            </WideCard>
+        </>
     );
 }
 
