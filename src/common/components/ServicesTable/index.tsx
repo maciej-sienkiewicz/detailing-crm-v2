@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
-import { MAX_2_DECIMALS, centsToInput } from '@/common/utils/moneyInput';
+import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
@@ -549,6 +549,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                         placeholder="0"
                                         value={bulkDiscountValue}
                                         onChange={(e) => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
+                                        onKeyDown={handleZeroAwareKeyDown(bulkDiscountValue, setBulkDiscountValue)}
                                         autoFocus
                                     />
                                     <S.DiscountValueSuffix>
@@ -610,6 +611,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                                 inputMode="decimal"
                                                 value={editNetInput}
                                                 onChange={(e) => handleEditNetChange(e.target.value)}
+                                                onKeyDown={handleZeroAwareKeyDown(editNetInput, handleEditNetChange)}
                                             />
                                         </S.EditPriceField>
                                         <S.EditPriceField>
@@ -619,6 +621,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                                 inputMode="decimal"
                                                 value={editGrossInput}
                                                 onChange={(e) => handleEditGrossChange(e.target.value)}
+                                                onKeyDown={handleZeroAwareKeyDown(editGrossInput, handleEditGrossChange)}
                                             />
                                         </S.EditPriceField>
                                     </S.EditPriceGrid>

@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { MAX_2_DECIMALS, centsToInput, inputToCents } from './moneyInput';
+import { describe, it, expect, vi } from 'vitest';
+import {
+    MAX_2_DECIMALS,
+    centsToInput,
+    inputToCents,
+    isZeroAmount,
+    handleZeroAwareKeyDown,
+} from './moneyInput';
 
 const accepts = (v: string) => MAX_2_DECIMALS.test(v);
 
@@ -52,5 +58,48 @@ describe('centsToInput / inputToCents', () => {
         // 8.29 * 100 is 828.9999... in binary floating point.
         expect(inputToCents('8,29')).toBe(829);
         expect(inputToCents('1,15')).toBe(115);
+    });
+});
+
+describe('isZeroAmount', () => {
+    it('recognizes every zero shape', () => {
+        ['0', '0,00', '0.00', '00', '0,0', '0.'].forEach(v => {
+            expect(isZeroAmount(v), v).toBe(true);
+        });
+    });
+
+    it('rejects anything else, including empty and half-typed fields', () => {
+        ['', '1', '10', '0,01', '5,00', ',', '0,001'].forEach(v => {
+            expect(isZeroAmount(v), v).toBe(false);
+        });
+    });
+});
+
+describe('handleZeroAwareKeyDown', () => {
+    const fire = (value: string, key: string) => {
+        const onChange = vi.fn();
+        const preventDefault = vi.fn();
+        handleZeroAwareKeyDown(value, onChange)({ key, preventDefault });
+        return { onChange, preventDefault };
+    };
+
+    it('replaces a zero field with the digit just typed', () => {
+        const { onChange, preventDefault } = fire('0,00', '7');
+        expect(preventDefault).toHaveBeenCalledOnce();
+        expect(onChange).toHaveBeenCalledWith('7');
+    });
+
+    it('leaves a non-zero field to type normally', () => {
+        const { onChange, preventDefault } = fire('12,00', '7');
+        expect(preventDefault).not.toHaveBeenCalled();
+        expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('never intercepts non-digit keys, even on a zero field', () => {
+        ['Backspace', ',', '.', 'ArrowLeft', 'Tab'].forEach(key => {
+            const { onChange, preventDefault } = fire('0,00', key);
+            expect(preventDefault, key).not.toHaveBeenCalled();
+            expect(onChange, key).not.toHaveBeenCalled();
+        });
     });
 });

@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { DocumentType, PaymentMethod, DocumentDirection } from '../types';
 import { useCreateDocument } from '../hooks/useFinance';
 import { inputValueToGrosze } from '../utils/formatters';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import {
     ModalShell,
     ModalHeader,
@@ -312,6 +313,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     placeholder="0.00"
                                     value={form.totalNetDisplay}
                                     onChange={e => handleNetChange(e.target.value)}
+                                    onKeyDown={handleZeroAwareKeyDown(form.totalNetDisplay, handleNetChange)}
                                     required
                                     autoComplete="new-password"
                                 />
@@ -329,6 +331,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     placeholder="0.00"
                                     value={form.totalVatDisplay}
                                     onChange={set('totalVatDisplay')}
+                                    onKeyDown={handleZeroAwareKeyDown(form.totalVatDisplay, setField('totalVatDisplay'))}
                                     autoComplete="new-password"
                                 />
                             </InputShell>

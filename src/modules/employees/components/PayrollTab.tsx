@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { isZeroAmount } from '@/common/utils/moneyInput';
 import { usePayroll, useGeneratePayroll, useConfirmPayroll } from '../hooks/usePayroll';
 import { useCurrentCompensation } from '../hooks/useCompensation';
 import { useBonuses } from '../hooks/useBonuses';
@@ -119,6 +120,16 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                                 : null,
                                         }))
                                     }
+                                    onKeyDown={e => {
+                                        if (/^[0-9]$/.test(e.key) && isZeroAmount(e.currentTarget.value)) {
+                                            e.preventDefault();
+                                            e.currentTarget.value = e.key;
+                                            setGenerateForm(p => ({
+                                                ...p,
+                                                revenueGrossCents: Math.round(parseFloat(e.key) * 100),
+                                            }));
+                                        }
+                                    }}
                                 />
                             </Field>
                         </FormRow>
@@ -140,6 +151,16 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                                 : null,
                                         }))
                                     }
+                                    onKeyDown={e => {
+                                        if (/^[0-9]$/.test(e.key) && isZeroAmount(e.currentTarget.value)) {
+                                            e.preventDefault();
+                                            e.currentTarget.value = e.key;
+                                            setGenerateForm(p => ({
+                                                ...p,
+                                                revenueNetCents: Math.round(parseFloat(e.key) * 100),
+                                            }));
+                                        }
+                                    }}
                                 />
                             </Field>
                         </FormRow>
@@ -176,6 +197,16 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                         ? Math.round(parseFloat(e.target.value) * 100)
                                         : null,
                                 }))}
+                                onKeyDown={e => {
+                                    if (/^[0-9]$/.test(e.key) && isZeroAmount(e.currentTarget.value)) {
+                                        e.preventDefault();
+                                        e.currentTarget.value = e.key;
+                                        setConfirmForm(p => ({
+                                            ...p,
+                                            totalNetCents: Math.round(parseFloat(e.key) * 100),
+                                        }));
+                                    }
+                                }}
                                 min={0}
                                 step={0.01}
                             />
@@ -191,6 +222,16 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                         ? Math.round(parseFloat(e.target.value) * 100)
                                         : null,
                                 }))}
+                                onKeyDown={e => {
+                                    if (/^[0-9]$/.test(e.key) && isZeroAmount(e.currentTarget.value)) {
+                                        e.preventDefault();
+                                        e.currentTarget.value = e.key;
+                                        setConfirmForm(p => ({
+                                            ...p,
+                                            employerCostTotalCents: Math.round(parseFloat(e.key) * 100),
+                                        }));
+                                    }
+                                }}
                                 min={0}
                                 step={0.01}
                             />

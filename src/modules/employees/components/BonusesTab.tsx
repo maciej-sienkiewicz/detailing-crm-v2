@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBonuses, useCreateBonus, useDeleteBonus } from '../hooks/useBonuses';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { BonusStatus, CreateBonusPayload } from '../types';
 import {
     Field, Label, Input, Textarea,
@@ -100,6 +101,7 @@ const AddBonusModal = ({ mode, defaultPeriod, onClose, onSave }: ModalProps) => 
                         step={0.01}
                         value={form.amount}
                         onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+                        onKeyDown={handleZeroAwareKeyDown(form.amount, v => setForm(p => ({ ...p, amount: v })))}
                     />
                 </Field>
                 <Field>

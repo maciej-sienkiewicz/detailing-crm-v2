@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { ComponentType, CalculationBase, PaymentFrequency, CompensationComponentPayload } from '../../types';
 import { COMPONENT_TYPE_LABELS, CALC_BASE_LABELS, FREQUENCY_LABELS } from './constants';
 import {
@@ -108,6 +109,7 @@ export const AddComponentModal = ({ onClose, onSave }: Props) => {
                             step={0.01}
                             value={value}
                             onChange={e => setValue(e.target.value)}
+                            onKeyDown={handleZeroAwareKeyDown(value, setValue)}
                         />
                     </Field>
                     <Field>

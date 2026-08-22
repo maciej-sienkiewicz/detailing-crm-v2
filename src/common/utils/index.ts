@@ -13,6 +13,8 @@ export {
     MAX_2_DECIMALS,
     centsToInput,
     inputToCents,
+    isZeroAmount,
+    handleZeroAwareKeyDown,
 } from './moneyInput';
 
 export {

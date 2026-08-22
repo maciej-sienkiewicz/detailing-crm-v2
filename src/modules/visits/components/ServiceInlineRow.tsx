@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce, useVisualViewportSheet } from '@/common/hooks';
@@ -775,7 +776,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                             placeholder="0.00"
                             onChange={e => handleNetChange(e.target.value)}
                             onBlur={formatNet}
-                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') e.currentTarget.blur();
+                                handleZeroAwareKeyDown(netStr, handleNetChange)(e);
+                            }}
                         />
                     </PriceField>
                     <PriceField>
@@ -788,7 +792,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                             placeholder="0.00"
                             onChange={e => handleGrossChange(e.target.value)}
                             onBlur={formatGross}
-                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') e.currentTarget.blur();
+                                handleZeroAwareKeyDown(grossStr, handleGrossChange)(e);
+                            }}
                         />
                     </PriceField>
                     <VatCell>VAT {row.vatRate}%</VatCell>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, resolveBaseNet } from '@/common/utils/priceAdjustment';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
@@ -2655,7 +2656,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 type="text" inputMode="decimal" placeholder="0.00"
                                                 value={edNetStr}
                                                 onChange={e => handleEdNetChange(e.target.value)}
-                                                onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && !applyDisabled) applyEditor();
+                                                    handleZeroAwareKeyDown(edNetStr, handleEdNetChange)(e);
+                                                }}
                                             />
                                         </EditorField>
                                         <EditorField>
@@ -2664,7 +2668,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 type="text" inputMode="decimal" placeholder="0.00" autoFocus
                                                 value={edGrossStr}
                                                 onChange={e => handleEdGrossChange(e.target.value)}
-                                                onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && !applyDisabled) applyEditor();
+                                                    handleZeroAwareKeyDown(edGrossStr, handleEdGrossChange)(e);
+                                                }}
                                             />
                                         </EditorField>
                                         <EditorField>
@@ -2704,7 +2711,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 autoFocus
                                                 value={edDiscountValue}
                                                 onChange={e => handleEdDiscountValueChange(e.target.value)}
-                                                onKeyDown={e => { if (e.key === 'Enter' && !applyDisabled) applyEditor(); }}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && !applyDisabled) applyEditor();
+                                                    handleZeroAwareKeyDown(edDiscountValue, handleEdDiscountValueChange)(e);
+                                                }}
                                             />
                                             <EditorUnit>{edAdjType === 'PERCENT' ? '%' : 'zł'}</EditorUnit>
                                         </EditorInputWrap>
@@ -2890,6 +2900,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             type="text" inputMode="decimal" placeholder="0" autoFocus
                                             value={bulkDiscountValue}
                                             onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
+                                            onKeyDown={handleZeroAwareKeyDown(bulkDiscountValue, setBulkDiscountValue)}
                                         />
                                         <DiscountValueSuffix>{bulkDiscountType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
                                     </DiscountValueRow>
