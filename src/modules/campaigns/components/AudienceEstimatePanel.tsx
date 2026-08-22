@@ -2,20 +2,28 @@ import styled from 'styled-components';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
 import type { AudienceCriteria, AudienceEstimate } from '../types';
 
+/**
+ * Panel prognozy — jedyny element kroku „Odbiorcy", który ma się rzucić w oczy.
+ *
+ * Filtrów po lewej jest kilkanaście i wszystkie ważą tyle samo; jedyna liczba,
+ * dla której ktoś je w ogóle ustawia, stoi tutaj i jest największa na ekranie.
+ * Hierarchia rozmiarem, nie barwą: liczba odbiorców pomalowana na kolor
+ * wyglądałaby jak ostrzeżenie, a nie jak fakt.
+ */
 const Panel = styled.div`
   position: sticky;
   top: 24px;
-  background: #ffffff;
+  background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 14px;
+  border-radius: ${(p) => p.theme.radii.xl};
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
 `;
 
 const BigNumber = styled.div<{ $dim: boolean }>`
   font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -1px;
+  font-weight: ${(p) => p.theme.fontWeights.bold};
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   color: ${(p) => p.theme.colors.text};
   opacity: ${(p) => (p.$dim ? 0.45 : 1)};
@@ -25,9 +33,9 @@ const BigNumber = styled.div<{ $dim: boolean }>`
 
 const BigLabel = styled.div`
   font-size: 11px;
-  font-weight: 700;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: ${(p) => p.theme.colors.textMuted};
   margin: 6px 0 14px;
   display: flex;
@@ -55,7 +63,10 @@ const Breakdown = styled.ul`
     font-variant-numeric: tabular-nums;
   }
 
-  li strong { font-weight: 600; }
+  li strong {
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.text};
+  }
 `;
 
 const RecipientList = styled.div`
@@ -71,7 +82,7 @@ const RecipientRow = styled.div<{ $excluded?: boolean }>`
   justify-content: space-between;
   gap: 8px;
   padding: 9px 2px;
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  border-bottom: 1px solid ${(p) => p.theme.colors.surfaceAlt};
   opacity: ${(p) => (p.$excluded ? 0.5 : 1)};
 
   &:last-child { border-bottom: none; }
@@ -79,7 +90,7 @@ const RecipientRow = styled.div<{ $excluded?: boolean }>`
 
 const RecipientName = styled.div`
   font-size: 13px;
-  font-weight: 600;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   color: ${(p) => p.theme.colors.text};
 `;
 
@@ -96,17 +107,20 @@ const ExcludeBtn = styled.button`
   font-size: 16px;
   line-height: 1;
   padding: 4px 6px;
-  border-radius: 6px;
-  transition: all 150ms ease;
+  border-radius: ${(p) => p.theme.radii.sm};
+  transition: all ${(p) => p.theme.transitions.fast};
 
-  &:hover { background: #fee2e2; color: #dc2626; }
+  &:hover {
+    background: ${(p) => p.theme.colors.errorLight};
+    color: ${(p) => p.theme.colors.error};
+  }
 `;
 
 const CostRow = styled.div`
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   color: ${(p) => p.theme.colors.text};
   padding-top: 10px;
   border-top: 1px solid ${(p) => p.theme.colors.border};

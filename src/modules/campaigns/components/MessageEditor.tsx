@@ -4,6 +4,7 @@ import { Mail, MessageSquare, Send } from 'lucide-react';
 import { PLACEHOLDERS } from '../constants';
 import { smsMeta } from '../utils/sms';
 import { useTestSend } from '../hooks/useCampaigns';
+import { FilterChip, IconButton, TextAreaField, TextField } from './shared';
 import type { CampaignChannel } from '../types';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -14,28 +15,19 @@ const Wrap = styled.div`
   gap: 16px;
 `;
 
+/*
+ * Wybór kanału to ten sam gest, co filtr na liście — więc ten sam chip. Osobna
+ * „kapsuła" z białym prostokątem w środku była trzecim wzorem przełącznika
+ * w aplikacji, która ma jeden.
+ */
 const ChannelRow = styled.div`
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  border-radius: 9999px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   align-self: flex-start;
 `;
 
-const ChannelChip = styled.button<{ $active: boolean }>`
-  border: none;
-  cursor: pointer;
-  padding: 7px 16px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 180ms ease;
-  background: ${(p) => (p.$active ? '#ffffff' : 'transparent')};
-  color: ${(p) => (p.$active ? p.theme.colors.text : p.theme.colors.textMuted)};
-  box-shadow: ${(p) => (p.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none')};
-`;
+const ChannelChip = FilterChip;
 
 const Field = styled.div`
   display: flex;
@@ -45,76 +37,61 @@ const Field = styled.div`
 
 const Label = styled.label`
   font-size: 11px;
-  font-weight: 700;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
 const TokenLabel = styled.div`
   font-size: 11px;
-  font-weight: 700;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: ${(p) => p.theme.colors.textMuted};
   margin-bottom: 2px;
 `;
 
-const TextArea = styled.textarea`
+const TextArea = styled(TextAreaField)`
   min-height: 120px;
-  padding: 12px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  line-height: 1.5;
-
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
 `;
 
-const Input = styled.input`
-  padding: 10px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
+const Input = TextField;
 
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
-`;
-
+/*
+ * Licznik znaków. Bursztyn zapala się dopiero wtedy, gdy wiadomość przekroczyła
+ * jeden segment — czyli wtedy, gdy kosztuje podwójnie. Do tego momentu to zwykła
+ * informacja i wygląda jak zwykła informacja.
+ */
 const CounterRow = styled.div<{ $warn: boolean }>`
   display: flex;
   justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
   font-size: 12px;
-  color: ${(p) => (p.$warn ? '#d97706' : p.theme.colors.textMuted)};
+  color: ${(p) => (p.$warn ? p.theme.colors.warning : p.theme.colors.textMuted)};
   font-variant-numeric: tabular-nums;
 `;
 
+/** Materiał pomocniczy — na tle strony, bez ramki, cofnięty o plan. */
 const TokenSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
   background: ${(p) => p.theme.colors.surfaceAlt};
-  border-radius: 10px;
-  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.md};
 `;
 
-const ChannelCard = styled.div<{ $accent: string }>`
+/*
+ * Karta kanału bez barwnej kreski: błękit przy SMS-ie i fiolet przy e-mailu
+ * niczego nie mówiły poza „to dwie różne rzeczy", a to widać po nagłówku.
+ */
+const ChannelCard = styled.div`
   position: relative;
-  background: #ffffff;
+  background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-left: 4px solid ${(p) => p.$accent};
-  border-radius: 12px;
+  border-radius: ${(p) => p.theme.radii.lg};
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -128,14 +105,14 @@ const ChannelCardHead = styled.div`
   padding-bottom: 12px;
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
 
-  svg { width: 16px; height: 16px; stroke-width: 1.75; }
+  svg { width: 16px; height: 16px; color: ${(p) => p.theme.colors.textMuted}; }
   h4 {
     margin: 0;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: ${(p) => p.theme.colors.text};
+    letter-spacing: 0.05em;
+    color: ${(p) => p.theme.colors.textMuted};
   }
 `;
 
@@ -145,22 +122,26 @@ const TokenRow = styled.div`
   gap: 6px;
 `;
 
+/*
+ * Zmienna do wstawienia. Monospace wystarcza, żeby odróżnić ją od tekstu —
+ * kilkanaście błękitnych żetonów w rzędzie zabierało barwę akcji głównej.
+ */
 const Token = styled.button`
   border: 1px solid ${(p) => p.theme.colors.border};
   background: ${(p) => p.theme.colors.surface};
   cursor: pointer;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: ${(p) => p.theme.radii.sm};
   font-size: 12px;
-  font-weight: 600;
+  font-weight: ${(p) => p.theme.fontWeights.medium};
   font-family: monospace;
-  color: #0ea5e9;
-  transition: all 150ms ease;
+  color: ${(p) => p.theme.colors.textSecondary};
+  transition: all ${(p) => p.theme.transitions.fast};
   white-space: nowrap;
 
   &:hover {
-    background: rgba(14, 165, 233, 0.08);
-    border-color: rgba(14, 165, 233, 0.4);
+    border-color: ${(p) => p.theme.colors.primary};
+    color: ${(p) => p.theme.colors.primary};
   }
 `;
 
@@ -171,30 +152,11 @@ const TestRow = styled.div`
   flex-wrap: wrap;
 `;
 
-const TestBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  background: #ffffff;
-  cursor: pointer;
-  padding: 9px 16px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  color: ${(p) => p.theme.colors.text};
-  transition: all 180ms ease;
-
-  &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
-  &:disabled { opacity: 0.5; cursor: default; transform: none; }
-
-  svg { width: 14px; height: 14px; stroke-width: 1.75; }
-`;
+const TestBtn = IconButton;
 
 const TestStatus = styled.span<{ $ok: boolean }>`
   font-size: 13px;
-  color: ${(p) => (p.$ok ? '#16a34a' : '#dc2626')};
+  color: ${(p) => (p.$ok ? p.theme.colors.success : p.theme.colors.error)};
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -274,9 +236,9 @@ export function MessageEditor({ value, onChange }: Props) {
       </TokenSection>
 
       {showSms && (
-        <ChannelCard $accent="#0ea5e9">
+        <ChannelCard>
           <ChannelCardHead>
-            <MessageSquare color="#0ea5e9" />
+            <MessageSquare />
             <h4>Wiadomość SMS</h4>
           </ChannelCardHead>
           <Field>
@@ -299,9 +261,9 @@ export function MessageEditor({ value, onChange }: Props) {
       )}
 
       {showEmail && (
-        <ChannelCard $accent="#8b5cf6">
+        <ChannelCard>
           <ChannelCardHead>
-            <Mail color="#8b5cf6" />
+            <Mail />
             <h4>Wiadomość e-mail</h4>
           </ChannelCardHead>
           <Field>

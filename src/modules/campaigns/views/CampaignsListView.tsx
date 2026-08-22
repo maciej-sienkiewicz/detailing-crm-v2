@@ -1,416 +1,555 @@
+// src/modules/campaigns/views/CampaignsListView.tsx
+// Lista kampanii w języku wizualnym reszty aplikacji: wspólny PageHeader,
+// karta-powierzchnia, pasek pilności przy krawędzi wiersza, tokeny motywu.
+// Szczegóły w oknie CampaignDetailModal — tak samo jak lead otwiera się z listy
+// leadów, a nie na osobnym adresie.
+//
+// Co zniknęło i dlaczego:
+//
+// Cztery kolorowe kafle KPI nad tabelą (zielony, bursztynowy, błękitny, szary).
+// Cztery równe prostokąty w czterech barwach to nie cztery akcenty, tylko zero
+// akcentów — efekt izolacji działa wyłącznie wtedy, gdy wyróżnia się jedna rzecz.
+// Te same liczby stoją teraz jednym cichym zdaniem w nagłówku strony: „3 działają
+// · 2 zaplanowane · 1 240 kredytów SMS". Hierarchia buduje się rozmiarem i wagą,
+// nie barwą.
+//
+// Ikonowe przyciski „wyślij" i „usuń" w każdym wierszu. Wiersz z dwiema akcjami
+// obok siebie zmusza do rozpoznania właściwej przy każdym przejściu wzrokiem
+// w dół listy, a jedna z nich wysyłała kampanię do wszystkich klientów po jednym
+// kliknięciu w tabeli. Akcje należą teraz do okna kampanii, gdzie jest jedna,
+// główna i wynikająca ze stanu.
+//
+// Ciemny „hero" pustego stanu. Drugi czarny prostokąt z gradientem, tuż pod
+// nagłówkiem strony, który jest czarnym prostokątem z gradientem.
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { CalendarClock, Coins, MailCheck, Play, Plus, Send, Trash2 } from 'lucide-react';
-import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
-import { StatTile } from '@/common/components/StatTile';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { ArrowRight, Coins, Plus, Search, Settings2 } from 'lucide-react';
+import { PageHeader, PageHeaderGhostButton, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { useCampaignStats, useCampaignsList } from '../hooks/useCampaigns';
+import { CHANNEL_LABELS, LOW_CREDITS_THRESHOLD, STATUS_COLORS, STATUS_LABELS } from '../constants';
+import { CampaignDetailModal } from '../components/CampaignDetailModal';
+import { describeCampaign, messageWord, type CampaignTone } from '../utils/campaignState';
 import {
-  useActivateCampaign,
-  useCampaignStats,
-  useCampaignsList,
-  useDeleteCampaign,
-  useScheduleCampaign,
-} from '../hooks/useCampaigns';
-import { CHANNEL_LABELS, TILE_STYLES } from '../constants';
-import { CampaignKindBadge, CampaignStatusBadge, MutedText, Page, TileGrid } from '../components/shared';
+    CampaignKindMark,
+    EmptyHint,
+    FilterChip,
+    MutedText,
+    PrimaryButton,
+    StatusDot,
+    StatusLine,
+    SurfaceCard,
+    ViewContainer,
+} from '../components/shared';
+// „2 dni temu", „wczoraj, 14:20" — dokładnie ten sam zapis, co w tabeli leadów.
+import { formatRelativeTime } from '@/modules/comms/components/shared';
 import type { Campaign, CampaignStatus } from '../types';
 
-// ─── Filtr segmentowy ─────────────────────────────────────────────────────────
+// ─── Filtry ───────────────────────────────────────────────────────────────────
 
 type ListFilter = 'ALL' | 'RUNNING' | 'SCHEDULED' | 'DONE' | 'DRAFT';
 
 const FILTERS: { id: ListFilter; label: string; statuses: CampaignStatus[] | null }[] = [
-  { id: 'ALL', label: 'Wszystkie', statuses: null },
-  { id: 'RUNNING', label: 'Aktywne', statuses: ['ACTIVE', 'SENDING'] },
-  { id: 'SCHEDULED', label: 'Zaplanowane', statuses: ['SCHEDULED'] },
-  { id: 'DONE', label: 'Zakończone', statuses: ['COMPLETED', 'CANCELLED', 'FAILED', 'ARCHIVED'] },
-  { id: 'DRAFT', label: 'Szkice', statuses: ['DRAFT', 'PAUSED'] },
+    { id: 'ALL', label: 'Wszystkie', statuses: null },
+    { id: 'RUNNING', label: 'Aktywne', statuses: ['ACTIVE', 'SENDING'] },
+    { id: 'SCHEDULED', label: 'Zaplanowane', statuses: ['SCHEDULED'] },
+    { id: 'DONE', label: 'Zakończone', statuses: ['COMPLETED', 'CANCELLED', 'FAILED', 'ARCHIVED'] },
+    { id: 'DRAFT', label: 'Szkice', statuses: ['DRAFT', 'PAUSED'] },
 ];
 
-const FilterRow = styled.div`
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  border-radius: 9999px;
-  margin-bottom: 16px;
+/**
+ * Pasek kłopotu nad listą — bliźniak paska zaległości w widoku leadów.
+ *
+ * Pojawia się wyłącznie wtedy, gdy jest o czym mówić: cisza nie zajmuje miejsca.
+ * Wielka liczba po lewej jest dominantą widoku dokładnie tak długo, jak długo
+ * jest problem; gdy wszystko idzie zgodnie z planem, dominantą staje się sama
+ * tabela — i tak ma być.
+ */
+const AlertStrip = styled.button<{ $tone: 'due' | 'stale' }>`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-left: 3px solid ${({ $tone, theme }) =>
+        $tone === 'due' ? theme.colors.error : theme.colors.warning};
+    border-radius: ${p => p.theme.radii.lg};
+    background: ${p => p.theme.colors.surface};
+    padding: 12px 16px;
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+
+    .amount {
+        font-size: 20px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .text {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        color: ${p => p.theme.colors.textSecondary};
+    }
+    .text strong {
+        color: ${p => p.theme.colors.text};
+        font-weight: ${p => p.theme.fontWeights.semibold};
+    }
+    svg { width: 16px; height: 16px; flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        flex-wrap: wrap;
+        .text { flex-basis: 100%; }
+    }
 `;
 
-const FilterChip = styled.button<{ $active: boolean }>`
-  border: none;
-  cursor: pointer;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 180ms ease;
-  background: ${(p) => (p.$active ? '#ffffff' : 'transparent')};
-  color: ${(p) => (p.$active ? p.theme.colors.text : p.theme.colors.textMuted)};
-  box-shadow: ${(p) => (p.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none')};
+/** Liczby z nagłówka: fakt obok faktu, jednym zdaniem, bez czterech kolorowych kafli. */
+const HeaderStats = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: #94a3b8;
+
+    strong {
+        color: #e2e8f0;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        font-variant-numeric: tabular-nums;
+    }
+    .sep { color: #334155; }
+`;
+
+const FiltersRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+`;
+
+/** Cienka kreska rozdzielająca dwie osie filtrowania: etap i „czy jest kłopot". */
+const FilterSeparator = styled.span`
+    width: 1px;
+    align-self: stretch;
+    margin: 2px 2px;
+    background: ${p => p.theme.colors.border};
+`;
+
+const SearchBox = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 7px 14px;
+    color: ${p => p.theme.colors.textMuted};
+    background: ${p => p.theme.colors.surface};
+    flex: 1 1 200px;
+    max-width: 300px;
+    transition: border-color ${p => p.theme.transitions.fast};
+
+    &:focus-within { border-color: ${p => p.theme.colors.primary}; }
+
+    input {
+        border: none;
+        outline: none;
+        flex: 1;
+        font-size: 13px;
+        min-width: 0;
+        background: transparent;
+        color: ${p => p.theme.colors.text};
+        font-family: inherit;
+    }
 `;
 
 // ─── Tabela ───────────────────────────────────────────────────────────────────
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 14px;
-  overflow: hidden;
+const TableScroll = styled.div`
+    overflow-x: auto;
+`;
 
-  th {
-    text-align: left;
+const COLUMNS = '1.8fr 0.8fr 0.9fr 0.9fr 1.4fr 1fr';
+
+const HeadRow = styled.div`
+    display: grid;
+    grid-template-columns: ${COLUMNS};
+    gap: 10px;
+    padding: 12px 20px 12px 23px;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: ${(p) => p.theme.colors.textMuted};
-    padding: 12px 16px;
-    border-bottom: 1px solid ${(p) => p.theme.colors.border};
-    background: ${(p) => p.theme.colors.surfaceAlt};
-  }
+    color: ${p => p.theme.colors.textMuted};
+    background: ${p => p.theme.colors.surfaceAlt};
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    min-width: 900px;
+`;
 
-  td {
-    padding: 13px 16px;
-    font-size: 14px;
-    color: ${(p) => p.theme.colors.text};
-    border-bottom: 1px solid ${(p) => p.theme.colors.border};
-    font-variant-numeric: tabular-nums;
-  }
-
-  tbody tr {
+const Row = styled.div<{ $active?: boolean; $tone: CampaignTone }>`
+    position: relative;
+    display: grid;
+    grid-template-columns: ${COLUMNS};
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    min-width: 900px;
+    text-align: left;
+    padding: 12px 20px 12px 23px;
+    border: none;
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
     cursor: pointer;
-    transition: background 150ms ease;
-    &:hover { background: ${(p) => p.theme.colors.surfaceAlt}; }
-    &:last-child td { border-bottom: none; }
-  }
+    font-size: 13px;
+    color: ${p => p.theme.colors.textSecondary};
+    font-family: inherit;
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+    &:last-child { border-bottom: none; }
+
+    /*
+     * Pasek pilności przy lewej krawędzi — ten sam znak, co w tabeli leadów.
+     * Kłopot jest cechą całej kampanii, a nie zawartością którejś komórki, więc
+     * mieszka na wierszu i nie zabiera ani piksela szerokości tabeli. Sam kolor
+     * niczego nie niesie: to samo mówi znacznik tekstowy w kolumnie „Status".
+     */
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: ${({ $tone, theme }) =>
+            $tone === 'due' ? theme.colors.error
+            : $tone === 'stale' ? theme.colors.warning
+            : 'transparent'};
+    }
+
+    .who {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    .name {
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .value {
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+    }
+    .num { font-variant-numeric: tabular-nums; }
 `;
 
-const NameCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
+const StatusStack = styled.span`
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
 `;
 
-const ActionsCell = styled.td`
-  text-align: right;
-  white-space: nowrap;
+/**
+ * „Co dalej" pod etapem — ikona-kropka i zdanie, bez ramki i bez tła. W kolumnie,
+ * gdzie każdy wiersz ma już etap, druga wypełniona plakietka zamienia kolumnę
+ * w kolaż. Kolor niesie tylko pilność i tylko wtedy, gdy jest o czym mówić.
+ */
+const StateMarker = styled.span<{ $tone: CampaignTone }>`
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: nowrap;
+    font-weight: ${p => (p.$tone === 'neutral' ? p.theme.fontWeights.normal : p.theme.fontWeights.semibold)};
+    color: ${({ $tone, theme }) =>
+        $tone === 'due' ? theme.colors.error
+        : $tone === 'stale' ? theme.colors.warning
+        : theme.colors.textMuted};
 `;
 
-const RowActions = styled.div`
-  display: inline-flex;
-  gap: 4px;
-  justify-content: flex-end;
+/**
+ * Zaproszenie do pierwszej kampanii — na tle strony, bez ramki i bez gradientu.
+ * Pusty moduł nie jest okazją do popisu graficznego, tylko brakiem treści; jedna
+ * akcja główna stoi już w nagłówku strony, więc tutaj powtarzamy ją raz i cicho.
+ */
+const EmptyInvite = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 32px;
+    border-radius: ${p => p.theme.radii.lg};
+    background: ${p => p.theme.colors.surfaceAlt};
+
+    h2 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        letter-spacing: -0.2px;
+    }
+    p {
+        margin: 0;
+        font-size: 13.5px;
+        color: ${p => p.theme.colors.textSecondary};
+        max-width: 520px;
+        line-height: 1.6;
+    }
 `;
 
-const IconBtn = styled.button<{ $variant?: 'send' | 'danger' }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 8px;
-  background: #ffffff;
-  color: ${(p) => {
-    if (p.$variant === 'send') return '#0ea5e9';
-    if (p.$variant === 'danger') return '#dc2626';
-    return p.theme.colors.textSecondary;
-  }};
-  cursor: pointer;
-  transition: all 150ms ease;
-  padding: 0;
-
-  &:hover {
-    background: ${(p) => {
-      if (p.$variant === 'send') return '#e0f2fe';
-      if (p.$variant === 'danger') return '#fee2e2';
-      return p.theme.colors.surfaceAlt;
-    }};
-    border-color: ${(p) => {
-      if (p.$variant === 'send') return '#7dd3fc';
-      if (p.$variant === 'danger') return '#fca5a5';
-      return p.theme.colors.border;
-    }};
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  svg { width: 15px; height: 15px; stroke-width: 1.75; }
-`;
-
-// ─── Stan pusty ───────────────────────────────────────────────────────────────
-
-const EmptyHero = styled.div`
-  position: relative;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
-  border-radius: 14px;
-  padding: 40px;
-  overflow: hidden;
-  color: #f1f5f9;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -80px;
-    right: -60px;
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, transparent 65%);
-    pointer-events: none;
-  }
-
-  h2 { margin: 0 0 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-  p  { margin: 0 0 20px; font-size: 14px; color: #94a3b8; max-width: 480px; }
-`;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('pl-PL', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function scheduleLabel(c: Campaign): string {
-  if (c.status === 'SCHEDULED') return c.scheduledAt ? formatDate(c.scheduledAt) : 'natychmiast';
-  if (c.status === 'ACTIVE') return 'codziennie sprawdzana';
-  if (c.status === 'COMPLETED') return formatDate(c.completedAt);
-  return formatDate(c.createdAt);
-}
+// ─── Pomocnicze ───────────────────────────────────────────────────────────────
 
 function recipientsLabel(c: Campaign): string {
-  if (c.status === 'SENDING') return `${c.recipientsSent} / ${c.recipientsTotal}`;
-  if (c.recipientsTotal > 0) return `${c.recipientsSent} / ${c.recipientsTotal}`;
-  return '-';
+    if (c.status === 'SENDING') return `${c.recipientsSent} / ${c.recipientsTotal}`;
+    if (c.recipientsSent > 0) return String(c.recipientsSent);
+    if (c.recipientsTotal > 0) return String(c.recipientsTotal);
+    return '—';
 }
 
-// „Wyślij teraz" ma sens tylko dla jednorazówek w statusie DRAFT/SCHEDULED.
-// Dla automatów odpowiednikiem jest „Aktywuj" (DRAFT/PAUSED).
-function canSendNow(c: Campaign): boolean {
-  if (c.kind === 'ONE_TIME') return c.status === 'DRAFT' || c.status === 'SCHEDULED';
-  return c.status === 'DRAFT' || c.status === 'PAUSED';
-}
-
-function sendNowLabel(c: Campaign): string {
-  if (c.kind === 'AUTOMATIC') return 'Aktywuj kampanię';
-  return c.status === 'SCHEDULED' ? 'Wyślij teraz (nadpisz termin)' : 'Wyślij teraz';
-}
-
-function canDelete(c: Campaign): boolean {
-  return c.status === 'DRAFT';
+/** Kolumna „Termin": data, która w tym stanie kampanii cokolwiek znaczy. */
+function whenLabel(c: Campaign): string {
+    if (c.status === 'SCHEDULED') return c.scheduledAt ? formatRelativeTime(c.scheduledAt) : 'natychmiast';
+    if (c.completedAt) return formatRelativeTime(c.completedAt);
+    if (c.startedAt) return formatRelativeTime(c.startedAt);
+    return formatRelativeTime(c.createdAt);
 }
 
 // ─── Widok ────────────────────────────────────────────────────────────────────
 
-type PendingAction = { type: 'send' | 'delete'; campaign: Campaign };
-
 export function CampaignsListView() {
-  const navigate = useNavigate();
-  const { campaigns, isLoading } = useCampaignsList();
-  const { stats } = useCampaignStats();
-  const [filter, setFilter] = useState<ListFilter>('ALL');
-  const [pending, setPending] = useState<PendingAction | null>(null);
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { campaigns, isLoading } = useCampaignsList();
+    const { stats } = useCampaignStats();
 
-  const scheduleCampaign = useScheduleCampaign();
-  const activateCampaign = useActivateCampaign();
-  const deleteCampaign = useDeleteCampaign();
+    const [filter, setFilter] = useState<ListFilter>('ALL');
+    // „Z błędami" to nie kolejny etap, tylko zawężenie listy do kampanii, które
+    // czegoś od nas chcą — druga oś filtrowania, jak „Do odpisania" przy leadach.
+    const [onlyProblems, setOnlyProblems] = useState(false);
+    const [query, setQuery] = useState('');
 
-  const filtered = useMemo(() => {
-    const def = FILTERS.find((f) => f.id === filter);
-    if (!def?.statuses) return campaigns;
-    return campaigns.filter((c) => def.statuses!.includes(c.status));
-  }, [campaigns, filter]);
+    const selectedId = searchParams.get('campaign');
+    const selectCampaign = (id: string | null) =>
+        setSearchParams(id ? { campaign: id } : {}, { replace: true });
 
-  const creditsLow = (stats?.smsCreditsAvailable ?? 0) < 200;
+    const failedTotal = useMemo(
+        () => campaigns.reduce((sum, c) => sum + c.recipientsFailed, 0),
+        [campaigns],
+    );
+    const worstCampaign = useMemo(
+        () => [...campaigns].sort((a, b) => b.recipientsFailed - a.recipientsFailed)[0],
+        [campaigns],
+    );
 
-  const confirmPending = async () => {
-    if (!pending) return;
-    const c = pending.campaign;
-    if (pending.type === 'send') {
-      if (c.kind === 'AUTOMATIC') await activateCampaign.mutateAsync(c.id);
-      else await scheduleCampaign.mutateAsync({ id: c.id, scheduledAt: null });
-    } else {
-      await deleteCampaign.mutateAsync(c.id);
-    }
-    setPending(null);
-  };
-
-  return (
-    <Page>
-      <PageHeader
-        title="Kampanie"
-        subtitle="Wysyłki SMS i e-mail do Twoich klientów"
-        actions={
-          <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>
-            <Plus /> Nowa kampania
-          </PageHeaderPrimaryButton>
+    const filtered = useMemo(() => {
+        const definition = FILTERS.find((f) => f.id === filter);
+        let list = definition?.statuses
+            ? campaigns.filter((c) => definition.statuses!.includes(c.status))
+            : campaigns;
+        if (onlyProblems) list = list.filter((c) => c.recipientsFailed > 0 || c.status === 'FAILED');
+        if (query.trim()) {
+            const needle = query.trim().toLowerCase();
+            list = list.filter((c) => c.name.toLowerCase().includes(needle));
         }
-      />
+        return list;
+    }, [campaigns, filter, onlyProblems, query]);
 
-      <TileGrid>
-        <StatTile
-          {...TILE_STYLES.active}
-          icon={Play}
-          value={stats?.active ?? '-'}
-          label="Aktywne"
-          tooltip="Kampanie automatyczne, które działają, oraz jednorazowe w trakcie wysyłki."
-        />
-        <StatTile
-          {...TILE_STYLES.scheduled}
-          icon={CalendarClock}
-          value={stats?.scheduled ?? '-'}
-          label="Zaplanowane"
-        />
-        <StatTile
-          {...TILE_STYLES.sent}
-          icon={MailCheck}
-          value={stats?.completedTotal ?? '-'}
-          label="Wysłane"
-          subContent={
-            stats ? <MutedText>{stats.messagesSentLast30Days} wiadomości w 30 dni</MutedText> : undefined
-          }
-        />
-        <StatTile
-          {...(creditsLow ? TILE_STYLES.creditsLow : TILE_STYLES.credits)}
-          icon={Coins}
-          value={stats?.smsCreditsAvailable ?? '-'}
-          label="Kredyty SMS"
-          onClick={() => navigate('/settings?tab=credits')}
-          subContent={creditsLow ? <MutedText>Doładuj przed wysyłką</MutedText> : undefined}
-        />
-      </TileGrid>
+    const credits = stats?.smsCreditsAvailable ?? 0;
+    const creditsLow = stats != null && credits < LOW_CREDITS_THRESHOLD;
+    const isEmpty = !isLoading && campaigns.length === 0;
 
-      {!isLoading && campaigns.length === 0 ? (
-        <EmptyHero>
-          <h2>Wyślij pierwszą kampanię</h2>
-          <p>
-            Przypomnij klientom o sobie: świątecznie, po wykonanej usłudze albo wtedy,
-            gdy dawno ich nie było.
-          </p>
-          <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>
-            <Plus /> Utwórz kampanię
-          </PageHeaderPrimaryButton>
-        </EmptyHero>
-      ) : (
-        <>
-          <FilterRow>
-            {FILTERS.map((f) => (
-              <FilterChip key={f.id} $active={filter === f.id} onClick={() => setFilter(f.id)}>
-                {f.label}
-              </FilterChip>
-            ))}
-          </FilterRow>
+    return (
+        <ViewContainer>
+            <PageHeader
+                title="Kampanie"
+                subtitle={
+                    stats ? (
+                        <HeaderStats>
+                            <span><strong>{stats.active}</strong> działa</span>
+                            <span className="sep">·</span>
+                            <span><strong>{stats.scheduled}</strong> zaplanowanych</span>
+                            <span className="sep">·</span>
+                            <span><strong>{stats.messagesSentLast30Days}</strong> wiadomości w 30 dni</span>
+                            <span className="sep">·</span>
+                            <span><strong>{credits}</strong> kredytów SMS</span>
+                        </HeaderStats>
+                    ) : (
+                        'Wysyłki SMS i e-mail do Twoich klientów'
+                    )
+                }
+                actions={
+                    <>
+                        <PageHeaderGhostButton onClick={() => navigate('/campaigns/settings')}>
+                            <Settings2 /> Ustawienia wysyłki
+                        </PageHeaderGhostButton>
+                        <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>
+                            <Plus /> Nowa kampania
+                        </PageHeaderPrimaryButton>
+                    </>
+                }
+            />
 
-          <Table>
-            <thead>
-              <tr>
-                <th>Nazwa</th>
-                <th>Status</th>
-                <th>Kanał</th>
-                <th>Odbiorcy</th>
-                <th>Koszt</th>
-                <th>Termin</th>
-                <th style={{ textAlign: 'right' }}>Akcje</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c) => {
-                const sendAvailable = canSendNow(c);
-                const deleteAvailable = canDelete(c);
-                return (
-                  <tr key={c.id} onClick={() => navigate(`/campaigns/${c.id}`)}>
-                    <td>
-                      <NameCell>
-                        {c.name}
-                        <CampaignKindBadge kind={c.kind} />
-                      </NameCell>
-                    </td>
-                    <td><CampaignStatusBadge status={c.status} /></td>
-                    <td>{CHANNEL_LABELS[c.channel]}</td>
-                    <td>{recipientsLabel(c)}</td>
-                    <td>{c.creditsSpent > 0 ? `${c.creditsSpent} kredytów` : '-'}</td>
-                    <td><MutedText>{scheduleLabel(c)}</MutedText></td>
-                    <ActionsCell onClick={(e) => e.stopPropagation()}>
-                      <RowActions>
-                        {sendAvailable && (
-                          <IconBtn
-                            $variant="send"
-                            title={sendNowLabel(c)}
-                            aria-label={sendNowLabel(c)}
-                            onClick={() => setPending({ type: 'send', campaign: c })}
-                          >
-                            {c.kind === 'AUTOMATIC' ? <Play /> : <Send />}
-                          </IconBtn>
+            {/* Jeden pasek, nigdy dwa: nieudane wiadomości są pilniejsze od stanu
+                konta, bo klient już czegoś nie dostał, a kredyty da się doładować
+                w każdej chwili. Dwa paski jeden pod drugim znaczyłyby tyle, co żaden. */}
+            {failedTotal > 0 && !onlyProblems ? (
+                <AlertStrip
+                    $tone="due"
+                    type="button"
+                    title="Pokaż kampanie, w których coś nie wyszło"
+                    onClick={() => { setOnlyProblems(true); setFilter('ALL'); }}
+                >
+                    <span className="amount">{failedTotal}</span>
+                    <span className="text">
+                        {messageWord(failedTotal)} nie dotarło do odbiorców
+                        {worstCampaign && worstCampaign.recipientsFailed > 0 && (
+                            <> — najwięcej w <strong>{worstCampaign.name}</strong></>
                         )}
-                        {deleteAvailable && (
-                          <IconBtn
-                            $variant="danger"
-                            title="Usuń kampanię"
-                            aria-label="Usuń kampanię"
-                            onClick={() => setPending({ type: 'delete', campaign: c })}
-                          >
-                            <Trash2 />
-                          </IconBtn>
-                        )}
-                        {!sendAvailable && !deleteAvailable && <MutedText>-</MutedText>}
-                      </RowActions>
-                    </ActionsCell>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7}>
-                    <MutedText>Brak kampanii w tym widoku.</MutedText>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </>
-      )}
+                    </span>
+                    <ArrowRight />
+                </AlertStrip>
+            ) : creditsLow && !isEmpty ? (
+                <AlertStrip
+                    $tone="stale"
+                    type="button"
+                    title="Przejdź do doładowania kredytów"
+                    onClick={() => navigate('/settings?tab=credits')}
+                >
+                    <span className="amount">{credits}</span>
+                    <span className="text">
+                        kredytów SMS zostało na koncie — <strong>doładuj</strong>, zanim ruszy
+                        kolejna wysyłka
+                    </span>
+                    <Coins />
+                </AlertStrip>
+            ) : null}
 
-      {pending && (
-        <ConfirmationModal
-          isOpen
-          variant={pending.type === 'delete' ? 'danger' : 'warning'}
-          title={
-            pending.type === 'delete'
-              ? 'Usunąć szkic?'
-              : pending.campaign.kind === 'AUTOMATIC'
-                ? 'Aktywować kampanię?'
-                : pending.campaign.status === 'SCHEDULED'
-                  ? 'Wysłać teraz, z pominięciem terminu?'
-                  : 'Wysłać kampanię teraz?'
-          }
-          message={
-            pending.type === 'delete'
-              ? `Szkic „${pending.campaign.name}" zostanie trwale usunięty.`
-              : pending.campaign.kind === 'AUTOMATIC'
-                ? `Kampania „${pending.campaign.name}" zacznie działać automatycznie i wysyłać wiadomości, gdy klienci spełnią warunek.`
-                : `Wyślemy „${pending.campaign.name}" natychmiast. Listę odbiorców wyliczymy teraz, ta operacja pobierze kredyty.`
-          }
-          confirmText={
-            pending.type === 'delete'
-              ? 'Usuń'
-              : pending.campaign.kind === 'AUTOMATIC'
-                ? 'Aktywuj'
-                : 'Wyślij teraz'
-          }
-          cancelText="Wróć"
-          onConfirm={confirmPending}
-          onCancel={() => setPending(null)}
-        />
-      )}
-    </Page>
-  );
+            {isEmpty ? (
+                <EmptyInvite>
+                    <h2>Wyślij pierwszą kampanię</h2>
+                    <p>
+                        Przypomnij klientom o sobie: świątecznie, po wykonanej usłudze albo wtedy,
+                        gdy dawno ich nie było. Odbiorców wybierasz filtrami, treść piszesz raz.
+                    </p>
+                    <PrimaryButton type="button" onClick={() => navigate('/campaigns/new')}>
+                        <Plus /> Utwórz kampanię
+                    </PrimaryButton>
+                </EmptyInvite>
+            ) : (
+                <>
+                    <FiltersRow>
+                        {FILTERS.map((f) => (
+                            <FilterChip key={f.id} $active={filter === f.id} onClick={() => setFilter(f.id)}>
+                                {f.label}
+                            </FilterChip>
+                        ))}
+                        <FilterSeparator />
+                        <FilterChip
+                            $active={onlyProblems}
+                            title="Kampanie, w których jakaś wiadomość nie wyszła"
+                            onClick={() => setOnlyProblems((current) => !current)}
+                        >
+                            Z błędami
+                        </FilterChip>
+                        <SearchBox>
+                            <Search size={14} />
+                            <input
+                                placeholder="Szukaj po nazwie kampanii…"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                            />
+                        </SearchBox>
+                    </FiltersRow>
+
+                    <SurfaceCard>
+                        <TableScroll>
+                            <HeadRow>
+                                <span>Kampania</span>
+                                <span>Kanał</span>
+                                <span>Odbiorcy</span>
+                                <span>Koszt</span>
+                                <span>Status</span>
+                                <span>Termin</span>
+                            </HeadRow>
+                            {filtered.length === 0 && (
+                                <EmptyHint>Brak kampanii w tym widoku</EmptyHint>
+                            )}
+                            {filtered.map((c) => {
+                                const marker = describeCampaign(c);
+                                return (
+                                    <Row
+                                        key={c.id}
+                                        $active={c.id === selectedId}
+                                        $tone={marker.tone}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => selectCampaign(c.id)}
+                                        onKeyDown={(event) => {
+                                            if (event.target !== event.currentTarget) return;
+                                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                                            event.preventDefault();
+                                            selectCampaign(c.id);
+                                        }}
+                                    >
+                                        <span className="who">
+                                            <span className="name">{c.name}</span>
+                                            <CampaignKindMark kind={c.kind} />
+                                        </span>
+
+                                        <span>{CHANNEL_LABELS[c.channel]}</span>
+
+                                        <span className="num">{recipientsLabel(c)}</span>
+
+                                        <span className="num">
+                                            {c.creditsSpent > 0 ? `${c.creditsSpent} kr.` : '—'}
+                                        </span>
+
+                                        {/* Etap i „co dalej" jedno pod drugim: to dwie odpowiedzi
+                                            na dwa różne pytania o tę samą kampanię, a rozdzielone
+                                            na dwie kolumny kazałyby wodzić wzrokiem w bok. */}
+                                        <StatusStack>
+                                            <StatusLine>
+                                                <StatusDot $color={STATUS_COLORS[c.status]} />
+                                                {STATUS_LABELS[c.status]}
+                                            </StatusLine>
+                                            <StateMarker $tone={marker.tone} title={marker.title}>
+                                                {marker.label}
+                                            </StateMarker>
+                                        </StatusStack>
+
+                                        <span>{whenLabel(c)}</span>
+                                    </Row>
+                                );
+                            })}
+                        </TableScroll>
+                    </SurfaceCard>
+
+                    {filtered.length > 0 && onlyProblems && (
+                        <MutedText>
+                            Widzisz wyłącznie kampanie z nieudanymi wiadomościami.
+                        </MutedText>
+                    )}
+                </>
+            )}
+
+            {selectedId && (
+                <CampaignDetailModal
+                    // Remount na każdą kampanię: stan okna (szukajka odbiorców,
+                    // otwarte potwierdzenie) należy do jednego otwarcia.
+                    key={selectedId}
+                    campaignId={selectedId}
+                    onClose={() => selectCampaign(null)}
+                    onDeleted={() => selectCampaign(null)}
+                />
+            )}
+        </ViewContainer>
+    );
 }

@@ -1,8 +1,24 @@
+// src/modules/campaigns/views/CampaignWizardView.tsx
+// Kreator kampanii — cztery kroki, w każdym jedna akcja główna.
+//
+// Wcześniej stopka ostatniego kroku niosła trzy równoważne przyciski („Wstecz",
+// „Zapisz jako szkic", „Wyślij teraz") w jednym rzędzie i o tej samej wadze.
+// Trzy równorzędne podpowiedzi to zero podpowiedzi: prawo Hicka mówi, że czas
+// decyzji rośnie z liczbą równych opcji, a kreator ma tę decyzję podejmować za
+// człowieka. Zostaje jedna akcja główna po prawej — ta, po którą ktoś tu
+// przyszedł — cofnięcie po lewej i zapis szkicu jako odnośnik tekstowy, bo to
+// wyjście awaryjne, a nie równorzędna droga.
+//
+// Wszystkie barwy poza akcją główną i kropką „ten filtr jest ustawiony"
+// zniknęły: kolor w tym module znaczy etap, pilność albo akcję, nigdy dekorację.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { Repeat, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Repeat, Send } from 'lucide-react';
 import { Stepper } from '@/common/components/Stepper/Stepper';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { InfoTooltip } from '@/common/components/InfoTooltip';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 import {
   useActivateCampaign,
   useAudienceEstimate,
@@ -13,168 +29,112 @@ import {
 } from '../hooks/useCampaigns';
 import { emptyAudience } from '../types';
 import type { AudienceCriteria, CampaignChannel, CampaignKind, TriggerConfig } from '../types';
-import { AudienceBuilder, audienceChips, Chip, ChipRow, useServiceCatalog } from '../components/AudienceBuilder';
+import { AudienceBuilder, audienceChips, useServiceCatalog } from '../components/AudienceBuilder';
 import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
 import { AudienceEstimatePanel } from '../components/AudienceEstimatePanel';
 import { MessageEditor, type MessageContent } from '../components/MessageEditor';
-import { Eyebrow, Page, SectionCard } from '../components/shared';
-import { InfoTooltip } from '@/common/components/InfoTooltip';
-import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { smsMeta } from '../utils/sms';
+import {
+  Chip,
+  ChipRow,
+  Field,
+  FieldLabel,
+  HintText,
+  IconButton,
+  Panel,
+  PrimaryButton,
+  QuietLink,
+  SelectField,
+  TextField,
+  ViewContainer,
+} from '../components/shared';
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const WizardHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-
-  h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; color: ${(p) => p.theme.colors.text}; }
-`;
+// ─── Styl ─────────────────────────────────────────────────────────────────────
 
 const TwoCols = styled.div`
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   align-items: start;
 
-  @media (max-width: 1023px) { grid-template-columns: 1fr; }
+  @media (max-width: 1023px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
+/**
+ * Wybór rodzaju kampanii — dwie karty, żadna nie jest domyślna.
+ *
+ * To jedyny krok, w którym nie ma akcji głównej w stopce, bo akcją jest sam
+ * wybór. Ikona jest przygaszona: gdyby świeciła kolorem akcji, obie karty
+ * wyglądałyby jak dwa przyciski „wyślij".
+ */
 const KindGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  max-width: 700px;
-  margin: 0 auto;
+  max-width: 760px;
 
   @media (max-width: 767px) { grid-template-columns: 1fr; }
 `;
 
 const KindCard = styled.button`
   text-align: left;
-  background: #ffffff;
-  border: 2px solid ${(p) => p.theme.colors.border};
-  border-radius: 16px;
-  padding: 24px;
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.xl};
+  padding: 22px;
   cursor: pointer;
   font-family: inherit;
-  transition: all 180ms ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all ${(p) => p.theme.transitions.fast};
 
   &:hover {
-    border-color: #0ea5e9;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border-color: ${(p) => p.theme.colors.primary};
+    background: ${(p) => p.theme.colors.surfaceHover};
   }
 
-  svg { width: 24px; height: 24px; stroke-width: 1.75; color: #0ea5e9; margin-bottom: 12px; display: block; }
-  h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; color: ${(p) => p.theme.colors.text}; }
-  p  { margin: 0; font-size: 13px; color: ${(p) => p.theme.colors.textMuted}; line-height: 1.5; }
+  svg {
+    width: 20px;
+    height: 20px;
+    color: ${(p) => p.theme.colors.textMuted};
+    margin-bottom: 12px;
+    display: block;
+  }
+  h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.text};
+  }
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: ${(p) => p.theme.colors.textSecondary};
+    line-height: 1.55;
+  }
 `;
 
 const GroupIntro = styled.p`
-  margin: 4px 0 16px;
+  margin: 0;
   font-size: 13px;
   color: ${(p) => p.theme.colors.textSecondary};
 `;
 
+/**
+ * Stopka kroku. Po lewej cofnięcie, po prawej jedna akcja główna; zapis szkicu
+ * jest odnośnikiem tuż przy niej, bo to wyjście awaryjne, nie druga droga.
+ */
 const NavRow = styled.div`
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
 `;
 
-const PrimaryBtn = styled.button`
-  background: #0ea5e9;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  padding: 10px 24px;
-  border-radius: 9999px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 180ms ease;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
-
-  &:hover:not(:disabled) { background: #0284c7; transform: translateY(-1px); }
-  &:disabled { opacity: 0.5; cursor: default; }
-`;
-
-const GhostBtn = styled.button`
-  background: #ffffff;
-  color: ${(p) => p.theme.colors.text};
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  cursor: pointer;
-  padding: 10px 24px;
-  border-radius: 9999px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 180ms ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-
-  &:hover { border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
-  &:disabled { opacity: 0.5; cursor: default; }
-`;
-
-const FormField = styled.div`
+const NavRight = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-`;
-
-const FormLabel = styled.label`
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: ${(p) => p.theme.colors.textMuted};
-`;
-
-const FormInput = styled.input`
-  padding: 10px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
-  max-width: 420px;
-  background: #ffffff;
-  color: ${(p) => p.theme.colors.text};
-
-  &::placeholder { color: #94a3b8; }
-
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
-`;
-
-const FormSelect = styled.select`
-  padding: 10px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
-  max-width: 420px;
-  background: #ffffff;
-
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
-`;
-
-const HintText = styled.p`
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: ${(p) => p.theme.colors.textMuted};
-  line-height: 1.5;
+  align-items: center;
+  gap: 14px;
 `;
 
 const AfterDaysRow = styled.div`
@@ -184,46 +144,35 @@ const AfterDaysRow = styled.div`
   max-width: 420px;
 `;
 
-const AfterDaysInput = styled.input`
-  width: 90px;
-  padding: 10px 14px;
-  border: 1.5px solid ${(p) => p.theme.colors.border};
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: inherit;
-  background: #ffffff;
-  color: ${(p) => p.theme.colors.text};
-  text-align: center;
-
-  &:focus {
-    outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
-  }
-`;
-
-const AfterDaysUnit = styled.span`
-  font-size: 14px;
-  color: ${(p) => p.theme.colors.textSecondary};
-`;
-
 const ScheduleNote = styled.p`
-  margin: 8px 0 0;
+  margin: 0;
   font-size: 13px;
   color: ${(p) => p.theme.colors.textSecondary};
-  max-width: 560px;
-  line-height: 1.5;
+  max-width: 620px;
+  line-height: 1.55;
 `;
 
+/** Podsumowanie: pary „pytanie — odpowiedź", odpowiedzi cięższe od pytań. */
 const RecapList = styled.dl`
   margin: 0;
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px minmax(0, 1fr);
   row-gap: 10px;
   font-size: 14px;
 
   dt { color: ${(p) => p.theme.colors.textMuted}; }
-  dd { margin: 0; font-weight: 600; color: ${(p) => p.theme.colors.text}; font-variant-numeric: tabular-nums; }
+  dd {
+    margin: 0;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.text};
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: ${(p) => p.theme.breakpoints.sm}) {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
+    dd { margin-bottom: 8px; }
+  }
 `;
 
 // ─── Widok ────────────────────────────────────────────────────────────────────
@@ -236,6 +185,13 @@ const STEPS: { id: StepId; label: string }[] = [
   { id: 'content', label: 'Treść' },
   { id: 'summary', label: 'Podsumowanie' },
 ];
+
+const STEP_QUESTIONS: Record<StepId, string> = {
+  scenario: 'Raz czy stale?',
+  audience: 'Do kogo ma trafić?',
+  content: 'Co mają przeczytać?',
+  summary: 'Wszystko się zgadza?',
+};
 
 type ScheduleMode = 'NOW' | 'AT' | 'ACTIVATE';
 
@@ -327,17 +283,17 @@ export function CampaignWizardView() {
         scheduledAt: scheduleMode === 'AT' && scheduleAt ? new Date(scheduleAt).toISOString() : null,
       });
     }
-    navigate(`/campaigns/${campaignId}`);
+    navigate(`/campaigns?campaign=${campaignId}`);
   };
 
   const saveDraft = async () => {
     const payload = buildPayload();
     if (isEdit) {
       await updateCampaign.mutateAsync({ id: editId!, payload });
-      navigate(`/campaigns/${editId}`);
+      navigate(`/campaigns?campaign=${editId}`);
     } else {
       const saved = await createCampaign.mutateAsync(payload);
-      navigate(`/campaigns/${(saved as { id: string }).id}`);
+      navigate(`/campaigns?campaign=${(saved as { id: string }).id}`);
     }
   };
 
@@ -349,14 +305,20 @@ export function CampaignWizardView() {
   const estimatedCredits =
     content.channel !== 'EMAIL' && estimate ? estimate.eligible * Math.max(smsSegments, 1) : null;
 
+  const leaveWizard = () =>
+    navigate(isEdit ? `/campaigns?campaign=${editId}` : '/campaigns');
+
   return (
-    <Page>
-      <WizardHeader>
-        <h1>{isEdit ? `Edytujesz: ${existing?.name ?? ''}` : 'Nowa kampania'}</h1>
-        <GhostBtn onClick={() => navigate(isEdit ? `/campaigns/${editId}` : '/campaigns')}>
-          {isEdit ? 'Odrzuć zmiany' : 'Anuluj'}
-        </GhostBtn>
-      </WizardHeader>
+    <ViewContainer>
+      <PageHeader
+        title={isEdit ? existing?.name || 'Edycja kampanii' : 'Nowa kampania'}
+        subtitle={STEP_QUESTIONS[step]}
+        actions={
+          <PageHeaderGhostButton onClick={leaveWizard}>
+            {isEdit ? 'Odrzuć zmiany' : 'Anuluj'}
+          </PageHeaderGhostButton>
+        }
+      />
 
       <Stepper
         steps={visibleSteps}
@@ -367,7 +329,7 @@ export function CampaignWizardView() {
 
       {/* ── Krok 1: Rodzaj kampanii ── */}
       {step === 'scenario' && (
-        <div>
+        <>
           <GroupIntro>Wybierz rodzaj kampanii, żeby zacząć.</GroupIntro>
           <KindGrid>
             <KindCard type="button" onClick={() => pickKind('ONE_TIME')}>
@@ -381,44 +343,47 @@ export function CampaignWizardView() {
               <p>Działa stale: wysyła wiadomość do każdego klienta, gdy spełni warunek, np. 180 dni od wykonanej usługi.</p>
             </KindCard>
           </KindGrid>
-        </div>
+        </>
       )}
 
       {/* ── Krok 2: Odbiorcy ── */}
       {step === 'audience' && (
         <>
-          <FormField>
-            <FormLabel>Nazwa kampanii</FormLabel>
-            <FormInput value={name} onChange={(e) => setName(e.target.value)} placeholder="np. Życzenia świąteczne 2026" />
-          </FormField>
+          <Field style={{ maxWidth: 420 }}>
+            <FieldLabel>Nazwa kampanii</FieldLabel>
+            <TextField
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="np. Życzenia świąteczne 2026"
+            />
+          </Field>
 
           {kind === 'AUTOMATIC' && (
-            <SectionCard style={{ marginBottom: 16 }}>
-              <Eyebrow>Warunek wysyłki</Eyebrow>
-              <FormField>
-                <FormLabel>
+            <Panel>
+              <h4>Warunek wysyłki</h4>
+              <Field style={{ maxWidth: 420 }}>
+                <FieldLabel>
                   Po usłudze
                   <InfoTooltip text="Kampania uruchomi się dla klientów, u których ta usługa była wykonana X dni temu. Przy kilku usługach wystarczy, że klient miał choćby jedną z nich (logika LUB)." />
-                </FormLabel>
-                <div style={{ maxWidth: 420 }}>
-                  <ServiceMultiSelect
-                    selectedIds={trigger.serviceIds}
-                    onChange={(ids) => setTrigger({ ...trigger, serviceIds: ids })}
-                  />
-                </div>
+                </FieldLabel>
+                <ServiceMultiSelect
+                  selectedIds={trigger.serviceIds}
+                  onChange={(ids) => setTrigger({ ...trigger, serviceIds: ids })}
+                />
                 <HintText>
                   {trigger.serviceIds.length > 1
                     ? 'Wystarczy, że klient miał wykonaną dowolną z wybranych usług (logika LUB).'
                     : 'Możesz wybrać kilka usług: warunek spełni każda z nich (logika LUB).'}
                 </HintText>
-              </FormField>
-              <FormField>
-                <FormLabel>
+              </Field>
+              <Field>
+                <FieldLabel>
                   Wyślij po
                   <InfoTooltip text="Liczba dni od wykonania usługi. System sprawdza codziennie i wysyła w dniu, w którym wizyta jest stara o dokładnie tyle dni." />
-                </FormLabel>
+                </FieldLabel>
                 <AfterDaysRow>
-                  <AfterDaysInput
+                  <TextField
+                    style={{ width: 90, textAlign: 'center' }}
                     type="number"
                     min={1}
                     max={3650}
@@ -428,23 +393,23 @@ export function CampaignWizardView() {
                       if (!isNaN(v) && v > 0) setTrigger({ ...trigger, afterDays: v });
                     }}
                   />
-                  <AfterDaysUnit>dniach od wykonania usługi</AfterDaysUnit>
+                  <HintText style={{ fontSize: 14 }}>dniach od wykonania usługi</HintText>
                 </AfterDaysRow>
-              </FormField>
-              <FormField>
-                <FormLabel>
+              </Field>
+              <Field style={{ maxWidth: 420 }}>
+                <FieldLabel>
                   Pomiń, jeśli klient był w międzyczasie
                   <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane, bo chroni przed wysyłaniem do klientów, którzy sami wrócili." />
-                </FormLabel>
-                <FormSelect
+                </FieldLabel>
+                <SelectField
                   value={trigger.onlyIfNoVisitSince ? 'yes' : 'no'}
                   onChange={(e) => setTrigger({ ...trigger, onlyIfNoVisitSince: e.target.value === 'yes' })}
                 >
                   <option value="yes">Tak (zalecane)</option>
                   <option value="no">Nie, wyślij zawsze</option>
-                </FormSelect>
-              </FormField>
-            </SectionCard>
+                </SelectField>
+              </Field>
+            </Panel>
           )}
 
           <TwoCols>
@@ -458,8 +423,14 @@ export function CampaignWizardView() {
           </TwoCols>
 
           <NavRow>
-            {!isEdit ? <GhostBtn onClick={() => setStep('scenario')}>Wstecz</GhostBtn> : <span />}
-            <PrimaryBtn disabled={!name.trim()} onClick={() => setStep('content')}>Dalej</PrimaryBtn>
+            {!isEdit ? (
+              <IconButton type="button" onClick={() => setStep('scenario')}>
+                <ArrowLeft /> Wstecz
+              </IconButton>
+            ) : <span />}
+            <PrimaryButton type="button" disabled={!name.trim()} onClick={() => setStep('content')}>
+              Dalej <ArrowRight />
+            </PrimaryButton>
           </NavRow>
         </>
       )}
@@ -467,13 +438,17 @@ export function CampaignWizardView() {
       {/* ── Krok 3: Treść ── */}
       {step === 'content' && (
         <>
-          <SectionCard>
-            <Eyebrow>Treść wiadomości</Eyebrow>
+          <Panel>
+            <h4>Treść wiadomości</h4>
             <MessageEditor value={content} onChange={setContent} />
-          </SectionCard>
+          </Panel>
           <NavRow>
-            <GhostBtn onClick={() => setStep('audience')}>Wstecz</GhostBtn>
-            <PrimaryBtn disabled={!canLeaveContent} onClick={() => setStep('summary')}>Dalej</PrimaryBtn>
+            <IconButton type="button" onClick={() => setStep('audience')}>
+              <ArrowLeft /> Wstecz
+            </IconButton>
+            <PrimaryButton type="button" disabled={!canLeaveContent} onClick={() => setStep('summary')}>
+              Dalej <ArrowRight />
+            </PrimaryButton>
           </NavRow>
         </>
       )}
@@ -481,71 +456,78 @@ export function CampaignWizardView() {
       {/* ── Krok 4: Podsumowanie ── */}
       {step === 'summary' && (
         <>
-          <SectionCard>
-            <Eyebrow>Podsumowanie</Eyebrow>
+          <Panel>
+            <h4>Podsumowanie</h4>
             <RecapList>
               <dt>Kampania</dt><dd>{name}</dd>
-              <dt>Kanał</dt><dd>{content.channel === 'BOTH' ? 'SMS i e-mail' : content.channel === 'SMS' ? 'SMS' : 'E-mail'}</dd>
+              <dt>Kanał</dt>
+              <dd>{content.channel === 'BOTH' ? 'SMS i e-mail' : content.channel === 'SMS' ? 'SMS' : 'E-mail'}</dd>
               <dt>Odbiorcy</dt>
-              <dd>{estimate ? `${estimate.eligible} (stan na dziś)` : '-'}</dd>
+              <dd>{estimate ? `${estimate.eligible} (stan na dziś)` : '—'}</dd>
               {estimatedCredits != null && (<><dt>Szacowany koszt</dt><dd>{estimatedCredits} kredytów SMS</dd></>)}
               {kind === 'AUTOMATIC' && (
                 <>
                   <dt>Warunek</dt>
                   <dd>
-                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '-'}
+                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '—'}
                   </dd>
                 </>
               )}
             </RecapList>
             {chips.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <ChipRow>{chips.map((c) => <Chip key={c}>{c}</Chip>)}</ChipRow>
-              </div>
+              <ChipRow>{chips.map((c) => <Chip key={c}>{c}</Chip>)}</ChipRow>
             )}
-          </SectionCard>
+          </Panel>
 
           {kind === 'ONE_TIME' && (
-            <SectionCard style={{ marginTop: 16 }}>
-              <Eyebrow>Kiedy wysłać</Eyebrow>
-              <FormField>
-                <FormSelect value={scheduleMode} onChange={(e) => setScheduleMode(e.target.value as ScheduleMode)}>
+            <Panel>
+              <h4>Kiedy wysłać</h4>
+              <Field style={{ maxWidth: 420 }}>
+                <SelectField value={scheduleMode} onChange={(e) => setScheduleMode(e.target.value as ScheduleMode)}>
                   <option value="NOW">Wyślij teraz</option>
                   <option value="AT">Zaplanuj termin</option>
-                </FormSelect>
-              </FormField>
+                </SelectField>
+              </Field>
               {scheduleMode === 'AT' && (
-                <FormField>
-                  <FormLabel>Data i godzina wysyłki</FormLabel>
+                <Field style={{ maxWidth: 420 }}>
+                  <FieldLabel>Data i godzina wysyłki</FieldLabel>
                   <DateTimePicker
                     value={scheduleAt}
                     onChange={setScheduleAt}
                     showTime
                     placeholder="Wybierz datę i godzinę"
                   />
-                </FormField>
+                </Field>
               )}
               <ScheduleNote>
                 Listę odbiorców przeliczymy ponownie tuż przed wysyłką, obejmie klientów
                 spełniających warunki w dniu wysyłki. Twoje ręczne wykluczenia zostaną zachowane.
               </ScheduleNote>
-            </SectionCard>
+            </Panel>
           )}
 
           <NavRow>
-            <GhostBtn onClick={() => setStep('content')}>Wstecz</GhostBtn>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <GhostBtn disabled={isSaving} onClick={saveDraft}>Zapisz jako szkic</GhostBtn>
-              <PrimaryBtn
+            <IconButton type="button" onClick={() => setStep('content')}>
+              <ArrowLeft /> Wstecz
+            </IconButton>
+            <NavRight>
+              {/* Zapis szkicu to wyjście awaryjne, nie druga droga do celu —
+                  jako równy przycisk kazałby wybierać między dwoma „zapisz". */}
+              <QuietLink type="button" disabled={isSaving} onClick={saveDraft}>
+                Zapisz jako szkic
+              </QuietLink>
+              <PrimaryButton
+                type="button"
                 disabled={isSaving || (scheduleMode === 'AT' && !scheduleAt)}
                 onClick={finish}
               >
+                <Send />
                 {kind === 'AUTOMATIC' ? 'Aktywuj kampanię' : scheduleMode === 'AT' ? 'Zaplanuj wysyłkę' : 'Wyślij teraz'}
-              </PrimaryBtn>
-            </div>
+              </PrimaryButton>
+            </NavRight>
           </NavRow>
         </>
       )}
-    </Page>
+    </ViewContainer>
   );
 }

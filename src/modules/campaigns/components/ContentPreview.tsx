@@ -1,3 +1,12 @@
+// src/modules/campaigns/components/ContentPreview.tsx
+// Podgląd treści: tak zobaczy ją klient.
+//
+// Metafora nośnika zostaje — dymek w oknie telefonu i nagłówek klienta poczty
+// mówią „SMS" i „e-mail" szybciej niż jakakolwiek etykieta. Zniknęły natomiast
+// barwy przypisane kanałom: błękitna kreska nad SMS-em i fioletowa nad e-mailem
+// nie niosły żadnej informacji poza „to są dwie różne rzeczy", co widać i bez
+// koloru. Kolor w tym module znaczy etap, pilność albo akcję główną — kanał
+// rozpoznaje się po ikonie i po kształcie podglądu.
 import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Mail, MessageSquare } from 'lucide-react';
@@ -28,51 +37,25 @@ function renderPlaceholders(text: string | null | undefined): string {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 14px;
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
 `;
 
-const Title = styled.h3`
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.1px;
-  color: ${(p) => p.theme.colors.text};
-`;
-
-const PreviewBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  background: #e0f2fe;
-  color: #075985;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-
-  &::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #0ea5e9;
+const Head = styled.h4`
+  /* Styl dziedziczy z Panelu: wersaliki, mały stopień, kolor przygaszony. */
+  .hint {
+    margin-left: auto;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: ${(p) => p.theme.fontWeights.normal};
+    font-size: 11.5px;
+    color: ${(p) => p.theme.colors.textMuted};
   }
 `;
 
 const Grid = styled.div<{ $cols: 1 | 2 }>`
   display: grid;
   grid-template-columns: ${(p) => (p.$cols === 2 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)')};
-  gap: 16px;
+  gap: 12px;
   align-items: start;
 
   @media (max-width: 899px) {
@@ -82,68 +65,54 @@ const Grid = styled.div<{ $cols: 1 | 2 }>`
 
 // ─── Karta kanału ─────────────────────────────────────────────────────────────
 
-const ChannelCard = styled.article<{ $accent: string }>`
-  background: #ffffff;
+const ChannelCard = styled.article`
+  background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-top: 3px solid ${(p) => p.$accent};
-  border-radius: 12px;
+  border-radius: ${(p) => p.theme.radii.md};
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 `;
 
-const ChannelHead = styled.header<{ $accent: string }>`
+const ChannelHead = styled.header`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
+  gap: 8px;
+  padding: 10px 14px;
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
 
-  .icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: ${(p) => p.$accent}1a;
-    color: ${(p) => p.$accent};
-
-    svg { width: 15px; height: 15px; stroke-width: 1.75; }
-  }
-
-  h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 700;
-    color: ${(p) => p.theme.colors.text};
-    letter-spacing: -0.1px;
-  }
-
-  .hint {
-    margin-left: auto;
-    font-size: 11.5px;
+  svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
     color: ${(p) => p.theme.colors.textMuted};
+  }
 
-    @media (max-width: 480px) { display: none; }
+  h5 {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.text};
   }
 `;
 
+/** Liczby segmentów i kodowania — fakt techniczny, więc stoi cicho pod treścią. */
 const MetaRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  padding: 10px 18px;
+  padding: 8px 14px;
   border-top: 1px solid ${(p) => p.theme.colors.border};
-  background: #fafbfc;
-  font-size: 12.5px;
-  color: ${(p) => p.theme.colors.textSecondary};
+  background: ${(p) => p.theme.colors.surfaceHover};
+  font-size: 11.5px;
+  color: ${(p) => p.theme.colors.textMuted};
   font-variant-numeric: tabular-nums;
 
   strong {
-    font-weight: 700;
-    color: ${(p) => p.theme.colors.text};
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
+    color: ${(p) => p.theme.colors.textSecondary};
   }
 `;
 
@@ -157,67 +126,59 @@ const MetaDot = styled.span`
 // ─── Podgląd SMS (metafora telefonu) ──────────────────────────────────────────
 
 const PhoneBackdrop = styled.div`
-  padding: 22px 18px 18px;
-  background: #f1f5f9;
+  padding: 18px 14px 14px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const SenderCap = styled.div`
   align-self: center;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  background: #e2e8f0;
-  color: #475569;
-  font-size: 10.5px;
-  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: ${(p) => p.theme.radii.full};
+  background: ${(p) => p.theme.colors.border};
+  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: 10px;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
 `;
 
 const SmsBubble = styled.div`
   align-self: flex-start;
   max-width: 92%;
-  padding: 12px 16px;
-  background: #ffffff;
-  color: #0f172a;
+  padding: 11px 14px;
+  background: ${(p) => p.theme.colors.surface};
+  color: ${(p) => p.theme.colors.text};
   border-radius: 18px 18px 18px 4px;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 `;
 
 const BubbleTime = styled.div`
   align-self: flex-start;
   padding-left: 8px;
   font-size: 11px;
-  color: #94a3b8;
+  color: ${(p) => p.theme.colors.textMuted};
 `;
 
-const EmptyBubble = styled.div`
+const Placeholder = styled.div`
   padding: 20px;
-  background: #ffffff;
-  border-radius: 12px;
-  color: #94a3b8;
+  color: ${(p) => p.theme.colors.textMuted};
   font-size: 13px;
   text-align: center;
-  font-style: italic;
 `;
 
 // ─── Podgląd e-maila (metafora klienta pocztowego) ────────────────────────────
 
-const EmailClient = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
 const EmailHead = styled.div`
-  padding: 14px 18px;
-  background: #fafbfc;
+  padding: 12px 14px;
+  background: ${(p) => p.theme.colors.surfaceHover};
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
 `;
 
@@ -228,19 +189,22 @@ const EmailFromRow = styled.div`
   margin-bottom: 8px;
 `;
 
-const Avatar = styled.div<{ $bg: string }>`
-  width: 34px;
-  height: 34px;
+/**
+ * Awatar nadawcy w tonie interfejsu, nie w kolorze przypisanym kanałowi:
+ * to jest szara koperta z inicjałami studia, a nie znak stanu.
+ */
+const Avatar = styled.div`
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: ${(p) => p.$bg};
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
+  background: ${(p) => p.theme.colors.border};
+  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  letter-spacing: 0.02em;
 `;
 
 const FromMeta = styled.div`
@@ -249,8 +213,8 @@ const FromMeta = styled.div`
   min-width: 0;
 
   .name {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12.5px;
+    font-weight: ${(p) => p.theme.fontWeights.semibold};
     color: ${(p) => p.theme.colors.text};
     line-height: 1.2;
   }
@@ -264,40 +228,30 @@ const FromMeta = styled.div`
 `;
 
 const EmailSubject = styled.div`
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
   color: ${(p) => p.theme.colors.text};
-  letter-spacing: -0.15px;
+  letter-spacing: -0.1px;
   word-break: break-word;
-  padding-left: 44px;
+  padding-left: 42px;
 `;
 
 const EmailBody = styled.div`
-  padding: 20px 18px;
-  min-height: 140px;
-  font-size: 14px;
+  padding: 16px 14px;
+  min-height: 120px;
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 13.5px;
   line-height: 1.65;
   color: ${(p) => p.theme.colors.text};
   white-space: pre-wrap;
   word-break: break-word;
 `;
 
-const EmptyEmailBody = styled.div`
-  padding: 30px 18px;
-  min-height: 140px;
-  color: #94a3b8;
-  font-size: 13px;
-  text-align: center;
-  font-style: italic;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const EmptyState = styled.div`
-  padding: 32px 20px;
+  padding: 28px 20px;
   border: 1px dashed ${(p) => p.theme.colors.border};
-  border-radius: 12px;
+  border-radius: ${(p) => p.theme.radii.md};
   color: ${(p) => p.theme.colors.textMuted};
   font-size: 13px;
   text-align: center;
@@ -326,9 +280,7 @@ export function ContentPreview({ campaign }: Props) {
   if (!hasSms && !hasEmail) {
     return (
       <Wrap>
-        <HeaderRow>
-          <Title>Treść wiadomości</Title>
-        </HeaderRow>
+        <Head>Treść wiadomości</Head>
         <EmptyState>Ta kampania nie ma jeszcze treści.</EmptyState>
       </Wrap>
     );
@@ -336,32 +288,32 @@ export function ContentPreview({ campaign }: Props) {
 
   return (
     <Wrap>
-      <HeaderRow>
-        <Title>Treść wiadomości</Title>
-        <PreviewBadge>Podgląd z przykładowymi danymi</PreviewBadge>
-      </HeaderRow>
+      <Head>
+        Treść wiadomości
+        <span className="hint">podgląd z przykładowymi danymi</span>
+      </Head>
 
       <Grid $cols={cols}>
         {hasSms && (
-          <ChannelCard $accent="#0ea5e9">
-            <ChannelHead $accent="#0ea5e9">
-              <span className="icon"><MessageSquare /></span>
-              <h4>SMS</h4>
-              <span className="hint">tak zobaczy ją klient</span>
+          <ChannelCard>
+            <ChannelHead>
+              <MessageSquare />
+              <h5>SMS</h5>
             </ChannelHead>
             <PhoneBackdrop>
               <SenderCap>Twoje studio</SenderCap>
-              {smsBody ? <SmsBubble>{smsBody}</SmsBubble> : <EmptyBubble>Brak treści SMS.</EmptyBubble>}
+              {smsBody ? <SmsBubble>{smsBody}</SmsBubble> : <Placeholder>Brak treści SMS.</Placeholder>}
               <BubbleTime>teraz</BubbleTime>
             </PhoneBackdrop>
             {smsInfo && (
               <MetaRow>
                 <span><strong>{smsInfo.length}</strong> znaków</span>
                 <MetaDot />
-                <span>Kodowanie <strong>{smsInfo.encoding}</strong></span>
+                <span>kodowanie <strong>{smsInfo.encoding}</strong></span>
                 <MetaDot />
                 <span>
-                  <strong>{smsInfo.segments}</strong> {smsInfo.segments === 1 ? 'segment' : 'segmenty'} = {smsInfo.segments} kredyt(y) / odbiorcę
+                  <strong>{smsInfo.segments}</strong>{' '}
+                  {smsInfo.segments === 1 ? 'segment' : 'segmenty'} na odbiorcę
                 </span>
               </MetaRow>
             )}
@@ -369,27 +321,26 @@ export function ContentPreview({ campaign }: Props) {
         )}
 
         {hasEmail && (
-          <ChannelCard $accent="#8b5cf6">
-            <ChannelHead $accent="#8b5cf6">
-              <span className="icon"><Mail /></span>
-              <h4>E-mail</h4>
-              <span className="hint">tak zobaczy go klient</span>
+          <ChannelCard>
+            <ChannelHead>
+              <Mail />
+              <h5>E-mail</h5>
             </ChannelHead>
-            <EmailClient>
-              <EmailHead>
-                <EmailFromRow>
-                  <Avatar $bg="#8b5cf6">TS</Avatar>
-                  <FromMeta>
-                    <span className="name">Twoje studio</span>
-                    <span className="to">do: {SAMPLE_VALUES['{{imie}}']} {SAMPLE_VALUES['{{nazwisko}}']}</span>
-                  </FromMeta>
-                </EmailFromRow>
-                <EmailSubject>{emailSubject || <em style={{ color: '#94a3b8', fontStyle: 'normal' }}>(brak tematu)</em>}</EmailSubject>
-              </EmailHead>
-              {emailBody
-                ? <EmailBody>{emailBody}</EmailBody>
-                : <EmptyEmailBody>Treść e-maila nie została jeszcze przygotowana.</EmptyEmailBody>}
-            </EmailClient>
+            <EmailHead>
+              <EmailFromRow>
+                <Avatar>TS</Avatar>
+                <FromMeta>
+                  <span className="name">Twoje studio</span>
+                  <span className="to">
+                    do: {SAMPLE_VALUES['{{imie}}']} {SAMPLE_VALUES['{{nazwisko}}']}
+                  </span>
+                </FromMeta>
+              </EmailFromRow>
+              <EmailSubject>{emailSubject || '(brak tematu)'}</EmailSubject>
+            </EmailHead>
+            {emailBody
+              ? <EmailBody>{emailBody}</EmailBody>
+              : <Placeholder>Treść e-maila nie została jeszcze przygotowana.</Placeholder>}
           </ChannelCard>
         )}
       </Grid>
