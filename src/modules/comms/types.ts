@@ -97,6 +97,12 @@ export interface CommMessage {
     readAt: string | null;
     sendStatus: string;
     attachments: CommAttachment[];
+    /**
+     * Lead założony z TEJ wiadomości przez automat formularzowy. Wątek formularza
+     * zbiera zgłoszenia wielu klientów pod wspólnym tematem, więc lead wisi przy
+     * konkretnej wiadomości, a nie przy wątku.
+     */
+    formLeadId?: string | null;
 }
 
 export interface CommThreadDetail {

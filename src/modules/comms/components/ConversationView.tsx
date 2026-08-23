@@ -401,6 +401,52 @@ const AttachmentChip = styled.button`
 `;
 
 /**
+ * „Podgląd Leada" przy pojedynczej wiadomości. W wątku formularza każda wiadomość
+ * to osobne zgłoszenie osobnego klienta, więc lead jest własnością wiadomości —
+ * i tylko tu da się go otworzyć bez zgadywania, o którego klienta chodzi.
+ */
+const LeadPeekButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: ${p => p.theme.radii.full};
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    font-family: inherit;
+    cursor: pointer;
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover { background: #e0e7ff; }
+
+    svg { width: 13px; height: 13px; }
+`;
+
+/** To samo wejście w zwiniętym wierszu — span, bo wiersz sam jest przyciskiem. */
+const LeadPeekChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: ${p => p.theme.radii.full};
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    cursor: pointer;
+
+    &:hover { background: #e0e7ff; }
+
+    svg { width: 11px; height: 11px; }
+`;
+
+/**
  * Szkielet na czas dociągania treści. Pojawia się z opóźnieniem: wątek trafia do
  * cache przy najechaniu na listę, więc zwykle przychodzi w kilkadziesiąt milisekund,
  * a szkielet mignąłby wtedy tylko po to, żeby zaraz zniknąć. Opóźnienie robi CSS,
@@ -531,6 +577,10 @@ function ConversationViewImpl({
     // Okno „Lead z formularza" — trzymane jak pozostałe: id wątku, w którym je otwarto.
     const [formLeadThreadId, setFormLeadThreadId] = useState<string | null>(null);
     const formLeadOpen = formLeadThreadId === thread.id;
+    // Lead otwarty z konkretnej wiadomości wątku formularza. Trzymany razem z id
+    // wątku, tak jak pozostałe okna — przejście do innej rozmowy zamyka go samo.
+    const [messageLead, setMessageLead] = useState<{ threadId: string; leadId: string } | null>(null);
+    const openMessageLeadId = messageLead?.threadId === thread.id ? messageLead.leadId : null;
     // Oznaczeni nadawcy-formularze: jedna cache'owana lista na całą skrzynkę.
     // Z niej bierze się plakietka „Formularz" przy adresie robota.
     const { data: formSources } = useFormMailSources();
@@ -566,7 +616,13 @@ function ConversationViewImpl({
      * Kolejność kroków jest ta sama co w module leadów: rozmowa → lead → rezerwacja.
      * Gdy termin już stoi, kroku nie ma i zostaje samo menu; stan mówi plakietka.
      */
-    const primaryAction: ThreadAction | null = isBooked
+    // Wątek formularza jest wyjątkiem: nadawcą jest robot, a klienci siedzą w treści
+    // kolejnych wiadomości. „Oznacz jako lead" wzięłoby wtedy adres robota za kontakt,
+    // a „Stwórz rezerwację" — nie wiadomo czyją. Leady zakłada tu automat, po jednym
+    // na wiadomość, i do nich prowadzi „Podgląd Leada" przy każdej z nich.
+    const primaryAction: ThreadAction | null = activeFormSource
+        ? null
+        : isBooked
         ? null
         : thread.leadId
           ? bookAction
@@ -581,7 +637,7 @@ function ConversationViewImpl({
     // Rezerwację da się założyć także bez leada i także drugą — schowana, ale nigdy
     // niedostępna tylko dlatego, że nie stoi teraz na wierzchu.
     const menuActions: ThreadAction[] = [
-        ...(primaryAction === bookAction ? [] : [bookAction]),
+        ...(activeFormSource || primaryAction === bookAction ? [] : [bookAction]),
         // Mail od robota formularzy: klient jest w treści, nie w polu nadawcy —
         // dlatego to osobna akcja, a nie zwykłe „Oznacz jako lead" (tamto wzięłoby
         // adres robota za kontakt klienta).
@@ -910,6 +966,26 @@ function ConversationViewImpl({
                                 {message.attachments.length > 0 && (
                                     <Paperclip size={12} className="clip" aria-label="Ma załączniki" />
                                 )}
+                                {activeFormSource && message.formLeadId && (
+                                    <LeadPeekChip
+                                        role="button"
+                                        tabIndex={0}
+                                        title="Zobacz leada z tego zgłoszenia"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setMessageLead({ threadId: thread.id, leadId: message.formLeadId! });
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            setMessageLead({ threadId: thread.id, leadId: message.formLeadId! });
+                                        }}
+                                    >
+                                        <Sparkles />
+                                        Lead
+                                    </LeadPeekChip>
+                                )}
                                 <span className="when">{formatRelativeTime(message.sentAt)}</span>
                             </CollapsedRow>
                         );
@@ -998,10 +1074,33 @@ function ConversationViewImpl({
                                     ))}
                                 </AttachmentRow>
                             )}
+
+                            {activeFormSource && message.formLeadId && (
+                                <LeadPeekButton
+                                    type="button"
+                                    onClick={() =>
+                                        setMessageLead({ threadId: thread.id, leadId: message.formLeadId! })
+                                    }
+                                    title="Zobacz leada utworzonego z tego zgłoszenia"
+                                >
+                                    <Sparkles />
+                                    Podgląd Leada
+                                </LeadPeekButton>
+                            )}
                         </Article>
                     );
                 })}
             </MessagesScroll>
+
+            {openMessageLeadId && (
+                <LeadDetailModal
+                    key={openMessageLeadId}
+                    leadId={openMessageLeadId}
+                    /* Korespondencja tego leada to ta rozmowa — odnośnik prowadziłby tu. */
+                    showThreadLink={false}
+                    onClose={() => setMessageLead(null)}
+                />
+            )}
 
             <ReplyComposer
                 key={thread.id}

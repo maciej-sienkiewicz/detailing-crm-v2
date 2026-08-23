@@ -21,6 +21,7 @@ import {
     Mail,
     MailOpen,
     Paperclip,
+    PenSquare,
     RefreshCw,
     Search,
     Settings,
@@ -30,6 +31,7 @@ import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { commsApi } from '../api/commsApi';
 import {
     useContactInsights,
+    useFormMailSources,
     useMailAccounts,
     useMailboxSyncState,
     useMarkThreadRead,
@@ -40,6 +42,7 @@ import {
     useThreads,
 } from '../hooks/useComms';
 import type { CommThread } from '../types';
+import { ComposeMailModal } from '../components/ComposeMailModal';
 import { ConversationView } from '../components/ConversationView';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
@@ -187,6 +190,30 @@ const SearchInput = styled.div`
     }
 `;
 
+/** Ołówek przy wyszukiwarce — jedyne wejście w wiadomość pisaną od zera. */
+const ComposeButton = styled.button`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => p.theme.colors.primary};
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    transition: background ${p => p.theme.transitions.fast}, box-shadow ${p => p.theme.transitions.fast};
+
+    &:hover {
+        background: #0284c7;
+        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
+    }
+
+    svg { width: 15px; height: 15px; }
+`;
+
 const ThreadListScroll = styled.div`
     flex: 1;
     overflow-y: auto;
@@ -302,6 +329,7 @@ export default function MailView() {
     const [page, setPage] = useState(0);
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [fullMessageId, setFullMessageId] = useState<string | null>(null);
+    const [composeOpen, setComposeOpen] = useState(false);
     const { showInfo } = useToast();
 
     const selectedThreadId = searchParams.get('thread');
@@ -326,6 +354,13 @@ export default function MailView() {
         [query, page]
     );
     const { data: threadPage } = useThreads(filters);
+    // Adresy oznaczone jako formularze — jedna cache'owana lista na całą skrzynkę.
+    // Plakietka przy wątku mówi, że to zgłoszenia z formularza, zanim się go otworzy.
+    const { data: formSources } = useFormMailSources();
+    const formSenderEmails = useMemo(
+        () => new Set((formSources ?? []).filter((entry) => entry.active).map((entry) => entry.senderEmail)),
+        [formSources]
+    );
     const { data: detail } = useThread(selectedThreadId);
 
     // Nagłówek rozmowy stawiamy na danych z listy — są już w cache, więc pojawia
@@ -441,6 +476,14 @@ export default function MailView() {
                                     onChange={(event) => { setQuery(event.target.value); setPage(0); }}
                                 />
                             </SearchInput>
+                            <ComposeButton
+                                type="button"
+                                onClick={() => setComposeOpen(true)}
+                                aria-label="Napisz nową wiadomość"
+                                title="Napisz nową wiadomość"
+                            >
+                                <PenSquare />
+                            </ComposeButton>
                         </SearchRow>
                     </ListHeader>
                     <ThreadListScroll>
@@ -468,6 +511,9 @@ export default function MailView() {
                                 <div className="subject">{thread.subject ?? '(bez tematu)'}</div>
                                 <div className="snippet">
                                     {thread.hasAttachments && <Paperclip size={11} />}
+                                    {formSenderEmails.has(thread.participantEmail.trim().toLowerCase()) && (
+                                        <Pill $bg="#eef2ff" $fg="#4338ca">Formularz</Pill>
+                                    )}
                                     {thread.leadId && <Pill $bg="#f0fdf4" $fg="#15803d">Lead</Pill>}
                                     {thread.lastDirection === 'OUTBOUND' ? 'Ty: ' : ''}
                                     {thread.lastSnippet ?? ''}
@@ -551,6 +597,8 @@ export default function MailView() {
                         onDownloadAttachment={downloadAttachment}
                     />
                 )}
+
+                {composeOpen && <ComposeMailModal onClose={() => setComposeOpen(false)} />}
 
                 {fullMessage && (
                     <MessageReaderOverlay
