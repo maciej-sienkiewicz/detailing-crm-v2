@@ -130,6 +130,12 @@ export const BottomNav = () => {
 
     return (
         <Bar $isHidden={isMobileOpen} aria-label="Nawigacja główna">
+            <Item type="button" onClick={toggleMobileMenu} aria-expanded={isMobileOpen} aria-label="Otwórz pełne menu">
+                <IconWrap>
+                    <Menu aria-hidden="true" />
+                </IconWrap>
+                <Label>Menu</Label>
+            </Item>
             {shortcuts.map(({ path, label, icon: Icon, badge }) => {
                 const isActive = pathname === path || pathname.startsWith(`${path}/`);
                 return (
@@ -148,12 +154,6 @@ export const BottomNav = () => {
                     </Item>
                 );
             })}
-            <Item type="button" onClick={toggleMobileMenu} aria-expanded={isMobileOpen} aria-label="Otwórz pełne menu">
-                <IconWrap>
-                    <Menu aria-hidden="true" />
-                </IconWrap>
-                <Label>Menu</Label>
-            </Item>
         </Bar>
     );
 };
