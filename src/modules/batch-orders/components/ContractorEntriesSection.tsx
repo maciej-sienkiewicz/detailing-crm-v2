@@ -22,9 +22,13 @@ const SectionHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 18px;
+    /* Wcięcie zgodne z tabelą (20px), żeby nazwa kontrahenta stała w jednej
+       linii z kolumną „Data" poniżej. */
+    padding: 14px 20px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.background};
+    /* Biel karty, nie szarość tła strony: wyciszone przyciski mają tło
+       surfaceAlt i na szarym nagłówku były od niego nie do odróżnienia. */
+    background: ${p => p.theme.colors.surface};
     gap: 12px;
     flex-wrap: wrap;
 `;
@@ -34,6 +38,50 @@ const ContractorName = styled.h3`
     font-size: ${p => p.theme.fontSizes.md};
     font-weight: 700;
     color: ${p => p.theme.colors.text};
+`;
+
+/**
+ * „Edytuj" i „Usuń" działają na kontrahencie, a nie na liście wpisów, więc stoją
+ * przy jego nazwie — a nie w rzędzie akcji po prawej, gdzie sąsiadowały
+ * z „Dodaj wpis" i „Rozlicz" i wyglądały jak operacje na wpisach.
+ */
+const ContractorTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+`;
+
+const TitleIconBtn = styled.button<{ $danger?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 15px; height: 15px; }
+
+    &:hover {
+        background: ${p => p.$danger ? p.theme.colors.errorLight : p.theme.colors.surfaceAlt};
+        color: ${p => p.$danger ? p.theme.colors.error : p.theme.colors.text};
+    }
+
+    /* Na telefonie ikony są jedynym wejściem do tych akcji, więc dostają
+       pełny target dotykowy. */
+    @media (hover: none) and (pointer: coarse) {
+        width: 36px;
+        height: 36px;
+        svg { width: 17px; height: 17px; }
+    }
 `;
 
 const ContractorMeta = styled.div`
@@ -53,7 +101,7 @@ const FilterRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 18px;
+    padding: 10px 20px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surfaceAlt};
     flex-wrap: wrap;
@@ -114,56 +162,62 @@ const SettledBadge = styled.span`
     white-space: nowrap;
 `;
 
+/**
+ * Metryka i warianty wzięte z SharedButton (rozmiar „sm"): 13px, 7/16px,
+ * promień 8px. Wcześniej przyciski miały 12px i 5/12px z obramowaniem na
+ * każdym z nich — rząd sześciu ramek obok siebie czytał się jak pasek
+ * narzędzi doklejony do karty, a nie jak część tego samego widoku co tabela.
+ * Teraz akcję niesie wypełnienie, nie kontur: jedna akcja główna (primary),
+ * jedna potwierdzająca (success) i reszta wyciszona (secondary).
+ */
 const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success'; $mobileHide?: boolean }>`
-    padding: 5px 12px;
-    border-radius: 7px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    line-height: 1.2;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
-    min-height: 32px;
+    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    min-height: 34px;
 
     @media (hover: none) and (pointer: coarse) {
         min-height: 40px;
-        padding: 8px 14px;
+        padding: 9px 16px;
     }
 
     @media (max-width: 639px) {
         display: ${p => p.$mobileHide ? 'none' : undefined};
     }
 
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
 
     ${p => p.$variant === 'primary' && `
-        background: ${p.theme.colors.primary};
-        border: 1px solid ${p.theme.colors.primary};
+        background: #0ea5e9;
         color: #fff;
-        &:hover:not(:disabled) { opacity: 0.88; }
-    `}
-    ${p => p.$variant === 'danger' && `
-        background: transparent;
-        border: 1px solid ${p.theme.colors.border};
-        color: ${p.theme.colors.textMuted};
-        &:hover:not(:disabled) { background: ${p.theme.colors.error}; color: #fff; border-color: ${p.theme.colors.error}; }
-    `}
-    ${p => (!p.$variant || p.$variant === 'outline') && `
-        background: transparent;
-        border: 1px solid ${p.theme.colors.border};
-        color: ${p.theme.colors.text};
-        &:hover:not(:disabled) { background: ${p.theme.colors.primary}; color: #fff; border-color: ${p.theme.colors.primary}; }
-    `}
-    ${p => p.$variant === 'ghost' && `
-        background: transparent;
-        border: 1px solid ${p.theme.colors.border};
-        color: ${p.theme.colors.textMuted};
-        &:hover:not(:disabled) { background: ${p.theme.colors.background}; color: ${p.theme.colors.text}; }
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+        &:hover:not(:disabled) { background: #0284c7; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36); }
     `}
     ${p => p.$variant === 'success' && `
-        background: transparent;
-        border: 1px solid #22c55e;
-        color: #16a34a;
-        &:hover:not(:disabled) { background: #22c55e; color: #fff; }
+        background: #f0fdf4;
+        color: #15803d;
+        box-shadow: inset 0 0 0 1px #bbf7d0;
+        &:hover:not(:disabled) { background: #dcfce7; box-shadow: inset 0 0 0 1px #86efac; }
+    `}
+    ${p => p.$variant === 'danger' && `
+        background: ${p.theme.colors.surfaceAlt};
+        color: ${p.theme.colors.textSecondary};
+        &:hover:not(:disabled) { background: ${p.theme.colors.errorLight}; color: ${p.theme.colors.error}; }
+    `}
+    ${p => (!p.$variant || p.$variant === 'outline' || p.$variant === 'ghost') && `
+        background: ${p.theme.colors.surfaceAlt};
+        color: ${p.theme.colors.textSecondary};
+        &:hover:not(:disabled) { background: #e2e8f0; color: ${p.theme.colors.text}; }
     `}
 `;
 
@@ -664,7 +718,22 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             <Section>
                 <SectionHeader>
                     <div>
-                        <ContractorName>{contractor.name}</ContractorName>
+                        <ContractorTitleRow>
+                            <ContractorName>{contractor.name}</ContractorName>
+                            <TitleIconBtn onClick={onEdit} title="Edytuj kontrahenta" aria-label="Edytuj kontrahenta">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 20h9" />
+                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                </svg>
+                            </TitleIconBtn>
+                            <TitleIconBtn $danger onClick={onDelete} title="Usuń kontrahenta" aria-label="Usuń kontrahenta">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                                    <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                                </svg>
+                            </TitleIconBtn>
+                        </ContractorTitleRow>
                         <ContractorMeta>
                             {contractor.taxId && `NIP: ${contractor.taxId}`}
                             {contractor.taxId && contractor.contactPersonName && ' · '}
@@ -673,13 +742,16 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         </ContractorMeta>
                     </div>
                     <HeaderActions>
-                        <ActionBtn $mobileHide $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
-                        <ActionBtn $mobileHide $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
                         <ActionBtn $mobileHide $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
-                            {downloading ? 'Generowanie...' : '↓ PDF'}
+                            {downloading ? 'Generowanie…' : (
+                                <>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                    PDF
+                                </>
+                            )}
                         </ActionBtn>
                         <ActionBtn $mobileHide $variant="ghost" onClick={() => setShowHistory(true)} title="Historia rozliczeń">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
                             </svg>
@@ -702,13 +774,18 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 </SectionHeader>
 
                 <MobileSecondaryPanel $open={showMoreActions}>
-                    <ActionBtn $variant="ghost" onClick={onEdit}>Edytuj</ActionBtn>
-                    <ActionBtn $variant="danger" onClick={onDelete}>Usuń</ActionBtn>
+                    {/* Bez „Edytuj" i „Usuń" — te siedzą teraz przy nazwie kontrahenta
+                        i są na telefonie widoczne od razu, bez rozwijania. */}
                     <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
-                        {downloading ? 'Generowanie...' : '↓ PDF'}
+                        {downloading ? 'Generowanie…' : (
+                            <>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                PDF
+                            </>
+                        )}
                     </ActionBtn>
                     <ActionBtn $variant="ghost" onClick={() => setShowHistory(true)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                         </svg>
