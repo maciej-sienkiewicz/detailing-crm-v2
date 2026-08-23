@@ -72,11 +72,27 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeig
         return () => document.removeEventListener('keydown', handleKey);
     }, [isOpen, onClose]);
 
+    // Blokada przewijania tła. Musi objąć <html>, nie tylko <body>: to element
+    // dokumentu jest tu kontenerem przewijania (ma overflow-y: auto), więc samo
+    // wyciszenie <body> nic nie dawało — przy dłuższej stronie użytkownik
+    // przewijał aplikację pod otwartym oknem. overscroll-behavior odcina jeszcze
+    // łańcuch przewijania z wnętrza okna na dokument.
     useEffect(() => {
         if (!isOpen) return;
-        const prev = document.body.style.overflow;
+        const root = document.documentElement;
+        const prev = {
+            rootOverflow: root.style.overflow,
+            rootOverscroll: root.style.overscrollBehavior,
+            bodyOverflow: document.body.style.overflow,
+        };
+        root.style.overflow = 'hidden';
+        root.style.overscrollBehavior = 'none';
         document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = prev; };
+        return () => {
+            root.style.overflow = prev.rootOverflow;
+            root.style.overscrollBehavior = prev.rootOverscroll;
+            document.body.style.overflow = prev.bodyOverflow;
+        };
     }, [isOpen]);
 
     // Keep the modal inside the *visible* region when the on-screen keyboard is

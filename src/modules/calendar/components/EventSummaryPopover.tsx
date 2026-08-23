@@ -1321,7 +1321,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </svg>
                                 Przejdź do wizyty
                             </ManageButton>
-                            {onEditEndDateClick && can('VISITS_VIEW') && (
+                            {/* Zmiana terminu zakończenia edytuje wizytę, więc — jak PORZUĆ
+                                i PRZYWRÓĆ — wymaga prawa do tworzenia wizyt. */}
+                            {onEditEndDateClick && can('VISITS_CREATE') && (
                                 <SecondaryButton onClick={onEditEndDateClick} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" />

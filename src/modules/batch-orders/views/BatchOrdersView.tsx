@@ -123,11 +123,14 @@ export function BatchOrdersView() {
                 subtitle="Zarządzaj kontrahentami B2B i ich rozliczeniami"
                 actions={
                     <>
-                        <PageHeaderGhostButton onClick={() => setShowServices(true)}>
-                            Zarządzaj usługami
+                        {/* Krótkie etykiety: pełne ("Zarządzaj usługami", "+ Dodaj
+                            kontrahenta") nie mieściły się obok siebie na telefonie
+                            i łamały się na dwa wiersze pod tytułem. */}
+                        <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Zarządzaj usługami">
+                            Usługi
                         </PageHeaderGhostButton>
-                        <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)}>
-                            + Dodaj kontrahenta
+                        <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)} title="Dodaj kontrahenta">
+                            + Kontrahent
                         </PageHeaderPrimaryButton>
                     </>
                 }

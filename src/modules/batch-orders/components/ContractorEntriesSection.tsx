@@ -206,6 +206,13 @@ const MobileSecondaryPanel = styled.div<{ $open: boolean }>`
 const TableWrapper = styled.div`
     width: 100%;
     overflow-x: auto;
+
+    /* Na telefonie siedem kolumn nie ma jak się zmieścić — zamiast przewijania
+       w poziomie każdy wpis staje się kartą. Zmiana jest czysto prezentacyjna:
+       znaczniki tabeli zostają, więc nic nie traci semantyki ani zachowania. */
+    @media (max-width: 767px) {
+        overflow-x: visible;
+    }
 `;
 
 const Table = styled.table`
@@ -213,11 +220,22 @@ const Table = styled.table`
     min-width: 680px;
     border-collapse: collapse;
     background: ${p => p.theme.colors.surface};
+
+    @media (max-width: 767px) {
+        display: block;
+        min-width: 0;
+        tbody { display: block; }
+    }
 `;
 
 const TableHead = styled.thead`
     background: ${p => p.theme.colors.surfaceAlt};
     border-bottom: 1px solid ${p => p.theme.colors.border};
+
+    /* Nagłówki kolumn zastępują etykiety przy polach w karcie. */
+    @media (max-width: 767px) {
+        display: none;
+    }
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
@@ -238,6 +256,18 @@ const Tr = styled.tr<{ $closed?: boolean }>`
 
     &:last-child { border-bottom: none; }
     &:hover { background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.09)' : p.theme.colors.surfaceHover}; }
+
+    @media (max-width: 767px) {
+        /* data | pojazd | usługi | netto | brutto | uwagi | menu
+           układane w dwie kolumny: treść i wąska kolumna akcji. */
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 34px;
+        /* Bez tego wiersz z datą rozciąga się do wysokości przycisku ⋮
+           i zostawia pustą przerwę nad marką pojazdu. */
+        align-items: start;
+        gap: 2px 8px;
+        padding: 10px 14px 12px;
+    }
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
@@ -246,6 +276,39 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
     color: ${p => p.theme.colors.text};
     vertical-align: middle;
     text-align: ${p => p.$align ?? 'left'};
+
+    @media (max-width: 767px) {
+        display: block;
+        padding: 2px 0;
+        text-align: left;
+        grid-column: 1;
+
+        /* Kwoty dostają etykietę, bo bez nagłówka tabeli sama liczba nie mówi,
+           czy to netto czy brutto. */
+        &[data-label]::before {
+            content: attr(data-label);
+            display: inline-block;
+            min-width: 52px;
+            margin-right: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: ${p => p.theme.colors.textMuted};
+        }
+
+        /* Menu ⋮ wraca do prawej krawędzi karty i obejmuje jej pierwszy wiersz. */
+        &[data-cell='menu'] {
+            grid-column: 2;
+            grid-row: 1;
+            justify-self: end;
+            align-self: start;
+            padding: 0;
+        }
+
+        /* Pusta komórka uwag nie zostawia wiersza z samym myślnikiem. */
+        &[data-empty='true'] { display: none; }
+    }
 `;
 
 /* ── Vehicle cell ── */
@@ -419,6 +482,10 @@ const SummaryBar = styled.div`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+
+    @media (max-width: 767px) {
+        flex-wrap: nowrap;
+    }
     background: ${p => p.theme.colors.surfaceAlt};
     border-top: 1px solid ${p => p.theme.colors.border};
 `;
@@ -431,6 +498,17 @@ const SummaryItem = styled.div`
     border-right: 1px solid ${p => p.theme.colors.border};
 
     &:last-child { border-right: none; }
+
+    /* Trzy pozycje w jednym rzędzie zamiast łamania się „2 + 1” z nierówną
+       ostatnią komórką na całą szerokość. */
+    @media (max-width: 767px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+        padding: 9px 10px;
+    }
 `;
 
 const SummaryLabel = styled.span`
@@ -446,6 +524,10 @@ const SummaryValue = styled.span`
     font-weight: 700;
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
+
+    @media (max-width: 767px) {
+        font-size: 14px;
+    }
 `;
 
 /* ── Empty / loading ── */
@@ -696,18 +778,18 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                         </ServiceList>
                                                     ) : '-'}
                                                 </Td>
-                                                <Td $align="right">
+                                                <Td $align="right" data-label="Netto">
                                                     <Money>{formatMoney(entry.netAmountCents)}</Money>
                                                 </Td>
-                                                <Td $align="right">
+                                                <Td $align="right" data-label="Brutto">
                                                     <GrossMoney>{formatMoney(entry.grossAmountCents)}</GrossMoney>
                                                 </Td>
-                                                <Td>
+                                                <Td data-empty={!entry.notes}>
                                                     <NoteText title={entry.notes ?? undefined}>
                                                         {entry.notes || '-'}
                                                     </NoteText>
                                                 </Td>
-                                                <Td style={{ width: 40, paddingLeft: 4 }}>
+                                                <Td style={{ width: 40, paddingLeft: 4 }} data-cell="menu">
                                                     <DotsBtn
                                                         $open={openMenuEntryId === entry.id}
                                                         onClick={e => openMenu(e, entry.id)}

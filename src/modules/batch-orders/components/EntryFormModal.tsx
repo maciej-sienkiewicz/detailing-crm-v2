@@ -18,6 +18,7 @@ import { MAX_2_DECIMALS, centsToInput, inputToCents, handleZeroAwareKeyDown } fr
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
+import { useVisualViewportSheet } from '@/common/hooks';
 import { useBatchServices } from '../hooks/useBatchOrders';
 import type { BatchOrderEntry, BatchService, EntryRequest, ServiceItemRequest, VehicleSuggestion } from '../types';
 
@@ -230,6 +231,145 @@ const FixedSuggestionList = styled(SuggestionList)`
     z-index: 3000;
 `;
 
+/* ─── Telefon: pełnoekranowy arkusz zamiast listy przyklejonej do pola ────────
+ *
+ * Lista pozycjonowana do inputa jest na telefonie nie do użycia: pole usług
+ * leży na końcu długiego formularza, klawiatura zabiera pół ekranu, a lista
+ * i tak wchodziła na pola cen. Ten sam wzorzec co picker usług przy wizycie
+ * (ServiceInlineRow): arkusz na całą widoczną wysokość, z własnym polem
+ * wyszukiwania i listą, śledzący visualViewport. */
+const SheetBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 3400;
+    background: rgba(15, 23, 42, 0.35);
+`;
+
+const Sheet = styled.div`
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3401;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: env(safe-area-inset-top);
+`;
+
+const SheetHandle = styled.div`
+    width: 36px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+`;
+
+const SheetHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 8px 4px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+`;
+
+/** Arkusz zakrywa cały ekran, więc to jedyne wyjście na telefonie. */
+const SheetClose = styled.button`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 20px; height: 20px; }
+    &:active { background: #f1f5f9; color: #0f172a; }
+`;
+
+const SheetSearchWrap = styled.div`
+    padding: 10px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+`;
+
+const SheetSearchInput = styled.input`
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 11px 16px;
+    /* 16px: mniejszy font każe iOS-owi przybliżyć stronę przy wejściu w pole. */
+    font-size: 16px;
+    font-family: inherit;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    outline: none;
+
+    &:focus {
+        border-color: #0ea5e9;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+`;
+
+const SheetList = styled.div`
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom);
+`;
+
+const SheetItem = styled.button`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    text-align: left;
+    color: #0f172a;
+    cursor: pointer;
+
+    &:active { background: #f8fafc; }
+`;
+
+const SheetItemPrice = styled.span`
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+`;
+
+const SheetEmpty = styled.div`
+    padding: 28px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+`;
+
 /** Service suggestions carry a price, so they need two columns rather than the
  *  plate list's "code + description" shape. */
 const ServiceSuggestionItem = styled(SuggestionItem)`
@@ -346,6 +486,11 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     const { data: catalog } = useBatchServices();
     const [suggestFor, setSuggestFor] = useState<number | null>(null);
     const [suggestStyle, setSuggestStyle] = useState<React.CSSProperties>({});
+    // Telefon obsługujemy pełnoekranowym arkuszem, nie listą przy polu.
+    const [isMobile] = useState(() => window.innerWidth < 768);
+    const [sheetQuery, setSheetQuery] = useState('');
+    const sheetRef = useRef<HTMLDivElement>(null);
+    const sheetInputRef = useRef<HTMLInputElement>(null);
     const servicesRef = useRef<HTMLDivElement>(null);
     const suggestAnchorRef = useRef<HTMLInputElement | null>(null);
     const suggestListRef = useRef<HTMLUListElement>(null);
@@ -370,7 +515,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     }, []);
 
     useEffect(() => {
-        if (suggestFor === null) return;
+        if (suggestFor === null || isMobile) return;
         positionSuggestions();
 
         function handleClick(e: MouseEvent) {
@@ -391,12 +536,20 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
             window.visualViewport?.removeEventListener('resize', positionSuggestions);
             document.removeEventListener('mousedown', handleClick);
         };
-    }, [suggestFor, positionSuggestions]);
+    }, [suggestFor, positionSuggestions, isMobile]);
 
     function openSuggestions(idx: number, input: HTMLInputElement | null) {
         suggestAnchorRef.current = input;
         setSuggestFor(idx);
+        if (isMobile) {
+            setSheetQuery(services[idx]?.name ?? '');
+            // Focus przenosimy po zamontowaniu arkusza, inaczej klawiatura
+            // zdąży się schować razem z blurem pola w formularzu.
+            requestAnimationFrame(() => sheetInputRef.current?.focus());
+        }
     }
+
+    useVisualViewportSheet(isMobile && suggestFor !== null, sheetRef);
 
     function suggestionsFor(query: string): BatchService[] {
         const q = query.trim().toLowerCase();
@@ -719,7 +872,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                             autoComplete="off"
                                             style={{ width: '100%' }}
                                         />
-                                        {suggestions.length > 0 && createPortal(
+                                        {!isMobile && suggestions.length > 0 && createPortal(
                                             <FixedSuggestionList ref={suggestListRef} style={suggestStyle}>
                                                 {suggestions.map(s => (
                                                     <ServiceSuggestionItem
@@ -735,6 +888,64 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                                     </ServiceSuggestionItem>
                                                 ))}
                                             </FixedSuggestionList>,
+                                            document.body
+                                        )}
+                                        {isMobile && suggestFor === idx && createPortal(
+                                            <>
+                                                <SheetBackdrop onClick={() => setSuggestFor(null)} />
+                                                <Sheet ref={sheetRef}>
+                                                    <SheetHandle />
+                                                    <SheetHeader>
+                                                        <span>Wybierz usługę</span>
+                                                        <SheetClose
+                                                            type="button"
+                                                            aria-label="Zamknij"
+                                                            onClick={() => setSuggestFor(null)}
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                                            </svg>
+                                                        </SheetClose>
+                                                    </SheetHeader>
+                                                    <SheetSearchWrap>
+                                                        <SheetSearchInput
+                                                            ref={sheetInputRef}
+                                                            value={sheetQuery}
+                                                            onChange={e => {
+                                                                const text = capitalizeFirst(e.target.value);
+                                                                setSheetQuery(text);
+                                                                // Wpisana treść od razu ląduje w wierszu, więc
+                                                                // zamknięcie arkusza nie gubi nazwy własnej usługi.
+                                                                updateService(idx, { name: text });
+                                                            }}
+                                                            placeholder="Szukaj usługi..."
+                                                            autoComplete="off"
+                                                        />
+                                                    </SheetSearchWrap>
+                                                    <SheetList>
+                                                        {suggestionsFor(sheetQuery).map(s => (
+                                                            <SheetItem
+                                                                key={s.id}
+                                                                type="button"
+                                                                onClick={() => applySuggestion(idx, s)}
+                                                            >
+                                                                <span>{s.name}</span>
+                                                                <SheetItemPrice>
+                                                                    {formatCurrency(s.grossAmountCents / 100)} brutto
+                                                                </SheetItemPrice>
+                                                            </SheetItem>
+                                                        ))}
+                                                        {suggestionsFor(sheetQuery).length === 0 && (
+                                                            <SheetEmpty>
+                                                                {sheetQuery.trim()
+                                                                    ? 'Brak usługi w katalogu — zostanie zapisana jako wpisana ręcznie.'
+                                                                    : 'Katalog usług jest pusty.'}
+                                                            </SheetEmpty>
+                                                        )}
+                                                    </SheetList>
+                                                </Sheet>
+                                            </>,
                                             document.body
                                         )}
                                     </AutocompleteWrapper>
