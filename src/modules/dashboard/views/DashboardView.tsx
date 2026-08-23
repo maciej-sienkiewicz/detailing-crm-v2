@@ -227,10 +227,12 @@ const HeroBtnGhost = styled.button`
 // zobaczył cokolwiek do zrobienia. Chowamy go za wąskim przyciskiem — liczby
 // są o jedno dotknięcie, a nagłówek wraca do rozmiaru nagłówka.
 const StatsToggle = styled.button<{ $open: boolean }>`
-  display: inline-flex;
+  display: flex; /* Zmieniono z inline-flex na flex */
   align-items: center;
+  justify-content: space-between; /* Opcjonalnie: rozsuwa element po lewej i strzałkę po prawej */
   gap: 7px;
-  align-self: flex-start;
+  width: 100%;
+  box-sizing: border-box; /* Zapewnia, że padding 14px nie wykracza poza 100% szerokości */
   padding: 7px 14px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
