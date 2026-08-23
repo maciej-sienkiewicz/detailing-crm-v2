@@ -5,11 +5,11 @@ import {
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import {
-    ArrowDownRight, ArrowUpRight, ExternalLink, FileText, Flame, Pause,
+    ArrowDownRight, ArrowUpRight, Eye, ExternalLink, FileText, Flame, Pause,
     RefreshCw, Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Benchmark, BenchmarkRow, PulseEventKind } from '../types';
+import type { Benchmark, BenchmarkRow, PulseEvent, PulseEventKind } from '../types';
 import { PROFILE_COLORS } from '../types';
 import { usePulse, useResyncFailedProfiles } from '../hooks/useAnalytics';
 import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
@@ -221,13 +221,6 @@ const PulseHead = styled.div`
     gap: 10px;
 `;
 
-const PulseMeta = styled.span`
-    margin-left: auto;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-`;
-
 const PulseList = styled.div`
     display: flex;
     flex-direction: column;
@@ -317,6 +310,29 @@ const PulseFootnote = styled.p`
     line-height: 1.5;
 `;
 
+const DemoBanner = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 1px dashed ${st.accentAmber};
+    border-radius: ${st.radiusSm};
+    background: ${st.accentAmberDim};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    line-height: 1.5;
+
+    strong { font-weight: 700; }
+`;
+
+const DemoBtn = styled(Pill)`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+`;
+
 const MAX_CHART_PROFILES = 4;
 
 const formatWeekTick = (weekStart: string) =>
@@ -358,8 +374,8 @@ interface GrowthData {
     rows: Record<string, number | string>[];
     /** Wspólny dzień startu wszystkich zaznaczonych profili. */
     baselineDate: string | null;
-    /** Profil, który skraca okno porównania, bo obserwujemy go najkrócej. */
-    limiter: { username: string; gainedDays: number } | null;
+    /** Profil, który skraca okno porównania, bo jego historia zaczyna się najpóźniej. */
+    limiter: { username: string; gainedDays: number; othersStart: string } | null;
     totals: GrowthTotal[];
 }
 
@@ -373,6 +389,68 @@ interface GrowthHeadline {
 }
 
 type PulseTone = 'good' | 'warn' | 'bad' | 'neutral';
+
+/**
+ * Podgląd sekcji dla studiów, u których nic się jeszcze nie wydarzyło albo norma
+ * profili dopiero się zbiera. Pokazuje, jakiego rodzaju informacje tu trafiają —
+ * dane są zmyślone i wyraźnie oznaczone jako przykład.
+ */
+const DEMO_EVENTS: PulseEvent[] = [
+    {
+        kind: 'YOUR_POST',
+        isSelf: true,
+        username: 'ty',
+        headline: 'Twój post ze środy',
+        detail: '142 reakcje — powyżej twojej zwykłej średniej (58).',
+        permalink: null,
+        occurredAt: '20.08',
+    },
+    {
+        kind: 'FOLLOWER_SPIKE',
+        isSelf: true,
+        username: 'ty',
+        headline: 'U ciebie wyraźny przyrost obserwujących',
+        detail: '+34 w tym okresie, przy typowym tygodniu +6.',
+        permalink: null,
+        occurredAt: '23.08',
+    },
+    {
+        kind: 'ACCELERATION',
+        isSelf: false,
+        username: 'detailing_pro',
+        headline: '@detailing_pro publikuje więcej niż zwykle',
+        detail: '5 postów w tym okresie, przy zwykłym tempie 1 tygodniowo.',
+        permalink: null,
+        occurredAt: '22.08',
+    },
+    {
+        kind: 'STANDOUT_POST',
+        isSelf: false,
+        username: 'car_studio',
+        headline: '@car_studio ma post powyżej swojej normy',
+        detail: '312 reakcji przy zwykłych 74 — 4,2× więcej.',
+        permalink: null,
+        occurredAt: '21.08',
+    },
+    {
+        kind: 'NEW_TOPIC',
+        isSelf: false,
+        username: 'auto_spa',
+        headline: '@auto_spa pierwszy raz o: Folia ochronna PPF',
+        detail: 'Nie poruszał tego tematu przez ostatnie 26 tygodni.',
+        permalink: null,
+        occurredAt: '19.08',
+    },
+    {
+        kind: 'SLOWDOWN',
+        isSelf: false,
+        username: 'lakier_serwis',
+        headline: '@lakier_serwis milczy od 4 tygodni',
+        detail: 'Wcześniej publikował około 2 posty tygodniowo.',
+        permalink: null,
+        occurredAt: '26.07',
+    },
+];
 
 /**
  * Kolor niesie znaczenie: zielony to Twój dobry wynik, czerwony Twój problem,
@@ -462,7 +540,11 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
         const sortedStarts = [...starts].sort((a, b) => b.start.localeCompare(a.start));
         const baselineDate = sortedStarts[0].start;
         const limiter = sortedStarts.length > 1 && sortedStarts[0].start !== sortedStarts[1].start
-            ? { username: sortedStarts[0].series.username, gainedDays: daysBetween(sortedStarts[1].start, baselineDate) }
+            ? {
+                  username: sortedStarts[0].series.username,
+                  gainedDays: daysBetween(sortedStarts[1].start, baselineDate),
+                  othersStart: sortedStarts[1].start,
+              }
             : null;
 
         // Punkt bazowy z mediany pierwszych trzech pomiarów — pojedynczy błędny
@@ -538,6 +620,8 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     // Liczony w całości po stronie backendu, bez modelu AI — więc ładuje się razem
     // z zakładką, bez przycisku i bez czekania.
     const pulseQuery = usePulse();
+    const [showPulseDemo, setShowPulseDemo] = useState(false);
+    const pulseEvents = showPulseDemo ? DEMO_EVENTS : pulseQuery.data?.events ?? [];
 
     // ── Ponowienie pobrania dla profili z błędem ─────────────────────────────
     // Przycisk pojawia się WYŁĄCZNIE gdy jakiś profil ma flagę błędu — poza tym
@@ -894,12 +978,14 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                             {growth.totals.length === 1 ? 'wybranego profilu' : 'wybranych profili'}.
                         </WindowNote>
                     )}
-                    {growth.limiter && growth.limiter.gainedDays >= 3 && (
+                    {growth.limiter && (
                         <WindowWarning>
-                            Profil @{growth.limiter.username} skraca okno porównania o{' '}
-                            {growth.limiter.gainedDays}{' '}
-                            {growth.limiter.gainedDays === 1 ? 'dzień' : 'dni'} — obserwujesz go krócej
-                            niż pozostałe. Odznacz go w tabeli powyżej, aby wrócić do pełnej historii reszty.
+                            <strong>Zakres skrócony o {growth.limiter.gainedDays}{' '}
+                            {growth.limiter.gainedDays === 1 ? 'dzień' : 'dni'} przez @{growth.limiter.username}.</strong>{' '}
+                            Historia tego profilu zaczyna się {formatDayShort(growth.baselineDate ?? '')}, a pozostałe
+                            wybrane profile mają dane już od {formatDayShort(growth.limiter.othersStart)} — porównanie
+                            musi startować od najpóźniejszej wspólnej daty, inaczej nie byłoby uczciwe.
+                            Odznacz ten profil w tabeli powyżej, aby zobaczyć pełną historię pozostałych.
                         </WindowWarning>
                     )}
 
@@ -931,45 +1017,63 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             <Card>
                 <PulseHead>
                     <div style={{ minWidth: 0 }}>
-                        <CardTitle>Puls konkurencji</CardTitle>
+                        <CardTitle>
+                            Puls konkurencji · ostatnie 7 dni
+                            {pulseQuery.data && ` (${pulseQuery.data.windowFrom} – ${pulseQuery.data.windowTo})`}
+                        </CardTitle>
                         <CardHint style={{ margin: 0 }}>
                             Co wydarzyło się u obserwowanych profili. Każdą liczbę zestawiamy z normą
-                            danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni —
-                            to fakty z ostatnich dni, nie wnioski o tym, co „działa".
+                            danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni.
+                            Ta sekcja zawsze pokazuje ostatnie 7 dni — <strong>nie zależy od przełącznika
+                            okresu</strong> nad zakładką, bo zdarzenia sprzed miesięcy nie są już
+                            wiadomością.
                         </CardHint>
                     </div>
-                    {pulseQuery.data && (
-                        <PulseMeta>
-                            {pulseQuery.data.windowFrom} – {pulseQuery.data.windowTo}
-                        </PulseMeta>
-                    )}
+                    <DemoBtn
+                        $active={showPulseDemo}
+                        onClick={() => setShowPulseDemo(value => !value)}
+                    >
+                        <Eye size={13} />
+                        {showPulseDemo ? 'Ukryj przykład' : 'Zobacz jak może wyglądać sekcja'}
+                    </DemoBtn>
                 </PulseHead>
 
-                {pulseQuery.isLoading && (
+                {showPulseDemo && (
+                    <DemoBanner>
+                        <Eye size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>
+                            <strong>To jest przykład, nie Twoje dane.</strong> Tak wygląda ta sekcja, gdy
+                            zbierze się komplet historii — wpisy dotyczące prawdziwych postów mają dodatkowo
+                            link, który otwiera post na Instagramie.
+                        </span>
+                    </DemoBanner>
+                )}
+
+                {!showPulseDemo && pulseQuery.isLoading && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '28px 0' }}>
                         <Spinner />
                     </div>
                 )}
 
-                {pulseQuery.isError && (
+                {!showPulseDemo && pulseQuery.isError && (
                     <HintNote style={{ marginTop: 14 }}>
                         Nie udało się pobrać pulsu. Odśwież stronę.
                     </HintNote>
                 )}
 
-                {pulseQuery.data && pulseQuery.data.events.length === 0 && (
+                {!showPulseDemo && pulseQuery.data && pulseQuery.data.events.length === 0 && (
                     <HintNote style={{ marginTop: 14 }}>
                         {pulseQuery.data.profilesWatched === 0
                             ? 'Dodaj profile do obserwacji, aby zobaczyć, co się u nich dzieje.'
-                            : 'W tym okresie nic się nie wydarzyło — ani u ciebie, ani u konkurencji. ' +
-                              'Historia normy buduje się przez pierwsze tygodnie obserwacji.'}
+                            : 'W ostatnich 7 dniach nic się nie wydarzyło — ani u ciebie, ani u konkurencji. ' +
+                              'Zobacz przykład powyżej, żeby sprawdzić, jakie zdarzenia tu trafiają.'}
                     </HintNote>
                 )}
 
-                {pulseQuery.data && pulseQuery.data.events.length > 0 && (
+                {pulseEvents.length > 0 && (
                     <>
                         <PulseList>
-                            {pulseQuery.data.events.map((event, index) => {
+                            {pulseEvents.map((event, index) => {
                                 const style = PULSE_STYLE[event.kind];
                                 const Icon = style.icon;
                                 return (
@@ -995,10 +1099,12 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 );
                             })}
                         </PulseList>
-                        <PulseFootnote>
-                            Nie widzimy zasięgów, zapisów, udostępnień ani tego, czy post był promowany
-                            płatnie — Instagram nie udostępnia tych danych dla obserwowanych profili.
-                        </PulseFootnote>
+                        {!showPulseDemo && (
+                            <PulseFootnote>
+                                Nie widzimy zasięgów, zapisów, udostępnień ani tego, czy post był promowany
+                                płatnie — Instagram nie udostępnia tych danych dla obserwowanych profili.
+                            </PulseFootnote>
+                        )}
                     </>
                 )}
             </Card>

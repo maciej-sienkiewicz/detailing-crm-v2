@@ -211,6 +211,37 @@ const formatPeriod = (start: string, end: string) => {
     return `${fmt(start)} - ${fmt(end)}`;
 };
 
+const addDaysIso = (iso: string, days: number) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+};
+
+const formatWeekday = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    });
+
+/**
+ * Raport powstaje dopiero za ZAMKNIĘTY tydzień, więc przez cały bieżący tydzień
+ * najnowszy raport dotyczy poprzedniego. Bez tej informacji wygląda to jak zawieszona
+ * generacja — stąd jawny komunikat, kiedy pojawi się następny.
+ */
+const NextReportNote = styled.p`
+    margin: 0;
+    padding: 11px 13px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+    line-height: 1.55;
+
+    strong { color: ${st.text}; font-weight: 700; }
+`;
+
 const ReportBody: React.FC<{ report: Report }> = ({ report }) => {
     const p = report.payload;
 
@@ -343,12 +374,28 @@ export const ReportTab: React.FC = () => {
                     <CenterState>
                         <strong>Raport jeszcze się nie zebrał</strong>
                         <span>
-                            Pierwszy raport tygodnia powstaje po pierwszej pełnej synchronizacji danych
-                            (niedziela). Dodaj profile konkurencji i wróć tu w poniedziałek.
+                            Raport powstaje za zamknięty tydzień, więc pierwszy pojawi się w poniedziałek
+                            po pierwszym pełnym tygodniu obserwacji. Dodaj profile konkurencji i wróć tu
+                            na początku tygodnia.
                         </span>
                     </CenterState>
                 </Card>
             )}
+
+            {latestQuery.data && (() => {
+                const nextStart = addDaysIso(latestQuery.data.periodEnd, 1);
+                const nextEnd = addDaysIso(nextStart, 6);
+                const availableFrom = addDaysIso(nextEnd, 1);
+                return (
+                    <NextReportNote>
+                        Raporty obejmują wyłącznie <strong>zamknięte tygodnie</strong> — bieżący jest
+                        jeszcze w toku, dlatego najnowszy dotyczy{' '}
+                        {formatPeriod(latestQuery.data.periodStart, latestQuery.data.periodEnd)}.
+                        {' '}Kolejny, za <strong>{formatPeriod(nextStart, nextEnd)}</strong>, będzie dostępny
+                        w <strong>{formatWeekday(availableFrom)}</strong>.
+                    </NextReportNote>
+                );
+            })()}
         </Layout>
     );
 };
