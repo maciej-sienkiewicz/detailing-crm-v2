@@ -4,9 +4,9 @@ import type {
     ProfileSuggestion,
     Report,
     ReportBrief,
+    ContentEffectiveness,
     ContentPage,
     GenerateInstagramPostRequest,
-    GrowthSummary,
     HashtagStat,
     Heatmap,
     Insight,
@@ -74,11 +74,11 @@ export const instagramApi = {
     },
 
     /**
-     * Podsumowanie AI przyrostów obserwujących za cały okres. Backend cache'uje
-     * odpowiedź i limituje generowanie (1/15 min) — 429 obsługujemy lokalnie.
+     * "Co działa u konkurencji" — skuteczność tematów w obserwowanej grupie. Backend
+     * cache'uje odpowiedź i limituje generowanie (1/15 min) — 429 obsługujemy lokalnie.
      */
-    getGrowthSummary: async (weeks: WeeksOption): Promise<GrowthSummary> => {
-        const response = await apiClient.get<GrowthSummary>(`${ANALYTICS_PATH}/benchmark/growth-summary`, {
+    getContentEffectiveness: async (weeks: WeeksOption): Promise<ContentEffectiveness> => {
+        const response = await apiClient.get<ContentEffectiveness>(`${ANALYTICS_PATH}/content-effectiveness`, {
             params: { weeks },
             skipErrorToast: true,
         });

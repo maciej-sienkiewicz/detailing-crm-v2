@@ -119,6 +119,8 @@ export interface FollowerSeries {
     profileId: string;
     username: string;
     isSelf: boolean;
+    /** Dzień dodania profilu do obserwacji — wcześniejszej historii nie da się odtworzyć. */
+    observedSince: string;
     points: { date: string; count: number | null }[];
 }
 
@@ -139,11 +141,20 @@ export interface Benchmark {
     annotations: ChartAnnotation[];
 }
 
-/** Podsumowanie AI przyrostów obserwujących za cały wybrany okres. */
-export interface GrowthSummary {
-    summary: string;
-    generatedAt: string;
+/** Sekcja obserwacji w analizie "Co działa u konkurencji". */
+export type EffectivenessKind = 'UNDERUSED_TOPIC' | 'WEAK_TOPIC' | 'OWN_PERFORMANCE' | 'PRICE_MOVE';
+
+export interface EffectivenessFinding {
+    kind: EffectivenessKind;
+    headline: string;
+    body: string;
+}
+
+export interface ContentEffectiveness {
+    findings: EffectivenessFinding[];
+    postsAnalyzed: number;
     weeks: number;
+    generatedAt: string;
     fromCache: boolean;
 }
 
