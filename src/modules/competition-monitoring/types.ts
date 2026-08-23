@@ -141,6 +141,13 @@ export interface Benchmark {
     annotations: ChartAnnotation[];
 }
 
+/** Wynik ręcznego ponowienia pobrania danych dla profili z błędem. */
+export interface ResyncResult {
+    attempted: number;
+    recovered: number;
+    stillFailing: number;
+}
+
 /** Rodzaj zdarzenia w pulsie konkurencji. */
 export type PulseEventKind =
     | 'YOUR_POST'

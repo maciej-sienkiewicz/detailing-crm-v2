@@ -126,6 +126,18 @@ export const useDismissInsight = () => {
     });
 };
 
+/**
+ * Ręczne ponowienie dla profili z błędem pobrania. Po sukcesie odświeżamy całą
+ * analitykę, bo odzyskany profil zmienia tabelę, wykresy i puls naraz.
+ */
+export const useResyncFailedProfiles = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: instagramApi.resyncFailedProfiles,
+        onSuccess: () => invalidateAnalytics(queryClient),
+    });
+};
+
 export const useReactToPost = () => {
     const queryClient = useQueryClient();
     return useMutation({

@@ -13,6 +13,7 @@ import type {
     InstagramPostResult,
     InstagramProfile,
     Overview,
+    ResyncResult,
     WeekDetail,
     WeeksOption,
 } from '../types';
@@ -70,6 +71,17 @@ export const instagramApi = {
 
     getBenchmark: async (weeks: WeeksOption): Promise<Benchmark> => {
         const response = await apiClient.get<Benchmark>(`${ANALYTICS_PATH}/benchmark`, { params: { weeks } });
+        return response.data;
+    },
+
+    /**
+     * Ponawia pobranie danych wyłącznie dla profili z etykietą "problem z pobraniem".
+     * Backend ma cooldown per studio — 429 obsługujemy lokalnie własnym komunikatem.
+     */
+    resyncFailedProfiles: async (): Promise<ResyncResult> => {
+        const response = await apiClient.post<ResyncResult>(`${PROFILES_PATH}/resync-failed`, null, {
+            skipErrorToast: true,
+        });
         return response.data;
     },
 
