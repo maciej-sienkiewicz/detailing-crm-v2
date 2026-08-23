@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-    Bar, BarChart, CartesianGrid, ComposedChart, ReferenceLine,
+    Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { Sparkles, Star, X } from 'lucide-react';
+import { Sparkles, Star } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Benchmark, BenchmarkRow, GrowthSummary, WeeksOption } from '../types';
+import type {
+    Benchmark, BenchmarkRow, ContentEffectiveness, EffectivenessKind, WeeksOption,
+} from '../types';
 import { PROFILE_COLORS } from '../types';
 import { instagramApi } from '../api/instagramApi';
 import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
@@ -138,99 +140,123 @@ const TooltipBox = styled.div`
     color: ${st.text};
 `;
 
-// ─── Pager tygodni + podsumowanie AI ─────────────────────────────────────────
+// ─── Nagłówek wykresu przyrostu ──────────────────────────────────────────────
 
-const PagerRow = styled.div`
+const ChartHeadRow = styled.div`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    margin: 10px 0 6px;
+    margin: 10px 0 4px;
 `;
 
-const PagerLabel = styled.span`
-    font-size: ${st.fontXs};
-    font-weight: 600;
+const HeadStat = styled.span`
+    font-size: ${st.fontSm};
     color: ${st.textSecondary};
-    white-space: nowrap;
+
+    strong { color: ${st.text}; font-weight: 700; }
 `;
 
-const SummarizeBtn = styled(Pill)`
+const ModeSwitch = styled.div`
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+`;
+
+const WindowNote = styled.p`
+    margin: 6px 0 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+const WindowWarning = styled.p`
+    margin: 6px 0 0;
+    padding: 7px 10px;
+    font-size: ${st.fontXs};
+    color: ${st.text};
+    background: ${st.accentAmberDim};
+    border-left: 2px solid ${st.accentAmber};
+    border-radius: ${st.radiusSm};
+    line-height: 1.5;
+`;
+
+// ─── Analiza "Co działa u konkurencji" ───────────────────────────────────────
+
+const AnalyzeHead = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+`;
+
+const AnalyzeBtn = styled(Pill)`
     margin-left: auto;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-
-    &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;
 
-const SummaryLoading = styled.div`
+const AnalyzeMeta = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+const LoadingBox = styled.div`
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-top: 12px;
-    padding: 16px;
+    margin-top: 14px;
+    padding: 18px;
     border: 1px dashed ${st.border};
     border-radius: ${st.radiusSm};
     background: ${st.bgCardAlt};
 
     strong { display: block; font-size: ${st.fontSm}; color: ${st.text}; }
-    span { display: block; font-size: ${st.fontXs}; color: ${st.textMuted}; margin-top: 2px; }
+    span { display: block; font-size: ${st.fontXs}; color: ${st.textMuted}; margin-top: 3px; line-height: 1.5; }
 `;
 
-const SummaryPanel = styled.div`
-    margin-top: 12px;
-    padding: 14px 16px;
-    border: 1px solid ${st.border};
-    border-left: 3px solid ${st.accentBlue};
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCardAlt};
+const FindingSection = styled.div`
+    margin-top: 16px;
 `;
 
-const SummaryHead = styled.div`
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 8px;
-
-    strong {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: ${st.fontSm};
-        color: ${st.text};
-    }
-`;
-
-const SummaryMeta = styled.span`
+const FindingSectionTitle = styled.h4`
+    margin: 0 0 8px;
     font-size: ${st.fontXs};
+    font-weight: 700;
     color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 `;
 
-const SummaryCloseBtn = styled.button`
-    margin-left: auto;
-    border: none;
-    background: none;
-    color: ${st.textMuted};
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
+const FindingItem = styled.div<{ $tone: 'good' | 'bad' | 'neutral' }>`
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid ${st.border};
+    border-left: 3px solid ${p =>
+        p.$tone === 'good' ? st.accentGreen : p.$tone === 'bad' ? st.accentRed : st.accentBlue};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCard};
 
-    &:hover { color: ${st.text}; }
+    &:last-child { margin-bottom: 0; }
 `;
 
-const SummaryText = styled.p`
+const FindingHeadline = styled.div`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+    margin-bottom: 3px;
+`;
+
+const FindingBody = styled.p`
     margin: 0;
     font-size: ${st.fontSm};
     color: ${st.textSecondary};
-    line-height: 1.65;
-    white-space: pre-wrap;
+    line-height: 1.6;
 `;
 
-const SummaryError = styled.p`
-    margin: 10px 0 0;
-    font-size: ${st.fontXs};
+const AnalyzeError = styled.p`
+    margin: 12px 0 0;
+    font-size: ${st.fontSm};
     color: ${st.accentRed};
 `;
 
@@ -239,27 +265,67 @@ const MAX_CHART_PROFILES = 4;
 const formatWeekTick = (weekStart: string) =>
     new Date(weekStart).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 
-/** Poniedziałek tygodnia ISO dla daty YYYY-MM-DD. */
-const isoMonday = (date: string) => {
-    const d = new Date(`${date}T00:00:00Z`);
-    const day = (d.getUTCDay() + 6) % 7;
-    d.setUTCDate(d.getUTCDate() - day);
-    return d.toISOString().slice(0, 10);
-};
-
-const addDays = (date: string, days: number) => {
-    const d = new Date(`${date}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + days);
-    return d.toISOString().slice(0, 10);
-};
-
 const formatDayShort = (date: string) =>
     new Date(`${date}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 
-type SummaryState =
+const daysBetween = (from: string, to: string) =>
+    Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+
+/** Mediana — używana i do linii odniesienia, i do odpornego punktu bazowego. */
+const median = (values: number[]): number => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+};
+
+type GrowthMode = 'absolute' | 'relative';
+
+interface GrowthTotal {
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    /** Przyrost obserwujących od wspólnego punktu zerowego, w sztukach. */
+    gain: number;
+}
+
+interface GrowthData {
+    rows: Record<string, number | string>[];
+    /** Wspólny dzień startu wszystkich zaznaczonych profili. */
+    baselineDate: string | null;
+    /** Profil, który skraca okno porównania, bo obserwujemy go najkrócej. */
+    limiter: { username: string; gainedDays: number } | null;
+    totals: GrowthTotal[];
+}
+
+interface GrowthHeadline {
+    rank: number;
+    total: number;
+    self: GrowthTotal;
+    leader: GrowthTotal | null;
+    multiple: number | null;
+    gap: number;
+}
+
+const SECTION_TITLES: Record<EffectivenessKind, string> = {
+    UNDERUSED_TOPIC: 'Tematy niedoreprezentowane u ciebie',
+    WEAK_TOPIC: 'Tematy, które w tym okresie nie chwyciły',
+    OWN_PERFORMANCE: 'Twoja skuteczność wobec grupy',
+    PRICE_MOVE: 'Ruch cenowy u konkurencji',
+};
+
+const SECTION_ORDER: EffectivenessKind[] = ['UNDERUSED_TOPIC', 'WEAK_TOPIC', 'OWN_PERFORMANCE', 'PRICE_MOVE'];
+
+const SECTION_TONE: Record<EffectivenessKind, 'good' | 'bad' | 'neutral'> = {
+    UNDERUSED_TOPIC: 'good',
+    WEAK_TOPIC: 'bad',
+    OWN_PERFORMANCE: 'neutral',
+    PRICE_MOVE: 'neutral',
+};
+
+type AnalysisState =
     | { phase: 'idle' }
     | { phase: 'loading' }
-    | { phase: 'done'; data: GrowthSummary }
+    | { phase: 'done'; data: ContentEffectiveness }
     | { phase: 'error'; message: string };
 
 export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) => {
@@ -307,72 +373,122 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
         [benchmark.weekly, selected]
     );
 
-    // Przyrosty obserwujących: delta między kolejnymi pomiarami, agregowana
-    // do tygodni przy dłuższych oknach (żeby słupki były czytelne).
-    const followerDeltaWeekly = benchmark.weeks > 8;
-    const followerDeltas = useMemo(() => {
-        const byBucket = new Map<string, Record<string, number | string>>();
-        benchmark.followers
-            .filter(series => selected.includes(series.profileId))
-            .forEach(series => {
-                let prev: number | null = null;
-                series.points.forEach(point => {
-                    if (point.count === null) return;
-                    if (prev !== null) {
-                        const bucket = followerDeltaWeekly ? isoMonday(point.date) : point.date;
-                        const row = byBucket.get(bucket) ?? { date: bucket };
-                        const deltaKey = `d_${series.profileId}`;
-                        row[deltaKey] = (Number(row[deltaKey]) || 0) + (point.count - prev);
-                        row[`t_${series.profileId}`] = point.count;
-                        byBucket.set(bucket, row);
-                    }
-                    prev = point.count;
-                });
+    // ── Przyrost obserwujących: linie skumulowane od wspólnego zera ───────────
+    //
+    // Liczymy PRZYROST BEZWZGLĘDNY, nie procentowy: przy dwóch profilach o różnej
+    // wielkości ten sam procent oznacza zupełnie inną liczbę realnych ludzi, a to
+    // o ludzi toczy się gra na lokalnym rynku. Procent zostaje jako drugi tryb,
+    // bo odpowiada na inne pytanie — czy moja robota jest skuteczna.
+    //
+    // Punkt zerowy jest WSPÓLNY dla wszystkich zaznaczonych profili: to najpóźniejszy
+    // start danych w tej grupie. Dzięki temu każda linia startuje z zera tego samego
+    // dnia i porównanie jest uczciwe. Profil dodany później skraca okno — mówimy
+    // o tym wprost i podpowiadamy, że można go odznaczyć w tabeli.
+    const [growthMode, setGrowthMode] = useState<GrowthMode>('absolute');
+
+    const growth = useMemo<GrowthData>(() => {
+        const series = benchmark.followers
+            .filter(s => selected.includes(s.profileId))
+            .map(s => ({ ...s, measured: s.points.filter(p => p.count !== null) }))
+            .filter(s => s.measured.length > 0);
+
+        if (series.length === 0) {
+            return { rows: [], baselineDate: null, limiter: null, totals: [] };
+        }
+
+        // Wspólne zero = najpóźniejszy pierwszy pomiar wśród zaznaczonych.
+        const starts = series.map(s => ({ series: s, start: s.measured[0].date }));
+        const sortedStarts = [...starts].sort((a, b) => b.start.localeCompare(a.start));
+        const baselineDate = sortedStarts[0].start;
+        const limiter = sortedStarts.length > 1 && sortedStarts[0].start !== sortedStarts[1].start
+            ? { username: sortedStarts[0].series.username, gainedDays: daysBetween(sortedStarts[1].start, baselineDate) }
+            : null;
+
+        // Punkt bazowy z mediany pierwszych trzech pomiarów — pojedynczy błędny
+        // odczyt na starcie przesunąłby inaczej całą linię przez cały okres.
+        const baselines = new Map<string, number>();
+        series.forEach(s => {
+            const head = s.measured.filter(p => p.date >= baselineDate).slice(0, 3).map(p => p.count as number);
+            if (head.length > 0) baselines.set(s.profileId, median(head));
+        });
+
+        const dates = [...new Set(series.flatMap(s => s.measured.map(p => p.date)))]
+            .filter(d => d >= baselineDate)
+            .sort();
+
+        const rows = dates.map(date => {
+            const row: Record<string, number | string> = { date };
+            const onThisDay: number[] = [];
+            series.forEach(s => {
+                const base = baselines.get(s.profileId);
+                const point = s.measured.find(p => p.date === date);
+                if (base === undefined || point === undefined) return;
+                const count = point.count as number;
+                const value = growthMode === 'absolute'
+                    ? count - base
+                    : base > 0 ? ((count - base) / base) * 100 : 0;
+                row[`g_${s.profileId}`] = Math.round(value * 10) / 10;
+                row[`t_${s.profileId}`] = count;
+                onThisDay.push(value);
             });
-        return [...byBucket.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    }, [benchmark.followers, selected, followerDeltaWeekly]);
+            if (onThisDay.length >= 3) row.median = Math.round(median(onThisDay) * 10) / 10;
+            return row;
+        });
 
-    // ── Pager tygodni (tylko granulacja dzienna, np. okres "Miesiąc") ─────────
-    // Pełny okres dziennych słupków byłby nieczytelny, więc pokazujemy jeden
-    // tydzień naraz; przyciski przesuwają okno w granicach wybranego okresu.
-    const [weekOffset, setWeekOffset] = useState(0);
-    useEffect(() => setWeekOffset(0), [benchmark.weeks]);
+        // Stan na ostatni dzień, w którym profil miał pomiar — podstawa nagłówka.
+        const totals: GrowthTotal[] = series.map(s => {
+            const base = baselines.get(s.profileId);
+            const last = s.measured.filter(p => p.date >= baselineDate).slice(-1)[0];
+            const gain = base === undefined || last === undefined ? 0 : (last.count as number) - base;
+            return { profileId: s.profileId, username: s.username, isSelf: s.isSelf, gain };
+        }).sort((a, b) => b.gain - a.gain);
 
-    const maxWeekOffset = benchmark.weeks - 1;
-    const visibleWeekStart = useMemo(
-        () => addDays(isoMonday(new Date().toISOString().slice(0, 10)), -7 * weekOffset),
-        [weekOffset]
-    );
-    const visibleWeekEnd = addDays(visibleWeekStart, 6);
+        return { rows, baselineDate, limiter, totals };
+    }, [benchmark.followers, selected, growthMode]);
 
-    const visibleDeltas = useMemo(
-        () =>
-            followerDeltaWeekly
-                ? followerDeltas
-                : followerDeltas.filter(row => {
-                      const date = String(row.date);
-                      return date >= visibleWeekStart && date <= visibleWeekEnd;
-                  }),
-        [followerDeltas, followerDeltaWeekly, visibleWeekStart, visibleWeekEnd]
-    );
+    /**
+     * Nagłówek wykresu. Świadomie NIE liczymy tu "udziału w puli nowych obserwujących" —
+     * suma przyrostów wszystkich profili nie jest liczbą unikalnych osób, bo ten sam
+     * człowiek może obserwować kilka profili naraz. Pozycja w rankingu, krotność
+     * względem lidera i różnica w sztukach są odporne na to nakładanie się widowni.
+     */
+    const growthHeadline = useMemo<GrowthHeadline | null>(() => {
+        const totals = growth.totals;
+        if (totals.length < 2) return null;
+        const selfIndex = totals.findIndex(t => t.isSelf);
+        if (selfIndex === -1) return null;
+        const self = totals[selfIndex];
+        const leader = totals[0];
+        if (leader.profileId === self.profileId) {
+            return { rank: 1, total: totals.length, self, leader: null, multiple: null, gap: 0 };
+        }
+        const multiple = self.gain > 0 ? leader.gain / self.gain : null;
+        return {
+            rank: selfIndex + 1,
+            total: totals.length,
+            self,
+            leader,
+            multiple,
+            gap: leader.gain - self.gain,
+        };
+    }, [growth.totals]);
 
-    // ── Podsumowanie AI całego okresu ─────────────────────────────────────────
-    const [summary, setSummary] = useState<SummaryState>({ phase: 'idle' });
+    // ── Analiza "Co działa u konkurencji" ────────────────────────────────────
+    const [analysis, setAnalysis] = useState<AnalysisState>({ phase: 'idle' });
 
-    const handleSummarize = async () => {
-        if (summary.phase === 'loading') return;
-        setSummary({ phase: 'loading' });
+    const handleAnalyze = async () => {
+        if (analysis.phase === 'loading') return;
+        setAnalysis({ phase: 'loading' });
         try {
-            const data = await instagramApi.getGrowthSummary(benchmark.weeks as WeeksOption);
-            setSummary({ phase: 'done', data });
+            const data = await instagramApi.getContentEffectiveness(benchmark.weeks as WeeksOption);
+            setAnalysis({ phase: 'done', data });
         } catch (err: unknown) {
             const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
             const message =
                 response?.status === 429
-                    ? response.data?.message ??
-                      'Podsumowanie AI można generować raz na 15 minut. Spróbuj ponownie później.'
-                    : response?.data?.message ?? 'Nie udało się wygenerować podsumowania. Spróbuj ponownie.';
-            setSummary({ phase: 'error', message });
+                    ? response.data?.message ?? 'Analizę można generować raz na 15 minut. Spróbuj ponownie później.'
+                    : response?.data?.message ?? 'Nie udało się wykonać analizy. Spróbuj ponownie.';
+            setAnalysis({ phase: 'error', message });
         }
     };
 
@@ -515,157 +631,270 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     )}
                 </Card>
 
+
                 <Card>
                     <CardTitle>Przyrost obserwujących</CardTitle>
                     <CardHint>
-                        Słupek = o ile zmieniła się liczba obserwujących w danym{' '}
-                        {followerDeltaWeekly ? 'tygodniu' : 'dniu'}. Dzięki temu małe i duże profile
-                        czyta się tak samo dobrze, liczy się zmiana, nie wielkość konta.
-                        {' '}Kliknij słupek, aby zobaczyć, co w tym tygodniu wydarzyło się na profilu.
+                        Każdy profil startuje od zera tego samego dnia, a linia pokazuje, ilu
+                        obserwujących przybyło mu od tego momentu. Im bardziej linie się rozjeżdżają,
+                        tym większa różnica w liczbie realnie zdobytych ludzi. Kliknij wykres, aby
+                        zobaczyć, co działo się wtedy na profilu.
                     </CardHint>
-                    {followerDeltas.length > 0 && (
-                        <PagerRow>
-                            {!followerDeltaWeekly && (
-                                <>
-                                    <Pill
-                                        onClick={() => setWeekOffset(offset => Math.min(offset + 1, maxWeekOffset))}
-                                        disabled={weekOffset >= maxWeekOffset}
-                                    >
-                                        ← Poprzedni tydzień
-                                    </Pill>
-                                    <PagerLabel>
-                                        {formatDayShort(visibleWeekStart)} – {formatDayShort(visibleWeekEnd)}
-                                    </PagerLabel>
-                                    <Pill
-                                        onClick={() => setWeekOffset(offset => Math.max(offset - 1, 0))}
-                                        disabled={weekOffset === 0}
-                                    >
-                                        Następny tydzień →
-                                    </Pill>
-                                </>
+
+                    {growth.rows.length > 0 && (
+                        <ChartHeadRow>
+                            {growthHeadline && (
+                                <HeadStat>
+                                    Jesteś{' '}
+                                    <strong>{growthHeadline.rank}. z {growthHeadline.total}</strong>{' '}
+                                    pod względem zdobytych obserwujących
+                                    {growthHeadline.leader && (
+                                        <>
+                                            {' · '}
+                                            @{growthHeadline.leader.username} zdobył{' '}
+                                            {growthHeadline.multiple !== null ? (
+                                                <strong>{growthHeadline.multiple.toFixed(1)}× więcej</strong>
+                                            ) : (
+                                                <strong>{formatNumber(growthHeadline.leader.gain)}</strong>
+                                            )}
+                                            {' '}({formatNumber(growthHeadline.leader.gain)} wobec{' '}
+                                            {formatNumber(growthHeadline.self.gain)}) · dystans urósł o{' '}
+                                            <strong>{formatNumber(growthHeadline.gap)}</strong>
+                                        </>
+                                    )}
+                                </HeadStat>
                             )}
-                            <SummarizeBtn
-                                $active
-                                onClick={handleSummarize}
-                                disabled={summary.phase === 'loading'}
-                            >
-                                <Sparkles size={13} /> Podsumuj cały okres
-                            </SummarizeBtn>
-                        </PagerRow>
+                            <ModeSwitch>
+                                <Pill
+                                    $active={growthMode === 'absolute'}
+                                    onClick={() => setGrowthMode('absolute')}
+                                    title="Ile osób przybyło — tak wygląda walka o lokalną uwagę"
+                                >
+                                    Zasięg (osoby)
+                                </Pill>
+                                <Pill
+                                    $active={growthMode === 'relative'}
+                                    onClick={() => setGrowthMode('relative')}
+                                    title="Przyrost w % bazy — tak wygląda skuteczność niezależnie od wielkości konta"
+                                >
+                                    Tempo (%)
+                                </Pill>
+                            </ModeSwitch>
+                        </ChartHeadRow>
                     )}
-                    {followerDeltas.length === 0 ? (
+
+                    {growth.rows.length === 0 ? (
                         <HintNote>
-                            Historia obserwujących buduje się od dnia dodania profilu, pierwsze słupki
+                            Historia obserwujących buduje się od dnia dodania profilu — pierwsze punkty
                             pojawią się po 2 dniach zbierania danych.
-                        </HintNote>
-                    ) : visibleDeltas.length === 0 ? (
-                        <HintNote>
-                            Brak danych w tym tygodniu — historia obserwujących buduje się od dnia
-                            dodania profilu. Przejdź do nowszego tygodnia.
                         </HintNote>
                     ) : (
                         <ResponsiveContainer width="100%" height={280}>
-                            <BarChart data={visibleDeltas} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                            <LineChart
+                                data={growth.rows}
+                                margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+                                onClick={state => {
+                                    const label = (state as { activeLabel?: string | number } | undefined)?.activeLabel;
+                                    const date = label ? String(label) : '';
+                                    if (!date) return;
+                                    const target = growth.totals.find(t => t.isSelf) ?? growth.totals[0];
+                                    if (target) setExplain({ profileId: target.profileId, weekStart: date });
+                                }}
+                            >
                                 <CartesianGrid stroke={st.border} strokeDasharray="3 3" vertical={false} />
                                 <XAxis
                                     dataKey="date"
-                                    tickFormatter={value =>
-                                        new Date(String(value)).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })
-                                    }
+                                    tickFormatter={value => formatDayShort(String(value))}
                                     tick={{ fontSize: 11, fill: st.textMuted }}
                                     interval="preserveStartEnd"
+                                    minTickGap={24}
                                 />
-                                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: st.textMuted }} />
+                                <YAxis
+                                    tick={{ fontSize: 11, fill: st.textMuted }}
+                                    tickFormatter={value =>
+                                        growthMode === 'relative' ? `${value}%` : String(value)
+                                    }
+                                />
                                 <ReferenceLine y={0} stroke={st.borderHover} />
                                 <Tooltip
-                                    cursor={{ fill: st.bgCardAlt }}
                                     content={({ active, payload, label }) => {
                                         if (!active || !payload?.length) return null;
                                         const row = payload[0]?.payload as Record<string, number | string>;
+                                        const show = (value: number) =>
+                                            growthMode === 'relative'
+                                                ? `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
+                                                : `${value > 0 ? '+' : ''}${formatNumber(value)}`;
                                         return (
                                             <TooltipBox>
                                                 <strong>
-                                                    {followerDeltaWeekly ? 'tydzień od ' : ''}
-                                                    {new Date(String(label)).toLocaleDateString('pl-PL', {
+                                                    {new Date(`${String(label)}T00:00:00Z`).toLocaleDateString('pl-PL', {
                                                         day: 'numeric',
                                                         month: 'long',
                                                     })}
                                                 </strong>
-                                                {payload
-                                                    .filter(entry => String(entry.dataKey).startsWith('d_'))
-                                                    .map(entry => {
-                                                        const profileId = String(entry.dataKey).slice(2);
-                                                        const delta = Number(entry.value);
-                                                        const total = row[`t_${profileId}`];
-                                                        return (
-                                                            <div key={profileId} style={{ color: colorFor(profileId) }}>
-                                                                @{usernameFor(profileId)}: {delta > 0 ? '+' : ''}{delta} obs.
-                                                                {total !== undefined ? ` (łącznie ${formatNumber(Number(total))})` : ''}
-                                                            </div>
-                                                        );
-                                                    })}
+                                                {selected.map(profileId => {
+                                                    const value = row[`g_${profileId}`];
+                                                    if (value === undefined) return null;
+                                                    const total = row[`t_${profileId}`];
+                                                    return (
+                                                        <div key={profileId} style={{ color: colorFor(profileId) }}>
+                                                            @{usernameFor(profileId)}: {show(Number(value))}
+                                                            {total !== undefined
+                                                                ? ` (łącznie ${formatNumber(Number(total))})`
+                                                                : ''}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {row.median !== undefined && (
+                                                    <div style={{ color: st.textMuted, marginTop: 4 }}>
+                                                        mediana grupy: {show(Number(row.median))}
+                                                    </div>
+                                                )}
                                             </TooltipBox>
                                         );
                                     }}
                                 />
-                                {selected.map(profileId => (
-                                    <Bar
-                                        key={profileId}
-                                        dataKey={`d_${profileId}`}
-                                        fill={colorFor(profileId)}
-                                        radius={[3, 3, 0, 0]}
-                                        maxBarSize={16}
-                                        cursor="pointer"
-                                        onClick={(entry: { payload?: Record<string, number | string> }) => {
-                                            const date = String(entry?.payload?.date ?? '');
-                                            if (date) setExplain({ profileId, weekStart: date });
-                                        }}
-                                    />
-                                ))}
-                            </BarChart>
+                                {/* Mediana grupy: właściciel konkuruje z rynkiem, nie z jednym gwiazdorem. */}
+                                <Line
+                                    dataKey="median"
+                                    stroke={st.textMuted}
+                                    strokeWidth={1.5}
+                                    strokeDasharray="5 4"
+                                    dot={false}
+                                    connectNulls={false}
+                                    isAnimationActive={false}
+                                />
+                                {selected.map(profileId => {
+                                    const isSelf = benchmark.rows.find(r => r.profileId === profileId)?.isSelf;
+                                    return (
+                                        <Line
+                                            key={profileId}
+                                            dataKey={`g_${profileId}`}
+                                            stroke={colorFor(profileId)}
+                                            strokeWidth={isSelf ? 3 : 1.75}
+                                            strokeOpacity={isSelf ? 1 : 0.7}
+                                            dot={false}
+                                            activeDot={{ r: 4 }}
+                                            connectNulls={false}
+                                            isAnimationActive={false}
+                                        />
+                                    );
+                                })}
+                            </LineChart>
                         </ResponsiveContainer>
                     )}
-                    {summary.phase === 'loading' && (
-                        <SummaryLoading>
-                            <Spinner />
-                            <div>
-                                <strong>Analizuję przyrosty obserwujących…</strong>
-                                <span>
-                                    AI porównuje trendy i szuka wzorców w całym okresie.
-                                    To może potrwać kilkanaście sekund.
-                                </span>
-                            </div>
-                        </SummaryLoading>
+
+                    {growth.baselineDate && (
+                        <WindowNote>
+                            Porównanie od {formatDayShort(growth.baselineDate)} — od tego dnia masz dane
+                            dla wszystkich {growth.totals.length}{' '}
+                            {growth.totals.length === 1 ? 'wybranego profilu' : 'wybranych profili'}.
+                        </WindowNote>
                     )}
-                    {summary.phase === 'error' && <SummaryError>{summary.message}</SummaryError>}
-                    {summary.phase === 'done' && (
-                        <SummaryPanel>
-                            <SummaryHead>
-                                <strong><Sparkles size={13} /> Podsumowanie okresu</strong>
-                                <SummaryMeta>
-                                    {summary.data.fromCache ? 'z pamięci podręcznej · ' : ''}
-                                    wygenerowano {summary.data.generatedAt}
-                                </SummaryMeta>
-                                <SummaryCloseBtn
-                                    onClick={() => setSummary({ phase: 'idle' })}
-                                    aria-label="Zamknij podsumowanie"
-                                >
-                                    <X size={14} />
-                                </SummaryCloseBtn>
-                            </SummaryHead>
-                            <SummaryText>{summary.data.summary}</SummaryText>
-                        </SummaryPanel>
+                    {growth.limiter && growth.limiter.gainedDays >= 3 && (
+                        <WindowWarning>
+                            Profil @{growth.limiter.username} skraca okno porównania o{' '}
+                            {growth.limiter.gainedDays}{' '}
+                            {growth.limiter.gainedDays === 1 ? 'dzień' : 'dni'} — obserwujesz go krócej
+                            niż pozostałe. Odznacz go w tabeli powyżej, aby wrócić do pełnej historii reszty.
+                        </WindowWarning>
                     )}
+
                     {explain && (
-                        <WeekExplainPanel
-                            profileId={explain.profileId}
-                            username={usernameFor(explain.profileId)}
-                            weekStart={explain.weekStart}
-                            onClose={() => setExplain(null)}
-                        />
+                        <>
+                            <ChartHeadRow>
+                                <HeadStat>Pokaż tydzień profilu:</HeadStat>
+                                {selected.map(profileId => (
+                                    <Pill
+                                        key={profileId}
+                                        $active={explain.profileId === profileId}
+                                        onClick={() => setExplain({ profileId, weekStart: explain.weekStart })}
+                                    >
+                                        @{usernameFor(profileId)}
+                                    </Pill>
+                                ))}
+                            </ChartHeadRow>
+                            <WeekExplainPanel
+                                profileId={explain.profileId}
+                                username={usernameFor(explain.profileId)}
+                                weekStart={explain.weekStart}
+                                onClose={() => setExplain(null)}
+                            />
+                        </>
                     )}
                 </Card>
             </ChartsGrid>
+
+            <Card>
+                <AnalyzeHead>
+                    <div style={{ minWidth: 0 }}>
+                        <CardTitle>Co działa u konkurencji</CardTitle>
+                        <CardHint style={{ margin: 0 }}>
+                            Skuteczność tematów w obserwowanej grupie, liczona jako odchylenie od wyniku
+                            oczekiwanego dla danej pory publikacji — post porównujemy najpierw do mediany
+                            własnego profilu, więc wielkość konta nie ma tu znaczenia. To obserwacje
+                            z twojego rynku, nie plan publikacji ani gotowe treści.
+                        </CardHint>
+                    </div>
+                    <AnalyzeBtn
+                        $active
+                        onClick={handleAnalyze}
+                        disabled={analysis.phase === 'loading'}
+                    >
+                        <Sparkles size={13} />
+                        {analysis.phase === 'done' ? 'Odśwież analizę' : 'Przeanalizuj tematy'}
+                    </AnalyzeBtn>
+                </AnalyzeHead>
+
+                {analysis.phase === 'loading' && (
+                    <LoadingBox>
+                        <Spinner />
+                        <div>
+                            <strong>Analizuję skuteczność tematów…</strong>
+                            <span>
+                                Porównuję posty w grupie, liczę odchylenia od oczekiwań dla pory publikacji
+                                i weryfikuję, czy każda obserwacja ma pokrycie w liczbach.
+                                To potrwa kilkanaście sekund.
+                            </span>
+                        </div>
+                    </LoadingBox>
+                )}
+
+                {analysis.phase === 'error' && <AnalyzeError>{analysis.message}</AnalyzeError>}
+
+                {analysis.phase === 'done' && (
+                    analysis.data.findings.length === 0 ? (
+                        <HintNote style={{ marginTop: 14 }}>
+                            W tym okresie żadna obserwacja nie przeszła progu konkretności — przeanalizowano{' '}
+                            {analysis.data.postsAnalyzed} postów. Wybierz dłuższy okres albo dodaj więcej
+                            obserwowanych profili.
+                        </HintNote>
+                    ) : (
+                        <>
+                            {SECTION_ORDER.map(kind => {
+                                const items = analysis.data.findings.filter(f => f.kind === kind);
+                                if (items.length === 0) return null;
+                                return (
+                                    <FindingSection key={kind}>
+                                        <FindingSectionTitle>{SECTION_TITLES[kind]}</FindingSectionTitle>
+                                        {items.map((finding, index) => (
+                                            <FindingItem key={`${kind}-${index}`} $tone={SECTION_TONE[kind]}>
+                                                <FindingHeadline>{finding.headline}</FindingHeadline>
+                                                <FindingBody>{finding.body}</FindingBody>
+                                            </FindingItem>
+                                        ))}
+                                    </FindingSection>
+                                );
+                            })}
+                            <AnalyzeMeta style={{ display: 'block', marginTop: 14 }}>
+                                {analysis.data.fromCache ? 'z pamięci podręcznej · ' : ''}
+                                przeanalizowano {analysis.data.postsAnalyzed} postów ·{' '}
+                                {analysis.data.generatedAt}
+                            </AnalyzeMeta>
+                        </>
+                    )
+                )}
+            </Card>
         </Layout>
     );
 };
