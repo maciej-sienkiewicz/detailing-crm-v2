@@ -125,6 +125,15 @@ export const PageHeaderPrimaryButton = styled.button`
     height: 16px;
     stroke-width: 2;
   }
+
+  /* Na telefonie akcja naglowka nie musi byc najwiekszym elementem ekranu. */
+  @media (max-width: 639px) {
+    padding: 8px 15px;
+    font-size: 13px;
+    gap: 6px;
+
+    svg { width: 14px; height: 14px; }
+  }
 `;
 
 export const PageHeaderGhostButton = styled.button`

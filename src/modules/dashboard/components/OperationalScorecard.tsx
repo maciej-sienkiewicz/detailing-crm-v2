@@ -96,6 +96,12 @@ const ScorecardContainer = styled.div<{ $collapsed?: boolean }>`
   gap: ${p => p.theme.spacing.md};
   margin-top: ${p => p.theme.spacing.md};
 
+  /* Kontener widoku ma juz swoj gap — drugi odstep tylko rozpycha ekran. */
+  @media (max-width: 767px) {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -114,7 +120,7 @@ const CompactBar = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr) auto;
   align-items: stretch;
-  margin-top: ${p => p.theme.spacing.md};
+  margin-top: 0;
   background: #fff;
   border: 1px solid ${p => p.theme.colors.border};
   border-radius: 14px;
@@ -141,15 +147,27 @@ const CompactItem = styled.button`
   &:active { background: #f8fafc; }
 `;
 
-const CompactValue = styled.span<{ $variant: CardVariant }>`
+// Cztery nasycone kolory obok siebie czytaly sie jak przypadkowa paleta.
+// Liczby wracaja do koloru tekstu, a kategoria zostaje oznaczona kropka —
+// tak jak w legendzie wykresu. Kolorem krzyczy tylko to, co wymaga reakcji.
+const CompactValue = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 19px;
+  gap: 4px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.4px;
-  color: ${p => CARD_CONFIG[p.$variant].accentColor};
+  color: ${p => p.theme.colors.text};
+  font-variant-numeric: tabular-nums;
+`;
+
+const CompactDot = styled.span<{ $variant: CardVariant }>`
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${p => CARD_CONFIG[p.$variant].accentColor};
 `;
 
 const CompactOverdue = styled.span`
@@ -168,15 +186,22 @@ const CompactOverdue = styled.span`
 `;
 
 const CompactLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1;
-  color: ${p => p.theme.colors.textMuted};
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: ${p => p.theme.colors.textSecondary};
+
+  > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const CompactExpand = styled.button<{ $open: boolean }>`
@@ -799,13 +824,16 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
                 onClick={() => toggle(key)}
                 aria-label={`${short}: ${value ?? '—'}`}
               >
-                <CompactValue $variant={key}>
+                <CompactValue>
                   {value ?? '—'}
                   {key === 'inProgress' && !!stats?.overdue && (
                     <CompactOverdue title="Po terminie">{stats.overdue}</CompactOverdue>
                   )}
                 </CompactValue>
-                <CompactLabel>{short}</CompactLabel>
+                <CompactLabel>
+                  <CompactDot $variant={key} />
+                  <span>{short}</span>
+                </CompactLabel>
               </CompactItem>
             );
           })}

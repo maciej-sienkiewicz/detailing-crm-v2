@@ -71,8 +71,12 @@ const ViewContainer = styled.main`
   width: 100%;
   animation: ${fadeUp} 300ms ease both;
 
-  @media (max-width: 639px) {
-    padding: ${p => p.theme.spacing.md};
+  /* Na telefonie 32px miedzy sekcjami to byl pusty ekran do przewijania,
+     a nie oddech: karty maja wlasne obramowania i cienie, wiec rozdzielaja
+     sie same. Odstepy schodza do wysokosci jednego wiersza tekstu. */
+  @media (max-width: 767px) {
+    gap: 14px;
+    padding: 12px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -103,7 +107,7 @@ const HeroCard = styled.div`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    padding: 22px 20px;
+    padding: 18px 16px;
   }
 `;
 

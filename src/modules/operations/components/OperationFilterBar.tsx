@@ -1,5 +1,6 @@
 // src/modules/operations/components/OperationFilterBar.tsx
 
+import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { FilterStatus } from '../types';
@@ -41,12 +42,17 @@ const TopRow = styled.div`
     }
 `;
 
-const SearchWrapper = styled.div`
+// Na telefonie szukanie po nazwisku i wybor daty to filtry uzywane rzadko,
+// a zajmowaly dwa pelne wiersze nad kazda lista. Chowamy je za przyciskiem
+// lupy — a gdy sa ustawione, przycisk swieci sie jak aktywny filtr, zeby
+// zwinieta wyszukiwarka nigdy nie ukryla dzialajacego warunku.
+const SearchWrapper = styled.div<{ $mobileOpen: boolean }>`
     position: relative;
     flex: 1;
     min-width: 220px;
 
     @media (max-width: 900px) {
+        display: ${p => p.$mobileOpen ? 'block' : 'none'};
         flex-basis: 100%;
         min-width: 0;
     }
@@ -85,13 +91,14 @@ const SearchInput = styled.input`
     }
 `;
 
-const DateWrap = styled.div`
+const DateWrap = styled.div<{ $mobileOpen: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
 
     @media (max-width: 900px) {
+        display: ${p => p.$mobileOpen ? 'flex' : 'none'};
         flex: 1;
         min-width: 0;
     }
@@ -334,6 +341,15 @@ const FilterBadge = styled.span`
     line-height: 1;
 `;
 
+const MobileSearchToggle = styled(FilterBtn)`
+    display: none;
+
+    @media (max-width: 900px) {
+        display: inline-flex;
+        padding: 9px 11px;
+    }
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface OperationFilterBarProps {
@@ -360,11 +376,16 @@ export const OperationFilterBar = ({
     onOpenAdvancedFilters,
 }: OperationFilterBarProps) => {
     const hasActiveFilters = !!selectedFilter || !!selectedDate || activeAdvancedFilterCount > 0;
+    // Ustawione szukanie lub data trzymaja panel otwarty: inaczej zwiniecie
+    // schowaloby warunek, ktory nadal filtruje liste.
+    const hasSearchOrDate = !!search || !!selectedDate;
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const searchVisible = isSearchOpen || hasSearchOrDate;
 
     return (
         <Wrapper>
             <TopRow>
-                <SearchWrapper>
+                <SearchWrapper $mobileOpen={searchVisible}>
                     <SearchIconEl viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="11" cy="11" r="8" />
                         <path d="m21 21-4.35-4.35" />
@@ -397,7 +418,7 @@ export const OperationFilterBar = ({
                     </MobileSelectChevron>
                 </MobileSelectRow>
 
-                <DateWrap>
+                <DateWrap $mobileOpen={searchVisible}>
                     <DateLabel htmlFor="op-date-filter">Data:</DateLabel>
                     <DateInput
                         id="op-date-filter"
@@ -414,6 +435,19 @@ export const OperationFilterBar = ({
                         </ClearDateBtn>
                     )}
                 </DateWrap>
+
+                <MobileSearchToggle
+                    $active={hasSearchOrDate}
+                    onClick={() => setIsSearchOpen(v => !v)}
+                    aria-expanded={searchVisible}
+                    aria-label={searchVisible ? 'Ukryj szukanie i datę' : 'Pokaż szukanie i datę'}
+                    title={searchVisible ? 'Ukryj szukanie i datę' : 'Szukaj / wybierz datę'}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                </MobileSearchToggle>
 
                 {onOpenAdvancedFilters && (
                     <FilterBtn

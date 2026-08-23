@@ -139,12 +139,7 @@ export const OperationListView = () => {
             <PageHeader
                 title="Wizyty i Rezerwacje"
                 subtitle={
-                    <>
-                        Zarządzaj aktywnymi operacjami w warsztacie
-                        {pagination && (
-                            <TotalChip>{pagination.totalItems} rekordów</TotalChip>
-                        )}
-                    </>
+                    pagination ? <TotalChip>{pagination.totalItems} rekordów</TotalChip> : undefined
                 }
                 actions={
                     <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
