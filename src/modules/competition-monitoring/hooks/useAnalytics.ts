@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi, type ContentFilters } from '../api/instagramApi';
 import type { WeeksOption } from '../types';
 
@@ -34,11 +34,19 @@ export const useOverview = (weeks: WeeksOption) =>
         staleTime: STALE_TIME,
     });
 
+/**
+ * `placeholderData` trzyma poprzednie dane przy zmianie okresu, więc zakładka nie
+ * odmontowuje się na czas pobierania. Bez tego komponent montował się od nowa i
+ * resetował wybór profili na wykresach — a że backend sortuje profile wg aktywności
+ * *w danym oknie*, po zmianie okresu na wykresie potrafiła wylądować inna czwórka
+ * i wspólne okno porównania zmieniało się bez wyraźnego powodu.
+ */
 export const useBenchmark = (weeks: WeeksOption, enabled = true) =>
     useQuery({
         queryKey: [ANALYTICS_KEYS.benchmark, weeks],
         queryFn: () => instagramApi.getBenchmark(weeks),
         staleTime: STALE_TIME,
+        placeholderData: keepPreviousData,
         enabled,
     });
 
