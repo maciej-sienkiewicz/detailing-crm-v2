@@ -239,19 +239,24 @@ const TableHead = styled.thead`
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
-    padding: 8px 12px;
+    /* Metryka nagłówka wzięta z tabeli Leadów: 11px semibold, 0.05em,
+       oddech 12/20px. Wcześniejsze 10px i 8px sprawiały, że nagłówek
+       zlewał się z treścią zamiast ją porządkować. */
+    padding: 12px 20px;
     text-align: ${p => p.$align ?? 'left'};
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
     color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     white-space: nowrap;
 `;
 
 const Tr = styled.tr<{ $closed?: boolean }>`
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    transition: background 120ms ease;
+    /* Linia w kolorze surfaceAlt, nie border: wiersze mają się rozdzielać,
+       a nie być kratkownicą. Tak samo jak w tabeli Leadów. */
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    transition: background ${p => p.theme.transitions.fast};
     background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.05)' : 'transparent'};
 
     &:last-child { border-bottom: none; }
@@ -271,9 +276,9 @@ const Tr = styled.tr<{ $closed?: boolean }>`
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
-    padding: 8px 12px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.text};
+    padding: 12px 20px;
+    font-size: 13px;
+    color: ${p => p.theme.colors.textSecondary};
     vertical-align: middle;
     text-align: ${p => p.$align ?? 'left'};
 
@@ -300,7 +305,9 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
         /* Menu ⋮ wraca do prawej krawędzi karty i obejmuje jej pierwszy wiersz. */
         &[data-cell='menu'] {
             grid-column: 2;
-            grid-row: 1;
+            /* Przez dwa wiersze, nie jeden: przycisk ma 44px targetu dotykowego,
+               więc sam w wierszu z datą (24px) zostawiał pod nią 20px pustki. */
+            grid-row: 1 / span 2;
             justify-self: end;
             align-self: start;
             padding: 0;
@@ -313,8 +320,8 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
 
 /* ── Vehicle cell ── */
 const VehicleCell = styled.div`
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
     line-height: 1.4;
     color: ${p => p.theme.colors.text};
 `;
@@ -322,11 +329,11 @@ const VehicleCell = styled.div`
 const PlateTag = styled.span`
     display: inline-block;
     margin-top: 3px;
-    padding: 2px 7px;
+    padding: 3px 8px;
     background: #1e293b;
     color: #e2e8f0;
     border-radius: 5px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.07em;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
@@ -336,12 +343,12 @@ const PlateTag = styled.span`
 const VinTag = styled.span`
     display: inline-block;
     margin-top: 2px;
-    margin-left: 5px;
-    padding: 1px 6px;
+    margin-left: 6px;
+    padding: 2px 7px;
     background: ${p => p.theme.colors.surfaceAlt};
     color: ${p => p.theme.colors.textMuted};
-    border-radius: 4px;
-    font-size: 9px;
+    border-radius: 5px;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.05em;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
@@ -357,22 +364,26 @@ const ServiceList = styled.ul`
     flex-direction: column;
     gap: 2px;
 
+    /* Nazwa nad ceną, nie obok: cena dociśnięta do prawej krawędzi wąskiej
+       kolumny odjeżdżała od usługi, do której należy, a przy dwóch pozycjach
+       nie było już wiadomo, co z czym. Ten sam układ „tytuł + podtytuł" co
+       kontakt w tabeli Leadów. */
     li {
         display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 10px;
+        flex-direction: column;
+        gap: 1px;
     }
 `;
 
 const ServiceName = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
+    font-size: 13px;
     color: ${p => p.theme.colors.text};
-    font-weight: 500;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    line-height: 1.35;
 `;
 
 const ServicePrice = styled.span`
-    font-size: 10px;
+    font-size: 12px;
     color: ${p => p.theme.colors.textMuted};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -380,25 +391,29 @@ const ServicePrice = styled.span`
 
 /* ── Money values ── */
 const Money = styled.span`
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeights.medium};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    font-size: ${p => p.theme.fontSizes.xs};
+    font-size: 13px;
+    color: ${p => p.theme.colors.textSecondary};
 `;
 
+/* Brutto to kwota, po której skanuje się tabelę — jedyna w wierszu pisana
+   pełnym kontrastem, jak „wartość" leada. */
 const GrossMoney = styled(Money)`
-    font-size: ${p => p.theme.fontSizes.sm};
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
     color: ${p => p.theme.colors.text};
 `;
 
 /* ── Notes cell ── */
 const NoteText = styled.span`
     display: block;
-    max-width: 160px;
+    max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: ${p => p.theme.fontSizes.xs};
+    font-size: 13px;
     color: ${p => p.theme.colors.textMuted};
 `;
 
@@ -494,10 +509,12 @@ const SummaryItem = styled.div`
     display: flex;
     align-items: baseline;
     gap: 8px;
-    padding: 10px 18px;
-    border-right: 1px solid ${p => p.theme.colors.border};
+    /* Stopka czyta się jak drugi nagłówek tabeli, więc bierze jego wcięcie.
+       Pionowe kreski między pozycjami zniknęły — odstęp wystarcza, a kreski
+       robiły z podsumowania kratkownicę obcą reszcie widoku. */
+    padding: 12px 20px;
 
-    &:last-child { border-right: none; }
+    & + & { padding-left: 0; }
 
     /* Trzy pozycje w jednym rzędzie zamiast łamania się „2 + 1” z nierówną
        ostatnią komórką na całą szerokość. */
@@ -512,16 +529,16 @@ const SummaryItem = styled.div`
 `;
 
 const SummaryLabel = styled.span`
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     color: ${p => p.theme.colors.textMuted};
 `;
 
 const SummaryValue = styled.span`
-    font-size: ${p => p.theme.fontSizes.md};
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
 
@@ -776,7 +793,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                                 </li>
                                                             ))}
                                                         </ServiceList>
-                                                    ) : '-'}
+                                                    ) : '—'}
                                                 </Td>
                                                 <Td $align="right" data-label="Netto">
                                                     <Money>{formatMoney(entry.netAmountCents)}</Money>
@@ -786,7 +803,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 </Td>
                                                 <Td data-empty={!entry.notes}>
                                                     <NoteText title={entry.notes ?? undefined}>
-                                                        {entry.notes || '-'}
+                                                        {entry.notes || '—'}
                                                     </NoteText>
                                                 </Td>
                                                 <Td style={{ width: 40, paddingLeft: 4 }} data-cell="menu">
