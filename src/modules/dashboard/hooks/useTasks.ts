@@ -36,6 +36,14 @@ export const useTasks = () => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY }),
   });
 
+  // Dyktowanie: bez optymistycznego wpisu, bo treści zadania nie znamy przed
+  // transkrypcją — lista odświeża się po odpowiedzi serwera.
+  const createFromVoiceMutation = useMutation({
+    mutationFn: ({ audioBlob, mimeType }: { audioBlob: Blob; mimeType: string }) =>
+      tasksApi.createFromVoice(audioBlob, mimeType),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY }),
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateTaskPayload }) =>
       tasksApi.update(id, payload),
@@ -74,10 +82,13 @@ export const useTasks = () => {
     isLoading,
     isError,
     createTask: (payload: CreateTaskPayload) => createMutation.mutateAsync(payload),
+    createTaskFromVoice: (audioBlob: Blob, mimeType: string) =>
+      createFromVoiceMutation.mutateAsync({ audioBlob, mimeType }),
     updateTask: (id: string, payload: UpdateTaskPayload) =>
       updateMutation.mutateAsync({ id, payload }),
     deleteTask: (id: string) => deleteMutation.mutate(id),
     isCreating: createMutation.isPending,
+    isTranscribing: createFromVoiceMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };

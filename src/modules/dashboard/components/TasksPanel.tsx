@@ -4,6 +4,7 @@ import { Check, Pencil, Trash2, Plus, ClipboardList, Archive, Users, ShieldCheck
 import { useTasks } from '../hooks/useTasks';
 import { TaskModal } from './TaskModal';
 import { TaskArchiveModal } from './TaskArchiveModal';
+import { TaskVoiceButton } from './TaskVoiceButton';
 import type { DashboardTask, CreateTaskPayload } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
@@ -231,6 +232,13 @@ const EmptyState = styled.div`
   padding: 36px 24px;
   color: ${p => p.theme.colors.textMuted};
   text-align: center;
+
+  /* Na telefonie pusty panel zostawiał pół ekranu bieli nad resztą treści.
+     Bez ikony i z jednym wierszem tekstu zajmuje tyle, ile znaczy. */
+  @media (max-width: 767px) {
+    padding: 14px 16px 16px;
+    gap: 0;
+  }
 `;
 
 const EmptyIcon = styled.div`
@@ -243,6 +251,10 @@ const EmptyIcon = styled.div`
   justify-content: center;
   color: #94a3b8;
   svg { width: 20px; height: 20px; }
+
+  @media (max-width: 767px) {
+    display: none;
+  }
 `;
 
 const EmptyText = styled.p`
@@ -303,7 +315,7 @@ const formatTaskDate = (iso: string): string => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const TasksPanel = () => {
-  const { tasks, isLoading, createTask, updateTask, deleteTask, isDeleting } = useTasks();
+  const { tasks, isLoading, createTask, createTaskFromVoice, updateTask, deleteTask, isDeleting, isTranscribing } = useTasks();
   const [modalOpen, setModalOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<DashboardTask | null>(null);
@@ -340,6 +352,7 @@ export const TasksPanel = () => {
               <Archive />
               Archiwum
             </ArchiveButton>
+            <TaskVoiceButton onRecorded={createTaskFromVoice} isSending={isTranscribing} />
             <AddButton onClick={openCreate}>
               <Plus />
               Dodaj

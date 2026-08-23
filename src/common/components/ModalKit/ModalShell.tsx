@@ -83,37 +83,57 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeig
     // up. `position: fixed` resolves against the layout viewport, which iOS
     // never shrinks for the keyboard (it shrinks the visual viewport instead),
     // so a vertically centered modal ends up hidden behind the keyboard.
-    // While the keyboard is open, pin the overlay to the visual viewport and
-    // align the modal to its top; restore the centered layout on close.
+    //
+    // Ważne: nakładka NIE zmienia rozmiaru. Skracanie jej do `vv.height`
+    // zostawiało pod spodem pas nierozmytej aplikacji — a przy niespójnych
+    // pomiarach w trakcie animacji klawiatury ten pas potrafił zostać na
+    // ekranie. Zamiast tego nakładka trzyma cały layout viewport (pełne
+    // przyciemnienie i blur), a okno wciskamy w widoczny obszar paddingami:
+    //   gora = vv.offsetTop        → pierwszy widoczny piksel
+    //   dol  = to, co zjada klawiatura
     const overlayRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!isOpen) return;
         const vv = window.visualViewport;
         if (!vv) return;
 
+        let frame = 0;
+
         const apply = () => {
             const el = overlayRef.current;
             if (!el) return;
-            const keyboardOpen = vv.height < window.innerHeight - 80;
+            const hiddenBelow = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+            const keyboardOpen = window.innerHeight - vv.height > 80;
             if (keyboardOpen) {
-                el.style.top = `${vv.offsetTop}px`;
-                el.style.height = `${vv.height}px`;
                 el.style.alignItems = 'flex-start';
+                el.style.paddingTop = `${vv.offsetTop + 12}px`;
+                el.style.paddingBottom = `${hiddenBelow + 12}px`;
                 el.style.overflowY = 'auto';
             } else {
-                el.style.top = '';
-                el.style.height = '';
                 el.style.alignItems = '';
+                el.style.paddingTop = '';
+                el.style.paddingBottom = '';
                 el.style.overflowY = '';
             }
         };
 
-        apply();
-        vv.addEventListener('resize', apply);
-        vv.addEventListener('scroll', apply);
+        const schedule = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(apply);
+        };
+
+        schedule();
+        // Klawiatura wjeżdża ~250ms, a iOS raportuje po drodze pośrednie
+        // wymiary — domierz po jej ustaniu.
+        const settle = [setTimeout(schedule, 150), setTimeout(schedule, 400)];
+
+        vv.addEventListener('resize', schedule);
+        vv.addEventListener('scroll', schedule);
         return () => {
-            vv.removeEventListener('resize', apply);
-            vv.removeEventListener('scroll', apply);
+            cancelAnimationFrame(frame);
+            settle.forEach(clearTimeout);
+            vv.removeEventListener('resize', schedule);
+            vv.removeEventListener('scroll', schedule);
         };
     }, [isOpen]);
 

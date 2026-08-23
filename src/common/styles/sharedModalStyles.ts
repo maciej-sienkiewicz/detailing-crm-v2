@@ -50,9 +50,11 @@ export const SUBMODAL_Z_INDEX = 1400;
 
 export const ModalOverlay = styled.div<{ $isOpen: boolean; $zIndex?: number }>`
     position: fixed;
+    /* Sam inset: 0, bez jawnej wysokości. Wartość 100dvh bywa mniejsza niż
+       layout viewport przy otwartej klawiaturze i wtedy pod nakładką zostaje
+       pas nierozmytej aplikacji. Nakładka ma zawsze zakrywać cały ekran;
+       dopasowaniem okna do widocznego obszaru zajmują się paddingi w ModalShell. */
     inset: 0;
-    height: 100vh;
-    height: 100dvh;
     z-index: ${p => p.$zIndex ?? MODAL_Z_INDEX};
     display: flex;
     align-items: center;

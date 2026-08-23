@@ -16,6 +16,10 @@
  *
  *   DELETE /v1/tasks/{id}
  *     → 204  (empty body)
+ *
+ *   POST   /v1/tasks/voice          (multipart/form-data)
+ *     ← audio: plik nagrania (webm/ogg/m4a — zależy od przeglądarki)
+ *     → 201  DashboardTask          (backend transkrybuje i tworzy zadanie)
  */
 
 import { apiClient } from '@/core';
@@ -63,6 +67,13 @@ let mockTasks: DashboardTask[] = [
 let nextId = 6;
 
 const delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
+
+/** MediaRecorder oddaje Blob bez nazwy; serwer rozpoznaje kontener po rozszerzeniu. */
+const voiceFilename = (mimeType: string): string => {
+  if (mimeType.startsWith('audio/mp4')) return 'task-note.m4a';
+  if (mimeType.startsWith('audio/ogg')) return 'task-note.ogg';
+  return 'task-note.webm';
+};
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
@@ -114,6 +125,31 @@ export const tasksApi = {
       return;
     }
     await apiClient.delete(`/v1/tasks/${id}`);
+  },
+
+  /**
+   * Dyktowanie zadania. Backend transkrybuje nagranie (Whisper) i tworzy z niego
+   * zadanie, więc front nie dostaje samego tekstu — dostaje gotową pozycję listy.
+   * Nazwa pliku niesie kontener, bo Blob z MediaRecordera nie ma rozszerzenia,
+   * a po nim serwer rozpoznaje format.
+   */
+  createFromVoice: async (audioBlob: Blob, mimeType: string): Promise<DashboardTask> => {
+    if (USE_MOCKS) {
+      await delay(800);
+      const task: DashboardTask = {
+        id: `t${nextId++}`,
+        title: 'Zadanie z dyktowania',
+        meta: '',
+        done: false,
+        createdAt: new Date().toISOString(),
+      };
+      mockTasks = [task, ...mockTasks];
+      return task;
+    }
+    const form = new FormData();
+    form.append('audio', new File([audioBlob], voiceFilename(mimeType), { type: mimeType }));
+    const response = await apiClient.post('/v1/tasks/voice', form);
+    return response.data;
   },
 
   getVisibilityOptions: async (): Promise<TaskVisibilityOptions> => {

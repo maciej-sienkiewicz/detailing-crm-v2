@@ -4,14 +4,14 @@
 
 import { useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { AlertCircle, CalendarPlus, Sparkles } from 'lucide-react';
+import { AlertCircle, CalendarPlus, ChevronDown, LineChart, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
+import { useBreakpoint } from '@/common/hooks';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
 import { KpiSlider } from '../components/KpiSlider';
-import { CompetitorStoriesSection } from '../components/CompetitorStoriesSection';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import { useDashboard, useDashboardSocket } from '../hooks';
 import type { OperationalStats } from '../types';
@@ -221,6 +221,38 @@ const HeroBtnGhost = styled.button`
   svg { width: 16px; height: 16px; stroke-width: 2; }
 `;
 
+// ─── Hero stats toggle (mobile) ───────────────────────────────────────────────
+//
+// Na telefonie kafelek KPI zajmował pół ekranu powitalnego, zanim użytkownik
+// zobaczył cokolwiek do zrobienia. Chowamy go za wąskim przyciskiem — liczby
+// są o jedno dotknięcie, a nagłówek wraca do rozmiaru nagłówka.
+const StatsToggle = styled.button<{ $open: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  padding: 7px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9999px;
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, color 150ms ease;
+
+  &:active { background: rgba(255,255,255,0.12); color: #f1f5f9; }
+
+  svg { width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; }
+
+  svg:last-child {
+    transition: transform 200ms ease;
+    transform: rotate(${p => p.$open ? '180deg' : '0deg'});
+  }
+`;
+
 // ─── Two-column panels grid ───────────────────────────────────────────────────
 
 const TwoColGrid = styled.div`
@@ -231,6 +263,20 @@ const TwoColGrid = styled.div`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
   }
+`;
+
+// Na telefonie zadania idą przed wizytami: "Do zrobienia" to lista, do której
+// wraca się w ciągu dnia, a nadchodzące wizyty są kontekstem.
+const TasksSlot = styled.div`
+  min-width: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    order: -1;
+  }
+`;
+
+const VisitsSlot = styled.div`
+  min-width: 0;
 `;
 
 // ─── Section Divider ──────────────────────────────────────────────────────────
@@ -314,6 +360,8 @@ export const DashboardView = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
+  const isDesktop = useBreakpoint('md');
+  const [heroStatsOpen, setHeroStatsOpen] = useState(false);
 
   const {
     stats,
@@ -348,7 +396,24 @@ export const DashboardView = () => {
               </HeroBtnGhost>
             </HeroActions>
           </HeroLeft>
-          <KpiSlider />
+          {isDesktop ? (
+            <KpiSlider />
+          ) : (
+            <>
+              <StatsToggle
+                $open={heroStatsOpen}
+                onClick={() => setHeroStatsOpen(v => !v)}
+                aria-expanded={heroStatsOpen}
+              >
+                <LineChart />
+                {heroStatsOpen ? 'Ukryj statystyki' : 'Pokaż statystyki'}
+                <ChevronDown />
+              </StatsToggle>
+              {/* Montowany dopiero po rozwinięciu: slider mierzy swoje wymiary
+                  przy pierwszym renderze i w ukrytym kontenerze zmierzyłby zero. */}
+              {heroStatsOpen && <KpiSlider />}
+            </>
+          )}
         </HeroRow>
       </HeroCard>
 
@@ -372,8 +437,12 @@ export const DashboardView = () => {
       </div>
 
       <TwoColGrid>
-        <UpcomingVisitsPanel />
-        <TasksPanel />
+        <VisitsSlot>
+          <UpcomingVisitsPanel />
+        </VisitsSlot>
+        <TasksSlot>
+          <TasksPanel />
+        </TasksSlot>
       </TwoColGrid>
 
     </ViewContainer>

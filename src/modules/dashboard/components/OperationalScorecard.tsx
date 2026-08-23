@@ -11,6 +11,7 @@ import { ReservationContextMenu } from '@/common/components/ReservationContextMe
 import {
   Clock,
   AlertTriangle,
+  ChevronDown,
   ChevronRight,
   Wrench,
   CheckCircle2,
@@ -25,6 +26,7 @@ import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/fo
 import type { OperationalStats, VisitDetail } from '../types';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
+import { useBreakpoint } from '@/common/hooks';
 import { visitApi } from '@/modules/visits/api/visitApi';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -88,8 +90,8 @@ const fadeIn = keyframes`
 
 // ─── Scorecard Grid ───────────────────────────────────────────────────────────
 
-const ScorecardContainer = styled.div`
-  display: grid;
+const ScorecardContainer = styled.div<{ $collapsed?: boolean }>`
+  display: ${p => p.$collapsed ? 'none' : 'grid'};
   grid-template-columns: 1fr;
   gap: ${p => p.theme.spacing.md};
   margin-top: ${p => p.theme.spacing.md};
@@ -100,6 +102,100 @@ const ScorecardContainer = styled.div`
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+// ─── Compact strip (mobile) ───────────────────────────────────────────────────
+//
+// Cztery pełne kafelki zajmowały na telefonie cały ekran, zanim użytkownik
+// dotarł do zadań i wizyt. Ten sam komplet liczb mieści się w jednym rzędzie;
+// pozycje otwierają te same szuflady co kafelki, a chevron rozwija pełną siatkę.
+const CompactBar = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  align-items: stretch;
+  margin-top: ${p => p.theme.spacing.md};
+  background: #fff;
+  border: 1px solid ${p => p.theme.colors.border};
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  overflow: hidden;
+`;
+
+const CompactItem = styled.button`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 2px;
+  background: none;
+  border: none;
+  border-right: 1px solid #f1f5f9;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease;
+
+  &:active { background: #f8fafc; }
+`;
+
+const CompactValue = styled.span<{ $variant: CardVariant }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.4px;
+  color: ${p => CARD_CONFIG[p.$variant].accentColor};
+`;
+
+const CompactOverdue = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: ${p => p.theme.colors.error};
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+`;
+
+const CompactLabel = styled.span`
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: ${p => p.theme.colors.textMuted};
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CompactExpand = styled.button<{ $open: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  background: none;
+  border: none;
+  color: ${p => p.theme.colors.textMuted};
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 200ms ease;
+    transform: rotate(${p => p.$open ? '180deg' : '0deg'});
   }
 `;
 
@@ -621,8 +717,18 @@ const VisitDrawer = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// Skróty etykiet na pasek kompaktowy: pełne nazwy nie mieszczą się w 1/4 szerokości telefonu.
+const COMPACT_ITEMS: { key: CardVariant; short: string }[] = [
+  { key: 'inProgress',     short: 'W trakcie' },
+  { key: 'readyForPickup', short: 'Gotowe' },
+  { key: 'incomingToday',  short: 'Dziś' },
+  { key: 'abandoned',      short: 'Porzucone' },
+];
+
 export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const isDesktop = useBreakpoint('md');
+  const [expanded, setExpanded] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const navigate = useNavigate();
   const { start: startNavAnim } = useCalendarNavigation();
@@ -671,9 +777,50 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
   const drawerData = getDrawerData();
 
+  const compactValue = (key: CardVariant): number | null => {
+    if (!stats) return null;
+    switch (key) {
+      case 'inProgress':     return stats.inProgress;
+      case 'readyForPickup': return stats.readyForPickup;
+      case 'incomingToday':  return stats.incomingToday;
+      case 'abandoned':      return stats.abandonedLast30Days;
+    }
+  };
+
   return (
     <>
-      <ScorecardContainer>
+      {!isDesktop && (
+        <CompactBar>
+          {COMPACT_ITEMS.map(({ key, short }) => {
+            const value = compactValue(key);
+            return (
+              <CompactItem
+                key={key}
+                onClick={() => toggle(key)}
+                aria-label={`${short}: ${value ?? '—'}`}
+              >
+                <CompactValue $variant={key}>
+                  {value ?? '—'}
+                  {key === 'inProgress' && !!stats?.overdue && (
+                    <CompactOverdue title="Po terminie">{stats.overdue}</CompactOverdue>
+                  )}
+                </CompactValue>
+                <CompactLabel>{short}</CompactLabel>
+              </CompactItem>
+            );
+          })}
+          <CompactExpand
+            $open={expanded}
+            onClick={() => setExpanded(v => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Zwiń kafelki' : 'Rozwiń kafelki'}
+          >
+            <ChevronDown />
+          </CompactExpand>
+        </CompactBar>
+      )}
+
+      <ScorecardContainer $collapsed={!isDesktop && !expanded}>
         {stats ? (
           <KpiCard
             variant="inProgress"
