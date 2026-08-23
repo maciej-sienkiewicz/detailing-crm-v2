@@ -469,6 +469,10 @@ const KebabItem = styled.button<{ $danger?: boolean }>`
 interface VisitHeaderProps {
     visit: Visit;
     onCompleteVisit: () => void;
+    /** Wizyta zakończona bez faktury: wystawienie faktury konsumenckiej. */
+    onIssueConsumerInvoice?: () => void;
+    /** Wizyta zakończona z fakturą: podgląd wystawionego dokumentu. */
+    onPreviewInvoice?: () => void;
     onCancelVisit: () => void;
     onGeneratePost: () => void;
     onDoorToDoor?: () => void;
@@ -479,6 +483,8 @@ interface VisitHeaderProps {
 export const VisitHeader = ({
     visit,
     onCompleteVisit,
+    onIssueConsumerInvoice,
+    onPreviewInvoice,
     onCancelVisit,
     onGeneratePost,
     onDoorToDoor,
@@ -574,6 +580,24 @@ export const VisitHeader = ({
     const { can } = usePermissions();
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
+
+    /*
+     * Wizyta zakończona: „Zakończ wizytę" nie ma już czego zrobić i wisiał tu
+     * wyłącznie jako wygaszony przycisk. Zastępuje go akcja wynikająca z tego,
+     * czym wizytę rozliczono:
+     *   faktura w KSeF  → podgląd dokumentu,
+     *   inny dokument   → wystawienie brakującej faktury konsumenckiej.
+     * Sprawdzamy revenueInvoiceId, nie documentType: dokument finansowy typu
+     * INVOICE może istnieć bez rekordu KSeF (adnotacja bez wysyłki), a wtedy
+     * nie ma czego pokazać w podglądzie.
+     */
+    const isCompleted = visit.status === 'COMPLETED';
+    const invoiceId = visit.settlement?.revenueInvoiceId ?? null;
+    const settlementAction: 'preview' | 'issue' | null =
+        !isCompleted ? null
+        : invoiceId && onPreviewInvoice ? 'preview'
+        : visit.settlement?.documentType && visit.settlement.documentType !== 'INVOICE' && onIssueConsumerInvoice ? 'issue'
+        : null;
     const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate && `(${visit.vehicle.licensePlate})`]
         .filter(Boolean)
         .join(' ');
@@ -688,7 +712,31 @@ export const VisitHeader = ({
                         </ActionButton>
                     )}
 
-                    {can('VISITS_VIEW') && (
+                    {settlementAction === 'preview' && can('VISITS_VIEW') && (
+                        <ActionButton $variant="complete" $mobilePrimary onClick={onPreviewInvoice}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="8" y1="13" x2="16" y2="13" />
+                                <line x1="8" y1="17" x2="14" y2="17" />
+                            </svg>
+                            Podgląd faktury
+                        </ActionButton>
+                    )}
+
+                    {settlementAction === 'issue' && can('VISITS_CREATE') && (
+                        <ActionButton $variant="complete" $mobilePrimary onClick={onIssueConsumerInvoice}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="12" y1="18" x2="12" y2="12" />
+                                <line x1="9" y1="15" x2="15" y2="15" />
+                            </svg>
+                            Wystaw fakturę konsumencką
+                        </ActionButton>
+                    )}
+
+                    {settlementAction === null && can('VISITS_VIEW') && (
                         <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <polyline points="20 6 9 17 4 12" />

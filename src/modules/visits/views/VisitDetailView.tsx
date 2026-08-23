@@ -4,7 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
-import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
+import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey } from '../hooks';
+import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
+import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
@@ -715,6 +717,10 @@ export const VisitDetailView = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
+    // Rozliczenie wizyty zakończonej: wystawienie brakującej faktury albo
+    // podgląd już wystawionej.
+    const [isConsumerInvoiceOpen, setIsConsumerInvoiceOpen] = useState(false);
+    const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
     const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
@@ -901,6 +907,8 @@ export const VisitDetailView = () => {
                 <VisitHeader
                     visit={visit}
                     onCompleteVisit={handleCompleteVisit}
+                    onIssueConsumerInvoice={() => setIsConsumerInvoiceOpen(true)}
+                    onPreviewInvoice={() => setPreviewInvoiceId(visit.settlement?.revenueInvoiceId ?? null)}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
                     onDoorToDoor={() => setIsDoorToDoorOpen(true)}
@@ -1241,6 +1249,26 @@ export const VisitDetailView = () => {
                 <GeneratePostModal
                     onClose={() => setIsGeneratePostOpen(false)}
                     prefill={buildGeneratePostPrefill()}
+                />
+            )}
+
+            {isConsumerInvoiceOpen && (
+                <ConsumerInvoiceModal
+                    visit={visit}
+                    isOpen
+                    onClose={() => setIsConsumerInvoiceOpen(false)}
+                    onIssued={() => {
+                        // Detal wizyty niesie settlement, więc po wystawieniu przycisk
+                        // sam zamienia się na „Podgląd faktury".
+                        queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId!) });
+                    }}
+                />
+            )}
+
+            {previewInvoiceId && (
+                <RevenueInvoiceDetailModal
+                    invoiceId={previewInvoiceId}
+                    onClose={() => setPreviewInvoiceId(null)}
                 />
             )}
 

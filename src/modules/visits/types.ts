@@ -159,8 +159,22 @@ export interface Visit {
     doorToDoor?: DoorToDoorInfo;
     /** Imię i nazwisko pracownika, który przyjął pojazd (utworzył wizytę) */
     acceptedByName?: string;
+    /** Czym wizyta została rozliczona; brak = wizyta jeszcze nierozliczona. */
+    settlement?: VisitSettlement | null;
     createdAt: string;
     updatedAt: string;
+}
+
+/**
+ * Rozliczenie wizyty widziane od strony dokumentów.
+ *
+ * Pola są niezależne: dokument finansowy typu INVOICE może istnieć bez rekordu
+ * KSeF (adnotacja bez wysyłki), więc podgląd faktury otwieramy wyłącznie wtedy,
+ * gdy jest [revenueInvoiceId] — samo `documentType === 'INVOICE'` nie wystarcza.
+ */
+export interface VisitSettlement {
+    documentType: 'INVOICE' | 'RECEIPT' | 'OTHER' | null;
+    revenueInvoiceId: string | null;
 }
 
 export interface VisitDetailResponse {

@@ -591,12 +591,18 @@ export interface RevenueInvoiceListFilters {
   includeExcluded?: boolean;
 }
 
+/**
+ * Pozycja faktury: dokładnie jedno z pól ceny. Kwota wpisana przez użytkownika
+ * jest źródłem prawdy — backend liczy drugą stronę tym samym wzorem, więc
+ * wpisane brutto nie „przeskakuje" po zaokrągleniu.
+ */
 export interface IssueInvoiceItemRequest {
-  name:         string;
-  unit?:        string;
-  quantity?:    number;
-  unitPriceNet: number;  // grosze
-  vatRate:      RevenueVatRate;
+  name:            string;
+  unit?:           string;
+  quantity?:       number;
+  unitPriceNet?:   number;  // grosze
+  unitPriceGross?: number;  // grosze
+  vatRate:         RevenueVatRate;
 }
 
 export interface IssueInvoiceBuyerRequest {
