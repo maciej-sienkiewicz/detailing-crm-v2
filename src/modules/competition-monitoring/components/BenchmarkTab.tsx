@@ -6,12 +6,12 @@ import {
 } from 'recharts';
 import {
     ArrowDownRight, ArrowUpRight, ExternalLink, FileText, Flame, Pause,
-    Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
+    RefreshCw, Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Benchmark, BenchmarkRow, PulseEventKind } from '../types';
 import { PROFILE_COLORS } from '../types';
-import { usePulse } from '../hooks/useAnalytics';
+import { usePulse, useResyncFailedProfiles } from '../hooks/useAnalytics';
 import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
 import { WeekExplainPanel } from './WeekExplainPanel';
 
@@ -113,6 +113,37 @@ const SubNote = styled.div`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
     white-space: nowrap;
+`;
+
+// ─── Baner błędu pobrania ────────────────────────────────────────────────────
+
+const ErrorBanner = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border: 1px solid ${st.accentRed}44;
+    border-radius: ${st.radiusSm};
+    background: ${st.accentRedDim};
+`;
+
+const ErrorBannerText = styled.span`
+    flex: 1;
+    min-width: 220px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    line-height: 1.5;
+
+    strong { font-weight: 700; }
+`;
+
+const RetryBtn = styled(Pill)`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 `;
 
 // ─── Wykresy ──────────────────────────────────────────────────────────────────
@@ -293,6 +324,15 @@ const formatWeekTick = (weekStart: string) =>
 
 const formatDayShort = (date: string) =>
     new Date(`${date}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+
+/** Polska odmiana: 1 profil, 2–4 profile, 5+ profili. */
+const profileWord = (count: number): string => {
+    if (count === 1) return '1 profil';
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${count} profile`;
+    return `${count} profili`;
+};
 
 const daysBetween = (from: string, to: string) =>
     Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
@@ -499,6 +539,37 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     // z zakładką, bez przycisku i bez czekania.
     const pulseQuery = usePulse();
 
+    // ── Ponowienie pobrania dla profili z błędem ─────────────────────────────
+    // Przycisk pojawia się WYŁĄCZNIE gdy jakiś profil ma flagę błędu — poza tym
+    // przypadkiem nie ma czego ponawiać, więc nie ma też jak wydać quoty.
+    const failedProfiles = useMemo(() => benchmark.rows.filter(row => row.apiError), [benchmark.rows]);
+    const resync = useResyncFailedProfiles();
+    const [resyncMessage, setResyncMessage] = useState<string | null>(null);
+
+    const handleResync = () => {
+        setResyncMessage(null);
+        resync.mutate(undefined, {
+            onSuccess: result => {
+                setResyncMessage(
+                    result.attempted === 0
+                        ? 'Nie ma już czego ponawiać — dane są aktualne.'
+                        : result.stillFailing === 0
+                            ? `Udało się — odświeżono ${profileWord(result.recovered)}.`
+                            : `Odświeżono ${profileWord(result.recovered)}, ${result.stillFailing} nadal bez odpowiedzi. ` +
+                              'Sprawdź, czy profil nie zmienił nazwy albo nie jest prywatny.'
+                );
+            },
+            onError: (err: unknown) => {
+                const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
+                setResyncMessage(
+                    response?.status === 429
+                        ? response.data?.message ?? 'Ponowienie było już uruchamiane przed chwilą.'
+                        : 'Nie udało się ponowić. Spróbuj ponownie za chwilę.'
+                );
+            },
+        });
+    };
+
     const annotations = useMemo(
         () => benchmark.annotations.filter(a => !a.profileId || selected.includes(a.profileId)),
         [benchmark.annotations, selected]
@@ -574,6 +645,31 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     <span style={{ color: st.accentAmber }}>■</span> rolki ·{' '}
                     <span style={{ color: st.accentGreen }}>■</span> karuzele
                 </HintNote>
+
+                {(failedProfiles.length > 0 || resyncMessage) && (
+                    <ErrorBanner>
+                        <ErrorBannerText>
+                            {failedProfiles.length > 0 ? (
+                                <>
+                                    Nie udało się pobrać danych dla{' '}
+                                    <strong>{failedProfiles.map(row => `@${row.username}`).join(', ')}</strong>.
+                                    {' '}Kolejna automatyczna próba jutro rano — możesz też ponowić teraz.
+                                </>
+                            ) : (
+                                resyncMessage
+                            )}
+                            {failedProfiles.length > 0 && resyncMessage && (
+                                <><br />{resyncMessage}</>
+                            )}
+                        </ErrorBannerText>
+                        {failedProfiles.length > 0 && (
+                            <RetryBtn onClick={handleResync} disabled={resync.isPending}>
+                                <RefreshCw size={13} />
+                                {resync.isPending ? 'Ponawiam…' : 'Ponów pobieranie'}
+                            </RetryBtn>
+                        )}
+                    </ErrorBanner>
+                )}
             </Card>
 
             <ChartsGrid>
