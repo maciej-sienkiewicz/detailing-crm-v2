@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
+import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
@@ -88,8 +89,8 @@ const ContentArea = styled.div`
     @media (max-width: 767px) {
         /* Bottom clearance = nav height + home-indicator inset, so the last card
            is never parked under the tab bar. */
-        padding: 14px max(12px, env(safe-area-inset-left, 0px))
-                 calc(84px + env(safe-area-inset-bottom, 0px))
+        /* Zapas na zakładki sekcji; pasek globalny i safe-area dokłada Layout. */
+        padding: 14px max(12px, env(safe-area-inset-left, 0px)) 84px
                  max(12px, env(safe-area-inset-right, 0px));
     }
 `;
@@ -617,18 +618,25 @@ const MobileTabPanel = styled.div<{ $visible: boolean }>`
 const MobileBottomNav = styled.nav<{ $hidden?: boolean }>`
     display: flex;
     position: fixed;
-    bottom: 0;
+    /* Siedzi nad globalnym paskiem nawigacji, nie na nim: zakładki sekcji to
+       nawigacja wewnątrz wizyty, a wyjście z widoku musi zostać dostępne.
+       Safe-area obsługuje już pasek globalny, stąd sam padding tutaj. */
+    bottom: ${BOTTOM_NAV_SPACE};
     left: 0;
     right: 0;
-    z-index: 1000;
-    background: #ffffff;
+    /* Pod overlayem (99) i drawerem (100) menu bocznego. */
+    z-index: 96;
+    /* To samo szkło co pasek globalny: oba rzędy czytają się jako jeden blok. */
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
     border-top: 1px solid #e2e8f0;
     padding:
         6px
         max(4px, env(safe-area-inset-right, 0px))
-        calc(8px + env(safe-area-inset-bottom, 0px))
+        8px
         max(4px, env(safe-area-inset-left, 0px));
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -2px 16px rgba(15, 23, 42, 0.06);
     transition: transform 180ms ease, opacity 180ms ease;
 
     /* While the on-screen keyboard is up, iOS keeps this pinned to the layout
@@ -1301,7 +1309,7 @@ export const VisitDetailView = () => {
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                     </MobileNavIconWrap>
-                    <MobileNavLabel>Komunikacja</MobileNavLabel>
+                    <MobileNavLabel>Kontakt</MobileNavLabel>
                 </MobileNavBtn>
                 )}
 
