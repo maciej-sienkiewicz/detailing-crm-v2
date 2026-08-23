@@ -141,21 +141,35 @@ export interface Benchmark {
     annotations: ChartAnnotation[];
 }
 
-/** Sekcja obserwacji w analizie "Co działa u konkurencji". */
-export type EffectivenessKind = 'UNDERUSED_TOPIC' | 'WEAK_TOPIC' | 'OWN_PERFORMANCE' | 'PRICE_MOVE';
+/** Rodzaj zdarzenia w pulsie konkurencji. */
+export type PulseEventKind =
+    | 'YOUR_POST'
+    | 'YOUR_SILENCE'
+    | 'ACCELERATION'
+    | 'SLOWDOWN'
+    | 'STANDOUT_POST'
+    | 'NEW_TOPIC'
+    | 'FOLLOWER_SPIKE'
+    | 'FOLLOWER_DROP';
 
-export interface EffectivenessFinding {
-    kind: EffectivenessKind;
+export interface PulseEvent {
+    kind: PulseEventKind;
+    isSelf: boolean;
+    username: string;
     headline: string;
-    body: string;
+    detail: string;
+    permalink: string | null;
+    occurredAt: string;
 }
 
-export interface ContentEffectiveness {
-    findings: EffectivenessFinding[];
-    postsAnalyzed: number;
-    weeks: number;
-    generatedAt: string;
-    fromCache: boolean;
+export interface CompetitorPulse {
+    events: PulseEvent[];
+    windowFrom: string;
+    windowTo: string;
+    /** Ile tygodni historii posłużyło za normę, do której porównujemy zdarzenia. */
+    baselineWeeks: number;
+    hasSelfProfile: boolean;
+    profilesWatched: number;
 }
 
 // ─── Treści ───────────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import type { WeeksOption } from '../types';
 export const ANALYTICS_KEYS = {
     overview: 'ig-overview',
     benchmark: 'ig-benchmark',
+    pulse: 'ig-pulse',
     content: 'ig-content',
     heatmap: 'ig-heatmap',
     hashtags: 'ig-hashtags',
@@ -61,6 +62,15 @@ export const useHashtags = (weeks: WeeksOption, enabled = true) =>
     useQuery({
         queryKey: [ANALYTICS_KEYS.hashtags, weeks],
         queryFn: () => instagramApi.getHashtags(weeks),
+        staleTime: STALE_TIME,
+        enabled,
+    });
+
+/** Puls konkurencji: liczony w kodzie, więc ładuje się razem z zakładką. */
+export const usePulse = (enabled = true) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.pulse],
+        queryFn: () => instagramApi.getPulse(),
         staleTime: STALE_TIME,
         enabled,
     });
