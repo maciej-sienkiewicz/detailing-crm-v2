@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
+import { BottomNav, BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
@@ -31,8 +32,9 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         margin-left: 0;
-        /* Clear the mobile hamburger button; add safe-area-inset-top for notched devices */
-        padding-top: max(76px, calc(62px + env(safe-area-inset-top, 0px)));
+        /* Treść kończy się nad dolnym paskiem nawigacji – razem z safe-area iOS,
+           żeby po doscrollowaniu na sam dół pasek niczego nie zasłaniał. */
+        padding-bottom: ${BOTTOM_NAV_SPACE};
     }
 `;
 
@@ -78,6 +80,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             <RouteFlash key={`${pathname}-${flashKey}`} />
                         </ContentWrapper>
                     </LayoutContainer>
+                    <BottomNav />
                     <CalendarNavigationOverlay />
                 </CalendarNavigationProvider>
             </SessionTelemetryProvider>

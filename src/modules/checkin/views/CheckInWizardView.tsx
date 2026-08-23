@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
+import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useToast } from '@/common/components/Toast';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
@@ -183,6 +184,8 @@ const StickyFooter = styled.footer<{ $sidebarWidth: number }>`
 
     @media (max-width: 768px) {
         left: 0;
+        /* Ponad dolnym paskiem nawigacji – przyciski kreatora muszą zostać klikalne. */
+        bottom: ${BOTTOM_NAV_SPACE};
     }
 `;
 

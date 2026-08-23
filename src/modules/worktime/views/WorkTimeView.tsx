@@ -3,6 +3,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
+import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
     usePeriodDetail,
@@ -834,6 +835,12 @@ const StickySubmitBar = styled.div`
     background: white;
     border-top: 1px solid #e2e8f0;
     z-index: 50;
+
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        /* Ponad dolnym paskiem nawigacji; safe-area obsługuje już sam pasek. */
+        bottom: ${BOTTOM_NAV_SPACE};
+        padding-bottom: 12px;
+    }
 
     @media (prefers-color-scheme: dark) {
         background: #0f172a;

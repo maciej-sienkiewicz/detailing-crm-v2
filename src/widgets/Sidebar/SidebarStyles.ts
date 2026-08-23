@@ -607,34 +607,4 @@ export const ExpandButton = styled.button`
     }
 `;
 
-export const MobileMenuButton = styled.button`
-    position: fixed;
-    /* Account for notch / status bar on iOS devices */
-    top: max(14px, env(safe-area-inset-top, 14px));
-    left: max(14px, env(safe-area-inset-left, 14px));
-    width: 42px;
-    height: 42px;
-    padding: 0;
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    color: #94a3b8;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 998;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    transition: all 150ms ease;
-    -webkit-tap-highlight-color: transparent;
-
-    svg { width: 18px; height: 18px; }
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) { display: none; }
-
-    &:active {
-        opacity: 0.8;
-        transform: scale(0.95);
-    }
-`;
 

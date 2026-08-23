@@ -12,7 +12,6 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     X,
-    Menu,
     Camera,
     Settings,
     LogOut,
@@ -49,7 +48,6 @@ import {
     CollapseButton,
     CloseButton,
     ExpandButton,
-    MobileMenuButton,
     UserProfile,
     UserAvatar,
     UserInfo,
@@ -153,7 +151,7 @@ const getInitials = (firstName?: string, lastName?: string): string => {
 };
 
 export const Sidebar = () => {
-    const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
+    const { isCollapsed, isMobileOpen, toggleCollapse, closeMobileMenu } = useSidebar();
     const { user, setAuthenticated } = useAuth();
     const navigate = useNavigate();
     const { getProfiles, addOrUpdateProfile } = useKnownProfiles();
@@ -214,10 +212,6 @@ export const Sidebar = () => {
 
     return (
         <>
-            <MobileMenuButton onClick={toggleMobileMenu} aria-label="Otwórz menu">
-                <Menu />
-            </MobileMenuButton>
-
             <Overlay $isVisible={isMobileOpen} onClick={closeMobileMenu} />
 
             <SidebarContainer $isCollapsed={isCollapsed} $isMobileOpen={isMobileOpen}>

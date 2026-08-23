@@ -26,6 +26,7 @@ import {
     Settings,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { commsApi } from '../api/commsApi';
 import {
     useContactInsights,
@@ -77,9 +78,9 @@ function useMediaQuery(query: string): boolean {
 // ── Layout ───────────────────────────────────────────────────────────────────
 
 // Wypełnia dokładnie obszar treści Layoutu: na mobile ContentWrapper dokłada
-// górny padding pod hamburger (76px / safe-area), stąd korekta wysokości.
+// dolny padding pod pasek nawigacji (wysokość + safe-area), stąd korekta wysokości.
 const Screen = styled.div`
-    height: calc(100dvh - max(76px, calc(62px + env(safe-area-inset-top, 0px))));
+    height: calc(100dvh - ${BOTTOM_NAV_SPACE});
     display: flex;
     min-height: 0;
 
