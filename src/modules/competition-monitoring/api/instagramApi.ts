@@ -4,7 +4,7 @@ import type {
     ProfileSuggestion,
     Report,
     ReportBrief,
-    ContentEffectiveness,
+    CompetitorPulse,
     ContentPage,
     GenerateInstagramPostRequest,
     HashtagStat,
@@ -73,14 +73,10 @@ export const instagramApi = {
         return response.data;
     },
 
-    /**
-     * "Co działa u konkurencji" — skuteczność tematów w obserwowanej grupie. Backend
-     * cache'uje odpowiedź i limituje generowanie (1/15 min) — 429 obsługujemy lokalnie.
-     */
-    getContentEffectiveness: async (weeks: WeeksOption): Promise<ContentEffectiveness> => {
-        const response = await apiClient.get<ContentEffectiveness>(`${ANALYTICS_PATH}/content-effectiveness`, {
+    /** Puls: co wydarzyło się u obserwowanych profili w ostatnich dniach. */
+    getPulse: async (weeks = 1): Promise<CompetitorPulse> => {
+        const response = await apiClient.get<CompetitorPulse>(`${ANALYTICS_PATH}/pulse`, {
             params: { weeks },
-            skipErrorToast: true,
         });
         return response.data;
     },

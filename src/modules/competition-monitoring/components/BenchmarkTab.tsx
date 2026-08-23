@@ -4,13 +4,14 @@ import {
     Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { Sparkles, Star } from 'lucide-react';
+import {
+    ArrowDownRight, ArrowUpRight, ExternalLink, FileText, Flame, Pause,
+    Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
+} from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type {
-    Benchmark, BenchmarkRow, ContentEffectiveness, EffectivenessKind, WeeksOption,
-} from '../types';
+import type { Benchmark, BenchmarkRow, PulseEventKind } from '../types';
 import { PROFILE_COLORS } from '../types';
-import { instagramApi } from '../api/instagramApi';
+import { usePulse } from '../hooks/useAnalytics';
 import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
 import { WeekExplainPanel } from './WeekExplainPanel';
 
@@ -180,84 +181,109 @@ const WindowWarning = styled.p`
     line-height: 1.5;
 `;
 
-// ─── Analiza "Co działa u konkurencji" ───────────────────────────────────────
+// ─── Puls konkurencji ────────────────────────────────────────────────────────
 
-const AnalyzeHead = styled.div`
+const PulseHead = styled.div`
     display: flex;
-    align-items: center;
+    align-items: baseline;
     flex-wrap: wrap;
     gap: 10px;
 `;
 
-const AnalyzeBtn = styled(Pill)`
+const PulseMeta = styled.span`
     margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-`;
-
-const AnalyzeMeta = styled.span`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
+    white-space: nowrap;
 `;
 
-const LoadingBox = styled.div`
+const PulseList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+`;
+
+const PulseRow = styled.div<{ $self: boolean }>`
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 11px 13px;
+    border: 1px solid ${p => (p.$self ? st.accentBlue : st.border)};
+    border-radius: ${st.radiusSm};
+    background: ${p => (p.$self ? st.bgAccentBlue : st.bgCard)};
+`;
+
+const TONE_COLOR = {
+    good: st.accentGreen,
+    warn: st.accentAmber,
+    bad: st.accentRed,
+    neutral: st.accentBlue,
+} as const;
+
+const TONE_BG = {
+    good: st.accentGreenDim,
+    warn: st.accentAmberDim,
+    bad: st.accentRedDim,
+    neutral: st.accentBlueDim,
+} as const;
+
+const PulseIcon = styled.span<{ $tone: keyof typeof TONE_COLOR }>`
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-top: 14px;
-    padding: 18px;
-    border: 1px dashed ${st.border};
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCardAlt};
-
-    strong { display: block; font-size: ${st.fontSm}; color: ${st.text}; }
-    span { display: block; font-size: ${st.fontXs}; color: ${st.textMuted}; margin-top: 3px; line-height: 1.5; }
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: ${p => TONE_COLOR[p.$tone]};
+    background: ${p => TONE_BG[p.$tone]};
 `;
 
-const FindingSection = styled.div`
-    margin-top: 16px;
+const PulseBody = styled.div`
+    min-width: 0;
+    flex: 1;
 `;
 
-const FindingSectionTitle = styled.h4`
-    margin: 0 0 8px;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-`;
-
-const FindingItem = styled.div<{ $tone: 'good' | 'bad' | 'neutral' }>`
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    border: 1px solid ${st.border};
-    border-left: 3px solid ${p =>
-        p.$tone === 'good' ? st.accentGreen : p.$tone === 'bad' ? st.accentRed : st.accentBlue};
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCard};
-
-    &:last-child { margin-bottom: 0; }
-`;
-
-const FindingHeadline = styled.div`
+const PulseHeadline = styled.div`
     font-size: ${st.fontSm};
     font-weight: 700;
     color: ${st.text};
-    margin-bottom: 3px;
 `;
 
-const FindingBody = styled.p`
-    margin: 0;
+const PulseDetail = styled.div`
+    margin-top: 2px;
     font-size: ${st.fontSm};
     color: ${st.textSecondary};
-    line-height: 1.6;
+    line-height: 1.55;
 `;
 
-const AnalyzeError = styled.p`
+const PulseLink = styled.a`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.accentBlue};
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+`;
+
+const PulseDate = styled.span`
+    flex-shrink: 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    white-space: nowrap;
+    padding-top: 2px;
+`;
+
+const PulseFootnote = styled.p`
     margin: 12px 0 0;
-    font-size: ${st.fontSm};
-    color: ${st.accentRed};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    line-height: 1.5;
 `;
 
 const MAX_CHART_PROFILES = 4;
@@ -306,27 +332,22 @@ interface GrowthHeadline {
     gap: number;
 }
 
-const SECTION_TITLES: Record<EffectivenessKind, string> = {
-    UNDERUSED_TOPIC: 'Tematy niedoreprezentowane u ciebie',
-    WEAK_TOPIC: 'Tematy, które w tym okresie nie chwyciły',
-    OWN_PERFORMANCE: 'Twoja skuteczność wobec grupy',
-    PRICE_MOVE: 'Ruch cenowy u konkurencji',
+type PulseTone = 'good' | 'warn' | 'bad' | 'neutral';
+
+/**
+ * Kolor niesie znaczenie: zielony to Twój dobry wynik, czerwony Twój problem,
+ * bursztynowy to ruch u konkurencji wart uwagi, niebieski to zwykła informacja.
+ */
+const PULSE_STYLE: Record<PulseEventKind, { icon: LucideIcon; tone: PulseTone }> = {
+    YOUR_POST: { icon: FileText, tone: 'neutral' },
+    YOUR_SILENCE: { icon: Pause, tone: 'bad' },
+    FOLLOWER_SPIKE: { icon: ArrowUpRight, tone: 'good' },
+    FOLLOWER_DROP: { icon: ArrowDownRight, tone: 'bad' },
+    ACCELERATION: { icon: TrendingUp, tone: 'warn' },
+    STANDOUT_POST: { icon: Flame, tone: 'warn' },
+    NEW_TOPIC: { icon: Sparkles, tone: 'warn' },
+    SLOWDOWN: { icon: TrendingDown, tone: 'neutral' },
 };
-
-const SECTION_ORDER: EffectivenessKind[] = ['UNDERUSED_TOPIC', 'WEAK_TOPIC', 'OWN_PERFORMANCE', 'PRICE_MOVE'];
-
-const SECTION_TONE: Record<EffectivenessKind, 'good' | 'bad' | 'neutral'> = {
-    UNDERUSED_TOPIC: 'good',
-    WEAK_TOPIC: 'bad',
-    OWN_PERFORMANCE: 'neutral',
-    PRICE_MOVE: 'neutral',
-};
-
-type AnalysisState =
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'done'; data: ContentEffectiveness }
-    | { phase: 'error'; message: string };
 
 export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) => {
     // Na wykresach: self + pierwsi konkurenci (klik w wiersz tabeli zmienia wybór)
@@ -473,24 +494,10 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
         };
     }, [growth.totals]);
 
-    // ── Analiza "Co działa u konkurencji" ────────────────────────────────────
-    const [analysis, setAnalysis] = useState<AnalysisState>({ phase: 'idle' });
-
-    const handleAnalyze = async () => {
-        if (analysis.phase === 'loading') return;
-        setAnalysis({ phase: 'loading' });
-        try {
-            const data = await instagramApi.getContentEffectiveness(benchmark.weeks as WeeksOption);
-            setAnalysis({ phase: 'done', data });
-        } catch (err: unknown) {
-            const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
-            const message =
-                response?.status === 429
-                    ? response.data?.message ?? 'Analizę można generować raz na 15 minut. Spróbuj ponownie później.'
-                    : response?.data?.message ?? 'Nie udało się wykonać analizy. Spróbuj ponownie.';
-            setAnalysis({ phase: 'error', message });
-        }
-    };
+    // ── Puls konkurencji ──────────────────────────────────────────────────────
+    // Liczony w całości po stronie backendu, bez modelu AI — więc ładuje się razem
+    // z zakładką, bez przycisku i bez czekania.
+    const pulseQuery = usePulse();
 
     const annotations = useMemo(
         () => benchmark.annotations.filter(a => !a.profileId || selected.includes(a.profileId)),
@@ -826,73 +833,77 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             </ChartsGrid>
 
             <Card>
-                <AnalyzeHead>
+                <PulseHead>
                     <div style={{ minWidth: 0 }}>
-                        <CardTitle>Co działa u konkurencji</CardTitle>
+                        <CardTitle>Puls konkurencji</CardTitle>
                         <CardHint style={{ margin: 0 }}>
-                            Skuteczność tematów w obserwowanej grupie, liczona jako odchylenie od wyniku
-                            oczekiwanego dla danej pory publikacji — post porównujemy najpierw do mediany
-                            własnego profilu, więc wielkość konta nie ma tu znaczenia. To obserwacje
-                            z twojego rynku, nie plan publikacji ani gotowe treści.
+                            Co wydarzyło się u obserwowanych profili. Każdą liczbę zestawiamy z normą
+                            danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni —
+                            to fakty z ostatnich dni, nie wnioski o tym, co „działa".
                         </CardHint>
                     </div>
-                    <AnalyzeBtn
-                        $active
-                        onClick={handleAnalyze}
-                        disabled={analysis.phase === 'loading'}
-                    >
-                        <Sparkles size={13} />
-                        {analysis.phase === 'done' ? 'Odśwież analizę' : 'Przeanalizuj tematy'}
-                    </AnalyzeBtn>
-                </AnalyzeHead>
+                    {pulseQuery.data && (
+                        <PulseMeta>
+                            {pulseQuery.data.windowFrom} – {pulseQuery.data.windowTo}
+                        </PulseMeta>
+                    )}
+                </PulseHead>
 
-                {analysis.phase === 'loading' && (
-                    <LoadingBox>
+                {pulseQuery.isLoading && (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '28px 0' }}>
                         <Spinner />
-                        <div>
-                            <strong>Analizuję skuteczność tematów…</strong>
-                            <span>
-                                Porównuję posty w grupie, liczę odchylenia od oczekiwań dla pory publikacji
-                                i weryfikuję, czy każda obserwacja ma pokrycie w liczbach.
-                                To potrwa kilkanaście sekund.
-                            </span>
-                        </div>
-                    </LoadingBox>
+                    </div>
                 )}
 
-                {analysis.phase === 'error' && <AnalyzeError>{analysis.message}</AnalyzeError>}
+                {pulseQuery.isError && (
+                    <HintNote style={{ marginTop: 14 }}>
+                        Nie udało się pobrać pulsu. Odśwież stronę.
+                    </HintNote>
+                )}
 
-                {analysis.phase === 'done' && (
-                    analysis.data.findings.length === 0 ? (
-                        <HintNote style={{ marginTop: 14 }}>
-                            W tym okresie żadna obserwacja nie przeszła progu konkretności — przeanalizowano{' '}
-                            {analysis.data.postsAnalyzed} postów. Wybierz dłuższy okres albo dodaj więcej
-                            obserwowanych profili.
-                        </HintNote>
-                    ) : (
-                        <>
-                            {SECTION_ORDER.map(kind => {
-                                const items = analysis.data.findings.filter(f => f.kind === kind);
-                                if (items.length === 0) return null;
+                {pulseQuery.data && pulseQuery.data.events.length === 0 && (
+                    <HintNote style={{ marginTop: 14 }}>
+                        {pulseQuery.data.profilesWatched === 0
+                            ? 'Dodaj profile do obserwacji, aby zobaczyć, co się u nich dzieje.'
+                            : 'W tym okresie nic się nie wydarzyło — ani u ciebie, ani u konkurencji. ' +
+                              'Historia normy buduje się przez pierwsze tygodnie obserwacji.'}
+                    </HintNote>
+                )}
+
+                {pulseQuery.data && pulseQuery.data.events.length > 0 && (
+                    <>
+                        <PulseList>
+                            {pulseQuery.data.events.map((event, index) => {
+                                const style = PULSE_STYLE[event.kind];
+                                const Icon = style.icon;
                                 return (
-                                    <FindingSection key={kind}>
-                                        <FindingSectionTitle>{SECTION_TITLES[kind]}</FindingSectionTitle>
-                                        {items.map((finding, index) => (
-                                            <FindingItem key={`${kind}-${index}`} $tone={SECTION_TONE[kind]}>
-                                                <FindingHeadline>{finding.headline}</FindingHeadline>
-                                                <FindingBody>{finding.body}</FindingBody>
-                                            </FindingItem>
-                                        ))}
-                                    </FindingSection>
+                                    <PulseRow key={`${event.kind}-${index}`} $self={event.isSelf}>
+                                        <PulseIcon $tone={style.tone}>
+                                            <Icon size={14} />
+                                        </PulseIcon>
+                                        <PulseBody>
+                                            <PulseHeadline>{event.headline}</PulseHeadline>
+                                            <PulseDetail>{event.detail}</PulseDetail>
+                                            {event.permalink && (
+                                                <PulseLink
+                                                    href={event.permalink}
+                                                    target="_blank"
+                                                    rel="noreferrer noopener"
+                                                >
+                                                    Zobacz post <ExternalLink size={11} />
+                                                </PulseLink>
+                                            )}
+                                        </PulseBody>
+                                        {event.occurredAt && <PulseDate>{event.occurredAt}</PulseDate>}
+                                    </PulseRow>
                                 );
                             })}
-                            <AnalyzeMeta style={{ display: 'block', marginTop: 14 }}>
-                                {analysis.data.fromCache ? 'z pamięci podręcznej · ' : ''}
-                                przeanalizowano {analysis.data.postsAnalyzed} postów ·{' '}
-                                {analysis.data.generatedAt}
-                            </AnalyzeMeta>
-                        </>
-                    )
+                        </PulseList>
+                        <PulseFootnote>
+                            Nie widzimy zasięgów, zapisów, udostępnień ani tego, czy post był promowany
+                            płatnie — Instagram nie udostępnia tych danych dla obserwowanych profili.
+                        </PulseFootnote>
+                    </>
                 )}
             </Card>
         </Layout>
