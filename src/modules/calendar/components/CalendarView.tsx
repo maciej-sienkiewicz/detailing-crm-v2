@@ -1098,6 +1098,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const eventElMapRef = useRef<Map<string, HTMLElement>>(new Map());
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
     const [quickModalOpen, setQuickModalOpen] = useState(false);
+
+    /**
+     * Jedyne wejscie do QuickEventModal. Bez prawa do tworzenia wizyt okno w
+     * ogole sie nie otwiera — wczesniej klikniecie w wolny slot kalendarza
+     * otwieralo formularz, ktorego i tak nie dalo sie zapisac.
+     */
+    const canCreateVisits = can('VISITS_CREATE');
+    const openQuickEvent = useCallback((range: { start: Date; end: Date; allDay: boolean }) => {
+        if (!canCreateVisits) return;
+        setSelectedEventData(range);
+        setQuickModalOpen(true);
+    }, [canCreateVisits]);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
     // Filter state - persisted in localStorage
@@ -1151,9 +1163,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     const handleMobileAddClick = useCallback(() => {
         const now = new Date();
-        setSelectedEventData({ start: now, end: now, allDay: true });
-        setQuickModalOpen(true);
-    }, []);
+        openQuickEvent({ start: now, end: now, allDay: true });
+    }, [openQuickEvent]);
 
     // Popover state
     const [popoverOpen, setPopoverOpen] = useState(false);
@@ -1544,9 +1555,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onRangeSelected?.({ start, end, allDay: Boolean(info.allDay) });
             return;
         }
-        setSelectedEventData({ start, end, allDay: Boolean(info.allDay) });
-        setQuickModalOpen(true);
-    }, [selectionMode, onRangeSelected]);
+        openQuickEvent({ start, end, allDay: Boolean(info.allDay) });
+    }, [selectionMode, onRangeSelected, openQuickEvent]);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
@@ -1568,9 +1578,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onRangeSelected?.(range);
             return;
         }
-        setSelectedEventData(range);
-        setQuickModalOpen(true);
-    }, [selectionMode, onRangeSelected]);
+        openQuickEvent(range);
+    }, [selectionMode, onRangeSelected, openQuickEvent]);
 
     /**
      * Handle event click - Show popover with event summary
@@ -2010,10 +2019,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
                             setPopoverOpen(true);
                         }}
-                        onDayAddClick={(date) => {
-                            setSelectedEventData({ start: date, end: date, allDay: true });
-                            setQuickModalOpen(true);
-                        }}
+                        onDayAddClick={(date) => openQuickEvent({ start: date, end: date, allDay: true })}
                         onPrev={() => calendarRef.current?.getApi().prev()}
                         onNext={() => calendarRef.current?.getApi().next()}
                         onToday={() => calendarRef.current?.getApi().today()}
@@ -2318,13 +2324,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
             </CalendarWrapper>
 
-            <QuickEventModal
-                ref={quickEventModalRef}
-                isOpen={quickModalOpen}
-                eventData={selectedEventData}
-                onClose={handleModalClose}
-                onSave={handleQuickSave}
-            />
+            {/* Bez prawa do tworzenia wizyt formularz nie trafia nawet do drzewa —
+                nakładka modala renderuje się zawsze i sterowana jest tylko stylem,
+                więc sam `isOpen={false}` zostawiłby go w DOM. */}
+            {canCreateVisits && (
+                <QuickEventModal
+                    ref={quickEventModalRef}
+                    isOpen={quickModalOpen}
+                    eventData={selectedEventData}
+                    onClose={handleModalClose}
+                    onSave={handleQuickSave}
+                />
+            )}
 
             {d2dTooltip && (
                 <LeaveTooltipBox style={{ left: d2dTooltip.x, top: d2dTooltip.y, transform: d2dTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>

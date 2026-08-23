@@ -4,8 +4,9 @@ import { StatsStrip } from './StatsStrip';
 import { EventCard } from './EventCard';
 import {
     Root, Board, BoardScroll, KanbanCol, ColHeader, ColDot, ColTitle, ColCount,
-    CardList, EmptyCol,
+    CardList, EmptyCol, EmptyDay,
 } from './styles';
+import { useBreakpoint } from '@/common/hooks';
 import { computeDayStats } from './layout';
 import type { DayTimelineViewProps } from './types';
 
@@ -82,6 +83,14 @@ export const DayTimelineView = ({
 }: DayTimelineViewProps) => {
     const stats  = computeDayStats(events);
     const byCol  = groupByStatus(events);
+    const isDesktop = useBreakpoint('md');
+
+    // Na telefonie sekcje ida jedna pod druga, wiec puste tylko rozpychalyby
+    // liste; na desktopie kolumna musi zostac, bo tablica ma stala siatke.
+    const visibleColumns = isDesktop
+        ? COLUMNS
+        : COLUMNS.filter(col => (byCol.get(col.id)?.length ?? 0) > 0);
+    const isDayEmpty = events.length === 0;
 
     const handleCardClick = (e: React.MouseEvent, eventData: AppointmentEventData | VisitEventData) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -107,8 +116,11 @@ export const DayTimelineView = ({
             <StatsStrip stats={stats} />
 
             <BoardScroll>
+                {!isDesktop && isDayEmpty ? (
+                    <EmptyDay>Brak wydarzeń tego dnia</EmptyDay>
+                ) : (
                 <Board>
-                    {COLUMNS.map(col => {
+                    {visibleColumns.map(col => {
                         const colEvents = byCol.get(col.id) ?? [];
                         return (
                             <KanbanCol key={col.id}>
@@ -140,6 +152,7 @@ export const DayTimelineView = ({
                         );
                     })}
                 </Board>
+                )}
             </BoardScroll>
         </Root>
     );

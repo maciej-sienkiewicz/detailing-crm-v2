@@ -8,6 +8,8 @@ import { AlertCircle, CalendarPlus, ChevronDown, LineChart, Sparkles } from 'luc
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useBreakpoint } from '@/common/hooks';
+import { usePiiAccess } from '@/common/pii';
+import { ReportWorkdayButton } from '@/modules/worktime';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
@@ -368,6 +370,10 @@ export const DashboardView = () => {
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const isDesktop = useBreakpoint('md');
   const [heroStatsOpen, setHeroStatsOpen] = useState(false);
+  // Bez dostępu do danych osobowych cała Tablica jest pusta w treści: kafelki
+  // stanu, nadchodzące wizyty i zadania mówią o klientach. Zostaje powitanie
+  // i jedyna czynność, jaką taki użytkownik tu wykonuje — raport dnia pracy.
+  const hasPiiAccess = usePiiAccess();
 
   const {
     stats,
@@ -382,6 +388,23 @@ export const DashboardView = () => {
     const greeting = useMemo(() => getGreeting(), []);
     const localDate = useMemo(() => capitalize(formatLocalDate()), []);
     const heroDesc = useMemo(() => getHeroDesc(stats), [stats]);
+
+  if (!hasPiiAccess) {
+    return (
+      <ViewContainer>
+        <HeroCard>
+          <HeroRow>
+            <HeroLeft>
+              <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
+              <HeroActions>
+                <ReportWorkdayButton />
+              </HeroActions>
+            </HeroLeft>
+          </HeroRow>
+        </HeroCard>
+      </ViewContainer>
+    );
+  }
 
   return (
     <ViewContainer>

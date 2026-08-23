@@ -22,6 +22,15 @@ export const StatsBar = styled.div`
     overflow-x: auto;
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
+
+    /* Telefon: cztery liczby dzielą szerokość równo zamiast uciekać
+       w przewijanie poziome, w którym ostatnia kolumna była zawsze ucięta. */
+    @media (max-width: 767px) {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        padding: 0 10px;
+        overflow-x: visible;
+    }
 `;
 
 export const StatCell = styled.div`
@@ -33,6 +42,13 @@ export const StatCell = styled.div`
     flex-shrink: 0;
 
     &:last-child { border-right: none; margin-right: 0; }
+
+    @media (max-width: 767px) {
+        min-width: 0;
+        padding: 7px 8px 7px 0;
+        margin-right: 8px;
+        gap: 1px;
+    }
 `;
 
 export const StatLabel = styled.span`
@@ -42,6 +58,13 @@ export const StatLabel = styled.span`
     letter-spacing: 0.07em;
     color: rgba(100, 116, 139, 0.6);
     white-space: nowrap;
+
+    @media (max-width: 767px) {
+        font-size: 9px;
+        letter-spacing: 0.03em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 `;
 
 export const StatValue = styled.span<{ $accent?: boolean }>`
@@ -50,6 +73,12 @@ export const StatValue = styled.span<{ $accent?: boolean }>`
     color: ${p => p.$accent ? '#6366f1' : '#0f172a'};
     letter-spacing: -0.3px;
     white-space: nowrap;
+
+    @media (max-width: 767px) {
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 `;
 
 // ─── Kanban board ─────────────────────────────────────────────────────────────
@@ -63,6 +92,14 @@ export const BoardScroll = styled.div`
     min-height: 0;
     -webkit-overflow-scrolling: touch;
 
+    /* Telefon: tablica statusów przestaje być czterema kolumnami obok siebie
+       (640px minimum na ekranie szerokim na 390px) i staje się jedną kolumną
+       sekcji pod sobą — przewijaną pionowo, tak jak reszta aplikacji. */
+    @media (max-width: 767px) {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
     &::-webkit-scrollbar { height: 6px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.12); border-radius: 3px; }
@@ -75,6 +112,13 @@ export const Board = styled.div`
     min-height: 0;
     min-width: 640px;
     align-items: stretch;
+
+    @media (max-width: 767px) {
+        display: block;
+        min-width: 0;
+        min-height: auto;
+        flex: none;
+    }
 `;
 
 export const KanbanCol = styled.div`
@@ -85,6 +129,14 @@ export const KanbanCol = styled.div`
     overflow: hidden;
 
     &:last-child { border-right: none; }
+
+    @media (max-width: 767px) {
+        border-right: none;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        overflow: visible;
+
+        &:last-child { border-bottom: none; }
+    }
 `;
 
 export const ColHeader = styled.div<{ $color: string }>`
@@ -95,6 +147,15 @@ export const ColHeader = styled.div<{ $color: string }>`
     background: #fff;
     border-bottom: 2px solid ${p => p.$color}44;
     flex-shrink: 0;
+
+    /* Nagłówek sekcji zostaje na wierzchu przy przewijaniu długiej listy —
+       inaczej po kilku kartach nie widać już, do jakiego statusu należą. */
+    @media (max-width: 767px) {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 10px 14px 9px;
+    }
 `;
 
 export const ColDot = styled.span<{ $color: string }>`
@@ -138,6 +199,13 @@ export const CardList = styled.div`
     flex-direction: column;
     gap: 8px;
 
+    /* Przewija cała sekcja, nie każda kolumna z osobna. */
+    @media (max-width: 767px) {
+        flex: none;
+        overflow-y: visible;
+        padding: 8px 10px 12px;
+    }
+
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.1); border-radius: 2px; }
@@ -152,6 +220,19 @@ export const EmptyCol = styled.div`
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.04em;
+`;
+
+/** Telefon: zamiast czterech pustych sekcji jeden komunikat na cały dzień. */
+export const EmptyDay = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 40px 24px;
+    color: #94a3b8;
+    font-size: 13px;
+    text-align: center;
 `;
 
 // ─── Event card ───────────────────────────────────────────────────────────────

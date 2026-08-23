@@ -1,5 +1,6 @@
 import type { DayStats } from './types';
 import { StatsBar, StatCell, StatLabel, StatValue } from './styles';
+import { useBreakpoint } from '@/common/hooks';
 
 function formatCurrency(amount: number, currency: string): string {
     return new Intl.NumberFormat('pl-PL', {
@@ -14,10 +15,14 @@ interface StatsStripProps {
     stats: DayStats;
 }
 
-export const StatsStrip = ({ stats }: StatsStripProps) => (
+export const StatsStrip = ({ stats }: StatsStripProps) => {
+  // "Przychód brutto" nie mieści się w ćwiartce szerokości telefonu i był ucinany.
+  const isDesktop = useBreakpoint('md');
+
+  return (
     <StatsBar>
         <StatCell>
-            <StatLabel>Przychód brutto</StatLabel>
+            <StatLabel>{isDesktop ? 'Przychód brutto' : 'Przychód'}</StatLabel>
             <StatValue $accent>{formatCurrency(stats.totalGross, stats.currency)}</StatValue>
         </StatCell>
         <StatCell>
@@ -33,4 +38,5 @@ export const StatsStrip = ({ stats }: StatsStripProps) => (
             <StatValue>{stats.appointmentCount}</StatValue>
         </StatCell>
     </StatsBar>
-);
+  );
+};

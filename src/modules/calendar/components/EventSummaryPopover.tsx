@@ -1280,7 +1280,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <FooterActions>
                                 {isCancelled ? (
                                     <>
-                                        {can('VISITS_VIEW') && (
+                                        {/* Przywrócenie zmienia stan rezerwacji, więc wymaga prawa
+                                            do tworzenia wizyt — sam podgląd kalendarza nie wystarcza. */}
+                                        {can('VISITS_CREATE') && (
                                             <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
                                         )}
                                         {can('VISITS_DELETE') && (
@@ -1295,7 +1297,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         {can('VISITS_CREATE') && (
                                             <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
                                         )}
-                                        {can('VISITS_VIEW') && (
+                                        {can('VISITS_CREATE') && (
                                             <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
                                         )}
                                     </>

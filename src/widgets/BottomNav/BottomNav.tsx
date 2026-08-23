@@ -1,4 +1,4 @@
-import { Calendar, FileText, Mail, Menu } from 'lucide-react';
+import { Calendar, Clock, FileText, Mail, Menu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -6,6 +6,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { useUnreadMailCount } from '@/modules/comms';
+import { usePiiAccess } from '@/common/pii';
 import { BOTTOM_NAV_HEIGHT } from './constants';
 
 // Dolny pasek nawigacji – wyłącznie mobile. Zamiast hamburgera przyklejonego
@@ -119,13 +120,22 @@ export const BottomNav = () => {
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const { can } = usePermissions();
-    const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') });
+    const hasPiiAccess = usePiiAccess();
+    const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
-    const allShortcuts: Shortcut[] = [
-        { path: '/calendar',      label: 'Kalendarz', icon: Calendar, requires: 'VISITS_VIEW' },
-        { path: '/communication', label: 'Poczta',    icon: Mail,     requires: 'LEADS_MANAGE', badge: unreadMail },
-        { path: '/finances',      label: 'Finanse',   icon: FileText, requires: ANY_FINANCE },
-    ];
+    // Bez dostępu do danych osobowych poczta i finanse są dla użytkownika puste
+    // albo zamaskowane. Zostaje to, z czego naprawdę korzysta: grafik i raport
+    // czasu pracy.
+    const allShortcuts: Shortcut[] = hasPiiAccess
+        ? [
+            { path: '/calendar',      label: 'Kalendarz', icon: Calendar, requires: 'VISITS_VIEW' },
+            { path: '/communication', label: 'Poczta',    icon: Mail,     requires: 'LEADS_MANAGE', badge: unreadMail },
+            { path: '/finances',      label: 'Finanse',   icon: FileText, requires: ANY_FINANCE },
+        ]
+        : [
+            { path: '/calendar', label: 'Kalendarz',  icon: Calendar, requires: 'VISITS_VIEW' },
+            { path: '/worktime', label: 'Czas pracy', icon: Clock },
+        ];
     const shortcuts = allShortcuts.filter(s => !s.requires || can(s.requires));
 
     return (
