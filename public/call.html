@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Zadzwoń</title>
+<!--
+  Click-to-Call handoff.
+
+  Opened by the Service Worker when the user taps the call notification.
+  It exists because a Service Worker CANNOT reach the dialer itself: the spec
+  restricts Clients.openWindow() and WindowClient.navigate() to HTTP(S)
+  schemes, so openWindow('tel:...') rejects and the tap looks dead.
+
+  Deliberately a plain static file rather than a route in the SPA: this page
+  sits between a tap and a phone call, so it must paint and fire instantly.
+  Booting React first would put a second or more of bundle loading in front of
+  the dialer, long enough for the user to think nothing happened.
+
+  The redirect below runs on parse. Where the browser allows a scheme handoff
+  without an in-page gesture (Safari asks "Call ...?"), that is the whole
+  interaction. Chrome on Android refuses it and the button takes over: tapping
+  it is unambiguously a user gesture, so the dialer always opens.
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; padding: 32px 24px; text-align: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  #name   { margin: 0; font-size: 22px; font-weight: 700; }
+  #number { margin: 8px 0 0; font-size: 17px; font-weight: 500; color: rgba(148,163,184,.85); letter-spacing: .02em; }
+  #call {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 20px 38px; border-radius: 999px;
+    background: #16a34a; color: #fff; font-size: 18px; font-weight: 700;
+    text-decoration: none; box-shadow: 0 8px 24px rgba(22,163,74,.35);
+  }
+  #call:active { transform: scale(.98); }
+  #call svg { width: 21px; height: 21px; }
+  #hint { margin: 0; max-width: 300px; font-size: 13px; line-height: 1.6; color: rgba(148,163,184,.6); }
+</style>
+</head>
+<body>
+  <div>
+    <p id="name">Połączenie</p>
+    <p id="number"></p>
+  </div>
+
+  <a id="call" href="#">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+    Zadzwoń
+  </a>
+
+  <p id="hint">Jeśli dialer nie otworzył się sam, dotknij przycisku powyżej.</p>
+
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  // The number is written by our own Service Worker but arrives through the
+  // URL bar, so it is sanitised like any untrusted input: a tel: URL may hold
+  // digits and one leading plus, nothing else.
+  var number = (params.get('number') || '').replace(/[^+\d]/g, '');
+  var name   = params.get('name');
+
+  var callEl = document.getElementById('call');
+
+  if (!number) {
+    document.getElementById('name').textContent = 'Brak numeru';
+    document.getElementById('hint').textContent =
+      'To okno otwiera się z powiadomienia o połączeniu. Wróć do CRM-a i kliknij numer ponownie.';
+    callEl.remove();
+    return;
+  }
+
+  var telUrl = 'tel:' + number;
+  if (name) document.getElementById('name').textContent = name;
+  document.getElementById('number').textContent = number;
+  callEl.setAttribute('href', telUrl);
+
+  // Fire immediately; the button stays as the guaranteed path when the
+  // browser declines a gesture-less handoff.
+  location.href = telUrl;
+})();
+</script>
+</body>
+</html>

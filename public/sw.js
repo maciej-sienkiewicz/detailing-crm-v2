@@ -11,7 +11,9 @@
  *      - 'push'              → decrypted payload from the backend
  *                              (pl.detailing.crm.push.call.ClickToCallPayload)
  *                              → system notification with a "Zadzwoń" action.
- *      - 'notificationclick' → opens /call?number=... inside the app.
+ *      - 'notificationclick' → opens /call.html?number=... (a static page,
+ *                              not an SPA route — it must paint and fire the
+ *                              dialer instantly, with no bundle in the way).
  *                              A Service Worker CANNOT open the dialer itself:
  *                              Clients.openWindow() and WindowClient.navigate()
  *                              reject any URL whose scheme is not HTTP(S), so
@@ -123,7 +125,7 @@ self.addEventListener('notificationclick', event => {
     // openWindow() and WindowClient.navigate() to HTTP(S) schemes, so a tel:
     // URL rejects the promise and the tap does nothing at all. We open an
     // ordinary page in the app instead and let IT reach the dialer.
-    const target = new URL('/call', self.location.origin);
+    const target = new URL('/call.html', self.location.origin);
     target.searchParams.set('number', number);
     if (data.displayName) target.searchParams.set('name', data.displayName);
 
