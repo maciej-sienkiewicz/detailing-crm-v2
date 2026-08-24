@@ -20,13 +20,8 @@ import { EditCustomerModal } from '../components/EditCustomerModal';
 import { AddVehicleModal } from '../components/AddVehicleModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
-import {
-    HeroHeader, HeroContent, HeroLeft, HeroAvatarLg, HeroNameBlock, HeroName,
-    HeroMetaRow, HeroMetaItem, HeroMetaAction, HeroRight, HeroPrimaryBtn,
-    HeroKebabWrap, HeroKebabBtn, HeroKebabMenu, HeroKebabItem,
-} from '@/common/components/DetailHero';
-import { SendSmsModal } from '../components/SendSmsModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
+import { useClickToCall } from '@/modules/push';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
@@ -173,6 +168,233 @@ const ArchiveToggleBtn = styled.button<{ $active: boolean }>`
     }
 `;
 
+// ─── Hero header ──────────────────────────────────────────────────────────────
+
+const HeroHeader = styled.header`
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
+    border-radius: 16px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 28px rgba(0,0,0,0.14);
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -100px;
+        right: -60px;
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+        border-radius: 12px;
+        margin-bottom: 14px;
+    }
+`;
+
+const HeroContent = styled.div`
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 28px 20px;
+
+    @media (max-width: 900px) {
+        padding: 18px 20px 16px;
+    }
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 16px 14px;
+    }
+`;
+
+const HeroLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: 640px) {
+        width: 100%;
+    }
+`;
+
+const HeroAvatarLg = styled.div`
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.3px;
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow: 0 4px 16px rgba(14,165,233,0.25);
+`;
+
+const HeroNameBlock = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeroName = styled.h1`
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    color: #fff;
+    word-break: break-word;
+
+    @media (max-width: 900px) { font-size: 20px; }
+    @media (max-width: 640px) { font-size: 18px; letter-spacing: -0.2px; }
+`;
+
+const HeroMetaRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 13px;
+    color: #94a3b8;
+
+    @media (max-width: 640px) { gap: 8px; font-size: 12px; }
+`;
+
+const HeroMetaItem = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
+`;
+
+// Click-to-Call: numer wygląda jak reszta metadanych, ale jest przyciskiem —
+// klik wysyła powiadomienie na sparowany telefon zalogowanego użytkownika.
+const HeroMetaCallBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: color 0.15s;
+    svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
+    &:hover { color: #38bdf8; }
+    &:disabled { cursor: default; opacity: 0.6; }
+`;
+
+
+const HeroRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding-top: 4px;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        padding-top: 0;
+    }
+`;
+
+const HeroPrimaryBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 180ms ease;
+    white-space: nowrap;
+    background: #0ea5e9;
+    color: #fff;
+    border: 1px solid #0ea5e9;
+    box-shadow: 0 2px 8px rgba(14,165,233,0.35);
+    svg { width: 15px; height: 15px; }
+
+    &:hover {
+        background: #0284c7;
+        box-shadow: 0 4px 14px rgba(14,165,233,0.45);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 640px) { flex: 1; justify-content: center; padding: 11px 18px; font-size: 14px; }
+`;
+
+const HeroKebabWrap = styled.div`
+    position: relative;
+    flex-shrink: 0;
+`;
+
+const HeroKebabBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    color: #f1f5f9;
+    cursor: pointer;
+    transition: background 180ms ease;
+    svg { width: 4px; height: 18px; }
+    &:hover { background: rgba(255,255,255,0.15); }
+`;
+
+const HeroKebabMenu = styled.div`
+    position: fixed;
+    min-width: 200px;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    z-index: 9000;
+    overflow: hidden;
+`;
+
+const HeroKebabItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 140ms ease;
+    color: ${p => p.$danger ? '#fca5a5' : '#e2e8f0'};
+
+    &:last-child { border-bottom: none; }
+    &:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -233,9 +455,9 @@ export const CustomerDetailView = () => {
     // Karta klienta jest długa — na telefonie dzielimy ją na trzy sekcje
     // przełączane paskiem przy dolnej krawędzi, tak jak kartę wizyty.
     const [mobileTab, setMobileTab] = useState<CustomerMobileTab>('visits');
-    const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteCustomer = useDeleteCustomer();
+    const { requestCall, isRequesting: isRequestingCall } = useClickToCall();
     const [isKebabOpen,  setIsKebabOpen]  = useState(false);
     const [kebabPos,     setKebabPos]     = useState<{ top: number; right: number } | null>(null);
     const kebabRef = useRef<HTMLDivElement>(null);
@@ -364,27 +586,35 @@ export const CustomerDetailView = () => {
                                 <HeroName><PiiValue value={fullName} kind="name" /></HeroName>
                                 <HeroMetaRow>
                                     {customer.contact.phone && (
-                                        <HeroMetaAction
-                                            onClick={() => { window.location.href = `tel:${customer.contact.phone!.replace(/[^+\d]/g, '')}`; }}
-                                            title="Zadzwoń do klienta"
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
-                                            </svg>
-                                            <PiiValue value={customer.contact.phone} kind="phone" />
-                                        </HeroMetaAction>
+                                        isPiiMasked(customer.contact.phone) ? (
+                                            <HeroMetaItem>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
+                                                </svg>
+                                                <PiiValue value={customer.contact.phone} kind="phone" />
+                                            </HeroMetaItem>
+                                        ) : (
+                                            <HeroMetaCallBtn
+                                                type="button"
+                                                onClick={() => requestCall(customer.contact.phone!, fullName)}
+                                                disabled={isRequestingCall}
+                                                title="Zadzwoń z telefonu (powiadomienie push)"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
+                                                </svg>
+                                                {customer.contact.phone}
+                                            </HeroMetaCallBtn>
+                                        )
                                     )}
                                     {customer.contact.email && (
-                                        <HeroMetaAction
-                                            onClick={() => navigate(`/communication?compose=1&to=${encodeURIComponent(customer.contact.email!)}`)}
-                                            title="Napisz wiadomość"
-                                        >
+                                        <HeroMetaItem>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <rect x="2" y="4" width="20" height="16" rx="2"/>
                                                 <path d="M2 7l10 7 10-7"/>
                                             </svg>
                                             <PiiValue value={customer.contact.email} kind="email" />
-                                        </HeroMetaAction>
+                                        </HeroMetaItem>
                                     )}
                                     <HeroMetaItem>
                                         ID: {customer.id.slice(0, 8).toUpperCase()}
@@ -452,11 +682,7 @@ export const CustomerDetailView = () => {
                             </svg>
                             Edytuj dane
                         </HeroKebabItem>
-                        <HeroKebabItem
-                            disabled={!customer.contact.phone}
-                            title={customer.contact.phone ? undefined : 'Ten klient nie ma zapisanego numeru telefonu'}
-                            onClick={() => { setIsKebabOpen(false); setIsSmsModalOpen(true); }}
-                        >
+                        <HeroKebabItem onClick={() => { setIsKebabOpen(false); }}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
@@ -1009,15 +1235,6 @@ export const CustomerDetailView = () => {
                     x={reservationMenu.x}
                     y={reservationMenu.y}
                     onClose={() => setReservationMenu(null)}
-                />
-            )}
-
-            {isSmsModalOpen && customer.contact.phone && (
-                <SendSmsModal
-                    customerId={customerId!}
-                    customerName={fullName}
-                    phone={customer.contact.phone}
-                    onClose={() => setIsSmsModalOpen(false)}
                 />
             )}
 
