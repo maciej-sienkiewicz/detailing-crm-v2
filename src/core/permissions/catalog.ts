@@ -19,6 +19,10 @@ export const PERMISSIONS = {
     FINANCE_INVOICES: 'FINANCE_INVOICES',
     FINANCE_MANAGE_CASH_REGISTER: 'FINANCE_MANAGE_CASH_REGISTER',
     FINANCE_VIEW_REPORTS: 'FINANCE_VIEW_REPORTS',
+    // Powiadomienie push z kwotą po zamkniętej wizycie. Uprawnienie czysto
+    // wysyłkowe — nie odblokowuje żadnego widoku, więc świadomie nie wchodzi
+    // do ANY_FINANCE ani ANY_DASHBOARD: samo nie daje dostępu do finansów.
+    FINANCE_EARNINGS_NOTIFICATIONS: 'FINANCE_EARNINGS_NOTIFICATIONS',
     // Pracownicy
     EMPLOYEES_MANAGE: 'EMPLOYEES_MANAGE',
     EMPLOYEES_PAYROLL: 'EMPLOYEES_PAYROLL',
