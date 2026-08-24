@@ -8,8 +8,16 @@
          modal footers) stays glued to the bottom edge while typing. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <!-- PWA: manifest + icons are REQUIRED for iOS Web Push — Safari only allows
-         push subscriptions from a PWA installed via "Add to Home Screen". -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+         push subscriptions from a PWA installed via "Add to Home Screen".
+
+         The manifest is served per studio (backend: PwaManifestController), so the
+         attribution line every browser stamps on a notification — "from X" — names
+         the user's own company instead of the product. crossorigin="use-credentials"
+         is what makes that possible at all: without it the browser fetches the
+         manifest with no cookies and the backend cannot tell one studio from
+         another. The name is captured at install time, so it follows whoever was
+         logged in when the app was added to the home screen. -->
+    <link rel="manifest" href="/api/v1/pwa/manifest" crossorigin="use-credentials" />
     <meta name="theme-color" content="#0f172a" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>automotive-crm</title>
