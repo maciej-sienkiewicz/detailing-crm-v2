@@ -145,6 +145,14 @@ const FilterTopRow = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-wrap: nowrap;
     }
+
+    /* Wyszukiwarka i filtry w jednym wierszu: pole bierze tyle, ile zostaje
+       po przycisku ikonowym. */
+    @media (max-width: 767px) {
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 12px 14px;
+    }
 `;
 
 const TabGroup = styled.div`
@@ -177,6 +185,11 @@ const TabBtn = styled.button<{ $active: boolean }>`
 
 const Spacer = styled.div`
     flex: 1;
+
+    /* Na telefonie to pole wyszukiwania ma zająć wolne miejsce, nie odstęp. */
+    @media (max-width: 767px) {
+        display: none;
+    }
 `;
 
 const SecondaryBtn = styled.button`
@@ -202,9 +215,15 @@ const SecondaryBtn = styled.button`
     }
 
     svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    @media (max-width: 767px) { padding: 10px 12px; }
 `;
 
 const ShowDeletedBtn = styled.button<{ $active: boolean }>`
+    /* Przegląd usuniętych pojazdów zostaje na desktopie — na telefonie
+       nie mieści się w wierszu, a i tak jest używany sporadycznie. */
+    @media (max-width: 767px) { display: none; }
+
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -227,6 +246,22 @@ const ShowDeletedBtn = styled.button<{ $active: boolean }>`
     }
 
     svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
+/* Eksport i przegląd usuniętych to operacje biurkowe — na telefonie tylko
+   zabierały miejsce w wierszu filtrów. */
+const DesktopOnlyBtn = styled(SecondaryBtn)`
+    @media (max-width: 767px) {
+        display: none;
+    }
+`;
+
+/* Sama ikonka lejka mówi to samo co ikonka z napisem, a zwalnia miejsce,
+   żeby wyszukiwarka i filtry zmieściły się w jednym wierszu. */
+const SecondaryBtnLabel = styled.span`
+    @media (max-width: 767px) {
+        display: none;
+    }
 `;
 
 const FilterBadge = styled.span`
@@ -408,23 +443,27 @@ export const VehicleListView = () => {
                             onChange={handleSearchChange}
                         />
                         <Spacer />
-                        <SecondaryBtn onClick={() => setIsFilterPanelOpen(true)}>
+                        <SecondaryBtn
+                            onClick={() => setIsFilterPanelOpen(true)}
+                            aria-label="Filtry"
+                            title="Filtry"
+                        >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                             </svg>
-                            Filtry
+                            <SecondaryBtnLabel>Filtry</SecondaryBtnLabel>
                             {activeFilterCount > 0 && (
                                 <FilterBadge>{activeFilterCount}</FilterBadge>
                             )}
                         </SecondaryBtn>
-                        <SecondaryBtn>
+                        <DesktopOnlyBtn>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
                             Eksport
-                        </SecondaryBtn>
+                        </DesktopOnlyBtn>
                         <ShowDeletedBtn
                             $active={showDeleted}
                             onClick={() => setShowDeleted(v => !v)}

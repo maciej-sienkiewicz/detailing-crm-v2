@@ -36,6 +36,11 @@ export const PageContent = styled.div`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: 28px 32px 64px;
   }
+
+  /* Zapas na pasek zakładek sekcji; pasek globalny i safe-area dokłada Layout. */
+  @media (max-width: 767px) {
+    padding: 16px 14px 84px;
+  }
 `;
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
