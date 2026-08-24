@@ -384,10 +384,11 @@ const ActionBtnBase = styled.button`
     svg { width: 12px; height: 12px; }
 
     @media (max-width: 767px) {
-        flex: 1;
+        flex: 1 1 0;
+        min-width: 0;
         justify-content: center;
-        padding: 10px 14px;
-        font-size: 13px;
+        padding: 9px 6px;
+        font-size: 12px;
         min-height: 40px;
     }
 `;
@@ -421,9 +422,10 @@ const ActionBtns = styled.div`
     gap: 6px;
     justify-content: flex-end;
 
+    /* Stacked, these three pills ate a third of the phone screen — keep them in
+       one row where they still read fine at 12px. */
     @media (max-width: 767px) {
-        flex-direction: column;
-        gap: 6px;
+        gap: 8px;
     }
 `;
 
@@ -451,14 +453,16 @@ interface Props {
 }
 
 export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit, onDiscount }: Props) => {
+    const [isMobile] = useState(() => window.innerWidth < 640);
     const [query, setQuery] = useState(row.serviceName);
-    const [open, setOpen] = useState(false);
+    // On a phone the row is unusable until a service is picked, so the picker
+    // sheet (catalog list + keyboard) is open from the first render.
+    const [open, setOpen] = useState(isMobile);
     const debouncedQuery = useDebounce(query, 250);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameWrapRef = useRef<HTMLDivElement>(null);
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
-    const [isMobile] = useState(() => window.innerWidth < 640);
     const sheetRef = useRef<HTMLDivElement>(null);
     const sheetEditableRef = useRef<HTMLDivElement>(null);
     const suppressBlurRef = useRef(false);
@@ -563,7 +567,9 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     const { data } = useQuery({
         queryKey: ['svc-inline-search', debouncedQuery],
         queryFn: () => servicesApi.getServices({ search: debouncedQuery, page: 1, limit: 8, showInactive: false }),
-        enabled: debouncedQuery.trim().length >= 1,
+        // The mobile sheet opens before anything is typed, so it needs the first
+        // page of the catalog to have a list to show.
+        enabled: open && (isMobile || debouncedQuery.trim().length >= 1),
     });
 
     const suggestions: Service[] = data?.services ?? [];
@@ -676,7 +682,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         autoCapitalize="off"
                         spellCheck={false}
                     />
-                    {open && (suggestions.length > 0 || query.trim()) && (
+                    {open && (isMobile || suggestions.length > 0 || query.trim()) && (
                         isMobile ? createPortal(
                             <>
                                 <MobileBackdrop onMouseDown={handleMouseDown} onClick={() => setOpen(false)} />

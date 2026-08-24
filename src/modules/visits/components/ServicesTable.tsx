@@ -17,6 +17,7 @@ import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
 import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 import { useFeature, UpsellModal } from '@/modules/subscription';
+import { useVisualViewportSheet } from '@/common/hooks';
 
 const BRAND = '#0ea5e9';
 const BRAND_DARK = '#0284c7';
@@ -1701,6 +1702,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     /* ── Focus-mode button highlight ── */
     const [isHighlighting, setIsHighlighting] = useState(false);
     const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // The price editor autofocuses a field, so the phone keyboard covers the
+    // bottom of a 100dvh-tall overlay (dvh ignores the keyboard) and the footer
+    // buttons become unreachable — pin the overlay to the visual viewport.
+    const editorOverlayRef = useRef<HTMLDivElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerHighlight = useCallback(() => {
         if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
@@ -2256,6 +2261,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const colSpan = 1 + (pricesHidden ? 0 : 1) + (showActionsCol ? 1 : 0);
 
     const editorService = editorId ? services.find(s => s.id === editorId) ?? null : null;
+    useVisualViewportSheet(editorService !== null, editorOverlayRef);
 
     return (
         <>
@@ -2595,7 +2601,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             const applyDisabled = discountInvalid || setInvalid;
 
             return (
-                <DiscountModalOverlay onClick={closeEditor}>
+                <DiscountModalOverlay ref={editorOverlayRef} onClick={closeEditor}>
                     <DiscountModalCard onClick={e => e.stopPropagation()}>
                         <DiscountModalHeader>
                             <div>

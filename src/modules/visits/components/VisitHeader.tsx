@@ -323,16 +323,18 @@ const HeaderRight = styled.div`
         justify-content: flex-end;
     }
 
+    /* On phones the primary action and the kebab share a single row: the
+       action stretches, the kebab keeps its fixed 38px next to it. */
     @media (max-width: 640px) {
         width: 100%;
         padding-top: 0;
-        gap: 6px;
-        flex-wrap: wrap;
-        row-gap: 8px;
+        gap: 8px;
+        flex-wrap: nowrap;
+        align-items: center;
     }
 `;
 
-const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $mobilePrimary?: boolean }>`
+const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $mobilePrimary?: boolean; $hideOnMobile?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -354,13 +356,8 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger';
     @media (max-width: 640px) {
         min-width: 0;
         padding: 9px 14px;
+        ${p => p.$hideOnMobile && 'display: none;'}
         ${p => p.$mobilePrimary && 'flex: 1 1 auto; justify-content: center; padding: 11px 16px; font-size: 14px; min-height: 44px;'}
-    }
-
-    /* Under ~420px "Door to door" + "Oznacz jako gotowe" + kebab cannot share a
-       row without clipping a label, so the primary action claims its own line. */
-    @media (max-width: 420px) {
-        ${p => p.$mobilePrimary && 'flex: 1 0 100%; order: 2;'}
     }
 
     ${p => {
@@ -462,6 +459,13 @@ const KebabItem = styled.button<{ $danger?: boolean }>`
     &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
     &:disabled { opacity: 0.35; cursor: not-allowed; }
     svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+`;
+
+/* "Door to door" lives in the header on desktop and inside the kebab on phones,
+   where the row only has space for the primary action plus the kebab. */
+const MobileKebabItem = styled(KebabItem)`
+    display: none;
+    @media (max-width: 640px) { display: flex; }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -703,7 +707,7 @@ export const VisitHeader = ({
                 {/* Actions */}
                 <HeaderRight>
                     {onDoorToDoor && can('VISITS_CREATE') && (
-                        <ActionButton $variant="ghost" onClick={onDoorToDoor}>
+                        <ActionButton $variant="ghost" $hideOnMobile onClick={onDoorToDoor}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                                 <polyline points="9 22 9 12 15 12 15 22" />
@@ -761,6 +765,15 @@ export const VisitHeader = ({
 
             {can('VISITS_CREATE') && isMenuOpen && menuPos && createPortal(
                 <KebabMenu style={{ top: menuPos.top, right: menuPos.right }}>
+                    {onDoorToDoor && (
+                        <MobileKebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            Door to door
+                        </MobileKebabItem>
+                    )}
                     <KebabItem onClick={() => { setIsMenuOpen(false); onGeneratePost(); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
