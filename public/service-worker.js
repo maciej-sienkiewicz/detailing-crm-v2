@@ -1,9 +1,9 @@
 /**
  * Application Service Worker
  *
- * Registered at scope '/' from src/main.tsx (replaces the former logo-sw.js —
- * a scope can hold exactly ONE registration, so the logo cache and Web Push
- * live in the same worker).
+ * Registered at scope '/' from src/main.tsx (replaces the former logo-sw.js
+ * and sw.js registrations — a scope can hold exactly ONE registration, so the
+ * logo cache and Web Push live in the same worker).
  *
  * Responsibilities:
  *   1. Car-logo CacheFirst cache (unchanged behaviour of the old logo-sw.js).
