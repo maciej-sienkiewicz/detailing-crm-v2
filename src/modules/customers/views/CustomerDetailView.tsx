@@ -19,6 +19,7 @@ import { EntityActivityTimeline } from '@/modules/activity';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { AddVehicleModal } from '../components/AddVehicleModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
@@ -42,6 +43,8 @@ import {
     SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
     CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
 } from './CustomerDetailView.styles';
+
+type CustomerMobileTab = 'visits' | 'stats' | 'other';
 
 // ─── Local styled components ──────────────────────────────────────────────────
 
@@ -429,6 +432,9 @@ export const CustomerDetailView = () => {
     const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
     const [isAddVehicleOpen,  setIsAddVehicleOpen]  = useState(false);
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
+    // Karta klienta jest długa — na telefonie dzielimy ją na trzy sekcje
+    // przełączane paskiem przy dolnej krawędzi, tak jak kartę wizyty.
+    const [mobileTab, setMobileTab] = useState<CustomerMobileTab>('visits');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteCustomer = useDeleteCustomer();
     const [isKebabOpen,  setIsKebabOpen]  = useState(false);
@@ -664,6 +670,7 @@ export const CustomerDetailView = () => {
 
                     {/* ── LEFT RAIL ────────────────────────────────── */}
                     <LeftRail>
+                      <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
 
                         {/* Company */}
                         {customer.company && (
@@ -795,12 +802,14 @@ export const CustomerDetailView = () => {
                         {/* Notes */}
                         <CustomerNotes customerId={customerId!} />
 
+                      </MobileSectionPanel>
                     </LeftRail>
 
                     {/* ── MAIN COLUMN ──────────────────────────────── */}
                     <MainCol>
 
                         {/* KPI summary strip */}
+                        <MobileSectionPanel $visible={mobileTab === 'stats'} $desktopContents>
                         <SummaryStrip>
                             <SumCell>
                                 <KpiEyebrow>Łączny przychód</KpiEyebrow>
@@ -856,11 +865,13 @@ export const CustomerDetailView = () => {
                                 </SumCell>
                             )}
                         </SummaryStrip>
+                        </MobileSectionPanel>
 
                         {/* Revenue chart + Upcoming visits */}
                         <ChartGrid>
 
                             {/* Revenue chart */}
+                            <MobileSectionPanel $visible={mobileTab === 'stats'} $desktopContents>
                             <Panel>
                                 <PanelHead>
                                     <PanelTitle>
@@ -897,8 +908,10 @@ export const CustomerDetailView = () => {
                                     </ChartBars>
                                 </PanelBody>
                             </Panel>
+                            </MobileSectionPanel>
 
                             {/* Upcoming reservations */}
+                            <MobileSectionPanel $visible={mobileTab === 'visits'} $desktopContents>
                             <Panel>
                                 <PanelHead>
                                     <PanelTitle>
@@ -945,10 +958,12 @@ export const CustomerDetailView = () => {
                                     )}
                                 </PanelBodyFlush>
                             </Panel>
+                            </MobileSectionPanel>
 
                         </ChartGrid>
 
                         {/* Recent visits */}
+                        <MobileSectionPanel $visible={mobileTab === 'visits'} $desktopContents>
                         <Panel>
                             <PanelHead>
                                 <PanelTitle>
@@ -1080,6 +1095,32 @@ export const CustomerDetailView = () => {
                             </CollapsibleBody>
                         </CollapsibleSection>
 
+                        {/* Consents */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsConsentsOpen(v => !v)}
+                                aria-expanded={isConsentsOpen}
+                                aria-controls="consents-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Zgody klienta</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isConsentsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isConsentsOpen} $flush id="consents-section">
+                                <CustomerConsentsSection customerId={customerId!} noCard />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+                        </MobileSectionPanel>
+
+                        <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
                         {/* Communication */}
                         <CollapsibleSection>
                             <CollapsibleHeader
@@ -1108,30 +1149,6 @@ export const CustomerDetailView = () => {
                             </CollapsibleBody>
                         </CollapsibleSection>
 
-                        {/* Consents */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsConsentsOpen(v => !v)}
-                                aria-expanded={isConsentsOpen}
-                                aria-controls="consents-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Zgody klienta</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isConsentsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isConsentsOpen} $flush id="consents-section">
-                                <CustomerConsentsSection customerId={customerId!} noCard />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-
                         {/* Audit trail */}
                         <CollapsibleSection>
                             <CollapsibleHeader
@@ -1156,6 +1173,7 @@ export const CustomerDetailView = () => {
                                 <EntityActivityTimeline scope={{ customerId: customerId! }} />
                             </CollapsibleBody>
                         </CollapsibleSection>
+                        </MobileSectionPanel>
 
                     </MainCol>
                 </TwoColGrid>
@@ -1184,6 +1202,42 @@ export const CustomerDetailView = () => {
                     onClose={() => setReservationMenu(null)}
                 />
             )}
+
+            <MobileSectionNav
+                ariaLabel="Nawigacja sekcji klienta"
+                active={mobileTab}
+                onChange={setMobileTab}
+                items={[
+                    {
+                        key: 'visits', label: 'Wizyty', ariaLabel: 'Wizyty, dokumenty i zgody', icon: (
+                            <>
+                                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </>
+                        ),
+                    },
+                    {
+                        key: 'stats', label: 'Statystyki', icon: (
+                            <>
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </>
+                        ),
+                    },
+                    {
+                        key: 'other', label: 'Inne', ariaLabel: 'Dane, pojazdy, notatki i historia', icon: (
+                            <>
+                                <circle cx="12" cy="12" r="1.6"/>
+                                <circle cx="5" cy="12" r="1.6"/>
+                                <circle cx="19" cy="12" r="1.6"/>
+                            </>
+                        ),
+                    },
+                ]}
+            />
 
             {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,
                 a co zostaje — „nie można cofnąć" bez tej informacji brzmiałoby

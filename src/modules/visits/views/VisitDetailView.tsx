@@ -1,9 +1,8 @@
 import { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
-import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
+import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
@@ -33,8 +32,6 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useVirtualKeyboard } from '@/common/hooks';
-import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 
 // ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
 const BRAND = '#0ea5e9';
@@ -612,100 +609,8 @@ const DesktopOnlyWrap = styled.div`
 
 type MobileTab = 'services' | 'info' | 'docs' | 'communication' | 'history';
 
-const MobileTabPanel = styled.div<{ $visible: boolean }>`
-    @media (max-width: 767px) {
-        display: ${p => p.$visible ? 'block' : 'none'};
-    }
-`;
-
-const MobileBottomNav = styled.nav<{ $hidden?: boolean }>`
-    display: flex;
-    position: fixed;
-    /* Siedzi nad globalnym paskiem nawigacji, nie na nim: zakładki sekcji to
-       nawigacja wewnątrz wizyty, a wyjście z widoku musi zostać dostępne.
-       Safe-area obsługuje już pasek globalny, stąd sam padding tutaj. */
-    bottom: ${BOTTOM_NAV_SPACE};
-    left: 0;
-    right: 0;
-    /* Pod overlayem (99) i drawerem (100) menu bocznego. */
-    z-index: 96;
-    /* To samo szkło co pasek globalny: oba rzędy czytają się jako jeden blok. */
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    border-top: 1px solid #e2e8f0;
-    padding:
-        6px
-        max(4px, env(safe-area-inset-right, 0px))
-        8px
-        max(4px, env(safe-area-inset-left, 0px));
-    box-shadow: 0 -2px 16px rgba(15, 23, 42, 0.06);
-    transition: transform 180ms ease, opacity 180ms ease;
-
-    /* While the on-screen keyboard is up, iOS keeps this pinned to the layout
-       viewport (which is now behind the keyboard), so it visibly unsticks and
-       floats over the form. Slide it away instead; it comes back on blur. */
-    ${p => p.$hidden && `
-        transform: translateY(110%);
-        opacity: 0;
-        pointer-events: none;
-    `}
-
-    /* hidden on desktop */
-    @media (min-width: 768px) {
-        display: none;
-    }
-`;
-
-const MobileNavBtn = styled.button<{ $active: boolean }>`
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 4px 2px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: ${p => p.$active ? BRAND : '#94a3b8'};
-    transition: color 0.15s ease;
-    -webkit-tap-highlight-color: transparent;
-
-    &:active { opacity: 0.7; }
-`;
-
-const MobileNavIconWrap = styled.span<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    max-width: 100%;
-    height: 30px;
-    border-radius: 15px;
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.12)' : 'transparent'};
-    transition: background 0.2s ease;
-
-    svg { width: 20px; height: 20px; flex-shrink: 0; }
-
-    @media (max-width: 360px) { width: 40px; }
-`;
-
-const MobileNavLabel = styled.span`
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: -0.1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    width: 56px;
-    text-align: center;
-
-    @media (max-width: 360px) { width: 100%; font-size: 9px; }
-`;
+// Pasek zakładek i sekcje są wspólne z kartą klienta — patrz
+// common/components/MobileSectionNav.
 
 // ─── View ─────────────────────────────────────────────────────────────────────
 
@@ -755,11 +660,6 @@ export const VisitDetailView = () => {
     const { pendingReminder } = useSmsReminder(visitId!);
 
     const { can } = usePermissions();
-    const isKeyboardOpen = useVirtualKeyboard();
-    // Edycja wykazu usług ma własny pasek „Odrzuć / Zaakceptuj" przy dolnej
-    // krawędzi — zakładki sekcji na ten czas ustępują mu miejsca.
-    const chromeHidden = useMobileChromeHidden();
-    const navHidden = isKeyboardOpen || chromeHidden;
 
     const queryClient = useQueryClient();
     const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
@@ -959,7 +859,7 @@ export const VisitDetailView = () => {
 
                 <MainGrid>
                     <MainColumn>
-                        <MobileTabPanel $visible={mobileTab === 'services'}>
+                        <MobileSectionPanel $visible={mobileTab === 'services'}>
                             <ServicesTable
                                 services={visit.services}
                                 visitStatus={visit.status}
@@ -973,10 +873,10 @@ export const VisitDetailView = () => {
                                     isLoading={isLoadingComments}
                                 />
                             </MobileOnlyWrap>
-                        </MobileTabPanel>
+                        </MobileSectionPanel>
 
                         {/* Komunikacja ──────────────────────────────────── */}
-                        {can('COMMUNICATION_SEND') && <MobileTabPanel $visible={mobileTab === 'communication'}>
+                        {can('COMMUNICATION_SEND') && <MobileSectionPanel $visible={mobileTab === 'communication'}>
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsCommunicationOpen(v => !v)}
@@ -1009,10 +909,10 @@ export const VisitDetailView = () => {
                                 />
                             </SectionBody>
                         </Section>
-                        </MobileTabPanel>}
+                        </MobileSectionPanel>}
 
                         {/* Dokumentacja ─────────────────────────────────── */}
-                        <MobileTabPanel $visible={mobileTab === 'docs'}>
+                        <MobileSectionPanel $visible={mobileTab === 'docs'}>
                         <Section>
                             <DocsSectionHeader
                                 onClick={() => setIsDocsOpen(v => !v)}
@@ -1090,10 +990,10 @@ export const VisitDetailView = () => {
                                 />
                             </SectionBody>
                         </Section>
-                        </MobileTabPanel>
+                        </MobileSectionPanel>
 
                         {/* Historia zmian ───────────────────────────────── */}
-                        {can('VISITS_CREATE') && <MobileTabPanel $visible={mobileTab === 'history'}>
+                        {can('VISITS_CREATE') && <MobileSectionPanel $visible={mobileTab === 'history'}>
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsAuditOpen(v => !v)}
@@ -1117,7 +1017,7 @@ export const VisitDetailView = () => {
                                 <EntityActivityTimeline scope={{ visitId: visitId! }} />
                             </SectionBody>
                         </Section>
-                        </MobileTabPanel>}
+                        </MobileSectionPanel>}
                     </MainColumn>
 
                     <Sidebar $mobileVisible={mobileTab === 'info'}>
@@ -1294,72 +1194,52 @@ export const VisitDetailView = () => {
             />
         </ViewContainer>
 
-        {createPortal(
-            <MobileBottomNav
-                aria-label="Nawigacja sekcji wizyty"
-                $hidden={navHidden}
-                aria-hidden={navHidden || undefined}
-            >
-                <MobileNavBtn $active={mobileTab === 'services'} onClick={() => handleMobileTabChange('services')} aria-label="Usługi">
-                    <MobileNavIconWrap $active={mobileTab === 'services'}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <MobileSectionNav
+            ariaLabel="Nawigacja sekcji wizyty"
+            active={mobileTab}
+            onChange={handleMobileTabChange}
+            items={[
+                {
+                    key: 'services', label: 'Usługi', icon: (
+                        <>
                             <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
                             <rect x="9" y="3" width="6" height="4" rx="1"/>
                             <path d="M9 12h6M9 16h4"/>
-                        </svg>
-                    </MobileNavIconWrap>
-                    <MobileNavLabel>Usługi</MobileNavLabel>
-                </MobileNavBtn>
-
-                {can('CUSTOMERS_VIEW') && (
-                <MobileNavBtn $active={mobileTab === 'info'} onClick={() => handleMobileTabChange('info')} aria-label="Klient">
-                    <MobileNavIconWrap $active={mobileTab === 'info'}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        </>
+                    ),
+                },
+                ...(can('CUSTOMERS_VIEW') ? [{
+                    key: 'info' as const, label: 'Klient', icon: (
+                        <>
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </MobileNavIconWrap>
-                    <MobileNavLabel>Klient</MobileNavLabel>
-                </MobileNavBtn>
-                )}
-
-                <MobileNavBtn $active={mobileTab === 'docs'} onClick={() => handleMobileTabChange('docs')} aria-label="Zdjęcia i dokumenty">
-                    <MobileNavIconWrap $active={mobileTab === 'docs'}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        </>
+                    ),
+                }] : []),
+                {
+                    key: 'docs', label: 'Zdjęcia', ariaLabel: 'Zdjęcia i dokumenty', icon: (
+                        <>
                             <rect x="3" y="3" width="7" height="7" rx="1"/>
                             <rect x="14" y="3" width="7" height="7" rx="1"/>
                             <rect x="3" y="14" width="7" height="7" rx="1"/>
                             <rect x="14" y="14" width="7" height="7" rx="1"/>
-                        </svg>
-                    </MobileNavIconWrap>
-                    <MobileNavLabel>Zdjęcia</MobileNavLabel>
-                </MobileNavBtn>
-
-                {can('COMMUNICATION_SEND') && (
-                <MobileNavBtn $active={mobileTab === 'communication'} onClick={() => handleMobileTabChange('communication')} aria-label="Komunikacja">
-                    <MobileNavIconWrap $active={mobileTab === 'communication'}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                    </MobileNavIconWrap>
-                    <MobileNavLabel>Kontakt</MobileNavLabel>
-                </MobileNavBtn>
-                )}
-
-                {can('VISITS_CREATE') && (
-                <MobileNavBtn $active={mobileTab === 'history'} onClick={() => handleMobileTabChange('history')} aria-label="Historia zmian">
-                    <MobileNavIconWrap $active={mobileTab === 'history'}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        </>
+                    ),
+                },
+                ...(can('COMMUNICATION_SEND') ? [{
+                    key: 'communication' as const, label: 'Kontakt', ariaLabel: 'Komunikacja',
+                    icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>,
+                }] : []),
+                ...(can('VISITS_CREATE') ? [{
+                    key: 'history' as const, label: 'Historia', ariaLabel: 'Historia zmian', icon: (
+                        <>
                             <circle cx="12" cy="12" r="10"/>
                             <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </MobileNavIconWrap>
-                    <MobileNavLabel>Historia</MobileNavLabel>
-                </MobileNavBtn>
-                )}
-            </MobileBottomNav>,
-            document.body
-        )}
+                        </>
+                    ),
+                }] : []),
+            ]}
+        />
     </>
     );
 };
