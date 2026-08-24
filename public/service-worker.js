@@ -98,6 +98,15 @@ self.addEventListener('push', event => {
     event.waitUntil(
         self.registration.showNotification(title, {
             body: `${payload.phoneNumber} · zlecono z komputera`,
+            // Large icon in the notification shade. Without it Android falls
+            // back to the PWA's app icon, so the alert reads as "the CRM said
+            // something" rather than "there is a call to place".
+            icon: '/icons/notification-call.png',
+            // Status-bar badge. Android keeps ONLY the alpha channel and paints
+            // the shape white, so this file is a solid glyph on transparency —
+            // a coloured or boxed image would come out as a grey blob.
+            // Ignored on desktop and on iOS, which uses the home-screen icon.
+            badge: '/icons/badge-call.png',
             tag: 'click-to-call',       // a newer call replaces a stale one instead of stacking
             renotify: true,
             requireInteraction: true,    // stays on screen until acted upon — it's a call to action
