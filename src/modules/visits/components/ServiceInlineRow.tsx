@@ -302,9 +302,9 @@ const PriceHint = styled.span`
 
 const PriceGroup = styled.div`
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
 
     @media (max-width: 767px) {
@@ -313,10 +313,34 @@ const PriceGroup = styled.div`
     }
 `;
 
+/** Cena z cennika: jedna linia „Netto … · Brutto … · VAT …", bez pól. */
+const PriceReadRow = styled.div`
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 13px;
+
+    @media (max-width: 767px) { justify-content: flex-start; }
+`;
+
+const PriceReadItem = styled.span`
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    color: ${st.textMuted};
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+`;
+
+/* Etykieta stoi obok wartości, nie nad nią: wiersz jest wtedy jedną linią
+   tekstu zamiast dwupiętrowej kolumny. */
 const PriceField = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    gap: 6px;
 
     @media (max-width: 767px) {
         flex: 1;
@@ -325,18 +349,17 @@ const PriceField = styled.div`
 `;
 
 const PriceFieldLabel = styled.span`
-    font-size: 9px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    white-space: nowrap;
 `;
 
 const VatCell = styled.span`
     font-size: 12px;
     font-variant-numeric: tabular-nums;
     color: ${st.textMuted};
-    padding-bottom: 8px;
+    white-space: nowrap;
 `;
 
 const PriceInput = styled.input`
@@ -365,15 +388,10 @@ const PriceInput = styled.input`
  * edycję, której nie ma (zmiana ceny idzie przez „Edytuj"/„Rabatuj").
  */
 const PriceReadValue = styled.span`
-    padding: 7px 0;
     font-size: 13px;
     font-weight: 600;
-    color: ${st.textSecondary};
-    text-align: right;
+    color: ${st.text};
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-
-    @media (max-width: 767px) { text-align: left; }
 `;
 
 const ActionBtnBase = styled.button`
@@ -781,47 +799,51 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
 
             {/* Cena: netto + brutto + VAT in one right-aligned group */}
             <Cell style={{ textAlign: 'right' }}>
+                {priceReadOnly ? (
+                    <PriceReadRow>
+                        <PriceReadItem>
+                            Netto <PriceReadValue>{formatCurrency(parsePln(netStr) ?? 0)}</PriceReadValue>
+                        </PriceReadItem>
+                        <PriceReadItem>
+                            Brutto <PriceReadValue>{formatCurrency(parsePln(grossStr) ?? 0)}</PriceReadValue>
+                        </PriceReadItem>
+                        <PriceReadItem>VAT {row.vatRate}%</PriceReadItem>
+                    </PriceReadRow>
+                ) : (
                 <PriceGroup>
                     <PriceField>
                         <PriceFieldLabel>Netto</PriceFieldLabel>
-                        {priceReadOnly ? (
-                            <PriceReadValue>{formatCurrency(parsePln(netStr) ?? 0)}</PriceReadValue>
-                        ) : (
-                            <PriceInput
-                                type="text"
-                                inputMode="decimal"
-                                value={netStr}
-                                placeholder="0.00"
-                                onChange={e => handleNetChange(e.target.value)}
-                                onBlur={formatNet}
-                                onKeyDown={e => {
-                                    if (e.key === 'Enter') e.currentTarget.blur();
-                                    handleZeroAwareKeyDown(netStr, handleNetChange)(e);
-                                }}
-                            />
-                        )}
+                        <PriceInput
+                            type="text"
+                            inputMode="decimal"
+                            value={netStr}
+                            placeholder="0.00"
+                            onChange={e => handleNetChange(e.target.value)}
+                            onBlur={formatNet}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') e.currentTarget.blur();
+                                handleZeroAwareKeyDown(netStr, handleNetChange)(e);
+                            }}
+                        />
                     </PriceField>
                     <PriceField>
                         <PriceFieldLabel>Brutto</PriceFieldLabel>
-                        {priceReadOnly ? (
-                            <PriceReadValue>{formatCurrency(parsePln(grossStr) ?? 0)}</PriceReadValue>
-                        ) : (
-                            <PriceInput
-                                type="text"
-                                inputMode="decimal"
-                                value={grossStr}
-                                placeholder="0.00"
-                                onChange={e => handleGrossChange(e.target.value)}
-                                onBlur={formatGross}
-                                onKeyDown={e => {
-                                    if (e.key === 'Enter') e.currentTarget.blur();
-                                    handleZeroAwareKeyDown(grossStr, handleGrossChange)(e);
-                                }}
-                            />
-                        )}
+                        <PriceInput
+                            type="text"
+                            inputMode="decimal"
+                            value={grossStr}
+                            placeholder="0.00"
+                            onChange={e => handleGrossChange(e.target.value)}
+                            onBlur={formatGross}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') e.currentTarget.blur();
+                                handleZeroAwareKeyDown(grossStr, handleGrossChange)(e);
+                            }}
+                        />
                     </PriceField>
                     <VatCell>VAT {row.vatRate}%</VatCell>
                 </PriceGroup>
+                )}
             </Cell>
 
             {/* Akcje */}
