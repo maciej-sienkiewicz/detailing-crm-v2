@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled, { css } from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Check, Clock, FileDown, FileText, MessageSquare, Upload } from 'lucide-react';
+import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
+import { SharedButton } from '@/common/styles';
 import type { SmsSenderNameConfig } from '../types';
 import {
   useSenderNameConfig,
@@ -10,180 +12,216 @@ import {
 } from '../hooks';
 
 /**
- * Sender name shown on outgoing SMS, plus the signed authorization SMSAPI requires.
+ * Nazwa nadawcy SMS — to, co klient widzi zamiast numeru telefonu, plus podpisane
+ * upoważnienie, którego wymaga operator.
  *
- * This is channel configuration, not a message template, so it stays collapsed to a
- * single line and only unfolds when someone actually wants to change it.
+ * Wcześniej była to cienka szara belka nad tabelą szablonów: studio, które nigdy
+ * nie ustawiło nadawcy, mogło jej nie zauważyć i przez miesiące wysyłać SMS-y
+ * z przypadkowego numeru. Dlatego dopóki nazwa nie jest ustawiona, karta stoi
+ * otwarta i sama mówi, co trzeba zrobić; po zatwierdzeniu zwija się do jednej
+ * linijki — konfiguracja kanału nie ma prawa zabierać uwagi codziennej pracy.
+ *
+ * Styl: wspólne pola formularza aplikacji (Form) i wspólny przycisk (SharedButton),
+ * te same co w formularzach leadów, usług czy finansów.
  */
 
 type Status = 'confirmed' | 'pending' | 'none';
 
-const Strip = styled.div`
-  border: 1px solid ${st.border};
-  border-radius: 10px;
-  background: ${st.bgCard};
+const MAX_LENGTH = 11;
+
+/**
+ * Operator przyjmuje tylko litery bez ogonków, cyfry, spację, kropkę i myślnik.
+ * Wielkość liter jest wyborem studia — „DetailBoost" to nie to samo co „DETAILBOOST",
+ * a wcześniej pole na siłę podnosiło wszystko do wersalików.
+ */
+const sanitize = (value: string) => value.replace(/[^A-Za-z0-9 .-]/g, '');
+
+const Card = styled.section<{ $attention: boolean }>`
+  border: 1px solid ${p => (p.$attention ? '#fcd34d' : p.theme.colors.border)};
+  border-radius: 14px;
+  background: ${p => p.theme.colors.surface};
+  overflow: hidden;
+
+  ${p => p.$attention && css`
+    box-shadow: 0 1px 3px rgba(180, 83, 9, 0.08), 0 6px 20px rgba(180, 83, 9, 0.06);
+  `}
 `;
 
-const SummaryRow = styled.div`
+const Head = styled.header<{ $attention: boolean }>`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 14px 16px;
+  background: ${p => (p.$attention ? '#fffbeb' : p.theme.colors.surface)};
+`;
+
+const IconWrap = styled.div<{ $attention: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: ${p => (p.$attention ? 'rgba(217, 119, 6, 0.12)' : 'rgba(14, 165, 233, 0.1)')};
+  color: ${p => (p.$attention ? '#b45309' : p.theme.colors.primary)};
+
+  svg { width: 18px; height: 18px; }
+`;
+
+const Titles = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.text};
+  }
+
+  p {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: ${p => p.theme.colors.textSecondary};
+  }
+`;
+
+const SenderValue = styled.span`
   font-size: 13px;
-  color: ${st.textSecondary};
-  flex-wrap: wrap;
-`;
-
-const Term = styled.span`
-  color: ${st.textMuted};
-`;
-
-const Value = styled.span`
-  font-weight: 600;
-  color: ${st.text};
+  font-weight: ${p => p.theme.fontWeights.semibold};
+  color: ${p => p.theme.colors.text};
+  letter-spacing: 0.02em;
 `;
 
 const Badge = styled.span<{ $status: Status }>`
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
   font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
+  font-weight: ${p => p.theme.fontWeights.semibold};
+  padding: 3px 9px;
   border-radius: 999px;
-  border: 1px solid ${st.border};
-  background: ${st.bgCardAlt};
-  color: ${st.textMuted};
+  border: 1px solid transparent;
+
+  svg { width: 12px; height: 12px; }
 
   ${p => p.$status === 'confirmed' && css`
-    background: ${st.accentGreenDim};
+    background: #ecfdf5;
     border-color: rgba(16, 185, 129, 0.3);
     color: #047857;
   `}
   ${p => p.$status === 'pending' && css`
-    background: ${st.accentAmberDim};
+    background: #fffbeb;
     border-color: rgba(245, 158, 11, 0.35);
-    color: #92400E;
+    color: #92400e;
   `}
-`;
-
-const LinkButton = styled.button`
-  margin-left: auto;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: ${st.accentBlue};
-  cursor: pointer;
-  padding: 2px 0;
-
-  &:hover { text-decoration: underline; }
+  ${p => p.$status === 'none' && css`
+    background: #fef3c7;
+    border-color: rgba(217, 119, 6, 0.35);
+    color: #b45309;
+  `}
 `;
 
 const Panel = styled.div`
-  border-top: 1px solid ${st.border};
-  padding: 14px;
+  border-top: 1px solid ${p => p.theme.colors.border};
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 `;
 
-const Hint = styled.p`
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: ${st.textSecondary};
-  max-width: 68ch;
-`;
-
-const Row = styled.div`
+const NameRow = styled.div`
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 `;
 
-const Field = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-`;
-
-const Label = styled.label`
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: ${st.textMuted};
-`;
-
-const NameInput = styled.input<{ $warn: boolean }>`
-  width: 190px;
-  padding: 8px 11px;
-  border: 1px solid ${p => (p.$warn ? st.accentRed : st.border)};
-  border-radius: 9px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: ${st.text};
-  background: ${st.bgInput};
-
-  &:focus { outline: none; border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
+const NameField = styled(FormField)`
+  width: 240px;
+  max-width: 100%;
 `;
 
 const Counter = styled.span<{ $warn: boolean }>`
-  font-size: 11.5px;
-  color: ${p => (p.$warn ? st.accentRed : st.textMuted)};
+  padding: 0 12px 0 4px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  padding-bottom: 9px;
+  color: ${p => (p.$warn ? p.theme.colors.error : p.theme.colors.textMuted)};
+  white-space: nowrap;
 `;
 
-const Button = styled.button<{ $primary?: boolean }>`
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 8px 13px;
-  border-radius: 9px;
-  cursor: pointer;
-  border: 1px solid ${st.border};
-  background: ${st.bgCard};
-  color: ${st.textSecondary};
-
-  &:hover:not(:disabled) { border-color: ${st.borderHover}; color: ${st.text}; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  ${p => p.$primary && css`
-    background: ${st.accentBlue};
-    border-color: ${st.accentBlue};
-    color: #fff;
-    &:hover:not(:disabled) { filter: brightness(0.95); color: #fff; }
-  `}
+const HelperText = styled.p`
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: ${p => p.theme.colors.textMuted};
 `;
 
-const Links = styled.div`
+/** Upoważnienie w dwóch krokach — numery mówią, że to sekwencja, nie zestaw opcji. */
+const Steps = styled.ol`
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
   display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  font-size: 12.5px;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px dashed ${p => p.theme.colors.border};
+  padding-top: 14px;
 `;
 
-const TextLink = styled.button`
+const Step = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  counter-increment: step;
+  font-size: 13px;
+  color: ${p => p.theme.colors.textSecondary};
+
+  &::before {
+    content: counter(step);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: ${p => p.theme.colors.surfaceAlt};
+    color: ${p => p.theme.colors.textSecondary};
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+  }
+
+  .text { flex: 1; min-width: 140px; }
+`;
+
+const DocLink = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 0;
   background: transparent;
+  padding: 0;
   font: inherit;
   font-size: 12.5px;
-  color: ${st.accentBlue};
+  color: ${p => p.theme.colors.primary};
   cursor: pointer;
-  padding: 0;
 
+  svg { width: 13px; height: 13px; }
   &:hover { text-decoration: underline; }
 `;
 
 const Feedback = styled.div<{ $error: boolean }>`
   font-size: 12.5px;
-  color: ${p => (p.$error ? '#991B1B' : '#047857')};
+  color: ${p => (p.$error ? '#991b1b' : '#047857')};
 `;
 
 const HiddenFile = styled.input`
@@ -196,7 +234,13 @@ const statusOf = (cfg: SmsSenderNameConfig | null): Status =>
 const STATUS_LABEL: Record<Status, string> = {
   confirmed: 'Zatwierdzona',
   pending: 'Czeka na weryfikację',
-  none: 'Nie ustawiona',
+  none: 'Wymaga konfiguracji',
+};
+
+const STATUS_ICON: Record<Status, React.ReactNode> = {
+  confirmed: <Check />,
+  pending: <Clock />,
+  none: null,
 };
 
 export const SmsSenderNameCard: React.FC = () => {
@@ -206,21 +250,24 @@ export const SmsSenderNameCard: React.FC = () => {
   const docUrlMutation = useSenderNameDocumentUrl();
 
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [savedName, setSavedName] = useState('');
+  // null = nikt jeszcze nic nie wpisał, więc w polu stoi to, co przyszło z serwera.
+  // Kopiowanie odpowiedzi do stanu efektem kasowałoby to, co użytkownik właśnie pisze,
+  // przy każdym odświeżeniu konfiguracji.
+  const [draft, setDraft] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ error: boolean; msg: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (config) {
-      setName(config.senderName ?? '');
-      setSavedName(config.senderName ?? '');
-    }
-  }, [config]);
+  const savedName = config?.senderName ?? '';
+  const name = draft ?? savedName;
 
-  const dirty = name !== savedName;
-  const tooLong = name.length > 11;
   const status = isLoading ? 'none' : statusOf(config);
+  const needsSetup = !isLoading && status === 'none';
+  // Nieustawiony nadawca to zadanie do zrobienia, nie ustawienie do schowania —
+  // karta otwiera się sama, dopóki nazwa nie zostanie zapisana.
+  const expanded = open || needsSetup;
+
+  const dirty = name.trim() !== savedName;
+  const tooLong = name.length > MAX_LENGTH;
 
   const flash = (error: boolean, msg: string) => {
     setFeedback({ error, msg });
@@ -231,8 +278,8 @@ export const SmsSenderNameCard: React.FC = () => {
     if (!dirty || tooLong || !name.trim()) return;
     try {
       await updateMutation.mutateAsync(name.trim());
-      setSavedName(name.trim());
-      flash(false, 'Zapisano. Nazwa czeka na weryfikację SMSAPI.');
+      setDraft(null);
+      flash(false, 'Zapisano. Nazwa czeka na weryfikację operatora.');
     } catch {
       flash(true, 'Nie udało się zapisać nazwy nadawcy.');
     }
@@ -268,58 +315,107 @@ export const SmsSenderNameCard: React.FC = () => {
   };
 
   return (
-    <Strip>
-      <SummaryRow>
-        <Term>Nadawca SMS</Term>
-        <Value>{savedName || '-'}</Value>
-        {!isLoading && <Badge $status={status}>{STATUS_LABEL[status]}</Badge>}
-        <LinkButton type="button" aria-expanded={open} onClick={() => setOpen(v => !v)}>
-          {open ? 'Zwiń' : savedName ? 'Zmień' : 'Ustaw'}
-        </LinkButton>
-      </SummaryRow>
+    <Card $attention={needsSetup}>
+      <Head $attention={needsSetup}>
+        <IconWrap $attention={needsSetup}>
+          <MessageSquare />
+        </IconWrap>
 
-      {open && (
+        <Titles>
+          <h3>
+            Nazwa nadawcy SMS
+            {savedName && <SenderValue>{savedName}</SenderValue>}
+            {!isLoading && (
+              <Badge $status={status}>
+                {STATUS_ICON[status]}
+                {STATUS_LABEL[status]}
+              </Badge>
+            )}
+          </h3>
+          <p>
+            {needsSetup
+              ? 'Dopóki nazwa nie jest ustawiona, SMS-y do klientów wychodzą z przypadkowego numeru — bez informacji, kto pisze.'
+              : 'To ją klient widzi zamiast numeru telefonu przy każdym SMS-ie ze studia.'}
+          </p>
+        </Titles>
+
+        {!needsSetup && (
+          <SharedButton
+            type="button"
+            $variant="secondary"
+            $size="sm"
+            aria-expanded={expanded}
+            onClick={() => setOpen(v => !v)}
+          >
+            {expanded ? 'Zwiń' : 'Zmień'}
+          </SharedButton>
+        )}
+      </Head>
+
+      {expanded && (
         <Panel>
-          <Hint>
-            Do 11 znaków wyświetlanych zamiast numeru telefonu. Operator wymaga podpisanego
-            upoważnienia; do czasu jego weryfikacji SMS-y wychodzą z numeru domyślnego.
-          </Hint>
+          <NameRow>
+            <NameField>
+              <FieldLabel htmlFor="sms-sender-name">Nazwa nadawcy</FieldLabel>
+              <InputShell $hasError={tooLong} $compact>
+                <BareInput
+                  id="sms-sender-name"
+                  type="text"
+                  value={name}
+                  maxLength={MAX_LENGTH}
+                  placeholder="np. DetailBoost"
+                  autoComplete="off"
+                  $compact
+                  onChange={e => setDraft(sanitize(e.target.value))}
+                />
+                <Counter $warn={tooLong}>{name.length}/{MAX_LENGTH}</Counter>
+              </InputShell>
+            </NameField>
 
-          <Row>
-            <Field>
-              <Label htmlFor="sms-sender-name">Nazwa nadawcy</Label>
-              <NameInput
-                id="sms-sender-name"
-                type="text"
-                value={name}
-                maxLength={16}
-                placeholder="np. MYSTUDIO"
-                $warn={tooLong}
-                onChange={e => setName(e.target.value.toUpperCase())}
-              />
-            </Field>
-            <Counter $warn={tooLong}>{name.length}/11</Counter>
-            <Button
+            <SharedButton
               type="button"
-              $primary
+              $variant="primary"
+              $size="sm"
               disabled={!dirty || tooLong || !name.trim() || updateMutation.isPending}
               onClick={handleSave}
             >
-              {updateMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
-            </Button>
-          </Row>
+              {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz nazwę'}
+            </SharedButton>
+          </NameRow>
 
-          <Links>
-            <TextLink type="button" onClick={handleDownloadTemplate}>Pobierz wzór upoważnienia</TextLink>
-            <TextLink type="button" onClick={() => fileRef.current?.click()}>
-              {uploadMutation.isPending ? 'Wysyłanie...' : 'Wgraj podpisane upoważnienie'}
-            </TextLink>
-            {config?.hasAuthDocument && (
-              <TextLink type="button" onClick={handleViewDoc}>
-                Podgląd: {config.authDocumentName ?? 'upoważnienie'}
-              </TextLink>
-            )}
-          </Links>
+          <HelperText>
+            Do {MAX_LENGTH} znaków: litery bez polskich ogonków, cyfry, spacja, kropka i myślnik.
+            Wielkość liter zostaje taka, jaką wpiszesz.
+          </HelperText>
+
+          <Steps>
+            <Step>
+              <span className="text">Pobierz wzór upoważnienia i podpisz go w imieniu studia.</span>
+              <SharedButton type="button" $variant="secondary" $size="sm" onClick={handleDownloadTemplate}>
+                <FileDown size={14} /> Pobierz wzór
+              </SharedButton>
+            </Step>
+            <Step>
+              <span className="text">
+                Wgraj podpisany dokument — operator zatwierdza nazwę zwykle w jeden dzień roboczy.
+              </span>
+              <SharedButton
+                type="button"
+                $variant="secondary"
+                $size="sm"
+                disabled={uploadMutation.isPending}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Upload size={14} /> {uploadMutation.isPending ? 'Wysyłanie…' : 'Wgraj upoważnienie'}
+              </SharedButton>
+            </Step>
+          </Steps>
+
+          {config?.hasAuthDocument && (
+            <DocLink type="button" onClick={handleViewDoc}>
+              <FileText /> Wgrany dokument: {config.authDocumentName ?? 'upoważnienie'}
+            </DocLink>
+          )}
 
           <HiddenFile
             ref={fileRef}
@@ -331,6 +427,6 @@ export const SmsSenderNameCard: React.FC = () => {
           {feedback && <Feedback $error={feedback.error}>{feedback.msg}</Feedback>}
         </Panel>
       )}
-    </Strip>
+    </Card>
   );
 };
