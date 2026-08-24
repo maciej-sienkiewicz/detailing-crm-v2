@@ -47,7 +47,7 @@ import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
 import { PhoneSignatureView } from '@/modules/profile/views/PhoneSignatureView';
-import { CallDeviceView, CallHandoffView } from '@/modules/push';
+import { CallDeviceView } from '@/modules/push';
 import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
@@ -241,13 +241,6 @@ export const router = createBrowserRouter([
     {
         path: '/mobile-shortcuts',
         element: page(<MobileShortcutsView />, 'VISITS_VIEW'),
-    },
-    {
-        // Click-to-Call handoff target, opened by the Service Worker when the
-        // user taps the call notification. Public on purpose: the number is in
-        // the URL and an auth redirect here would lose it mid-handoff.
-        path: '/call',
-        element: <CallHandoffView />,
     },
     {
         // Click-to-Call pairing, opened ON THE PHONE (QR in Skróty mobilne).
