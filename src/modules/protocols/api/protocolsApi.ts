@@ -129,6 +129,23 @@ class ProtocolsApi {
     return response.data;
   }
 
+  /**
+   * Zgodność stanu wizualnego przy wydaniu: odpowiedź pracownika trafia na
+   * protokół, zanim dokument pojedzie do podpisu — klient ma zobaczyć na ekranie
+   * dokładnie to, co zostało zaznaczone.
+   */
+  async setVisualCondition(
+    visitId: string,
+    protocolId: string,
+    payload: { conditionMatch: boolean; remarks?: string | null }
+  ): Promise<VisitProtocol> {
+    const response = await apiClient.post<VisitProtocol>(
+      `/v1/visits/${visitId}/protocols/${protocolId}/visual-condition`,
+      payload
+    );
+    return response.data;
+  }
+
   async generateVisitProtocols(visitId: string, stage: 'CHECK_IN' | 'CHECK_OUT' = 'CHECK_IN'): Promise<VisitProtocol[]> {
     const response = await apiClient.post<VisitProtocol[]>(
       `/v1/visits/${visitId}/protocols/generate?stage=${stage}`

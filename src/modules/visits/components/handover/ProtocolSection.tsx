@@ -24,6 +24,7 @@ import {
     SpinningIconWrapper,
 } from '@/modules/checkin/components/SigningRequirementModal.styles';
 import { Section, SectionLabel } from './HandoverKit';
+import { VisualConditionModal } from './VisualConditionModal';
 import type { VisitProtocol } from '@/modules/protocols/types';
 
 const FileIcon = () => (
@@ -66,6 +67,13 @@ export const ProtocolSection = ({
     const queryClient = useQueryClient();
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [tabletPickerProtocolId, setTabletPickerProtocolId] = useState<string | null>(null);
+    // Wysyłka do podpisu czeka na odpowiedź o zgodności stanu wizualnego: dokument
+    // musi nieść zaznaczenie, zanim klient go zobaczy.
+    const [pendingSend, setPendingSend] = useState<
+        { protocolId: string; documentName: string; channel: 'tablet'; tabletId: string }
+        | { protocolId: string; documentName: string; channel: 'phone' }
+        | null
+    >(null);
     const tabletPickerRef = useRef<HTMLDivElement>(null);
 
     const { data: protocols = [], isPending } = useQuery({
@@ -90,6 +98,15 @@ export const ProtocolSection = ({
         generate.mutate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, isPending, checkOutProtocols.length]);
+
+    const visualCondition = useMutation({
+        mutationFn: ({ protocolId, conditionMatch, remarks }: {
+            protocolId: string;
+            conditionMatch: boolean;
+            remarks: string | null;
+        }) => protocolsApi.setVisualCondition(visitId, protocolId, { conditionMatch, remarks }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visit-protocols', visitId] }),
+    });
 
     const signing = useProtocolSigning({
         visitId,
@@ -130,12 +147,44 @@ export const ProtocolSection = ({
     const sigLocal = useCapability('SIGNATURE_LOCAL');
     const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
 
+    const documentNameOf = (protocolId: string) =>
+        checkOutProtocols.find(protocol => protocol.id === protocolId)?.protocolTemplate?.name
+        ?? 'Protokół wydania pojazdu';
+
     const handleTabletClick = (protocolId: string) => {
         if (!sigLocal.enabled) return;
         if (signing.tablets.length === 1) {
-            signing.sendToTablet(protocolId, signing.tablets[0].tabletId);
+            setPendingSend({
+                protocolId,
+                documentName: documentNameOf(protocolId),
+                channel: 'tablet',
+                tabletId: signing.tablets[0].tabletId,
+            });
         } else if (signing.tablets.length > 1) {
             setTabletPickerProtocolId(prev => (prev === protocolId ? null : protocolId));
+        }
+    };
+
+    const handlePhoneClick = (protocolId: string) => {
+        setPendingSend({ protocolId, documentName: documentNameOf(protocolId), channel: 'phone' });
+    };
+
+    /** Najpierw odpowiedź na dokument, dopiero potem prośba o podpis. */
+    const confirmVisualCondition = async (conditionMatch: boolean, remarks: string | null) => {
+        const send = pendingSend;
+        if (!send) return;
+        try {
+            await visualCondition.mutateAsync({ protocolId: send.protocolId, conditionMatch, remarks });
+        } catch {
+            // Nieudany zapis nie może skończyć się wysłaniem dokumentu bez zaznaczenia —
+            // okno zostaje otwarte, żeby dało się spróbować ponownie.
+            return;
+        }
+        setPendingSend(null);
+        if (send.channel === 'tablet') {
+            signing.sendToTablet(send.protocolId, send.tabletId);
+        } else {
+            signing.sendToPhone(send.protocolId);
         }
     };
 
@@ -227,7 +276,7 @@ export const ProtocolSection = ({
                                             style={{ display: 'inline-flex' }}
                                         >
                                             <IconButton
-                                                onClick={() => signing.sendToPhone(protocol.id)}
+                                                onClick={() => handlePhoneClick(protocol.id)}
                                                 disabled={!customerPhone || !canSign || busy || !sigRemote.enabled}
                                                 $success={isSigned}
                                                 aria-label="Wyślij prośbę na telefon klienta"
@@ -250,7 +299,7 @@ export const ProtocolSection = ({
                                             <RetryButton
                                                 onClick={() =>
                                                     smsChannel
-                                                        ? signing.sendToPhone(protocol.id)
+                                                        ? handlePhoneClick(protocol.id)
                                                         : handleTabletClick(protocol.id)
                                                 }
                                                 title={
@@ -296,7 +345,12 @@ export const ProtocolSection = ({
                                                         key={tablet.tabletId}
                                                         onClick={() => {
                                                             setTabletPickerProtocolId(null);
-                                                            signing.sendToTablet(protocol.id, tablet.tabletId);
+                                                            setPendingSend({
+                                                                protocolId: protocol.id,
+                                                                documentName: documentNameOf(protocol.id),
+                                                                channel: 'tablet',
+                                                                tabletId: tablet.tabletId,
+                                                            });
                                                         }}
                                                     >
                                                         <Tablet />
@@ -311,6 +365,15 @@ export const ProtocolSection = ({
                         );
                     })}
                 </DocumentList>
+            )}
+
+            {pendingSend && (
+                <VisualConditionModal
+                    documentName={pendingSend.documentName}
+                    isSaving={visualCondition.isPending}
+                    onCancel={() => setPendingSend(null)}
+                    onConfirm={confirmVisualCondition}
+                />
             )}
 
             {previewProtocolId && (
