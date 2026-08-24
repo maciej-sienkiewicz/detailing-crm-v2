@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import type { Customer } from '../types';
 import { formatDate, formatPhoneNumber, getFullName, formatCurrency } from '../utils/customerMappers';
 import { pluralPl } from '@/common/utils';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 
@@ -77,9 +75,9 @@ const ContactInfo = styled.div`
     color: ${st.textSecondary};
 `;
 
-/* Numer telefonu na telefonie to nie napis, tylko akcja: stąd własny przycisk
-   zamiast zwykłego tekstu — z ikoną słuchawki, żeby było widać, co zrobi. */
-const PhoneBtn = styled.button`
+/* Numer telefonu na telefonie to nie napis, tylko akcja: odnośnik tel:, który
+   system i tak potwierdza własnym pytaniem przed wybraniem numeru. */
+const PhoneBtn = styled.a`
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -90,6 +88,7 @@ const PhoneBtn = styled.button`
     border-radius: ${props => props.theme.radii.full};
     font-family: inherit;
     font-size: inherit;
+    text-decoration: none;
     color: ${st.accentBlue};
     font-weight: 600;
     cursor: pointer;
@@ -136,14 +135,12 @@ interface CustomerCardProps {
 
 export const CustomerCard = ({ customer }: CustomerCardProps) => {
     const navigate = useNavigate();
-    const [callPromptOpen, setCallPromptOpen] = useState(false);
 
     const handleCardClick = () => {
         navigate(`/customers/${customer.id}`);
     };
 
     return (
-        <>
         <Card onClick={handleCardClick}>
             <CardHeader>
                 <div>
@@ -168,8 +165,8 @@ export const CustomerCard = ({ customer }: CustomerCardProps) => {
                     miejsce, nie niosąc żadnej informacji. */}
                 {customer.contact.phone && (
                     <PhoneBtn
-                        type="button"
-                        onClick={e => { e.stopPropagation(); setCallPromptOpen(true); }}
+                        href={`tel:${customer.contact.phone.replace(/[^+\d]/g, '')}`}
+                        onClick={e => e.stopPropagation()}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
@@ -194,20 +191,5 @@ export const CustomerCard = ({ customer }: CustomerCardProps) => {
                 </StatItem>
             </StatsGrid>
         </Card>
-
-        <ConfirmationModal
-            isOpen={callPromptOpen}
-            title="Zadzwonić do klienta?"
-            message={`Połączenie zostanie wykonane na numer ${formatPhoneNumber(customer.contact.phone)}.`}
-            variant="info"
-            confirmText="Zadzwoń"
-            cancelText="Anuluj"
-            onConfirm={() => {
-                setCallPromptOpen(false);
-                window.location.href = `tel:${(customer.contact.phone ?? '').replace(/[^+\d]/g, '')}`;
-            }}
-            onCancel={() => setCallPromptOpen(false)}
-        />
-        </>
     );
 };
