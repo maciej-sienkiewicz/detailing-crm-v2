@@ -224,6 +224,13 @@ const InstructionList = styled.ol`
     }
 `;
 
+const SectionTitle = styled.h2`
+    margin: 28px 0 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
 // ─── No-token states ──────────────────────────────────────────────────────────
 
 const MobileNoToken = styled.div`
@@ -432,6 +439,39 @@ export const MobileShortcutsView = () => {
                     </SectionLayout>
                 </SectionCard>
             )}
+
+            {/* ── Click-to-Call: pair the phone that rings customers ────── */}
+            <SectionTitle>Połączenia z komputera</SectionTitle>
+            <SectionCard>
+                <SectionLayout>
+                    <QrPanel>
+                        <QrBox>
+                            <QRCodeSVG
+                                value={`${window.location.origin}/call-device`}
+                                size={160}
+                                fgColor="#0f172a"
+                                bgColor="#ffffff"
+                                level="M"
+                            />
+                        </QrBox>
+                        <QrLabel>Zeskanuj telefonem</QrLabel>
+                    </QrPanel>
+                    <InstructionsPanel>
+                        <div>
+                            <InstructionsHeading>Klikasz numer na komputerze — dzwonisz z telefonu</InstructionsHeading>
+                            <InstructionsDesc>
+                                Telefon dostaje powiadomienie push z przyciskiem „Zadzwoń", nawet przy zamkniętej przeglądarce
+                            </InstructionsDesc>
+                        </div>
+                        <InstructionList>
+                            <li>Zeskanuj QR kod telefonem i <strong>zaloguj się</strong> do CRM (jeśli poprosi)</li>
+                            <li>Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong> (Safari wymaga tego dla powiadomień)</li>
+                            <li>Kliknij <strong>„Włącz powiadomienia o połączeniach"</strong> i zezwól na powiadomienia</li>
+                            <li>Od teraz kliknięcie numeru klienta w CRM na komputerze wyświetli na telefonie powiadomienie — dotknij <strong>„Zadzwoń"</strong>, a numer wskoczy do systemowego dialera</li>
+                        </InstructionList>
+                    </InstructionsPanel>
+                </SectionLayout>
+            </SectionCard>
         </Page>
     );
 };

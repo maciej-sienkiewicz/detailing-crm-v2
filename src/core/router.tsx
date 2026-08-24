@@ -47,6 +47,7 @@ import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
 import { PhoneSignatureView } from '@/modules/profile/views/PhoneSignatureView';
+import { CallDeviceView } from '@/modules/push';
 import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
@@ -240,6 +241,13 @@ export const router = createBrowserRouter([
     {
         path: '/mobile-shortcuts',
         element: page(<MobileShortcutsView />, 'VISITS_VIEW'),
+    },
+    {
+        // Click-to-Call pairing, opened ON THE PHONE (QR in Skróty mobilne).
+        // No permission requirement: every logged-in user may pair their own
+        // phone — the backend scopes devices and call pushes to the session user.
+        path: '/call-device',
+        element: page(<CallDeviceView />),
     },
 
     // ── Leady ────────────────────────────────────────────────────────────
