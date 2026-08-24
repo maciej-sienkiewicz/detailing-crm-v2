@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { createPortal } from 'react-dom';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -6,6 +6,7 @@ import { PriceInput } from '@/modules/services/components/PriceInput';
 import { useCreateService } from '@/modules/services/hooks/useServices';
 import type { VatRate } from '@/modules/services/types';
 import { VAT_OPTIONS } from '@/modules/services/vatOptions';
+import { useModalViewport } from '@/common/hooks';
 import {
     Overlay,
     ModalContainer,
@@ -62,6 +63,11 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     const [saveToDatabase, setSaveToDatabase] = useState(false);
     const [requireManualPrice, setRequireManualPrice] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const overlayRef = useRef<HTMLDivElement>(null);
+    // Escape, blokada przewijania tła i układ przy wysuniętej klawiaturze —
+    // to samo, co robi ModalShell dla okien zbudowanych na jego bazie.
+    useModalViewport(isOpen, overlayRef, onClose);
 
     const createMutation = useCreateService();
 
@@ -133,6 +139,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
     return createPortal(
         <Overlay
+            ref={overlayRef}
             $isOpen={isOpen}
             $contentLeft={contentLeft}
             onMouseDown={(e) => e.target === e.currentTarget && onClose()}

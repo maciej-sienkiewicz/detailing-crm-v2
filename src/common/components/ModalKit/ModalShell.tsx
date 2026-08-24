@@ -1,6 +1,7 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ModalOverlay, ModalBox } from '@/common/styles';
+import { useModalViewport } from '@/common/hooks';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
@@ -63,95 +64,10 @@ interface ModalShellProps {
 export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
-    useEffect(() => {
-        if (!isOpen) return;
-        const handleKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', handleKey);
-        return () => document.removeEventListener('keydown', handleKey);
-    }, [isOpen, onClose]);
-
-    // Blokada przewijania tła. Musi objąć <html>, nie tylko <body>: to element
-    // dokumentu jest tu kontenerem przewijania (ma overflow-y: auto), więc samo
-    // wyciszenie <body> nic nie dawało — przy dłuższej stronie użytkownik
-    // przewijał aplikację pod otwartym oknem. overscroll-behavior odcina jeszcze
-    // łańcuch przewijania z wnętrza okna na dokument.
-    useEffect(() => {
-        if (!isOpen) return;
-        const root = document.documentElement;
-        const prev = {
-            rootOverflow: root.style.overflow,
-            rootOverscroll: root.style.overscrollBehavior,
-            bodyOverflow: document.body.style.overflow,
-        };
-        root.style.overflow = 'hidden';
-        root.style.overscrollBehavior = 'none';
-        document.body.style.overflow = 'hidden';
-        return () => {
-            root.style.overflow = prev.rootOverflow;
-            root.style.overscrollBehavior = prev.rootOverscroll;
-            document.body.style.overflow = prev.bodyOverflow;
-        };
-    }, [isOpen]);
-
-    // Keep the modal inside the *visible* region when the on-screen keyboard is
-    // up. `position: fixed` resolves against the layout viewport, which iOS
-    // never shrinks for the keyboard (it shrinks the visual viewport instead),
-    // so a vertically centered modal ends up hidden behind the keyboard.
-    //
-    // Ważne: nakładka NIE zmienia rozmiaru. Skracanie jej do `vv.height`
-    // zostawiało pod spodem pas nierozmytej aplikacji — a przy niespójnych
-    // pomiarach w trakcie animacji klawiatury ten pas potrafił zostać na
-    // ekranie. Zamiast tego nakładka trzyma cały layout viewport (pełne
-    // przyciemnienie i blur), a okno wciskamy w widoczny obszar paddingami:
-    //   gora = vv.offsetTop        → pierwszy widoczny piksel
-    //   dol  = to, co zjada klawiatura
+    // Escape, blokada tła i układ przy wysuniętej klawiaturze — wspólne dla
+    // wszystkich okien w aplikacji, także tych na własnych nakładkach.
     const overlayRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        if (!isOpen) return;
-        const vv = window.visualViewport;
-        if (!vv) return;
-
-        let frame = 0;
-
-        const apply = () => {
-            const el = overlayRef.current;
-            if (!el) return;
-            const hiddenBelow = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-            const keyboardOpen = window.innerHeight - vv.height > 80;
-            if (keyboardOpen) {
-                el.style.alignItems = 'flex-start';
-                el.style.paddingTop = `${vv.offsetTop + 12}px`;
-                el.style.paddingBottom = `${hiddenBelow + 12}px`;
-                el.style.overflowY = 'auto';
-            } else {
-                el.style.alignItems = '';
-                el.style.paddingTop = '';
-                el.style.paddingBottom = '';
-                el.style.overflowY = '';
-            }
-        };
-
-        const schedule = () => {
-            cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(apply);
-        };
-
-        schedule();
-        // Klawiatura wjeżdża ~250ms, a iOS raportuje po drodze pośrednie
-        // wymiary — domierz po jej ustaniu.
-        const settle = [setTimeout(schedule, 150), setTimeout(schedule, 400)];
-
-        vv.addEventListener('resize', schedule);
-        vv.addEventListener('scroll', schedule);
-        return () => {
-            cancelAnimationFrame(frame);
-            settle.forEach(clearTimeout);
-            vv.removeEventListener('resize', schedule);
-            vv.removeEventListener('scroll', schedule);
-        };
-    }, [isOpen]);
+    useModalViewport(isOpen, overlayRef, onClose);
 
     if (!isOpen) return null;
 

@@ -7,10 +7,11 @@
 // Fraza z prośbą o odpowiedź "TAK" jest doklejana przy wysyłce po stronie serwera
 // i nie da się jej zmienić ani usunąć.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatCurrency } from '@/common/utils';
+import { useModalViewport } from '@/common/hooks';
 import {
     CONSENT_CALL_TO_ACTION,
     buildServiceChangeSmsMessage,
@@ -352,6 +353,11 @@ export const ServiceChangeSmsModal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel, isSaving]);
 
+    // Blokada przewijania tła i układ przy wysuniętej klawiaturze — wspólne
+    // z ModalShell; Escape obsługuje efekt wyżej (zna stan zapisu).
+    const overlayRef = useRef<HTMLDivElement>(null);
+    useModalViewport(true, overlayRef);
+
     const [fieldFocused, setFieldFocused] = useState(false);
 
     const displayed = usePolish ? message : toAscii(message);
@@ -378,7 +384,7 @@ export const ServiceChangeSmsModal = ({
     const canSend = trimmed.length > 0 && !isSaving;
 
     return (
-        <Overlay onClick={() => { if (!isSaving) onCancel(); }}>
+        <Overlay ref={overlayRef} onClick={() => { if (!isSaving) onCancel(); }}>
             <Card onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Treść SMS-a do klienta">
                 <Header>
                     <div>

@@ -17,7 +17,7 @@ import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
 import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 import { useFeature, UpsellModal } from '@/modules/subscription';
-import { useVisualViewportSheet } from '@/common/hooks';
+import { useModalViewport } from '@/common/hooks';
 import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
 
 const BRAND = '#0ea5e9';
@@ -1726,10 +1726,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     /* ── Focus-mode button highlight ── */
     const [isHighlighting, setIsHighlighting] = useState(false);
     const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    // The price editor autofocuses a field, so the phone keyboard covers the
-    // bottom of a 100dvh-tall overlay (dvh ignores the keyboard) and the footer
-    // buttons become unreachable — pin the overlay to the visual viewport.
+    // Okna na własnych nakładkach: blokada przewijania tła i układ przy
+    // wysuniętej klawiaturze idą przez useModalViewport, tak samo jak
+    // w ModalShell. Escape obsługuje wspólny handler niżej, więc hook nie
+    // dostaje onClose.
     const editorOverlayRef = useRef<HTMLDivElement>(null);
+    const bulkVatOverlayRef = useRef<HTMLDivElement>(null);
+    const bulkDiscountOverlayRef = useRef<HTMLDivElement>(null);
+    const bulkConflictOverlayRef = useRef<HTMLDivElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerHighlight = useCallback(() => {
         if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
@@ -2289,7 +2293,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     useHideMobileChrome('visit-services-edit', isInEditMode);
 
     const editorService = editorId ? services.find(s => s.id === editorId) ?? null : null;
-    useVisualViewportSheet(editorService !== null, editorOverlayRef);
+    useModalViewport(editorService !== null, editorOverlayRef);
+    useModalViewport(bulkVatOpen, bulkVatOverlayRef);
+    useModalViewport(bulkDiscountOpen, bulkDiscountOverlayRef);
+    useModalViewport(bulkDiscountConflictOpen, bulkConflictOverlayRef);
 
     return (
         <>
@@ -2636,7 +2643,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 <DiscountModalTitle>Cena usługi</DiscountModalTitle>
                                 <DiscountModalSubtitle>{svc.serviceName}</DiscountModalSubtitle>
                             </div>
-                            <DiscountCloseBtn type="button" onClick={closeEditor} aria-label="Zamknij">
+                            <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={closeEditor}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </DiscountCloseBtn>
                         </DiscountModalHeader>
@@ -2813,11 +2820,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
         {/* Bulk VAT modal */}
         {bulkVatOpen && (
-            <DiscountModalOverlay onClick={() => setBulkVatOpen(false)}>
+            <DiscountModalOverlay ref={bulkVatOverlayRef} onClick={() => setBulkVatOpen(false)}>
                 <DiscountModalCard onClick={e => e.stopPropagation()}>
                     <DiscountModalHeader>
                         <DiscountModalTitle>VAT dla wszystkich usług</DiscountModalTitle>
-                        <DiscountCloseBtn type="button" onClick={() => setBulkVatOpen(false)}>
+                        <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkVatOpen(false)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </DiscountCloseBtn>
                     </DiscountModalHeader>
@@ -2886,14 +2893,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             const fmtZl = (v: number) => formatCurrency(v);
 
             return (
-                <DiscountModalOverlay onClick={() => setBulkDiscountOpen(false)}>
+                <DiscountModalOverlay ref={bulkDiscountOverlayRef} onClick={() => setBulkDiscountOpen(false)}>
                     <BulkModalCard onClick={e => e.stopPropagation()}>
                         <BulkModalHeader>
                             <div>
                                 <DiscountModalTitle>Rabatuj całość</DiscountModalTitle>
                                 <DiscountModalSubtitle>{eligible.length} {eligible.length === 1 ? 'pozycja' : eligible.length < 5 ? 'pozycje' : 'pozycji'}</DiscountModalSubtitle>
                             </div>
-                            <DiscountCloseBtn type="button" onClick={() => setBulkDiscountOpen(false)}>
+                            <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkDiscountOpen(false)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </DiscountCloseBtn>
                         </BulkModalHeader>
@@ -3056,7 +3063,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         })()}
 
         {bulkDiscountConflictOpen && (
-            <ModalOverlay onClick={() => setBulkDiscountConflictOpen(false)}>
+            <ModalOverlay ref={bulkConflictOverlayRef} onClick={() => setBulkDiscountConflictOpen(false)}>
                 <ModalCard role="dialog" aria-modal="true" aria-labelledby="bulk-conflict-title" onClick={e => e.stopPropagation()}>
                     <ModalHeader>
                         <ModalTitle id="bulk-conflict-title">Naniesione poprawki cen</ModalTitle>

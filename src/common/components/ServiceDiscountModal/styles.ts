@@ -4,17 +4,25 @@ import styled from 'styled-components';
 export const Overlay = styled.div`
     position: fixed;
     inset: 0;
+    height: 100vh;
+    height: 100dvh;
     background: rgba(15, 23, 42, 0.38);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding:
+        max(16px, env(safe-area-inset-top, 0px))
+        max(16px, env(safe-area-inset-right, 0px))
+        max(16px, env(safe-area-inset-bottom, 0px))
+        max(16px, env(safe-area-inset-left, 0px));
     z-index: 9999;
 `;
 
 export const Card = styled.div`
     width: min(400px, calc(100vw - 32px));
-    max-height: calc(100dvh - 32px);
+    /* Wysokość liczy nakładka (z safe-area i klawiaturą), karta bierze tyle,
+       ile dostanie — inaczej stopka z przyciskami wychodziła poza ekran. */
+    max-height: 100%;
     display: flex;
     flex-direction: column;
     background: #ffffff;
@@ -71,6 +79,8 @@ export const CloseBtn = styled.button`
 export const Body = styled.div`
     padding: 16px 20px;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;

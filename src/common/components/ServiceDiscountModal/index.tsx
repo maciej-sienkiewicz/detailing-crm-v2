@@ -7,10 +7,11 @@
 //
 // Wartości pieniężne przychodzą i wychodzą w GROSZACH.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { applyAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
+import { useModalViewport } from '@/common/hooks';
 import * as S from './styles';
 
 const TYPE_LABELS: Record<AdjustmentType, string> = {
@@ -73,6 +74,11 @@ export const ServiceDiscountModal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
 
+    // Blokada przewijania tła i układ przy wysuniętej klawiaturze — jak
+    // w ModalShell. Escape zostaje wyżej, bo zatrzymuje propagację.
+    const overlayRef = useRef<HTMLDivElement>(null);
+    useModalViewport(true, overlayRef);
+
     const parsed = parseFloat(value.replace(',', '.'));
     const isValid = value !== '' && !isNaN(parsed) && parsed > 0;
     const storeValue = !isValid ? 0
@@ -96,7 +102,7 @@ export const ServiceDiscountModal = ({
     };
 
     return (
-        <S.Overlay onClick={onClose} role="dialog" aria-modal="true" aria-label="Rabat dla usługi">
+        <S.Overlay ref={overlayRef} onClick={onClose} role="dialog" aria-modal="true" aria-label="Rabat dla usługi">
             <S.Card onClick={e => e.stopPropagation()}>
                 <S.Header>
                     <div>
