@@ -337,6 +337,18 @@ export async function updateSenderName(senderName: string): Promise<SmsSenderNam
   return data;
 }
 
+/**
+ * Podpis narysowany na ekranie — serwer składa z niego gotowe upoważnienie
+ * (dane firmy z ustawień, pole nadawcy z konfiguracji SMS, data bieżąca).
+ */
+export async function signSenderNameAuthDoc(signatureImageBase64: string): Promise<SmsSenderNameConfig> {
+  const { data } = await apiClient.post<SmsSenderNameConfig>(
+    '/v1/sms-campaigns/sender-name/document/sign',
+    { signatureImageBase64 }
+  );
+  return data;
+}
+
 export async function uploadSenderNameAuthDoc(file: File): Promise<SmsSenderNameConfig> {
   const formData = new FormData();
   formData.append('file', file);

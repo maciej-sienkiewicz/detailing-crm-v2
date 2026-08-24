@@ -1,13 +1,15 @@
 import React, { useRef, useState } from 'react';
 import styled, { css } from 'styled-components';
-import { Check, Clock, FileDown, FileText, MessageSquare, Upload } from 'lucide-react';
+import { Check, Clock, FileDown, FileText, MessageSquare, PenLine, Upload } from 'lucide-react';
 import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
+import { SignaturePad, type SignaturePadHandle } from '@/modules/public-signing/components/SignaturePad';
 import type { SmsSenderNameConfig } from '../types';
 import {
   useSenderNameConfig,
   useUpdateSenderName,
   useUploadSenderNameAuthDoc,
+  useSignSenderNameAuthDoc,
   useSenderNameDocumentUrl,
 } from '../hooks';
 
@@ -164,43 +166,43 @@ const HelperText = styled.p`
   color: ${p => p.theme.colors.textMuted};
 `;
 
-/** Upoważnienie w dwóch krokach — numery mówią, że to sekwencja, nie zestaw opcji. */
-const Steps = styled.ol`
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border-top: 1px dashed ${p => p.theme.colors.border};
-  padding-top: 14px;
-`;
-
-const Step = styled.li`
+/** Upoważnienie: jedno zdanie o tym, co się stanie, i przycisk, który to robi. */
+const AuthRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  counter-increment: step;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px dashed ${p => p.theme.colors.border};
+  padding-top: 14px;
   font-size: 13px;
   color: ${p => p.theme.colors.textSecondary};
 
-  &::before {
-    content: counter(step);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.textSecondary};
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-  }
+  .text { flex: 1; min-width: 220px; }
+`;
 
-  .text { flex: 1; min-width: 140px; }
+/**
+ * Podpis składany na miejscu. Treść upoważnienia składa serwer z danych, które
+ * system już ma, więc na ekranie zostaje jedyna rzecz, której nie zna: podpis.
+ */
+const SignArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const SignActions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const AltRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: ${p => p.theme.colors.textMuted};
 `;
 
 const DocLink = styled.button`
@@ -247,6 +249,7 @@ export const SmsSenderNameCard: React.FC = () => {
   const { config, isLoading } = useSenderNameConfig();
   const updateMutation = useUpdateSenderName();
   const uploadMutation = useUploadSenderNameAuthDoc();
+  const signMutation = useSignSenderNameAuthDoc();
   const docUrlMutation = useSenderNameDocumentUrl();
 
   const [open, setOpen] = useState(false);
@@ -256,6 +259,8 @@ export const SmsSenderNameCard: React.FC = () => {
   const [draft, setDraft] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ error: boolean; msg: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const padRef = useRef<SignaturePadHandle>(null);
+  const [signing, setSigning] = useState(false);
 
   const savedName = config?.senderName ?? '';
   const name = draft ?? savedName;
@@ -282,6 +287,22 @@ export const SmsSenderNameCard: React.FC = () => {
       flash(false, 'Zapisano. Nazwa czeka na weryfikację operatora.');
     } catch {
       flash(true, 'Nie udało się zapisać nazwy nadawcy.');
+    }
+  };
+
+  const handleSign = async () => {
+    const base64 = padRef.current?.toPngBase64();
+    if (!base64 || padRef.current?.isEmpty()) {
+      flash(true, 'Podpis jest pusty — narysuj go przed zapisaniem.');
+      return;
+    }
+    try {
+      await signMutation.mutateAsync(base64);
+      padRef.current?.clear();
+      setSigning(false);
+      flash(false, 'Upoważnienie podpisane i zapisane.');
+    } catch {
+      flash(true, 'Nie udało się podpisać upoważnienia.');
     }
   };
 
@@ -388,32 +409,74 @@ export const SmsSenderNameCard: React.FC = () => {
             Wielkość liter zostaje taka, jaką wpiszesz.
           </HelperText>
 
-          <Steps>
-            <Step>
-              <span className="text">Pobierz wzór upoważnienia i podpisz go w imieniu studia.</span>
-              <SharedButton type="button" $variant="secondary" $size="sm" onClick={handleDownloadTemplate}>
-                <FileDown size={14} /> Pobierz wzór
-              </SharedButton>
-            </Step>
-            <Step>
+          <AuthRow>
               <span className="text">
-                Wgraj podpisany dokument — operator zatwierdza nazwę zwykle w jeden dzień roboczy.
+                Podpisz upoważnienie dla operatora SMS — treść złożymy z danych Twojej firmy
+                i nazwy nadawcy, z dzisiejszą datą.
               </span>
-              <SharedButton
-                type="button"
-                $variant="secondary"
-                $size="sm"
-                disabled={uploadMutation.isPending}
-                onClick={() => fileRef.current?.click()}
-              >
-                <Upload size={14} /> {uploadMutation.isPending ? 'Wysyłanie…' : 'Wgraj upoważnienie'}
-              </SharedButton>
-            </Step>
-          </Steps>
+              {!signing && (
+                <SharedButton
+                  type="button"
+                  $variant="primary"
+                  $size="sm"
+                  disabled={!savedName || dirty}
+                  title={
+                    !savedName || dirty
+                      ? 'Najpierw zapisz nazwę nadawcy — to jej dotyczy upoważnienie'
+                      : undefined
+                  }
+                  onClick={() => setSigning(true)}
+                >
+                  <PenLine size={14} /> Podpisz na ekranie
+                </SharedButton>
+              )}
+          </AuthRow>
+
+          {signing && (
+            <SignArea>
+              <SignaturePad ref={padRef} />
+              <SignActions>
+                <SharedButton
+                  type="button"
+                  $variant="primary"
+                  $size="sm"
+                  disabled={signMutation.isPending}
+                  onClick={handleSign}
+                >
+                  {signMutation.isPending ? 'Podpisywanie…' : 'Podpisz i zapisz'}
+                </SharedButton>
+                <SharedButton
+                  type="button"
+                  $variant="secondary"
+                  $size="sm"
+                  disabled={signMutation.isPending}
+                  onClick={() => { padRef.current?.clear(); setSigning(false); }}
+                >
+                  Anuluj
+                </SharedButton>
+              </SignActions>
+            </SignArea>
+          )}
+
+          <AltRow>
+            Wolisz papierowo?
+            <SharedButton type="button" $variant="ghost" $size="sm" onClick={handleDownloadTemplate}>
+              <FileDown size={14} /> Pobierz wzór
+            </SharedButton>
+            <SharedButton
+              type="button"
+              $variant="ghost"
+              $size="sm"
+              disabled={uploadMutation.isPending}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload size={14} /> {uploadMutation.isPending ? 'Wysyłanie…' : 'Wgraj podpisany skan'}
+            </SharedButton>
+          </AltRow>
 
           {config?.hasAuthDocument && (
             <DocLink type="button" onClick={handleViewDoc}>
-              <FileText /> Wgrany dokument: {config.authDocumentName ?? 'upoważnienie'}
+              <FileText /> Podpisane upoważnienie: {config.authDocumentName ?? 'upoważnienie'}
             </DocLink>
           )}
 

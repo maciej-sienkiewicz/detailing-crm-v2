@@ -10,13 +10,13 @@ import {
   fetchVehicleBrands,
   fetchSenderNameConfig,
   updateSenderName,
+  signSenderNameAuthDoc,
   uploadSenderNameAuthDoc,
   fetchSenderNameDocumentUrl,
 } from '../api/smsCampaignsApi';
 import type {
   CreateCampaignRequest,
   SmsAutomationConfig,
-  SmsSenderNameConfig,
   CampaignFilters,
 } from '../types';
 
@@ -127,6 +127,14 @@ export function useUpdateSenderName() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => updateSenderName(name),
+    onSuccess: (updated) => qc.setQueryData(KEYS.senderName, updated),
+  });
+}
+
+export function useSignSenderNameAuthDoc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (signatureImageBase64: string) => signSenderNameAuthDoc(signatureImageBase64),
     onSuccess: (updated) => qc.setQueryData(KEYS.senderName, updated),
   });
 }
