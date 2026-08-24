@@ -6,8 +6,6 @@ import type { CustomerDetailData } from '../types';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { isPiiMasked } from '@/common/pii';
-import { useClickToCall } from '@/modules/push';
 
 // ─── Loyalty tier config ──────────────────────────────────────────────────────
 
@@ -181,27 +179,6 @@ const MetaItem = styled.span`
     svg { width: 11px; height: 11px; opacity: 0.55; flex-shrink: 0; }
 `;
 
-// Click-to-Call trigger: looks like the other meta items, behaves like a
-// button — clicking rings the number on the user's paired phone.
-const MetaCallBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0;
-    background: none;
-    border: none;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(148, 163, 184, 0.7);
-    cursor: pointer;
-    transition: color 0.15s;
-
-    svg { width: 11px; height: 11px; opacity: 0.55; flex-shrink: 0; }
-    &:hover { color: #38bdf8; text-decoration: underline; }
-    &:disabled { cursor: default; opacity: 0.6; }
-`;
-
 const MetaDot = styled.span`
     color: rgba(148, 163, 184, 0.2);
     user-select: none;
@@ -321,14 +298,12 @@ interface CustomerHeaderProps {
 
 export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: CustomerHeaderProps) => {
     const navigate = useNavigate();
-    const { requestCall, isRequesting } = useClickToCall();
     const { customer, loyaltyTier, lifetimeValue } = data;
 
     const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Klient';
     const initials = `${(customer.firstName || '?').charAt(0)}${(customer.lastName || '?').charAt(0)}`.toUpperCase();
     const hasEmail  = Boolean(customer.contact.email);
-    const phone     = customer.contact.phone;
-    const hasPhone  = Boolean(phone);
+    const hasPhone  = Boolean(customer.contact.phone);
     const hasAddr   = Boolean(customer.homeAddress);
 
     const addressLine = customer.homeAddress
@@ -374,27 +349,13 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                             </MetaItem>
                         )}
                         {hasEmail && hasPhone && <MetaDot>·</MetaDot>}
-                        {phone && (
-                            isPiiMasked(phone) ? (
-                                <MetaItem>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                    </svg>
-                                    {phone}
-                                </MetaItem>
-                            ) : (
-                                <MetaCallBtn
-                                    onClick={() => requestCall(phone, fullName)}
-                                    disabled={isRequesting}
-                                    title="Zadzwoń z telefonu (Click-to-Call)"
-                                    type="button"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                    </svg>
-                                    {phone}
-                                </MetaCallBtn>
-                            )
+                        {hasPhone && (
+                            <MetaItem>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                {customer.contact.phone}
+                            </MetaItem>
                         )}
                         {hasAddr && addressLine && (
                             <>

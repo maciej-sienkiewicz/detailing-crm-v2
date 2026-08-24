@@ -21,6 +21,7 @@ import { AddVehicleModal } from '../components/AddVehicleModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
+import { useClickToCall } from '@/modules/push';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
@@ -282,6 +283,25 @@ const HeroMetaItem = styled.span`
     svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
 `;
 
+// Click-to-Call: numer wygląda jak reszta metadanych, ale jest przyciskiem —
+// klik wysyła powiadomienie na sparowany telefon zalogowanego użytkownika.
+const HeroMetaCallBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: color 0.15s;
+    svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
+    &:hover { color: #38bdf8; }
+    &:disabled { cursor: default; opacity: 0.6; }
+`;
+
 
 const HeroRight = styled.div`
     display: flex;
@@ -437,6 +457,7 @@ export const CustomerDetailView = () => {
     const [mobileTab, setMobileTab] = useState<CustomerMobileTab>('visits');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteCustomer = useDeleteCustomer();
+    const { requestCall, isRequesting: isRequestingCall } = useClickToCall();
     const [isKebabOpen,  setIsKebabOpen]  = useState(false);
     const [kebabPos,     setKebabPos]     = useState<{ top: number; right: number } | null>(null);
     const kebabRef = useRef<HTMLDivElement>(null);
@@ -565,12 +586,26 @@ export const CustomerDetailView = () => {
                                 <HeroName><PiiValue value={fullName} kind="name" /></HeroName>
                                 <HeroMetaRow>
                                     {customer.contact.phone && (
-                                        <HeroMetaItem>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
-                                            </svg>
-                                            <PiiValue value={customer.contact.phone} kind="phone" />
-                                        </HeroMetaItem>
+                                        isPiiMasked(customer.contact.phone) ? (
+                                            <HeroMetaItem>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
+                                                </svg>
+                                                <PiiValue value={customer.contact.phone} kind="phone" />
+                                            </HeroMetaItem>
+                                        ) : (
+                                            <HeroMetaCallBtn
+                                                type="button"
+                                                onClick={() => requestCall(customer.contact.phone!, fullName)}
+                                                disabled={isRequestingCall}
+                                                title="Zadzwoń z telefonu (powiadomienie push)"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
+                                                </svg>
+                                                {customer.contact.phone}
+                                            </HeroMetaCallBtn>
+                                        )
                                     )}
                                     {customer.contact.email && (
                                         <HeroMetaItem>
