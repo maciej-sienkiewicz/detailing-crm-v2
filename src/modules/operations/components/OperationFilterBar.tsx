@@ -185,9 +185,12 @@ const FiltersRow = styled.div`
 const MobileSelectRow = styled.div`
     display: none;
 
+    /* Status, lupa i filtry mieszczą się w jednym wierszu — status bierze tyle,
+       ile zostanie po dwóch przyciskach ikonowych. */
     @media (max-width: 900px) {
         display: flex;
-        flex-basis: 100%;
+        flex: 1;
+        min-width: 0;
         position: relative;
         align-items: center;
     }
@@ -324,6 +327,11 @@ const FilterBtn = styled.button<{ $active?: boolean }>`
     }
 
     svg { width: 14px; height: 14px; }
+
+    @media (max-width: 900px) {
+        padding: 9px 11px;
+        gap: 5px;
+    }
 `;
 
 const FilterBadge = styled.span`
@@ -347,6 +355,14 @@ const MobileSearchToggle = styled(FilterBtn)`
     @media (max-width: 900px) {
         display: inline-flex;
         padding: 9px 11px;
+    }
+`;
+
+/* Sama ikonka lejka mówi na telefonie dokładnie to samo, co ikonka z napisem,
+   a zwalnia miejsce w wierszu na pole statusu. */
+const FilterBtnLabel = styled.span`
+    @media (max-width: 900px) {
+        display: none;
     }
 `;
 
@@ -453,11 +469,13 @@ export const OperationFilterBar = ({
                     <FilterBtn
                         $active={activeAdvancedFilterCount > 0}
                         onClick={onOpenAdvancedFilters}
+                        aria-label="Filtry"
+                        title="Filtry"
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                         </svg>
-                        Filtry
+                        <FilterBtnLabel>Filtry</FilterBtnLabel>
                         {activeAdvancedFilterCount > 0 && (
                             <FilterBadge>{activeAdvancedFilterCount}</FilterBadge>
                         )}

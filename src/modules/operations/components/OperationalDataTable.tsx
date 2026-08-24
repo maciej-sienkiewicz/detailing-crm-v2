@@ -22,6 +22,7 @@ import { joinPiiName } from '@/common/pii';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
+import { useMediaQuery } from '@/common/hooks';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,10 @@ const ListWrap = styled.div`
 
     @media (max-width: 900px) {
         min-width: 0;
+        /* Kafelki są białe — tło listy musi być od nich ciemniejsze, inaczej
+           zaokrąglone rogi i odstępy nie są widoczne. */
+        background: ${st.bg};
+        padding: 2px 0;
     }
 `;
 
@@ -115,12 +120,24 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOp
         border-bottom: none;
     }
 
+    /* Na telefonie wiersz przestaje być wierszem tabeli i staje się kafelką:
+       przy dłuższej liście same linie rozdzielające zlewały się w jedno pasmo
+       i nie było widać, gdzie kończy się jedna wizyta, a zaczyna następna. */
     @media (max-width: 900px) {
         grid-template-columns: 1fr auto;
         grid-template-rows: auto auto auto;
         gap: 0 10px;
+        margin: 10px 12px;
         padding: 12px 14px 12px 17px;
         align-items: start;
+        background: ${st.bgCard};
+        border: 1px solid ${st.border};
+        border-radius: 12px;
+        /* Pasek statusu zostaje — tylko teraz obrysowuje róg kafelki. */
+        box-shadow: inset 3px 0 0 ${props => props.$accentColor}, 0 1px 2px rgba(15, 23, 42, 0.05);
+        animation: none;
+
+        &:last-child { border-bottom: 1px solid ${st.border}; }
 
         > :nth-child(1) { grid-column: 1; grid-row: 1; min-width: 0; }
         > :nth-child(2) { grid-column: 1; grid-row: 2; padding-top: 8px; margin-top: 8px; border-top: 1px solid ${st.border}; }
@@ -667,6 +684,14 @@ const CalendarIcon = () => (
     </svg>
 );
 
+const OpenIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
+);
+
 const DotsIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor">
         <circle cx="12" cy="5"  r="1.5" />
@@ -739,6 +764,13 @@ export const OperationalDataTable = ({
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
+    // Poniżej 900px wiersz zamienia się w kafelkę dotykową: cała jest jednym
+    // celem (otwarcie wizyty), więc odnośniki do profilu klienta i pojazdu
+    // w jej środku tylko przenoszą użytkownika tam, gdzie nie chciał trafić.
+    const isCompact = useMediaQuery('(max-width: 900px)');
+    // Rect wiersza, z którego otwarto menu — „Pokaż w kalendarzu" animuje
+    // przelot kafelki do siatki kalendarza i potrzebuje punktu startu.
+    const [menuRowRect, setMenuRowRect] = useState<DOMRect | null>(null);
     const [contextMenu, setContextMenu] = useState<{ op: Operation; x: number; y: number; sourceRect: DOMRect } | null>(null);
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; op: Operation | null }>({
@@ -842,6 +874,8 @@ export const OperationalDataTable = ({
             setOpenMenuId(null);
             closeDropdownPos();
         } else {
+            const row = (e.currentTarget as HTMLElement).closest('[data-op-row]');
+            setMenuRowRect(row ? row.getBoundingClientRect() : (e.currentTarget as HTMLElement).getBoundingClientRect());
             openDropdownPos(e);
             setOpenMenuId(id);
         }
@@ -944,6 +978,7 @@ export const OperationalDataTable = ({
                             return (
                                 <DataRow
                                     key={op.id}
+                                    data-op-row
                                     $accentColor={accentColor}
                                     $clickable={clickable}
                                     $menuOpen={openMenuId === op.id}
@@ -1060,8 +1095,10 @@ export const OperationalDataTable = ({
                                     <div>
                                         {op.vehicle ? (
                                             <VehicleNavBlock
-                                                $clickable={!!op.vehicleId}
-                                                onClick={op.vehicleId ? (e) => { e.stopPropagation(); navigate(`/vehicles/${op.vehicleId}`); } : undefined}
+                                                $clickable={!!op.vehicleId && !isCompact}
+                                                onClick={op.vehicleId && !isCompact
+                                                    ? (e) => { e.stopPropagation(); navigate(`/vehicles/${op.vehicleId}`); }
+                                                    : undefined}
                                             >
                                                 {op.vehicle.licensePlate && (
                                                     <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
@@ -1083,6 +1120,7 @@ export const OperationalDataTable = ({
                                             customerId={op.customerId}
                                             name={customerLabel}
                                             sub={op.customerPhone}
+                                            disableNavigation={isCompact}
                                         />
                                     </div>
 
@@ -1124,6 +1162,20 @@ export const OperationalDataTable = ({
 
                                         {!isDeleted && openMenuId === op.id && menuPos && createPortal(
                                             <DropdownMenu ref={dropdownMenuRef} style={menuStyle}>
+                                                {isVisit && (
+                                                    <DropdownItem onClick={() => { setOpenMenuId(null); navigate(`/visits/${op.id}`); }}>
+                                                        <OpenIcon />
+                                                        Otwórz wizytę
+                                                    </DropdownItem>
+                                                )}
+                                                <DropdownItem onClick={() => {
+                                                    setOpenMenuId(null);
+                                                    handleShowInCalendar(op, menuRowRect ?? new DOMRect());
+                                                }}>
+                                                    <CalendarIcon />
+                                                    Pokaż w kalendarzu
+                                                </DropdownItem>
+                                                <DropdownDivider />
                                                 {isReservationCreated && (
                                                     <>
                                                         <DropdownItem onClick={() => openChangeDate(op)}>

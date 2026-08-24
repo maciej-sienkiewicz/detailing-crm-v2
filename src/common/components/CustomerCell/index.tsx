@@ -36,15 +36,22 @@ interface CustomerCellProps {
   customerId?: string | null;
   name: string;
   sub?: string | null;
+  /**
+   * Wyłącza przejście do profilu klienta. Na liście dotykowej cała kafelka jest
+   * jednym celem — wejście w wizytę — a osobny odnośnik w jej środku znaczy
+   * tylko tyle, że trafia się nie tam, gdzie się chciało.
+   */
+  disableNavigation?: boolean;
 }
 
-export const CustomerCell: React.FC<CustomerCellProps> = ({ customerId, name, sub }) => {
+export const CustomerCell: React.FC<CustomerCellProps> = ({ customerId, name, sub, disableNavigation }) => {
   const navigate = useNavigate();
+  const clickable = !!customerId && !disableNavigation;
 
   return (
     <Block
-      $clickable={!!customerId}
-      onClick={customerId ? e => { e.stopPropagation(); navigate(`/customers/${customerId}`); } : undefined}
+      $clickable={clickable}
+      onClick={clickable ? e => { e.stopPropagation(); navigate(`/customers/${customerId}`); } : undefined}
     >
       <Name><PiiValue value={name} kind="name" /></Name>
       {sub && <Sub><PiiValue value={sub} kind="phone" /></Sub>}

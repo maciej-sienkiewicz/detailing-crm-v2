@@ -4,3 +4,4 @@ export { useLocalStorage } from './useLocalStorage';
 export { useVirtualKeyboard } from './useVirtualKeyboard';
 export { useVisualViewportSheet } from './useVisualViewportSheet';
 export { useModalViewport } from './useModalViewport';
+export { useMediaQuery } from './useMediaQuery';
