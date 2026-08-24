@@ -18,6 +18,7 @@ import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
 import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 import { useFeature, UpsellModal } from '@/modules/subscription';
 import { useVisualViewportSheet } from '@/common/hooks';
+import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
 
 const BRAND = '#0ea5e9';
 const BRAND_DARK = '#0284c7';
@@ -1574,9 +1575,12 @@ const DraftBar = styled.div`
     background: rgba(14, 165, 233, 0.05);
     border-top: 1px solid rgba(14, 165, 233, 0.18);
 
-    @media (max-width: 560px) {
+    @media (max-width: 767px) {
         flex-direction: column;
         align-items: flex-start;
+        /* Miejsce po schowanych paskach nawigacji zajmuje przypięty pasek akcji,
+           więc karta nie potrzebuje własnego zapasu na dole. */
+        padding-bottom: 12px;
     }
 `;
 
@@ -1606,13 +1610,31 @@ const DraftBarLabel = styled.label<{ $disabled?: boolean }>`
     }
 `;
 
+/**
+ * Na telefonie przyciski decyzji są przypięte do dolnej krawędzi ekranu: to
+ * jedyne wyjście z trybu edycji, więc nie mogą wymagać scrollowania. Oba dolne
+ * paski nawigacji chowają się na ten czas (useHideMobileChrome), więc pasek nie
+ * konkuruje z niczym o tę krawędź.
+ */
 const DraftBarActions = styled.div`
     display: flex;
     gap: 8px;
     flex-shrink: 0;
 
-    @media (max-width: 560px) {
-        width: 100%;
+    @media (max-width: 767px) {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1200;
+        width: auto;
+        gap: 10px;
+        padding: 10px max(14px, env(safe-area-inset-left, 0px))
+            calc(10px + env(safe-area-inset-bottom, 0px))
+            max(14px, env(safe-area-inset-right, 0px));
+        background: ${st.bgCard};
+        border-top: 1px solid rgba(14, 165, 233, 0.25);
+        box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.12);
     }
 `;
 
@@ -1620,7 +1642,7 @@ const DraftBarSmsWrap = styled.div`
     flex: 1;
     min-width: 0;
 
-    @media (max-width: 560px) {
+    @media (max-width: 767px) {
         width: 100%;
     }
 `;
@@ -1639,10 +1661,11 @@ const DiscardBtn = styled.button<{ $highlighting?: boolean }>`
     &:disabled { opacity: 0.4; cursor: not-allowed; }
     ${p => p.$highlighting && css`animation: ${discardBtnAttention} 550ms ease;`}
 
-    @media (max-width: 560px) {
+    @media (max-width: 767px) {
         flex: 1;
-        padding: 10px 14px;
+        padding: 12px 14px;
         font-size: 14px;
+        min-height: 46px;
     }
 `;
 
@@ -1667,10 +1690,11 @@ const AcceptBtn = styled.button<{ $highlighting?: boolean }>`
     &:disabled { opacity: 0.45; cursor: not-allowed; }
     ${p => p.$highlighting && css`animation: ${acceptBtnAttention} 550ms ease;`}
 
-    @media (max-width: 560px) {
+    @media (max-width: 767px) {
         flex: 1;
-        padding: 10px 14px;
+        padding: 12px 14px;
         font-size: 14px;
+        min-height: 46px;
     }
 `;
 
@@ -2259,6 +2283,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const bulkEligibleCount = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length;
 
     const colSpan = 1 + (pricesHidden ? 0 : 1) + (showActionsCol ? 1 : 0);
+
+    // W trybie edycji dolne paski nawigacji ustępują miejsca paskowi
+    // „Odrzuć / Zaakceptuj", który na telefonie jest przypięty do dołu ekranu.
+    useHideMobileChrome('visit-services-edit', isInEditMode);
 
     const editorService = editorId ? services.find(s => s.id === editorId) ?? null : null;
     useVisualViewportSheet(editorService !== null, editorOverlayRef);

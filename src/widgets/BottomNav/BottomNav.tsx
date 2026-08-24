@@ -7,6 +7,7 @@ import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { useUnreadMailCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
+import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 import { BOTTOM_NAV_HEIGHT } from './constants';
 
 // Dolny pasek nawigacji – wyłącznie mobile. Zamiast hamburgera przyklejonego
@@ -121,6 +122,9 @@ export const BottomNav = () => {
     const navigate = useNavigate();
     const { can } = usePermissions();
     const hasPiiAccess = usePiiAccess();
+    // Edycja z własnym paskiem akcji (np. wykaz usług w wizycie) chowa pasek,
+    // żeby przyciski zatwierdzenia nie konkurowały o dolną krawędź ekranu.
+    const chromeHidden = useMobileChromeHidden();
     const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
     // Bez dostępu do danych osobowych poczta i finanse są dla użytkownika puste
@@ -139,13 +143,7 @@ export const BottomNav = () => {
     const shortcuts = allShortcuts.filter(s => !s.requires || can(s.requires));
 
     return (
-        <Bar $isHidden={isMobileOpen} aria-label="Nawigacja główna">
-            <Item type="button" onClick={toggleMobileMenu} aria-expanded={isMobileOpen} aria-label="Otwórz pełne menu">
-                <IconWrap>
-                    <Menu aria-hidden="true" />
-                </IconWrap>
-                <Label>Menu</Label>
-            </Item>
+        <Bar $isHidden={isMobileOpen || chromeHidden} aria-label="Nawigacja główna">
             {shortcuts.map(({ path, label, icon: Icon, badge }) => {
                 const isActive = pathname === path || pathname.startsWith(`${path}/`);
                 return (
@@ -164,6 +162,12 @@ export const BottomNav = () => {
                     </Item>
                 );
             })}
+            <Item type="button" onClick={toggleMobileMenu} aria-expanded={isMobileOpen} aria-label="Otwórz pełne menu">
+                <IconWrap>
+                    <Menu aria-hidden="true" />
+                </IconWrap>
+                <Label>Menu</Label>
+            </Item>
         </Bar>
     );
 };

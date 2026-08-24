@@ -5,6 +5,7 @@ import { Sidebar } from '@/widgets/Sidebar';
 import { BottomNav, BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationContext';
+import { MobileChromeProvider } from '@/common/context/MobileChromeContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
 import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
 import { SessionTelemetryProvider } from '@/core/telemetry';
@@ -73,14 +74,16 @@ export const Layout = ({ children }: LayoutProps) => {
         <IdleTimeoutProvider>
             <SessionTelemetryProvider>
                 <CalendarNavigationProvider>
-                    <LayoutContainer>
-                        <Sidebar />
-                        <ContentWrapper $isCollapsed={isCollapsed}>
-                            {children}
-                            <RouteFlash key={`${pathname}-${flashKey}`} />
-                        </ContentWrapper>
-                    </LayoutContainer>
-                    <BottomNav />
+                    <MobileChromeProvider>
+                        <LayoutContainer>
+                            <Sidebar />
+                            <ContentWrapper $isCollapsed={isCollapsed}>
+                                {children}
+                                <RouteFlash key={`${pathname}-${flashKey}`} />
+                            </ContentWrapper>
+                        </LayoutContainer>
+                        <BottomNav />
+                    </MobileChromeProvider>
                     <CalendarNavigationOverlay />
                 </CalendarNavigationProvider>
             </SessionTelemetryProvider>

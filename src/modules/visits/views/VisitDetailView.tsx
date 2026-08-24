@@ -34,6 +34,7 @@ import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useVirtualKeyboard } from '@/common/hooks';
+import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 
 // ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
 const BRAND = '#0ea5e9';
@@ -755,6 +756,10 @@ export const VisitDetailView = () => {
 
     const { can } = usePermissions();
     const isKeyboardOpen = useVirtualKeyboard();
+    // Edycja wykazu usług ma własny pasek „Odrzuć / Zaakceptuj" przy dolnej
+    // krawędzi — zakładki sekcji na ten czas ustępują mu miejsca.
+    const chromeHidden = useMobileChromeHidden();
+    const navHidden = isKeyboardOpen || chromeHidden;
 
     const queryClient = useQueryClient();
     const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
@@ -1292,8 +1297,8 @@ export const VisitDetailView = () => {
         {createPortal(
             <MobileBottomNav
                 aria-label="Nawigacja sekcji wizyty"
-                $hidden={isKeyboardOpen}
-                aria-hidden={isKeyboardOpen || undefined}
+                $hidden={navHidden}
+                aria-hidden={navHidden || undefined}
             >
                 <MobileNavBtn $active={mobileTab === 'services'} onClick={() => handleMobileTabChange('services')} aria-label="Usługi">
                     <MobileNavIconWrap $active={mobileTab === 'services'}>
