@@ -7,6 +7,7 @@ import { useCreateService } from '@/modules/services/hooks/useServices';
 import type { VatRate } from '@/modules/services/types';
 import { VAT_OPTIONS } from '@/modules/services/vatOptions';
 import { useModalViewport } from '@/common/hooks';
+import { shouldAutoFocusInput } from '@/common/utils';
 import {
     Overlay,
     ModalContainer,
@@ -164,7 +165,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                 onChange={(e) => setServiceName(capitalizeFirst(e.target.value))}
                                 placeholder="np. Mycie i odkurzanie"
                                 $hasError={!!errors.name}
-                                autoFocus
+                                autoFocus={shouldAutoFocusInput()}
                             />
                             {errors.name && (
                                 <ErrorMessage>{errors.name}</ErrorMessage>

@@ -19,7 +19,10 @@ import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
  *  3. Chowa na telefonie oba dolne paski nawigacji. Leżą przy tej samej
  *     krawędzi co stopka okna i potrafiły ją zasłonić — a nawigacja pod
  *     otwartym oknem i tak jest nieklikalna.
- *  4. Wciska okno w widoczny obszar, gdy wyjedzie klawiatura ekranowa.
+ *  4. Wciska okno w widoczny obszar, gdy wyjedzie klawiatura ekranowa, i pilnuje,
+ *     żeby aktualnie edytowane pole zostało widoczne — po zmianie geometrii
+ *     ekranu pole potrafiło wylądować pod klawiaturą i trzeba było doscrollować
+ *     do miejsca, w którym się właśnie pisze.
  *     `position: fixed` rozlicza się względem layout viewportu, którego iOS
  *     nie skraca dla klawiatury (skraca visual viewport), więc wyśrodkowane
  *     pionowo okno chowa się za klawiaturą razem ze swoją stopką.
@@ -71,6 +74,39 @@ export const useModalViewport = (
 
         let frame = 0;
 
+        /**
+         * Pole, w którym użytkownik właśnie pisze, musi zostać widoczne.
+         *
+         * „Widoczne" to nie to samo co „w obrębie ekranu": okno ma własny obszar
+         * przewijania między nagłówkiem a stopką i pole potrafi wylądować pod
+         * przyciskami, formalnie mieszcząc się w pasmie widocznym mimo klawiatury.
+         * Liczymy więc część wspólną obszaru przewijania okna z tym pasmem, a
+         * przewijamy dopiero, gdy pole naprawdę z niej wypadło — inaczej
+         * wyrywalibyśmy widok komuś, kto przewija okno w trakcie pisania.
+         */
+        const revealFocusedField = () => {
+            const overlay = overlayRef.current;
+            const focused = document.activeElement as HTMLElement | null;
+            if (!overlay || !focused || !overlay.contains(focused)) return;
+
+            let top = vv.offsetTop;
+            let bottom = vv.offsetTop + vv.height;
+            for (let el = focused.parentElement; el && el !== overlay; el = el.parentElement) {
+                const style = window.getComputedStyle(el);
+                if (!/(auto|scroll)/.test(style.overflowY)) continue;
+                if (el.scrollHeight - el.clientHeight <= 1) continue;
+                const box = el.getBoundingClientRect();
+                top = Math.max(top, box.top);
+                bottom = Math.min(bottom, box.bottom);
+                break;
+            }
+
+            const rect = focused.getBoundingClientRect();
+            const MARGIN = 8;
+            if (rect.top >= top + MARGIN && rect.bottom <= bottom - MARGIN) return;
+            focused.scrollIntoView({ block: 'center', inline: 'nearest' });
+        };
+
         const apply = () => {
             const el = overlayRef.current;
             if (!el) return;
@@ -81,6 +117,7 @@ export const useModalViewport = (
                 el.style.paddingTop = `${vv.offsetTop + 12}px`;
                 el.style.paddingBottom = `${hiddenBelow + 12}px`;
                 el.style.overflowY = 'auto';
+                revealFocusedField();
             } else {
                 el.style.alignItems = '';
                 el.style.paddingTop = '';
@@ -99,13 +136,24 @@ export const useModalViewport = (
         // wymiary — domierz po jej ustaniu.
         const settle = [setTimeout(schedule, 150), setTimeout(schedule, 400)];
 
+        // Przejście między polami nie zmienia geometrii ekranu (klawiatura już
+        // stoi), więc samo `resize` by tego nie złapało.
+        let focusTimers: ReturnType<typeof setTimeout>[] = [];
+        const onFocusIn = () => {
+            focusTimers.forEach(clearTimeout);
+            focusTimers = [setTimeout(revealFocusedField, 60), setTimeout(revealFocusedField, 300)];
+        };
+
         vv.addEventListener('resize', schedule);
         vv.addEventListener('scroll', schedule);
+        document.addEventListener('focusin', onFocusIn);
         return () => {
             cancelAnimationFrame(frame);
             settle.forEach(clearTimeout);
+            focusTimers.forEach(clearTimeout);
             vv.removeEventListener('resize', schedule);
             vv.removeEventListener('scroll', schedule);
+            document.removeEventListener('focusin', onFocusIn);
         };
     }, [isOpen, overlayRef]);
 };

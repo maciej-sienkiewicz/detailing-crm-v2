@@ -12,6 +12,7 @@ import { applyAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { useModalViewport } from '@/common/hooks';
+import { shouldAutoFocusInput } from '@/common/utils';
 import * as S from './styles';
 
 const TYPE_LABELS: Record<AdjustmentType, string> = {
@@ -162,7 +163,7 @@ export const ServiceDiscountModal = ({
                                     if (e.key === 'Enter') submit();
                                     handleZeroAwareKeyDown(value, setValue)(e);
                                 }}
-                                autoFocus
+                                autoFocus={shouldAutoFocusInput()}
                             />
                             <S.ValueSuffix>{type === 'PERCENT' ? '%' : 'zł'}</S.ValueSuffix>
                         </S.ValueRow>

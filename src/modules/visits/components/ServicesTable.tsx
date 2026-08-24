@@ -4,7 +4,7 @@ import { useServicePricing } from '@/modules/appointments/hooks/useServicePricin
 import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, resolveBaseNet } from '@/common/utils/priceAdjustment';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
-import { formatCurrency } from '@/common/utils';
+import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
@@ -2292,6 +2292,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     // „Odrzuć / Zaakceptuj", który na telefonie jest przypięty do dołu ekranu.
     useHideMobileChrome('visit-services-edit', isInEditMode);
 
+    // Na telefonie okno nie zabiera focusu samo z siebie — klawiatura zasłoniłaby
+    // je, zanim użytkownik zdąży je zobaczyć.
+    const autoFocusFields = shouldAutoFocusInput();
+
     const editorService = editorId ? services.find(s => s.id === editorId) ?? null : null;
     useModalViewport(editorService !== null, editorOverlayRef);
     useModalViewport(bulkVatOpen, bulkVatOverlayRef);
@@ -2706,7 +2710,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                         <EditorField>
                                             <EditorFieldLabel>Brutto</EditorFieldLabel>
                                             <EditorPriceInput
-                                                type="text" inputMode="decimal" placeholder="0.00" autoFocus
+                                                type="text" inputMode="decimal" placeholder="0.00" autoFocus={autoFocusFields}
                                                 value={edGrossStr}
                                                 onChange={e => handleEdGrossChange(e.target.value)}
                                                 onKeyDown={e => {
@@ -2749,7 +2753,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             <EditorBareInput
                                                 type="text" inputMode="decimal"
                                                 placeholder="0"
-                                                autoFocus
+                                                autoFocus={autoFocusFields}
                                                 value={edDiscountValue}
                                                 onChange={e => handleEdDiscountValueChange(e.target.value)}
                                                 onKeyDown={e => {
@@ -2938,7 +2942,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     <DiscountSectionLabel>Wartość rabatu</DiscountSectionLabel>
                                     <DiscountValueRow>
                                         <DiscountValueInput
-                                            type="text" inputMode="decimal" placeholder="0" autoFocus
+                                            type="text" inputMode="decimal" placeholder="0" autoFocus={autoFocusFields}
                                             value={bulkDiscountValue}
                                             onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
                                             onKeyDown={handleZeroAwareKeyDown(bulkDiscountValue, setBulkDiscountValue)}

@@ -30,3 +30,5 @@ export {
     isNumeric,
     isAlphanumeric,
 } from './validators';
+
+export { shouldAutoFocusInput } from './autoFocus';

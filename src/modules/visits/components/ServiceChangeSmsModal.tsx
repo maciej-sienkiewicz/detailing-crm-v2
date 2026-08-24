@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { formatCurrency } from '@/common/utils';
+import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import { useModalViewport } from '@/common/hooks';
 import {
     CONSENT_CALL_TO_ACTION,
@@ -423,7 +423,7 @@ export const ServiceChangeSmsModal = ({
                                 onChange={e => handleChange(e.target.value)}
                                 onFocus={() => setFieldFocused(true)}
                                 onBlur={() => setFieldFocused(false)}
-                                autoFocus
+                                autoFocus={shouldAutoFocusInput()}
                             />
                             {suffix && (
                                 <LockedSuffix title="Tej frazy nie można edytować — dopisujemy ją zawsze na końcu">
