@@ -13,6 +13,7 @@ import {
 } from '@/common/components/ModalKit';
 import { FormField, FieldLabel, InputShellTextArea, BareTextArea } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
+import { Pill, PillRow } from './HandoverKit';
 
 /**
  * Zgodność stanu wizualnego — pytanie zadawane pracownikowi tuż przed wysłaniem
@@ -21,55 +22,10 @@ import { SharedButton } from '@/common/styles';
  * Kolejność ma znaczenie: odpowiedź trafia na dokument ZANIM klient go zobaczy na
  * tablecie czy telefonie. Inaczej podpisywałby pusty formularz, a zaznaczenie
  * dopisywałoby się do już podpisanego dokumentu — czyli do niczego.
+ *
+ * Wybór to te same pigułki, którymi arkusz wydania obsługuje każdy inny wybór
+ * (choćby formę zapłaty) — jedno pytanie nie zasługuje na własny język wizualny.
  */
-
-const Choices = styled.div`
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-`;
-
-const Choice = styled.button<{ $selected: boolean; $tone: 'yes' | 'no' }>`
-    flex: 1;
-    min-width: 200px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    font: inherit;
-    font-size: 13.5px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 150ms ease, background 150ms ease;
-
-    border: 1.5px solid ${p => {
-        if (!p.$selected) return p.theme.colors.border;
-        return p.$tone === 'yes' ? '#10b981' : '#f59e0b';
-    }};
-    background: ${p => {
-        if (!p.$selected) return p.theme.colors.surface;
-        return p.$tone === 'yes' ? '#ecfdf5' : '#fffbeb';
-    }};
-    color: ${p => (p.$selected ? p.theme.colors.text : p.theme.colors.textSecondary)};
-
-    &:hover { border-color: ${p => (p.$tone === 'yes' ? '#10b981' : '#f59e0b')}; }
-
-    svg { width: 16px; height: 16px; flex-shrink: 0; }
-`;
-
-const IconBadge = styled.span<{ $tone: 'yes' | 'no' }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    background: ${p => (p.$tone === 'yes' ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.16)')};
-    color: ${p => (p.$tone === 'yes' ? '#047857' : '#b45309')};
-`;
 
 const Body = styled.div`
     display: flex;
@@ -118,28 +74,26 @@ export const VisualConditionModal = ({
 
             <ModalContent>
                 <Body>
-                    <Choices>
-                        <Choice
+                    <PillRow>
+                        <Pill
                             type="button"
-                            $tone="yes"
                             $selected={match === true}
                             aria-pressed={match === true}
                             onClick={() => setMatch(true)}
                         >
-                            <IconBadge $tone="yes"><Check /></IconBadge>
+                            <Check />
                             Tak, stan zgodny z protokołem przyjęcia
-                        </Choice>
-                        <Choice
+                        </Pill>
+                        <Pill
                             type="button"
-                            $tone="no"
                             $selected={match === false}
                             aria-pressed={match === false}
                             onClick={() => setMatch(false)}
                         >
-                            <IconBadge $tone="no"><X /></IconBadge>
+                            <X />
                             Nie
-                        </Choice>
-                    </Choices>
+                        </Pill>
+                    </PillRow>
 
                     <FormField>
                         <FieldLabel htmlFor="visual-condition-remarks">
