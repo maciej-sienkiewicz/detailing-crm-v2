@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { LockedSection } from '@/common/components/LockedSection';
@@ -83,6 +83,7 @@ export const MessageTemplatesSection: React.FC = () => {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [openKey, setOpenKey] = useState<MessageKey | null>(null);
+  const closeDrawer = useCallback(() => setOpenKey(null), []);
 
   const activeCount = useMemo(() => {
     if (!draft) return 0;
@@ -202,7 +203,7 @@ export const MessageTemplatesSection: React.FC = () => {
           drafts={draft[openSpec.key]}
           initialChannel={openSpec.sms ? 'sms' : 'email'}
           onPatch={(channel, patch) => patchChannel(openSpec.key, channel, patch)}
-          onClose={() => setOpenKey(null)}
+          onClose={closeDrawer}
         />
       )}
 

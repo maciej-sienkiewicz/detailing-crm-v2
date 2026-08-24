@@ -119,18 +119,30 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
   const [channel, setChannel] = useState<Channel>(initialChannel);
   const panelRef = useRef<HTMLElement>(null);
 
+  // Focus i blokada przewijania tła — raz, przy otwarciu panelu.
+  //
+  // Wcześniej siedziały w jednym efekcie z obsługą Escape, zależnym od `onClose`.
+  // Rodzic przekazuje tam funkcję tworzoną w locie, więc każdy render (a render
+  // leci po KAŻDYM wpisanym znaku, bo treść szablonu jest stanem rodzica)
+  // uruchamiał efekt od nowa i przestawiał focus z pola na sam panel: znak
+  // wchodził jeden, a potem trzeba było klikać w pole ponownie.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panelRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  // Escape zamyka panel. Ten efekt może się przepinać przy zmianie `onClose` —
+  // podmiana nasłuchu jest niewidoczna dla użytkownika, w odróżnieniu od focusu.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    panelRef.current?.focus();
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
   const available = (['sms', 'email'] as Channel[]).filter(c => drafts[c]);
