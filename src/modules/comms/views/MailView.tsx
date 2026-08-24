@@ -42,7 +42,7 @@ import {
     useThreads,
 } from '../hooks/useComms';
 import type { CommThread } from '../types';
-import { ComposeMailModal } from '../components/ComposeMailModal';
+import { ComposePane } from '../components/ComposePane';
 import { ConversationView } from '../components/ConversationView';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
@@ -336,6 +336,7 @@ export default function MailView() {
     const selectThread = useCallback(
         (threadId: string | null) => {
             setFullMessageId(null);
+            setComposeOpen(false);
             setSearchParams(threadId ? { thread: threadId } : {}, { replace: true });
         },
         [setSearchParams]
@@ -423,6 +424,9 @@ export default function MailView() {
     // Otwartość rozmowy zależy od wyboru użytkownika, nie od stanu zapytania —
     // inaczej kolumny znikałyby i wracały przy każdym przełączeniu wątku.
     const conversationOpen = Boolean(selectedThreadId);
+    // Na telefonie kolumny wykluczają się nawzajem: lista albo prawa strona —
+    // a prawą stroną jest teraz albo rozmowa, albo pisanie nowej wiadomości.
+    const rightPaneOpen = conversationOpen || composeOpen;
     const fullMessage = openMessages?.find((message) => message.id === fullMessageId) ?? null;
 
     // Pierwsza synchronizacja w toku: jeden spokojny ekran zamiast listy, która
@@ -465,7 +469,7 @@ export default function MailView() {
     return (
         <Screen>
             <AppCard>
-                <ListPane $hiddenOnMobile={conversationOpen}>
+                <ListPane $hiddenOnMobile={rightPaneOpen}>
                     <ListHeader>
                         <SearchRow>
                             <SearchInput>
@@ -568,7 +572,15 @@ export default function MailView() {
                     </AccountFooter>
                 </ListPane>
 
-                {!openThread && (
+                {composeOpen && (
+                    <ComposePane
+                        hiddenOnMobile={false}
+                        isDesktop={isDesktop}
+                        onClose={() => setComposeOpen(false)}
+                    />
+                )}
+
+                {!composeOpen && !openThread && (
                     <ConversationEmptyPane $hiddenOnMobile={!conversationOpen}>
                         {conversationOpen ? (
                             // Wątek spoza bieżącej strony listy (np. z „wcześniejszych rozmów")
@@ -584,7 +596,7 @@ export default function MailView() {
                         )}
                     </ConversationEmptyPane>
                 )}
-                {openThread && (
+                {!composeOpen && openThread && (
                     <ConversationView
                         thread={openThread}
                         messages={openMessages}
@@ -597,8 +609,6 @@ export default function MailView() {
                         onDownloadAttachment={downloadAttachment}
                     />
                 )}
-
-                {composeOpen && <ComposeMailModal onClose={() => setComposeOpen(false)} />}
 
                 {fullMessage && (
                     <MessageReaderOverlay
