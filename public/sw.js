@@ -11,12 +11,15 @@
  *      - 'push'              → decrypted payload from the backend
  *                              (pl.detailing.crm.push.call.ClickToCallPayload)
  *                              → system notification with a "Zadzwoń" action.
- *      - 'notificationclick' → clients.openWindow('tel:+48...') — the tap on
- *                              the notification IS the user gesture browsers
- *                              require before handing off to the OS dialer.
- *                              Nothing here auto-dials: openWindow('tel:')
- *                              opens the dialer with the number pre-filled and
- *                              the human presses the green button.
+ *      - 'notificationclick' → opens /call?number=... inside the app.
+ *                              A Service Worker CANNOT open the dialer itself:
+ *                              Clients.openWindow() and WindowClient.navigate()
+ *                              reject any URL whose scheme is not HTTP(S), so
+ *                              openWindow('tel:...') silently rejects and the
+ *                              tap appears to do nothing. The handoff page is
+ *                              the only route to the dialer: it carries the
+ *                              notification's user activation into a normal
+ *                              document, which may navigate to tel:.
  *      - 'pushsubscriptionchange' → the browser rotated the subscription;
  *                              re-subscribe with the same VAPID key and
  *                              re-register server-side (cookie-authenticated).
@@ -101,7 +104,7 @@ self.addEventListener('push', event => {
                 { action: 'call', title: '📞 Zadzwoń' },
                 { action: 'dismiss', title: 'Odrzuć' },
             ],
-            data: { phoneNumber: payload.phoneNumber },
+            data: { phoneNumber: payload.phoneNumber, displayName: payload.displayName },
         })
     );
 });
@@ -110,15 +113,38 @@ self.addEventListener('notificationclick', event => {
     event.notification.close();
     if (event.action === 'dismiss') return;
 
-    const phoneNumber = event.notification.data && event.notification.data.phoneNumber;
-    if (!phoneNumber) return;
+    const data = event.notification.data || {};
+    if (!data.phoneNumber) return;
 
-    // Strip everything but digits and the leading '+' — a tel: URL must not
-    // contain spaces. This click is a user gesture, so the browser allows the
-    // scheme handoff to the system dialer.
-    const telUrl = 'tel:' + String(phoneNumber).replace(/[^+\d]/g, '');
+    // A tel: URL must not carry spaces or formatting.
+    const number = String(data.phoneNumber).replace(/[^+\d]/g, '');
 
-    event.waitUntil(clients.openWindow(telUrl));
+    // NOT clients.openWindow('tel:' + number): the spec restricts both
+    // openWindow() and WindowClient.navigate() to HTTP(S) schemes, so a tel:
+    // URL rejects the promise and the tap does nothing at all. We open an
+    // ordinary page in the app instead and let IT reach the dialer.
+    const target = new URL('/call', self.location.origin);
+    target.searchParams.set('number', number);
+    if (data.displayName) target.searchParams.set('name', data.displayName);
+
+    event.waitUntil((async () => {
+        // A fresh window keeps whatever the user had open intact.
+        const opened = await clients.openWindow(target.href).catch(() => null);
+        if (opened) return;
+
+        // Blocked (some browsers refuse a second window in standalone PWAs):
+        // fall back to steering a window that already exists.
+        const existing = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of existing) {
+            if ('navigate' in client) {
+                const navigated = await client.navigate(target.href).catch(() => null);
+                if (navigated) {
+                    if ('focus' in navigated) await navigated.focus().catch(() => {});
+                    return;
+                }
+            }
+        }
+    })());
 });
 
 self.addEventListener('pushsubscriptionchange', event => {
