@@ -1,6 +1,7 @@
 // src/common/hooks/useModalViewport.ts
 
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useId, type RefObject } from 'react';
+import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
 
 /**
  * Zachowanie okna modalnego, którego nie da się opisać samym CSS-em. Wyjęte
@@ -15,7 +16,10 @@ import { useEffect, type RefObject } from 'react';
  *     dokumentu jest kontenerem przewijania, więc samo wyciszenie <body> nic
  *     nie dawało. `overscroll-behavior` odcina jeszcze łańcuch przewijania
  *     z wnętrza okna na dokument.
- *  3. Wciska okno w widoczny obszar, gdy wyjedzie klawiatura ekranowa.
+ *  3. Chowa na telefonie oba dolne paski nawigacji. Leżą przy tej samej
+ *     krawędzi co stopka okna i potrafiły ją zasłonić — a nawigacja pod
+ *     otwartym oknem i tak jest nieklikalna.
+ *  4. Wciska okno w widoczny obszar, gdy wyjedzie klawiatura ekranowa.
  *     `position: fixed` rozlicza się względem layout viewportu, którego iOS
  *     nie skraca dla klawiatury (skraca visual viewport), więc wyśrodkowane
  *     pionowo okno chowa się za klawiaturą razem ze swoją stopką.
@@ -39,6 +43,8 @@ export const useModalViewport = (
         document.addEventListener('keydown', handleKey);
         return () => document.removeEventListener('keydown', handleKey);
     }, [isOpen, onClose]);
+
+    useHideMobileChrome(useId(), isOpen);
 
     useEffect(() => {
         if (!isOpen) return;
