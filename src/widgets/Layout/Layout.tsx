@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
@@ -62,6 +62,15 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
     const { isCollapsed } = useSidebar();
     const { pathname } = useLocation();
+
+    // Wejście na inny widok zaczyna się od jego góry. Bez tego przeglądarka
+    // zostawia pozycję przewinięcia z poprzedniej strony i np. karta klienta
+    // otwierała się w połowie — użytkownik musiał najpierw scrollować w górę,
+    // żeby zobaczyć, na co w ogóle patrzy. Zależność tylko od ścieżki, więc
+    // zmiana parametrów (zakładki, wątek poczty) niczego nie przewija.
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [pathname]);
     const keyRef = useRef(0);
     keyRef.current += 1;
     const flashKey = keyRef.current;

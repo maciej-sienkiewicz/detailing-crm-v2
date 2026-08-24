@@ -32,3 +32,5 @@ export {
 } from './validators';
 
 export { shouldAutoFocusInput } from './autoFocus';
+
+export { pluralPl } from './plural';

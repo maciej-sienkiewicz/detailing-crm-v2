@@ -122,6 +122,14 @@ const FilterTopRow = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-wrap: nowrap;
     }
+
+    /* Wyszukiwarka i filtry w jednym wierszu: pole bierze tyle, ile zostaje
+       po przycisku ikonowym. */
+    @media (max-width: 767px) {
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 12px 14px;
+    }
 `;
 
 const TabGroup = styled.div`
@@ -154,6 +162,11 @@ const TabBtn = styled.button<{ $active: boolean }>`
 
 const Spacer = styled.div`
     flex: 1;
+
+    /* Na telefonie to pole wyszukiwania ma zająć wolne miejsce, nie odstęp. */
+    @media (max-width: 767px) {
+        display: none;
+    }
 `;
 
 const SecondaryBtn = styled.button`
@@ -161,6 +174,7 @@ const SecondaryBtn = styled.button`
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
+    @media (max-width: 767px) { padding: 10px 12px; }
     background: #f1f5f9;
     color: #475569;
     border: 1.5px solid #e2e8f0;
@@ -179,6 +193,22 @@ const SecondaryBtn = styled.button`
     }
 
     svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
+/* Eksport to operacja biurkowa — plik i tak trafia na dysk, a na telefonie
+   przycisk tylko zabierał miejsce w wierszu filtrów. */
+const DesktopOnlyBtn = styled(SecondaryBtn)`
+    @media (max-width: 767px) {
+        display: none;
+    }
+`;
+
+/* Sama ikonka lejka mówi to samo co ikonka z napisem, a zwalnia miejsce,
+   żeby wyszukiwarka i filtry zmieściły się w jednym wierszu. */
+const SecondaryBtnLabel = styled.span`
+    @media (max-width: 767px) {
+        display: none;
+    }
 `;
 
 const FilterBadge = styled.span`
@@ -355,23 +385,27 @@ export const CustomerListView = () => {
                             onChange={handleSearchChange}
                         />
                         <Spacer />
-                        <SecondaryBtn onClick={() => setIsFilterPanelOpen(true)}>
+                        <SecondaryBtn
+                            onClick={() => setIsFilterPanelOpen(true)}
+                            aria-label="Filtry"
+                            title="Filtry"
+                        >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                             </svg>
-                            Filtry
+                            <SecondaryBtnLabel>Filtry</SecondaryBtnLabel>
                             {activeFilterCount > 0 && (
                                 <FilterBadge>{activeFilterCount}</FilterBadge>
                             )}
                         </SecondaryBtn>
-                        <SecondaryBtn onClick={() => setIsExportModalOpen(true)}>
+                        <DesktopOnlyBtn onClick={() => setIsExportModalOpen(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
                             Eksport
-                        </SecondaryBtn>
+                        </DesktopOnlyBtn>
                     </FilterTopRow>
                 </FilterBar>
 

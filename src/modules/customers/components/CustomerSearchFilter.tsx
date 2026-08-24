@@ -7,6 +7,12 @@ const SearchWrapper = styled.div`
     position: relative;
     flex: 1;
     min-width: 220px;
+
+    /* Na telefonie pole musi umieć się zwęzić, żeby zmieściło się w wierszu
+       obok przycisku filtrów. */
+    @media (max-width: 767px) {
+        min-width: 0;
+    }
 `;
 
 const SearchIconEl = styled.svg`

@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalViewport } from '@/common/hooks';
 import * as S from './ConfirmationModalStyles';
 
 const IconX = () => (
@@ -62,6 +63,11 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         return () => document.removeEventListener('keydown', handleKey);
     }, [isOpen, onCancel]);
 
+    // Blokada przewijania tła, chowanie dolnych pasków i układ przy wysuniętej
+    // klawiaturze — wspólne z ModalShell. Escape zostaje w efekcie wyżej.
+    const overlayRef = useRef<HTMLDivElement>(null);
+    useModalViewport(isOpen, overlayRef);
+
     if (!isOpen) return null;
 
     const icon = variant === 'danger'
@@ -71,7 +77,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             : <IconAlertTriangle />;
 
     return createPortal(
-        <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
+        <S.Overlay ref={overlayRef} $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
             <S.ModalContainer $isOpen={isOpen} $maxWidth="460px">
                 <S.Header>
                     <S.CloseButton type="button" onClick={onCancel} aria-label="Zamknij">
