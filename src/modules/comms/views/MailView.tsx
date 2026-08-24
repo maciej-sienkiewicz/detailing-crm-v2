@@ -329,7 +329,10 @@ export default function MailView() {
     const [page, setPage] = useState(0);
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [fullMessageId, setFullMessageId] = useState<string | null>(null);
-    const [composeOpen, setComposeOpen] = useState(false);
+    // „Napisz do tego klienta" z innego widoku: ?compose=1&to=adres otwiera
+    // nową wiadomość z wpisanym odbiorcą zamiast pustej skrzynki.
+    const composeTo = searchParams.get('to');
+    const [composeOpen, setComposeOpen] = useState(() => searchParams.get('compose') === '1');
     const { showInfo } = useToast();
 
     const selectedThreadId = searchParams.get('thread');
@@ -341,6 +344,15 @@ export default function MailView() {
         },
         [setSearchParams]
     );
+
+    // Zamknięcie czyści parametry, żeby odświeżenie strony nie otwierało
+    // formularza po raz drugi.
+    const closeCompose = useCallback(() => {
+        setComposeOpen(false);
+        if (searchParams.get('compose') || searchParams.get('to')) {
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const { data: accounts } = useMailAccounts();
     const mailboxSync = useMailboxSyncState();
@@ -576,7 +588,8 @@ export default function MailView() {
                     <ComposePane
                         hiddenOnMobile={false}
                         isDesktop={isDesktop}
-                        onClose={() => setComposeOpen(false)}
+                        initialTo={composeTo ?? undefined}
+                        onClose={closeCompose}
                     />
                 )}
 

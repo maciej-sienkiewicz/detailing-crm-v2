@@ -20,6 +20,7 @@ import { EditCustomerModal } from '../components/EditCustomerModal';
 import { AddVehicleModal } from '../components/AddVehicleModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
+import { SendSmsModal } from '../components/SendSmsModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
@@ -282,6 +283,26 @@ const HeroMetaItem = styled.span`
     svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
 `;
 
+/**
+ * Telefon i e-mail w nagłówku to nie etykiety, tylko skróty do kontaktu:
+ * numer wybiera połączenie, adres otwiera nową wiadomość z wpisanym odbiorcą.
+ */
+const HeroMetaAction = styled(HeroMetaItem).attrs({ as: 'button', type: 'button' })`
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    margin: -2px -6px;
+    border-radius: ${st.radiusFull};
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background ${st.transition}, color ${st.transition};
+
+    &:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+    &:hover svg { opacity: 1; }
+`;
+
 
 const HeroRight = styled.div`
     display: flex;
@@ -372,6 +393,7 @@ const HeroKebabItem = styled.button<{ $danger?: boolean }>`
 
     &:last-child { border-bottom: none; }
     &:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
     svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
 `;
 
@@ -435,6 +457,7 @@ export const CustomerDetailView = () => {
     // Karta klienta jest długa — na telefonie dzielimy ją na trzy sekcje
     // przełączane paskiem przy dolnej krawędzi, tak jak kartę wizyty.
     const [mobileTab, setMobileTab] = useState<CustomerMobileTab>('visits');
+    const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteCustomer = useDeleteCustomer();
     const [isKebabOpen,  setIsKebabOpen]  = useState(false);
@@ -565,21 +588,27 @@ export const CustomerDetailView = () => {
                                 <HeroName><PiiValue value={fullName} kind="name" /></HeroName>
                                 <HeroMetaRow>
                                     {customer.contact.phone && (
-                                        <HeroMetaItem>
+                                        <HeroMetaAction
+                                            onClick={() => { window.location.href = `tel:${customer.contact.phone!.replace(/[^+\d]/g, '')}`; }}
+                                            title="Zadzwoń do klienta"
+                                        >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
                                             </svg>
                                             <PiiValue value={customer.contact.phone} kind="phone" />
-                                        </HeroMetaItem>
+                                        </HeroMetaAction>
                                     )}
                                     {customer.contact.email && (
-                                        <HeroMetaItem>
+                                        <HeroMetaAction
+                                            onClick={() => navigate(`/communication?compose=1&to=${encodeURIComponent(customer.contact.email!)}`)}
+                                            title="Napisz wiadomość"
+                                        >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <rect x="2" y="4" width="20" height="16" rx="2"/>
                                                 <path d="M2 7l10 7 10-7"/>
                                             </svg>
                                             <PiiValue value={customer.contact.email} kind="email" />
-                                        </HeroMetaItem>
+                                        </HeroMetaAction>
                                     )}
                                     <HeroMetaItem>
                                         ID: {customer.id.slice(0, 8).toUpperCase()}
@@ -647,7 +676,11 @@ export const CustomerDetailView = () => {
                             </svg>
                             Edytuj dane
                         </HeroKebabItem>
-                        <HeroKebabItem onClick={() => { setIsKebabOpen(false); }}>
+                        <HeroKebabItem
+                            disabled={!customer.contact.phone}
+                            title={customer.contact.phone ? undefined : 'Ten klient nie ma zapisanego numeru telefonu'}
+                            onClick={() => { setIsKebabOpen(false); setIsSmsModalOpen(true); }}
+                        >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
@@ -1200,6 +1233,15 @@ export const CustomerDetailView = () => {
                     x={reservationMenu.x}
                     y={reservationMenu.y}
                     onClose={() => setReservationMenu(null)}
+                />
+            )}
+
+            {isSmsModalOpen && customer.contact.phone && (
+                <SendSmsModal
+                    customerId={customerId!}
+                    customerName={fullName}
+                    phone={customer.contact.phone}
+                    onClose={() => setIsSmsModalOpen(false)}
                 />
             )}
 
