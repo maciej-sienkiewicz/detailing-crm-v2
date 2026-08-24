@@ -5,18 +5,25 @@ import type { Customer } from '../types';
 import { formatDate, formatPhoneNumber, getFullName, formatCurrency } from '../utils/customerMappers';
 import { pluralPl } from '@/common/utils';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 
+/* Kafelka mówi tym samym językiem co lista wizyt: biała karta, cienki obrys,
+   delikatne uniesienie. Klient nie ma statusu, którego kolor musiałby pilnować,
+   więc karta nie potrzebuje kolorowego paska — akcent zostaje dla rzeczy,
+   które faktycznie coś znaczą (numer telefonu jako akcja). */
 const Card = styled.article`
-  background: ${props => props.theme.colors.surface};
-  border-radius: ${props => props.theme.radii.lg};
-  border-left: 4px solid var(--brand-primary);
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: 12px;
   padding: ${props => props.theme.spacing.md};
-  transition: box-shadow 0.2s ease;
+  box-shadow: ${st.shadowXs};
+  transition: box-shadow ${st.transition}, border-color ${st.transition};
   cursor: pointer;
 
   &:hover {
-    box-shadow: ${props => props.theme.shadows.md};
+    border-color: ${st.borderHover};
+    box-shadow: ${st.shadowSm};
   }
 `;
 
@@ -30,24 +37,34 @@ const CardHeader = styled.header`
 const CustomerName = styled.h3`
   margin: 0;
   font-size: ${props => props.theme.fontSizes.md};
-  font-weight: 600;
-  color: ${props => props.theme.colors.text};
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: ${st.text};
 `;
 
 const CompanyName = styled.span`
   display: block;
   font-size: ${props => props.theme.fontSizes.xs};
-  color: ${props => props.theme.colors.textMuted};
+  color: ${st.textMuted};
   margin-top: 2px;
 `;
 
+/* Liczba pojazdów to metadana, nie ostrzeżenie — stonowana pigułka jak
+   pozostałe znaczniki w aplikacji, zamiast pełnego wypełnienia marką. */
 const VehicleBadge = styled.span`
-  background: var(--brand-primary);
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: ${st.bgCardAlt};
+  color: ${st.textSecondary};
+  border: 1px solid ${st.border};
   font-size: ${props => props.theme.fontSizes.xs};
-  padding: 2px 8px;
-  border-radius: ${props => props.theme.radii.full};
-  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: ${st.radiusFull};
+  font-weight: 600;
+  white-space: nowrap;
+
+  svg { width: 12px; height: 12px; color: ${st.textMuted}; }
 `;
 
 const ContactInfo = styled.div`
@@ -57,7 +74,7 @@ const ContactInfo = styled.div`
     gap: 4px;
     margin-bottom: ${props => props.theme.spacing.sm};
     font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
+    color: ${st.textSecondary};
 `;
 
 /* Numer telefonu na telefonie to nie napis, tylko akcja: stąd własny przycisk
@@ -73,12 +90,12 @@ const PhoneBtn = styled.button`
     border-radius: ${props => props.theme.radii.full};
     font-family: inherit;
     font-size: inherit;
-    color: var(--brand-primary);
+    color: ${st.accentBlue};
     font-weight: 600;
     cursor: pointer;
 
     svg { width: 13px; height: 13px; }
-    &:active { background: rgba(14, 165, 233, 0.1); }
+    &:active { background: ${st.accentBlueDim}; }
 `;
 
 const StatsGrid = styled.div`
@@ -86,7 +103,7 @@ const StatsGrid = styled.div`
   grid-template-columns: repeat(2, 1fr);
   gap: ${props => props.theme.spacing.xs};
   padding-top: ${props => props.theme.spacing.sm};
-  border-top: 1px solid ${props => props.theme.colors.border};
+  border-top: 1px solid ${st.border};
 `;
 
 const StatItem = styled.div`
@@ -96,13 +113,13 @@ const StatItem = styled.div`
 
 const StatLabel = styled.span`
   font-size: ${props => props.theme.fontSizes.xs};
-  color: ${props => props.theme.colors.textMuted};
+  color: ${st.textMuted};
 `;
 
 const StatValue = styled.span`
   font-size: ${props => props.theme.fontSizes.sm};
-  font-weight: 500;
-  color: ${props => props.theme.colors.text};
+  font-weight: 600;
+  color: ${st.text};
 `;
 
 const StatValueRight = styled(StatValue)`
@@ -136,6 +153,11 @@ export const CustomerCard = ({ customer }: CustomerCardProps) => {
                     )}
                 </div>
                 <VehicleBadge>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+                        <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
+                        <circle cx="7.5" cy="17" r="1.5" />
+                        <circle cx="16.5" cy="17" r="1.5" />
+                    </svg>
                     {customer.vehicleCount} {pluralPl(customer.vehicleCount, 'pojazd', 'pojazdy', 'pojazdów')}
                 </VehicleBadge>
             </CardHeader>
