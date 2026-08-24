@@ -7,6 +7,11 @@
          viewport instead of sliding it, so position:fixed chrome (mobile bottom nav,
          modal footers) stays glued to the bottom edge while typing. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <!-- PWA: manifest + icons are REQUIRED for iOS Web Push — Safari only allows
+         push subscriptions from a PWA installed via "Add to Home Screen". -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>automotive-crm</title>
   </head>
   <body>
