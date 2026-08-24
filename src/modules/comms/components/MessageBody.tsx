@@ -81,7 +81,8 @@ const ScrollArea = styled.div<{ $clamped: boolean; $maxHeight: number }>`
         `
         max-height: ${$maxHeight}px;
         overflow-y: auto;
-        overscroll-behavior: contain;
+        /* Bez domykania overscrollu: po dojechaniu do końca wiadomości ruch ma
+           płynnie przejść na listę wątku (patrz chainScroll). */
         -webkit-overflow-scrolling: touch;
     `}
 
@@ -211,6 +212,30 @@ const PURIFY_CONFIG = {
 const sanitize = (html: string): string => DOMPurify.sanitize(html, PURIFY_CONFIG) as string;
 
 /** Wysokości zmierzonych ramek — klucz: id wiadomości + stan cytatu. */
+/**
+ * Najbliższy przodek, który faktycznie ma co przewijać w danym kierunku.
+ * Potrzebny, bo scroll domykamy ręcznie: kółko myszy nad ramką maila trafia do
+ * dokumentu iframe'a i nie bąbelkuje do naszego drzewa DOM.
+ */
+const scrollableAncestor = (from: HTMLElement | null, delta: number): HTMLElement | null => {
+    for (let el = from; el && el !== document.body; el = el.parentElement) {
+        const style = window.getComputedStyle(el);
+        if (!/(auto|scroll|overlay)/.test(style.overflowY)) continue;
+        const room = delta > 0
+            ? el.scrollHeight - el.clientHeight - el.scrollTop
+            : el.scrollTop;
+        if (room > 1) return el;
+    }
+    return null;
+};
+
+/** Kółko myszy w pikselach — Firefox potrafi raportować linie albo strony. */
+const wheelPixels = (event: WheelEvent): number => {
+    if (event.deltaMode === 1) return event.deltaY * 16;
+    if (event.deltaMode === 2) return event.deltaY * window.innerHeight;
+    return event.deltaY;
+};
+
 const heightCache = new Map<string, number>();
 const HEIGHT_CACHE_LIMIT = 400;
 
@@ -245,7 +270,34 @@ export function MessageBody({
     compactGraphical = false,
 }: MessageBodyProps) {
     const frameRef = useRef<HTMLIFrameElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const [quotedShown, setQuotedShown] = useState(false);
+
+    /**
+     * Przewija najpierw samą wiadomość, a resztę ruchu oddaje liście wątku.
+     * Bez tego po dojechaniu do końca maila trzeba było wyprowadzić kursor poza
+     * ramkę i zacząć przewijać od nowa — przeglądarka zatrzaskuje gest na
+     * wewnętrznym kontenerze i nie przechodzi z nim na sekcję nadrzędną.
+     */
+    const handleWheel = useCallback((event: WheelEvent) => {
+        const area = scrollRef.current;
+        // Nic do przewinięcia w środku (wiadomość mieści się w całości) — niech
+        // zdarzenie poleci naturalnie do sekcji nadrzędnej.
+        if (event.ctrlKey || !area || area.scrollHeight - area.clientHeight <= 1) return;
+        event.preventDefault();
+        const deltaY = wheelPixels(event);
+        if (deltaY === 0) return;
+        const room = deltaY > 0
+            ? area.scrollHeight - area.clientHeight - area.scrollTop
+            : area.scrollTop;
+        const consumed = deltaY > 0 ? Math.min(deltaY, room) : Math.max(deltaY, -room);
+        if (consumed !== 0) area.scrollTop += consumed;
+        const rest = deltaY - consumed;
+        if (rest === 0) return;
+        const outer = scrollableAncestor(area.parentElement, rest);
+        if (outer) outer.scrollTop += rest;
+        else window.scrollBy(0, rest);
+    }, []);
 
     const { mainHtml, quotedHtml } = useMemo(() => {
         const split = collapseQuoted ? splitQuotedHistory(html) : { mainHtml: html, quotedHtml: null };
@@ -297,6 +349,10 @@ export function MessageBody({
         // Zapasowe pomiary dla treści, których obserwator nie złapie (webfonty).
         const timers = [120, 400, 1200].map((delay) => window.setTimeout(measure, delay));
 
+        // Kółko nad ramką obsługuje dokument iframe'a i nie dociera do nas —
+        // przechwytujemy je tam i przewijamy łańcuchem: wiadomość → lista wątku.
+        doc.addEventListener('wheel', handleWheel, { passive: false });
+
         (frame as HTMLIFrameElement & { __cleanup?: () => void }).__cleanup = () => {
             observer.disconnect();
             images.forEach((image) => {
@@ -304,13 +360,22 @@ export function MessageBody({
                 image.removeEventListener('error', measure);
             });
             timers.forEach(window.clearTimeout);
+            doc.removeEventListener('wheel', handleWheel);
         };
-    }, [measure]);
+    }, [measure, handleWheel]);
 
     useEffect(() => {
         const frame = frameRef.current as (HTMLIFrameElement & { __cleanup?: () => void }) | null;
         return () => frame?.__cleanup?.();
     }, [documentHtml]);
+
+    // React montuje onWheel jako listener pasywny, więc listener natywny.
+    useEffect(() => {
+        const area = scrollRef.current;
+        if (!area) return;
+        area.addEventListener('wheel', handleWheel, { passive: false });
+        return () => area.removeEventListener('wheel', handleWheel);
+    }, [handleWheel]);
 
     const quoteToggle = quotedHtml && (
         <QuoteToggle
@@ -368,7 +433,7 @@ export function MessageBody({
 
     return (
         <Root>
-            <ScrollArea $clamped={clamped} $maxHeight={maxHeight ?? 0}>
+            <ScrollArea ref={scrollRef} $clamped={clamped} $maxHeight={maxHeight ?? 0}>
                 <Frame
                     ref={frameRef}
                     $ready={height > 0}
