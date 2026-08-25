@@ -514,6 +514,39 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }
     };
 
+    /**
+     * Telefon: wybór godziny z paska. Przełącznik „Wizyta całodniowa" jest tam
+     * ukryty, więc bez tego nie dało się w ogóle ustawić godziny — a to pierwsza
+     * rzecz, którą ustala się z klientem przez telefon („na którą?").
+     */
+    const applyTimeSlot = (time: string, durationMinutes: number) => {
+        const base = startDateTime || new Date().toISOString();
+        const date = base.split('T')[0];
+        const [h, m] = time.split(':').map(Number);
+        const start = new Date(`${date}T00:00:00`);
+        start.setHours(h, m, 0, 0);
+        const end = new Date(start.getTime() + durationMinutes * 60_000);
+        setIsAllDay(false);
+        setStartDateTime(formatDateTimeLocal(start));
+        setEndDateTime(formatDateTimeLocal(end));
+        setErrors(prev => {
+            const next = { ...prev };
+            delete next.startDateTime;
+            delete next.endDateTime;
+            return next;
+        });
+    };
+
+    /** Godzina rozpoczęcia w formacie „HH:MM" albo null przy wizycie całodniowej. */
+    const selectedTime = !isAllDay && startDateTime.includes('T')
+        ? startDateTime.split('T')[1].slice(0, 5)
+        : null;
+
+    /** Długość wizyty w minutach — do podświetlenia właściwej pigułki. */
+    const durationMinutes = (!isAllDay && startDateTime && endDateTime)
+        ? Math.max(0, Math.round((new Date(endDateTime).getTime() - new Date(startDateTime).getTime()) / 60_000))
+        : null;
+
     const validateForm = (): { [key: string]: string } => {
         const newErrors: { [key: string]: string } = {};
 
@@ -953,6 +986,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         startDateTime, setStartDateTime,
         endDateTime, setEndDateTime,
         isAllDay,
+        applyTimeSlot,
+        selectedTime,
+        durationMinutes,
         notes, setNotes,
         doorToDoor, setDoorToDoor,
         selectedColorId, setSelectedColorId,
