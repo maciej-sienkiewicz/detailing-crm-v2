@@ -670,11 +670,20 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         return errs;
     };
 
-    const handleAddNewCustomerDirectly = (options?: { silent?: boolean; skipContactValidation?: boolean }): boolean => {
-        const fn = customerFirstName.trim();
-        const ln = customerLastName.trim();
-        const ph = customerFullPhone;
-        const em = customerEmail.trim();
+    const handleAddNewCustomerDirectly = (options?: {
+        silent?: boolean;
+        skipContactValidation?: boolean;
+        /**
+         * Dane wprost od wywołującego. Arkusz „Nowy klient" na telefonie ustawia
+         * pola formularza i od razu zapisuje klienta — stan Reacta nie zdążyłby
+         * się jeszcze przerysować, więc pracujemy na przekazanych wartościach.
+         */
+        values?: { firstName: string; lastName: string; phone: string; email: string };
+    }): boolean => {
+        const fn = (options?.values?.firstName ?? customerFirstName).trim();
+        const ln = (options?.values?.lastName ?? customerLastName).trim();
+        const ph = options?.values ? options.values.phone.trim() : customerFullPhone;
+        const em = (options?.values?.email ?? customerEmail).trim();
         if (!fn && !ln && !ph && !em) return false;
         if (!options?.skipContactValidation) {
             const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);

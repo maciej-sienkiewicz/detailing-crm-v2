@@ -13,6 +13,8 @@ import { Toggle } from '@/common/components/Toggle';
 import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
+import { MobileNewCustomerSheet, type NewCustomerDraft } from './MobileNewCustomerSheet';
+import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServicesTable } from '@/common/components/ServicesTable';
@@ -31,6 +33,16 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
+
+/** Podpis nad polem koloru — ten sam język co etykiety w arkuszu przyjęcia. */
+const MobileColorLabel = styled.div`
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
 
 const SmsCheckList = styled.div`
     display: flex;
@@ -250,6 +262,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showAdvanced, setShowAdvanced] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
+    // Telefon: „Dodaj nowego klienta" otwiera formularz zamiast zapisywać od razu.
+    const [newCustomerDraft, setNewCustomerDraft] = useState<NewCustomerDraft | null>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
     const customerSheetInputRef = useRef<HTMLDivElement>(null);
 
@@ -1075,11 +1089,20 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     type="button"
                                                                     onMouseDown={(e) => e.preventDefault()}
                                                                     onClick={() => {
-                                                                        // The sheet has no phone/email field, add the customer using
-                                                                        // whatever name was typed (skipping contact validation).
-                                                                        // If nothing was typed we just close: the phone/email inputs
-                                                                        // are always on screen behind the sheet.
-                                                                        form.handleAddNewCustomerDirectly({ skipContactValidation: true });
+                                                                        // Zamiast zapisywać klienta z samym imieniem wpisanym
+                                                                        // w wyszukiwarkę, otwieramy formularz z kompletem pól.
+                                                                        // To, co wpisano, dzielimy na imię i nazwisko.
+                                                                        const typed = form.customerFirstName.trim();
+                                                                        const spaceAt = typed.indexOf(' ');
+                                                                        setNewCustomerDraft({
+                                                                            firstName: spaceAt > 0 ? typed.slice(0, spaceAt) : typed,
+                                                                            lastName: spaceAt > 0
+                                                                                ? typed.slice(spaceAt + 1).trim()
+                                                                                : form.customerLastName.trim(),
+                                                                            phonePrefix: form.customerPhonePrefix || '+48',
+                                                                            phone: form.customerPhone,
+                                                                            email: form.customerEmail,
+                                                                        });
                                                                         form.setShowCustomerDropdown(false);
                                                                         form.setFocusedField(null);
                                                                     }}
@@ -1817,10 +1840,39 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             </>
                             )} {/* end advanced sections */}
 
+                            {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
+                            {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
+                                w kółko o średnicy 18 px i nie mówił, co znaczy który
+                                kolor. Na telefonie to zwykłe pole formularza — takie
+                                samo jak w arkuszu przyjęcia pojazdu. */}
+                            {isMobile && (
+                                <>
+                                    <S.Divider />
+                                    <S.Row>
+                                        <S.IconWrapper>
+                                            <IconPalette />
+                                        </S.IconWrapper>
+                                        <S.RowContent>
+                                            <MobileColorLabel>Kolor w kalendarzu</MobileColorLabel>
+                                            <ColorDropdown
+                                                colors={form.appointmentColors}
+                                                value={form.selectedColorId ?? ''}
+                                                onChange={(id) => form.setSelectedColorId(id)}
+                                                onAddColor={() => form.setIsQuickColorModalOpen(true)}
+                                            />
+                                            {form.errors.color && (
+                                                <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>
+                                            )}
+                                        </S.RowContent>
+                                    </S.Row>
+                                </>
+                            )}
+
                         </S.ScrollableContent>
 
                         {/* ── Footer ─────────────────────────────────────────────── */}
                         <S.Footer>
+                            {!isMobile && (
                             <S.ColorPickerWrapper>
                                 <S.ColorPickerSection ref={form.colorSectionRef} $hasError={!!form.errors.color}>
                                     <IconPalette />
@@ -1861,6 +1913,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.ColorPickerSection>
                                 {form.errors.color && <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>}
                             </S.ColorPickerWrapper>
+                            )}
 
                             {colorPanelOpen && createPortal(
                                 <>
@@ -1954,6 +2007,31 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onClose={() => form.setIsQuickColorModalOpen(false)}
                 onColorCreate={form.handleQuickColorCreate}
             />
+
+            {newCustomerDraft && (
+                <MobileNewCustomerSheet
+                    initial={newCustomerDraft}
+                    onCancel={() => setNewCustomerDraft(null)}
+                    onConfirm={(draft) => {
+                        form.setCustomerFirstName(draft.firstName);
+                        form.setCustomerLastName(draft.lastName);
+                        form.setCustomerPhonePrefix(draft.phonePrefix);
+                        form.setCustomerPhone(draft.phone);
+                        form.setCustomerEmail(draft.email);
+                        setNewCustomerDraft(null);
+                        // Stany są asynchroniczne, więc zapis klienta wykonujemy na
+                        // wartościach z formularza, nie czekając na przerysowanie.
+                        form.handleAddNewCustomerDirectly({
+                            values: {
+                                firstName: draft.firstName,
+                                lastName: draft.lastName,
+                                phone: draft.phone.trim() ? `${draft.phonePrefix.trim()} ${draft.phone.trim()}` : '',
+                                email: draft.email,
+                            },
+                        });
+                    }}
+                />
+            )}
 
             {upsellOpen && <UpsellModal feature="SMS_EMAIL" onClose={() => setUpsellOpen(false)} />}
 
