@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
 import { VisitNumberingSection } from '../components/VisitNumberingSection';
@@ -136,6 +137,12 @@ const Page = styled.div`
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    min-width: 0;
+
+    @media (max-width: 900px) {
+        gap: 14px;
+        padding: 14px 12px 40px;
+    }
 `;
 
 const GridMain = styled.div`
@@ -143,14 +150,84 @@ const GridMain = styled.div`
     grid-template-columns: 232px 1fr;
     gap: 22px;
     align-items: flex-start;
+
+    /* Na telefonie stała szyna 232px zostawiała treści ~130px — sekcja robiła
+       się nieczytelna. Nawigacja chowa się wtedy pod przyciskiem, a treść
+       dostaje całą szerokość ekranu. */
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
 `;
 
-const Nav = styled.nav`
+const Nav = styled.nav<{ $openOnMobile?: boolean }>`
     position: sticky;
     top: 16px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    min-width: 0;
+
+    @media (max-width: 900px) {
+        position: static;
+        display: ${p => p.$openOnMobile ? 'flex' : 'none'};
+        gap: 10px;
+        padding: 10px;
+        background: ${st.bgCard};
+        border: 1px solid ${st.border};
+        border-radius: 12px;
+        box-shadow: ${st.shadowSm};
+    }
+`;
+
+/**
+ * Przełącznik nawigacji na telefonie: pokazuje, gdzie jesteś, i rozwija listę
+ * pozostałych sekcji. Na desktopie niepotrzebny — tam lista stoi obok treści.
+ */
+const NavToggle = styled.button<{ $open: boolean }>`
+    display: none;
+
+    @media (max-width: 900px) {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 14px;
+        background: ${st.bgCard};
+        border: 1px solid ${st.border};
+        border-radius: 12px;
+        box-shadow: ${st.shadowXs};
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        color: ${st.text};
+        cursor: pointer;
+        text-align: left;
+
+        svg { flex-shrink: 0; }
+    }
+`;
+
+const NavToggleLabel = styled.span`
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const NavToggleGroup = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${st.textMuted};
+`;
+
+const NavToggleChevron = styled.svg<{ $open: boolean }>`
+    width: 16px;
+    height: 16px;
+    color: ${st.textMuted};
+    transition: transform 180ms ease;
+    transform: rotate(${p => p.$open ? 180 : 0}deg);
 `;
 
 const NavGroupEl = styled.div`
@@ -209,6 +286,14 @@ const Content = styled.main`
     display: flex;
     flex-direction: column;
     gap: 18px;
+
+    /* Treść sekcji bierze całą szerokość ekranu — szerokie tabele i siatki
+       przewijają się w swoim kontenerze, nie rozpychają strony. */
+    @media (max-width: 900px) {
+        gap: 12px;
+        max-width: 100%;
+        overflow-x: clip;
+    }
 `;
 
 const HeaderActionWrap = styled.div`
@@ -312,8 +397,12 @@ export function SettingsView() {
         (alias?.view ?? searchParams.get(TEAM_VIEW_PARAM)) === 'roles' ? 'roles' : 'employees';
 
     const [helpOpen, setHelpOpen] = useState(false);
+    // Lista sekcji na telefonie startuje zwinięta: wchodzisz w ustawienia po to,
+    // żeby coś ustawić, a nie żeby patrzeć na spis treści.
+    const [navOpen, setNavOpen] = useState(false);
 
     const goToSection = useCallback((next: SectionId, view?: TeamSubView) => {
+        setNavOpen(false);
         setSearchParams(prev => {
             const params = new URLSearchParams(prev);
             params.set('tab', next);
@@ -326,6 +415,7 @@ export function SettingsView() {
     const activeGroup = visibleNavGroups.find(g => g.items.some(i => i.id === section))?.group ?? '';
     const activeLabel = visibleNavGroups.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
     const activeHelp  = SECTION_HELP[section] ?? null;
+    const activeIcon  = visibleNavGroups.flatMap(g => g.items).find(i => i.id === section)?.icon ?? null;
 
     let content: React.ReactNode;
     if (section === 'company') {
@@ -384,7 +474,24 @@ export function SettingsView() {
             />
 
             <GridMain>
-                <Nav>
+                <NavToggle
+                    type="button"
+                    $open={navOpen}
+                    onClick={() => setNavOpen(open => !open)}
+                    aria-expanded={navOpen}
+                    aria-label={navOpen ? 'Ukryj listę sekcji' : 'Pokaż listę sekcji'}
+                >
+                    {activeIcon}
+                    <NavToggleLabel>
+                        {activeLabel}
+                        {activeGroup && <NavToggleGroup> · {activeGroup}</NavToggleGroup>}
+                    </NavToggleLabel>
+                    <NavToggleChevron $open={navOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </NavToggleChevron>
+                </NavToggle>
+
+                <Nav $openOnMobile={navOpen}>
                     {visibleNavGroups.map(g => (
                         <NavGroupEl key={g.group}>
                             <NavTitle>{g.group}</NavTitle>

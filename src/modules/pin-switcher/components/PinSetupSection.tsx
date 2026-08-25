@@ -19,6 +19,14 @@ const Header = styled.div`
     display: flex;
     align-items: center;
     gap: 14px;
+
+    /* Na telefonie ikona, opis i status w jednym rzędzie zostawiały opisowi
+       ~190px — plakietka statusu schodzi wtedy pod tekst. */
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px 12px;
+    }
 `;
 
 const IconBox = styled.div`
@@ -35,6 +43,9 @@ const IconBox = styled.div`
 
 const HeaderText = styled.div`
     flex: 1;
+    min-width: 0;
+
+    @media (max-width: 640px) { flex: 1 1 200px; }
 `;
 
 const CardTitle = styled.h3`
@@ -52,6 +63,8 @@ const CardDesc = styled.p`
 `;
 
 const StatusPill = styled.span<{ $configured: boolean }>`
+    flex-shrink: 0;
+
     display: inline-flex;
     align-items: center;
     gap: 6px;

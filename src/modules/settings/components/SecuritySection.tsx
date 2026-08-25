@@ -56,6 +56,7 @@ const CardDesc = styled.p`
 const Row = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
     flex-wrap: wrap;
 `;

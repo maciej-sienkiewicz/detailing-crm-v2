@@ -206,6 +206,9 @@ const ListHeader = styled.div`
     padding: 10px 20px;
     border-bottom: 1px solid #f1f5f9;
     background: #fafbfc;
+
+    /* Wiersze są na telefonie kafelkami — nagłówek kolumn nie ma czego opisywać. */
+    @media (max-width: 900px) { display: none; }
 `;
 
 const SkeletonRow = styled.div`
@@ -216,6 +219,11 @@ const SkeletonRow = styled.div`
     padding: 16px 20px;
     border-bottom: 1px solid #f1f5f9;
     &:last-child { border-bottom: none; }
+
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr) 120px;
+        padding: 14px;
+    }
 `;
 
 const Row = styled.div`
@@ -226,6 +234,20 @@ const Row = styled.div`
     padding: 12px 20px;
     border-bottom: 1px solid #f1f5f9;
     &:last-child { border-bottom: none; }
+
+    /* Na telefonie urządzenie czyta się jako kafelka: nazwa i status w pierwszym
+       rzędzie, data parowania niżej, akcje na końcu. */
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 10px;
+        padding: 12px 14px;
+        align-items: start;
+
+        > :nth-child(1) { grid-column: 1; grid-row: 1; }
+        > :nth-child(3) { grid-column: 2; grid-row: 1; justify-self: end; }
+        > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+        > :nth-child(4) { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
+    }
 `;
 
 const NameCell = styled.div`

@@ -261,6 +261,9 @@ const ListHeader = styled.div`
     padding: 10px 20px;
     border-bottom: 1px solid #f1f5f9;
     background: #fafbfc;
+
+    /* Wiersze są na telefonie kafelkami — nagłówek kolumn nie ma czego opisywać. */
+    @media (max-width: 900px) { display: none; }
 `;
 
 const SkeletonRow = styled.div`
@@ -271,6 +274,11 @@ const SkeletonRow = styled.div`
     padding: 16px 20px;
     border-bottom: 1px solid #f1f5f9;
     &:last-child { border-bottom: none; }
+
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr) 110px;
+        padding: 14px;
+    }
 `;
 
 const Row = styled.div`
@@ -284,6 +292,20 @@ const Row = styled.div`
     transition: background 150ms;
     &:last-child { border-bottom: none; }
     &:hover { background: #fafbfc; }
+
+    /* Cztery kolumny nie mieszczą się na telefonie: pracownik czyta się wtedy
+       jako kafelka — nazwisko z rolą, pod nimi kontakt i status konta. */
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 10px;
+        padding: 12px 14px;
+        align-items: start;
+
+        > :nth-child(1) { grid-column: 1; grid-row: 1; }
+        > :nth-child(3) { grid-column: 2; grid-row: 1; justify-self: end; }
+        > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+        > :nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
+    }
 `;
 
 const NameCell = styled.div`

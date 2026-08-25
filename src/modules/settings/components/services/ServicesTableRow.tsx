@@ -134,6 +134,21 @@ const Row = styled.div`
 
     &:last-child { border-bottom: none; }
     &:hover { background: #fafbfc; }
+
+    /* Pięć kolumn nie mieści się na telefonie — wiersz czyta się wtedy jako
+       kafelka: nazwa z VAT-em, pod nią cena, status i akcje w jednym rzędzie. */
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 10px;
+        padding: 12px 14px;
+        align-items: start;
+
+        > :nth-child(1) { grid-column: 1; grid-row: 1; }
+        > :nth-child(2) { grid-column: 2; grid-row: 1; justify-self: end; }
+        > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; align-items: flex-start; text-align: left; }
+        > :nth-child(4) { grid-column: 1; grid-row: 3; }
+        > :nth-child(5) { grid-column: 2; grid-row: 3; justify-self: end; }
+    }
 `;
 
 const NameCell = styled.div`

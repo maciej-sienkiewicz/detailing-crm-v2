@@ -242,6 +242,10 @@ const FormRow = styled.div`
   grid-template-columns: 1fr 1fr 100px;
   gap: 12px;
   align-items: flex-start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 const FormField = styled.div`
@@ -432,6 +436,9 @@ const ListHeader = styled.div`
   padding: 10px 20px;
   border-bottom: 1px solid #f1f5f9;
   background: #fafbfc;
+
+  /* Wiersze są na telefonie kafelkami, więc nagłówek kolumn nie ma czego opisywać. */
+  @media (max-width: 900px) { display: none; }
 `;
 
 const ColLabel = styled.span`
@@ -462,6 +469,11 @@ const SkeletonRow = styled.div`
   border-bottom: 1px solid #f1f5f9;
 
   &:last-child { border-bottom: none; }
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    padding: 14px;
+  }
 `;
 
 // ─── Empty state ───────────────────────────────────────────────────────────────────────────
