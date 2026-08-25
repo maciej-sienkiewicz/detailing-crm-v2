@@ -9,6 +9,8 @@ import { StatsChart } from '../components/StatsChart';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
 import { StatsNav } from '../components/StatsNav';
+import { StatsMobileOverview } from '../components/StatsMobileOverview';
+import { useMediaQuery } from '@/common/hooks';
 import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
 import { useBreakdown, useCategoryStats } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
@@ -66,6 +68,44 @@ const ChartArea = styled.div<{ $fading: boolean }>`
     pointer-events: ${p => p.$fading ? 'none' : 'auto'};
 `;
 
+const ManageToggle = styled.button<{ $open: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 13px 16px;
+    background: #fff;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: ${p => (p.$open ? st.text : st.textSecondary)};
+    text-align: left;
+    cursor: pointer;
+`;
+
+const ManageChevron = styled.svg<{ $open: boolean }>`
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: ${st.textMuted};
+    transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
+    transition: transform 0.18s ease;
+`;
+
+const ManageHint = styled.div`
+    padding: 10px 14px;
+    background: ${st.bgAccentAmber};
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    border-radius: ${st.radiusSm};
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #92400E;
+`;
+
 const InactiveBadge = styled.span`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
@@ -107,6 +147,11 @@ export const StatisticsView = () => {
     const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('ALL');
     const [catDragOver, setCatDragOver] = useState<string | null>(null);
     const [ctxMenu, setCtxMenu] = useState<ServiceCtxMenu | null>(null);
+    const isMobile = useMediaQuery('(max-width: 639px)');
+    // Zarządzanie kategoriami na telefonie jest schowane: to praca warsztatowa
+    // (przypisz usługę, popraw nazwę), a nie powód, dla którego ktoś zagląda
+    // w statystyki z telefonu.
+    const [manageOpen, setManageOpen] = useState(false);
 
     const {
         breakdown,
@@ -320,7 +365,22 @@ export const StatisticsView = () => {
                     </ClearFilterBtn>
                 </SelectedCategoryBanner>
 
-                {displayData && (
+                {displayData && isMobile && (
+                    <ChartArea $fading={chartFetching || (chartInitialLoading && !chartData)}>
+                        <StatsMobileOverview
+                            chart={<StatsChart data={displayData.data} onBarClick={setDrillPeriod} />}
+                            points={displayData.data}
+                            totals={displayData.totals}
+                            granularity={granularity}
+                            categories={breakdown?.categories ?? []}
+                            unassigned={breakdown?.unassignedServices ?? []}
+                            selectedCategoryId={selectedCategoryId}
+                            onSelectCategory={setSelectedCategoryId}
+                        />
+                    </ChartArea>
+                )}
+
+                {displayData && !isMobile && (
                     <ChartArea $fading={chartFetching || (chartInitialLoading && !chartData)}>
                         <KpiRow>
                             <KpiCard $accent="#10B981">
@@ -361,11 +421,29 @@ export const StatisticsView = () => {
 
             {/* ── Breakdown section ─────────────────────────── */}
             <Section>
-                <SectionHeading>
-                    <SectionTitle>Podział według kategorii</SectionTitle>
-                    <SectionRule />
-                </SectionHeading>
+                {isMobile ? (
+                    <ManageToggle onClick={() => setManageOpen(v => !v)} $open={manageOpen}>
+                        <span>Zarządzanie kategoriami i usługami</span>
+                        <ManageChevron $open={manageOpen} viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="6 9 12 15 18 9" />
+                        </ManageChevron>
+                    </ManageToggle>
+                ) : (
+                    <SectionHeading>
+                        <SectionTitle>Podział według kategorii</SectionTitle>
+                        <SectionRule />
+                    </SectionHeading>
+                )}
 
+                {isMobile && manageOpen && (
+                    <ManageHint>
+                        Przypisywanie usług przeciąganiem działa na komputerze — tutaj użyj menu ⋮ w wierszu usługi.
+                    </ManageHint>
+                )}
+
+                {(!isMobile || manageOpen) && (
+                <>
                 <TablesHeaderRow>
                     {/* LEFT header */}
                     <TableColumnHeader>
@@ -472,8 +550,9 @@ export const StatisticsView = () => {
                     <TableColumn>
                         {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
-                                ⚠ {unassignedCount} usług bez kategorii, przeciągnij na wybraną kategorię po lewej
-                                lub użyj menu ⋮ w wierszu.
+                                {isMobile
+                                    ? `⚠ ${unassignedCount} usług bez kategorii — przypisz je menu ⋮ w wierszu.`
+                                    : `⚠ ${unassignedCount} usług bez kategorii, przeciągnij na wybraną kategorię po lewej lub użyj menu ⋮ w wierszu.`}
                             </DragHint>
                         )}
 
@@ -533,6 +612,8 @@ export const StatisticsView = () => {
                         </ItemsTable>
                     </TableColumn>
                 </TablesGrid>
+                </>
+                )}
             </Section>
 
             <CategoryFormModal

@@ -28,6 +28,18 @@ const FilterRow = styled.div`
     &:not(:last-child) {
         border-bottom: 1px solid ${st.border};
     }
+
+    /* Telefon: podpis „Grupowanie" i zawijanie do dwóch rzędów zjadały pół
+       ekranu, zanim pokazała się pierwsza liczba. Zostaje jeden przewijalny
+       rząd pigułek. */
+    @media (max-width: 639px) {
+        gap: 8px;
+        padding: 8px 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+    }
 `;
 
 const FilterLabel = styled.span`
@@ -38,6 +50,8 @@ const FilterLabel = styled.span`
     letter-spacing: 0.7px;
     white-space: nowrap;
     min-width: 88px;
+
+    @media (max-width: 639px) { display: none; }
 `;
 
 // ─── Chip buttons ─────────────────────────────────────────────────────────────
@@ -46,6 +60,8 @@ const ChipGroup = styled.div`
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
+
+    @media (max-width: 639px) { flex-wrap: nowrap; }
 `;
 
 const Chip = styled.button<{ $active: boolean; $disabled?: boolean }>`
