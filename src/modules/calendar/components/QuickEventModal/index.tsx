@@ -13,7 +13,7 @@ import { Toggle } from '@/common/components/Toggle';
 import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
-import { MobileNewCustomerSheet, type NewCustomerDraft } from './MobileNewCustomerSheet';
+import { NewCustomerSheet, type NewCustomerDraft } from './NewCustomerSheet';
 import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
@@ -248,7 +248,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // żeby pierwszy render nie pokazał układu dla komputera.
     const [isMobile, setIsMobile] = useState(() =>
         typeof window !== 'undefined' && window.innerWidth < 640);
-    const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData, deferNewCustomerOnBlur: isMobile });
+    const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData, deferNewCustomerOnBlur: true });
     const queryClient = useQueryClient();
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
@@ -266,7 +266,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showAdvanced, setShowAdvanced] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
-    // Telefon: „Dodaj nowego klienta" otwiera formularz zamiast zapisywać od razu.
+    // „Dodaj nowego klienta" otwiera formularz zamiast zapisywać od razu.
     const [newCustomerDraft, setNewCustomerDraft] = useState<NewCustomerDraft | null>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
     const customerSheetInputRef = useRef<HTMLDivElement>(null);
@@ -402,6 +402,23 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, []);
+
+    /**
+     * „Dodaj nowego klienta" — jedno pole wyszukiwania nie zbiera telefonu ani
+     * maila, więc zamiast zapisywać klienta z samym nazwiskiem otwieramy krótki
+     * formularz. To, co wpisano w wyszukiwarkę, dzielimy na imię i nazwisko.
+     */
+    const openNewCustomerForm = useCallback(() => {
+        const typed = form.customerFirstName.trim();
+        const spaceAt = typed.indexOf(' ');
+        setNewCustomerDraft({
+            firstName: spaceAt > 0 ? typed.slice(0, spaceAt) : typed,
+            lastName: spaceAt > 0 ? typed.slice(spaceAt + 1).trim() : form.customerLastName.trim(),
+            phonePrefix: form.customerPhonePrefix || '+48',
+            phone: form.customerPhone,
+            email: form.customerEmail,
+        });
+    }, [form.customerFirstName, form.customerLastName, form.customerPhonePrefix, form.customerPhone, form.customerEmail]);
 
     // Reset mobile-specific state when modal closes
     useEffect(() => {
@@ -844,134 +861,34 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         /* ── stan: brak klienta, formularz wyszukiwania ── */
                                         <>
                                             <S.CustomerHint>
-                                                {isMobile
-                                                    ? 'Wyszukaj klienta albo dodaj nowego'
-                                                    : 'Wyszukaj istniejącego klienta lub wypełnij pola, aby dodać nowego'}
+                                                Wyszukaj klienta albo dodaj nowego
                                             </S.CustomerHint>
                                             <S.DropdownContainer ref={customerDropdownContainerRef}>
-                                                {isMobile ? (
-                                                    /* Telefon: cztery pola kazały decydować, od czego zacząć —
-                                                       a i tak każde z nich robiło to samo, czyli szukało klienta.
-                                                       Zostaje jedno pole; komplet danych zbiera arkusz
-                                                       „Nowy klient", a poprawia go ołówek przy wybranym kliencie. */
-                                                    <S.CustomerSearchField
-                                                        $focused={form.focusedField === 'customer'}
-                                                        $hasError={!!form.errors.customer}
-                                                    >
-                                                        <IconSearch />
-                                                        <S.CustomerSearchInput
-                                                            ref={form.customerInputRef}
-                                                            type="text"
-                                                            placeholder="Wyszukaj klienta..."
-                                                            value={form.customerFirstName}
-                                                            onChange={(e) => {
-                                                                form.setCustomerFirstName(e.target.value);
-                                                                form.setShowCustomerDropdown(true);
-                                                            }}
-                                                            onFocus={form.handleCustomerFieldFocus}
-                                                            onBlur={form.handleCustomerFieldBlur}
-                                                            autoComplete="new-password"
-                                                            enterKeyHint="search"
-                                                        />
-                                                    </S.CustomerSearchField>
-                                                ) : (
-                                                <S.CustomerInputBlock
+                                                {/* Cztery pola — imię, nazwisko, telefon, e-mail — kazały wybrać,
+                                                    od czego zacząć, choć każde z nich robiło to samo: szukało
+                                                    klienta po wpisanym tekście. Zostaje jedno pole; komplet
+                                                    danych zbiera formularz „Nowy klient", a poprawia je ołówek
+                                                    przy wybranym kliencie. */}
+                                                <S.CustomerSearchField
                                                     $focused={form.focusedField === 'customer'}
-                                                    $hasError={!!(form.errors.customer || form.errors.customerFirstName || form.errors.customerLastName || form.errors.customerPhone || form.errors.customerEmail)}
-                                                    $dropdownOpen={!isMobile && form.showCustomerDropdown}
+                                                    $hasError={!!form.errors.customer}
                                                 >
-                                                    <S.CustomerInputRow>
-                                                        <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerFirstName}>
-                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerFirstName}>Imię</S.CustomerFieldLabel>
-                                                            <S.CustomerFieldInput
-                                                                ref={form.customerInputRef}
-                                                                type="text"
-                                                                placeholder="Jan"
-                                                                value={form.customerFirstName}
-                                                                onChange={(e) => {
-                                                                    form.setCustomerFirstName(e.target.value);
-                                                                    form.setShowCustomerDropdown(true);
-                                                                }}
-                                                                onFocus={form.handleCustomerFieldFocus}
-                                                                onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="new-password"
-                                                                $hasError={!!form.errors.customerFirstName}
-                                                            />
-                                                        </S.CustomerFieldGroup>
-                                                        <S.CustomerFieldGroup $hasError={!!form.errors.customerLastName}>
-                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerLastName}>Nazwisko</S.CustomerFieldLabel>
-                                                            <S.CustomerFieldInput
-                                                                ref={form.customerLastNameInputRef}
-                                                                type="text"
-                                                                placeholder="Kowalski"
-                                                                value={form.customerLastName}
-                                                                onChange={(e) => {
-                                                                    form.setCustomerLastName(e.target.value);
-                                                                    form.setShowCustomerDropdown(true);
-                                                                }}
-                                                                onFocus={form.handleCustomerFieldFocus}
-                                                                onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="new-password"
-                                                                $hasError={!!form.errors.customerLastName}
-                                                            />
-                                                        </S.CustomerFieldGroup>
-                                                    </S.CustomerInputRow>
-
-                                                    {/* Phone + email: always visible, on every viewport */}
-                                                    <S.CustomerInputRow>
-                                                            <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
-                                                                <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
-                                                                <S.PhoneInputRow>
-                                                                    <S.PhonePrefixInput
-                                                                        ref={form.customerPhonePrefixRef}
-                                                                        type="text"
-                                                                        placeholder="+48"
-                                                                        value={form.customerPhonePrefix}
-                                                                        onChange={(e) => {
-                                                                            form.setCustomerPhonePrefix(e.target.value);
-                                                                            form.setShowCustomerDropdown(true);
-                                                                        }}
-                                                                        onFocus={form.handleCustomerFieldFocus}
-                                                                        onBlur={form.handleCustomerFieldBlur}
-                                                                        autoComplete="new-password"
-                                                                        $hasError={!!form.errors.customerPhone}
-                                                                    />
-                                                                    <S.CustomerFieldInput
-                                                                        ref={form.customerPhoneInputRef}
-                                                                        type="tel"
-                                                                        placeholder="123 456 789"
-                                                                        value={form.customerPhone}
-                                                                        onChange={(e) => {
-                                                                            form.setCustomerPhone(form.formatPhone(e.target.value));
-                                                                            form.setShowCustomerDropdown(true);
-                                                                        }}
-                                                                        onFocus={form.handleCustomerFieldFocus}
-                                                                        onBlur={form.handleCustomerFieldBlur}
-                                                                        autoComplete="new-password"
-                                                                        $hasError={!!form.errors.customerPhone}
-                                                                    />
-                                                                </S.PhoneInputRow>
-                                                            </S.CustomerFieldGroup>
-                                                            <S.CustomerFieldGroup $hasError={!!form.errors.customerEmail}>
-                                                                <S.CustomerFieldLabel $hasError={!!form.errors.customerEmail}>E-mail</S.CustomerFieldLabel>
-                                                                <S.CustomerFieldInput
-                                                                    ref={form.customerEmailInputRef}
-                                                                    type="email"
-                                                                    placeholder="jan@example.com"
-                                                                    value={form.customerEmail}
-                                                                    onChange={(e) => {
-                                                                        form.setCustomerEmail(e.target.value);
-                                                                        form.setShowCustomerDropdown(true);
-                                                                    }}
-                                                                    onFocus={form.handleCustomerFieldFocus}
-                                                                    onBlur={form.handleCustomerFieldBlur}
-                                                                    autoComplete="new-password"
-                                                                    $hasError={!!form.errors.customerEmail}
-                                                                />
-                                                            </S.CustomerFieldGroup>
-                                                    </S.CustomerInputRow>
-                                                </S.CustomerInputBlock>
-                                                )}
+                                                    <IconSearch />
+                                                    <S.CustomerSearchInput
+                                                        ref={form.customerInputRef}
+                                                        type="text"
+                                                        placeholder="Wyszukaj klienta..."
+                                                        value={form.customerFirstName}
+                                                        onChange={(e) => {
+                                                            form.setCustomerFirstName(e.target.value);
+                                                            form.setShowCustomerDropdown(true);
+                                                        }}
+                                                        onFocus={form.handleCustomerFieldFocus}
+                                                        onBlur={form.handleCustomerFieldBlur}
+                                                        autoComplete="new-password"
+                                                        enterKeyHint="search"
+                                                    />
+                                                </S.CustomerSearchField>
 
                                                 {/* Desktop portal dropdown */}
                                                 {!isMobile && form.showCustomerDropdown && customerDropdownPos && createPortal(
@@ -1020,7 +937,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             type="button"
                                                             onMouseDown={(e) => e.preventDefault()}
                                                             onClick={() => {
-                                                                form.handleAddNewCustomerDirectly();
+                                                                openNewCustomerForm();
+                                                                form.setShowCustomerDropdown(false);
                                                                 form.setFocusedField(null);
                                                             }}
                                                         >
@@ -1122,20 +1040,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     type="button"
                                                                     onMouseDown={(e) => e.preventDefault()}
                                                                     onClick={() => {
-                                                                        // Zamiast zapisywać klienta z samym imieniem wpisanym
-                                                                        // w wyszukiwarkę, otwieramy formularz z kompletem pól.
-                                                                        // To, co wpisano, dzielimy na imię i nazwisko.
-                                                                        const typed = form.customerFirstName.trim();
-                                                                        const spaceAt = typed.indexOf(' ');
-                                                                        setNewCustomerDraft({
-                                                                            firstName: spaceAt > 0 ? typed.slice(0, spaceAt) : typed,
-                                                                            lastName: spaceAt > 0
-                                                                                ? typed.slice(spaceAt + 1).trim()
-                                                                                : form.customerLastName.trim(),
-                                                                            phonePrefix: form.customerPhonePrefix || '+48',
-                                                                            phone: form.customerPhone,
-                                                                            email: form.customerEmail,
-                                                                        });
+                                                                        openNewCustomerForm();
                                                                         form.setShowCustomerDropdown(false);
                                                                         form.setFocusedField(null);
                                                                     }}
@@ -2042,7 +1947,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             />
 
             {newCustomerDraft && (
-                <MobileNewCustomerSheet
+                <NewCustomerSheet
+                    isMobile={isMobile}
                     initial={newCustomerDraft}
                     onCancel={() => setNewCustomerDraft(null)}
                     onConfirm={(draft) => {

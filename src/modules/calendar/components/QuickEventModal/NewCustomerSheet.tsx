@@ -1,9 +1,10 @@
-// src/modules/calendar/components/QuickEventModal/MobileNewCustomerSheet.tsx
+// src/modules/calendar/components/QuickEventModal/NewCustomerSheet.tsx
 //
-// „Dodaj nowego klienta" na telefonie zapisywało klienta od razu, z samym
-// imieniem wpisanym w wyszukiwarkę — bez telefonu i maila, czyli bez czegokolwiek,
-// czym można go później zawiadomić o wizycie. Zamiast tego pokazujemy krótki
-// formularz: cztery pola, „Zatwierdź" i „X" na wycofanie się z operacji.
+// „Dodaj nowego klienta" zapisywało klienta od razu, z samym imieniem wpisanym
+// w wyszukiwarkę — bez telefonu i maila, czyli bez czegokolwiek, czym można go
+// później zawiadomić o wizycie. Zamiast tego pokazujemy krótki formularz:
+// cztery pola, „Zatwierdź" i „X" na wycofanie się z operacji.
+// Na telefonie to arkusz przy dolnej krawędzi, na komputerze okno na środku.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -20,12 +21,14 @@ export interface NewCustomerDraft {
 }
 
 interface Props {
+    /** Telefon dostaje arkusz przyklejony do klawiatury, komputer zwykłe okno. */
+    isMobile: boolean;
     initial: NewCustomerDraft;
     onCancel: () => void;
     onConfirm: (draft: NewCustomerDraft) => void;
 }
 
-export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) => {
+export const NewCustomerSheet = ({ isMobile, initial, onCancel, onConfirm }: Props) => {
     const [firstName, setFirstName] = useState(initial.firstName);
     const [lastName, setLastName] = useState(initial.lastName);
     const [phonePrefix, setPhonePrefix] = useState(initial.phonePrefix || '+48');
@@ -34,7 +37,9 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
     const [touched, setTouched] = useState(false);
 
     const sheetRef = useRef<HTMLDivElement>(null);
-    useVisualViewportSheet(true, sheetRef);
+    // Hak przykleja arkusz do widocznego pasa nad klawiaturą — na komputerze
+    // nadpisywałby wyśrodkowanie okna i wypychał nagłówek poza ekran.
+    useVisualViewportSheet(isMobile, sheetRef);
 
     // Escape zamyka arkusz tak samo jak „X" — na tablecie z klawiaturą to odruch.
     useEffect(() => {
@@ -57,9 +62,9 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
 
     return createPortal(
         <>
-            <S.MobileSheetBackdrop onClick={onCancel} />
-            <S.MobileBottomSheet ref={sheetRef} role="dialog" aria-label="Nowy klient">
-                <S.MobileSheetHandle />
+            <Backdrop onClick={onCancel} />
+            <Sheet ref={sheetRef} role="dialog" aria-label="Nowy klient">
+                <SheetHandle />
                 <S.MobileSheetTitle>
                     <span>Nowy klient</span>
                     <S.MobileSheetClose type="button" aria-label="Anuluj dodawanie klienta" onClick={onCancel}>
@@ -143,13 +148,37 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
                     <GhostBtn type="button" onClick={onCancel}>Anuluj</GhostBtn>
                     <PrimaryBtn type="button" onClick={submit} disabled={!canSubmit}>Zatwierdź</PrimaryBtn>
                 </Footer>
-            </S.MobileBottomSheet>
+            </Sheet>
         </>,
         document.body,
     );
 };
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
+
+const Backdrop = styled(S.MobileSheetBackdrop)`
+    @media (min-width: 640px) {
+        background: rgba(15, 23, 42, 0.35);
+    }
+`;
+
+/* Na komputerze arkusz przestaje być arkuszem: zwykłe okno na środku, szerokie
+   na tyle, żeby cztery pola nie rozjechały się przez pół ekranu. */
+const Sheet = styled(S.MobileBottomSheet)`
+    @media (min-width: 640px) {
+        top: 50%;
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translate(-50%, -50%);
+        width: 420px;
+        max-height: min(560px, 90vh);
+        border-radius: 16px;
+        padding-top: 0;
+        overflow: hidden;
+        animation: none;
+    }
+`;
 
 const Body = styled.div`
     flex: 1;
@@ -160,6 +189,10 @@ const Body = styled.div`
     display: flex;
     flex-direction: column;
     gap: 12px;
+`;
+
+const SheetHandle = styled(S.MobileSheetHandle)`
+    @media (min-width: 640px) { display: none; }
 `;
 
 const Field = styled.div`
