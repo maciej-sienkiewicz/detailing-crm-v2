@@ -730,7 +730,10 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
         {selectedLabel ? (
           <span>{selectedLabel}</span>
         ) : (
-          <Placeholder $compact={compact}>{disabled ? 'Wybierz markę' : placeholder}</Placeholder>
+          // Bez marki lista modeli jest pusta. „Wybierz markę" w polu MODEL czytało
+          // się jak powtórzenie sąsiedniego pola i nie mieściło się w wąskiej
+          // kolumnie na telefonie — „Najpierw marka" mówi to samo krócej.
+          <Placeholder $compact={compact}>{disabled ? 'Najpierw marka' : placeholder}</Placeholder>
         )}
         <Caret />
       </Trigger>
