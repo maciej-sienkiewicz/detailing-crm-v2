@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { PageHeader } from '@/common/components/PageHeader';
-import { StatsFilters } from '../components/StatsFilters';
 import { StatsChart } from '../components/StatsChart';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
@@ -36,7 +35,7 @@ import {
     CategoryAssignMenu, ctxMenuPosition,
     // date picker + helpers
     HeaderDatePicker,
-    fmtPLNFromGrosz, today, oneYearAgo,
+    fmtPLNFromGrosz, today, currentMonthStart,
 } from '../components/shared';
 
 // ─── View-specific styled ─────────────────────────────────────────────────────
@@ -136,8 +135,10 @@ type ServiceCtxMenu = {
 };
 
 export const StatisticsView = () => {
-    const [granularity, setGranularity] = useState<Granularity>('MONTHLY');
-    const [startDate, setStartDate] = useState(oneYearAgo());
+    // Domyślnie bieżący miesiąc: to okres, o który właściciel pyta najczęściej,
+    // a roczny zakres kazał przy każdym wejściu szukać aktualnych liczb.
+    const [granularity, setGranularity] = useState<Granularity>('DAILY');
+    const [startDate, setStartDate] = useState(currentMonthStart());
     const [endDate, setEndDate] = useState(today());
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
@@ -321,21 +322,12 @@ export const StatisticsView = () => {
                             onStartChange={setStartDate}
                             onEndChange={setEndDate}
                             onGranularityChange={setGranularity}
+                            granularity={granularity}
                         />
                         <StatsNav />
                     </HdrBtns>
                 }
             />
-
-            {/* ── Filters ──────────────────────────────────── */}
-            <Section>
-                <StatsFilters
-                    granularity={granularity}
-                    startDate={startDate}
-                    endDate={endDate}
-                    onGranularityChange={setGranularity}
-                />
-            </Section>
 
             {/* ── Overview section ─────────────────────────── */}
             <Section>

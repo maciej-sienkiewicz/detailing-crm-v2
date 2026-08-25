@@ -37,7 +37,7 @@ import {
     CategoryAssignMenu, CtxItem, ctxMenuPosition,
     // date picker + helpers
     HeaderDatePicker,
-    fmtPLN, today, oneYearAgo,
+    fmtPLN, today, currentMonthStart,
 } from '../components/shared';
 import { effectiveGross, effectiveNet, isNetDerived } from '../costAmounts';
 import {
@@ -1254,7 +1254,9 @@ type CtxMenuState = {
 };
 
 export const CostsView = () => {
-    const [startDate, setStartDate] = useState(oneYearAgo());
+    // Ten sam domyślny zakres co po stronie przychodów — koszty czyta się
+    // w parze z nimi, więc oba widoki muszą startować z tego samego miesiąca.
+    const [startDate, setStartDate] = useState(currentMonthStart());
     const [endDate,   setEndDate]   = useState(today());
     const [viewMode,  setViewMode]  = useState<CostViewMode>('INVOICE');
     const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set());
@@ -1370,18 +1372,23 @@ export const CostsView = () => {
     );
 
     // Chart data grouped by month, derived from items so gross is always computed
+    // Zakres krótszy niż dwa miesiące grupujemy po dniach: przy domyślnym
+    // „bieżącym miesiącu" wykres miesięczny byłby jednym słupkiem.
+    const chartGranularity: 'DAILY' | 'MONTHLY' =
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000 <= 62 ? 'DAILY' : 'MONTHLY';
+
     const chartData = useMemo(() => {
         const map = new Map<string, { period: string; itemCount: number; totalCostGross: number }>();
         chartSourceItems.forEach(i => {
             if (!i.saleDate) return;
-            const period = i.saleDate.slice(0, 7);
+            const period = i.saleDate.slice(0, chartGranularity === 'DAILY' ? 10 : 7);
             if (!map.has(period)) map.set(period, { period, itemCount: 0, totalCostGross: 0 });
             const entry = map.get(period)!;
             entry.itemCount++;
             entry.totalCostGross += effectiveGross(i);
         });
         return [...map.values()].sort((a, b) => a.period.localeCompare(b.period));
-    }, [chartSourceItems]);
+    }, [chartSourceItems, chartGranularity]);
 
     // Donut slices: per-category share of all costs in the selected range.
     // Computed client-side (same effectiveGross fallback as catTotalsMap) so that
@@ -2104,7 +2111,7 @@ export const CostsView = () => {
             {periodModal && (
                 <PeriodExpensesModal
                     period={periodModal}
-                    granularity="MONTHLY"
+                    granularity={chartGranularity}
                     allItems={chartSourceItems}
                     onClose={() => setPeriodModal(null)}
                 />

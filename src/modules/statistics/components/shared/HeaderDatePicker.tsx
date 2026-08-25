@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { st } from '../StatisticsTheme';
 import type { Granularity } from '../../types';
-import { today, spDaysAgo, spMonthsAgo } from './format';
+import { today, spDaysAgo, spMonthsAgo, currentMonthStart, currentMonthName } from './format';
 
 const PickerWrap = styled.div`
     position: relative;
@@ -151,11 +151,64 @@ const CheckIcon = () => (
 type Preset = { label: string; hint: string; startDate: string; endDate: string; granularity: Granularity };
 
 const getPresets = (): Preset[] => [
+    // Rozliczenia prowadzi się miesiącami — to jest pytanie, z którym najczęściej
+    // wchodzi się w statystyki, więc stoi pierwsze i jest domyślne.
+    { label: 'Bieżący miesiąc',      hint: currentMonthName(), startDate: currentMonthStart(), endDate: today(), granularity: 'DAILY' },
     { label: 'Ostatnie 7 dni',       hint: '7 dni',    startDate: spDaysAgo(7),    endDate: today(), granularity: 'DAILY' },
     { label: 'Ostatnie 30 dni',      hint: '30 dni',   startDate: spDaysAgo(30),   endDate: today(), granularity: 'WEEKLY' },
     { label: 'Ostatnie 3 miesiące',  hint: '3 mies.',  startDate: spMonthsAgo(3),  endDate: today(), granularity: 'MONTHLY' },
     { label: 'Ostatnie 12 miesięcy', hint: '12 mies.', startDate: spMonthsAgo(12), endDate: today(), granularity: 'MONTHLY' },
 ];
+
+// ─── Grupowanie ───────────────────────────────────────────────────────────────
+//
+// Dziennie / tygodniowo / miesięcznie to ustawienie, które prawie zawsze wynika
+// z wybranego zakresu — użytkownik zmienia je raz na sto wejść. Zajmowało własną
+// kartę na całą szerokość ekranu; teraz siedzi cicho pod przyciskiem zakresu,
+// a przy zmianie zakresu ustawia się samo.
+
+const GRANULARITY_LABELS: { value: Granularity; label: string }[] = [
+    { value: 'DAILY',     label: 'Dziennie' },
+    { value: 'WEEKLY',    label: 'Tygodniowo' },
+    { value: 'MONTHLY',   label: 'Miesięcznie' },
+    { value: 'QUARTERLY', label: 'Kwartalnie' },
+    { value: 'YEARLY',    label: 'Rocznie' },
+];
+
+const GRANULARITY_ORDER: Granularity[] = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', 'DAILY'];
+
+const daysBetween = (start: string, end: string) =>
+    Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000));
+
+/** Które grupowania mają sens dla zakresu — te same progi co wcześniej. */
+const allowedGranularities = (days: number): Set<Granularity> => {
+    if (days <= 7)  return new Set<Granularity>(['DAILY']);
+    if (days <= 30) return new Set<Granularity>(['DAILY', 'WEEKLY']);
+    if (days <= 90) return new Set<Granularity>(['DAILY', 'WEEKLY', 'MONTHLY']);
+    return new Set<Granularity>(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']);
+};
+
+const GroupRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 2px 2px;
+`;
+
+const GroupChip = styled.button<{ $active: boolean }>`
+    padding: 4px 10px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${p => (p.$active ? st.accentBlue : st.border)};
+    background: ${p => (p.$active ? st.accentBlue : 'transparent')};
+    color: ${p => (p.$active ? '#fff' : st.textSecondary)};
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: ${p => (p.$active ? 600 : 500)};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+`;
 
 interface HeaderDatePickerProps {
     startDate: string;
@@ -164,10 +217,12 @@ interface HeaderDatePickerProps {
     onEndChange: (d: string) => void;
     /** Gdy podane, presety ustawiają też pasujące grupowanie */
     onGranularityChange?: (g: Granularity) => void;
+    /** Gdy podane razem z onGranularityChange, panel pokazuje wybór grupowania. */
+    granularity?: Granularity;
 }
 
 export const HeaderDatePicker = ({
-    startDate, endDate, onStartChange, onEndChange, onGranularityChange,
+    startDate, endDate, onStartChange, onEndChange, onGranularityChange, granularity,
 }: HeaderDatePickerProps) => {
     const [open, setOpen] = useState(false);
     const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
@@ -178,6 +233,17 @@ export const HeaderDatePicker = ({
 
     const presets = getPresets();
     const activeIdx = presets.findIndex(p => p.startDate === startDate && p.endDate === endDate);
+
+    // Zakres decyduje o grupowaniu: po zmianie dat schodzimy na najgrubsze
+    // sensowne grupowanie, żeby wykres nie został z ustawieniem, którego
+    // nowy zakres nie obsługuje.
+    const allowed = allowedGranularities(daysBetween(startDate, endDate));
+    useEffect(() => {
+        if (!granularity || !onGranularityChange) return;
+        if (allowed.has(granularity)) return;
+        onGranularityChange(GRANULARITY_ORDER.find(g => allowed.has(g)) ?? 'DAILY');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [startDate, endDate]);
 
     useEffect(() => {
         if (!open) return;
@@ -235,6 +301,26 @@ export const HeaderDatePicker = ({
                             </PresetBtn>
                         ))}
                     </PresetGroup>
+
+                    {granularity && onGranularityChange && (
+                        <>
+                            <Divider />
+                            <DateLabel>Grupowanie na wykresie</DateLabel>
+                            <GroupRow>
+                                {GRANULARITY_LABELS.map(g => (
+                                    <GroupChip
+                                        key={g.value}
+                                        $active={granularity === g.value}
+                                        disabled={!allowed.has(g.value)}
+                                        title={!allowed.has(g.value) ? 'Niedostępne dla wybranego zakresu' : undefined}
+                                        onClick={() => onGranularityChange(g.value)}
+                                    >
+                                        {g.label}
+                                    </GroupChip>
+                                ))}
+                            </GroupRow>
+                        </>
+                    )}
 
                     <Divider />
                     <DateLabel>Niestandardowy zakres</DateLabel>
