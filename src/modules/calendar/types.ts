@@ -21,7 +21,30 @@ export interface CalendarSmsInfo {
     reminderSms: CalendarReminderSms;
 }
 
-export type CalendarEventType = 'APPOINTMENT' | 'VISIT';
+export type CalendarEventType = 'APPOINTMENT' | 'VISIT' | 'STUDIO_EVENT';
+
+/**
+ * Wydarzenie studia — wpis w kalendarzu, który nie jest wizytą ani rezerwacją.
+ * Zakres dni jest domknięty z obu stron: [endDate] to ostatni dzień trwania,
+ * tak jak widzi to użytkownik (FullCalendar dostaje koniec przesunięty o dzień).
+ */
+export interface StudioCalendarEvent {
+    id: string;
+    title: string;
+    description: string | null;
+    startDate: string;
+    endDate: string;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface StudioCalendarEventPayload {
+    title: string;
+    description: string | null;
+    startDate: string;
+    endDate: string;
+}
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'agendaList';
 

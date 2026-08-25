@@ -31,6 +31,9 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { useDeleteOperation } from '@/modules/operations/hooks/useDeleteOperation';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { CalendarFilterBar } from './CalendarFilterBar';
+import { StudioEventModal } from './StudioEventModal';
+import { useStudioCalendarEvents, useStudioCalendarEventMutations, toIsoDate } from '../hooks/useStudioCalendarEvents';
+import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
@@ -988,6 +991,78 @@ const NewEventBtn = styled.button`
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
+/**
+ * Przycisk trybu dodawania wydarzenia. Aktywny wygląda inaczej niż pozostałe
+ * akcje w nagłówku, bo przestawia cały kalendarz w inny stan — użytkownik musi
+ * widzieć, że kliknięcie w dzień zrobi teraz coś innego niż zwykle.
+ */
+const EventModeBtn = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    background: ${p => p.$active ? '#B45309' : 'rgba(245, 158, 11, 0.12)'};
+    color: ${p => p.$active ? '#fff' : '#B45309'};
+    border: 1.5px solid ${p => p.$active ? '#B45309' : 'rgba(245, 158, 11, 0.45)'};
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+
+    &:hover { background: ${p => p.$active ? '#92400E' : 'rgba(245, 158, 11, 0.2)'}; }
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+`;
+
+/** Pasek podpowiedzi w trybie dodawania — mówi, co zrobić i jak wyjść. */
+const EventModeHint = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 9px 16px;
+    background: rgba(245, 158, 11, 0.1);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.28);
+    color: #92400E;
+    font-size: 13px;
+    font-weight: 600;
+`;
+
+const EventModeHintBtn = styled.button`
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: #92400E;
+    text-decoration: underline;
+    cursor: pointer;
+`;
+
+/**
+ * Tryb dodawania wydarzenia: wizyty i rezerwacje przygasają i przestają
+ * przyjmować kliknięcia, żeby kalendarz czytał się jak pusta siatka dni.
+ * Wydarzenia studia zostają w pełni widoczne — to je się właśnie planuje.
+ */
+const EventModeLayer = styled.div<{ $active: boolean }>`
+    height: 100%;
+
+    ${p => p.$active && `
+        .fc-event:not(.crm-studio-event) {
+            opacity: 0.16;
+            pointer-events: none;
+            filter: grayscale(0.6);
+        }
+        .fc-daygrid-day:hover .fc-daygrid-day-frame {
+            background: rgba(245, 158, 11, 0.08);
+        }
+        .fc-highlight { background: rgba(245, 158, 11, 0.28); }
+    `}
+`;
+
 /* ===================== LEAVE TOOLTIP ===================== */
 
 const LeaveTooltipBox = styled.div`
@@ -1311,6 +1386,72 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const { createQuickEventAsync } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, hiddenColorIds);
 
+    /* ── Wydarzenia studia ──────────────────────────────────────────────────
+       Tryb dodawania: kalendarz przestaje być widokiem, z którego otwiera się
+       wizyty, a staje się polem wyboru dni. Wizyty i rezerwacje przygasają
+       i nie reagują na kliknięcia, żeby jedno nieostrożne dotknięcie nie
+       wyrzuciło użytkownika z rozpoczętego zadania. */
+    const [eventMode, setEventMode] = useState(false);
+    const [eventDraftRange, setEventDraftRange] = useState<{ startDate: string; endDate: string } | null>(null);
+    const [editedStudioEvent, setEditedStudioEvent] = useState<StudioCalendarEvent | null>(null);
+
+    const studioEventsRange = useMemo(() => (dateRange
+        ? { start: new Date(dateRange.start), end: new Date(dateRange.end) }
+        : null), [dateRange]);
+    const { data: studioEvents = [] } = useStudioCalendarEvents(studioEventsRange);
+    const { create: createStudioEvent, update: updateStudioEvent, remove: removeStudioEvent, isBusy: studioEventBusy } =
+        useStudioCalendarEventMutations();
+
+    /** Wydarzenia jako kafelki całodniowe; FullCalendar chce końca ekskluzywnego. */
+    const studioEventInputs = useMemo(() => studioEvents.map(event => {
+        const end = new Date(`${event.endDate}T00:00:00`);
+        end.setDate(end.getDate() + 1);
+        return {
+            id: `studio-event-${event.id}`,
+            title: event.title,
+            start: event.startDate,
+            end: toIsoDate(end),
+            allDay: true,
+            display: 'block',
+            backgroundColor: 'rgba(245, 158, 11, 0.14)',
+            borderColor: 'rgba(245, 158, 11, 0.45)',
+            textColor: '#92400e',
+            classNames: ['crm-studio-event'],
+            extendedProps: { type: 'STUDIO_EVENT', studioEvent: event },
+        };
+    }), [studioEvents]);
+
+    const closeStudioEventModal = useCallback(() => {
+        setEventDraftRange(null);
+        setEditedStudioEvent(null);
+    }, []);
+
+    const saveStudioEvent = useCallback((payload: StudioCalendarEventPayload) => {
+        const onDone = () => {
+            closeStudioEventModal();
+            setEventMode(false);
+        };
+        if (editedStudioEvent) {
+            updateStudioEvent.mutate({ id: editedStudioEvent.id, payload }, {
+                onSuccess: () => { showSuccess('Zapisano', 'Wydarzenie zostało zaktualizowane'); onDone(); },
+                onError: () => showError('Nie udało się zapisać', 'Spróbuj ponownie za chwilę'),
+            });
+            return;
+        }
+        createStudioEvent.mutate(payload, {
+            onSuccess: () => { showSuccess('Dodano wydarzenie', payload.title); onDone(); },
+            onError: () => showError('Nie udało się dodać wydarzenia', 'Spróbuj ponownie za chwilę'),
+        });
+    }, [editedStudioEvent, updateStudioEvent, createStudioEvent, closeStudioEventModal, showSuccess, showError]);
+
+    const deleteStudioEvent = useCallback(() => {
+        if (!editedStudioEvent) return;
+        removeStudioEvent.mutate(editedStudioEvent.id, {
+            onSuccess: () => { showSuccess('Usunięto', 'Wydarzenie zniknęło z kalendarza'); closeStudioEventModal(); },
+            onError: () => showError('Nie udało się usunąć', 'Spróbuj ponownie za chwilę'),
+        });
+    }, [editedStudioEvent, removeStudioEvent, closeStudioEventModal, showSuccess, showError]);
+
     // Urlopy pracowników per dzień, zasila ikonkę "ludzika" w rogu każdego dnia.
     // Ludzik pojawia się TYLKO dla dni z urlopami; renderowany imperatywnie do
     // .fc-daygrid-day-frame (patrz efekt niżej), bo dayCellContent trzymałby go
@@ -1551,12 +1692,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         const start = info.date;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
+        if (eventMode) {
+            setEventDraftRange({ startDate: toIsoDate(start), endDate: toIsoDate(start) });
+            return;
+        }
         if (selectionMode) {
             onRangeSelected?.({ start, end, allDay: Boolean(info.allDay) });
             return;
         }
         openQuickEvent({ start, end, allDay: Boolean(info.allDay) });
-    }, [selectionMode, onRangeSelected, openQuickEvent]);
+    }, [eventMode, selectionMode, onRangeSelected, openQuickEvent]);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
@@ -1574,17 +1719,33 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             calendarApi.unselect();
         }
 
+        if (eventMode) {
+            // Zaznaczenie kończy się na początku kolejnego dnia — użytkownik
+            // wskazał ostatni dzień, nie pierwszy wolny po nim.
+            const lastDay = new Date(range.end.getTime() - 1);
+            setEventDraftRange({ startDate: toIsoDate(range.start), endDate: toIsoDate(lastDay) });
+            return;
+        }
         if (selectionMode) {
             onRangeSelected?.(range);
             return;
         }
         openQuickEvent(range);
-    }, [selectionMode, onRangeSelected, openQuickEvent]);
+    }, [eventMode, selectionMode, onRangeSelected, openQuickEvent]);
 
     /**
      * Handle event click - Show popover with event summary
      */
     const handleEventClick = useCallback((clickInfo: EventClickArg) => {
+        const props = clickInfo.event.extendedProps as { type?: string; studioEvent?: StudioCalendarEvent };
+        if (props.type === 'STUDIO_EVENT' && props.studioEvent) {
+            setEditedStudioEvent(props.studioEvent);
+            setEventDraftRange(null);
+            return;
+        }
+        // W trybie dodawania wydarzenia wizyty i rezerwacje są tylko tłem.
+        if (eventMode) return;
+
         const eventData = clickInfo.event.extendedProps as AppointmentEventData | VisitEventData;
 
         // Hand over the raw anchor rect, the popover flips and clamps itself
@@ -1604,7 +1765,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setPopoverAnchor({ top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
         setPopoverPosition({ x: rect.right + 10, y: rect.top });
         setPopoverOpen(true);
-    }, []);
+    }, [eventMode]);
 
     /**
      * Handle quick event save
@@ -1952,6 +2113,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                         {!selectionMode && can('VISITS_CREATE') && (
                             <>
+                                <EventModeBtn
+                                    $active={eventMode}
+                                    onClick={() => { setEventMode(v => !v); closeStudioEventModal(); }}
+                                    title="Zaznacz dni, w które wypada wydarzenie"
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                    </svg>
+                                    {eventMode ? 'Zakończ dodawanie' : 'Dodaj wydarzenie'}
+                                </EventModeBtn>
+
                                 <NewEventBtn onClick={handleMobileAddClick}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1987,7 +2161,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 eventsCount={events.length}
             />
 
+            {eventMode && (
+                <EventModeHint role="status">
+                    Zaznacz dzień albo przeciągnij po kilku dniach, żeby dodać wydarzenie.
+                    <EventModeHintBtn onClick={() => { setEventMode(false); closeStudioEventModal(); }}>
+                        Anuluj
+                    </EventModeHintBtn>
+                </EventModeHint>
+            )}
+
             <CalendarWrapper>
+              <EventModeLayer $active={eventMode}>
 
                 {/* ── Agenda list view: mobile "Lista" tab ── */}
                 {agendaListActive && dateRange && (
@@ -2142,8 +2326,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 datesSet={handleDatesSet}
                 longPressDelay={400}
 
-                // Events data
-                events={events}
+                // Events data: wizyty/rezerwacje + wydarzenia studia
+                events={[...events, ...studioEventInputs]}
 
                 eventDidMount={(arg) => {
                     eventElMapRef.current.set(arg.event.id, arg.el);
@@ -2224,6 +2408,43 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 }}
 
                 eventContent={(arg) => {
+                    // Wydarzenie studia: dzwoneczek zamiast godziny — na pierwszy rzut
+                    // oka widac, ze to nie jest wizyta ani rezerwacja.
+                    const studioEventChip = (arg.event.extendedProps as { studioEvent?: StudioCalendarEvent }).studioEvent;
+                    if (studioEventChip) {
+                        return (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                width: '100%',
+                                padding: '3px 6px 3px 5px',
+                                background: 'rgba(245, 158, 11, 0.14)',
+                                borderLeft: '3px solid #F59E0B',
+                                borderRadius: '5px',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                lineHeight: 1.2,
+                            }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2"
+                                    strokeLinecap="round" strokeLinejoin="round"
+                                    style={{ width: 11, height: 11, flexShrink: 0 }}>
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                                <span style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    color: '#92400E',
+                                }}>
+                                    {arg.event.title}
+                                </span>
+                            </div>
+                        );
+                    }
+
                     const props = arg.event.extendedProps as AppointmentEventData | VisitEventData;
                     const status = props.status as string | undefined;
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
@@ -2322,7 +2543,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 expandRows={true}
             />
                 </div>
+              </EventModeLayer>
             </CalendarWrapper>
+
+            {(eventDraftRange || editedStudioEvent) && (
+                <StudioEventModal
+                    key={editedStudioEvent?.id ?? `${eventDraftRange?.startDate}-${eventDraftRange?.endDate}`}
+                    initialRange={eventDraftRange ?? undefined}
+                    event={editedStudioEvent}
+                    isSaving={studioEventBusy && !removeStudioEvent.isPending}
+                    isDeleting={removeStudioEvent.isPending}
+                    onSave={saveStudioEvent}
+                    onDelete={editedStudioEvent ? deleteStudioEvent : undefined}
+                    onClose={closeStudioEventModal}
+                />
+            )}
 
             {/* Bez prawa do tworzenia wizyt formularz nie trafia nawet do drzewa —
                 nakładka modala renderuje się zawsze i sterowana jest tylko stylem,
