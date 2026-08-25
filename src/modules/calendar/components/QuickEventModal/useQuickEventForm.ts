@@ -59,9 +59,15 @@ interface UseQuickEventFormOptions {
     onSave: (data: QuickEventFormData) => Promise<void> | void;
     ref: React.ForwardedRef<QuickEventModalRef>;
     initialData?: QuickEventInitialData;
+    /**
+     * Telefon pokazuje jedno pole „Wyszukaj klienta…", a dane kontaktowe zbiera
+     * dopiero arkusz „Nowy klient". Nie ma więc gdzie wpisać telefonu w locie,
+     * a co za tym idzie — nie ma czego zapisywać po utracie fokusu.
+     */
+    deferNewCustomerOnBlur?: boolean;
 }
 
-export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData }: UseQuickEventFormOptions) {
+export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData, deferNewCustomerOnBlur }: UseQuickEventFormOptions) {
     // ─── Form state ────────────────────────────────────────────────────────────
     const [title, setTitle] = useState('');
     const [startDateTime, setStartDateTime] = useState('');
@@ -654,7 +660,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setFocusedField(null);
             setShowCustomerDropdown(false);
             if (!selectedCustomer) {
-                handleAddNewCustomerDirectly({ silent: true });
+                if (!deferNewCustomerOnBlur) handleAddNewCustomerDirectly({ silent: true });
             } else if (customerEditMode && !prefillAwaitingConfirmRef.current) {
                 handleConfirmEdit({ silent: true });
             }
