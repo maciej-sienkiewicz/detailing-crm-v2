@@ -1,6 +1,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Eye, EyeOff } from 'lucide-react';
+import { useMediaQuery } from '@/common/hooks';
 import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
 import { formatMoney, formatDate } from '../utils/formatters';
@@ -143,6 +144,94 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' }>`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
+/* ─── Karta na telefonie ──────────────────────────────────────────────────────
+   Dziewięć kolumn nie mieści się na 390 px, a przewijana w bok tabela pokazuje
+   datę i typ — czyli to, czego się nie szuka. Na telefonie zostaje to, po co
+   otwiera się listę przychodów: kto, ile, czy zapłacone i który to dokument.
+   Źródło, numer KSeF i status „wszystko w porządku" zostają na desktopie. */
+
+const CardList = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Card = styled.button<{ $muted?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  padding: 14px 16px;
+  background: ${(p) => p.theme.colors.surface};
+  border: none;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  opacity: ${(p) => (p.$muted ? 0.6 : 1)};
+
+  &:last-child { border-bottom: none; }
+  &:active { background: ${(p) => p.theme.colors.surfaceHover}; }
+`;
+
+const CardTop = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const CardParty = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: ${(p) => p.theme.colors.text};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CardAmount = styled.span<{ $negative?: boolean }>`
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: ${(p) => (p.$negative ? '#dc2626' : p.theme.colors.text)};
+`;
+
+const CardMeta = styled.div`
+  font-size: 12px;
+  color: ${(p) => p.theme.colors.textMuted};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CardBadges = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+const CardBadgeSpacer = styled.div`
+  flex: 1;
+`;
+
+const CardSkeleton = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+
+  div {
+    height: 14px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: ${shimmer} 1.4s infinite;
+
+    & + div { margin-top: 8px; }
+  }
+`;
+
 // ─── Słowniki prezentacji ─────────────────────────────────────────────────────
 
 const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; bg: string; fg: string }> = {
@@ -221,6 +310,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   const excludeMutation = useExcludeIncomeDocument();
   const restoreMutation = useRestoreIncomeDocument();
   const busy = excludeMutation.isPending || restoreMutation.isPending;
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   /** Ukrycie to akcja wiersza, nie wejście w szczegóły — klik nie może otwierać modala. */
   const toggleExcluded = (event: React.MouseEvent, doc: IncomeDocument) => {
@@ -236,6 +326,67 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
         Wystaw fakturę (trafi do KSeF) lub dodaj paragon. Faktury sprzedażowe wystawione
         poza CRM pojawią się tu automatycznie po synchronizacji z KSeF.
       </EmptyState>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <CardList>
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <CardSkeleton key={i}><div style={{ width: '65%' }} /><div style={{ width: '40%' }} /></CardSkeleton>
+            ))
+          : documents.map((doc) => {
+              const type = DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
+              const payment = PAYMENT_STATUS[doc.paymentStatus] ?? PAYMENT_STATUS.PENDING;
+              const ksef = doc.ksefStatus ? KSEF_STATUS[doc.ksefStatus] : null;
+              // KSeF pokazujemy tylko wtedy, gdy coś jest nie tak — „W KSeF" to
+              // stan oczekiwany i na telefonie byłby wyłącznie szumem.
+              const ksefAlert = doc.ksefStatus === 'REJECTED' || doc.ksefStatus === 'QUEUED_RETRY' ? ksef : null;
+
+              return (
+                <Card
+                  key={`${doc.sourceKind}-${doc.id}`}
+                  type="button"
+                  $muted={doc.excluded || doc.duplicateStatus === 'CONFIRMED_DUPLICATE' || doc.ksefStatus === 'REJECTED'}
+                  onClick={() => onSelect(doc)}
+                >
+                  <CardTop>
+                    <CardParty>{doc.counterpartyName ?? 'Konsument'}</CardParty>
+                    <CardAmount $negative={doc.totalGross < 0}>{formatMoney(doc.totalGross)}</CardAmount>
+                  </CardTop>
+
+                  <CardMeta>
+                    {doc.documentNumber} · {formatDate(doc.issueDate)}
+                  </CardMeta>
+
+                  <CardBadges>
+                    <Badge $bg={type.bg} $fg={type.fg}>{type.label}</Badge>
+                    <Badge $bg={payment.bg} $fg={payment.fg}>{payment.label}</Badge>
+                    {ksefAlert && (
+                      <Badge $bg={ksefAlert.bg} $fg={ksefAlert.fg}>{ksefAlert.label}</Badge>
+                    )}
+                    {doc.duplicateStatus === 'SUSPECTED' && (
+                      <Badge $bg="#fef2f2" $fg="#b91c1c" $border="#fecaca">⚠ Duplikat?</Badge>
+                    )}
+                    {doc.excluded && (
+                      <Badge $bg="#f1f5f9" $fg="#475569" $border="#cbd5e1">Ukryty</Badge>
+                    )}
+                    <CardBadgeSpacer />
+                    <ActionBtn
+                      type="button"
+                      $variant={doc.excluded ? 'restore' : 'exclude'}
+                      disabled={busy}
+                      onClick={(e) => toggleExcluded(e, doc)}
+                      title={doc.excluded ? 'Przywróć do statystyk' : 'Ukryj ze statystyk'}
+                    >
+                      {doc.excluded ? <Eye size={15} /> : <EyeOff size={15} />}
+                    </ActionBtn>
+                  </CardBadges>
+                </Card>
+              );
+            })}
+      </CardList>
     );
   }
 

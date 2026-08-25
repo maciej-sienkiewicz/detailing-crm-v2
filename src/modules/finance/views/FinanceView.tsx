@@ -299,6 +299,128 @@ const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, p
   );
 };
 
+/* Telefon: pasek narzędzi ma zmieścić dwa filtry i nic więcej. Przełączniki
+   („Tylko podejrzane duplikaty", „Pokaż ukryte"), czyszczenie filtrów
+   i odświeżanie chowają się pod trzema kropkami. */
+const DesktopOnlyControls = styled.div`
+  display: contents;
+
+  @media (max-width: 639px) {
+    display: none;
+  }
+`;
+
+const KebabWrap = styled.div`
+  display: none;
+  margin-left: auto;
+
+  @media (max-width: 639px) {
+    display: block;
+  }
+`;
+
+const KebabBtn = styled.button<{ $dot?: boolean }>`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  color: ${st.textSecondary};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${st.radiusSm};
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: ${st.accentBlue};
+    display: ${(p) => (p.$dot ? 'block' : 'none')};
+  }
+`;
+
+const KebabMenuRow = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: ${st.radiusSm};
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: 500;
+  color: ${st.textSecondary};
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { background: ${(p) => p.theme.colors.surfaceAlt}; color: ${st.text}; }
+  svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
+const KebabIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+  </svg>
+);
+
+type ToolbarMenuItem =
+  | { kind: 'toggle'; key: string; label: string; on: boolean; onSelect: () => void }
+  | { kind: 'action'; key: string; label: string; icon?: React.ReactNode; onSelect: () => void };
+
+/** Menu „trzy kropki" paska narzędzi tabeli — widoczne tylko na telefonie. */
+const ToolbarKebab: React.FC<{ items: ToolbarMenuItem[] }> = ({ items }) => {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const hasActiveToggle = items.some((i) => i.kind === 'toggle' && i.on);
+
+  const toggleOpen = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
+    }
+    setOpen((p) => !p);
+  };
+
+  return (
+    <KebabWrap>
+      {open && <SelectBackdrop onClick={() => setOpen(false)} />}
+      <KebabBtn ref={btnRef} onClick={toggleOpen} $dot={hasActiveToggle} title="Więcej opcji" aria-label="Więcej opcji">
+        <KebabIcon />
+      </KebabBtn>
+      {open && pos && createPortal(
+        <SelectPanel style={{ top: pos.top, right: pos.right, minWidth: 230 }}>
+          <SelectPanelBody>
+            {items.map((item) => (
+              <KebabMenuRow
+                key={item.key}
+                onClick={() => {
+                  item.onSelect();
+                  if (item.kind === 'action') setOpen(false);
+                }}
+              >
+                {item.kind === 'toggle'
+                  ? <ToggleTrack $on={item.on} />
+                  : item.icon}
+                {item.label}
+              </KebabMenuRow>
+            ))}
+          </SelectPanelBody>
+        </SelectPanel>,
+        document.body
+      )}
+    </KebabWrap>
+  );
+};
+
 // ─── Toggle switch ────────────────────────────────────────────────────────────
 
 const ToggleLabel = styled.label`
@@ -464,9 +586,31 @@ const FinHdrActions = styled.div`
   align-items: center;
   gap: 8px;
 
+  /* Telefon: trzy pełnowymiarowe przyciski zajmowały pół ekranu powitalnego.
+     Zostaje jeden rząd — zakres dat i skrócone akcje. */
   @media (max-width: 639px) {
-    flex-wrap: wrap;
+    width: 100%;
+    gap: 6px;
+    flex-wrap: nowrap;
+
+    > button {
+      padding: 7px 12px;
+      font-size: 12.5px;
+      gap: 5px;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
   }
+`;
+
+/** Pełna nazwa akcji na dużym ekranie, skrót na telefonie — bez dwóch drzewek JSX. */
+const FullLabel = styled.span`
+  @media (max-width: 639px) { display: none; }
+`;
+
+const ShortLabel = styled.span`
+  display: none;
+  @media (max-width: 639px) { display: inline; }
 `;
 
 const HdrPickerWrap = styled.div`
@@ -559,13 +703,17 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
     setOpen(false);
   };
 
-  const label = formatPresetLabel(preset, preset === 'custom' ? customFrom : undefined, preset === 'custom' ? customTo : undefined);
+  const from = preset === 'custom' ? customFrom : undefined;
+  const to   = preset === 'custom' ? customTo   : undefined;
+  const label = formatPresetLabel(preset, from, to);
+  const shortLabel = formatPresetLabelShort(preset, from, to);
 
   return (
     <HdrPickerWrap>
-      <HdrPickerTrigger ref={triggerRef} $active={preset !== 'all'} onClick={handleToggle}>
+      <HdrPickerTrigger ref={triggerRef} $active={preset !== 'all'} onClick={handleToggle} title={label}>
         <CalendarIcon />
-        {label}
+        <FullLabel>{label}</FullLabel>
+        <ShortLabel>{shortLabel}</ShortLabel>
         <SmallChevron />
       </HdrPickerTrigger>
 
@@ -652,6 +800,20 @@ const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: s
   if (customFrom && customTo) return `${customFrom} - ${customTo}`;
   if (customFrom) return `Od ${customFrom}`;
   if (customTo) return `Do ${customTo}`;
+  return 'Zakres dat';
+};
+
+/** Telefon: w pigułce zakresu mieści się kilkanaście znaków, nie „Ostatni kwartał". */
+const formatPresetLabelShort = (preset: DatePreset, customFrom?: string, customTo?: string): string => {
+  if (preset === 'currentMonth') {
+    const month = new Date().toLocaleDateString('pl-PL', { month: 'long' });
+    return month.charAt(0).toUpperCase() + month.slice(1);
+  }
+  if (preset === 'all') return 'Cały czas';
+  if (preset === 'week') return '7 dni';
+  if (preset === 'month') return '30 dni';
+  if (preset === 'quarter') return '90 dni';
+  if (customFrom || customTo) return 'Zakres';
   return 'Zakres dat';
 };
 
@@ -839,35 +1001,49 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           ]}
           placeholder="Wszystkie statusy"
         />
-        <FilterSeparator />
-        {hasFilters && (
-          <ClearFiltersBtn onClick={() => setFilters(EMPTY_INCOME_FILTERS)}>
-            Wyczyść filtry
-          </ClearFiltersBtn>
-        )}
-        <ToggleLabel>
-          <ToggleTrack $on={filters.duplicates} />
-          <ToggleText>Tylko podejrzane duplikaty</ToggleText>
-          <input
-            type="checkbox"
-            checked={filters.duplicates}
-            onChange={(e) => setFilter('duplicates', e.target.checked)}
-            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-          />
-        </ToggleLabel>
-        <ToggleLabel>
-          <ToggleTrack $on={showExcluded} />
-          <ToggleText>Pokaż ukryte</ToggleText>
-          <input
-            type="checkbox"
-            checked={showExcluded}
-            onChange={(e) => { setShowExcluded(e.target.checked); setFilters((p) => ({ ...p, page: 1 })); }}
-            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-          />
-        </ToggleLabel>
-        <RefreshBtn onClick={() => refetch()} title="Odśwież">
-          <RefreshIcon />
-        </RefreshBtn>
+        <DesktopOnlyControls>
+          <FilterSeparator />
+          {hasFilters && (
+            <ClearFiltersBtn onClick={() => setFilters(EMPTY_INCOME_FILTERS)}>
+              Wyczyść filtry
+            </ClearFiltersBtn>
+          )}
+          <ToggleLabel>
+            <ToggleTrack $on={filters.duplicates} />
+            <ToggleText>Tylko podejrzane duplikaty</ToggleText>
+            <input
+              type="checkbox"
+              checked={filters.duplicates}
+              onChange={(e) => setFilter('duplicates', e.target.checked)}
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+            />
+          </ToggleLabel>
+          <ToggleLabel>
+            <ToggleTrack $on={showExcluded} />
+            <ToggleText>Pokaż ukryte</ToggleText>
+            <input
+              type="checkbox"
+              checked={showExcluded}
+              onChange={(e) => { setShowExcluded(e.target.checked); setFilters((p) => ({ ...p, page: 1 })); }}
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+            />
+          </ToggleLabel>
+          <RefreshBtn onClick={() => refetch()} title="Odśwież">
+            <RefreshIcon />
+          </RefreshBtn>
+        </DesktopOnlyControls>
+
+        <ToolbarKebab
+          items={[
+            { kind: 'toggle', key: 'dup', label: 'Tylko podejrzane duplikaty', on: filters.duplicates,
+              onSelect: () => setFilter('duplicates', !filters.duplicates) },
+            { kind: 'toggle', key: 'excluded', label: 'Pokaż ukryte', on: showExcluded,
+              onSelect: () => { setShowExcluded(!showExcluded); setFilters((p) => ({ ...p, page: 1 })); } },
+            ...(hasFilters ? [{ kind: 'action' as const, key: 'clear', label: 'Wyczyść filtry',
+              onSelect: () => setFilters(EMPTY_INCOME_FILTERS) }] : []),
+            { kind: 'action', key: 'refresh', label: 'Odśwież', icon: <RefreshIcon />, onSelect: () => refetch() },
+          ]}
+        />
       </FiltersStrip>
 
       {isError ? (
@@ -963,25 +1139,37 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           ]}
           placeholder="Wszystkie statusy"
         />
-        <FilterSeparator />
-        {hasFilters && (
-          <ClearFiltersBtn onClick={() => setFilters({ source: '', paymentStatus: '', page: 1 })}>
-            Wyczyść filtry
-          </ClearFiltersBtn>
-        )}
-        <ToggleLabel>
-          <ToggleTrack $on={showExcluded} />
-          <ToggleText>Pokaż ukryte</ToggleText>
-          <input
-            type="checkbox"
-            checked={showExcluded}
-            onChange={(e) => setShowExcluded(e.target.checked)}
-            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-          />
-        </ToggleLabel>
-        <RefreshBtn onClick={() => refetch()} title="Odśwież">
-          <RefreshIcon />
-        </RefreshBtn>
+        <DesktopOnlyControls>
+          <FilterSeparator />
+          {hasFilters && (
+            <ClearFiltersBtn onClick={() => setFilters({ source: '', paymentStatus: '', page: 1 })}>
+              Wyczyść filtry
+            </ClearFiltersBtn>
+          )}
+          <ToggleLabel>
+            <ToggleTrack $on={showExcluded} />
+            <ToggleText>Pokaż ukryte</ToggleText>
+            <input
+              type="checkbox"
+              checked={showExcluded}
+              onChange={(e) => setShowExcluded(e.target.checked)}
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+            />
+          </ToggleLabel>
+          <RefreshBtn onClick={() => refetch()} title="Odśwież">
+            <RefreshIcon />
+          </RefreshBtn>
+        </DesktopOnlyControls>
+
+        <ToolbarKebab
+          items={[
+            { kind: 'toggle', key: 'excluded', label: 'Pokaż ukryte', on: showExcluded,
+              onSelect: () => setShowExcluded(!showExcluded) },
+            ...(hasFilters ? [{ kind: 'action' as const, key: 'clear', label: 'Wyczyść filtry',
+              onSelect: () => setFilters({ source: '', paymentStatus: '', page: 1 }) }] : []),
+            { kind: 'action', key: 'refresh', label: 'Odśwież', icon: <RefreshIcon />, onSelect: () => refetch() },
+          ]}
+        />
       </FiltersStrip>
 
       {isError ? (
@@ -1075,20 +1263,23 @@ export const FinanceView: React.FC = () => {
             />
             {activeTab === 'income' && (
               <>
-                <PageHeaderGhostButton onClick={openIncomeModal}>
+                <PageHeaderGhostButton onClick={openIncomeModal} title="Dodaj paragon">
                   <PlusIcon />
-                  Dodaj paragon
+                  <FullLabel>Dodaj paragon</FullLabel>
+                  <ShortLabel>Paragon</ShortLabel>
                 </PageHeaderGhostButton>
-                <PageHeaderPrimaryButton onClick={() => setIssueInvoiceModalOpen(true)}>
+                <PageHeaderPrimaryButton onClick={() => setIssueInvoiceModalOpen(true)} title="Wystaw fakturę (KSeF)">
                   <PlusIcon />
-                  Wystaw fakturę (KSeF)
+                  <FullLabel>Wystaw fakturę (KSeF)</FullLabel>
+                  <ShortLabel>Faktura</ShortLabel>
                 </PageHeaderPrimaryButton>
               </>
             )}
             {activeTab === 'expenses' && (
-              <PageHeaderPrimaryButton onClick={openExpenseModal}>
+              <PageHeaderPrimaryButton onClick={openExpenseModal} title="Dodaj fakturę ręcznie">
                 <PlusIcon />
-                Dodaj fakturę ręcznie
+                <FullLabel>Dodaj fakturę ręcznie</FullLabel>
+                <ShortLabel>Koszt</ShortLabel>
               </PageHeaderPrimaryButton>
             )}
           </FinHdrActions>

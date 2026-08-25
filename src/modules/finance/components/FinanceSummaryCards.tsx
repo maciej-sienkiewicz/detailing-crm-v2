@@ -121,7 +121,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
         subContent={
           <SubText>
             {summary.overdueReceivables > 0
-              ? `${summary.overdueReceivables} przeterminowane`
+              ? `${formatMoney(summary.overdueReceivables)} przeterminowane`
               : 'oczekujące płatności'}
           </SubText>
         }

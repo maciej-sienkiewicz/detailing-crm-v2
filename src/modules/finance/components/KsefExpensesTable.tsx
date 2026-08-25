@@ -13,6 +13,7 @@ import {
 import { ExpenseNoteModal } from './ExpenseNoteModal';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { formatMoneyFloat, formatDate } from '../utils/formatters';
+import { useMediaQuery } from '@/common/hooks';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -445,6 +446,88 @@ const IconChevron = () => (
   </svg>
 );
 
+/* ─── Karta na telefonie ──────────────────────────────────────────────────────
+   Osiem kolumn na 390 px to przewijanie w bok po to, żeby zobaczyć kwotę.
+   Na telefonie liczy się: od kogo, ile, czy zapłacone i jaki to dokument.
+   Numer KSeF, źródło i edycja notatki zostają na desktopie. */
+
+const CardList = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Card = styled.div<{ $muted?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  opacity: ${(p) => (p.$muted ? 0.6 : 1)};
+
+  &:last-child { border-bottom: none; }
+  &:active { background: #f8fafc; }
+`;
+
+const CardTop = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const CardSeller = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CardAmount = styled.span`
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const CardMeta = styled.div`
+  font-size: 12px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CardNote = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CardBadges = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+const CardBadgeSpacer = styled.div`
+  flex: 1;
+`;
+
+const CardSkeleton = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+
+  & > span + span { margin-top: 8px; display: block; }
+`;
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -459,6 +542,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
   const [previewId, setPreviewId]           = useState<string | null>(null);
   const { menuRef: dropdownRef, pos: dropdownPos, style: dropdownStyle, open: openDropdownPos } = usePortalDropdownPos();
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   const excludeExpense = useExcludeExpense();
   const restoreExpense = useRestoreExpense();
@@ -520,6 +604,18 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   // ── Loading skeleton ───────────────────────────────────────────────────────
 
   if (isLoading) {
+    if (isMobile) {
+      return (
+        <CardList>
+          {[1, 2, 3, 4].map((i) => (
+            <CardSkeleton key={i}>
+              <Skeleton $w="65%" />
+              <Skeleton $w="40%" />
+            </CardSkeleton>
+          ))}
+        </CardList>
+      );
+    }
     return (
       <Wrapper>
         <Table>
@@ -555,8 +651,61 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
     );
   }
 
+  const mobileCards = (
+    <CardList>
+      {expenses.map((exp) => {
+        const isExcluded = exp.status === 'EXCLUDED';
+
+        return (
+          <Card key={exp.id} $muted={isExcluded} onClick={() => setPreviewId(exp.id)}>
+            <CardTop>
+              <CardSeller>{exp.sellerName ?? 'Bez sprzedawcy'}</CardSeller>
+              <CardAmount>{formatMoneyFloat(exp.grossAmount)}</CardAmount>
+            </CardTop>
+
+            <CardMeta>
+              {exp.documentNumber ?? 'Brak numeru'} · {formatDate(exp.saleDate)}
+            </CardMeta>
+
+            {exp.note && <CardNote title={exp.note}>{exp.note}</CardNote>}
+
+            <CardBadges onClick={(e) => e.stopPropagation()}>
+              <PaymentStatusBadge
+                $variant={exp.paymentStatus === 'PAID' ? 'green' : 'amber'}
+                onClick={(e) => handlePaymentClick(exp.id, e)}
+              >
+                {exp.paymentStatus === 'PAID' ? 'Opłacona' : 'Oczekuje'}
+                <IconChevron />
+              </PaymentStatusBadge>
+              {exp.isCorrection && <Badge $variant="amber">Korekta</Badge>}
+              {isExcluded && <Badge $variant="slate">Ukryta</Badge>}
+
+              <CardBadgeSpacer />
+
+              {isExcluded ? (
+                <ActionBtn $variant="restore" onClick={(e) => handleRestore(exp.id, e)} title="Przywróć do statystyk">
+                  <IconEye />
+                </ActionBtn>
+              ) : (
+                <ActionBtn $variant="exclude" onClick={(e) => handleExclude(exp.id, e)} title="Ukryj ze statystyk">
+                  <IconEyeOff />
+                </ActionBtn>
+              )}
+              {exp.source === 'MANUAL' && (
+                <ActionBtn $variant="delete" onClick={(e) => handleDelete(exp.id, e)} title="Usuń fakturę ręczną">
+                  <IconTrash />
+                </ActionBtn>
+              )}
+            </CardBadges>
+          </Card>
+        );
+      })}
+    </CardList>
+  );
+
   return (
     <>
+      {isMobile ? mobileCards : (
       <Wrapper>
         <Table>
           <Thead>
@@ -721,6 +870,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
           </tbody>
         </Table>
       </Wrapper>
+      )}
 
       {openPaymentId && dropdownPos &&
         createPortal(

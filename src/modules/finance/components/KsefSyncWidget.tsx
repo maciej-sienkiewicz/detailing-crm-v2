@@ -19,6 +19,13 @@ const Widget = styled.div`
   background: ${(p) => p.theme.colors.surfaceAlt};
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   flex-wrap: wrap;
+
+  /* Telefon: data ostatniej synchronizacji i ręczne „Synchronizuj teraz" to
+     sprawy obsługi systemu, nie przeglądania dokumentów — synchronizacja
+     chodzi automatycznie, więc pasek znika i oddaje miejsce liście. */
+  @media (max-width: 639px) {
+    display: none;
+  }
 `;
 
 const StatusDot = styled.span<{ $status: KsefSyncStatusValue }>`
