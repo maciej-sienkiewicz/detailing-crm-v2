@@ -1,6 +1,6 @@
 // src/common/hooks/useVisualViewportSheet.ts
 
-import { useEffect, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type RefObject } from 'react';
 
 type SheetRef = RefObject<HTMLElement | null>;
 
@@ -30,16 +30,18 @@ export const useVisualViewportSheet = (active: boolean, ...refs: SheetRef[]): vo
     const refsRef = useRef(refs);
     refsRef.current = refs;
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!active) return;
 
         const vv = window.visualViewport;
         if (!vv) return;
 
         let frame = 0;
-        const settleTimers: ReturnType<typeof setTimeout>[] = [];
+        let settleTimer: ReturnType<typeof setTimeout> | null = null;
+        let appliedHeight = vv.height;
 
         const apply = () => {
+            appliedHeight = vv.height;
             for (const ref of refsRef.current) {
                 const el = ref.current;
                 if (!el) continue;
@@ -50,24 +52,45 @@ export const useVisualViewportSheet = (active: boolean, ...refs: SheetRef[]): vo
             }
         };
 
-        const schedule = () => {
+        const applyNextFrame = () => {
+            if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
             cancelAnimationFrame(frame);
             frame = requestAnimationFrame(apply);
         };
 
-        schedule();
-        // The keyboard slides in over ~250ms and iOS reports intermediate
-        // geometry while it animates; re-measure once it has settled.
-        settleTimers.push(setTimeout(schedule, 150), setTimeout(schedule, 400));
+        /**
+         * Klawiatura wjeżdża około 300 ms i przez ten czas iOS raportuje kolejne
+         * pośrednie wysokości. Przykładanie każdej z nich sprawiało, że arkusz
+         * przez pół sekundy był wąskim paskiem u góry ekranu, spod którego widać
+         * było poprzedni widok. Kurczymy go więc dopiero, gdy wymiary przestaną
+         * się zmieniać — a do tego czasu zostaje na pełnym ekranie (CSS: top 0,
+         * bottom 0), czyli tam, gdzie użytkownik go widzi od pierwszej klatki.
+         */
+        const applyWhenSettled = () => {
+            cancelAnimationFrame(frame);
+            if (settleTimer) clearTimeout(settleTimer);
+            settleTimer = setTimeout(() => { settleTimer = null; apply(); }, 120);
+        };
 
-        vv.addEventListener('resize', schedule);
-        vv.addEventListener('scroll', schedule);
+        const onViewportChange = () => {
+            // Powiększenie obszaru (klawiatura znika) nie ma czego psuć — od razu.
+            if (vv.height >= appliedHeight) applyNextFrame();
+            else applyWhenSettled();
+        };
+
+        // Pierwsze przyłożenie tylko wtedy, gdy klawiatura JUŻ jest na ekranie.
+        // Przy zamkniętej klawiaturze fallback z CSS daje poprawny pełny ekran,
+        // więc nie ma czego nadpisywać.
+        if (window.innerHeight - vv.height > 120) apply();
+
+        vv.addEventListener('resize', onViewportChange);
+        vv.addEventListener('scroll', onViewportChange);
 
         return () => {
             cancelAnimationFrame(frame);
-            settleTimers.forEach(clearTimeout);
-            vv.removeEventListener('resize', schedule);
-            vv.removeEventListener('scroll', schedule);
+            if (settleTimer) clearTimeout(settleTimer);
+            vv.removeEventListener('resize', onViewportChange);
+            vv.removeEventListener('scroll', onViewportChange);
         };
     }, [active]);
 };
