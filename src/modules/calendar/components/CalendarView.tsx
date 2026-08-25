@@ -231,24 +231,50 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         left: 3px;
         display: inline-flex;
         align-items: center;
-        gap: 2px;
-        padding: 2px 4px;
-        border-radius: 6px;
-        color: #B45309;
-        z-index: 5;
+        gap: 3px;
+        padding: 3px 5px;
+        border-radius: 7px;
+        background: #F59E0B;
+        color: #fff;
+        box-shadow: 0 1px 3px rgba(180, 83, 9, 0.35);
+        z-index: 6;
         cursor: pointer;
         line-height: 1;
         pointer-events: auto;
+        touch-action: manipulation;
         transition: background 0.15s ease;
     }
 
     .fc-studio-event-badge:hover {
-        background: rgba(245, 158, 11, 0.14);
+        background: #D97706;
+    }
+
+    /* Palec potrzebuje większego celu niż kursor, ale w komórce szerokiej na
+       55 px każdy piksel dzwoneczka zabiera numer dnia. Rysujemy go więc
+       mniejszego, a pole dotyku powiększamy niewidocznie. */
+    @media (pointer: coarse) {
+        .fc-studio-event-badge::after {
+            content: '';
+            position: absolute;
+            inset: -9px;
+        }
+    }
+
+    @media (max-width: 639px) {
+        .fc-studio-event-badge {
+            top: 2px;
+            left: 2px;
+            padding: 2px;
+            gap: 2px;
+            border-radius: 6px;
+        }
+        .fc-studio-event-badge svg { width: 10px; height: 10px; }
+        .fc-studio-event-badge .fc-studio-event-count { font-size: 9px; }
     }
 
     .fc-studio-event-badge svg {
-        width: 13px;
-        height: 13px;
+        width: 12px;
+        height: 12px;
         display: block;
     }
 
@@ -260,6 +286,19 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
 
     .fc-day-other .fc-studio-event-badge {
         opacity: 0.55;
+    }
+
+    /* Sama ikonka ginęła w gąszczu kafelków wizyt. Dzień z wydarzeniem dostaje
+       więc bursztynową listwę i delikatne tło — widać go z drugiego końca
+       siatki, zanim jeszcze wzrok trafi na dzwoneczek. */
+    .fc-daygrid-day-frame.fc-has-studio-event {
+        background: rgba(245, 158, 11, 0.07);
+        box-shadow: inset 0 3px 0 0 #F59E0B;
+    }
+
+    .fc-day-other .fc-daygrid-day-frame.fc-has-studio-event {
+        background: rgba(245, 158, 11, 0.04);
+        box-shadow: inset 0 3px 0 0 rgba(245, 158, 11, 0.5);
     }
 
     /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
@@ -850,6 +889,26 @@ const MobileFilterBadge = styled.span`
     color: #fff;
 `;
 
+/* Tryb wydarzenia był dostępny tylko z nagłówka desktopowego, więc na telefonie
+   nie dało się dodać wydarzenia w ogóle. Dzwoneczek obok „+" włącza ten sam tryb. */
+const MobileEventModeBtn = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border: 1px solid ${p => p.$active ? 'rgba(245, 158, 11, 0.55)' : '#e2e8f0'};
+    border-radius: 50%;
+    background: ${p => p.$active ? '#F59E0B' : '#fff'};
+    color: ${p => p.$active ? '#fff' : '#B45309'};
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    svg { width: 17px; height: 17px; }
+    &:active { background: ${p => p.$active ? '#D97706' : '#fffbeb'}; }
+`;
+
 const MobileAddBtn = styled.button`
     display: flex;
     align-items: center;
@@ -1103,6 +1162,146 @@ const EventModeLayer = styled.div<{ $active: boolean }>`
         }
         .fc-highlight { background: rgba(245, 158, 11, 0.28); }
     `}
+`;
+
+/** Krótka data wydarzenia w liście dnia — „12 sierpnia". */
+const formatStudioEventDate = (iso: string): string =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
+
+/* ===================== PANEL WYDARZEŃ DNIA =====================
+   Dzwoneczek musi dać się „otworzyć", nie tylko najechać: na telefonie nie ma
+   kursora, a dotknięcie dnia zakłada nową rezerwację. Panel jest arkuszem przy
+   dolnej krawędzi na telefonie i zwykłym oknem na środku na desktopie. */
+
+const StudioDayBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    background: rgba(15, 23, 42, 0.35);
+
+    @media (min-width: 640px) {
+        background: rgba(15, 23, 42, 0.18);
+    }
+`;
+
+const StudioDaySheet = styled.div`
+    position: fixed;
+    z-index: 10051;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+    overflow: hidden;
+
+    @media (min-width: 640px) {
+        left: 50%;
+        right: auto;
+        top: 50%;
+        bottom: auto;
+        transform: translate(-50%, -50%);
+        width: 380px;
+    }
+`;
+
+const StudioDayHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+
+    svg { width: 16px; height: 16px; color: #B45309; flex-shrink: 0; }
+`;
+
+const StudioDayTitle = styled.div`
+    flex: 1;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+const StudioDayClose = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+
+    svg { width: 16px; height: 16px; }
+    &:hover { background: #f1f5f9; color: #475569; }
+`;
+
+const StudioDayList = styled.div`
+    max-height: 50vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+`;
+
+const StudioDayRow = styled.button`
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #f8fafc;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:last-child { border-bottom: none; }
+    &:hover, &:active { background: #fffbeb; }
+`;
+
+const StudioDayRowTitle = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const StudioDayRowMeta = styled.div`
+    margin-top: 2px;
+    font-size: 12px;
+    color: #94a3b8;
+`;
+
+const StudioDayRowDesc = styled.div`
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: #64748b;
+    line-height: 1.45;
+`;
+
+const StudioDayFoot = styled.div`
+    padding: 10px 12px;
+    border-top: 1px solid #f1f5f9;
+    background: #fcfdfe;
+`;
+
+const StudioDayAddBtn = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #B45309;
+    cursor: pointer;
+
+    svg { width: 14px; height: 14px; }
+    &:active { background: rgba(245, 158, 11, 0.2); }
 `;
 
 /* ===================== LEAVE TOOLTIP ===================== */
@@ -1709,6 +1908,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // żeby trzy znaczniki nie walczyły o ten sam róg. Kliknięcie w dzwoneczek
     // otwiera pierwsze wydarzenie dnia do edycji; hover pokazuje listę.
     const studioEventDayMapRef = useRef(studioEventDayMap);
+    /** Otwarta lista wydarzeń jednego dnia — wspólna dla dotyku i myszy. */
+    const [studioEventDay, setStudioEventDay] = useState<{ date: string; entries: StudioCalendarEvent[] } | null>(null);
     const [studioEventTooltip, setStudioEventTooltip] = useState<{
         x: number;
         y: number;
@@ -1723,8 +1924,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         if (!entries || entries.length === 0) {
             existing?.remove();
+            frame.classList.remove('fc-has-studio-event');
             return;
         }
+        frame.classList.add('fc-has-studio-event');
 
         let badge = existing;
         if (!badge) {
@@ -1754,14 +1957,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             badge.addEventListener('mouseleave', () => {
                 setStudioEventTooltip(prev => (prev?.date === iso ? null : prev));
             });
-            badge.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+            // FullCalendar łapie dotknięcie dnia na poziomie dokumentu, więc samo
+            // stopPropagation na kliknięciu nie wystarczy — bez wyciszenia
+            // pointerdown/touchstart dotknięcie dzwoneczka na telefonie otwierało
+            // od razu formularz nowej rezerwacji zamiast pokazać wydarzenie.
+            // Samo stopPropagation, bez preventDefault: FullCalendar nasłuchuje
+            // dotknięcia na dokumencie, więc wystarczy nie wypuścić zdarzenia
+            // wyżej. preventDefault dodatkowo zabiłoby kliknięcie syntezowane
+            // po dotknięciu — i dzwoneczek przestawał reagować na telefonie.
+            ['pointerdown', 'touchstart', 'mousedown'].forEach(type => {
+                badge!.addEventListener(type, (e) => { e.stopPropagation(); });
+            });
             badge.addEventListener('click', (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 const current = studioEventDayMapRef.current.get(iso);
                 if (!current || current.length === 0) return;
                 setStudioEventTooltip(null);
-                setEventDraftRange(null);
-                setEditedStudioEvent(current[0]);
+                setStudioEventDay({ date: iso, entries: current });
             });
             frame.appendChild(badge);
         }
@@ -1775,6 +1988,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         studioEventDayMapRef.current = studioEventDayMap;
         leaveCellsRef.current.forEach((frame, iso) => applyStudioEventBadge(iso, frame));
         setStudioEventTooltip(null);
+        setStudioEventDay(prev => {
+            if (!prev) return null;
+            const fresh = studioEventDayMap.get(prev.date);
+            return fresh && fresh.length > 0 ? { date: prev.date, entries: fresh } : null;
+        });
     }, [studioEventDayMap, applyStudioEventBadge]);
 
     /**
@@ -2166,9 +2384,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         )}
                     </MobileFilterPill>
                     {!selectionMode && can('VISITS_CREATE') && (
-                        <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
-                            +
-                        </MobileAddBtn>
+                        <>
+                            <MobileEventModeBtn
+                                $active={eventMode}
+                                onClick={() => {
+                                    // Dni zaznacza się w siatce miesiąca, a telefon startuje
+                                    // na liście — włączenie trybu samo przełącza widok,
+                                    // inaczej przycisk nic by nie robił.
+                                    if (!eventMode && agendaListActive) handleMobileViewChange('dayGridMonth');
+                                    setEventMode(v => !v);
+                                    closeStudioEventModal();
+                                }}
+                                aria-label={eventMode ? 'Zakończ dodawanie wydarzenia' : 'Dodaj wydarzenie'}
+                                aria-pressed={eventMode}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                            </MobileEventModeBtn>
+                            <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
+                                +
+                            </MobileAddBtn>
+                        </>
                     )}
                 </MobileActions>
             </MobileHeader>
@@ -2298,6 +2537,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {agendaListActive && dateRange && (
                     <AgendaListView
                         events={events}
+                        studioEventsByDay={studioEventDayMap}
+                        onStudioEventClick={(event) => { setEventDraftRange(null); setEditedStudioEvent(event); }}
                         rangeStart={dateRange.start}
                         rangeEnd={dateRange.end}
                         focusDate={new Date().toISOString()}
@@ -2673,7 +2914,73 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </LeaveTooltipBox>
             )}
 
-            {studioEventTooltip && (
+            {studioEventDay && (
+                <>
+                    <StudioDayBackdrop onClick={() => setStudioEventDay(null)} />
+                    <StudioDaySheet role="dialog" aria-label="Wydarzenia dnia">
+                        <StudioDayHead>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            </svg>
+                            <StudioDayTitle>
+                                {new Date(studioEventDay.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                                    weekday: 'long', day: 'numeric', month: 'long',
+                                })}
+                            </StudioDayTitle>
+                            <StudioDayClose onClick={() => setStudioEventDay(null)} aria-label="Zamknij">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </StudioDayClose>
+                        </StudioDayHead>
+
+                        <StudioDayList>
+                            {studioEventDay.entries.map(entry => (
+                                <StudioDayRow
+                                    key={entry.id}
+                                    onClick={() => {
+                                        setStudioEventDay(null);
+                                        setEventDraftRange(null);
+                                        setEditedStudioEvent(entry);
+                                    }}
+                                >
+                                    <StudioDayRowTitle>{entry.title}</StudioDayRowTitle>
+                                    <StudioDayRowMeta>
+                                        {entry.startDate === entry.endDate
+                                            ? 'Cały dzień'
+                                            : `${formatStudioEventDate(entry.startDate)} – ${formatStudioEventDate(entry.endDate)}`}
+                                    </StudioDayRowMeta>
+                                    {entry.description && (
+                                        <StudioDayRowDesc>{entry.description}</StudioDayRowDesc>
+                                    )}
+                                </StudioDayRow>
+                            ))}
+                        </StudioDayList>
+
+                        {can('VISITS_CREATE') && (
+                            <StudioDayFoot>
+                                <StudioDayAddBtn
+                                    onClick={() => {
+                                        const iso = studioEventDay.date;
+                                        setStudioEventDay(null);
+                                        setEditedStudioEvent(null);
+                                        setEventDraftRange({ startDate: iso, endDate: iso });
+                                    }}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    Dodaj wydarzenie tego dnia
+                                </StudioDayAddBtn>
+                            </StudioDayFoot>
+                        )}
+                    </StudioDaySheet>
+                </>
+            )}
+
+            {studioEventTooltip && !studioEventDay && (
                 <LeaveTooltipBox style={{ left: studioEventTooltip.x, top: studioEventTooltip.y, transform: studioEventTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
                     <LeaveTooltipTitle>
                         Wydarzenia · {new Date(studioEventTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {

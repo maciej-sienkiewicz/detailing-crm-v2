@@ -5,6 +5,7 @@ import React, { useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
+import type { StudioCalendarEvent } from '../types';
 import type { PopoverAnchor } from './EventSummaryPopover';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -263,6 +264,61 @@ const STATUS_LABEL: Record<string, string> = {
     ARCHIVED: 'Zarchiwizowane',
 };
 
+/* Wydarzenie studia na liście: bursztynowa karta z dzwoneczkiem, na górze dnia.
+   Bez niej telefon nie pokazywał wydarzeń w ogóle — lista jest tu widokiem
+   domyślnym, a znaczniki dnia żyją tylko w siatce miesiąca. */
+
+const StudioCard = styled.button`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    background: rgba(245, 158, 11, 0.08);
+    border: none;
+    border-left: 3px solid #F59E0B;
+    border-radius: 8px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:active { background: rgba(245, 158, 11, 0.16); }
+
+    > svg {
+        width: 15px;
+        height: 15px;
+        margin-top: 1px;
+        color: #B45309;
+        flex-shrink: 0;
+    }
+`;
+
+const StudioCardBody = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
+
+const StudioCardTitle = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: #92400E;
+`;
+
+const StudioCardMeta = styled.div`
+    margin-top: 2px;
+    font-size: 12px;
+    color: #B45309;
+    opacity: 0.85;
+`;
+
+const StudioCardDesc = styled.div`
+    margin-top: 3px;
+    font-size: 12.5px;
+    color: #78350F;
+    opacity: 0.75;
+    line-height: 1.4;
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export interface AgendaListViewProps {
@@ -274,6 +330,9 @@ export interface AgendaListViewProps {
     /** The currently selected/focused date (dateRange.start for navigated month) */
     focusDate?: string;
     onEventClick: (eventData: AppointmentEventData | VisitEventData, anchor: PopoverAnchor) => void;
+    /** Wydarzenia studia rozłożone na dni (klucz „RRRR-MM-DD"). */
+    studioEventsByDay?: Map<string, StudioCalendarEvent[]>;
+    onStudioEventClick?: (event: StudioCalendarEvent) => void;
 }
 
 export const AgendaListView: React.FC<AgendaListViewProps> = ({
@@ -282,6 +341,8 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
     rangeEnd,
     focusDate,
     onEventClick,
+    studioEventsByDay,
+    onStudioEventClick,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const todayKey = toDateKey(new Date());
@@ -310,8 +371,9 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                 {days.map(day => {
                     const key = toDateKey(day);
                     const slots = byDay.get(key) ?? [];
+                    const studioEvents = studioEventsByDay?.get(key) ?? [];
                     const isToday = key === todayKey;
-                    const isEmpty = slots.length === 0;
+                    const isEmpty = slots.length === 0 && studioEvents.length === 0;
 
                     return (
                         <DaySection key={key} id={`agenda-day-${key}`}>
@@ -328,6 +390,30 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                 <EmptyDay>Brak wydarzeń</EmptyDay>
                             ) : (
                                 <EventList>
+                                    {studioEvents.map(studioEvent => (
+                                        <StudioCard
+                                            key={`studio-${studioEvent.id}`}
+                                            type="button"
+                                            onClick={() => onStudioEventClick?.(studioEvent)}
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                                strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                            </svg>
+                                            <StudioCardBody>
+                                                <StudioCardTitle>{studioEvent.title}</StudioCardTitle>
+                                                <StudioCardMeta>
+                                                    {studioEvent.startDate === studioEvent.endDate
+                                                        ? 'Wydarzenie · cały dzień'
+                                                        : 'Wydarzenie · kilka dni'}
+                                                </StudioCardMeta>
+                                                {studioEvent.description && (
+                                                    <StudioCardDesc>{studioEvent.description}</StudioCardDesc>
+                                                )}
+                                            </StudioCardBody>
+                                        </StudioCard>
+                                    ))}
                                     {slots.map(({ event, startTime, endTime, isAllDay }, idx) => {
                                         const data = event.extendedProps as AppointmentEventData | VisitEventData;
                                         const isVisit = data.type === 'VISIT';
