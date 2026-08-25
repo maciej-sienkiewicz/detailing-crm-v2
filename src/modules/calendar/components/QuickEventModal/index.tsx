@@ -661,7 +661,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             />
                                         </div>
                                     )}
-                                    <S.InputGrid>
+                                    <S.InputGrid $dual={!form.isAllDay}>
                                         <S.InputGroup>
                                             <S.Label>{form.isAllDay ? 'Data' : 'Początek'}</S.Label>
                                             <DateTimePicker

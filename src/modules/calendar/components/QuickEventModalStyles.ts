@@ -189,13 +189,27 @@ export const RowContent = styled.div`
     min-width: 0;
 `;
 
-export const InputGrid = styled.div`
+export const InputGrid = styled.div<{ $dual?: boolean }>`
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         grid-template-columns: 1fr 1fr;
+    }
+
+    /* Telefon: początek i koniec obok siebie mieszczą się, jeśli pola zejdą
+       do ciaśniejszej typografii — a stojące jeden pod drugim rozbijały
+       jedną informację („od–do") na dwa osobne wiersze. */
+    @media (max-width: 639px) {
+        grid-template-columns: ${p => (p.$dual ? '1fr 1fr' : '1fr')};
+        gap: 8px;
+
+        button {
+            padding: 11px 10px;
+            font-size: 13.5px;
+            white-space: nowrap;
+        }
     }
 `;
 
