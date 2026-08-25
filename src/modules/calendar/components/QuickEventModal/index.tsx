@@ -474,6 +474,29 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const smsActionable = smsFeature.enabled && !!customerPhone;
 
     /**
+     * Otwarcie arkusza wyszukiwania klienta na telefonie. iOS otwiera klawiaturę
+     * tylko z focus() wywołanego wewnątrz gestu użytkownika, więc na czas montażu
+     * arkusza podstawiamy niewidoczne pole, a potem przenosimy do niego fokus.
+     * Dzięki temu nie ma pośredniego stanu z klawiaturą przy polu w formularzu.
+     */
+    const openCustomerSheet = useCallback(() => {
+        const tmp = document.createElement('div');
+        tmp.contentEditable = 'true';
+        tmp.setAttribute('inputmode', 'search');
+        tmp.style.cssText = 'position:fixed;top:-200px;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+        document.body.appendChild(tmp);
+        tmp.focus();
+
+        form.setFocusedField('customer');
+        form.setShowCustomerDropdown(true);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            customerSheetInputRef.current?.focus();
+            tmp.remove();
+        }));
+    }, [form]);
+
+    /**
      * „Dodaj nowego klienta" — jedno pole wyszukiwania nie zbiera telefonu ani
      * maila, więc zamiast zapisywać klienta z samym nazwiskiem otwieramy krótki
      * formularz. To, co wpisano w wyszukiwarkę, dzielimy na imię i nazwisko.
@@ -1001,6 +1024,25 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     klienta po wpisanym tekście. Zostaje jedno pole; komplet
                                                     danych zbiera formularz „Nowy klient", a poprawia je ołówek
                                                     przy wybranym kliencie. */}
+                                                {isMobile ? (
+                                                    /* Telefon: pole jest przyciskiem, nie inputem. Wpisanie fokusu
+                                                       w pole pod spodem otwierało klawiaturę, przewijało do niego
+                                                       modal, a chwilę później arkusz przykrywał to wszystko —
+                                                       stąd przeskok. Arkusz otwiera się od razu, w tym samym
+                                                       geście, i to on przejmuje pisanie. */
+                                                    <S.CustomerSearchField
+                                                        as="button"
+                                                        type="button"
+                                                        $focused={form.showCustomerDropdown}
+                                                        $hasError={!!form.errors.customer}
+                                                        onClick={openCustomerSheet}
+                                                    >
+                                                        <IconSearch />
+                                                        <S.CustomerSearchValue $empty={!form.customerFirstName}>
+                                                            {form.customerFirstName || 'Wyszukaj klienta...'}
+                                                        </S.CustomerSearchValue>
+                                                    </S.CustomerSearchField>
+                                                ) : (
                                                 <S.CustomerSearchField
                                                     $focused={form.focusedField === 'customer'}
                                                     $hasError={!!form.errors.customer}
@@ -1021,6 +1063,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         enterKeyHint="search"
                                                     />
                                                 </S.CustomerSearchField>
+                                                )}
 
                                                 {/* Desktop portal dropdown */}
                                                 {!isMobile && form.showCustomerDropdown && customerDropdownPos && createPortal(
