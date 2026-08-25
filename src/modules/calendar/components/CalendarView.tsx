@@ -221,6 +221,47 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         opacity: 0.55;
     }
 
+    /* ===================== STUDIO EVENT INDICATOR (dzwoneczek) =====================
+       Wydarzenie studia nie zajmuje wiersza w komórce — jest znacznikiem dnia,
+       tak samo jak urlop i Door to Door. Lewy górny róg, żeby nie wchodzić
+       w drogę tamtym dwóm. */
+    .fc-studio-event-badge {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 2px 4px;
+        border-radius: 6px;
+        color: #B45309;
+        z-index: 5;
+        cursor: pointer;
+        line-height: 1;
+        pointer-events: auto;
+        transition: background 0.15s ease;
+    }
+
+    .fc-studio-event-badge:hover {
+        background: rgba(245, 158, 11, 0.14);
+    }
+
+    .fc-studio-event-badge svg {
+        width: 13px;
+        height: 13px;
+        display: block;
+    }
+
+    .fc-studio-event-badge .fc-studio-event-count {
+        font-size: 10px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .fc-day-other .fc-studio-event-badge {
+        opacity: 0.55;
+    }
+
     /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
        Analogicznie do ludzika urlopowego, wstrzykiwany imperatywnie do
        .fc-daygrid-day-frame; prawy górny róg, pozycja right ustawiana inline w JS. */
@@ -1045,13 +1086,14 @@ const EventModeHintBtn = styled.button`
 /**
  * Tryb dodawania wydarzenia: wizyty i rezerwacje przygasają i przestają
  * przyjmować kliknięcia, żeby kalendarz czytał się jak pusta siatka dni.
- * Wydarzenia studia zostają w pełni widoczne — to je się właśnie planuje.
+ * Dzwoneczki wydarzeń są znacznikami dnia, nie kafelkami, więc zostają
+ * w pełni widoczne — to je się właśnie planuje.
  */
 const EventModeLayer = styled.div<{ $active: boolean }>`
     height: 100%;
 
     ${p => p.$active && `
-        .fc-event:not(.crm-studio-event) {
+        .fc-event {
             opacity: 0.16;
             pointer-events: none;
             filter: grayscale(0.6);
@@ -1115,6 +1157,18 @@ const D2DTooltipRow = styled(LeaveTooltipRow)`
 
     &::before {
         background: #0ea5e9;
+        align-self: flex-start;
+        margin-top: 5px;
+    }
+`;
+
+const StudioEventTooltipRow = styled(LeaveTooltipRow)`
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+
+    &::before {
+        background: #f59e0b;
         align-self: flex-start;
         margin-top: 5px;
     }
@@ -1402,24 +1456,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const { create: createStudioEvent, update: updateStudioEvent, remove: removeStudioEvent, isBusy: studioEventBusy } =
         useStudioCalendarEventMutations();
 
-    /** Wydarzenia jako kafelki całodniowe; FullCalendar chce końca ekskluzywnego. */
-    const studioEventInputs = useMemo(() => studioEvents.map(event => {
-        const end = new Date(`${event.endDate}T00:00:00`);
-        end.setDate(end.getDate() + 1);
-        return {
-            id: `studio-event-${event.id}`,
-            title: event.title,
-            start: event.startDate,
-            end: toIsoDate(end),
-            allDay: true,
-            display: 'block',
-            backgroundColor: 'rgba(245, 158, 11, 0.14)',
-            borderColor: 'rgba(245, 158, 11, 0.45)',
-            textColor: '#92400e',
-            classNames: ['crm-studio-event'],
-            extendedProps: { type: 'STUDIO_EVENT', studioEvent: event },
-        };
-    }), [studioEvents]);
+    /** Wydarzenie nie zajmuje wiersza w siatce — jest znacznikiem dnia, jak
+       urlop i Door to Door. Rozwijamy zakres startDate..endDate na dni. */
+    const studioEventDayMap = useMemo(() => {
+        const map = new Map<string, StudioCalendarEvent[]>();
+        studioEvents.forEach(event => {
+            const cursor = new Date(`${event.startDate}T00:00:00`);
+            const last = new Date(`${event.endDate}T00:00:00`);
+            let guard = 0;
+            while (cursor <= last && guard < 400) {
+                const iso = toIsoDate(cursor);
+                const bucket = map.get(iso);
+                if (bucket) bucket.push(event); else map.set(iso, [event]);
+                cursor.setDate(cursor.getDate() + 1);
+                guard += 1;
+            }
+        });
+        return map;
+    }, [studioEvents]);
 
     const closeStudioEventModal = useCallback(() => {
         setEventDraftRange(null);
@@ -1650,6 +1704,79 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setD2DTooltip(null);
     }, [correctedD2DMap, applyD2DBadge]);
 
+    // ── Dzwoneczek na dniach z wydarzeniami studia ───────────────────────────
+    // Ta sama mechanika co urlop i Door to Door, tylko po lewej stronie komórki,
+    // żeby trzy znaczniki nie walczyły o ten sam róg. Kliknięcie w dzwoneczek
+    // otwiera pierwsze wydarzenie dnia do edycji; hover pokazuje listę.
+    const studioEventDayMapRef = useRef(studioEventDayMap);
+    const [studioEventTooltip, setStudioEventTooltip] = useState<{
+        x: number;
+        y: number;
+        date: string;
+        entries: StudioCalendarEvent[];
+        above: boolean;
+    } | null>(null);
+
+    const applyStudioEventBadge = useCallback((iso: string, frame: HTMLElement) => {
+        const entries = studioEventDayMapRef.current.get(iso);
+        const existing = frame.querySelector<HTMLElement>(':scope > .fc-studio-event-badge');
+
+        if (!entries || entries.length === 0) {
+            existing?.remove();
+            return;
+        }
+
+        let badge = existing;
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'fc-studio-event-badge';
+            badge.innerHTML =
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>' +
+                '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>' +
+                '</svg><span class="fc-studio-event-count"></span>';
+            badge.addEventListener('mouseenter', () => {
+                const current = studioEventDayMapRef.current.get(iso);
+                if (!current) return;
+                const rect = badge!.getBoundingClientRect();
+                const TH = 160, TW = 260, M = 8;
+                const above = rect.bottom + TH + M > window.innerHeight;
+                const x = Math.max(TW / 2 + M, Math.min(rect.left + rect.width / 2, window.innerWidth - TW / 2 - M));
+                setStudioEventTooltip({
+                    x,
+                    y: above ? rect.top - 6 : rect.bottom + 6,
+                    date: iso,
+                    entries: current,
+                    above,
+                });
+            });
+            badge.addEventListener('mouseleave', () => {
+                setStudioEventTooltip(prev => (prev?.date === iso ? null : prev));
+            });
+            badge.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const current = studioEventDayMapRef.current.get(iso);
+                if (!current || current.length === 0) return;
+                setStudioEventTooltip(null);
+                setEventDraftRange(null);
+                setEditedStudioEvent(current[0]);
+            });
+            frame.appendChild(badge);
+        }
+        badge.setAttribute('aria-label', `Wydarzenia: ${entries.length}`);
+        const countEl = badge.querySelector<HTMLElement>('.fc-studio-event-count');
+        if (countEl) countEl.textContent = entries.length > 1 ? String(entries.length) : '';
+    }, []);
+
+    // Po zmianie wydarzeń odśwież dzwoneczki na zamontowanych komórkach
+    useEffect(() => {
+        studioEventDayMapRef.current = studioEventDayMap;
+        leaveCellsRef.current.forEach((frame, iso) => applyStudioEventBadge(iso, frame));
+        setStudioEventTooltip(null);
+    }, [studioEventDayMap, applyStudioEventBadge]);
+
     /**
      * Handle date range changes (triggered when view changes or user navigates)
      */
@@ -1737,12 +1864,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
      * Handle event click - Show popover with event summary
      */
     const handleEventClick = useCallback((clickInfo: EventClickArg) => {
-        const props = clickInfo.event.extendedProps as { type?: string; studioEvent?: StudioCalendarEvent };
-        if (props.type === 'STUDIO_EVENT' && props.studioEvent) {
-            setEditedStudioEvent(props.studioEvent);
-            setEventDraftRange(null);
-            return;
-        }
         // W trybie dodawania wydarzenia wizyty i rezerwacje są tylko tłem.
         if (eventMode) return;
 
@@ -2123,7 +2244,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                     </svg>
-                                    {eventMode ? 'Zakończ dodawanie' : 'Dodaj wydarzenie'}
+                                    {eventMode ? 'Zakończ' : 'Wydarzenie'}
                                 </EventModeBtn>
 
                                 <NewEventBtn onClick={handleMobileAddClick}>
@@ -2132,7 +2253,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                         <line x1="12" y1="5" x2="12" y2="19" />
                                         <line x1="5" y1="12" x2="19" y2="12" />
                                     </svg>
-                                    Nowa rezerwacja
+                                    Rezerwacja
                                 </NewEventBtn>
 
                                 <NewEventBtn onClick={() => navigate('/checkin/new')}>
@@ -2141,7 +2262,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                         <line x1="12" y1="5" x2="12" y2="19" />
                                         <line x1="5" y1="12" x2="19" y2="12" />
                                     </svg>
-                                    Nowa wizyta
+                                    Wizyta
                                 </NewEventBtn>
                             </>
                         )}
@@ -2327,7 +2448,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 longPressDelay={400}
 
                 // Events data: wizyty/rezerwacje + wydarzenia studia
-                events={[...events, ...studioEventInputs]}
+                events={events}
 
                 eventDidMount={(arg) => {
                     eventElMapRef.current.set(arg.event.id, arg.el);
@@ -2392,6 +2513,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     leaveCellsRef.current.set(iso, frame);
                     applyLeaveBadge(iso, frame);
                     applyD2DBadge(iso, frame);
+                    applyStudioEventBadge(iso, frame);
                 }}
                 dayCellWillUnmount={(arg) => {
                     if (arg.view.type !== 'dayGridMonth') return;
@@ -2408,43 +2530,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 }}
 
                 eventContent={(arg) => {
-                    // Wydarzenie studia: dzwoneczek zamiast godziny — na pierwszy rzut
-                    // oka widac, ze to nie jest wizyta ani rezerwacja.
-                    const studioEventChip = (arg.event.extendedProps as { studioEvent?: StudioCalendarEvent }).studioEvent;
-                    if (studioEventChip) {
-                        return (
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                width: '100%',
-                                padding: '3px 6px 3px 5px',
-                                background: 'rgba(245, 158, 11, 0.14)',
-                                borderLeft: '3px solid #F59E0B',
-                                borderRadius: '5px',
-                                overflow: 'hidden',
-                                whiteSpace: 'nowrap',
-                                lineHeight: 1.2,
-                            }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2"
-                                    strokeLinecap="round" strokeLinejoin="round"
-                                    style={{ width: 11, height: 11, flexShrink: 0 }}>
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                </svg>
-                                <span style={{
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    color: '#92400E',
-                                }}>
-                                    {arg.event.title}
-                                </span>
-                            </div>
-                        );
-                    }
-
                     const props = arg.event.extendedProps as AppointmentEventData | VisitEventData;
                     const status = props.status as string | undefined;
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
@@ -2584,6 +2669,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             <div>{e.vehicle}{e.customerLastName ? ` (${e.customerLastName})` : ''}</div>
                             {e.address && <D2DTooltipAddress>{e.address}</D2DTooltipAddress>}
                         </D2DTooltipRow>
+                    ))}
+                </LeaveTooltipBox>
+            )}
+
+            {studioEventTooltip && (
+                <LeaveTooltipBox style={{ left: studioEventTooltip.x, top: studioEventTooltip.y, transform: studioEventTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
+                    <LeaveTooltipTitle>
+                        Wydarzenia · {new Date(studioEventTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                            day: 'numeric', month: 'long',
+                        })}
+                    </LeaveTooltipTitle>
+                    {studioEventTooltip.entries.map(e => (
+                        <StudioEventTooltipRow key={e.id}>
+                            <div>{e.title}</div>
+                            {e.description && <D2DTooltipAddress>{e.description}</D2DTooltipAddress>}
+                        </StudioEventTooltipRow>
                     ))}
                 </LeaveTooltipBox>
             )}
