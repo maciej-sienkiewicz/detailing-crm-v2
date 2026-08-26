@@ -14,7 +14,6 @@ import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { NewCustomerSheet, type NewCustomerDraft } from './NewCustomerSheet';
-import { SmsOptionsSheet, type SmsOption } from './SmsOptionsSheet';
 import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
@@ -289,7 +288,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
     const timeStripRef = useRef<HTMLDivElement>(null);
-    const [smsSheetOpen, setSmsSheetOpen] = useState(false);
     // „Dodaj nowego klienta" otwiera formularz zamiast zapisywać od razu.
     const [newCustomerDraft, setNewCustomerDraft] = useState<NewCustomerDraft | null>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
@@ -426,52 +424,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, []);
-
-    /**
-     * Trzy powiadomienia SMS jako niezależne przełączniki — każda kombinacja jest
-     * poprawna, także „sama karta wizyty". Globalne wyłączenie w konfiguracji
-     * studia blokuje pojedynczy przełącznik, nie całą trójkę.
-     */
-    const smsOptions: SmsOption[] = [
-        {
-            key: 'confirmation',
-            label: 'Potwierdzenie rezerwacji',
-            description: 'Wyślemy zaraz po zapisaniu wizyty.',
-            checked: form.sendConfirmationSms,
-            disabledReason: form.bookingConfirmationEnabled ? undefined : 'Wyłączone globalnie w konfiguracji SMS',
-            onChange: form.setSendConfirmationSms,
-        },
-        {
-            key: 'reminder',
-            label: 'Przypomnienie przed wizytą',
-            description: 'Wyjdzie automatycznie przed terminem.',
-            checked: form.sendReminderSms,
-            disabledReason: form.preVisitEnabled ? undefined : 'Wyłączone globalnie w konfiguracji SMS',
-            onChange: form.setSendReminderSms,
-        },
-        {
-            key: 'visitCard',
-            label: 'Karta wizyty',
-            description: 'Link, pod którym klient śledzi postęp prac.',
-            checked: form.sendVisitCard,
-            disabledReason: form.visitCardEnabled ? undefined : 'Karta wizyty jest wyłączona w ustawieniach',
-            onChange: form.setSendVisitCard,
-        },
-    ];
-
-    const customerPhone = form.selectedCustomer?.phone?.trim() || null;
-
-    /** Jedno zdanie o tym, co poleci — stan widoczny w chwili zapisu, nie po. */
-    const smsSummary = (() => {
-        if (!smsFeature.enabled) return 'SMS niedostępny w abonamencie';
-        if (!customerPhone) return 'SMS: brak numeru telefonu klienta';
-        const active = smsOptions
-            .filter(o => o.checked && !o.disabledReason)
-            .map(o => ({ confirmation: 'potwierdzenie', reminder: 'przypomnienie', visitCard: 'karta wizyty' }[o.key]));
-        return active.length > 0 ? `SMS: ${active.join(' + ')}` : 'SMS: nic nie wyślemy';
-    })();
-
-    const smsActionable = smsFeature.enabled && !!customerPhone;
 
     /**
      * „Dodaj nowego klienta" — jedno pole wyszukiwania nie zbiera telefonu ani
@@ -1851,10 +1803,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.RowContent>
                             </S.Row>
 
-                            {!isMobile && <S.Divider />}
+                            <S.Divider />
 
                             {/* ── SMS row ────────────────────────────────────────── */}
-                            {!isMobile && (
                             <S.Row>
                                 <S.IconWrapper>
                                     <IconMessageSquare />
@@ -1907,7 +1858,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </LockedSection>
                                 </S.RowContent>
                             </S.Row>
-                            )}
 
                             </>
                             )} {/* end advanced sections */}
@@ -2021,24 +1971,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 document.body
                             )}
 
-                            {isMobile && (
-                                <S.SmsSummaryRow
-                                    type="button"
-                                    $muted={!smsActionable}
-                                    onClick={() => {
-                                        if (!smsFeature.enabled) { setUpsellOpen(true); return; }
-                                        setSmsSheetOpen(true);
-                                    }}
-                                >
-                                    <IconMessageSquare />
-                                    <span>{smsSummary}</span>
-                                    <S.SmsSummaryChevron viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        strokeWidth="2.5" strokeLinecap="round">
-                                        <polyline points="9 6 15 12 9 18" />
-                                    </S.SmsSummaryChevron>
-                                </S.SmsSummaryRow>
-                            )}
-
                             <S.FooterActions>
                                 {!isMobile && (
                                     <S.Button type="button" onClick={form.clearForm} $variant="ghost" title="Wyczyść wszystkie pola">
@@ -2121,15 +2053,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             },
                         });
                     }}
-                />
-            )}
-
-            {smsSheetOpen && (
-                <SmsOptionsSheet
-                    isMobile={isMobile}
-                    options={smsOptions}
-                    phone={customerPhone}
-                    onClose={() => setSmsSheetOpen(false)}
                 />
             )}
 

@@ -1441,38 +1441,6 @@ export const ColorPanelAddBtn = styled.button`
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
-/* Wiersz stanu SMS nad przyciskiem zapisu (telefon). Trzy kwadraciki 15 px pod
-   sekcją zaawansowaną były praktycznie niewidoczne; tutaj widać wprost, co poleci
-   do klienta, w chwili gdy się to mówi przez telefon. */
-export const SmsSummaryRow = styled.button<{ $muted?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-height: 48px;
-    padding: 0 14px;
-    background: ${p => (p.$muted ? '#f8fafc' : 'rgba(14, 165, 233, 0.08)')};
-    border: 1px solid ${p => (p.$muted ? '#e2e8f0' : 'rgba(14, 165, 233, 0.28)')};
-    border-radius: 12px;
-    font-family: inherit;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: ${p => (p.$muted ? '#64748b' : '#0369a1')};
-    text-align: left;
-    cursor: pointer;
-
-    > svg { width: 16px; height: 16px; flex-shrink: 0; }
-    > span { flex: 1; min-width: 0; }
-    &:active { filter: brightness(0.97); }
-`;
-
-export const SmsSummaryChevron = styled.svg`
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    opacity: 0.6;
-`;
-
 export const FooterActions = styled.div`
     display: flex;
     align-items: center;
