@@ -40,24 +40,14 @@ export const useVisualViewportSheet = (active: boolean, ...refs: SheetRef[]): vo
         let settleTimer: ReturnType<typeof setTimeout> | null = null;
         let appliedHeight = vv.height;
 
-        /**
-         * Zamiast ustawiać wysokość (skok nie do zanimowania — początkowa
-         * wysokość wynika z top/bottom, więc jest „auto"), przesuwamy sam dolny
-         * brzeg: bottom ma jawną wartość w arkuszu stylów (0) i jawną docelową,
-         * więc transition działa. Górny brzeg analogicznie. Dzięki temu zmiana
-         * geometrii jest płynnym ruchem krawędzi, nie przeskokiem całego arkusza
-         * — w PWA było to maskowane, w Safari w przeglądarce widać było snap.
-         */
         const apply = () => {
             appliedHeight = vv.height;
-            const bottomInset = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
             for (const ref of refsRef.current) {
                 const el = ref.current;
                 if (!el) continue;
-                el.style.transition = 'top 220ms cubic-bezier(0.32, 0.72, 0, 1), bottom 220ms cubic-bezier(0.32, 0.72, 0, 1)';
                 el.style.top = `${vv.offsetTop}px`;
-                el.style.bottom = `${bottomInset}px`;
-                el.style.height = '';
+                el.style.height = `${vv.height}px`;
+                el.style.bottom = 'auto';
                 el.style.maxHeight = 'none';
             }
         };
@@ -71,10 +61,10 @@ export const useVisualViewportSheet = (active: boolean, ...refs: SheetRef[]): vo
         /**
          * Klawiatura wjeżdża około 300 ms i przez ten czas iOS raportuje kolejne
          * pośrednie wysokości. Przykładanie każdej z nich sprawiało, że arkusz
-         * przez pół sekundy kurczył się skokami. Czekamy więc, aż wymiary
-         * przestaną się zmieniać, i wykonujemy JEDNĄ animowaną zmianę dolnego
-         * brzegu — do tego czasu arkusz stoi na pełnym ekranie (CSS: top 0,
-         * bottom 0), czyli tam, gdzie użytkownik widzi go od pierwszej klatki.
+         * przez pół sekundy był wąskim paskiem u góry ekranu, spod którego widać
+         * było poprzedni widok. Kurczymy go więc dopiero, gdy wymiary przestaną
+         * się zmieniać — a do tego czasu zostaje na pełnym ekranie (CSS: top 0,
+         * bottom 0), czyli tam, gdzie użytkownik go widzi od pierwszej klatki.
          */
         const applyWhenSettled = () => {
             cancelAnimationFrame(frame);
