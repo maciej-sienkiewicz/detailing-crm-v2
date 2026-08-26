@@ -177,36 +177,6 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
     }
 `;
 
-/**
- * Termin wizyty: na komputerze trzy kolumny (start, koniec, kolor), na telefonie
- * obie daty obok siebie, a kolor pod nimi na całą szerokość. Daty czyta się jako
- * jedną informację „od–do" — rozbite na osobne wiersze wymuszały przewijanie
- * w tę i z powrotem, żeby porównać godziny.
- */
-const TermGrid = styled.div`
-    display: grid;
-    gap: 14px;
-    grid-template-columns: 1fr 1fr;
-
-    > *:last-child { grid-column: 1 / -1; }
-
-    /* Dwie daty w jednym rzędzie mieszczą się tylko przy ciaśniejszej typografii. */
-    @media (max-width: 767px) {
-        gap: 10px;
-
-        button {
-            padding: 11px 10px;
-            font-size: 13.5px;
-            white-space: nowrap;
-        }
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(3, 1fr);
-        > *:last-child { grid-column: auto; }
-    }
-`;
-
 const SectionBody = styled.div`
     padding: 14px 16px 16px;
 
@@ -1324,7 +1294,7 @@ export const VerificationStep = ({
                     </SectionTitleRow>
                 </SectionHead>
                 <SectionBody>
-                    <TermGrid>
+                    <FormGrid $columns={3}>
                         <FieldGroup>
                             <Label>Data rozpoczęcia</Label>
                             <DateTimePicker
@@ -1385,7 +1355,7 @@ export const VerificationStep = ({
                             />
                             {errors.color && <FieldError>{errors.color}</FieldError>}
                         </FieldGroup>
-                    </TermGrid>
+                    </FormGrid>
                 </SectionBody>
             </SectionCard>
 
