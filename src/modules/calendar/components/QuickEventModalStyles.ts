@@ -109,13 +109,7 @@ export const HeaderContent = styled.div`
     min-width: 0;
 `;
 
-export const CloseButton = styled(ModalCloseButton)`
-    /* Palec potrzebuje 44 px; domyślne 36 px to cel dla kursora. */
-    @media (max-width: 639px) {
-        width: 44px;
-        height: 44px;
-    }
-`;
+export const CloseButton = styled(ModalCloseButton)``;
 
 export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
     width: 100%;
@@ -143,8 +137,6 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
 
     @media (max-width: 639px) {
         && { font-size: 18px; }
-        padding: 10px 0;
-        min-height: 44px;
     }
 `;
 
@@ -219,63 +211,6 @@ export const InputGrid = styled.div<{ $dual?: boolean }>`
             white-space: nowrap;
         }
     }
-`;
-
-/* ─── Godzina i długość wizyty (telefon) ─────────────────────────────────────
-   Pasek godzin zamiast pełnego okna wyboru czasu: podczas rozmowy z klientem
-   liczy się jedno dotknięcie, nie trzy ekrany. */
-
-export const TimeStrip = styled.div`
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-
-    &::-webkit-scrollbar { display: none; }
-`;
-
-export const TimeChip = styled.button<{ $active?: boolean }>`
-    flex-shrink: 0;
-    min-height: 44px;
-    padding: 0 14px;
-    border-radius: 999px;
-    border: 1.5px solid ${p => (p.$active ? '#0ea5e9' : '#e2e8f0')};
-    background: ${p => (p.$active ? '#0ea5e9' : '#fff')};
-    color: ${p => (p.$active ? '#fff' : '#475569')};
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: ${p => (p.$active ? 700 : 500)};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    cursor: pointer;
-    scroll-snap-align: center;
-    transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-
-    &:active { transform: scale(0.97); }
-`;
-
-export const DurationRow = styled.div`
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-`;
-
-export const DurationChip = styled.button<{ $active?: boolean }>`
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1.5px solid ${p => (p.$active ? 'rgba(14, 165, 233, 0.5)' : '#e2e8f0')};
-    background: ${p => (p.$active ? 'rgba(14, 165, 233, 0.1)' : '#fff')};
-    color: ${p => (p.$active ? '#0284c7' : '#475569')};
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: ${p => (p.$active ? 700 : 500)};
-    cursor: pointer;
-    transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-
-    &:active { transform: scale(0.97); }
 `;
 
 export const InputGroup = styled.div`
@@ -1447,20 +1382,10 @@ export const FooterActions = styled.div`
     justify-content: flex-end;
     gap: 8px;
 
-    /* Telefon: „Zapisz wizytę" i „Anuluj" miały po ~175 px i tę samą wagę —
-       przy odruchowym dotknięciu to loteria, a koszt pomyłki jest asymetryczny
-       (traci się wszystko, co przed chwilą wpisano przy kliencie). Zapis bierze
-       dwie trzecie szerokości i 52 px wysokości. */
     @media (max-width: 639px) {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 8px;
+        flex-wrap: wrap;
 
-        > * {
-            justify-content: center;
-            min-height: 52px;
-            font-size: 15px;
-        }
+        > * { flex: 1; justify-content: center; }
     }
 `;
 
@@ -1492,26 +1417,10 @@ export const CustomerInputRow = styled.div`
 export const VehicleInputRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 88px;
-
-    /* Telefon: trzy kolumny na 300 px dawały pola po 91 px, w których „Wybierz
-       markę" zawijało się na dwie linie. Każde pole dostaje pełną szerokość,
-       a sam element sterujący — całą wysokość wiersza, żeby dotknięcie gdziekolwiek
-       w wierszu otwierało listę, a nie trafiało w padding. */
-    @media (max-width: 639px) {
-        grid-template-columns: 1fr;
-
-        > * + * { border-top: 1px solid #f1f5f9; }
-
-        button,
-        input {
-            min-height: 44px;
-        }
-    }
 `;
 
 export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
     width: 100%;
-    min-height: 48px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1538,8 +1447,6 @@ export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
 
 export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean; $hasError?: boolean }>`
     padding: 8px 14px;
-    min-height: 48px;
-    justify-content: center;
     border-right: ${p => p.$borderRight ? '1px solid #f1f5f9' : 'none'};
     display: flex;
     flex-direction: column;
@@ -1971,7 +1878,6 @@ export const AdvancedToggleBtn = styled.button`
     align-items: center;
     gap: 8px;
     width: 100%;
-    min-height: 48px;
     padding: 12px 0 4px;
     font-size: 13px;
     font-weight: 500;

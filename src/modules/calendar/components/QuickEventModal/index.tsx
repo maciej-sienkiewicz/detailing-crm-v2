@@ -44,27 +44,6 @@ const MobileColorLabel = styled.div`
     letter-spacing: 0.5px;
 `;
 
-/** 07:00–19:00 co 30 minut — realne godziny pracy studia detailingowego. */
-const TIME_SLOTS = Array.from({ length: 25 }, (_, i) => {
-    const minutes = 7 * 60 + i * 30;
-    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-});
-
-/** Najbliższa pełna pół godzina — od niej zaczyna się pasek po otwarciu okna. */
-const nearestSlot = (): string => {
-    const now = new Date();
-    const minutes = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 30) * 30;
-    const clamped = Math.min(Math.max(minutes, 7 * 60), 19 * 60);
-    return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(clamped % 60).padStart(2, '0')}`;
-};
-
-const DURATIONS = [
-    { label: '1 h', minutes: 60 },
-    { label: '2 h', minutes: 120 },
-    { label: '4 h', minutes: 240 },
-    { label: '8 h', minutes: 480 },
-];
-
 const SmsCheckList = styled.div`
     display: flex;
     flex-direction: column;
@@ -287,7 +266,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showAdvanced, setShowAdvanced] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
-    const timeStripRef = useRef<HTMLDivElement>(null);
     // „Dodaj nowego klienta" otwiera formularz zamiast zapisywać od razu.
     const [newCustomerDraft, setNewCustomerDraft] = useState<NewCustomerDraft | null>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
@@ -441,23 +419,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             email: form.customerEmail,
         });
     }, [form.customerFirstName, form.customerLastName, form.customerPhonePrefix, form.customerPhone, form.customerEmail]);
-
-    /**
-     * Pasek godzin otwiera się na najbliższej pełnej pół godzinie (albo na już
-     * wybranej), żeby nie zaczynać dnia od przewijania od 7:00.
-     */
-    useEffect(() => {
-        if (!isMobile || !isOpen) return;
-        const strip = timeStripRef.current;
-        if (!strip) return;
-        const target = form.selectedTime ?? nearestSlot();
-        const chip = strip.querySelector<HTMLElement>(`[data-time="${target}"]`);
-        if (chip) {
-            strip.scrollLeft = chip.offsetLeft - strip.clientWidth / 2 + chip.clientWidth / 2;
-        }
-    // Tylko przy otwarciu okna: później pasek ma zostać tam, gdzie go przesunięto.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isMobile, isOpen]);
 
     // Reset mobile-specific state when modal closes
     useEffect(() => {
@@ -746,51 +707,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.InputGroup>
                                         )}
                                     </S.InputGrid>
-
-                                    {/* Telefon: godzina i długość wizyty na dotknięcie.
-                                        Podczas rozmowy z klientem pierwsze pytanie brzmi
-                                        „na którą?", a przełącznik wizyty całodniowej jest
-                                        na telefonie ukryty — bez tego paska godziny nie
-                                        dało się w ogóle ustawić. */}
-                                    {isMobile && (
-                                        <>
-                                            <S.TimeStrip ref={timeStripRef}>
-                                                <S.TimeChip
-                                                    type="button"
-                                                    $active={form.isAllDay}
-                                                    onClick={() => form.handleAllDayToggle(true)}
-                                                >
-                                                    Cały dzień
-                                                </S.TimeChip>
-                                                {TIME_SLOTS.map(slot => (
-                                                    <S.TimeChip
-                                                        key={slot}
-                                                        type="button"
-                                                        data-time={slot}
-                                                        $active={form.selectedTime === slot}
-                                                        onClick={() => form.applyTimeSlot(slot, form.durationMinutes || 60)}
-                                                    >
-                                                        {slot}
-                                                    </S.TimeChip>
-                                                ))}
-                                            </S.TimeStrip>
-
-                                            {!form.isAllDay && form.selectedTime && (
-                                                <S.DurationRow>
-                                                    {DURATIONS.map(d => (
-                                                        <S.DurationChip
-                                                            key={d.minutes}
-                                                            type="button"
-                                                            $active={form.durationMinutes === d.minutes}
-                                                            onClick={() => form.applyTimeSlot(form.selectedTime!, d.minutes)}
-                                                        >
-                                                            {d.label}
-                                                        </S.DurationChip>
-                                                    ))}
-                                                </S.DurationRow>
-                                            )}
-                                        </>
-                                    )}
                                 </S.RowContent>
                             </S.Row>
 
