@@ -34,7 +34,9 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
     const [touched, setTouched] = useState(false);
 
     const sheetRef = useRef<HTMLDivElement>(null);
-    useVisualViewportSheet(true, sheetRef);
+    // Pasek „Zatwierdź / Anuluj" siedzi na dole arkusza, więc tu dolna
+    // krawędź musi dojechać nad klawiaturę.
+    useVisualViewportSheet(true, sheetRef, { keyboard: 'resize' });
 
     // Escape zamyka arkusz tak samo jak „X" — na tablecie z klawiaturą to odruch.
     useEffect(() => {

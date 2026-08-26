@@ -193,9 +193,10 @@ const SheetBackdrop = styled.div`
 
 const Sheet = styled.div`
   position: fixed;
-  /* Fallback for browsers without visualViewport; useVisualViewportSheet
-     overrides top/height at runtime so the sheet tracks the visible region
-     between the top of the screen and the keyboard. */
+  /* Arkusz stoi na pełnym ekranie i taki zostaje: useVisualViewportSheet
+     koryguje tylko górną krawędź (iOS przewija visual viewport), a
+     wysokość klawiatury oddaje liście jako --kb-inset. Zmiana wysokości
+     samego arkusza była widoczna w Safari jako wysuwanie się po otwarciu. */
   top: 0;
   bottom: 0;
   left: 0;
@@ -287,9 +288,9 @@ const SheetList = styled.div`
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  /* On the scroll area, not the sheet: with the keyboard up this would
-     otherwise be a dead gap above it. */
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Zapas pod ostatnią pozycją: margines telefonu plus wysokość klawiatury
+     (--kb-inset z useVisualViewportSheet), zamiast kurczenia arkusza. */
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px));
 `;
 
 const SheetItem = styled.button<{ $selected?: boolean }>`
