@@ -24,7 +24,7 @@ import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { VatRate, Service as CatalogService } from '@/modules/services/types';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
-    IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare, IconSearch,
+    IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
 } from './icons';
 import { useFeature, UpsellModal } from '@/modules/subscription';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -243,12 +243,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     onSave,
     initialData,
 }, ref) => {
-    // Wczytywane przed formularzem, bo decyduje o jego zachowaniu (jedno pole
-    // wyszukiwania zamiast czterech). Stan startowy bierzemy od razu z okna,
-    // żeby pierwszy render nie pokazał układu dla komputera.
-    const [isMobile, setIsMobile] = useState(() =>
-        typeof window !== 'undefined' && window.innerWidth < 640);
-    const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData, deferNewCustomerOnBlur: isMobile });
+    const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
     const queryClient = useQueryClient();
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
@@ -263,6 +258,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [autoOpenModel, setAutoOpenModel] = useState(false);
 
     // Mobile-specific UX state
+    const [isMobile, setIsMobile] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
     const customerSheetRef = useRef<HTMLDivElement>(null);
@@ -844,37 +840,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         /* ── stan: brak klienta, formularz wyszukiwania ── */
                                         <>
                                             <S.CustomerHint>
-                                                {isMobile
-                                                    ? 'Wyszukaj klienta albo dodaj nowego'
-                                                    : 'Wyszukaj istniejącego klienta lub wypełnij pola, aby dodać nowego'}
+                                                Wyszukaj istniejącego klienta lub wypełnij pola, aby dodać nowego
                                             </S.CustomerHint>
                                             <S.DropdownContainer ref={customerDropdownContainerRef}>
-                                                {isMobile ? (
-                                                    /* Telefon: cztery pola kazały decydować, od czego zacząć —
-                                                       a i tak każde z nich robiło to samo, czyli szukało klienta.
-                                                       Zostaje jedno pole; komplet danych zbiera arkusz
-                                                       „Nowy klient", a poprawia go ołówek przy wybranym kliencie. */
-                                                    <S.CustomerSearchField
-                                                        $focused={form.focusedField === 'customer'}
-                                                        $hasError={!!form.errors.customer}
-                                                    >
-                                                        <IconSearch />
-                                                        <S.CustomerSearchInput
-                                                            ref={form.customerInputRef}
-                                                            type="text"
-                                                            placeholder="Wyszukaj klienta..."
-                                                            value={form.customerFirstName}
-                                                            onChange={(e) => {
-                                                                form.setCustomerFirstName(e.target.value);
-                                                                form.setShowCustomerDropdown(true);
-                                                            }}
-                                                            onFocus={form.handleCustomerFieldFocus}
-                                                            onBlur={form.handleCustomerFieldBlur}
-                                                            autoComplete="new-password"
-                                                            enterKeyHint="search"
-                                                        />
-                                                    </S.CustomerSearchField>
-                                                ) : (
                                                 <S.CustomerInputBlock
                                                     $focused={form.focusedField === 'customer'}
                                                     $hasError={!!(form.errors.customer || form.errors.customerFirstName || form.errors.customerLastName || form.errors.customerPhone || form.errors.customerEmail)}
@@ -971,7 +939,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
                                                 </S.CustomerInputBlock>
-                                                )}
 
                                                 {/* Desktop portal dropdown */}
                                                 {!isMobile && form.showCustomerDropdown && customerDropdownPos && createPortal(

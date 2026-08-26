@@ -1625,45 +1625,6 @@ const sheetFadeIn = keyframes`
     to   { opacity: 1; }
 `;
 
-/* ─── Jedno pole wyszukiwania klienta (telefon) ──────────────────────────────
-   Cztery pola — imię, nazwisko, telefon, e-mail — kazały użytkownikowi wybrać,
-   od czego zacząć, choć każde z nich robiło dokładnie to samo: szukało klienta.
-   Jedno długie pole nie stawia tego pytania. */
-
-export const CustomerSearchField = styled.div<{ $focused?: boolean; $hasError?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 14px;
-    height: 52px;
-    background: #fff;
-    border: 1.5px solid ${p => (p.$hasError ? '#fca5a5' : p.$focused ? '#0ea5e9' : '#e2e8f0')};
-    border-radius: 12px;
-    transition: border-color 140ms ease, box-shadow 140ms ease;
-    box-shadow: ${p => (p.$focused ? '0 0 0 3px rgba(14, 165, 233, 0.12)' : 'none')};
-
-    > svg {
-        width: 18px;
-        height: 18px;
-        color: ${p => (p.$focused ? '#0ea5e9' : '#94a3b8')};
-        flex-shrink: 0;
-    }
-`;
-
-export const CustomerSearchInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: 16px; /* mniejszy rozmiar każe iOS-owi przybliżyć ekran przy focusie */
-    color: #0f172a;
-
-    &::placeholder { color: #94a3b8; }
-`;
-
 export const MobileSheetBackdrop = styled.div`
     position: fixed;
     inset: 0;
