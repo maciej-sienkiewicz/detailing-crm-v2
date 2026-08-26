@@ -1771,10 +1771,6 @@ const sheetFadeIn = keyframes`
 
 export const CustomerSearchField = styled.div<{ $focused?: boolean; $hasError?: boolean }>`
     display: flex;
-    width: 100%;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
     align-items: center;
     gap: 10px;
     padding: 0 14px;
@@ -1791,19 +1787,6 @@ export const CustomerSearchField = styled.div<{ $focused?: boolean; $hasError?: 
         color: ${p => (p.$focused ? '#0ea5e9' : '#94a3b8')};
         flex-shrink: 0;
     }
-`;
-
-/** Tekst w polu-przycisku na telefonie: wpisana fraza albo podpowiedź. */
-export const CustomerSearchValue = styled.span<{ $empty?: boolean }>`
-    flex: 1;
-    min-width: 0;
-    font-family: inherit;
-    font-size: 16px;
-    text-align: left;
-    color: ${p => (p.$empty ? '#94a3b8' : '#0f172a')};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 `;
 
 export const CustomerSearchInput = styled.input`
