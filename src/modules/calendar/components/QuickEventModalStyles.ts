@@ -1613,6 +1613,40 @@ export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
     margin-top: ${p => p.$isTotal ? '8px' : '0'};
 `;
 
+/* ─── Wiersz stanu SMS (telefon) ─────────────────────────────────────────────
+   Trzy kwadraciki 15 px pod „Szczegółami" ginęły podczas rozmowy z klientem.
+   Zamiast nich jeden wiersz, który mówi, co poleci, i otwiera arkusz z
+   przełącznikami. */
+
+export const SmsSummaryRow = styled.button<{ $muted?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 14px;
+    background: ${p => (p.$muted ? '#f8fafc' : 'rgba(14, 165, 233, 0.08)')};
+    border: 1px solid ${p => (p.$muted ? '#e2e8f0' : 'rgba(14, 165, 233, 0.28)')};
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: ${p => (p.$muted ? '#64748b' : '#0369a1')};
+    text-align: left;
+    cursor: pointer;
+
+    > svg { width: 16px; height: 16px; flex-shrink: 0; }
+    > span { flex: 1; min-width: 0; }
+    &:active { filter: brightness(0.97); }
+`;
+
+export const SmsSummaryChevron = styled.svg`
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.6;
+`;
+
 // ─── Mobile bottom sheet ──────────────────────────────────────────────────────
 
 const sheetSlideUp = keyframes`
@@ -1636,9 +1670,10 @@ export const MobileSheetBackdrop = styled.div`
 
 export const MobileBottomSheet = styled.div`
     position: fixed;
-    /* Fallback for browsers without visualViewport; useVisualViewportSheet
-       overrides top/height at runtime so the sheet tracks the visible region
-       between the top of the screen and the keyboard. */
+    /* Arkusz stoi na pełnym ekranie i taki zostaje: useVisualViewportSheet
+       koryguje tylko górną krawędź (iOS przewija visual viewport), a
+       wysokość klawiatury oddaje liście jako --kb-inset. Zmiana wysokości
+       samego arkusza była widoczna w Safari jako wysuwanie się po otwarciu. */
     top: 0;
     bottom: 0;
     left: 0;
@@ -1780,10 +1815,11 @@ export const MobileSheetScrollable = styled.div`
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* Sits on the scroll area, not the sheet: with the keyboard up the inset
-       would otherwise carve a dead gap above it. Here it is just trailing
-       scroll space past the last item. */
-    padding-bottom: env(safe-area-inset-bottom);
+    /* Zapas pod ostatnią pozycją: bezpieczny margines telefonu plus wysokość
+       klawiatury (--kb-inset ustawia useVisualViewportSheet). Dzięki temu sam
+       arkusz nie musi zmieniać rozmiaru — nic się nie przesuwa, a do ostatniej
+       pozycji da się doscrollować ponad klawiaturą. */
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px));
 `;
 
 // ─── Mobile "Dodaj usługę" trigger button ────────────────────────────────────

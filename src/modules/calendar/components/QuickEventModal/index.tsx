@@ -14,6 +14,7 @@ import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { MobileNewCustomerSheet, type NewCustomerDraft } from './MobileNewCustomerSheet';
+import { SmsOptionsSheet, type SmsOption } from './SmsOptionsSheet';
 import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
@@ -247,6 +248,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const queryClient = useQueryClient();
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
+    const [smsSheetOpen, setSmsSheetOpen] = useState(false);
     const { isCollapsed } = useSidebar();
     const sidebarWidth = isCollapsed ? 64 : 240;
 
@@ -271,6 +273,89 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
     const [colorPanelPos, setColorPanelPos] = useState({ bottom: 0, left: 0 });
     const moreColorsBtnRef = useRef<HTMLButtonElement>(null);
+    /**
+     * Telefon: dotknięcie pola klienta otwiera arkusz wyszukiwania w tym samym
+     * geście, z pominięciem fokusu w polu pod spodem. Bez tego iOS najpierw
+     * ustawiał fokus w polu formularza — modal przewijał się do niego, wjeżdżała
+     * klawiatura, a ułamek sekundy później arkusz przykrywał to wszystko. Ten
+     * pośredni stan czytało się właśnie jako przeskok listy podpowiedzi.
+     *
+     * preventDefault zabiera fokus, więc klawiaturę musimy otworzyć sami — iOS
+     * robi to tylko z focus() wywołanego wewnątrz gestu, stąd chwilowe pole
+     * poza ekranem, do którego wchodzimy, zanim arkusz się zamontuje.
+     */
+    const customerTapGuardRef = useRef(0);
+    const openCustomerSheetFromTap = useCallback((e: React.PointerEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+        if (!isMobile) return;
+        e.preventDefault();
+
+        // Jedno dotknięcie daje i pointerdown, i touchstart — arkusz otwieramy raz.
+        const now = performance.now();
+        if (now - customerTapGuardRef.current < 700) return;
+        customerTapGuardRef.current = now;
+
+        const tmp = document.createElement('div');
+        tmp.contentEditable = 'true';
+        tmp.setAttribute('inputmode', 'search');
+        tmp.style.cssText = 'position:fixed;top:-200px;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+        document.body.appendChild(tmp);
+        tmp.focus();
+
+        form.setFocusedField('customer');
+        form.setShowCustomerDropdown(true);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            customerSheetInputRef.current?.focus();
+            tmp.remove();
+        }));
+    }, [isMobile, form]);
+
+    /**
+     * Trzy powiadomienia SMS jako niezależne przełączniki — każda kombinacja jest
+     * poprawna, także „sama karta wizyty". Globalne wyłączenie w konfiguracji
+     * studia blokuje pojedynczy przełącznik, nie całą trójkę.
+     */
+    const smsOptions: SmsOption[] = [
+        {
+            key: 'confirmation',
+            label: 'Potwierdzenie rezerwacji',
+            description: 'Wyślemy zaraz po zapisaniu wizyty.',
+            checked: form.sendConfirmationSms,
+            disabledReason: form.bookingConfirmationEnabled ? undefined : 'Wyłączone globalnie w konfiguracji SMS',
+            onChange: form.setSendConfirmationSms,
+        },
+        {
+            key: 'reminder',
+            label: 'Przypomnienie przed wizytą',
+            description: 'Wyjdzie automatycznie przed terminem.',
+            checked: form.sendReminderSms,
+            disabledReason: form.preVisitEnabled ? undefined : 'Wyłączone globalnie w konfiguracji SMS',
+            onChange: form.setSendReminderSms,
+        },
+        {
+            key: 'visitCard',
+            label: 'Karta wizyty',
+            description: 'Link, pod którym klient śledzi postęp prac.',
+            checked: form.sendVisitCard,
+            disabledReason: form.visitCardEnabled ? undefined : 'Karta wizyty jest wyłączona w ustawieniach',
+            onChange: form.setSendVisitCard,
+        },
+    ];
+
+    const customerPhone = form.selectedCustomer?.phone?.trim() || null;
+
+    /** Jedno zdanie o tym, co poleci — stan widoczny w chwili zapisu, nie po. */
+    const smsSummary = (() => {
+        if (!smsFeature.enabled) return 'SMS niedostępny w abonamencie';
+        if (!customerPhone) return 'SMS: brak numeru telefonu klienta';
+        const active = smsOptions
+            .filter(o => o.checked && !o.disabledReason)
+            .map(o => ({ confirmation: 'potwierdzenie', reminder: 'przypomnienie', visitCard: 'karta wizyty' }[o.key]));
+        return active.length > 0 ? `SMS: ${active.join(' + ')}` : 'SMS: nic nie wyślemy';
+    })();
+
+    const smsActionable = smsFeature.enabled && !!customerPhone;
+
     const hiddenColorCount = Math.max(0, form.appointmentColors.length - MAX_VISIBLE_COLORS);
 
     const openColorPanel = () => {
@@ -410,8 +495,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // field pinned to the top of the screen, list ending at the keyboard edge.
     useVisualViewportSheet(
         isMobile && (form.showServiceDropdown || form.showCustomerDropdown),
-        serviceSheetRef,
-        customerSheetRef,
+        [serviceSheetRef, customerSheetRef],
     );
 
     // When any mobile sheet is open, set tabindex=-1 on all background inputs
@@ -860,6 +944,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     form.setCustomerFirstName(e.target.value);
                                                                     form.setShowCustomerDropdown(true);
                                                                 }}
+                                                                onPointerDown={openCustomerSheetFromTap}
+                                                                onTouchStart={openCustomerSheetFromTap}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
@@ -877,6 +963,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     form.setCustomerLastName(e.target.value);
                                                                     form.setShowCustomerDropdown(true);
                                                                 }}
+                                                                onPointerDown={openCustomerSheetFromTap}
+                                                                onTouchStart={openCustomerSheetFromTap}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
@@ -899,6 +987,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                             form.setCustomerPhonePrefix(e.target.value);
                                                                             form.setShowCustomerDropdown(true);
                                                                         }}
+                                                                        onPointerDown={openCustomerSheetFromTap}
+                                                                        onTouchStart={openCustomerSheetFromTap}
                                                                         onFocus={form.handleCustomerFieldFocus}
                                                                         onBlur={form.handleCustomerFieldBlur}
                                                                         autoComplete="new-password"
@@ -913,6 +1003,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                             form.setCustomerPhone(form.formatPhone(e.target.value));
                                                                             form.setShowCustomerDropdown(true);
                                                                         }}
+                                                                        onPointerDown={openCustomerSheetFromTap}
+                                                                        onTouchStart={openCustomerSheetFromTap}
                                                                         onFocus={form.handleCustomerFieldFocus}
                                                                         onBlur={form.handleCustomerFieldBlur}
                                                                         autoComplete="new-password"
@@ -931,6 +1023,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         form.setCustomerEmail(e.target.value);
                                                                         form.setShowCustomerDropdown(true);
                                                                     }}
+                                                                    onPointerDown={openCustomerSheetFromTap}
+                                                                    onTouchStart={openCustomerSheetFromTap}
                                                                     onFocus={form.handleCustomerFieldFocus}
                                                                     onBlur={form.handleCustomerFieldBlur}
                                                                     autoComplete="new-password"
@@ -1006,7 +1100,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 {/* Mobile bottom sheet for customer results */}
                                                 {isMobile && form.showCustomerDropdown && createPortal(
                                                     <>
-                                                        <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
+                                                        <S.MobileSheetBackdrop
+                                                            // Arkusz wstaje pod palcem, więc „kliknięcie" domykające gest
+                                                            // dotknięcia lądowałoby już na tle i od razu by go zamknęło.
+                                                            onClick={() => {
+                                                                if (performance.now() - customerTapGuardRef.current < 400) return;
+                                                                form.setShowCustomerDropdown(false);
+                                                            }}
+                                                        />
                                                         <S.MobileBottomSheet ref={customerSheetRef}>
                                                             <S.MobileSheetHandle />
                                                             <S.MobileSheetTitle>
@@ -1677,6 +1778,34 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.RowContent>
                             </S.Row>
 
+                            {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
+                            {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
+                                w kółko o średnicy 18 px i nie mówił, co znaczy który
+                                kolor. Na telefonie to zwykłe pole formularza — takie
+                                samo jak w arkuszu przyjęcia pojazdu. */}
+                            {isMobile && (
+                                <>
+                                    <S.Divider />
+                                    <S.Row>
+                                        <S.IconWrapper>
+                                            <IconPalette />
+                                        </S.IconWrapper>
+                                        <S.RowContent>
+                                            <MobileColorLabel>Kolor w kalendarzu</MobileColorLabel>
+                                            <ColorDropdown
+                                                colors={form.appointmentColors}
+                                                value={form.selectedColorId ?? ''}
+                                                onChange={(id) => form.setSelectedColorId(id)}
+                                                onAddColor={() => form.setIsQuickColorModalOpen(true)}
+                                            />
+                                            {form.errors.color && (
+                                                <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>
+                                            )}
+                                        </S.RowContent>
+                                    </S.Row>
+                                </>
+                            )}
+
                             {/* Advanced toggle (mobile only) */}
                             {isMobile && !showAdvanced && (
                                 <>
@@ -1685,7 +1814,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M12 5v14M5 12h14"/>
                                         </svg>
-                                        Notatka, SMS, door to door
+                                        Szczegóły
                                     </S.AdvancedToggleBtn>
                                 </>
                             )}
@@ -1783,7 +1912,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             <S.Divider />
 
-                            {/* ── SMS row ────────────────────────────────────────── */}
+                            {/* ── SMS row (komputer) ─────────────────────────────── */}
+                            {/* Na telefonie te same trzy ustawienia żyją w arkuszu
+                                pod wierszem stanu nad przyciskiem zapisu. */}
+                            {!isMobile && (
                             <S.Row>
                                 <S.IconWrapper>
                                     <IconMessageSquare />
@@ -1836,37 +1968,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </LockedSection>
                                 </S.RowContent>
                             </S.Row>
+                            )}
 
                             </>
                             )} {/* end advanced sections */}
-
-                            {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
-                            {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
-                                w kółko o średnicy 18 px i nie mówił, co znaczy który
-                                kolor. Na telefonie to zwykłe pole formularza — takie
-                                samo jak w arkuszu przyjęcia pojazdu. */}
-                            {isMobile && (
-                                <>
-                                    <S.Divider />
-                                    <S.Row>
-                                        <S.IconWrapper>
-                                            <IconPalette />
-                                        </S.IconWrapper>
-                                        <S.RowContent>
-                                            <MobileColorLabel>Kolor w kalendarzu</MobileColorLabel>
-                                            <ColorDropdown
-                                                colors={form.appointmentColors}
-                                                value={form.selectedColorId ?? ''}
-                                                onChange={(id) => form.setSelectedColorId(id)}
-                                                onAddColor={() => form.setIsQuickColorModalOpen(true)}
-                                            />
-                                            {form.errors.color && (
-                                                <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>
-                                            )}
-                                        </S.RowContent>
-                                    </S.Row>
-                                </>
-                            )}
 
                         </S.ScrollableContent>
 
@@ -1947,6 +2052,24 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.ColorPanel>
                                 </>,
                                 document.body
+                            )}
+
+                            {isMobile && (
+                                <S.SmsSummaryRow
+                                    type="button"
+                                    $muted={!smsActionable}
+                                    onClick={() => {
+                                        if (!smsFeature.enabled) { setUpsellOpen(true); return; }
+                                        setSmsSheetOpen(true);
+                                    }}
+                                >
+                                    <IconMessageSquare />
+                                    <span>{smsSummary}</span>
+                                    <S.SmsSummaryChevron viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        strokeWidth="2.5" strokeLinecap="round">
+                                        <polyline points="9 6 15 12 9 18" />
+                                    </S.SmsSummaryChevron>
+                                </S.SmsSummaryRow>
                             )}
 
                             <S.FooterActions>
@@ -2030,6 +2153,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             },
                         });
                     }}
+                />
+            )}
+
+            {smsSheetOpen && (
+                <SmsOptionsSheet
+                    isMobile={isMobile}
+                    options={smsOptions}
+                    phone={customerPhone}
+                    onClose={() => setSmsSheetOpen(false)}
                 />
             )}
 

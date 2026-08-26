@@ -334,7 +334,9 @@ const SheetList = styled.div`
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding-bottom: env(safe-area-inset-bottom);
+    /* Zapas pod ostatnią pozycją: margines telefonu plus wysokość klawiatury
+       (--kb-inset z useVisualViewportSheet), zamiast kurczenia arkusza. */
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px));
 `;
 
 const SheetItem = styled.button`
