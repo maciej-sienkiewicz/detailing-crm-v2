@@ -1808,7 +1808,7 @@ export const MobileSheetBackdrop = styled.div`
     inset: 0;
     background: rgba(0, 0, 0, 0.45);
     z-index: 9999;
-    animation: ${sheetFadeIn} 140ms ease;
+    animation: ${sheetFadeIn} 220ms ease;
     touch-action: none;
 `;
 
@@ -1832,11 +1832,7 @@ export const MobileBottomSheet = styled.div`
     /* 0 in Safari (browser chrome already clears the notch); only bites when
        installed as a PWA, where the sheet really does reach the status bar. */
     padding-top: env(safe-area-inset-top);
-    /* 280 ms wjazdu nakładało się na wjazd klawiatury i przez pierwsze klatki
-       spod arkusza widać było poprzedni ekran. 190 ms nadal czyta się jako ruch,
-       ale arkusz zakrywa tło praktycznie od razu. */
-    animation: ${sheetSlideUp} 190ms cubic-bezier(0.32, 0.72, 0, 1);
-    will-change: transform;
+    animation: ${sheetSlideUp} 280ms cubic-bezier(0.32, 0.72, 0, 1);
 `;
 
 export const MobileSheetHandle = styled.div`
