@@ -1525,12 +1525,14 @@ export const VehicleInputRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 88px;
 
-    /* Telefon: marka, model i rok zostają w jednym rzędzie — tak się to czyta
-       jako jedną informację „pojazd". Żeby tekst nie zawijał się w kolumnie
-       szerokiej na 91 px, podpowiedzi skracamy do „Marka"/„Model" (patrz
-       QuickEventModal), a same kontrolki dostają pełną wysokość celu dotyku. */
+    /* Telefon: trzy kolumny na 300 px dawały pola po 91 px, w których „Wybierz
+       markę" zawijało się na dwie linie. Każde pole dostaje pełną szerokość,
+       a sam element sterujący — całą wysokość wiersza, żeby dotknięcie gdziekolwiek
+       w wierszu otwierało listę, a nie trafiało w padding. */
     @media (max-width: 639px) {
-        grid-template-columns: 1fr 1fr 76px;
+        grid-template-columns: 1fr;
+
+        > * + * { border-top: 1px solid #f1f5f9; }
 
         button,
         input {

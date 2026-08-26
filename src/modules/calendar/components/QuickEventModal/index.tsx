@@ -1258,7 +1258,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
                                                         <BrandSelect
                                                             compact
-                                                            placeholder={isMobile ? 'Marka' : undefined}
                                                             value={form.vehicleBrand}
                                                             onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); setAutoOpenModel(true); }}
                                                             onBlur={() => form.setFocusedField(null)}
@@ -1268,7 +1267,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
                                                         <ModelSelect
                                                             compact
-                                                            placeholder={isMobile ? 'Model' : undefined}
                                                             brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
                                                             onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
@@ -1412,7 +1410,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
                                                         <BrandSelect
                                                             compact
-                                                            placeholder={isMobile ? 'Marka' : undefined}
                                                             value={form.vehicleBrand}
                                                             onChange={(brand) => {
                                                                 form.setVehicleBrand(brand);
@@ -1427,7 +1424,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
                                                         <ModelSelect
                                                             compact
-                                                            placeholder={isMobile ? 'Model' : undefined}
                                                             brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
                                                             onChange={(model) => {
@@ -1794,34 +1790,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.RowContent>
                             </S.Row>
 
-                            {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
-                            {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
-                                w kółko o średnicy 18 px i nie mówił, co znaczy który
-                                kolor. Na telefonie to zwykłe pole formularza — takie
-                                samo jak w arkuszu przyjęcia pojazdu. */}
-                            {isMobile && (
-                                <>
-                                    <S.Divider />
-                                    <S.Row>
-                                        <S.IconWrapper>
-                                            <IconPalette />
-                                        </S.IconWrapper>
-                                        <S.RowContent>
-                                            <MobileColorLabel>Kolor w kalendarzu</MobileColorLabel>
-                                            <ColorDropdown
-                                                colors={form.appointmentColors}
-                                                value={form.selectedColorId ?? ''}
-                                                onChange={(id) => form.setSelectedColorId(id)}
-                                                onAddColor={() => form.setIsQuickColorModalOpen(true)}
-                                            />
-                                            {form.errors.color && (
-                                                <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>
-                                            )}
-                                        </S.RowContent>
-                                    </S.Row>
-                                </>
-                            )}
-
                             {/* Advanced toggle (mobile only) */}
                             {isMobile && !showAdvanced && (
                                 <>
@@ -1830,7 +1798,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M12 5v14M5 12h14"/>
                                         </svg>
-                                        Szczegóły
+                                        Notatka, SMS, door to door
                                     </S.AdvancedToggleBtn>
                                 </>
                             )}
@@ -1986,6 +1954,34 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             </>
                             )} {/* end advanced sections */}
+
+                            {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
+                            {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
+                                w kółko o średnicy 18 px i nie mówił, co znaczy który
+                                kolor. Na telefonie to zwykłe pole formularza — takie
+                                samo jak w arkuszu przyjęcia pojazdu. */}
+                            {isMobile && (
+                                <>
+                                    <S.Divider />
+                                    <S.Row>
+                                        <S.IconWrapper>
+                                            <IconPalette />
+                                        </S.IconWrapper>
+                                        <S.RowContent>
+                                            <MobileColorLabel>Kolor w kalendarzu</MobileColorLabel>
+                                            <ColorDropdown
+                                                colors={form.appointmentColors}
+                                                value={form.selectedColorId ?? ''}
+                                                onChange={(id) => form.setSelectedColorId(id)}
+                                                onAddColor={() => form.setIsQuickColorModalOpen(true)}
+                                            />
+                                            {form.errors.color && (
+                                                <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>
+                                            )}
+                                        </S.RowContent>
+                                    </S.Row>
+                                </>
+                            )}
 
                         </S.ScrollableContent>
 
