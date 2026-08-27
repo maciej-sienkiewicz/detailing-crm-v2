@@ -6,9 +6,10 @@ import type { HandoverProblem } from '../../types/handover';
 /**
  * Prymitywy wspólne dla sekcji ekranu wydania.
  *
- * Ekran jest jednym oknem złożonym z sekcji, nie ma tu kroków ani modali
- * zagnieżdżonych, więc wszystkie bloki muszą wyglądać jak elementy jednej
- * powierzchni, a nie jak osobne karty konkurujące o uwagę.
+ * Ekran ma dwa kroki (podpis, potem rozliczenie), ale nadal jest JEDNYM oknem:
+ * krok to zestaw sekcji na tej samej powierzchni, nie osobne okno. Wszystkie
+ * bloki mają więc wyglądać jak elementy jednej całości, a nie jak karty
+ * konkurujące o uwagę.
  */
 
 export const Section = styled.section`

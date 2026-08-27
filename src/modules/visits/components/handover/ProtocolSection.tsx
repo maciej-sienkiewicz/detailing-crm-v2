@@ -26,6 +26,7 @@ import {
 import { Section, SectionLabel } from './HandoverKit';
 import { VisualConditionModal } from './VisualConditionModal';
 import type { VisitProtocol } from '@/modules/protocols/types';
+import type { ProtocolSignatureStatus } from './signatureStep';
 
 const FileIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,8 +44,13 @@ interface ProtocolSectionProps {
     signerName: string;
     customerPhone?: string | null;
     isOpen: boolean;
-    /** Podnosi w górę informację, czy którykolwiek protokół został podpisany. */
-    onSignedChange: (signed: boolean) => void;
+    /**
+     * Podnosi w górę stan podpisów. Nie sam „podpisano / nie podpisano": ekran
+     * wydania musi odróżnić dokument czekający na podpis od studia, które
+     * dokumentu wydania w ogóle nie skonfigurowało — w drugim przypadku nie ma
+     * czego pomijać i krok podpisu nie może stać się ślepą uliczką.
+     */
+    onStatusChange: (status: ProtocolSignatureStatus) => void;
 }
 
 /**
@@ -62,7 +68,7 @@ export const ProtocolSection = ({
     signerName,
     customerPhone,
     isOpen,
-    onSignedChange,
+    onStatusChange,
 }: ProtocolSectionProps) => {
     const queryClient = useQueryClient();
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
@@ -119,9 +125,10 @@ export const ProtocolSection = ({
         protocol => protocol.isSigned || signing.byProtocol[protocol.id]?.phase === 'signed'
     ).length;
 
+    const protocolCount = checkOutProtocols.length;
     useEffect(() => {
-        onSignedChange(checkOutProtocols.length > 0 && signedCount === checkOutProtocols.length);
-    }, [signedCount, checkOutProtocols.length, onSignedChange]);
+        onStatusChange({ total: protocolCount, signed: signedCount });
+    }, [signedCount, protocolCount, onStatusChange]);
 
     // Zamknięcie listy tabletów kliknięciem obok
     useEffect(() => {
