@@ -329,7 +329,20 @@ export const ActivityView = () => {
         isFetchingNextPage,
     } = useActivityFeed(filters);
 
-    const items = useMemo(() => data?.pages.flatMap(page => page.items) ?? [], [data]);
+    // Odsiew po id, a nie zwykłe sklejenie stron. Strony feedu są kursorowe i normalnie
+    // nie zachodzą na siebie, ale wystarczy jedno odświeżenie pierwszej strony przy już
+    // pobranych kolejnych, żeby ten sam wpis trafił na ekran dwa razy — a wiersz obok
+    // wiersza wygląda jak zdublowane powiadomienie, nie jak artefakt stronicowania.
+    const items = useMemo(() => {
+        const seen = new Set<string>();
+        return (data?.pages ?? [])
+            .flatMap(page => page.items)
+            .filter(item => {
+                if (seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+            });
+    }, [data]);
     const groups = useMemo(() => groupByDay(items), [items]);
 
     const isDefault = useMemo(

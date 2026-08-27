@@ -241,8 +241,20 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
             return;
         }
 
+        // Zapis bez zmian nie jest zmianą. To okno zapisuje pozycję DO KATALOGU usług,
+        // więc samo otwarcie i „Zapisz" zakładało nową wersję usługi i dokładało do
+        // Aktywności wiersz „Zaktualizowano usługę" bez ani jednej zmiany w środku —
+        // nie do odróżnienia od wiersza sprzed chwili, który zmiany niósł.
+        const currentGross = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
+        const nothingChanged =
+            trimmedName === service.serviceName &&
+            editVatRate === service.vatRate &&
+            (service.requireManualPrice
+                ? true
+                : editPriceNet === service.basePriceNet && editPriceGross === currentGross);
+
         let newServiceId: string | null = null;
-        if (onSaveService && service.serviceId) {
+        if (onSaveService && service.serviceId && !nothingChanged) {
             setEditSaving(true);
             try {
                 newServiceId = await onSaveService(service.serviceId, {

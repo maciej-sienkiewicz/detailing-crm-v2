@@ -138,7 +138,16 @@ export function EntityActivityTimeline({ scope }: EntityActivityTimelineProps) {
         isFetchingNextPage,
     } = useEntityActivityFeed(scope);
 
-    const items = data?.pages.flatMap(page => page.items) ?? [];
+    // Ten sam odsiew po id co w widoku Aktywności: odświeżenie pierwszej strony przy
+    // już pobranych kolejnych potrafi pokazać ten sam wpis dwa razy pod rząd.
+    const seenIds = new Set<string>();
+    const items = (data?.pages ?? [])
+        .flatMap(page => page.items)
+        .filter(item => {
+            if (seenIds.has(item.id)) return false;
+            seenIds.add(item.id);
+            return true;
+        });
     const groups = groupByDay(items);
 
     return (
