@@ -35,6 +35,7 @@ import { StudioEventModal } from './StudioEventModal';
 import { useStudioCalendarEvents, useStudioCalendarEventMutations, toIsoDate } from '../hooks/useStudioCalendarEvents';
 import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
+import { attachMorePopoverPlacement } from '../utils/morePopoverPlacement';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
@@ -589,7 +590,10 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         display: flex !important;
         flex-direction: column !important;
         gap: 3px !important;
-        max-height: 320px !important;
+        /* Nigdy wyżej niż ekran: nagłówek okna, marginesy od krawędzi i zapas na
+           pasek adresu telefonu. Bez tego okno w niskim oknie przeglądarki nie
+           mieści się w całości niezależnie od tego, gdzie je dosuniemy. */
+        max-height: min(320px, calc(100vh - 100px)) !important;
         overflow-y: auto !important;
 
         /* Scrollbar */
@@ -1579,37 +1583,33 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }
     }, [navPhase, reportTargetRect, finishNavAnim]);
 
-    // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
-    // clips FullCalendar's absolutely-positioned popover. Watch for it being
-    // added to the DOM and convert to position:fixed with viewport-aware coords.
+    /*
+     * Okno „jeszcze N" trzymane w granicach ekranu.
+     *
+     * FullCalendar pozycjonuje je raz, przy montowaniu, i sprawdza tylko górną i
+     * prawą krawędź — dolnej nie, więc w ostatnim wierszu miesiąca okno schodziło
+     * poniżej ekranu. Poprawka mierzyła okno jeden raz w requestAnimationFrame, a
+     * to jest wyścig z Reactem: kafelki wizyt (eventContent) dolewa @fullcalendar/
+     * react raz synchronicznie, raz nie — zależnie od tego, czy od poprzedniego
+     * renderu minęło 100 ms. Trafienie w pusty jeszcze środek dawało wysokość
+     * samego nagłówka, żaden warunek na dół się nie zapalał i okno wychodziło
+     * ucięte. Stąd „raz działa, raz nie" bez powtarzalności.
+     *
+     * attachMorePopoverPlacement mierzy przez ResizeObserver, więc doładowana
+     * treść przelicza pozycję zamiast ją unieważniać. Szczegóły w
+     * modules/calendar/utils/morePopoverPlacement.ts.
+     */
     useEffect(() => {
-        const reposition = (popover: HTMLElement) => {
-            // offsetParent is FullCalendar's nearest positioned ancestor (.fc element)
-            const parent = popover.offsetParent as HTMLElement | null;
-            const parentRect = parent?.getBoundingClientRect() ?? { top: 0, left: 0 };
-            const rawTop = parseFloat(popover.style.top) || 0;
-            const rawLeft = parseFloat(popover.style.left) || 0;
-            let top = rawTop + parentRect.top;
-            let left = rawLeft + parentRect.left;
+        const detachers = new Map<HTMLElement, () => void>();
 
-            // Defer one frame so the browser has computed the popover's dimensions
-            requestAnimationFrame(() => {
-                const h = popover.offsetHeight;
-                const w = popover.offsetWidth;
-                const margin = 8;
-                if (top + h + margin > window.innerHeight) {
-                    top = Math.max(margin, window.innerHeight - h - margin);
-                }
-                if (left + w + margin > window.innerWidth) {
-                    left = Math.max(margin, window.innerWidth - w - margin);
-                }
-                if (top < margin) top = margin;
-                if (left < margin) left = margin;
-                popover.style.position = 'fixed';
-                popover.style.top = `${top}px`;
-                popover.style.left = `${left}px`;
-                popover.style.zIndex = '9999';
-            });
+        const attach = (popover: HTMLElement) => {
+            if (detachers.has(popover)) return;
+            detachers.set(popover, attachMorePopoverPlacement(popover));
+        };
+
+        const detach = (popover: HTMLElement) => {
+            detachers.get(popover)?.();
+            detachers.delete(popover);
         };
 
         const observer = new MutationObserver((mutations) => {
@@ -1619,7 +1619,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     const popover = node.classList.contains('fc-more-popover')
                         ? node
                         : node.querySelector<HTMLElement>('.fc-more-popover');
-                    if (popover) reposition(popover);
+                    if (popover) attach(popover);
+                }
+                // Okno zamknięte — ResizeObserver i listener resize idą za nim.
+                for (const node of Array.from(mutation.removedNodes)) {
+                    if (!(node instanceof HTMLElement)) continue;
+                    if (node.classList.contains('fc-more-popover')) detach(node);
+                    node.querySelectorAll<HTMLElement>('.fc-more-popover').forEach(detach);
                 }
             }
         });
@@ -1631,7 +1637,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         };
         // Small delay to ensure FullCalendar's DOM is ready
         const t = setTimeout(start, 0);
-        return () => { clearTimeout(t); observer.disconnect(); };
+        return () => {
+            clearTimeout(t);
+            observer.disconnect();
+            detachers.forEach(dispose => dispose());
+            detachers.clear();
+        };
     }, []);
 
     // Reservation options modal state
