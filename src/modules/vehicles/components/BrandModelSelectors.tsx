@@ -479,7 +479,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); onBlur?.(); } };
     window.addEventListener('keydown', onKey);
-    // The sheet is viewport-locked, so none of the anchoring work applies.
+    // The sheet is viewport-locked, so none of the anchoring work applies..
     if (isMobile) return () => window.removeEventListener('keydown', onKey);
 
     updatePosition();
