@@ -2,14 +2,12 @@ import { apiClient } from '@/core/apiClient';
 import type {
     Benchmark,
     ProfileSuggestion,
-    Report,
-    ReportBrief,
+    WeeklyDigest,
     CompetitorPulse,
     ContentPage,
     GenerateInstagramPostRequest,
     HashtagStat,
     Heatmap,
-    Insight,
     InstagramPostResult,
     InstagramProfile,
     Overview,
@@ -118,37 +116,15 @@ export const instagramApi = {
         return response.data.hashtags;
     },
 
-    getInsights: async (status?: string, limit = 30): Promise<Insight[]> => {
-        const response = await apiClient.get<{ insights: Insight[] }>(`${ANALYTICS_PATH}/insights`, {
-            params: { status, limit },
-        });
-        return response.data.insights;
-    },
-
-    dismissInsight: async (id: string): Promise<void> => {
-        await apiClient.post(`${ANALYTICS_PATH}/insights/${id}/dismiss`);
-    },
-
     getSuggestions: async (): Promise<ProfileSuggestion[]> => {
         const response = await apiClient.get<{ suggestions: ProfileSuggestion[] }>(`${ANALYTICS_PATH}/suggestions`);
         return response.data.suggestions;
     },
 
-    getLatestReport: async (): Promise<Report | null> => {
-        const response = await apiClient.get<{ report: Report | null }>(`${ANALYTICS_PATH}/reports/latest`);
-        return response.data.report;
-    },
-
-    getReports: async (limit = 12): Promise<ReportBrief[]> => {
-        const response = await apiClient.get<{ reports: ReportBrief[] }>(`${ANALYTICS_PATH}/reports`, {
-            params: { limit },
-        });
-        return response.data.reports;
-    },
-
-    getReportById: async (id: string): Promise<Report | null> => {
-        const response = await apiClient.get<{ report: Report | null }>(`${ANALYTICS_PATH}/reports/${id}`);
-        return response.data.report;
+    /** Tydzień: jeden wiersz na obserwowany profil. Null, gdy studio nie obserwuje nikogo. */
+    getDigest: async (): Promise<WeeklyDigest | null> => {
+        const response = await apiClient.get<{ digest: WeeklyDigest | null }>(`${ANALYTICS_PATH}/digest`);
+        return response.data.digest;
     },
 
     // ── Reakcje i generator AI ───────────────────────────────────────────────

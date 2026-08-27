@@ -14,9 +14,8 @@ export const ANALYTICS_KEYS = {
     content: 'ig-content',
     heatmap: 'ig-heatmap',
     hashtags: 'ig-hashtags',
-    insights: 'ig-insights',
     suggestions: 'ig-suggestions',
-    reports: 'ig-reports',
+    digest: 'ig-digest',
 } as const;
 
 const STALE_TIME = 5 * 60 * 1000;
@@ -99,40 +98,17 @@ export const useSuggestions = (enabled = true) =>
         enabled,
     });
 
-export const useLatestReport = (enabled = true) =>
+/**
+ * Tydzień: digest jest po stronie backendu cache'owany na tydzień i przeliczany
+ * dopiero po synchronizacji, więc długi staleTime nie ukrywa tu świeżych danych.
+ */
+export const useDigest = (enabled = true) =>
     useQuery({
-        queryKey: [ANALYTICS_KEYS.reports, 'latest'],
-        queryFn: instagramApi.getLatestReport,
+        queryKey: [ANALYTICS_KEYS.digest],
+        queryFn: instagramApi.getDigest,
         staleTime: STALE_TIME,
         enabled,
     });
-
-export const useReportList = (enabled = true) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.reports, 'list'],
-        queryFn: () => instagramApi.getReports(),
-        staleTime: STALE_TIME,
-        enabled,
-    });
-
-export const useReportById = (id: string | null) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.reports, 'byId', id],
-        queryFn: () => instagramApi.getReportById(id as string),
-        staleTime: STALE_TIME,
-        enabled: id !== null,
-    });
-
-export const useDismissInsight = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: string) => instagramApi.dismissInsight(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [ANALYTICS_KEYS.overview] });
-            queryClient.invalidateQueries({ queryKey: [ANALYTICS_KEYS.insights] });
-        },
-    });
-};
 
 /**
  * Ręczne ponowienie dla profili z błędem pobrania. Po sukcesie odświeżamy całą

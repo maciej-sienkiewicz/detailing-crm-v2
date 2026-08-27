@@ -8,13 +8,12 @@ import {
     PageHeaderGhostButton,
     PageHeaderPrimaryButton,
 } from '@/common/components/PageHeader/PageHeader';
-import { useOverview, useBenchmark } from '../hooks/useAnalytics';
+import { useOverview, useBenchmark, useDigest } from '../hooks/useAnalytics';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
-import { OverviewTab } from '../components/OverviewTab';
+import { WeekTab } from '../components/WeekTab';
 import { BenchmarkTab } from '../components/BenchmarkTab';
 import { SyncStatusBar } from '../components/SyncStatusBar';
 import { ContentTab } from '../components/ContentTab';
-import { ReportTab } from '../components/ReportTab';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { GeneratePostModal } from '../components/GeneratePostModal';
@@ -22,10 +21,16 @@ import { CenterState, Spinner } from '../components/MetricBits';
 import { WEEKS_OPTIONS, type WeeksOption } from '../types';
 
 /**
- * Analiza konkurencji na Instagramie, trzy płaskie zakładki:
- *   Przegląd:   pozycja studia + gotowe wnioski (domyślna),
+ * Analiza konkurencji na Instagramie, trzy zakładki:
+ *   Tydzień:    co zrobił każdy obserwowany profil w tym tygodniu (domyślna),
  *   Porównanie: tabela benchmarkowa + 2 wykresy z adnotacjami,
  *   Treści:     najskuteczniejsze posty, pory publikacji, hasztagi.
+ *
+ * Było ich cztery: „Przegląd" i „Raport" pokazywały te same insighty, te same
+ * trzy metryki i tę samą pozycję w rankingu, tylko w innym układzie graficznym —
+ * a raport dodatkowo dotyczył zamkniętego tygodnia, więc przez siedem dni
+ * wyświetlał dane sprzed tygodnia i wymagał akapitu tłumaczącego dlaczego.
+ *
  * Stan (zakładka, okres) trzymany w URL, widoki są linkowalne.
  */
 
@@ -108,19 +113,25 @@ const PendingBadge = styled.span`
     padding: 1px 7px;
 `;
 
-type TabKey = 'przeglad' | 'porownanie' | 'tresci' | 'raport';
+type TabKey = 'tydzien' | 'porownanie' | 'tresci';
 
 const TABS: { key: TabKey; label: string }[] = [
-    { key: 'przeglad', label: 'Przegląd' },
+    { key: 'tydzien', label: 'Tydzień' },
     { key: 'porownanie', label: 'Porównanie' },
     { key: 'tresci', label: 'Treści' },
-    { key: 'raport', label: 'Raport' },
 ];
+
+/**
+ * Stare linki („Przegląd" i „Raport" zniknęły) lądują na Tygodniu zamiast
+ * na pustym ekranie — obie zakładki i tak mówiły to, co on.
+ */
+const resolveTab = (raw: string | null): TabKey =>
+    TABS.some(t => t.key === raw) ? (raw as TabKey) : 'tydzien';
 
 export const CompetitionMonitoringView = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const tab = (searchParams.get('widok') as TabKey) || 'przeglad';
+    const tab = resolveTab(searchParams.get('widok'));
     const weeksParam = Number(searchParams.get('okres'));
     const weeks: WeeksOption = ([4, 12, 26, 52] as const).includes(weeksParam as WeeksOption)
         ? (weeksParam as WeeksOption)
@@ -142,7 +153,9 @@ export const CompetitionMonitoringView = () => {
     const [isAddOpen, setAddOpen] = useState(false);
     const [isGenerateOpen, setGenerateOpen] = useState(false);
 
+    // Overview zostaje wyłącznie dla paska synchronizacji nad zakładkami.
     const overviewQuery = useOverview(weeks);
+    const digestQuery = useDigest(tab === 'tydzien');
     const benchmarkQuery = useBenchmark(weeks, tab === 'porownanie');
     const { profiles } = useInstagramProfiles();
     const pendingCount = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
@@ -199,17 +212,17 @@ export const CompetitionMonitoringView = () => {
                 ))}
             </TabBar>
 
-            {tab === 'przeglad' && (
-                overviewQuery.isLoading ? (
+            {tab === 'tydzien' && (
+                digestQuery.isLoading ? (
                     <CenterState><Spinner /></CenterState>
-                ) : overviewQuery.isError ? (
+                ) : digestQuery.isError ? (
                     <CenterState>
                         <strong>Nie udało się pobrać danych</strong>
                         <span>Spróbuj odświeżyć stronę, jeśli problem wraca, daj nam znać.</span>
                     </CenterState>
-                ) : overviewQuery.data ? (
-                    <OverviewTab overview={overviewQuery.data} />
-                ) : null
+                ) : (
+                    <WeekTab digest={digestQuery.data ?? null} />
+                )
             )}
 
             {tab === 'porownanie' && (
@@ -231,8 +244,6 @@ export const CompetitionMonitoringView = () => {
             )}
 
             {tab === 'tresci' && <ContentTab weeks={weeks} />}
-
-            {tab === 'raport' && <ReportTab />}
 
             <ProfilesDrawer
                 open={isDrawerOpen}

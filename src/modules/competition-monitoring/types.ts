@@ -34,22 +34,52 @@ export interface Storefront {
     gaps: string[];
 }
 
-// ─── Insighty ─────────────────────────────────────────────────────────────────
+// ─── Tydzień ──────────────────────────────────────────────────────────────────
 
-export type InsightSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
+/**
+ * Werdykt tygodnia dla jednego profilu — dokładnie jeden na profil.
+ *
+ * SILENT nie znaczy „brak danych", tylko „zwykle publikuje, a w tym tygodniu nie".
+ * NEW to profil obserwowany za krótko, żeby cokolwiek nazwać u niego zwykłym.
+ */
+export type DigestVerdict = 'SILENT' | 'STANDOUT' | 'ACCELERATED' | 'STEADY' | 'NEW';
 
-export interface Insight {
-    id: string;
-    type: string;
-    severity: InsightSeverity;
-    title: string;
-    body: string;
-    actionText: string;
-    probableCause: string | null;
-    username: string | null;
-    permalink: string | null;
-    status: 'NEW' | 'DISMISSED';
-    createdAt: string;
+export interface DigestPost {
+    permalink: string;
+    format: ContentFormat;
+    topicLabel: string;
+    engagement: number;
+    takenAt: string;
+}
+
+export interface ProfileDigest {
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    verdict: DigestVerdict;
+    /** „@x zwiększył aktywność" — nagłówek wiersza. */
+    headline: string;
+    /** Co faktycznie zrealizowali, wyciągnięte z opisów postów. Null, gdy opisy milczą. */
+    achievements: string | null;
+    /** Liczby stojące za werdyktem — dowód, nie komunikat. */
+    evidence: string;
+    postsCount: number;
+    engagementTotal: number;
+    highlight: DigestPost | null;
+    posts: DigestPost[];
+}
+
+export interface WeeklyDigest {
+    weekStart: string;
+    weekEnd: string;
+    generatedAt: string;
+    narrativeSource: 'LLM' | 'TEMPLATE';
+    profiles: ProfileDigest[];
+    recommendation: { text: string; reason: string } | null;
+    position: { rank: number; total: number } | null;
+    selfUsername: string | null;
+    profilesWatched: number;
+    hasSelf: boolean;
 }
 
 // ─── Przegląd ─────────────────────────────────────────────────────────────────
@@ -83,7 +113,6 @@ export interface Overview {
     postsPerWeek: MetricTriple;
     activityIndex: MetricTriple;
     storefront: Storefront | null;
-    insights: Insight[];
     miniRanking: MiniRankRow[];
 }
 
@@ -269,54 +298,6 @@ export interface WeekDetail {
     insights: { type: string; title: string }[];
 }
 
-// ─── Raport tygodnia ─────────────────────────────────────────────────────────
-
-export interface ReportEvent {
-    severity: InsightSeverity;
-    title: string;
-    body: string;
-    permalink: string | null;
-}
-
-export interface ReportPayload {
-    comparisonGroupSize: number;
-    hasSelf: boolean;
-    selfUsername: string | null;
-    position: { rank: number; total: number } | null;
-    erPct: MetricTriple;
-    postsPerWeek: MetricTriple;
-    activityIndex: MetricTriple;
-    events: ReportEvent[];
-    topPost: {
-        username: string;
-        permalink: string;
-        engagement: number;
-        topicLabel: string;
-        format: ContentFormat;
-    } | null;
-    bestSlotLabel: string | null;
-    topTopicLabel: string | null;
-    storefrontGaps: string[];
-    recommendation: { text: string; reason: string };
-}
-
-export interface Report {
-    id: string;
-    periodStart: string;
-    periodEnd: string;
-    title: string;
-    lead: string;
-    narrativeSource: 'LLM' | 'TEMPLATE';
-    createdAt: string;
-    payload: ReportPayload;
-}
-
-export interface ReportBrief {
-    id: string;
-    periodStart: string;
-    periodEnd: string;
-    title: string;
-}
 
 // ─── Generator AI (bez zmian) ─────────────────────────────────────────────────
 
