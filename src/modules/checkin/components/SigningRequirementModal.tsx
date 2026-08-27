@@ -36,6 +36,8 @@ import {
     Spinner,
     LoadingContainer,
     EmptyState,
+    BatchSendRow,
+    BatchSendButton,
     TabletPickerWrapper,
     TabletPickerDropdown,
     TabletPickerLabel,
@@ -273,6 +275,41 @@ export const SigningRequirementModal = ({
         }
     };
 
+    /*
+     * Wysyłka CAŁEGO kompletu jednym kliknięciem.
+     *
+     * Backend trzyma kolejkę FIFO per tablet, a tablet po każdym podpisie sam
+     * wyświetla następny dokument — pracownik nie wraca do tego okna między
+     * dokumentami. Wysyłamy SEKWENCYJNIE, w kolejności listy: created_at żądań
+     * wyznacza kolejność podpisywania na tablecie, więc równoległe POST-y
+     * potrafiłyby ją przetasować.
+     *
+     * Pomijamy dokumenty, które nie mogą wystartować (już podpisane, w trakcie);
+     * błąd jednego dokumentu nie przerywa wysyłki pozostałych — jego wiersz
+     * pokazuje „Ponów" jak przy wysyłce pojedynczej.
+     */
+    const batchSendableIds = protocols
+        .filter(protocol => canStartSigning(protocol.id))
+        .map(protocol => protocol.id);
+
+    const handleSendAllToTablet = async (tabletId: string) => {
+        setTabletPickerProtocolId(null);
+        for (const protocolId of batchSendableIds) {
+            await handleSendToTablet(protocolId, tabletId);
+        }
+    };
+
+    /** Klucz-wartownik w stanie pickera tabletu: wybór dotyczy całego kompletu. */
+    const BATCH_PICKER_KEY = '__ALL__';
+
+    const handleBatchButtonClick = () => {
+        if (tablets.length === 1) {
+            void handleSendAllToTablet(tablets[0].tabletId);
+        } else if (tablets.length > 1) {
+            setTabletPickerProtocolId(prev => (prev === BATCH_PICKER_KEY ? null : BATCH_PICKER_KEY));
+        }
+    };
+
     // ─── Live status of awaited signing sessions (WebSocket + reconnect re-sync) ─
 
     const awaitedRequests = useMemo(() =>
@@ -369,6 +406,46 @@ export const SigningRequirementModal = ({
                         ) : !protocols || protocols.length === 0 ? (
                             <EmptyState>Brak wymaganych protokołów dla tej wizyty</EmptyState>
                         ) : (
+                            <>
+                                {protocols.length > 1 && sigLocal.enabled && hasTablets && (
+                                    <BatchSendRow>
+                                        <TabletPickerWrapper
+                                            ref={tabletPickerProtocolId === BATCH_PICKER_KEY ? tabletPickerRef : undefined}
+                                        >
+                                            <BatchSendButton
+                                                onClick={handleBatchButtonClick}
+                                                disabled={batchSendableIds.length === 0}
+                                                title={
+                                                    batchSendableIds.length === 0
+                                                        ? 'Wszystkie dokumenty są już wysłane lub podpisane'
+                                                        : tablets.length === 1
+                                                            ? `Wyślij na tablet: ${tablets[0].deviceName}`
+                                                            : 'Wybierz tablet do podpisu'
+                                                }
+                                            >
+                                                <TabletIcon />
+                                                {batchSendableIds.length === protocols.length
+                                                    ? 'Wyślij wszystkie na tablet'
+                                                    : `Wyślij pozostałe na tablet (${batchSendableIds.length})`}
+                                            </BatchSendButton>
+
+                                            {tabletPickerProtocolId === BATCH_PICKER_KEY && tablets.length > 1 && (
+                                                <TabletPickerDropdown>
+                                                    <TabletPickerLabel>Wybierz tablet</TabletPickerLabel>
+                                                    {tablets.map(tablet => (
+                                                        <TabletPickerItem
+                                                            key={tablet.tabletId}
+                                                            onClick={() => void handleSendAllToTablet(tablet.tabletId)}
+                                                        >
+                                                            <TabletIcon />
+                                                            {tablet.deviceName}
+                                                        </TabletPickerItem>
+                                                    ))}
+                                                </TabletPickerDropdown>
+                                            )}
+                                        </TabletPickerWrapper>
+                                    </BatchSendRow>
+                                )}
                             <DocumentList>
                                 {protocols.map(protocol => {
                                     const signingState = signingByProtocol[protocol.id];
@@ -477,6 +554,7 @@ export const SigningRequirementModal = ({
                                     );
                                 })}
                             </DocumentList>
+                            </>
                         )}
 
                         {canInteract && visitId && (
