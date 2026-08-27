@@ -241,6 +241,47 @@ export const EmptyState = styled.div`
     font-size: ${st.fontSm};
 `;
 
+/** Wiersz nad listą dokumentów: wysyłka całego kompletu jednym kliknięciem. */
+export const BatchSendRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;
+`;
+
+export const BatchSendButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 14px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    border: 1px solid transparent;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    &:hover:not(:disabled) {
+        background: ${st.accentBlue};
+        color: #fff;
+    }
+
+    &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+`;
+
 export const TabletPickerWrapper = styled.div`
     position: relative;
     display: inline-flex;
