@@ -454,18 +454,18 @@ export const dashboardApi = {
     throw new Error('Real API not implemented yet');
   },
 
-  getRevenueSummary: async (weeks = 13): Promise<DashboardRevenueSummary> => {
+  getRevenueSummary: async (months = 12): Promise<DashboardRevenueSummary> => {
     const response = await apiClient.get<DashboardRevenueSummary>(
       '/v1/dashboard/revenue-summary',
-      { params: { weeks } },
+      { params: { months } },
     );
     return response.data;
   },
 
-  getReservationSummary: async (weeks = 13): Promise<DashboardReservationSummary> => {
+  getReservationSummary: async (months = 12): Promise<DashboardReservationSummary> => {
     const response = await apiClient.get<DashboardReservationSummary>(
       '/v1/dashboard/reservation-summary',
-      { params: { weeks } },
+      { params: { months } },
     );
     return response.data;
   },

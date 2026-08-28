@@ -56,14 +56,15 @@ export interface OperationalStats {
  * Revenue summary from dedicated endpoint
  */
 export interface DashboardRevenueBucket {
-  weekStart: string;
+  /** Pierwszy dzień miesiąca, ISO. */
+  monthStart: string;
   grossAmount: number;
   currency: string;
 }
 
 export interface DashboardRevenueSummary {
-  currentWeek: { grossAmount: number; currency: string };
-  previousWeek: { grossAmount: number; currency: string };
+  currentMonth: { grossAmount: number; currency: string };
+  previousMonth: { grossAmount: number; currency: string };
   deltaPercentage: number;
   buckets: DashboardRevenueBucket[];
 }
@@ -72,13 +73,14 @@ export interface DashboardRevenueSummary {
  * Reservation count summary from dedicated endpoint
  */
 export interface DashboardReservationBucket {
-  weekStart: string;
+  /** Pierwszy dzień miesiąca, ISO. */
+  monthStart: string;
   count: number;
 }
 
 export interface DashboardReservationSummary {
-  currentWeek: { count: number };
-  previousWeek: { count: number };
+  currentMonth: { count: number };
+  previousMonth: { count: number };
   deltaPercentage: number;
   buckets: DashboardReservationBucket[];
 }

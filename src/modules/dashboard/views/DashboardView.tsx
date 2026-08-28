@@ -14,6 +14,7 @@ import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
 import { KpiSlider } from '../components/KpiSlider';
+import { DashboardHintsBar } from '../components/DashboardHintsBar';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import { useDashboard, useDashboardSocket } from '../hooks';
 import type { OperationalStats } from '../types';
@@ -445,6 +446,10 @@ export const DashboardView = () => {
           )}
         </HeroRow>
       </HeroCard>
+
+      {/* Podpowiedzi między powitaniem a kafelkami — komponent sam chowa się
+          na telefonie i znika całkiem, gdy nie ma nic do powiedzenia. */}
+      {isDesktop && <DashboardHintsBar />}
 
       {instagramModalOpen && (
         <GeneratePostModal onClose={() => setInstagramModalOpen(false)} />

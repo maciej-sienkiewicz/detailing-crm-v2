@@ -109,6 +109,18 @@ const CustomTooltipBox = styled.div`
 
 const ACCENT = '#8b5cf6';
 
+const MONTH_SHORT = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+
+/**
+ * "2026-08-01" -> "sie 26". Data jest lokalna, więc bez new Date() i strefy UTC.
+ * parseInt zamiast Number: styled-component `Number` z tego pliku przesłania
+ * globalny konstruktor.
+ */
+const monthLabel = (monthStart: string): string => {
+    const [year, month] = monthStart.split('-').map(part => parseInt(part, 10));
+    return `${MONTH_SHORT[(month || 1) - 1]} ${`${year}`.slice(2)}`;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ReservationsKpiCard = () => {
@@ -119,13 +131,10 @@ export const ReservationsKpiCard = () => {
 
   const chartData = useMemo(() => {
     if (!data) return [];
-    return data.buckets.map(b => {
-      const d = new Date(b.weekStart);
-      return {
-        weekLabel: d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
-        value: b.count,
-      };
-    });
+    return data.buckets.map(b => ({
+      monthLabel: monthLabel(b.monthStart),
+      value: b.count,
+    }));
   }, [data]);
 
   if (!data) return null;
@@ -148,25 +157,25 @@ export const ReservationsKpiCard = () => {
       onMouseLeave={() => setHovered(false)}
     >
       <Card>
-        <Eyebrow>Rezerwacje · tydzień</Eyebrow>
-        <Number>{data.currentWeek.count}</Number>
+        <Eyebrow>Rezerwacje · bieżący miesiąc</Eyebrow>
+        <Number>{data.currentMonth.count}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
-          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
+          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni miesiąc
         </Delta>
       </Card>
 
       {hovered && createPortal(
         <ChartPopover $top={pos.top} $right={pos.right}>
-          <ChartTitle>Ostatnie 3 miesiące</ChartTitle>
+          <ChartTitle>Ostatnie 12 miesięcy</ChartTitle>
           <ResponsiveContainer width="100%" height={110}>
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }} barSize={14}>
               <XAxis
-                dataKey="weekLabel"
+                dataKey="monthLabel"
                 tick={{ fill: '#475569', fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                interval={2}
+                interval={1}
               />
               <YAxis
                 tick={{ fill: '#475569', fontSize: 10 }}
