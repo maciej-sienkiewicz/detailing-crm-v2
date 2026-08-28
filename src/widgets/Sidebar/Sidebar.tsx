@@ -37,6 +37,8 @@ import { SidebarMenu, MenuSection } from './SidebarMenu';
 import type { MenuItem } from './SidebarMenuItem';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
+import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
+import { companyInitials } from './companyBadge';
 import {
     Overlay,
     SidebarContainer,
@@ -44,7 +46,6 @@ import {
     Logo,
     LogoIcon,
     LogoText,
-    LogoSub,
     HeaderActions,
     CollapseButton,
     CloseButton,
@@ -165,6 +166,7 @@ export const Sidebar = () => {
     const [showReportProblem, setShowReportProblem] = useState(false);
 
     const { can } = usePermissions();
+    const { company } = useCompanySettings();
     const newLeadsCount = useNewLeadsCount({ enabled: can('LEADS_MANAGE') });
     const unreadMailCount = useUnreadMailCount({ enabled: can('LEADS_MANAGE') });
     // Badge for the task inbox, only fetched by users who actually see the tab.
@@ -211,6 +213,10 @@ export const Sidebar = () => {
         navigate('/login');
     };
 
+    // Dopóki `/v1/company` nie odpowie, w nagłówku zostaje nazwa produktu — pusty
+    // pasek albo szkielet migałby przy każdym wejściu do aplikacji.
+    const companyName = company?.name?.trim() || 'AutoCRM';
+
     const displayName = user
         ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email
         : '';
@@ -222,11 +228,10 @@ export const Sidebar = () => {
             <SidebarContainer $isCollapsed={isCollapsed} $isMobileOpen={isMobileOpen}>
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <Logo $isCollapsed={isCollapsed}>
-                        <LogoIcon>AC</LogoIcon>
-                        <div>
-                            <LogoText $isCollapsed={isCollapsed}>AutoCRM</LogoText>
-                            <LogoSub $isCollapsed={isCollapsed}>Studio detailingu</LogoSub>
-                        </div>
+                        <LogoIcon>{companyInitials(company?.name)}</LogoIcon>
+                        <LogoText $isCollapsed={isCollapsed} title={companyName}>
+                            {companyName}
+                        </LogoText>
                     </Logo>
                     <HeaderActions>
                         <CollapseButton

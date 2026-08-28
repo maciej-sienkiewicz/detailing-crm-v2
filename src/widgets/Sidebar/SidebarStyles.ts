@@ -111,32 +111,21 @@ export const LogoIcon = styled.div`
     box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
 `;
 
+// Nazwa firmy z rejestru bywa długa („CARSLAB SPÓŁKA Z OGRANICZONĄ
+// ODPOWIEDZIALNOŚCIĄ"), więc zamiast ucinać ją w jednej linii łamiemy do dwóch
+// i dopiero tam przycinamy wielokropkiem.
 export const LogoText = styled.span<{ $isCollapsed: boolean }>`
     color: #f1f5f9;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.3px;
-    white-space: nowrap;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    line-height: 1.1;
-    display: block;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        opacity: ${p => p.$isCollapsed ? 0 : 1};
-        max-width: ${p => p.$isCollapsed ? '0px' : '160px'};
-        transition: opacity 220ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
-    }
-`;
-
-export const LogoSub = styled.span<{ $isCollapsed: boolean }>`
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    display: block;
-    margin-top: 2px;
+    overflow-wrap: anywhere;
+    max-width: 160px;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         opacity: ${p => p.$isCollapsed ? 0 : 1};
