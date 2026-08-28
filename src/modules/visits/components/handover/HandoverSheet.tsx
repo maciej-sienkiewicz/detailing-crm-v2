@@ -95,18 +95,6 @@ const HandoverFooter = styled(ModalFooter)`
     }
 `;
 
-/**
- * Etykieta głównego przycisku. Przy fakturze krótkie „Wydaj pojazd" — co się
- * stanie z fakturą (wystawienie, wysyłka do KSeF albo jej brak) mówi sekcja
- * rozliczenia nad przyciskiem i nie ma powodu powtarzać tego w etykiecie.
- */
-const submitLabel = (documentType: string, isFreeVisit: boolean, canIssueDocuments: boolean): string => {
-    if (isFreeVisit) return 'Wydaj pojazd';
-    if (!canIssueDocuments) return 'Wydaj pojazd bez faktury';
-    if (documentType === 'RECEIPT') return 'Wydaj pojazd i wystaw paragon';
-    return 'Wydaj pojazd';
-};
-
 interface HandoverSheetProps {
     visit: Visit;
     isOpen: boolean;
@@ -282,13 +270,11 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                 disabled={!handover.canSubmit}
                                 onClick={() => handover.submit()}
                             >
-                                {handover.isSubmitting
-                                    ? 'Wydawanie...'
-                                    : submitLabel(
-                                        handover.state.documentType,
-                                        handover.isFreeVisit,
-                                        handover.canIssueDocuments
-                                    )}
+                                {/* Jedna etykieta dla każdej ścieżki: co stanie się z dokumentem
+                                    (faktura, paragon, brak) mówi sekcja rozliczenia nad przyciskiem —
+                                    etykieta, która to powtarzała, zmieniała się w trakcie klikania
+                                    i wydłużała przycisk. */}
+                                {handover.isSubmitting ? 'Wydawanie...' : 'Wydaj pojazd'}
                             </SharedButton>
                         </>
                     )}
