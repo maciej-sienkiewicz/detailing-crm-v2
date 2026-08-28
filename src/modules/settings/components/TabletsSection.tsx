@@ -10,6 +10,7 @@ import {
 import { useTablets, useDeleteTablet, TABLETS_KEY } from '../hooks/useTablets';
 import { useTabletsSocket } from '../hooks/useTabletsSocket';
 import { TabletPairingModal } from './tablets/TabletPairingModal';
+import { CallPhonesPanel } from '@/modules/push/components/CallPhonesPanel';
 import type { TabletSocketEvent } from '../tabletTypes';
 
 function formatDate(iso: string): string {
@@ -32,10 +33,40 @@ function lastSeenLabel(lastSeenAt: string | null): { text: string; stale: boolea
 }
 
 /**
- * Tablet pairing only makes sense with the e-signatures module: the whole
- * section becomes an upsell surface without it (backend rejects pairing with 402).
+ * Ustawienia → Urządzenia mobilne: tablety do podpisu i telefony do połączeń.
+ *
+ * Telefony trafiły tu z bocznego menu („Telefon do połączeń"). Świadomie stoją
+ * POZA bramką modułu podpisów: Click-to-Call nie ma z podpisami nic wspólnego,
+ * a studio bez tego modułu nadal paruje telefony.
  */
 export function TabletsSection() {
+    return (
+        <Sections>
+            <Block>
+                <BlockTitle>Tablety do podpisu</BlockTitle>
+                <BlockHint>
+                    Tablet, na którym klient podpisuje protokoły przyjęcia i wydania pojazdu.
+                </BlockHint>
+                <TabletPairingPanel />
+            </Block>
+
+            <Block>
+                <BlockTitle>Telefony do połączeń</BlockTitle>
+                <BlockHint>
+                    Klikasz numer klienta na komputerze — dzwoni Twój telefon. Każdy paruje swoje
+                    urządzenia; powiadomienia trafiają wyłącznie na telefony właściciela konta.
+                </BlockHint>
+                <CallPhonesPanel />
+            </Block>
+        </Sections>
+    );
+}
+
+/**
+ * Tablet pairing only makes sense with the e-signatures module: this part
+ * becomes an upsell surface without it (backend rejects pairing with 402).
+ */
+function TabletPairingPanel() {
     const { tablets, isLoading } = useTablets();
     const deleteTablet = useDeleteTablet();
     const queryClient = useQueryClient();
@@ -174,6 +205,35 @@ export function TabletsSection() {
         </RequireCapability>
     );
 }
+
+// ─── Styled: układ sekcji ────────────────────────────────────────────────────
+
+const Sections = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+`;
+
+const Block = styled.section`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const BlockTitle = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+const BlockHint = styled.p`
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #64748b;
+    max-width: 68ch;
+`;
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
