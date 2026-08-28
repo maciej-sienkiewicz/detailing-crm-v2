@@ -95,10 +95,14 @@ const HandoverFooter = styled(ModalFooter)`
     }
 `;
 
+/**
+ * Etykieta głównego przycisku. Przy fakturze krótkie „Wydaj pojazd" — co się
+ * stanie z fakturą (wystawienie, wysyłka do KSeF albo jej brak) mówi sekcja
+ * rozliczenia nad przyciskiem i nie ma powodu powtarzać tego w etykiecie.
+ */
 const submitLabel = (documentType: string, isFreeVisit: boolean, canIssueDocuments: boolean): string => {
     if (isFreeVisit) return 'Wydaj pojazd';
     if (!canIssueDocuments) return 'Wydaj pojazd bez faktury';
-    if (documentType === 'INVOICE') return 'Wydaj pojazd i wystaw fakturę';
     if (documentType === 'RECEIPT') return 'Wydaj pojazd i wystaw paragon';
     return 'Wydaj pojazd';
 };
