@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Check, Pencil, Trash2, Plus, ClipboardList, Archive, Users, ShieldCheck } from 'lucide-react';
+import { useBreakpoint } from '@/common/hooks';
 import { useTasks } from '../hooks/useTasks';
 import { TaskModal } from './TaskModal';
 import { TaskArchiveModal } from './TaskArchiveModal';
@@ -318,6 +319,7 @@ export const TasksPanel = () => {
   const { tasks, isLoading, createTask, createTaskFromVoice, updateTask, deleteTask, isDeleting, isTranscribing } = useTasks();
   const [modalOpen, setModalOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const isDesktop = useBreakpoint('md');
   const [editingTask, setEditingTask] = useState<DashboardTask | null>(null);
 
   const openCreate = () => {
@@ -352,7 +354,12 @@ export const TasksPanel = () => {
               <Archive />
               Archiwum
             </ArchiveButton>
-            <TaskVoiceButton onRecorded={createTaskFromVoice} isSending={isTranscribing} />
+            {/* Dyktowanie tylko na telefonie: na komputerze nikt nie mówi do
+                laptopa nad klawiaturą, a przycisk zawężał miejsce na pozostałe
+                akcje. Wpisanie zadania jest tam szybsze niż nagranie. */}
+            {!isDesktop && (
+                <TaskVoiceButton onRecorded={createTaskFromVoice} isSending={isTranscribing} />
+            )}
             <AddButton onClick={openCreate}>
               <Plus />
               Dodaj

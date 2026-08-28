@@ -109,6 +109,18 @@ const CustomTooltipBox = styled.div`
   pointer-events: none;
 `;
 
+const MONTH_SHORT = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+
+/**
+ * "2026-08-01" -> "sie 26". Data jest lokalna, więc bez new Date() i strefy UTC.
+ * parseInt zamiast Number: styled-component `Number` z tego pliku przesłania
+ * globalny konstruktor.
+ */
+const monthLabel = (monthStart: string): string => {
+    const [year, month] = monthStart.split('-').map(part => parseInt(part, 10));
+    return `${MONTH_SHORT[(month || 1) - 1]} ${`${year}`.slice(2)}`;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const RevenueKpiCard = () => {
@@ -119,19 +131,16 @@ export const RevenueKpiCard = () => {
 
   const chartData = useMemo(() => {
     if (!data) return [];
-    return data.buckets.map(b => {
-      const d = new Date(b.weekStart);
-      return {
-        weekLabel: d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
-        value: b.grossAmount / 100,
-      };
-    });
+    return data.buckets.map(b => ({
+      monthLabel: monthLabel(b.monthStart),
+      value: b.grossAmount / 100,
+    }));
   }, [data]);
 
   if (!data) return null;
 
   const positive = data.deltaPercentage >= 0;
-  const currency = data.currentWeek.currency;
+  const currency = data.currentMonth.currency;
 
   const handleMouseEnter = () => {
     if (wrapperRef.current) {
@@ -148,17 +157,17 @@ export const RevenueKpiCard = () => {
       onMouseLeave={() => setHovered(false)}
     >
       <Card>
-        <Eyebrow>Przychód · tydzień</Eyebrow>
-        <Number>{formatCurrency(data.currentWeek.grossAmount / 100, currency)}</Number>
+        <Eyebrow>Przychód · bieżący miesiąc</Eyebrow>
+        <Number>{formatCurrency(data.currentMonth.grossAmount / 100, currency)}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
-          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
+          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni miesiąc
         </Delta>
       </Card>
 
       {hovered && createPortal(
         <ChartPopover $top={pos.top} $right={pos.right}>
-          <ChartTitle>Ostatnie 3 miesiące</ChartTitle>
+          <ChartTitle>Ostatnie 12 miesięcy</ChartTitle>
           <ResponsiveContainer width="100%" height={110}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
               <defs>
@@ -168,11 +177,11 @@ export const RevenueKpiCard = () => {
                 </linearGradient>
               </defs>
               <XAxis
-                dataKey="weekLabel"
+                dataKey="monthLabel"
                 tick={{ fill: '#475569', fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                interval={2}
+                interval={1}
               />
               <YAxis
                 tick={{ fill: '#475569', fontSize: 10 }}
