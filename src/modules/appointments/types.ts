@@ -164,6 +164,9 @@ export interface AppointmentColor {
     id: string;
     name: string;
     hexColor: string;
+    /** Zaznaczany z góry na nowej wizycie; backend gwarantuje najwyżej jeden na studio. */
+    isDefault?: boolean;
+    isActive?: boolean;
 }
 
 export interface SelectedCustomer {

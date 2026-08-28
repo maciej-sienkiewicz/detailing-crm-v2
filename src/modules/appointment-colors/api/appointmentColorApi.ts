@@ -51,4 +51,25 @@ export const appointmentColorApi = {
     deleteColor: async (id: string): Promise<void> => {
         await apiClient.delete(`/v1/appointment-colors/${id}`);
     },
+
+    /** Ustawia kolor jako domyślny; poprzedni domyślny traci tę rolę po stronie backendu. */
+    setDefault: async (id: string): Promise<AppointmentColor> => {
+        const response = await apiClient.put<AppointmentColor>(
+            `/v1/appointment-colors/${id}/default`
+        );
+        return response.data;
+    },
+
+    clearDefault: async (): Promise<void> => {
+        await apiClient.delete('/v1/appointment-colors/default');
+    },
+
+    /** Archiwalny kolor znika z list wyboru, ale wizyty zachowują swoje oznaczenie. */
+    setArchived: async (id: string, archived: boolean): Promise<AppointmentColor> => {
+        const response = await apiClient.put<AppointmentColor>(
+            `/v1/appointment-colors/${id}/archived`,
+            { archived }
+        );
+        return response.data;
+    },
 };
