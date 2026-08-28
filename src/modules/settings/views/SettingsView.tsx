@@ -35,7 +35,7 @@ import {
 type SectionId =
     | 'company' | 'labels' | 'services' | 'team'
     | 'templates' | 'documents'
-    | 'tablets' | 'visit-card' | 'lead-forms'
+    | 'mobile-devices' | 'visit-card' | 'lead-forms'
     | 'plan' | 'credits' | 'invoices' | 'security';
 
 interface NavItem {
@@ -100,7 +100,7 @@ const NAV_GROUPS: NavGroup[] = [
         items: [
             { id: 'templates',       label: 'Szablony wiadomości',   icon: <MessageIcon /> },
             { id: 'documents',       label: 'Dokumenty i podpisy',   icon: <FileSignIcon /> },
-            { id: 'tablets',         label: 'Urządzenia mobilne',               icon: <TabletIcon /> },
+            { id: 'mobile-devices',  label: 'Urządzenia mobilne',    icon: <TabletIcon /> },
             { id: 'visit-card',      label: 'Karta Wizyty',          icon: <CardIcon /> },
             { id: 'lead-forms',      label: 'Formularze na stronie', icon: <FormIcon /> },
         ],
@@ -323,7 +323,7 @@ const BreadcrumbSep = styled.span`
 const VALID_SECTIONS = new Set<SectionId>([
     'company', 'labels', 'services', 'team',
     'templates', 'documents',
-    'tablets', 'visit-card', 'lead-forms',
+    'mobile-devices', 'visit-card', 'lead-forms',
     'plan', 'credits', 'invoices', 'security',
 ]);
 
@@ -338,6 +338,8 @@ const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = 
     'sms-credits': { section: 'credits' },
     // Numeracja wizyt przestała być osobną sekcją i jest widokiem „Oznaczeń".
     'visit-numbering': { section: 'labels', view: 'numbering' },
+    // Sekcja obejmuje też telefony do połączeń, więc nazwa "tablets" była myląca.
+    'tablets': { section: 'mobile-devices' },
 };
 
 /** Sekcje z widokami wewnętrznymi trzymają je w tym samym parametrze URL. */
@@ -359,7 +361,7 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     team: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
     documents:  'VISITS_CREATE',
-    tablets:    'VISITS_CREATE',
+    'mobile-devices': 'VISITS_CREATE',
     'visit-card': 'VISITS_CREATE',
     // Billing is the owner's domain: no permission code exists for it.
     plan: 'OWNER_ONLY',
@@ -454,7 +456,7 @@ export function SettingsView() {
         content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
-    } else if (section === 'tablets') {
+    } else if (section === 'mobile-devices') {
         content = <TabletsSection />;
     } else if (section === 'visit-card') {
         content = <VisitCardSection />;

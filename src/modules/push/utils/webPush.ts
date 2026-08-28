@@ -35,6 +35,17 @@ export const isIosOutsidePwa = (): boolean => {
     return isIos && !isStandalone;
 };
 
+/**
+ * Czy to urządzenie może w ogóle odbierać połączenia, czyli czy jest telefonem.
+ *
+ * Parowanie komputera nie ma sensu: powiadomienie ma zadzwonić z telefonu, a
+ * push na tej samej maszynie, z której klikamy numer, tylko myli. Przeglądarki
+ * nie mają pytania „czy jesteś telefonem", więc pytamy o system operacyjny —
+ * jedyne, co tu naprawdę rozstrzyga (tablet z Androidem też ma dialer).
+ */
+export const isMobileDevice = (): boolean =>
+    /android|iphone|ipad|ipod|windows phone/i.test(navigator.userAgent);
+
 /** Best-effort human label for the devices list, e.g. "Android · Chrome". */
 export const describeThisDevice = (): string => {
     const ua = navigator.userAgent;

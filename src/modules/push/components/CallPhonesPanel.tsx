@@ -13,6 +13,7 @@ import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from '@/common/components/Toast';
 import { usePushDevice } from '../hooks/usePushDevice';
+import { isMobileDevice } from '../utils/webPush';
 
 const Wrap = styled.div`
     display: flex;
@@ -139,9 +140,14 @@ export function CallPhonesPanel() {
     const { showError, showSuccess } = useToast();
     const [revokingId, setRevokingId] = useState<string | null>(null);
 
-    // Na komputerze parowanie tutaj nie ma sensu — powiadomienie ma zadzwonić
-    // z telefonu, więc zgody trzeba udzielić na telefonie.
-    const canPairHere = push.support === 'supported' && !push.iosNeedsInstall && !push.isSubscribedHere;
+    // Na komputerze nie proponujemy parowania: powiadomienie ma zadzwonić
+    // z telefonu, a push na maszynie, z której klikamy numer, nic nie daje.
+    // Zostaje sam kod QR, czyli jedyna droga, która ma sens.
+    const canPairHere =
+        isMobileDevice() &&
+        push.support === 'supported' &&
+        !push.iosNeedsInstall &&
+        !push.isSubscribedHere;
 
     const handleEnable = async () => {
         try {
@@ -151,7 +157,7 @@ export function CallPhonesPanel() {
             showError(
                 'Nie udało się sparować',
                 error instanceof Error && error.message === 'permission-denied'
-                    ? 'Powiadomienia są zablokowane — odblokuj je w ustawieniach przeglądarki dla tej strony.'
+                    ? 'Powiadomienia są zablokowane. Odblokuj je w ustawieniach przeglądarki dla tej strony.'
                     : 'Spróbuj ponownie.'
             );
         }
@@ -188,14 +194,14 @@ export function CallPhonesPanel() {
                 <Steps>
                     <StepList>
                         <li>Zeskanuj kod telefonem i <strong>zaloguj się</strong> do CRM, jeśli poprosi.</li>
-                        <li>Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong> — Safari inaczej nie wyświetli powiadomień.</li>
+                        <li>Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong>, bo Safari inaczej nie wyświetli powiadomień.</li>
                         <li>Dotknij <strong>„Włącz powiadomienia o połączeniach"</strong> i zezwól na powiadomienia.</li>
                         <li>Od teraz kliknięcie numeru klienta na komputerze wyświetli na telefonie powiadomienie z przyciskiem <strong>„Zadzwoń"</strong>.</li>
                     </StepList>
 
                     {canPairHere && (
                         <PairHereBtn type="button" onClick={handleEnable} disabled={push.isEnabling}>
-                            {push.isEnabling ? 'Paruję…' : 'Sparuj to urządzenie'}
+                            {push.isEnabling ? 'Paruję...' : 'Sparuj to urządzenie'}
                         </PairHereBtn>
                     )}
                     {push.isSubscribedHere && (
@@ -218,7 +224,7 @@ export function CallPhonesPanel() {
                                     onClick={() => handleRevoke(device.id)}
                                     disabled={revokingId === device.id}
                                 >
-                                    {revokingId === device.id ? 'Odłączam…' : 'Odłącz'}
+                                    {revokingId === device.id ? 'Odłączam...' : 'Odłącz'}
                                 </RevokeBtn>
                             )}
                         </DeviceRow>
