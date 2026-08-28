@@ -291,32 +291,26 @@ export const CheckInWizardWrapper = () => {
     const originalStartRaw = (reservationData as any)?.schedule?.startDateTime || (reservationData as any)?.startDateTime || nowIso;
     const originalEndRaw = (reservationData as any)?.schedule?.endDateTime || (reservationData as any)?.endDateTime || '';
 
-    // Sprawdź czy dzisiaj to ten sam dzień co zaplanowana rezerwacja
+    /*
+     * Data rozpoczęcia ZAWSZE startuje z bieżącej chwili — wizyta zaczyna się,
+     * kiedy klient stoi w drzwiach, nie kiedy była zaplanowana. Wcześniej
+     * rezerwacja z dzisiejszą datą trzymała zaplanowaną godzinę (przyjęcie
+     * o 11:30 rezerwacji z 9:00 wpisywało 9:00), a bieżący czas dostawały
+     * tylko rezerwacje z innego dnia.
+     *
+     * Data zakończenia: planowany koniec zostaje, dopóki jest jeszcze przed
+     * nami (dzisiejsza rezerwacja przyjęta z opóźnieniem trzyma umówioną
+     * godzinę odbioru); miniony koniec liczony jest od nowa z czasu trwania
+     * rezerwacji, z zaokrągleniem do południa jak dotychczas.
+     */
     const now = new Date();
-    const originalStartDate = new Date(originalStartRaw);
-    const isSameDay =
-        now.getFullYear() === originalStartDate.getFullYear() &&
-        now.getMonth() === originalStartDate.getMonth() &&
-        now.getDate() === originalStartDate.getDate();
-
-    let startRaw: string;
+    const startRaw: string = nowIso;
     let endRaw: string;
 
-    if (isSameDay) {
-        // Jeśli ten sam dzień - użyj oryginalnych czasów bez przesunięcia
-        startRaw = originalStartRaw;
-        endRaw = originalEndRaw || (() => {
-            try {
-                const d = new Date(startRaw);
-                if (isNaN(d.getTime())) return '';
-                d.setHours(d.getHours() + 1);
-                return d.toISOString();
-            } catch {
-                return '';
-            }
-        })();
+    const originalEndDate = originalEndRaw ? new Date(originalEndRaw) : null;
+    if (originalEndDate && !isNaN(originalEndDate.getTime()) && originalEndDate > now) {
+        endRaw = originalEndRaw;
     } else {
-        // Inny dzień - przesuń na bieżący czas
         // Oblicz czas trwania rezerwacji (w milisekundach)
         let durationMs = 60 * 60 * 1000; // Domyślnie 1 godzina
         if (originalStartRaw && originalEndRaw) {
@@ -330,9 +324,6 @@ export const CheckInWizardWrapper = () => {
                 // Zachowaj domyślny czas trwania
             }
         }
-
-        // Ustaw datę rozpoczęcia na bieżący czas
-        startRaw = nowIso;
 
         // Oblicz datę zakończenia na podstawie czasu trwania
         endRaw = (() => {
