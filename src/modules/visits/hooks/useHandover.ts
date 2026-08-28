@@ -217,18 +217,23 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
 
     /**
      * Czy wysyłka jest w ogóle w zasięgu tego studia. Bez zapisanego tokenu nie ma
-     * czym wysłać, więc nie ma też czego wybierać: przełącznik jest wyłączony
-     * i zablokowany, zamiast obiecywać wysyłkę, która skończy się w kolejce retry.
+     * czym wysłać; token BEZ prawa wystawiania faktur (sam odczyt) kończy się
+     * odmową KSeF i fakturą wiszącą w kolejce retry, która nigdy się nie uda.
+     * W obu przypadkach nie ma czego wybierać: przełącznik jest zgaszony
+     * i zablokowany, zamiast obiecywać wysyłkę bez szans powodzenia.
      * Studio bez modułu KSeF zachowuje się jak dotąd — o wysyłce nie decyduje.
      */
-    const canChooseSendToKsef = ksef.moduleEnabled && !ksef.isLoading && ksef.configured;
+    const canChooseSendToKsef =
+        ksef.moduleEnabled && !ksef.isLoading && ksef.configured && !ksef.lacksIssuePermission;
 
     /**
      * Rozstrzygnięta odpowiedź na pytanie „wysłać do KSeF?": wybór użytkownika,
      * a zanim go dokona — domyślna wartość z ustawień studia. Do czasu wczytania
      * ustawień zakładamy wysyłkę, bo tak działał system, zanim przełącznik powstał.
+     * Wadliwy token wymusza „nie" niezależnie od wyboru i ustawień.
      */
     const sendToKsef =
+        !ksef.lacksIssuePermission &&
         (!ksef.moduleEnabled || ksef.isLoading || ksef.configured) &&
         (state.sendToKsef ?? ksef.autoSendDefault ?? true);
 

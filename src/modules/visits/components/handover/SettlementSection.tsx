@@ -116,14 +116,17 @@ export const SettlementSection = ({
      * Podpowiedź pod przełącznikiem mówi, co się stanie z tą fakturą — szczegóły
      * przeszkody i drogę wyjścia niesie baner poniżej, więc tu wystarczy jedno zdanie.
      */
+    // Wadliwy token sprawdzany PRZED „!sendToKsef": przełącznik jest wtedy zgaszony
+    // przymusowo, a „wyślesz ją później" byłoby obietnicą bez pokrycia — wysyłka
+    // wróci dopiero po naprawie tokenu.
     const sendHint = ksef.isLoading
         ? 'Sprawdzamy konfigurację KSeF…'
         : !ksef.configured
           ? 'Bez tokenu KSeF wysyłka jest niemożliwa.'
-          : !sendToKsef
-            ? 'Faktura zostanie zapisana bez wysyłki; wyślesz ją później z dokumentów przychodowych.'
-            : ksef.lacksIssuePermission
-              ? 'Token nie pozwala wystawiać faktur, więc KSeF tej faktury nie przyjmie.'
+          : ksef.lacksIssuePermission
+            ? 'Wysyłka wyłączona: token nie pozwala wystawiać faktur.'
+            : !sendToKsef
+              ? 'Faktura zostanie zapisana bez wysyłki; wyślesz ją później z dokumentów przychodowych.'
               : 'Faktura trafi do KSeF automatycznie po wydaniu pojazdu.';
 
     if (isFreeVisit) {
@@ -222,10 +225,9 @@ export const SettlementSection = ({
                 </KsefNotice>
             )}
 
-            {/* Token bez prawa wystawiania kończy wysyłkę odmową, którą backend zapisuje
-                jako błąd przejściowy i wstawia do kolejki offline24 — a ta próba nie ma
-                szans się udać. Lepiej powiedzieć to przed wydaniem niż zostawić fakturę
-                w kolejce, która nigdy nie zadziała. */}
+            {/* Token bez prawa wystawiania kończył wysyłkę odmową KSeF i fakturą
+                w kolejce retry bez szans powodzenia — dlatego przełącznik jest przy
+                takim tokenie zgaszony i zablokowany, a baner mówi, co naprawić. */}
             {ksefAnswerKnown && ksef.configured && ksef.lacksIssuePermission && (
                 <KsefNotice>
                     <KsefNoticeIcon aria-hidden="true">
@@ -237,10 +239,11 @@ export const SettlementSection = ({
                     </KsefNoticeIcon>
                     <div>
                         <KsefNoticeTitle>Token KSeF nie pozwala wystawiać faktur</KsefNoticeTitle>
-                        Ma prawo tylko do odczytu, więc KSeF nie przyjmie tej faktury.
-                        Wystawimy ją i zapiszemy — plik pobierzesz po wydaniu pojazdu.
-                        Token z prawem wystawiania faktur dodasz w{' '}
-                        <strong>Ustawienia → Faktury</strong>.
+                        Ma prawo tylko do odczytu, więc wysyłka do KSeF jest wyłączona.
+                        Fakturę wystawimy i zapiszemy razem z danymi nabywcy — plik
+                        pobierzesz po wydaniu pojazdu, a po naprawie tokenu wyślesz ją
+                        z dokumentów przychodowych. Token z prawem wystawiania faktur
+                        dodasz w <strong>Ustawienia → Faktury</strong>.
                     </div>
                 </KsefNotice>
             )}
