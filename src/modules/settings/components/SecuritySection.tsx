@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { PinSetupSection } from '@/modules/pin-switcher';
 import { useAuth } from '@/core/context/AuthContext';
+import { useToast } from '@/common/components/Toast';
+import { authApi } from '@/modules/auth/api/authApi';
 import { useIdleTimeoutSetting, useSetIdleTimeout } from '../hooks/useIdleTimeout';
+
+/** Zgodne z backendem (PasswordResetProperties): link żyje 30 minut, kolejny da się wysłać po minucie. */
+const RESET_LINK_TTL_MINUTES = 30;
+const RESET_REQUEST_COOLDOWN_SECONDS = 60;
 
 const Wrap = styled.div`
     display: flex;
@@ -152,6 +158,118 @@ const IdleTimeoutCard = () => {
     );
 };
 
+const FieldLabel = styled.span`
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+`;
+
+const FieldValue = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-all;
+`;
+
+const Field = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const Hint = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.5;
+`;
+
+/**
+ * Adres e-mail konta i reset hasła.
+ *
+ * Reset idzie tą samą drogą co „nie pamiętam hasła" z ekranu logowania:
+ * backend wysyła na adres konta link ważny 30 minut. Świadomie nie robimy
+ * zmiany hasła na miejscu — nie ma endpointu, który weryfikowałby stare hasło
+ * zalogowanego użytkownika, a zmiana bez tej weryfikacji oznaczałaby, że
+ * porzucony na chwilę, odblokowany ekran wystarczy do przejęcia konta.
+ * Link na skrzynkę wymaga dostępu do poczty, więc trzyma ten sam poziom.
+ */
+const AccountCard = () => {
+    const { user } = useAuth();
+    const { showSuccess, showError } = useToast();
+    const [isSending, setIsSending] = useState(false);
+    const [cooldown, setCooldown] = useState(0);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+    const startCooldown = () => {
+        setCooldown(RESET_REQUEST_COOLDOWN_SECONDS);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setCooldown(seconds => {
+                if (seconds <= 1) {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return 0;
+                }
+                return seconds - 1;
+            });
+        }, 1000);
+    };
+
+    const email = user?.email ?? '';
+
+    const handleReset = async () => {
+        if (!email) return;
+        setIsSending(true);
+        try {
+            await authApi.forgotPassword({ email });
+            showSuccess(
+                'Link wysłany',
+                `Sprawdź skrzynkę ${email}. Link do ustawienia nowego hasła jest ważny ${RESET_LINK_TTL_MINUTES} minut.`
+            );
+            startCooldown();
+        } catch {
+            showError('Nie udało się wysłać linku', 'Spróbuj ponownie za chwilę.');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardTitle>Twoje konto</CardTitle>
+            <Field>
+                <FieldLabel>Adres e-mail</FieldLabel>
+                <FieldValue>{email || 'Brak adresu e-mail'}</FieldValue>
+            </Field>
+            <CardDesc>
+                Tym adresem logujesz się do systemu i na niego wysyłamy link do zmiany hasła.
+                Zmianę adresu zgłoś administratorowi studia.
+            </CardDesc>
+            <Row>
+                <SaveBtn
+                    onClick={handleReset}
+                    disabled={!email || isSending || cooldown > 0}
+                    $loading={isSending}
+                >
+                    {isSending
+                        ? 'Wysyłanie...'
+                        : cooldown > 0
+                            ? `Wyślij ponownie za ${cooldown} s`
+                            : 'Wyślij link do zmiany hasła'}
+                </SaveBtn>
+            </Row>
+            <Hint>
+                Link jest ważny {RESET_LINK_TTL_MINUTES} minut i można go użyć raz. Po ustawieniu
+                nowego hasła zaloguj się nim ponownie na pozostałych urządzeniach.
+            </Hint>
+        </Card>
+    );
+};
+
 export const SecuritySection = () => {
     const { user } = useAuth();
     const isOwner = user?.role?.toLowerCase() === 'owner';
@@ -162,6 +280,7 @@ export const SecuritySection = () => {
                 <SectionTitle>Bezpieczeństwo</SectionTitle>
                 <SectionDesc>Zarządzaj ustawieniami bezpieczeństwa konta.</SectionDesc>
             </SectionHeader>
+            <AccountCard />
             <PinSetupSection />
             {isOwner && <IdleTimeoutCard />}
         </Wrap>
