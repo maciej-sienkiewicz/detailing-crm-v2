@@ -20,6 +20,7 @@ import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency, formatDate, pluralPl } from '@/common/utils';
 import { t } from '@/common/i18n';
 import type { VehicleOwner } from '../types';
+import { toCalendarDate } from '../utils/calendarDeepLink';
 
 import { CarLogoImage } from '../components/CarLogoImage';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
@@ -45,6 +46,40 @@ import {
     CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
 } from './VehicleDetailView.styles';
 import styled from 'styled-components';
+
+/**
+ * Podpowiedź nad wierszem historii wizyt.
+ *
+ * Renderowana przez portal do <body>: wiersze siedzą w panelu z własnym
+ * kontekstem nakładania i przycinaniem zawartości, więc dymek pozycjonowany
+ * wewnątrz listy chowałby się za sąsiednimi kartami albo urywał na krawędzi
+ * panelu. Fixed + portal + z-index ponad panelami (jak InfoTooltip), a
+ * pointer-events: none, żeby nie przechwytywał kliknięcia w wiersz.
+ */
+const RowHint = styled.div`
+  position: fixed;
+  z-index: 9999;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 7px 11px;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1e293b;
+  }
+`;
 
 // ── Deletion banner ────────────────────────────────────────────────────────────
 
@@ -191,6 +226,18 @@ export const VehicleDetailView = () => {
     const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
+    // Pozycja dymka „Pokaż w kalendarzu" — jedna na całą listę, bo naraz
+    // najeżdżamy na jeden wiersz.
+    const [rowHint, setRowHint] = useState<{ left: number; top: number; label: string } | null>(null);
+
+    // Dymek jest pozycjonowany na sztywno względem okna, więc przy przewijaniu
+    // oderwałby się od swojego wiersza — chowamy go zamiast przeliczać.
+    useEffect(() => {
+        if (!rowHint) return;
+        const hide = () => setRowHint(null);
+        window.addEventListener('scroll', hide, true);
+        return () => window.removeEventListener('scroll', hide, true);
+    }, [rowHint]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     // Karta pojazdu jest długa — na telefonie dzielimy ją na sekcje przełączane
     // paskiem przy dolnej krawędzi, tak samo jak kartę klienta.
@@ -629,10 +676,34 @@ export const VehicleDetailView = () => {
                                             <VisitRow
                                                 key={event.id}
                                                 $active={event.status === 'IN_PROGRESS'}
-                                                onClick={() => !isDeleted && event.type === 'VISIT'
-                                                    ? navigate(`/visits/${event.id}`)
-                                                    : undefined
-                                                }
+                                                onClick={() => {
+                                                    if (isDeleted) return;
+                                                    if (event.type === 'VISIT') {
+                                                        navigate(`/visits/${event.id}`);
+                                                        return;
+                                                    }
+                                                    // Rezerwacja nie ma własnego widoku — żyje w kalendarzu.
+                                                    // Ten sam kontrakt, co deep-link z Aktywności: podświetl
+                                                    // zdarzenie i otwórz jego podsumowanie.
+                                                    setRowHint(null);
+                                                    navigate('/calendar', {
+                                                        state: {
+                                                            highlightEventId: event.id,
+                                                            highlightDate: toCalendarDate(event.date),
+                                                            openEventPopover: true,
+                                                        },
+                                                    });
+                                                }}
+                                                onMouseEnter={e => {
+                                                    if (isDeleted || event.type === 'VISIT') return;
+                                                    const r = e.currentTarget.getBoundingClientRect();
+                                                    setRowHint({
+                                                        left: r.left + r.width / 2,
+                                                        top: r.top,
+                                                        label: 'Pokaż w kalendarzu',
+                                                    });
+                                                }}
+                                                onMouseLeave={() => setRowHint(null)}
                                                 style={isDeleted ? { opacity: 0.55, cursor: 'default' } : undefined}
                                             >
                                                 <VisitDateCol>
@@ -845,6 +916,22 @@ export const VehicleDetailView = () => {
                 }}
                 onCancel={() => setShowDeleteConfirm(false)}
             />
+
+            {rowHint && createPortal(
+                <RowHint
+                    role="tooltip"
+                    style={{
+                        // Dymek siedzi nad wierszem; przy krawędzi ekranu dosuwamy go
+                        // do środka, żeby nie wychodził poza widok.
+                        left: Math.min(Math.max(rowHint.left, 90), window.innerWidth - 90),
+                        top: rowHint.top - 8,
+                        transform: 'translate(-50%, -100%)',
+                    }}
+                >
+                    {rowHint.label}
+                </RowHint>,
+                document.body
+            )}
         </ViewContainer>
     );
 };
