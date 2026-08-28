@@ -5,6 +5,8 @@ export interface AppointmentColor {
     name: string;
     hexColor: string;
     isActive: boolean;
+    /** Zaznaczany z góry na nowej wizycie. Dokładnie jeden na studio. */
+    isDefault: boolean;
     createdAt: string;
     updatedAt: string;
     createdByFirstName: string;

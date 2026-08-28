@@ -5,7 +5,7 @@ import { usePermissions } from '@/core/permissions';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
-import { VisitNumberingSection } from '../components/VisitNumberingSection';
+import { LabelsSection, type LabelsSubView } from '../components/LabelsSection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
 import { TeamAndRolesSection } from '../components/TeamAndRolesSection';
@@ -33,7 +33,7 @@ import {
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
 type SectionId =
-    | 'company' | 'visit-numbering' | 'services' | 'team'
+    | 'company' | 'labels' | 'services' | 'team'
     | 'templates' | 'documents'
     | 'tablets' | 'visit-card' | 'lead-forms'
     | 'plan' | 'credits' | 'invoices' | 'security';
@@ -65,7 +65,7 @@ const FileSignIcon   = () => <Icon d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a
 const CrownIcon      = () => <Icon d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />;
 const WalletIcon     = () => <Icon d="M20 12V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M20 12h-6a2 2 0 0 0 0 4h6" />;
 const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2zM8 10h8M8 14h4" />;
-const HashIcon        = () => <Icon d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18" />;
+const TagIcon         = () => <Icon d="M20.6 13.4 12 4.8V2H7a5 5 0 0 0-5 5v5h2.8l8.6 8.6a2 2 0 0 0 2.8 0l4.4-4.4a2 2 0 0 0 0-2.8zM6.5 7.5h.01" />;
 const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
 const TabletIcon     = () => <Icon d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 15h.01" />;
 const FormIcon       = () => <Icon d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h4" />;
@@ -83,7 +83,7 @@ const NAV_GROUPS: NavGroup[] = [
         group: 'Studio',
         items: [
             { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
-            { id: 'visit-numbering', label: 'Numeracja wizyt', icon: <HashIcon /> },
+            { id: 'labels',   label: 'Oznaczenia',      icon: <TagIcon /> },
             { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon /> },
         ],
     },
@@ -321,7 +321,7 @@ const BreadcrumbSep = styled.span`
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 const VALID_SECTIONS = new Set<SectionId>([
-    'company', 'visit-numbering', 'services', 'team',
+    'company', 'labels', 'services', 'team',
     'templates', 'documents',
     'tablets', 'visit-card', 'lead-forms',
     'plan', 'credits', 'invoices', 'security',
@@ -332,13 +332,19 @@ const VALID_SECTIONS = new Set<SectionId>([
  * other people's bookmarks, so a renamed tab redirects rather than silently dumping
  * the visitor on the default section.
  */
-const SECTION_ALIASES: Record<string, { section: SectionId; view?: TeamSubView }> = {
+const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = {
     'email-templates': { section: 'templates' },
     'roles': { section: 'team', view: 'roles' },
     'sms-credits': { section: 'credits' },
+    // Numeracja wizyt przestała być osobną sekcją i jest widokiem „Oznaczeń".
+    'visit-numbering': { section: 'labels', view: 'numbering' },
 };
 
-const TEAM_VIEW_PARAM = 'view';
+/** Sekcje z widokami wewnętrznymi trzymają je w tym samym parametrze URL. */
+type SubView = TeamSubView | LabelsSubView;
+
+const VIEW_PARAM = 'view';
+const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels']);
 
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
@@ -346,7 +352,9 @@ const TEAM_VIEW_PARAM = 'view';
 const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // Company data (NIP, address, branding) is studio configuration, owner's call.
     company: 'OWNER_ONLY',
-    'visit-numbering': 'OWNER_ONLY',
+    // Kolory są ustawieniem operacyjnym (kto tworzy wizyty, ten je oznacza);
+    // numeracja zostaje decyzją właściciela i chowa się w środku sekcji.
+    labels: 'VISITS_CREATE',
     services: 'VISITS_CREATE',
     team: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
@@ -393,21 +401,22 @@ export function SettingsView() {
     const section: SectionId =
         VALID_SECTIONS.has(tabParam) && canSee(tabParam) ? tabParam : firstVisibleSection;
 
-    const subView: TeamSubView =
-        (alias?.view ?? searchParams.get(TEAM_VIEW_PARAM)) === 'roles' ? 'roles' : 'employees';
+    const viewParam = alias?.view ?? searchParams.get(VIEW_PARAM);
+    const teamSubView: TeamSubView = viewParam === 'roles' ? 'roles' : 'employees';
+    const labelsSubView: LabelsSubView = viewParam === 'colors' ? 'colors' : 'numbering';
 
     const [helpOpen, setHelpOpen] = useState(false);
     // Lista sekcji na telefonie startuje zwinięta: wchodzisz w ustawienia po to,
     // żeby coś ustawić, a nie żeby patrzeć na spis treści.
     const [navOpen, setNavOpen] = useState(false);
 
-    const goToSection = useCallback((next: SectionId, view?: TeamSubView) => {
+    const goToSection = useCallback((next: SectionId, view?: SubView) => {
         setNavOpen(false);
         setSearchParams(prev => {
             const params = new URLSearchParams(prev);
             params.set('tab', next);
-            if (next === 'team' && view) params.set(TEAM_VIEW_PARAM, view);
-            else params.delete(TEAM_VIEW_PARAM);
+            if (view && SECTIONS_WITH_SUBVIEWS.has(next)) params.set(VIEW_PARAM, view);
+            else params.delete(VIEW_PARAM);
             return params;
         });
     }, [setSearchParams]);
@@ -420,8 +429,14 @@ export function SettingsView() {
     let content: React.ReactNode;
     if (section === 'company') {
         content = <CompanySection />;
-    } else if (section === 'visit-numbering') {
-        content = <VisitNumberingSection />;
+    } else if (section === 'labels') {
+        content = (
+            <LabelsSection
+                subView={labelsSubView}
+                onSubViewChange={view => goToSection('labels', view)}
+                canSeeNumbering={isOwner}
+            />
+        );
     } else if (section === 'documents') {
         content = <DocumentsSection />;
     } else if (section === 'templates') {
@@ -431,7 +446,7 @@ export function SettingsView() {
     } else if (section === 'team') {
         content = (
             <TeamAndRolesSection
-                subView={subView}
+                subView={teamSubView}
                 onSubViewChange={view => goToSection('team', view)}
             />
         );

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppointmentForm, useAppointmentServices, useAppointmentColors, useCustomerVehicles } from './useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, ServiceLineItem, RecurrenceRuleRequest } from '../types';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
+import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '../api/appointmentApi';
 
 export const useAppointmentCreation = () => {
@@ -66,10 +67,12 @@ export const useAppointmentCreation = () => {
         selectedCustomer?.id && !selectedCustomer.isNew ? selectedCustomer.id : undefined
     );
 
+    // Kolor domyślny studia zamiast pierwszego z listy — ta sama reguła, co w
+    // check-inie i w szybkim dodawaniu z kalendarza.
     useEffect(() => {
         if (appointmentColors && appointmentColors.length > 0 && !selectedColorId) {
             const timer = setTimeout(() => {
-                setSelectedColorId(appointmentColors[0].id);
+                setSelectedColorId(pickInitialColorId(appointmentColors));
             }, 0);
             return () => clearTimeout(timer);
         }

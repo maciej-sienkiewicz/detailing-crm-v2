@@ -6,6 +6,7 @@ import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
 import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
+import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { formatDateTimeLocal, formatDate, roundTo2, calculateFinalPrice } from './helpers';
@@ -279,9 +280,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }
     }, [eventData]);
 
+    // Kolor domyślny studia, a nie pierwszy z listy: kolejność listy potrafiła się
+    // zmienić po dodaniu koloru i podpowiedź zmieniała się razem z nią.
     useEffect(() => {
         if (appointmentColors.length > 0) {
-            setSelectedColorId(prev => prev || appointmentColors[0].id);
+            setSelectedColorId(prev => pickInitialColorId(appointmentColors, prev));
         }
     }, [appointmentColors]);
 

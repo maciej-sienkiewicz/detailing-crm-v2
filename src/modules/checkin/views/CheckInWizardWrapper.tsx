@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
+import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '@/modules/appointments';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
@@ -375,7 +376,9 @@ export const CheckInWizardWrapper = () => {
         homeAddress: reservation.customer?.homeAddress || null,
         company: reservation.customer?.company || null,
         services: reservation.services,
-        appointmentColorId: reservation.appointmentColor?.id || '',
+        // Rezerwacja zwykle ma już kolor; jeśli nie, wchodzi domyślny studia zamiast
+        // pustego pola, którego wizard i tak wymaga.
+        appointmentColorId: pickInitialColorId(colors, reservation.appointmentColor?.id),
         technicalState: {
             inspectionNotes: (reservationData as any)?.note || '',
         },

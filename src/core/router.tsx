@@ -1,6 +1,6 @@
 // src/core/router.tsx
 import { ReactNode, Suspense, lazy } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter } from 'react-router-dom';
 import { Layout } from '@/widgets/Layout';
 import { CustomerListView } from '@/modules/customers';
 import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
@@ -17,7 +17,6 @@ import { VisitCardView } from '@/modules/visit-card';
 
 // Lazy: pulls in pdf.js, which must not weigh down the main bundle
 const PublicSigningView = lazy(() => import('@/modules/public-signing/views/PublicSigningView'));
-import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
@@ -187,8 +186,10 @@ export const router = createBrowserRouter([
         element: page(<CheckInWizardWrapper />, 'VISITS_CREATE'),
     },
     {
+        // Kolory przeniosły się do Ustawień → Oznaczenia. Adres zostaje, bo
+        // krąży w zakładkach i linkach — prowadzi teraz tam, gdzie widok jest.
         path: '/appointment-colors',
-        element: page(<AppointmentColorListView />, 'VISITS_VIEW'),
+        element: <Navigate to="/settings?tab=labels&view=colors" replace />,
     },
     {
         path: '/gallery',

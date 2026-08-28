@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
+import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '@/modules/appointments';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 
@@ -103,7 +104,9 @@ export const WalkInCheckInWrapper = () => {
         homeAddress: null,
         company: null,
         services: [],
-        appointmentColorId: '',
+        // Kolor jest polem wymaganym, więc puste pole to zawsze robota do zrobienia:
+        // zaczynamy od koloru domyślnego studia.
+        appointmentColorId: pickInitialColorId(colors ?? []),
         technicalState: {
             inspectionNotes: '',
         },
