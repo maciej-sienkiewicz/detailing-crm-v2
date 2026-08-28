@@ -336,12 +336,12 @@ export function AppointmentColorsSection() {
                 </CardHead>
                 <CardHint>
                     Kolory oznaczają typy wizyt w kalendarzu. Kolor domyślny jest zaznaczany z góry
-                    przy rozpoczynaniu wizyty i w szybkim dodawaniu z kalendarza — może być tylko
-                    jeden. Koloru używanego przez wizyty nie da się usunąć; zarchiwizuj go, a zniknie
+                    przy rozpoczynaniu wizyty i w szybkim dodawaniu z kalendarza. Może być tylko
+                    jeden. Koloru używanego przez wizyty nie da się usunąć. Zarchiwizuj go, a zniknie
                     z list wyboru, nie ruszając historii.
                 </CardHint>
 
-                {isLoading && <Empty>Wczytywanie kolorów…</Empty>}
+                {isLoading && <Empty>Wczytywanie kolorów...</Empty>}
 
                 {isError && (
                     <Empty>
@@ -386,12 +386,12 @@ export function AppointmentColorsSection() {
                         <ConfirmTitle>Usunąć kolor „{deleting.name}"?</ConfirmTitle>
                         <ConfirmText>
                             Operacja jest nieodwracalna. Jeśli kolor jest używany przez wizyty lub
-                            rezerwacje, usunięcie się nie powiedzie — zarchiwizuj go zamiast tego.
+                            rezerwacje, usunięcie się nie powiedzie. Zarchiwizuj go zamiast tego.
                         </ConfirmText>
                         <ConfirmActions>
                             <LinkButton onClick={() => setDeleting(null)}>Anuluj</LinkButton>
                             <LinkButton $danger onClick={handleDelete} disabled={remove.isPending}>
-                                {remove.isPending ? 'Usuwanie…' : 'Usuń kolor'}
+                                {remove.isPending ? 'Usuwanie...' : 'Usuń kolor'}
                             </LinkButton>
                         </ConfirmActions>
                     </ConfirmBox>

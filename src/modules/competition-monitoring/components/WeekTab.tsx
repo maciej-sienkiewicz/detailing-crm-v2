@@ -292,7 +292,7 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
                 </CardHint>
                 {digest.profiles.length === 0 ? (
                     <CardHint style={{ marginBottom: 0 }}>
-                        Żaden z obserwowanych profili nie ma jeszcze danych — wróć po najbliższej
+                        Żaden z obserwowanych profili nie ma jeszcze danych. Wróć po najbliższej
                         synchronizacji.
                     </CardHint>
                 ) : (
@@ -308,7 +308,7 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
                     <CardHint>
                         Obserwujesz {digest.profilesWatched}{' '}
                         {digest.profilesWatched === 1 ? 'profil' : 'profile'}. Od 4 profili odblokujemy
-                        porównania z medianą Twojej grupy — oto konta podobne do tych, które już
+                        porównania z medianą Twojej grupy. Oto konta podobne do tych, które już
                         obserwujesz:
                     </CardHint>
                     <SuggestionsSection compact />

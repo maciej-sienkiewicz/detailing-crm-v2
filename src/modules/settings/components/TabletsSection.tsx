@@ -53,8 +53,8 @@ export function TabletsSection() {
             <Block>
                 <BlockTitle>Telefony do połączeń</BlockTitle>
                 <BlockHint>
-                    Klikasz numer klienta na komputerze — dzwoni Twój telefon. Każdy paruje swoje
-                    urządzenia; powiadomienia trafiają wyłącznie na telefony właściciela konta.
+                    Klikasz numer klienta na komputerze, dzwoni Twój telefon. Każdy paruje własne
+                    urządzenia, a powiadomienia trafiają wyłącznie na telefony właściciela konta.
                 </BlockHint>
                 <CallPhonesPanel />
             </Block>
