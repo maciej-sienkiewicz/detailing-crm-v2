@@ -23,7 +23,6 @@ import {
     Images,
     Activity,
     CircleAlert,
-    Smartphone,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -119,11 +118,11 @@ const buildMenuSections = (
         {
             title: 'Portal',
             items: [
+                // Parowanie telefonu do Click-to-Call przeniosło się stąd do
+                // Ustawień → Urządzenia mobilne, obok tabletów do podpisu:
+                // jedno miejsce na wszystkie urządzenia zamiast pozycji w menu,
+                // którą klikało się raz w życiu.
                 { path: '/settings',   label: 'Ustawienia', icon: Settings },
-                // Parowanie własnego telefonu do Click-to-Call. Bez wymagania
-                // uprawnienia: każdy zalogowany paruje wyłącznie swój telefon,
-                // a backend i tak wysyła push tylko na urządzenia właściciela sesji.
-                { path: '/call-device', label: 'Telefon do połączeń', icon: Smartphone },
                 { label: 'Zgłoś problem', icon: CircleAlert, onClick: onReportProblem },
             ],
         },
