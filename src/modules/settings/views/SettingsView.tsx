@@ -15,6 +15,7 @@ import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
 import { TabletsSection } from '../components/TabletsSection';
+import { ContactsSyncSection } from '../components/ContactsSyncSection';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadFormsSection } from '../components/LeadFormsSection';
 import { SecuritySection } from '../components/SecuritySection';
@@ -440,7 +441,14 @@ export function SettingsView() {
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
     } else if (section === 'tablets') {
-        content = <TabletsSection />;
+        // Zakładka „Urządzenia mobilne": tablety do podpisu i telefony
+        // z kontaktami studia — jeden ekran o sprzęcie sparowanym z CRM.
+        content = (
+            <>
+                <TabletsSection />
+                <ContactsSyncSection />
+            </>
+        );
     } else if (section === 'visit-card') {
         content = <VisitCardSection />;
     } else if (section === 'lead-forms') {
