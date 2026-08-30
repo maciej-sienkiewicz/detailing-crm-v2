@@ -3,7 +3,9 @@
 import { apiClient } from '@/core/apiClient';
 import type { CarddavAccountDto, CarddavProvisioningDto } from '../types';
 
-const BASE_PATH = '/v1/carddav';
+// /v1/carddav/** to bezstanowy serwer CardDAV z Basic auth (tam loguje się
+// telefon) — zarządzanie z sesji CRM żyje obok, pod /v1/carddav-setup.
+const BASE_PATH = '/v1/carddav-setup';
 
 /**
  * Kontakty studia na telefonie (CardDAV). Model bezpieczeństwa jak przy
