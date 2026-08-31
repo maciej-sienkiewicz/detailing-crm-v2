@@ -149,11 +149,29 @@ export interface CashOperation {
   createdAt:             string;
 }
 
+/** Strona operacji kasowej. Wpłata = amount > 0, wypłata = amount < 0. */
+export type CashDirection = 'IN' | 'OUT';
+
+export interface CashHistoryFilters {
+  /** Dzień włączający, 'RRRR-MM-DD'. */
+  dateFrom?: string;
+  /** Dzień włączający, 'RRRR-MM-DD' — backend sam rozciąga go na całą dobę. */
+  dateTo?: string;
+  /** Brak = obie strony. */
+  direction?: CashDirection;
+}
+
 export interface CashHistoryResponse {
   operations: CashOperation[];
   total:      number;
   page:       number;
   pageSize:   number;
+  /**
+   * Sumy w groszach za cały wybrany okres — obie dodatnie i obie niezależne od
+   * `direction`. Filtr kierunku zawęża listę, nie podsumowanie.
+   */
+  totalIn:    number;
+  totalOut:   number;
 }
 
 export interface CashAdjustRequest {

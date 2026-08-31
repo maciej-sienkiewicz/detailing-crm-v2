@@ -1328,7 +1328,12 @@ export const FinanceView: React.FC = () => {
           {activeTab === 'expenses' && (
             <ExpensesTabContent activeDateRange={activeDateRange} />
           )}
-          {activeTab === 'cash' && <CashRegisterPanel />}
+          {activeTab === 'cash' && (
+            <CashRegisterPanel
+              dateFrom={activeDateRange.dateFrom}
+              dateTo={activeDateRange.dateTo}
+            />
+          )}
           {activeTab === 'payment-summary' && <PaymentSummaryTab />}
         </PanelCard>
       </div>

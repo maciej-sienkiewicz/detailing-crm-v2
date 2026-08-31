@@ -6,6 +6,7 @@ import type {
   UpdateDocumentRequest,
   PaymentMethodReportParams,
   CashAdjustRequest,
+  CashHistoryFilters,
 } from '../types';
 
 export const FINANCE_DOCS_KEY     = ['finance', 'documents'] as const;
@@ -112,16 +113,26 @@ export const useCashRegister = () => {
   return { cashRegister: data, isLoading, isError, refetch };
 };
 
-export const useCashHistory = (page: number, pageSize: number) => {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: [...FINANCE_CASH_KEY, 'history', page, pageSize],
-    queryFn:  () => financeApi.getCashHistory(page, pageSize),
+export const useCashHistory = (
+  page: number,
+  pageSize: number,
+  filters: CashHistoryFilters = {},
+) => {
+  const { data, isLoading, isError, isFetching } = useQuery({
+    queryKey: [...FINANCE_CASH_KEY, 'history', page, pageSize, filters.dateFrom ?? null, filters.dateTo ?? null, filters.direction ?? null],
+    queryFn:  () => financeApi.getCashHistory(page, pageSize, filters),
+    // Zmiana filtra nie ma migać pustą tabelą — poprzedni wynik zostaje na ekranie,
+    // dopóki nie przyjdzie nowy.
+    placeholderData: (previous) => previous,
   });
 
   return {
     operations: data?.operations ?? [],
     total:      data?.total      ?? 0,
+    totalIn:    data?.totalIn    ?? 0,
+    totalOut:   data?.totalOut   ?? 0,
     isLoading,
+    isFetching,
     isError,
   };
 };
