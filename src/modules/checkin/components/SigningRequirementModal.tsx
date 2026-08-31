@@ -109,11 +109,12 @@ interface SigningRequirementModalProps {
     isOpen: boolean;
     isCreating: boolean;
     /**
-     * Użytkownik świadomie zostawia przyjęcie na później. Szkic wizyty ZOSTAJE i trafia
-     * do kolejki „Nieukończone przyjęcia" — nie jest to ciche zamknięcie okna, bo
-     * takiego to okno już nie ma (patrz [AbandonCheckInDialog]).
+     * Wyjście bez zmian — szkic zostaje nietknięty. Przekazywane TYLKO przy dokańczaniu
+     * przyjęcia z listy „Nieukończone przyjęcia", gdzie zamknięcie okna niczego nie
+     * zmienia. W kreatorze przyjęcia nie ma takiej drogi: przyjęcie albo się kończy,
+     * albo się je anuluje (patrz [AbandonCheckInDialog]).
      */
-    onLeaveForLater: () => void;
+    onLeaveForLater?: () => void;
     /** Wizyta anulowana — szkic i jego dokumenty zostały usunięte. */
     onCancel: () => void;
     visitId: string | null;
@@ -222,7 +223,7 @@ export const SigningRequirementModal = ({
 
     const handleLeaveForLater = () => {
         setExitPromptOpen(false);
-        onLeaveForLater();
+        onLeaveForLater?.();
     };
 
     /*
@@ -648,8 +649,8 @@ export const SigningRequirementModal = ({
                     visitNumber={visitNumber}
                     isCancelling={cancelVisitMutation.isPending}
                     onBack={() => setExitPromptOpen(false)}
-                    onLeaveForLater={handleLeaveForLater}
                     onCancelVisit={() => cancelVisitMutation.mutate()}
+                    onLeaveForLater={onLeaveForLater && handleLeaveForLater}
                 />
             )}
 

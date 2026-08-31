@@ -125,10 +125,19 @@ interface AbandonCheckInDialogProps {
     isCancelling: boolean;
     /** Wróć do dokumentów — nic się nie zmienia. */
     onBack: () => void;
-    /** Zostaw szkic; trafia do kolejki „Nieukończone przyjęcia". */
-    onLeaveForLater: () => void;
-    /** Anuluj wizytę — szkic i jego dokumenty znikają, rezerwacja zostaje. */
+    /** Anuluj wizytę — szkic i jego dokumenty znikają, rezerwacja wraca do kalendarza. */
     onCancelVisit: () => void;
+    /**
+     * Wyjście bez zmian — pokazywane TYLKO tam, gdzie odłożenie przyjęcia niczego nie
+     * psuje, czyli przy dokańczaniu z listy „Nieukończone przyjęcia": szkic już tam
+     * jest, więc zamknięcie okna niczego nie zmienia.
+     *
+     * W kreatorze przyjęcia tej opcji nie ma i to jest celowe. „Zostaw na później"
+     * brzmi niewinnie, a znaczy „zostaw auto przyjęte, wizytę nierozpoczętą i licz, że
+     * ktoś do tego wróci" — czyli produkuje dokładnie ten stan, który cała ta praca
+     * miała wyeliminować. Przyjęcie albo się kończy, albo się je anuluje.
+     */
+    onLeaveForLater?: () => void;
 }
 
 export const AbandonCheckInDialog = ({
@@ -136,8 +145,8 @@ export const AbandonCheckInDialog = ({
     visitNumber,
     isCancelling,
     onBack,
-    onLeaveForLater,
     onCancelVisit,
+    onLeaveForLater,
 }: AbandonCheckInDialogProps) => (
     // Bez zamykania Escape'em i kliknięciem w tło: to okno istnieje właśnie po to,
     // żeby odruchowe zamknięcie nie było jedną z możliwych odpowiedzi.
@@ -157,7 +166,8 @@ export const AbandonCheckInDialog = ({
 
                 <Description>
                     Dane przyjęcia są już zapisane, ale dopóki nie zatwierdzisz wizyty, nie trafi
-                    ona na listę wizyt ani do obsługi. Wybierz, co zrobić.
+                    ona na listę wizyt ani do obsługi. Dokończ ją albo anuluj — nie da się jej
+                    zostawić w tym stanie.
                 </Description>
 
                 <Options>
@@ -166,23 +176,24 @@ export const AbandonCheckInDialog = ({
                         <OptionDesc>Dokończ podpisy i zatwierdź wizytę teraz.</OptionDesc>
                     </OptionBtn>
 
-                    <OptionBtn $variant="neutral" onClick={onLeaveForLater} disabled={isCancelling}>
-                        <OptionTitle $variant="neutral">Zostaw na później</OptionTitle>
-                        <OptionDesc>
-                            Przyjęcie trafi do listy „Nieukończone przyjęcia" w widoku Wizyty
-                            i Rezerwacje — wrócisz do niego stamtąd.
-                        </OptionDesc>
-                    </OptionBtn>
-
                     <OptionBtn $variant="danger" onClick={onCancelVisit} disabled={isCancelling}>
                         <OptionTitle $variant="danger">
                             {isCancelling ? 'Anulowanie...' : 'Anuluj wizytę'}
                         </OptionTitle>
                         <OptionDesc>
-                            Usuwa przyjęcie razem z wygenerowanymi dokumentami. Rezerwacja zostaje
-                            i można przyjąć auto od nowa.
+                            Usuwa przyjęcie razem z wygenerowanymi dokumentami. Rezerwacja wraca
+                            do kalendarza i można przyjąć auto od nowa.
                         </OptionDesc>
                     </OptionBtn>
+
+                    {onLeaveForLater && (
+                        <OptionBtn $variant="neutral" onClick={onLeaveForLater} disabled={isCancelling}>
+                            <OptionTitle $variant="neutral">Zamknij bez zmian</OptionTitle>
+                            <OptionDesc>
+                                Wróć do listy nieukończonych przyjęć. Nic nie zostanie usunięte.
+                            </OptionDesc>
+                        </OptionBtn>
+                    )}
                 </Options>
             </Body>
         </ModalContent>

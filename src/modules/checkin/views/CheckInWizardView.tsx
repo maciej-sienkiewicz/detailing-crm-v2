@@ -527,26 +527,16 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     };
 
     /**
-     * Wizyta anulowana: szkicu nie ma, dane w formularzu zostają. Użytkownik może
-     * poprawić przyjęcie i utworzyć je jeszcze raz — bramka po stronie serwera już
-     * go nie zatrzyma, bo poprzedni szkic zniknął.
+     * Wizyta anulowana — szkicu nie ma, rezerwacja wróciła na kalendarz.
+     *
+     * Odsyłamy właśnie tam, a nie z powrotem do formularza. Anulowanie znaczy „to
+     * przyjęcie się nie odbyło": jedyne, co po nim zostaje, to wolny termin
+     * w kalendarzu, i tam użytkownik ma teraz coś do zrobienia. Zostawienie go
+     * w wypełnionym kreatorze sugerowałoby, że przyjęcie trwa dalej.
      */
     const handleSigningModalCancel = () => {
         setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
-    };
-
-    /**
-     * Przyjęcie odłożone na później. Szkic ZOSTAJE — dlatego użytkownik dostaje adres,
-     * pod którym go znajdzie. Zostawienie go w kreatorze z pustym oknem byłoby
-     * powtórzeniem tego samego błędu: rekord istnieje, a nikt o nim nie wie.
-     */
-    const handleSigningModalLeaveForLater = () => {
-        setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
-        showSuccess(
-            'Przyjęcie zapisane jako nieukończone',
-            'Znajdziesz je w „Wizyty i Rezerwacje", w sekcji „Nieukończone przyjęcia".',
-        );
-        navigate('/operations');
+        navigate('/calendar');
     };
 
     const handleServicesChange = (services: CheckInFormData['services']) => {
@@ -704,7 +694,6 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 <SigningRequirementModal
                     isOpen={signingModalState.isOpen}
                     isCreating={signingModalState.isCreating}
-                    onLeaveForLater={handleSigningModalLeaveForLater}
                     onCancel={handleSigningModalCancel}
                     visitId={signingModalState.visitId}
                     visitNumber={signingModalState.visitNumber || ''}
@@ -730,14 +719,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                         onComplete(visitId);
                     }}
                     onCancelled={() => {
-                        // Szkic zniknął — formularz jest nadal wypełniony, więc
-                        // użytkownik może po prostu kliknąć „Utwórz wizytę" ponownie.
                         setResumeDraft(null);
-                        showSuccess('Poprzednie przyjęcie zostało anulowane', 'Możesz utworzyć wizytę od nowa.');
-                    }}
-                    onLeaveForLater={() => {
-                        setResumeDraft(null);
-                        navigate('/operations');
+                        navigate('/calendar');
                     }}
                 />
             )}
