@@ -433,6 +433,14 @@ const ErrorMessage = styled.p`
     font-size: ${st.fontSm};
 `;
 
+/** Nierozpoczęta wizyta to stan procesu, nie awaria — stąd inny kolor niż przy błędzie. */
+const NotStartedTitle = styled.h2`
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: ${st.text};
+`;
+
 const RetryButton = styled.button`
     padding: 9px 22px;
     background: ${BRAND};
@@ -643,7 +651,7 @@ export const VisitDetailView = () => {
     };
     const docFileInputRef = useRef<HTMLInputElement>(null);
 
-    const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
+    const { visitDetail, isLoading, isError, notStarted, refetch } = useVisitDetail(visitId!);
     const { documents } = useVisitDocuments(visitId!);
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
@@ -680,6 +688,33 @@ export const VisitDetailView = () => {
                         <Spinner />
                         <LoadingText>Ładowanie szczegółów wizyty...</LoadingText>
                     </LoadingContainer>
+                </ContentArea>
+            </ViewContainer>
+        );
+    }
+
+    /*
+     * Wizyta w statusie DRAFT nie jest wizytą, tylko przyjęciem pojazdu, którego nikt
+     * nie dokończył — API odpowiada na nią 404. Wejście tu bierze się z zapamiętanego
+     * adresu albo ze starego linku; „Błąd ładowania" byłby w tym miejscu kłamstwem,
+     * a użytkownik i tak nie wiedziałby, co dalej. Mówimy więc, co się stało, i
+     * odsyłamy tam, gdzie da się to domknąć.
+     */
+    if (notStarted) {
+        return (
+            <ViewContainer>
+                <ContentArea>
+                    <ErrorContainer>
+                        <NotStartedTitle>Wizyta nie została rozpoczęta</NotStartedTitle>
+                        <ErrorMessage>
+                            Przyjęcie tego pojazdu zostało zapisane, ale nie zostało dokończone —
+                            brakuje podpisów i zatwierdzenia, więc wizyta jeszcze nie ruszyła.
+                            Znajdziesz ją w sekcji „Nieukończone przyjęcia".
+                        </ErrorMessage>
+                        <RetryButton onClick={() => navigate('/operations')}>
+                            Przejdź do nieukończonych przyjęć
+                        </RetryButton>
+                    </ErrorContainer>
                 </ContentArea>
             </ViewContainer>
         );

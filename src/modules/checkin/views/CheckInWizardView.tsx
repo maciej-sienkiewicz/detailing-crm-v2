@@ -1,6 +1,7 @@
 // src/modules/checkin/views/CheckInWizardView.tsx
 
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -11,6 +12,9 @@ import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
+import { ResumeCheckInModal } from '../components/ResumeCheckInModal';
+import { visitApi } from '@/modules/visits/api/visitApi';
+import type { OpenDraftVisit } from '@/modules/visits/types';
 import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
@@ -394,6 +398,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
     const { showSuccess, showError } = useToast();
+    const navigate = useNavigate();
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
     // Licznik nieudanych prób, nie flaga: użytkownik może poprawić jedno pole i
@@ -458,6 +463,9 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         hasDamageMap: false,
     });
 
+    /** Wznawiane przyjęcie z bramki 409 — patrz [handleSubmit]. */
+    const [resumeDraft, setResumeDraft] = useState<OpenDraftVisit | null>(null);
+
     const handleNext = () => {
         if (!isStepValid) {
             setShowValidationErrors(true);
@@ -488,8 +496,23 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 hasPhotos: (formData.photos?.length ?? 0) > 0,
                 hasDamageMap: (formData.damagePoints?.length ?? 0) > 0,
             });
-        } catch {
+        } catch (error) {
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
+
+            /*
+             * 409: dla tej rezerwacji trwa już nieukończone przyjęcie — najczęściej to
+             * samo, przerwane wcześniej przy dokumentach. Nie zakładamy drugiej wizyty:
+             * wracamy do tamtej, dokładnie w miejscu, w którym została porzucona.
+             */
+            if (isDraftConflict(error) && reservationId) {
+                const draft = await visitApi
+                    .getOpenDraftForAppointment(reservationId)
+                    .catch(() => null);
+                if (draft) {
+                    setResumeDraft(draft);
+                    return;
+                }
+            }
         }
     };
 
@@ -503,12 +526,27 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         }
     };
 
+    /**
+     * Wizyta anulowana: szkicu nie ma, dane w formularzu zostają. Użytkownik może
+     * poprawić przyjęcie i utworzyć je jeszcze raz — bramka po stronie serwera już
+     * go nie zatrzyma, bo poprzedni szkic zniknął.
+     */
     const handleSigningModalCancel = () => {
         setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
     };
 
-    const handleSigningModalClose = () => {
-        setSigningModalState(s => ({ ...s, isOpen: false }));
+    /**
+     * Przyjęcie odłożone na później. Szkic ZOSTAJE — dlatego użytkownik dostaje adres,
+     * pod którym go znajdzie. Zostawienie go w kreatorze z pustym oknem byłoby
+     * powtórzeniem tego samego błędu: rekord istnieje, a nikt o nim nie wie.
+     */
+    const handleSigningModalLeaveForLater = () => {
+        setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
+        showSuccess(
+            'Przyjęcie zapisane jako nieukończone',
+            'Znajdziesz je w „Wizyty i Rezerwacje", w sekcji „Nieukończone przyjęcia".',
+        );
+        navigate('/operations');
     };
 
     const handleServicesChange = (services: CheckInFormData['services']) => {
@@ -666,7 +704,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 <SigningRequirementModal
                     isOpen={signingModalState.isOpen}
                     isCreating={signingModalState.isCreating}
-                    onClose={handleSigningModalClose}
+                    onLeaveForLater={handleSigningModalLeaveForLater}
                     onCancel={handleSigningModalCancel}
                     visitId={signingModalState.visitId}
                     visitNumber={signingModalState.visitNumber || ''}
@@ -682,6 +720,36 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     hasDamageMap={signingModalState.hasDamageMap}
                 />
             )}
+
+            {resumeDraft && (
+                <ResumeCheckInModal
+                    draft={resumeDraft}
+                    onConfirmed={visitId => {
+                        setResumeDraft(null);
+                        showSuccess(`Wizyta ${resumeDraft.visitNumber} rozpoczęta pomyślnie!`);
+                        onComplete(visitId);
+                    }}
+                    onCancelled={() => {
+                        // Szkic zniknął — formularz jest nadal wypełniony, więc
+                        // użytkownik może po prostu kliknąć „Utwórz wizytę" ponownie.
+                        setResumeDraft(null);
+                        showSuccess('Poprzednie przyjęcie zostało anulowane', 'Możesz utworzyć wizytę od nowa.');
+                    }}
+                    onLeaveForLater={() => {
+                        setResumeDraft(null);
+                        navigate('/operations');
+                    }}
+                />
+            )}
         </>
     );
+};
+
+/**
+ * Czy błąd to bramka „ta rezerwacja ma już nieukończone przyjęcie" (HTTP 409 z kodem),
+ * a nie dowolny inny konflikt.
+ */
+const isDraftConflict = (error: unknown): boolean => {
+    const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
+    return response?.status === 409 && response?.data?.code === 'DRAFT_VISIT_ALREADY_EXISTS';
 };

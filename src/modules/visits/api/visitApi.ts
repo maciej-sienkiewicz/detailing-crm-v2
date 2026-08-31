@@ -14,6 +14,8 @@ import type {
     VisitPhotosResponse,
     ConfirmVisitOptions,
     TechnicalNoteHistoryResponse,
+    OpenDraftVisit,
+    OpenDraftVisitListResponse,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -556,12 +558,39 @@ export const visitApi = {
     },
 
     // Draft visit management
+
+    /**
+     * Anulowanie nieukończonego przyjęcia.
+     *
+     * Idzie na `/cancel`, a nie na `DELETE /visits/{id}`: to drugie jest twardym
+     * usunięciem wizyty w dowolnym stanie i wymaga uprawnienia VISITS_DELETE (właściciel
+     * lub menedżer). Pracownik, który właśnie przyjmował auto, dostawał na nim 403 —
+     * czyli jedyne wyjście z okna dokumentów, jakim mógł zamknąć sprawę, po prostu nie
+     * działało. `/cancel` sprawdza status DRAFT, kasuje protokoły, dokumenty i pliki i
+     * zostawia rezerwację gotową do ponownego przyjęcia.
+     */
     cancelDraftVisit: async (visitId: string): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 500));
             return;
         }
-        await apiClient.delete(`${BASE_PATH}/${visitId}`);
+        await apiClient.delete(`${BASE_PATH}/${visitId}/cancel`);
+    },
+
+    /** Kolejka nieukończonych przyjęć studia. */
+    getOpenDrafts: async (): Promise<OpenDraftVisitListResponse> => {
+        const response = await apiClient.get(`${BASE_PATH}/drafts`);
+        return response.data;
+    },
+
+    /**
+     * Nieukończone przyjęcie tej rezerwacji, jeśli takie trwa (204 → null).
+     * Kreator pyta o to na wejściu, żeby zaproponować wznowienie zamiast zakładać
+     * drugą wizytę dla tego samego auta.
+     */
+    getOpenDraftForAppointment: async (appointmentId: string): Promise<OpenDraftVisit | null> => {
+        const response = await apiClient.get(`${BASE_PATH}/drafts/by-appointment/${appointmentId}`);
+        return response.status === 204 ? null : (response.data ?? null);
     },
 
     /**

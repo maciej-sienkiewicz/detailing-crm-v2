@@ -20,18 +20,35 @@ export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'd
 export const visitPhotosQueryKey = (visitId: string) => ['visit', visitId, 'photos'];
 
 export const useVisitDetail = (visitId: string) => {
-    const { data, isLoading, isError, refetch } = useQuery({
+    const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: visitDetailQueryKey(visitId),
         queryFn: () => visitApi.getVisitDetail(visitId),
         enabled: !!visitId,
+        /*
+         * Nierozpoczętej wizyty nie ma sensu dopytywać: serwer nie zmieni zdania, dopóki
+         * ktoś nie dokończy przyjęcia. Ponawianie tylko opóźniałoby komunikat, który
+         * mówi użytkownikowi, co ma z tym zrobić.
+         */
+        retry: (failureCount, err) => !isVisitNotStarted(err) && failureCount < 3,
     });
 
     return {
         visitDetail: data,
         isLoading,
         isError,
+        /**
+         * Wizyta istnieje, ale nie została rozpoczęta — przyjęcie pojazdu nie zostało
+         * dokończone. To nie jest błąd ładowania i nie wolno go tak pokazać.
+         */
+        notStarted: isVisitNotStarted(error),
         refetch,
     };
+};
+
+/** 404 z kodem `VISIT_NOT_STARTED` — patrz VisitNotStartedException po stronie API. */
+const isVisitNotStarted = (error: unknown): boolean => {
+    const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
+    return response?.status === 404 && response?.data?.code === 'VISIT_NOT_STARTED';
 };
 
 export const useUpdateVisit = (visitId: string) => {
