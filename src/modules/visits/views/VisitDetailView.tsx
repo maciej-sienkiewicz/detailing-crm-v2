@@ -783,23 +783,30 @@ export const VisitDetailView = () => {
             status === 'READY_FOR_PICKUP' ? 'Pojazd gotowy do odbioru.'    :
             status === 'IN_PROGRESS'      ? 'Realizacja w toku.'           : '';
 
+        /*
+         * Rozpoznana kategoria usługi trafia do KONTEKSTU, a nie do osobnego pola.
+         * Wcześniej wracała jako `serviceType`, którego okno generatora nigdy nie
+         * czytało — heurystyka liczyła się przy każdym otwarciu i lądowała w koszu
+         * (obiekt z nadmiarowym polem to po stronie JS zwykłe pominięcie, więc nikt
+         * tego nie zauważył poza kompilatorem typów).
+         */
+        const namesLower = serviceNames.map(n => n.toLowerCase()).join(' ');
+        const serviceCategory =
+            /\bppf\b|paint protection/.test(namesLower)       ? 'folia ochronna PPF'      :
+            /ceramik|ceramic/.test(namesLower)                ? 'powłoka ceramiczna'      :
+            /tapicerk|wnętrze|interior|skór/.test(namesLower) ? 'renowacja wnętrza'       :
+            /oklej|wrap|foli(?!a ppf)/.test(namesLower)       ? 'oklejanie folią'         :
+            /poler|polish|korekta/.test(namesLower)           ? 'korekta i polerowanie'   :
+            /detailing/.test(namesLower)                      ? 'detailing'               :
+            null;
+
         const context = [
             statusLabel,
             serviceNames.length > 0 ? `Usługi: ${serviceNames.join(', ')}.` : '',
+            serviceCategory ? `Kategoria: ${serviceCategory}.` : '',
         ].filter(Boolean).join(' ');
 
-        // Heuristic: detect dominant service type from names
-        const namesLower = serviceNames.map(n => n.toLowerCase()).join(' ');
-        const detectedServiceType: GeneratePostPrefill['serviceType'] =
-            /\bppf\b|paint protection/.test(namesLower)             ? 'ppf'       :
-            /ceramik|ceramic/.test(namesLower)                      ? 'ceramic'   :
-            /tapicerk|wnętrze|interior|skór/.test(namesLower)       ? 'interior'  :
-            /oklej|wrap|foli(?!a ppf)/.test(namesLower)             ? 'wrap'      :
-            /poler|polish|korekta/.test(namesLower)                 ? 'polish'    :
-            /detailing/.test(namesLower)                            ? 'detailing' :
-            undefined;
-
-        return { topic, context, serviceType: detectedServiceType };
+        return { topic, context };
     };
 
     const handleCancelVisit = () => setIsDeleteModalOpen(true);

@@ -7,6 +7,16 @@ import { DAYPART_LABELS, DAY_LABELS, FORMAT_LABELS } from '../types';
 import { useContent, useHashtags, useHeatmap, useReactToPost } from '../hooks/useAnalytics';
 import { Card, CardTitle, CardHint, CenterState, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
 
+/** „1 post", „3 posty", „12 postów" — polska odmiana po liczebniku. */
+const postsWordForm = (count: number): string => {
+    const lastTwo = count % 100;
+    if (lastTwo >= 12 && lastTwo <= 14) return 'postów';
+    const last = count % 10;
+    if (count === 1) return 'post';
+    if (last >= 2 && last <= 4) return 'posty';
+    return 'postów';
+};
+
 /**
  * Treści konkurencji: co naprawdę działa w okolicy.
  * Posty sortowane po skuteczności (nie po dacie), z tematem i linkiem do oryginału.
@@ -520,6 +530,17 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                         {DAY_LABELS[heatmapQuery.data.bestDayOfWeek - 1]},{' '}
                                         {DAYPART_LABELS[heatmapQuery.data.bestDaypart].toLowerCase()}
                                     </strong>
+                                </CardHint>
+                            )}
+                            {/* Bez tej informacji liczby w komórkach nie zgadzałyby się z tym,
+                                co widać na profilach konkurencji — a użytkownik nie miałby jak
+                                się domyślić, że część postów świadomie pomijamy. */}
+                            {heatmapQuery.data.excludedOutliers > 0 && (
+                                <CardHint style={{ marginTop: 6, marginBottom: 0 }}>
+                                    Pominięto {heatmapQuery.data.excludedOutliers}{' '}
+                                    {postsWordForm(heatmapQuery.data.excludedOutliers)} o skrajnie
+                                    wysokich reakcjach (górne 10%) — oznaczenia znanych kont, płatne
+                                    promocje i virale zaburzałyby wskazanie pory.
                                 </CardHint>
                             )}
                         </>
