@@ -323,3 +323,66 @@ export interface SignCustomerConsentResult {
     attachmentUploadUrl: string | null;
     attachmentS3Key: string | null;
 }
+
+// ─── Import kontaktów ─────────────────────────────────────────────────────────
+
+/**
+ * Skąd przyszły kontakty. Android oddaje je bezpośrednio z telefonu, iPhone tylko
+ * plikiem — i to jest jedyna różnica między platformami; dalej ścieżka jest wspólna.
+ */
+export type CustomerImportSource = 'ANDROID_PICKER' | 'VCARD_FILE';
+
+export type CustomerImportSessionStatus = 'AWAITING_CONTACTS' | 'READY' | 'COMMITTED';
+
+/**
+ * Co import zrobi z jednym kontaktem.
+ *
+ * - `NEW` — nowy klient, jedyny status zaznaczony domyślnie,
+ * - `EXISTING` — taki klient już jest (ten sam numer albo e-mail),
+ * - `DUPLICATE_IN_FILE` — powtórka z tej samej listy,
+ * - `NOT_IMPORTABLE` — brak numeru i e-maila, nie ma czego zapisać.
+ */
+export type ImportRowStatus = 'NEW' | 'EXISTING' | 'DUPLICATE_IN_FILE' | 'NOT_IMPORTABLE';
+
+export interface ImportPreviewRow {
+    /** Stabilna pozycja w liście sesji — tym identyfikujemy wiersz przy zapisie. */
+    index: number;
+    firstName: string | null;
+    lastName: string | null;
+    displayName: string | null;
+    phone: string | null;
+    email: string | null;
+    companyName: string | null;
+    status: ImportRowStatus;
+    matchedCustomerId: string | null;
+    matchedCustomerName: string | null;
+    /** `phone` albo `email` — po czym rozpoznano, że klient już istnieje. */
+    matchedBy: string | null;
+    selectedByDefault: boolean;
+}
+
+export interface ImportPreview {
+    sessionId: string;
+    status: CustomerImportSessionStatus;
+    source: CustomerImportSource;
+    /** Nazwa telefonu albo pliku — skąd konkretnie przyszła lista. */
+    deviceLabel: string | null;
+    rows: ImportPreviewRow[];
+    newCount: number;
+    existingCount: number;
+    duplicateCount: number;
+    notImportableCount: number;
+}
+
+export interface ImportHandoffSession {
+    sessionId: string;
+    /** Sekret do zaszycia w kodzie QR; jednorazowy i krótkożyjący. */
+    handoffToken: string;
+    expiresAt: string;
+}
+
+export interface ImportCommitResult {
+    imported: number;
+    /** Zaznaczone, ale niezapisane — bo przestały być nowe albo nie nadawały się. */
+    skipped: number;
+}

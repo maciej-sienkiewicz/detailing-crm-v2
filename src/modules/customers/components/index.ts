@@ -4,5 +4,7 @@ export { CustomerGrid } from './CustomerGrid';
 export { CustomerSearchFilter } from './CustomerSearchFilter';
 export { CustomerPagination } from './CustomerPagination';
 export { AddCustomerModal } from './AddCustomerModal';
+export { ImportContactsModal } from './ImportContactsModal';
+export { ImportContactsTable } from './ImportContactsTable';
 export { CustomerForm } from './CustomerForm';
 export { EmptyState } from './EmptyState';

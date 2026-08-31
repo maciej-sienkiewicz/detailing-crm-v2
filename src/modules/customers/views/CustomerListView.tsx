@@ -13,6 +13,7 @@ import { CustomerPagination } from '../components/CustomerPagination';
 import { AddCustomerModal } from '../components/AddCustomerModal';
 import { CustomerFilterPanel } from '../components/CustomerFilterPanel';
 import { ExportModal } from '../components/ExportModal';
+import { ImportContactsModal } from '../components/ImportContactsModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
@@ -261,6 +262,7 @@ export const CustomerListView = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const deleteCustomer = useDeleteCustomer();
@@ -398,6 +400,15 @@ export const CustomerListView = () => {
                                 <FilterBadge>{activeFilterCount}</FilterBadge>
                             )}
                         </SecondaryBtn>
+                        {/* Import stoi obok eksportu i tak samo jest schowany na telefonie:
+                            przeglądanie kilkuset kontaktów i odznaczanie ich to praca na
+                            duży ekran — telefon w tym przebiegu tylko wysyła dane. */}
+                        <DesktopOnlyBtn onClick={() => setIsImportModalOpen(true)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 18h.01M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z" />
+                            </svg>
+                            Import z telefonu
+                        </DesktopOnlyBtn>
                         <DesktopOnlyBtn onClick={() => setIsExportModalOpen(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -434,6 +445,16 @@ export const CustomerListView = () => {
                 }}
                 onClose={() => setIsFilterPanelOpen(false)}
             />
+
+            {/* Montowane warunkowo, nie sterowane `isOpen`: kreator importu ma kilka
+                kroków i sesję po stronie serwera, więc każde otwarcie musi zaczynać się
+                od czystego stanu — odmontowanie załatwia to bez ani jednego efektu. */}
+            {isImportModalOpen && (
+                <ImportContactsModal
+                    onClose={() => setIsImportModalOpen(false)}
+                    onImported={() => handleCustomerCreated()}
+                />
+            )}
 
             <ExportModal
                 isOpen={isExportModalOpen}
