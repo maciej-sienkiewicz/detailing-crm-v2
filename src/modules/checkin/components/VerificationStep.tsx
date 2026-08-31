@@ -677,12 +677,22 @@ export const VerificationStep = ({
     // ─── Customer autocomplete ─────────────────────────────────────────────────
     const firstNameFieldRef = useRef<HTMLDivElement>(null);
     const lastNameFieldRef = useRef<HTMLDivElement>(null);
+    const phoneFieldRef = useRef<HTMLDivElement>(null);
     const activeCustomerFieldRef = useRef<HTMLDivElement | null>(null);
     const customerJustSelectedRef = useRef(false);
     const customerBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const vehicleAutoSelectedRef = useRef(false);
 
     const [customerAutocompleteOpen, setCustomerAutocompleteOpen] = useState(false);
+    /*
+     * Po czym szukamy klienta zależy od tego, w którym polu stoi kursor. Telefonu nie
+     * da się dokleić do imienia i nazwiska w jedno zapytanie: backend porównuje `search`
+     * jednym `contains`, więc „Jan Kowalski 123456789" nie pasowałoby do niczego.
+     */
+    const [customerSearchField, setCustomerSearchField] = useState<'name' | 'phone'>('name');
+    // Deklarowane tutaj, a nie niżej razem z resztą stanu wyboru klienta, bo
+    // zapytanie po telefonie (poniżej) czyta wpisywany numer właśnie stąd.
+    const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
     const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number } | null>(null);
     const [selectedCustomerIdForVehicles, setSelectedCustomerIdForVehicles] = useState<string | undefined>(undefined);
 
@@ -696,14 +706,29 @@ export const VerificationStep = ({
     const [customerSwappedInSession, setCustomerSwappedInSession] = useState(false);
     const [vehicleSwappedInSession, setVehicleSwappedInSession] = useState(false);
 
-    const customerSearchQuery = [formData.customerData.firstName, formData.customerData.lastName]
+    const customerNameQuery = [formData.customerData.firstName, formData.customerData.lastName]
         .filter(s => s.trim().length > 0).join(' ').trim();
+
+    /*
+     * Numer trzymamy w formie „+48 123 456 789", a w bazie ten sam klient może być
+     * zapisany i z prefiksem, i bez. Szukamy więc po samych cyfrach części krajowej —
+     * to jedyny fragment wspólny dla obu zapisów (backend przed porównaniem i tak
+     * usuwa spacje).
+     */
+    const customerPhoneQuery = ((pendingCustomerUpdates?.phone ?? formData.customerData.phone) || '')
+        .replace(/^\+\d{1,3}/, '')
+        .replace(/\D/g, '');
+
+    const customerSearchQuery = customerSearchField === 'phone' ? customerPhoneQuery : customerNameQuery;
+    // Trzy cyfry to minimum, przy którym podpowiedzi zawężają cokolwiek; przy dwóch
+    // dostawalibyśmy pół bazy.
+    const customerSearchMinLength = customerSearchField === 'phone' ? 3 : 2;
     const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
 
     const { data: foundCustomers = [] } = useQuery({
         queryKey: ['appointments', 'customers', 'search', debouncedCustomerSearch],
         queryFn: () => appointmentApi.searchCustomers(debouncedCustomerSearch),
-        enabled: debouncedCustomerSearch.length >= 2,
+        enabled: debouncedCustomerSearch.length >= customerSearchMinLength,
         staleTime: 30_000,
     });
 
@@ -714,7 +739,7 @@ export const VerificationStep = ({
     });
 
     const showCustomerAutocomplete = customerAutocompleteOpen && !customerJustSelectedRef.current
-        && debouncedCustomerSearch.length >= 2 && foundCustomers.length > 0;
+        && debouncedCustomerSearch.length >= customerSearchMinLength && foundCustomers.length > 0;
 
     const handleFetchGusData = useCallback(async () => {
         const nip = formData.company?.nip?.replace(/[^0-9]/g, '') || '';
@@ -809,7 +834,6 @@ export const VerificationStep = ({
 
     const [showCustomerChoice, setShowCustomerChoice] = useState(false);
     const [customerChoiceMade, setCustomerChoiceMade] = useState(false);
-    const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
     const [customerPromptScheduled, setCustomerPromptScheduled] = useState(false);
 
     const [showVehicleChoice, setShowVehicleChoice] = useState(false);
@@ -1090,9 +1114,13 @@ export const VerificationStep = ({
         setCustomerChoiceMade(true);
     };
 
-    const handleCustomerInputFocus = (fieldRef: React.RefObject<HTMLDivElement>) => {
+    const handleCustomerInputFocus = (
+        fieldRef: React.RefObject<HTMLDivElement | null>,
+        field: 'name' | 'phone' = 'name',
+    ) => {
         if (customerJustSelectedRef.current) return;
         activeCustomerFieldRef.current = fieldRef.current;
+        setCustomerSearchField(field);
         setCustomerAutocompleteOpen(true);
     };
 
@@ -1412,9 +1440,12 @@ export const VerificationStep = ({
                         </FieldGroup>
                         </div>
 
+                        <div ref={phoneFieldRef}>
                         <FieldGroup>
                             <Label>{t.checkin.verification.phone}</Label>
                             <PhoneInput
+                                variant="legacy"
+                                onFocus={() => handleCustomerInputFocus(phoneFieldRef, 'phone')}
                                 value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
                                 onChange={(value) => {
                                     const getCountryCode = (v?: string) => {
@@ -1433,10 +1464,12 @@ export const VerificationStep = ({
                                     }
                                     handleCustomerFieldChange({ phone: value });
                                 }}
-                                onBlur={handleCustomerFieldBlur}
+                                onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
+                                hasError={!!errors.phone}
                             />
                             {errors.phone && <FieldError>{errors.phone}</FieldError>}
                         </FieldGroup>
+                        </div>
 
                         <FieldGroup>
                             <Label>{t.checkin.verification.email}</Label>
@@ -1621,6 +1654,8 @@ export const VerificationStep = ({
                                     <FieldGroup>
                                         <Label>Telefon</Label>
                                         <PhoneInput
+                                            variant="legacy"
+                                            hasError={!!errors.handoffPhone}
                                             value={formData.vehicleHandoff.contactPerson.phone}
                                             onChange={(value) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, phone: value || '' } } })}
                                         />

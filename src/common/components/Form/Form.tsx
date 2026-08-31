@@ -166,12 +166,12 @@ export const Input = styled.input<{ $hasError?: boolean }>`
 `;
 
 /** @deprecated Use InputShell + native <select> */
-export const Select = styled.select<{ $compact?: boolean }>`
+export const Select = styled.select<{ $compact?: boolean; $hasError?: boolean }>`
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
     padding: ${props => props.$compact ? '8px 10px' : '9px 12px'};
-    border: 1px solid ${props => props.theme.colors.border};
+    border: 1px solid ${props => (props.$hasError ? props.theme.colors.error : props.theme.colors.border)};
     border-radius: ${props => props.$compact ? '8px' : props.theme.radii.md};
     font-size: ${props => props.$compact ? '13px' : props.theme.fontSizes.sm};
     background: #F8FAFC;
@@ -182,8 +182,8 @@ export const Select = styled.select<{ $compact?: boolean }>`
     &:focus {
         outline: none;
         background: #FFFFFF;
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: ${props => (props.$hasError ? props.theme.colors.error : props.theme.colors.primary)};
+        box-shadow: 0 0 0 3px ${props => (props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)')};
     }
 
     &:disabled {

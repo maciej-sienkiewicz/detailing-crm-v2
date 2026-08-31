@@ -1,9 +1,31 @@
 import { forwardRef, useRef, useEffect, ChangeEvent } from 'react';
 import styled from 'styled-components';
+import { Input, Select } from './Form';
 
 const Container = styled.div`
     display: flex;
     gap: 8px;
+`;
+
+/*
+ * Numer telefonu wygląda inaczej niż sąsiednie pola, bo pod spodem jest inny
+ * komponent — i to widać: grubsza ramka, większy padding, białe tło zamiast
+ * szarego. Wariant „legacy" nie kopiuje tokenów starych pól, tylko rozszerza
+ * dokładnie te same styled-components (`Input`, `Select` z Form), więc pole
+ * telefonu nie może już rozjechać się z resztą formularza przy kolejnej zmianie.
+ *
+ * Wariant domyślny („shell") zostaje bez zmian: pasuje do nowszych formularzy
+ * opartych na InputShell/BareInput (np. modal klienta w kalendarzu).
+ */
+const LegacyCountrySelect = styled(Select)`
+    width: auto;
+    min-width: 92px;
+    flex-shrink: 0;
+`;
+
+const LegacyNumberInput = styled(Input)`
+    flex: 1;
+    min-width: 0;
 `;
 
 const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
@@ -170,14 +192,21 @@ interface PhoneInputProps {
     value?: string;
     onChange?: (value: string) => void;
     onBlur?: () => void;
+    onFocus?: () => void;
     hasError?: boolean;
     placeholder?: string;
     id?: string;
     name?: string;
+    /**
+     * Skóra pola. `shell` (domyślnie) pasuje do formularzy na InputShell/BareInput,
+     * `legacy` do tych, które nadal używają `Input`/`Select` z Form — m.in. przyjęcia
+     * pojazdu, gdzie telefon stał obok pól o zupełnie innej wysokości i tle.
+     */
+    variant?: 'shell' | 'legacy';
 }
 
 export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
-    ({ value = '', onChange, onBlur, hasError, placeholder, id, name }, ref) => {
+    ({ value = '', onChange, onBlur, onFocus, hasError, placeholder, id, name, variant = 'shell' }, ref) => {
         const inputRef = useRef<HTMLInputElement | null>(null);
         const selectRef = useRef<HTMLSelectElement | null>(null);
         const isInternalChange = useRef(false);
@@ -312,9 +341,12 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
         const currentCountry = COUNTRY_CODES.find(c => c.code === initialCode) || COUNTRY_CODES[0];
         const initialDisplayValue = currentCountry.format(initialDigits);
 
+        const CodeSelect = variant === 'legacy' ? LegacyCountrySelect : CountryCodeSelect;
+        const NumberInput = variant === 'legacy' ? LegacyNumberInput : PhoneNumberInput;
+
         return (
             <Container>
-                <CountryCodeSelect
+                <CodeSelect
                     ref={selectRef}
                     defaultValue={initialCode}
                     onChange={handleCountryChange}
@@ -327,8 +359,8 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                             {country.flag} {country.code}
                         </option>
                     ))}
-                </CountryCodeSelect>
-                <PhoneNumberInput
+                </CodeSelect>
+                <NumberInput
                     ref={(el) => {
                         inputRef.current = el;
                         if (typeof ref === 'function') {
@@ -347,6 +379,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                     id={id}
                     name={name}
                     inputMode="numeric"
+                    onFocus={onFocus}
                 />
             </Container>
         );
