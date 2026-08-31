@@ -60,6 +60,12 @@ const Bar = styled.nav`
     display: flex;
     gap: 6px;
     border-bottom: 1px solid ${st.border};
+    /* Zakładki nie łamią się na dwie linie (etykiety mają nowrap), więc na
+       wąskim ekranie pasek przewija się w poziomie zamiast rozpychać stronę.
+       Przy dwóch krótkich zakładkach nie ma czego przewijać i nic się nie zmienia. */
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 `;
 
 const TabBtn = styled.button<{ $active: boolean }>`

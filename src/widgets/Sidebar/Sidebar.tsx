@@ -23,7 +23,6 @@ import {
     Images,
     Activity,
     CircleAlert,
-    Smartphone,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -119,10 +118,11 @@ const buildMenuSections = (
             title: 'Portal',
             items: [
                 { path: '/settings',   label: 'Ustawienia', icon: Settings },
-                // Parowanie własnego telefonu do Click-to-Call. Bez wymagania
-                // uprawnienia: każdy zalogowany paruje wyłącznie swój telefon,
-                // a backend i tak wysyła push tylko na urządzenia właściciela sesji.
-                { path: '/call-device', label: 'Telefon do połączeń', icon: Smartphone },
+                // Parowanie własnego telefonu do Click-to-Call mieszka teraz
+                // w Ustawieniach → Urządzenia mobilne → Zezwolenia na
+                // powiadomienia. W bocznym menu nie ma po co stać: robi się to
+                // raz na telefon, a sama strona /call-device zostaje, bo
+                // otwiera ją kod QR ze „Skrótów mobilnych".
                 { label: 'Zgłoś problem', icon: CircleAlert, onClick: onReportProblem },
             ],
         },

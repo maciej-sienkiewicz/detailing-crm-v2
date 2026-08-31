@@ -4,10 +4,12 @@ import { useToast } from '@/common/components/Toast';
 import { usePushDevice } from '../hooks/usePushDevice';
 
 /**
- * "Telefon do połączeń" — opened ON THE PHONE (route /call-device, usually via
- * the QR code in Skróty mobilne). One tap pairs this device as the
- * Click-to-Call receiver; the list below shows every phone paired to the
- * account with per-device revoke.
+ * „Zezwolenia na powiadomienia" na samym telefonie (trasa /call-device,
+ * otwierana kodem QR ze „Skrótów mobilnych" albo z Ustawień → Urządzenia
+ * mobilne). Zgody na powiadomienia udziela przeglądarka tego urządzenia i
+ * tylko w reakcji na gest użytkownika, więc parowanie musi się odbyć TUTAJ —
+ * ekran w Ustawieniach pokazuje ten sam stan i listę, ale na komputerze może
+ * jedynie podać kod QR.
  */
 
 const Page = styled.div`
@@ -168,10 +170,11 @@ export const CallDeviceView = () => {
 
     return (
         <Page>
-            <PageTitle>Telefon do połączeń</PageTitle>
+            <PageTitle>Zezwolenia na powiadomienia</PageTitle>
             <PageSubtitle>
-                Sparuj ten telefon, a kliknięcie numeru klienta na komputerze wyświetli tu
-                powiadomienie z przyciskiem „Zadzwoń" — połączenie wykonasz jednym dotknięciem.
+                Wydaj zezwolenie na tym telefonie, a kliknięcie numeru klienta na komputerze
+                wyświetli tu powiadomienie z przyciskiem „Zadzwoń" — połączenie wykonasz
+                jednym dotknięciem.
             </PageSubtitle>
 
             <Card>
@@ -214,11 +217,11 @@ export const CallDeviceView = () => {
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                             </svg>
-                            {push.isEnabling ? 'Paruję…' : 'Włącz powiadomienia o połączeniach'}
+                            {push.isEnabling ? 'Włączam…' : 'Włącz powiadomienia na tym urządzeniu'}
                         </PrimaryBtn>
                         <Hint>
-                            Przeglądarka zapyta o zgodę na powiadomienia — wybierz <strong>Zezwól</strong>.
-                            Powiadomienia działają też przy zamkniętej przeglądarce.
+                            Przeglądarka zapyta o zgodę — wybierz <strong>Zezwól</strong>.
+                            Powiadomienia docierają też przy zamkniętej przeglądarce.
                         </Hint>
                     </>
                 )}

@@ -14,8 +14,7 @@ import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
-import { TabletsSection } from '../components/TabletsSection';
-import { ContactsSyncSection } from '../components/ContactsSyncSection';
+import { MobileDevicesSection, type MobileDevicesSubView } from '../components/MobileDevicesSection';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadFormsSection } from '../components/LeadFormsSection';
 import { SecuritySection } from '../components/SecuritySection';
@@ -333,13 +332,24 @@ const VALID_SECTIONS = new Set<SectionId>([
  * other people's bookmarks, so a renamed tab redirects rather than silently dumping
  * the visitor on the default section.
  */
-const SECTION_ALIASES: Record<string, { section: SectionId; view?: TeamSubView }> = {
+const SECTION_ALIASES: Record<string, { section: SectionId; view?: SectionSubView }> = {
     'email-templates': { section: 'templates' },
     'roles': { section: 'team', view: 'roles' },
     'sms-credits': { section: 'credits' },
+    // „Telefon do połączeń" wyprowadził się z bocznego menu do zakładki
+    // „Urządzenia mobilne"; stary adres musi trafiać we właściwy podwidok.
+    'call-device': { section: 'tablets', view: 'push' },
 };
 
-const TEAM_VIEW_PARAM = 'view';
+/**
+ * Podwidok sekcji w adresie. Dwie sekcje mają zakładki wewnętrzne — zespół
+ * (pracownicy/role) i urządzenia mobilne (tablety/powiadomienia/kontakty) —
+ * i obie zapisują wybór w tym samym parametrze, bo w danej chwili widoczna
+ * jest tylko jedna z nich.
+ */
+type SectionSubView = TeamSubView | MobileDevicesSubView;
+
+const SUB_VIEW_PARAM = 'view';
 
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
@@ -394,21 +404,27 @@ export function SettingsView() {
     const section: SectionId =
         VALID_SECTIONS.has(tabParam) && canSee(tabParam) ? tabParam : firstVisibleSection;
 
-    const subView: TeamSubView =
-        (alias?.view ?? searchParams.get(TEAM_VIEW_PARAM)) === 'roles' ? 'roles' : 'employees';
+    const rawSubView = alias?.view ?? searchParams.get(SUB_VIEW_PARAM);
+
+    const subView: TeamSubView = rawSubView === 'roles' ? 'roles' : 'employees';
+
+    const mobileSubView: MobileDevicesSubView =
+        rawSubView === 'push' ? 'push'
+            : rawSubView === 'contacts' ? 'contacts'
+                : 'tablets';
 
     const [helpOpen, setHelpOpen] = useState(false);
     // Lista sekcji na telefonie startuje zwinięta: wchodzisz w ustawienia po to,
     // żeby coś ustawić, a nie żeby patrzeć na spis treści.
     const [navOpen, setNavOpen] = useState(false);
 
-    const goToSection = useCallback((next: SectionId, view?: TeamSubView) => {
+    const goToSection = useCallback((next: SectionId, view?: SectionSubView) => {
         setNavOpen(false);
         setSearchParams(prev => {
             const params = new URLSearchParams(prev);
             params.set('tab', next);
-            if (next === 'team' && view) params.set(TEAM_VIEW_PARAM, view);
-            else params.delete(TEAM_VIEW_PARAM);
+            if (view && (next === 'team' || next === 'tablets')) params.set(SUB_VIEW_PARAM, view);
+            else params.delete(SUB_VIEW_PARAM);
             return params;
         });
     }, [setSearchParams]);
@@ -441,13 +457,11 @@ export function SettingsView() {
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
     } else if (section === 'tablets') {
-        // Zakładka „Urządzenia mobilne": tablety do podpisu i telefony
-        // z kontaktami studia — jeden ekran o sprzęcie sparowanym z CRM.
         content = (
-            <>
-                <TabletsSection />
-                <ContactsSyncSection />
-            </>
+            <MobileDevicesSection
+                subView={mobileSubView}
+                onSubViewChange={view => goToSection('tablets', view)}
+            />
         );
     } else if (section === 'visit-card') {
         content = <VisitCardSection />;

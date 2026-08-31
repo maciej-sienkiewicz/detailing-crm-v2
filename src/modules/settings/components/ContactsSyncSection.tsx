@@ -128,7 +128,7 @@ export function ContactsSyncSection() {
         <Section>
             <SectionHeader>
                 <div>
-                    <SectionTitle>Kontakty na telefonie</SectionTitle>
+                    <SectionTitle>Klienci w Kontaktach iPhone'a</SectionTitle>
                     <SectionDesc>
                         Klienci studia w kontaktach iPhone'a — przy połączeniu od razu widać, kto dzwoni.
                         Konfiguracja jest automatyczna: profil sam wpisuje serwer i dane logowania.
@@ -244,7 +244,6 @@ const Section = styled.section`
     display: flex;
     flex-direction: column;
     gap: 14px;
-    margin-top: 32px;
 `;
 
 const SectionHeader = styled.div`
