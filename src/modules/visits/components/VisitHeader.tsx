@@ -502,7 +502,14 @@ export const VisitHeader = ({
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+    /** Kotwica menu: przycisk „⋮". Po niej liczona jest pozycja panelu. */
     const menuRef = useRef<HTMLDivElement>(null);
+    /**
+     * Sam panel menu. Osobna referencja, bo panel renderuje się PORTALEM do document.body
+     * — poza drzewem przycisku. Bez niej zamykanie „po kliknięciu obok" uznawało za
+     * „obok" także kliknięcie we własną pozycję menu.
+     */
+    const menuPanelRef = useRef<HTMLDivElement>(null);
 
     const syncMenuPos = useCallback(() => {
         if (!menuRef.current) return;
@@ -522,8 +529,21 @@ export const VisitHeader = ({
 
     useEffect(() => {
         if (!isMenuOpen) return;
+        /*
+         * Zamknięcie na `mousedown`, nie na `click` — żeby menu znikało od razu przy
+         * kliknięciu w tło. Cena jest taka, że kliknięcie w POZYCJĘ menu też zaczyna się
+         * od `mousedown`: jeśli uznamy je za „obok", panel zniknie przed `click`, a
+         * `onClick` pozycji nigdy się nie wykona. Dokładnie tak umarły „Generuj post",
+         * „Door to door" i „Usuń wizytę": przycisk reagował, menu się zamykało i nic
+         * więcej się nie działo.
+         *
+         * Dlatego sprawdzamy oba elementy — kotwicę i panel z portalu.
+         */
         const handler = (e: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) setIsMenuOpen(false);
+            const target = e.target as Node;
+            const insideAnchor = menuRef.current?.contains(target) ?? false;
+            const insidePanel = menuPanelRef.current?.contains(target) ?? false;
+            if (!insideAnchor && !insidePanel) setIsMenuOpen(false);
         };
         document.addEventListener('mousedown', handler);
         // A fixed panel anchored once would drift away from its button the moment
@@ -764,7 +784,7 @@ export const VisitHeader = ({
             </HeaderContent>
 
             {can('VISITS_CREATE') && isMenuOpen && menuPos && createPortal(
-                <KebabMenu style={{ top: menuPos.top, right: menuPos.right }}>
+                <KebabMenu ref={menuPanelRef} style={{ top: menuPos.top, right: menuPos.right }}>
                     {onDoorToDoor && (
                         <MobileKebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

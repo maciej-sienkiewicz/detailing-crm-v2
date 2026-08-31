@@ -252,6 +252,13 @@ export interface Heatmap {
     cells: HeatmapCell[];
     bestDayOfWeek: number | null;
     bestDaypart: number | null;
+    /**
+     * Posty odrzucone jako wyskoki — powyżej percentyla 90. zaangażowania w całym oknie.
+     * Zwykle oznaczenie kogoś znanego, płatna promocja albo przypadkowy viral: zdarzenia
+     * bez związku z porą publikacji, a zdolne samodzielnie przesądzić o rekomendacji.
+     * Nie ma ich ani w licznikach komórek, ani w średnich.
+     */
+    excludedOutliers: number;
 }
 
 export interface HashtagStat {
