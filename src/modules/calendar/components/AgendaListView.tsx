@@ -107,17 +107,59 @@ const ScrollArea = styled.div`
 
 const DaySection = styled.div``;
 
-const DayHeader = styled.div<{ $isToday: boolean; $isEmpty: boolean }>`
+/*
+ * Nagłówek dnia jest jednocześnie najkrótszą drogą do nowej rezerwacji: na telefonie
+ * to jedyny duży, zawsze widoczny element przypisany do konkretnej daty, a „dodaj
+ * na ten dzień" jest tym, po co najczęściej się tu wraca. Bez uprawnienia do
+ * tworzenia wizyt zostaje zwykłym nagłówkiem — stąd renderowanie raz jako <button>,
+ * raz jako <div>, i reset stylów guzika w środku.
+ */
+const DayHeader = styled.div<{ $isToday: boolean; $isEmpty: boolean; $clickable: boolean }>`
     display: flex;
     align-items: baseline;
     gap: 10px;
+    width: 100%;
+    margin: 0;
     padding: 12px 16px 6px;
     position: sticky;
     top: 0;
     z-index: 2;
-    background: ${p => p.$isToday ? '#eff6ff' : '#f8fafc'};
+    font: inherit;
+    text-align: left;
+    border: none;
     border-bottom: 1px solid ${p => p.$isToday ? 'rgba(59,130,246,0.15)' : 'rgba(15,23,42,0.06)'};
-    opacity: ${p => p.$isEmpty ? 0.45 : 1};
+    background: ${p => p.$isToday ? '#eff6ff' : '#f8fafc'};
+    opacity: ${p => p.$isEmpty ? (p.$clickable ? 0.6 : 0.45) : 1};
+    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+
+    &:active {
+        background: ${p => p.$clickable ? (p.$isToday ? '#dbeafe' : '#eef2f7') : undefined};
+    }
+`;
+
+/*
+ * Plusik nie jest ozdobą — bez niego nagłówek nie wygląda na klikalny i cała skrótowa
+ * ścieżka pozostaje niewidoczna. Jest przygaszony, żeby nie konkurował z kartami wizyt.
+ */
+const DayAddHint = styled.span`
+    margin-left: auto;
+    align-self: center;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.04);
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
 `;
 
 const DayNum = styled.span<{ $isToday: boolean }>`
@@ -333,6 +375,12 @@ export interface AgendaListViewProps {
     /** Wydarzenia studia rozłożone na dni (klucz „RRRR-MM-DD"). */
     studioEventsByDay?: Map<string, StudioCalendarEvent[]>;
     onStudioEventClick?: (event: StudioCalendarEvent) => void;
+    /**
+     * Kliknięcie w nagłówek dnia — otwarcie tworzenia rezerwacji z ustawioną datą.
+     * Pominięte, gdy użytkownik nie może tworzyć wizyt: nagłówek jest wtedy zwykłym
+     * nagłówkiem, bez guzika i bez plusika obiecującego akcję, której nie ma.
+     */
+    onDayAddClick?: (date: Date) => void;
 }
 
 export const AgendaListView: React.FC<AgendaListViewProps> = ({
@@ -343,6 +391,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
     onEventClick,
     studioEventsByDay,
     onStudioEventClick,
+    onDayAddClick,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const todayKey = toDateKey(new Date());
@@ -377,13 +426,31 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
 
                     return (
                         <DaySection key={key} id={`agenda-day-${key}`}>
-                            <DayHeader $isToday={isToday} $isEmpty={isEmpty}>
+                            <DayHeader
+                                as={onDayAddClick ? 'button' : 'div'}
+                                type={onDayAddClick ? 'button' : undefined}
+                                onClick={onDayAddClick ? () => onDayAddClick(day) : undefined}
+                                aria-label={onDayAddClick
+                                    ? `Dodaj rezerwację — ${day.getDate()} ${MONTH_NAMES[day.getMonth()]}, ${DAY_NAMES[day.getDay()]}`
+                                    : undefined}
+                                $isToday={isToday}
+                                $isEmpty={isEmpty}
+                                $clickable={Boolean(onDayAddClick)}
+                            >
                                 <DayNum $isToday={isToday}>{day.getDate()}</DayNum>
                                 <DayMeta>
                                     <DayName $isToday={isToday}>{DAY_NAMES[day.getDay()]}</DayName>
                                     <DayMonthYear>{MONTH_NAMES[day.getMonth()]} {day.getFullYear()}</DayMonthYear>
                                 </DayMeta>
                                 {isToday && <TodayPill>dziś</TodayPill>}
+                                {onDayAddClick && (
+                                    <DayAddHint aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                                            strokeLinecap="round">
+                                            <path d="M12 5v14M5 12h14" />
+                                        </svg>
+                                    </DayAddHint>
+                                )}
                             </DayHeader>
 
                             {isEmpty ? (

@@ -2565,6 +2565,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         events={events}
                         studioEventsByDay={studioEventDayMap}
                         onStudioEventClick={(event) => { setEventDraftRange(null); setEditedStudioEvent(event); }}
+                        onDayAddClick={canCreateVisits
+                            ? (date) => openQuickEvent({ start: date, end: date, allDay: true })
+                            : undefined}
                         rangeStart={dateRange.start}
                         rangeEnd={dateRange.end}
                         focusDate={new Date().toISOString()}
