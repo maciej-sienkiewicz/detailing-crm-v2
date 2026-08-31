@@ -8,6 +8,9 @@ export { useCustomerPagination } from './hooks/useCustomerPagination';
 export { customerApi } from './api/customerApi';
 
 export { AddCustomerModal } from './components/AddCustomerModal';
+export { ImportContactsModal } from './components/ImportContactsModal';
+export { MobileContactsImportView } from './views/MobileContactsImportView';
+export { customerImportApi } from './api/customerImportApi';
 export { CustomerTable } from './components/CustomerTable';
 export { CustomerGrid } from './components/CustomerGrid';
 export { CustomerCard } from './components/CustomerCard';

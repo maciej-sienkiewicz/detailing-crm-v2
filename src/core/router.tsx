@@ -11,6 +11,7 @@ import { VisitDetailView } from '@/modules/visits';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
 import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
+import { MobileContactsImportView } from '@/modules/customers/views/MobileContactsImportView';
 import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
 import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
 import { VisitCardView } from '@/modules/visit-card';
@@ -214,6 +215,11 @@ export const router = createBrowserRouter([
         // Public mobile upload route, no auth required, token via ?t=
         path: '/m/upload',
         element: <MobilePhotoUploadWrapper />,
+    },
+    {
+        // Publiczny odbiór kontaktów z telefonu, bez logowania; sekret sesji w ?s=
+        path: '/m/contacts',
+        element: <MobileContactsImportView />,
     },
     {
         // Public voice intake route, no auth required, token via ?token=

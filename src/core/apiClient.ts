@@ -60,7 +60,7 @@ apiClient.interceptors.response.use(
         if (status === 401) {
             const currentPath = window.location.pathname;
             const requestUrl = error.config?.url ?? '';
-            const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice'];
+            const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice', '/m/contacts'];
             // Public token-based pages must never bounce to /login
             const isPublicPath = publicPaths.includes(currentPath)
                 || currentPath.startsWith('/vc/')
