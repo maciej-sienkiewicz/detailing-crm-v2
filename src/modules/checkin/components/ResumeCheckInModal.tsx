@@ -36,8 +36,18 @@ interface ResumeCheckInModalProps {
     onConfirmed: (visitId: string, options: { sendVisitCard: boolean }) => void;
     /** Wizyta anulowana — szkicu już nie ma. */
     onCancelled: () => void;
-    /** Użytkownik znów odkłada przyjęcie; szkic zostaje w kolejce. */
-    onLeaveForLater: () => void;
+    /**
+     * Zamknięcie bez zmian — opcjonalne, bo sensowne tylko w jednym z dwóch miejsc,
+     * z których to okno się otwiera.
+     *
+     * Z listy „Nieukończone przyjęcia": szkic już tam jest, więc zamknięcie okna
+     * niczego nie psuje ani nie ukrywa — przekazujemy powrót do listy.
+     *
+     * Z kreatora przyjęcia (po napotkaniu trwającego przyjęcia tej rezerwacji):
+     * nie przekazujemy niczego. Wyjście bez decyzji zostawiłoby auto przyjęte,
+     * a wizytę nierozpoczętą — czyli dokładnie ten stan, którego to okno pilnuje.
+     */
+    onLeaveForLater?: () => void;
 }
 
 export const ResumeCheckInModal = ({
