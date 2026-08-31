@@ -138,8 +138,18 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     const textColor = getContrastingTextColor(colorHex);
     const overdue = isVisitOverdue(status, visit.estimatedCompletionDate);
 
+    /*
+     * Wizyta bez własnego tytułu: pojazd na początku, nie numer wizyty.
+     *
+     * Kafelek miesiąca na telefonie ma jakieś 55 px szerokości i mieści ~12 znaków.
+     * „VIS-2026-00080 | Marek Sabo" zużywało je w całości na numer, którego nikt nie
+     * rozpoznaje wzrokiem, i ucinało nazwisko. Auto to jedyna rzecz, po której obsługa
+     * poznaje wizytę z drugiego końca warsztatu — numer i tak jest w podglądzie
+     * wydarzenia i w szczegółach.
+     */
     const visitTitle = visit.title ||
-        [visit.visitNumber, customerName].filter(Boolean).join(' | ');
+        [vehicleInfo, customerName].filter(Boolean).join(' | ') ||
+        visit.visitNumber;
 
     const eventData: VisitEventData = {
         id: visit.id,
