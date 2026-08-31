@@ -21,6 +21,7 @@ import { useDoorToDoorCalendar } from '../hooks/useDoorToDoorCalendar';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { useLeaveCalendar } from '@/modules/employees/hooks/useLeaves';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
+import { useMediaQuery } from '@/common/hooks';
 import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
@@ -507,13 +508,19 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     /* ===================== MORE LINK ===================== */
+    /* Ostatni wiersz komórki, a nie dopisek na jej marginesie: „jeszcze 6" niesie
+       informację o sześciu wizytach, więc musi mieć ciężar wizualny kafelka, który
+       reprezentuje, i cel do dotknięcia wielkości pozostałych. */
     .fc-daygrid-more-link {
-        color: #64748b;
-        font-weight: 600;
+        display: block;
+        width: 100%;
+        color: #475569;
+        font-weight: 700;
         font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 6px;
+        padding: 3px 6px;
+        border-radius: 5px;
         letter-spacing: 0.2px;
+        background: rgba(100, 116, 139, 0.10);
         transition: background 0.15s ease;
     }
 
@@ -691,9 +698,11 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
             height: 36px;
         }
 
+        /* Na wąskim telefonie dopisek zostaje czytelny — kurczy się padding,
+           nie tekst. Przy 9 px liczba przestawała być liczbą. */
         .fc-daygrid-more-link {
-            font-size: 9px;
-            padding: 0 1px;
+            font-size: 10px;
+            padding: 2px 4px;
         }
 
         /* On very narrow phones, show only first letter of day name */
@@ -1424,6 +1433,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const { can } = usePermissions();
     const { phase: navPhase, card: navCard, start: startNavAnim, reportTargetRect, finish: finishNavAnim } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
+
+    /**
+     * Telefon rozpoznawany zapytaniem medialnym, nie pomiarem przy montowaniu —
+     * skrót „+6" ma się zmienić także po obróceniu ekranu.
+     */
+    const isNarrowViewport = useMediaQuery('(max-width: 639px)');
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
     // Maps event id → DOM element; populated via eventDidMount/eventWillUnmount.
     // Used to locate already-rendered events for the search same-month animation case.
@@ -2671,7 +2686,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                    pod „jeszcze N" praktycznie wszystko. Cztery mieszczą się dzięki
                    zwężonym chipom (compactCalendarCss) i dają równe wiersze. */
                 dayMaxEvents={selectionMode ? 4 : true}
-                moreLinkText={(n) => `jeszcze ${n}`}
+                /* Na telefonie „jeszcze 6" nie mieści się w komórce szerokiej na
+                   55 px i samo ląduje pod wielokropkiem. „+6" mówi to samo i zostawia
+                   miejsce na liczbę, czyli na jedyną informację, jaką ten wiersz niesie. */
+                moreLinkText={(n) => (isNarrowViewport ? `+${n}` : `jeszcze ${n}`)}
                 eventOrder={[
                     // When navigating from the operations list, keep the highlighted event
                     // in the first slot so it's never hidden behind "jeszcze N".
@@ -2787,46 +2805,53 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
                     const color = arg.event.backgroundColor || '#6366f1';
 
-                    // Daygrid month view: chip style matching prototype (time + title, alpha bg, left border)
+                    /*
+                     * Kafelek miesiąca. Trzy rozstrzygnięcia, każde wymuszone szerokością
+                     * komórki — na telefonie ma ona jakieś 55 px:
+                     *
+                     * 1. BEZ GODZINY. Zjadała nawet połowę kafelka, przez co tytuły
+                     *    kończyły się wielokropkiem po dwóch sylabach („Merc…", „Subar…").
+                     *    W widoku miesiąca i tak się jej nie czyta — od godzin jest widok
+                     *    dnia i podgląd wydarzenia. Wypadła też na desktopie: ten sam
+                     *    kafelek, ta sama zasada.
+                     *
+                     * 2. PEŁNY KOLOR dla wszystkiego, co żywe. Wcześniej solidne tło
+                     *    dostawały wyłącznie rezerwacje, a wizyty — czyli większość
+                     *    siatki — tło o kryciu 8%: szary tekst na prawie białym tle,
+                     *    nieczytelny na telefonie w słońcu. Wyciszenie zostaje wyłącznie
+                     *    tam, gdzie coś znaczy: dla spraw zamkniętych i anulowanych.
+                     *
+                     * 3. Kolor tekstu z `textColor` policzonego przy transformacji
+                     *    zdarzenia (luminancja WCAG, patrz calendarApi) — na bursztynie
+                     *    wychodzi czarny, na granacie biały. Sztywna biel na #F59E0B
+                     *    dawała kontrast poniżej 2:1.
+                     */
                     if (arg.view.type === 'dayGridMonth') {
-                        const start = arg.event.start;
-                        const timeStr = (!arg.event.allDay && start)
-                            ? `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
-                            : '';
                         const isDeemphasised = isCancelled || status === 'COMPLETED' || status === 'ARCHIVED' || status === 'REJECTED';
-                        const isSolid = props.type === 'APPOINTMENT' && !isDeemphasised;
+                        const isSolid = !isDeemphasised;
                         return (
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '5px',
                                 width: '100%',
-                                padding: '3px 6px 3px 4px',
-                                background: isSolid ? color : `${color}14`,
-                                borderLeft: `3px solid ${isSolid ? 'rgba(0, 0, 0, 0.12)' : color}`,
+                                // Bez lewej listwy na kafelku solidnym: kolor niesie całe
+                                // tło, a listwa zabierała 3 px z tych kilkudziesięciu,
+                                // które ma tytuł.
+                                padding: isSolid ? '3px 6px' : '3px 6px 3px 5px',
+                                background: isSolid ? color : `${color}1F`,
+                                borderLeft: isSolid ? 'none' : `3px solid ${color}`,
                                 borderRadius: '5px',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
-                                lineHeight: 1.2,
+                                lineHeight: 1.25,
                             }}>
-                                {timeStr && (
-                                    <span style={{
-                                        color: isSolid ? 'rgba(255, 255, 255, 0.8)' : '#64748b',
-                                        fontSize: '10px',
-                                        fontWeight: 600,
-                                        flexShrink: 0,
-                                        fontVariantNumeric: 'tabular-nums',
-                                    }}>
-                                        {timeStr}
-                                    </span>
-                                )}
                                 <span style={{
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     fontSize: '11px',
-                                    color: isSolid ? 'rgba(255, 255, 255, 0.95)' : '#0f172a',
-                                    fontWeight: 500,
+                                    color: isSolid ? (arg.event.textColor || '#ffffff') : '#475569',
+                                    fontWeight: isSolid ? 600 : 500,
                                     textDecoration: isCancelled ? 'line-through' : 'none',
                                 }}>
                                     <PiiText value={arg.event.title} kind="name" />
