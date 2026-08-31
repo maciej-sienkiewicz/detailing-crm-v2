@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useCashRegister, useCashHistory, useAdjustCash } from '../hooks/useFinance';
 import { formatMoney, formatDate, inputValueToGrosze } from '../utils/formatters';
+import type { CashDirection } from '../types';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -206,6 +207,119 @@ const HistoryCount = styled.span`
   border-radius: 20px;
 `;
 
+/*
+ * Pasek filtrów i podsumowanie okresu.
+ *
+ * Zakresu dat NIE wybiera się tutaj, tylko tym samym przełącznikiem w nagłówku
+ * „Finansów", który steruje pozostałymi zakładkami. Drugi, własny wybór okresu
+ * na tym samym ekranie znaczyłby, że dwa widoczne naraz zakresy mogą pokazywać
+ * co innego — a pytanie „za jaki okres to jest?" ma mieć jedną odpowiedź.
+ */
+const FilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 18px;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+`;
+
+const SegGroup = styled.div`
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 8px;
+`;
+
+const SegBtn = styled.button<{ $active: boolean; $tone: 'neutral' | 'in' | 'out' }>`
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background ${st.transition}, color ${st.transition};
+  background: ${(p) => (p.$active ? p.theme.colors.surface : 'transparent')};
+  box-shadow: ${(p) => (p.$active ? st.shadowXs : 'none')};
+  color: ${(p) =>
+    !p.$active ? p.theme.colors.textSecondary
+    : p.$tone === 'in' ? '#166534'
+    : p.$tone === 'out' ? '#991b1b'
+    : p.theme.colors.text};
+
+  &:hover:not(:disabled) { color: ${(p) => p.theme.colors.text}; }
+`;
+
+const RangeNote = styled.span`
+  font-size: 11px;
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
+/*
+ * Sumy liczy backend po całym okresie, nie po wczytanej stronie — inaczej
+ * „łącznie wpłat" znaczyłoby „łącznie wpłat wśród trzydziestu wierszy, które
+ * akurat widzisz", a to liczba bez zastosowania.
+ */
+const SummaryStrip = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  padding: 12px 18px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+`;
+
+const SummaryItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+`;
+
+const SummaryLabel = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  color: ${(p) => p.theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+`;
+
+const SummaryValue = styled.span<{ $tone: 'in' | 'out' | 'neutral' }>`
+  font-size: 16px;
+  font-weight: 700;
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.3px;
+  color: ${(p) =>
+    p.$tone === 'in' ? '#166534' : p.$tone === 'out' ? '#991b1b' : p.theme.colors.text};
+`;
+
+const MoreRow = styled.div`
+  padding: 10px 18px;
+  border-top: 1px solid ${(p) => p.theme.colors.border};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MoreBtn = styled.button`
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.accentBlue};
+  background: transparent;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all ${st.transition};
+
+  &:hover:not(:disabled) { background: ${st.accentBlueDim}; border-color: ${st.accentBlue}; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
 const HistoryScroll = styled.div`
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -321,14 +435,57 @@ const EmptyHistory = styled.div`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CashRegisterPanel: React.FC = () => {
+const PAGE_STEP = 30;
+/** Twardy limit `size` po stronie API — wyżej i tak nie wejdzie. */
+const MAX_PAGE_SIZE = 100;
+
+interface CashRegisterPanelProps {
+  /** Okres z przełącznika w nagłówku „Finansów"; brak = cały czas. */
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/** „1.08.2026 - 31.08.2026", „od 1.08.2026", „cały czas" — podpis pod sumami. */
+const describeRange = (from?: string, to?: string): string => {
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString('pl-PL');
+  if (from && to) return `${fmt(from)} - ${fmt(to)}`;
+  if (from) return `od ${fmt(from)}`;
+  if (to) return `do ${fmt(to)}`;
+  return 'cały czas';
+};
+
+export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, dateTo }) => {
+  const [direction, setDirection] = useState<CashDirection | null>(null);
+  const [pageSize, setPageSize] = useState(PAGE_STEP);
+
+  const filters = useMemo(
+    () => ({ dateFrom, dateTo, direction: direction ?? undefined }),
+    [dateFrom, dateTo, direction],
+  );
+
   const { cashRegister, isLoading: cashLoading, refetch } = useCashRegister();
-  const { operations, total: historyTotal, isLoading: histLoading } = useCashHistory(1, 30);
+  const {
+    operations,
+    total: historyTotal,
+    totalIn,
+    totalOut,
+    isLoading: histLoading,
+    isFetching: histFetching,
+  } = useCashHistory(1, pageSize, filters);
   const adjustCash = useAdjustCash();
 
   const [amountDisplay, setAmountDisplay] = useState('');
   const [comment, setComment] = useState('');
   const [adjustError, setAdjustError] = useState<string | null>(null);
+
+  const selectDirection = (next: CashDirection | null) => {
+    setDirection(next);
+    // Zawężenie listy zaczyna ją czytać od początku; zostawienie doczytanych stu
+    // wierszy z poprzedniego filtra tylko udawałoby, że tyle ich jest.
+    setPageSize(PAGE_STEP);
+  };
+
+  const canLoadMore = operations.length < historyTotal && pageSize < MAX_PAGE_SIZE;
 
   const handleAdjust = async (sign: 1 | -1) => {
     setAdjustError(null);
@@ -417,15 +574,94 @@ export const CashRegisterPanel: React.FC = () => {
       <HistoryCard>
         <HistoryHeader>
           <HistoryTitle>Historia operacji</HistoryTitle>
-          {historyTotal > 0 && <HistoryCount>{historyTotal}</HistoryCount>}
+          {historyTotal > 0 && (
+            <HistoryCount>
+              {operations.length < historyTotal
+                ? `${operations.length} z ${historyTotal}`
+                : historyTotal}
+            </HistoryCount>
+          )}
         </HistoryHeader>
+
+        <SummaryStrip>
+          <SummaryItem>
+            <SummaryLabel>Łącznie wpłat</SummaryLabel>
+            {/* Przy pierwszym wczytaniu sumy jeszcze nie ma. „0,00 zł" obok
+                szkieletów tabeli czytałoby się jak wynik, a nie jak brak wyniku. */}
+            {histLoading
+              ? <Skeleton $h="19px" $w="110px" />
+              : <SummaryValue $tone="in">{formatMoney(totalIn)}</SummaryValue>}
+          </SummaryItem>
+          <SummaryItem>
+            <SummaryLabel>Łącznie wypłat</SummaryLabel>
+            {histLoading
+              ? <Skeleton $h="19px" $w="110px" />
+              : <SummaryValue $tone="out">{formatMoney(totalOut)}</SummaryValue>}
+          </SummaryItem>
+          <SummaryItem>
+            {/* Różnica wpłat i wypłat — o ile kasa urosła albo stopniała w tym
+                okresie. To nie jest saldo kasy: tamto widać w kaflu obok i liczy
+                się od zawsze, niezależnie od wybranego zakresu. */}
+            <SummaryLabel>Zmiana w okresie</SummaryLabel>
+            {histLoading
+              ? <Skeleton $h="19px" $w="110px" />
+              : (
+                <SummaryValue $tone={totalIn - totalOut >= 0 ? 'in' : 'out'}>
+                  {totalIn - totalOut > 0 ? '+' : ''}{formatMoney(totalIn - totalOut)}
+                </SummaryValue>
+              )}
+          </SummaryItem>
+          <SummaryItem>
+            <SummaryLabel>Okres</SummaryLabel>
+            <SummaryValue $tone="neutral" style={{ fontSize: 13, fontWeight: 600 }}>
+              {describeRange(dateFrom, dateTo)}
+            </SummaryValue>
+          </SummaryItem>
+        </SummaryStrip>
+
+        <FilterBar>
+          <SegGroup role="group" aria-label="Filtr operacji kasowych">
+            <SegBtn
+              type="button"
+              $active={direction === null}
+              $tone="neutral"
+              aria-pressed={direction === null}
+              onClick={() => selectDirection(null)}
+            >
+              Wszystkie
+            </SegBtn>
+            <SegBtn
+              type="button"
+              $active={direction === 'IN'}
+              $tone="in"
+              aria-pressed={direction === 'IN'}
+              onClick={() => selectDirection('IN')}
+            >
+              Tylko wpłaty
+            </SegBtn>
+            <SegBtn
+              type="button"
+              $active={direction === 'OUT'}
+              $tone="out"
+              aria-pressed={direction === 'OUT'}
+              onClick={() => selectDirection('OUT')}
+            >
+              Tylko wypłaty
+            </SegBtn>
+          </SegGroup>
+          <RangeNote>Zakres dat zmienisz filtrem w nagłówku Finansów.</RangeNote>
+        </FilterBar>
 
         {histLoading ? (
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} $h="40px" />)}
           </div>
         ) : operations.length === 0 ? (
-          <EmptyHistory>Brak operacji kasowych</EmptyHistory>
+          <EmptyHistory>
+            {direction === null && !dateFrom && !dateTo
+              ? 'Brak operacji kasowych'
+              : 'Brak operacji spełniających wybrane filtry'}
+          </EmptyHistory>
         ) : (
           <HistoryScroll>
             <HistoryTable>
@@ -459,6 +695,18 @@ export const CashRegisterPanel: React.FC = () => {
               </tbody>
             </HistoryTable>
           </HistoryScroll>
+        )}
+
+        {canLoadMore && (
+          <MoreRow>
+            <MoreBtn
+              type="button"
+              disabled={histFetching}
+              onClick={() => setPageSize((size) => Math.min(size + PAGE_STEP, MAX_PAGE_SIZE))}
+            >
+              {histFetching ? 'Wczytywanie...' : 'Pokaż więcej'}
+            </MoreBtn>
+          </MoreRow>
         )}
       </HistoryCard>
     </Content>

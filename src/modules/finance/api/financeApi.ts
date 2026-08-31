@@ -4,6 +4,7 @@ import type {
   CreateDocumentRequest,
   UpdateDocumentRequest,
   CashRegister,
+  CashHistoryFilters,
   CashHistoryResponse,
   CashAdjustRequest,
   FinanceSummary,
@@ -57,8 +58,15 @@ export const financeApi = {
     return response.data;
   },
 
-  getCashHistory: async (page: number, pageSize: number): Promise<CashHistoryResponse> => {
+  getCashHistory: async (
+    page: number,
+    pageSize: number,
+    filters: CashHistoryFilters = {},
+  ): Promise<CashHistoryResponse> => {
     const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
+    if (filters.dateFrom)  params.append('dateFrom',  filters.dateFrom);
+    if (filters.dateTo)    params.append('dateTo',    filters.dateTo);
+    if (filters.direction) params.append('direction', filters.direction);
     const response = await apiClient.get(`${BASE}/cash/history?${params}`);
     return response.data;
   },
