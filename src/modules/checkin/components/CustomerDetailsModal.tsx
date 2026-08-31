@@ -306,6 +306,7 @@ export const CustomerDetailsModal = ({
                             <FieldGroup>
                                 <Label>{t.customers.form.phone}</Label>
                                 <PhoneInput
+                                    variant="legacy"
                                     value={localCustomerData.phone}
                                     onChange={(value) => handleCustomerDataChange('phone', value)}
                                     placeholder={t.customers.form.phonePlaceholder}
