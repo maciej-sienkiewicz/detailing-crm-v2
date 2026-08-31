@@ -167,10 +167,11 @@ export function ContactsSyncSection() {
                             </Step>
                         )}
                         {installPath === 'ios-safari' && (
-                            <Step><StepNo>1</StepNo>Safari pokaże „Pobrano profil" — zatwierdź pobranie.</Step>
+                            <Step><StepNo>1</StepNo>Safari zapyta o zgodę na pobranie profilu — dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</Step>
                         )}
-                        <Step><StepNo>2</StepNo>Otwórz <strong>Ustawienia</strong> — u góry pojawi się <strong>„Pobrano profil"</strong>.</Step>
-                        <Step><StepNo>3</StepNo>Dotknij <strong>Zainstaluj</strong> i potwierdź. Kontakty zaczną się synchronizować same.</Step>
+                        <Step><StepNo>2</StepNo>Otwórz aplikację <strong>Ustawienia</strong> — na samej górze zobaczysz <strong>„Profil pobrany"</strong>. Dotknij tej pozycji.</Step>
+                        <Step><StepNo>3</StepNo>Dotknij <strong>Zainstaluj</strong>, podaj kod telefonu i potwierdź. Ostrzeżenie „Niezweryfikowany" jest w porządku — kontynuuj.</Step>
+                        <Step><StepNo>4</StepNo>Gotowe — klienci pojawią się w Kontaktach w ciągu kilku minut, a lista sama będzie się odświeżać.</Step>
                         {secondsLeft !== null && (
                             <Expiry $urgent={secondsLeft < 60}>
                                 Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')} — potem wygeneruj nowy.
