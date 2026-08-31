@@ -4,6 +4,8 @@ export { MobilePhotoUploadView } from './views/MobilePhotoUploadView';
 export { VerificationStep } from './components/VerificationStep';
 export { PhotoDocumentationStep } from './components/PhotoDocumentationStep';
 export { CheckinQRGenerator } from './components/CheckinQRGenerator';
+export { UnfinishedCheckInsPanel } from './components/UnfinishedCheckInsPanel';
+export { ResumeCheckInModal } from './components/ResumeCheckInModal';
 
 export { useCheckInWizard } from './hooks/useCheckInWizard';
 export { usePhotoUpload } from './hooks/usePhotoUpload';

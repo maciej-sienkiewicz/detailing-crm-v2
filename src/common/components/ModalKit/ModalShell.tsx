@@ -45,6 +45,17 @@ interface ModalShellProps {
      * w czytniku PDF. Ma pierwszeństwo przed [stableHeight].
      */
     fillHeight?: boolean;
+    /**
+     * Czy okno wolno zamknąć Escape'em i kliknięciem w tło. Domyślnie tak — i tak ma
+     * zostać wszędzie, gdzie zamknięcie niczego nie kosztuje.
+     *
+     * `false` jest dla okien, w których zamknięcie JEST decyzją i musi zostać podjęte
+     * świadomie: okno „Dokumentacja i Podpisy" zostawiało po odruchowym Escape
+     * rozgrzebane przyjęcie pojazdu — wizytę zapisaną, ale nierozpoczętą, bez żadnej
+     * ścieżki powrotu. Przy `false` krzyżyk nadal działa: to on ma otworzyć pytanie
+     * o decyzję, zamiast wychodzić po cichu.
+     */
+    dismissible?: boolean;
     children: ReactNode;
 }
 
@@ -61,13 +72,13 @@ interface ModalShellProps {
  *     <ModalFooter>...</ModalFooter>
  *   </ModalShell>
  */
-export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, children }: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, dismissible = true, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
     // Escape, blokada tła i układ przy wysuniętej klawiaturze — wspólne dla
     // wszystkich okien w aplikacji, także tych na własnych nakładkach.
     const overlayRef = useRef<HTMLDivElement>(null);
-    useModalViewport(isOpen, overlayRef, onClose);
+    useModalViewport(isOpen, overlayRef, dismissible ? onClose : undefined);
 
     if (!isOpen) return null;
 
@@ -76,7 +87,7 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeig
             ref={overlayRef}
             $isOpen={isOpen}
             $zIndex={zIndex}
-            onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+            onMouseDown={(e) => dismissible && e.target === e.currentTarget && onClose()}
             role="dialog"
             aria-modal="true"
         >

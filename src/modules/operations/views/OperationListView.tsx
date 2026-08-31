@@ -12,6 +12,7 @@ import { OperationFilterPanel } from '../components/OperationFilterPanel';
 import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { UnfinishedCheckInsPanel } from '@/modules/checkin';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -151,6 +152,13 @@ export const OperationListView = () => {
                     </PageHeaderPrimaryButton>
                 }
             />
+
+            {/*
+              * Nad listą, nie w niej: to nie są wizyty, tylko przyjęcia w toku — auta,
+              * które fizycznie stoją w warsztacie, choć ich wizyty jeszcze się nie
+              * zaczęły. Panel sam się nie pokazuje, gdy nie ma czego dokańczać.
+              */}
+            <UnfinishedCheckInsPanel />
 
             {seriesIdFilter && (
                 <SeriesBanner>

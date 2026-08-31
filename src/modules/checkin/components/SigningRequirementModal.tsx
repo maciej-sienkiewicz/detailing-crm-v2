@@ -15,6 +15,7 @@ import { tabletApi } from '../api/tabletApi';
 import { useSignatureRequestsSocket } from '../hooks/useSignatureRequestsSocket';
 import type { SignatureRequestSocketEvent } from '../hooks/useSignatureRequestsSocket';
 import { DocumentPreview } from './DocumentPreview';
+import { AbandonCheckInDialog } from './AbandonCheckInDialog';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import type { NotificationOptions } from './NotificationSection';
@@ -107,7 +108,13 @@ const extractApiErrorMessage = (error: unknown): string | undefined => {
 interface SigningRequirementModalProps {
     isOpen: boolean;
     isCreating: boolean;
-    onClose: () => void;
+    /**
+     * Użytkownik świadomie zostawia przyjęcie na później. Szkic wizyty ZOSTAJE i trafia
+     * do kolejki „Nieukończone przyjęcia" — nie jest to ciche zamknięcie okna, bo
+     * takiego to okno już nie ma (patrz [AbandonCheckInDialog]).
+     */
+    onLeaveForLater: () => void;
+    /** Wizyta anulowana — szkic i jego dokumenty zostały usunięte. */
     onCancel: () => void;
     visitId: string | null;
     visitNumber: string;
@@ -119,6 +126,12 @@ interface SigningRequirementModalProps {
     /** Called after the missing e-mail is filled in from this modal. */
     onCustomerEmailSaved?: (email: string) => void;
     protocols: ProtocolResponse[];
+    /**
+     * Protokoły podpisane wcześniej. Potrzebne przy dokończeniu przerwanego przyjęcia:
+     * stan podpisów żyje normalnie w tym oknie, a wracający do niego użytkownik musi
+     * zobaczyć, co jest już podpisane, zamiast wysyłać te same dokumenty drugi raz.
+     */
+    signedProtocolIds?: string[];
     /**
      * Wizyta potwierdzona. `sendVisitCard` niesie decyzję z przełącznika „Wyślij SMS
      * z linkiem do Karty Wizyty" — samą wysyłkę robi właściciel kreatora, razem
@@ -134,14 +147,16 @@ interface SigningRequirementModalProps {
 export const SigningRequirementModal = ({
     isOpen,
     isCreating,
-    onClose,
+    onLeaveForLater,
     onCancel,
     visitId,
+    visitNumber,
     customerName,
     customerPhone,
     customerEmail,
     onCustomerEmailSaved,
     protocols,
+    signedProtocolIds,
     onConfirm,
     hasPhotos = false,
     hasDamageMap = false,
@@ -171,14 +186,24 @@ export const SigningRequirementModal = ({
         () => defaultNotificationOptions(true, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault),
     );
 
+    /**
+     * Pytanie o decyzję przy próbie wyjścia. Osobny stan, a nie natychmiastowe
+     * zamknięcie: wizyta jest już zapisana, więc „zamknij okno" nie jest neutralne.
+     */
+    const [exitPromptOpen, setExitPromptOpen] = useState(false);
+
     const cancelVisitMutation = useMutation({
         mutationFn: () => {
             if (!visitId) throw new Error('No visit to cancel');
             return visitApi.cancelDraftVisit(visitId);
         },
         onSuccess: () => {
-            onClose();
+            setExitPromptOpen(false);
+            showSuccess('Wizyta została anulowana', 'Rezerwacja pozostała w kalendarzu — auto można przyjąć od nowa.');
             onCancel();
+        },
+        onError: (error: unknown) => {
+            showError('Nie udało się anulować wizyty', extractApiErrorMessage(error));
         },
     });
 
@@ -188,21 +213,47 @@ export const SigningRequirementModal = ({
             return visitApi.confirmDraftVisit(visitId, toConfirmVisitOptions(notifOptions));
         },
         onSuccess: () => {
-            onClose();
             onConfirm({ sendVisitCard: notifOptions.sendVisitCard });
+        },
+        onError: (error: unknown) => {
+            showError('Nie udało się rozpocząć wizyty', extractApiErrorMessage(error));
         },
     });
 
+    const handleLeaveForLater = () => {
+        setExitPromptOpen(false);
+        onLeaveForLater();
+    };
+
+    /*
+     * Ostatnia zapora: zamknięcie karty, przeładowanie, „wstecz" przeglądarki.
+     * Przeglądarka pokaże własny komunikat — treści nie da się ustawić — ale samo
+     * pytanie wystarcza, żeby przypadkowe wyjście nie zostawiło rozgrzebanego
+     * przyjęcia. Pilnujemy tego tylko wtedy, gdy wizyta naprawdę czeka na decyzję.
+     */
+    useEffect(() => {
+        if (!isOpen || !visitId) return;
+        const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [isOpen, visitId]);
+
     const hasProtocol = protocols?.some(p => p.templateId !== null) ?? false;
+
+    // Lista jako klucz, nie jako referencja: wywołujący przekazuje ją najczęściej
+    // literałem, który przy każdym renderze jest nowym obiektem.
+    const signedKey = (signedProtocolIds ?? []).join(',');
 
     useEffect(() => {
         if (isOpen) {
             setPreviewProtocolId(null);
             setTabletPickerProtocolId(null);
-            setSigningByProtocol({});
+            setSigningByProtocol(Object.fromEntries(
+                signedKey.split(',').filter(Boolean).map(id => [id, { phase: 'signed', requestId: '' } as SigningState])
+            ));
             setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault));
         }
-    }, [isOpen, hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault]);
+    }, [isOpen, hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault, signedKey]);
 
     // Close tablet picker when clicking outside
     useEffect(() => {
@@ -388,12 +439,17 @@ export const SigningRequirementModal = ({
 
     return (
         <>
-            <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="680px">
+            <ModalShell
+                isOpen={isOpen}
+                onClose={() => setExitPromptOpen(true)}
+                maxWidth="680px"
+                dismissible={false}
+            >
                 <ModalHeader>
                     <ModalTitleGroup>
                         <ModalTitle>Dokumentacja i Podpisy</ModalTitle>
                     </ModalTitleGroup>
-                    <CloseBtn onClick={onClose} />
+                    <CloseBtn onClick={() => setExitPromptOpen(true)} />
                 </ModalHeader>
 
                 <ModalContent>
@@ -571,8 +627,8 @@ export const SigningRequirementModal = ({
 
                         <FooterActions>
                             <PrimaryActionGroup>
-                                <CancelBtn onClick={() => cancelVisitMutation.mutate()} disabled={!canInteract || isProcessing}>
-                                    Anuluj wizytę
+                                <CancelBtn onClick={() => setExitPromptOpen(true)} disabled={!canInteract || isProcessing}>
+                                    Przerwij przyjęcie
                                 </CancelBtn>
                                 <ConfirmBtn
                                     onClick={() => confirmVisitMutation.mutate()}
@@ -585,6 +641,17 @@ export const SigningRequirementModal = ({
                     </StyledModalContent>
                 </ModalContent>
             </ModalShell>
+
+            {exitPromptOpen && (
+                <AbandonCheckInDialog
+                    isOpen
+                    visitNumber={visitNumber}
+                    isCancelling={cancelVisitMutation.isPending}
+                    onBack={() => setExitPromptOpen(false)}
+                    onLeaveForLater={handleLeaveForLater}
+                    onCancelVisit={() => cancelVisitMutation.mutate()}
+                />
+            )}
 
             {previewProtocolId && visitId && (
                 <DocumentPreview

@@ -356,3 +356,43 @@ export interface VisitCommunicationResponse {
     visitId: string;
     entries: CommunicationEntry[];
 }
+
+// ─── Nieukończone przyjęcia (wizyty w statusie DRAFT) ─────────────────────────
+
+/**
+ * Przyjęcie pojazdu, które zostało zapisane, ale nie zostało dokończone: wizyta
+ * istnieje w bazie, lecz się nie rozpoczęła.
+ *
+ * To NIE jest wizyta, którą można otworzyć — szczegóły wizyty odpowiadają na taki
+ * rekord 404 (`VISIT_NOT_STARTED`). Jedyne, co można z nim zrobić, to dokończyć
+ * przyjęcie albo je anulować, i po to jest ten typ.
+ */
+export interface OpenDraftVisit {
+    visitId: string;
+    visitNumber: string;
+    title: string | null;
+    appointmentId: string;
+    customerId: string;
+    customerName: string | null;
+    customerPhone: string | null;
+    customerEmail: string | null;
+    vehicleId: string;
+    vehicleName: string;
+    licensePlate: string | null;
+    createdAt: string;
+    createdByName: string | null;
+    /** Ile minut wisi otwarte. */
+    ageMinutes: number;
+    /** Wisi na tyle długo, że w kolejce ma być wyróżnione. */
+    stale: boolean;
+    /** Kiedy wygaśnie automatycznie; null, gdy sprzątanie jest wyłączone. */
+    expiresAt: string | null;
+    /** Domyślne załączniki wiadomości do klienta przy dokończeniu przyjęcia. */
+    hasPhotos: boolean;
+    hasDamageMap: boolean;
+}
+
+export interface OpenDraftVisitListResponse {
+    drafts: OpenDraftVisit[];
+    total: number;
+}
