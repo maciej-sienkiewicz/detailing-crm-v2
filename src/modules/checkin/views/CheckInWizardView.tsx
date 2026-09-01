@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
-import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
-import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useToast } from '@/common/components/Toast';
+import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
@@ -174,45 +173,9 @@ const ContentWrap = styled.div`
 `;
 
 // ─── Sticky footer ────────────────────────────────────────────────────────────
-
-const StickyFooter = styled.footer<{ $sidebarWidth: number }>`
-    position: fixed;
-    bottom: 0;
-    left: ${p => p.$sidebarWidth}px;
-    right: 0;
-    background: ${st.bgCard};
-    border-top: 1px solid ${st.border};
-    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
-    z-index: 50;
-    transition: left 0.2s ease;
-
-    @media (max-width: 768px) {
-        left: 0;
-        /* Ponad dolnym paskiem nawigacji – przyciski kreatora muszą zostać klikalne. */
-        bottom: ${BOTTOM_NAV_SPACE};
-    }
-`;
-
-const FooterInner = styled.div`
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    @media (min-width: 640px) {
-        padding: 14px 24px;
-        gap: 10px;
-    }
-
-    @media (min-width: 768px) {
-        padding: 16px 40px;
-        flex-direction: row;
-        align-items: center;
-        gap: 16px;
-    }
-`;
+// Sama stopka i przyciski akcji żyją w @/common/components/StickyFormFooter —
+// ten sam komponent obsługuje stopkę edycji rezerwacji, żeby te same akcje
+// wyglądały identycznie na obu ekranach.
 
 const FooterStepHint = styled.div`
     display: flex;
@@ -281,89 +244,6 @@ const ErrorAlert = styled.div`
     flex: 1;
 `;
 
-const FooterActions = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-shrink: 0;
-    margin-left: auto;
-    flex-wrap: wrap;
-
-    @media (max-width: 767px) {
-        margin-left: 0;
-        width: 100%;
-    }
-`;
-
-const BackBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 18px;
-    background: ${st.bgCard};
-    color: ${st.textSecondary};
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    &:hover {
-        border-color: ${st.borderHover};
-        color: ${st.text};
-        background: ${st.bgCardAlt};
-    }
-
-    svg {
-        width: 14px;
-        height: 14px;
-    }
-
-    @media (max-width: 767px) {
-        flex: 1;
-    }
-`;
-
-const NextBtn = styled.button<{ $disabled?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 22px;
-    background: ${props => props.$disabled ? '#94A3B8' : st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
-    transition: all ${st.transition};
-    white-space: nowrap;
-    box-shadow: ${props => props.$disabled ? 'none' : '0 1px 4px rgba(37, 99, 235, 0.25)'};
-
-    &:hover:not(:disabled) {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-    }
-
-    &:disabled {
-        cursor: not-allowed;
-    }
-
-    svg {
-        width: 14px;
-        height: 14px;
-    }
-
-    @media (max-width: 767px) {
-        flex: 1;
-    }
-`;
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CheckInWizardViewProps {
@@ -377,9 +257,6 @@ interface CheckInWizardViewProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
-    const { isCollapsed } = useSidebar();
-    const sidebarWidth = isCollapsed ? 64 : 240;
-
     // Effective QR checkin ID: reservation ID for booked check-ins, generated UUID for walk-ins
     const qrCheckinId = reservationId ?? qrSessionId;
 
@@ -615,8 +492,46 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 </ScrollArea>
 
                 {/* ── Sticky footer ──────────────────────────────────────── */}
-                <StickyFooter $sidebarWidth={sidebarWidth}>
-                    <FooterInner>
+                <StickyFormFooter
+                    actions={
+                        <>
+                            {!isFirstStep && (
+                                <FooterSecondaryButton onClick={previousStep} disabled={isSubmitting}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="15 18 9 12 15 6" />
+                                    </svg>
+                                    {t.checkin.actions.previousStep}
+                                </FooterSecondaryButton>
+                            )}
+
+                            {!isLastStep ? (
+                                <FooterPrimaryButton onClick={handleNext} disabled={false} $disabled={false}>
+                                    {t.checkin.actions.nextStep}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="9 18 15 12 9 6" />
+                                    </svg>
+                                </FooterPrimaryButton>
+                            ) : (
+                                <FooterPrimaryButton
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    $disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <>{t.checkin.summary.creating}...</>
+                                    ) : (
+                                        <>{t.checkin.summary.createVisit}</>
+                                    )}
+                                    {!isSubmitting && (
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    )}
+                                </FooterPrimaryButton>
+                            )}
+                        </>
+                    }
+                >
                         {/* Left side: validation errors / step hint */}
                         {hasErrors ? (
                             <ValidationAlert>
@@ -649,45 +564,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                             </FooterStepHint>
                         )}
 
-                        {/* Navigation */}
-                        <FooterActions>
-                            {!isFirstStep && (
-                                <BackBtn onClick={previousStep} disabled={isSubmitting}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <polyline points="15 18 9 12 15 6" />
-                                    </svg>
-                                    {t.checkin.actions.previousStep}
-                                </BackBtn>
-                            )}
-
-                            {!isLastStep ? (
-                                <NextBtn onClick={handleNext} disabled={false} $disabled={false}>
-                                    {t.checkin.actions.nextStep}
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <polyline points="9 18 15 12 9 6" />
-                                    </svg>
-                                </NextBtn>
-                            ) : (
-                                <NextBtn
-                                    onClick={handleSubmit}
-                                    disabled={isSubmitting}
-                                    $disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? (
-                                        <>{t.checkin.summary.creating}...</>
-                                    ) : (
-                                        <>{t.checkin.summary.createVisit}</>
-                                    )}
-                                    {!isSubmitting && (
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <polyline points="9 18 15 12 9 6" />
-                                        </svg>
-                                    )}
-                                </NextBtn>
-                            )}
-                        </FooterActions>
-                    </FooterInner>
-                </StickyFooter>
+                </StickyFormFooter>
             </PageWrap>
 
             {signingModalState.isOpen && (
