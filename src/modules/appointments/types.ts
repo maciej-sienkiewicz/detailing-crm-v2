@@ -55,7 +55,7 @@ export type VehicleIdentity =
         newData: {
             brand: string;
             model: string;
-            yearOfProduction?: number;
+            year?: number;
             licensePlate?: string;
             color?: string;
         };
@@ -66,7 +66,7 @@ export type VehicleIdentity =
         updateData: {
             brand: string;
             model: string;
-            yearOfProduction?: number;
+            year?: number;
             licensePlate?: string;
             color?: string;
         };
