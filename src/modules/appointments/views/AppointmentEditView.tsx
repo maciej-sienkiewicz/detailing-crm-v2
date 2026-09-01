@@ -12,7 +12,7 @@ import { VerificationStep } from '@/modules/checkin/components/VerificationStep'
 import type { CheckInFormData, ServiceLineItem as CheckInServiceLineItem } from '@/modules/checkin/types';
 import type { AppointmentCreateRequest } from '@/modules/appointments/types';
 import type { DoorToDoorInfo } from '@/modules/visits/types';
-import { Button } from '@/common/components/Button';
+import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
 import { t } from '@/common/i18n';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { buildAppointmentEditPayload } from '../utils/buildAppointmentEditPayload';
@@ -20,8 +20,6 @@ import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
 import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
-import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 
 const SmsSeparator = styled.div`
     height: 1px;
@@ -101,56 +99,6 @@ const Actions = styled.div`
     gap: ${props => props.theme.spacing.md};
 `;
 
-// ─── Sticky footer (analogicznie do CheckInWizardView) ────────────────────────
-
-const StickyFooter = styled.footer<{ $sidebarWidth: number }>`
-    position: fixed;
-    bottom: 0;
-    left: ${p => p.$sidebarWidth}px;
-    right: 0;
-    background: ${st.bgCard};
-    border-top: 1px solid ${st.border};
-    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
-    z-index: 50;
-    transition: left 0.2s ease;
-
-    @media (max-width: 768px) {
-        left: 0;
-        /* Ponad dolnym paskiem nawigacji – przycisk zapisu musi zostać klikalny. */
-        bottom: ${BOTTOM_NAV_SPACE};
-    }
-`;
-
-const FooterInner = styled.div`
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 12px 16px;
-    display: flex;
-    justify-content: flex-end;
-
-    @media (min-width: 640px) {
-        padding: 14px 24px;
-    }
-
-    @media (min-width: 768px) {
-        padding: 16px 40px;
-    }
-`;
-
-const FooterActions = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 767px) {
-        width: 100%;
-
-        & > button {
-            flex: 1;
-        }
-    }
-`;
 
 export const AppointmentEditView = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
@@ -158,8 +106,6 @@ export const AppointmentEditView = () => {
     const location = useLocation();
     const queryClient = useQueryClient();
     const { showSuccess, showInfo } = useToast();
-    const { isCollapsed } = useSidebar();
-    const sidebarWidth = isCollapsed ? 64 : 240;
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
         queryKey: ['appointments', appointmentId],
@@ -433,18 +379,18 @@ export const AppointmentEditView = () => {
                 )}
             </ContentWrapper>
 
-            <StickyFooter $sidebarWidth={sidebarWidth}>
-                <FooterInner>
-                    <FooterActions>
-                        <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
+            <StickyFormFooter
+                actions={
+                    <>
+                        <FooterSecondaryButton onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
                             {t.common.cancel}
-                        </Button>
-                        <Button $variant="primary" onClick={handleSave} disabled={isAnyMutating}>
+                        </FooterSecondaryButton>
+                        <FooterPrimaryButton onClick={handleSave} disabled={isAnyMutating} $disabled={isAnyMutating}>
                             {isAnyMutating ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
-                        </Button>
-                    </FooterActions>
-                </FooterInner>
-            </StickyFooter>
+                        </FooterPrimaryButton>
+                    </>
+                }
+            />
 
             {recurrenceInfo && (
                 <RecurrenceEditScopeModal
