@@ -224,6 +224,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     });
     const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
     const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;
+    // Reguła SMS-a z linkiem do Karty Wizyty dla REZERWACJI (nie mylić z tą dla wizyty)
+    // ma własny szablon i własny przełącznik w Ustawieniach → Szablony SMS, domyślnie
+    // wyłączony i z pustym szablonem — dokładnie jak świeże/wyczyszczone konto. Bez tego
+    // pola checkbox wyglądał na aktywny, mimo że backend i tak nic by nie wysłał.
+    const reservationCardLinkSmsEnabled = automationConfig?.reservationCardLink?.enabled ?? true;
 
     const { data: visitCardSettings } = useQuery({
         queryKey: ['visit-card-settings'],
@@ -610,7 +615,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 doorToDoor: doorToDoor.enabled ? doorToDoor : undefined,
                 sendConfirmationSms: bookingConfirmationEnabled && sendConfirmationSms,
                 sendReminderSms: preVisitEnabled && sendReminderSms,
-                sendVisitCard: visitCardEnabled && sendVisitCard,
+                sendVisitCard: visitCardEnabled && reservationCardLinkSmsEnabled && sendVisitCard,
                 recurrence: isRecurring ? recurrenceRule : null,
             }));
         } catch (err: any) {
@@ -1049,6 +1054,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         preVisitEnabled,
         bookingConfirmationEnabled,
         visitCardEnabled,
+        reservationCardLinkSmsEnabled,
 
         // Recurrence
         isRecurring, setIsRecurring,

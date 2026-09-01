@@ -337,7 +337,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             label: 'Karta wizyty',
             description: 'Link, pod którym klient śledzi postęp prac.',
             checked: form.sendVisitCard,
-            disabledReason: form.visitCardEnabled ? undefined : 'Karta wizyty jest wyłączona w ustawieniach',
+            disabledReason: !form.visitCardEnabled
+                ? 'Karta wizyty jest wyłączona w ustawieniach'
+                : form.reservationCardLinkSmsEnabled
+                    ? undefined
+                    : 'Wyłączone globalnie w konfiguracji SMS',
             onChange: form.setSendVisitCard,
         },
     ];
@@ -1954,13 +1958,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 </SmsCheckText>
                                             </SmsCheckItem>
                                             {form.visitCardEnabled && (
-                                                <SmsCheckItem>
+                                                <SmsCheckItem $disabled={!form.reservationCardLinkSmsEnabled}>
                                                     <SmsCheckbox
-                                                        checked={form.sendVisitCard}
+                                                        checked={form.sendVisitCard && form.reservationCardLinkSmsEnabled}
                                                         onChange={e => form.setSendVisitCard(e.target.checked)}
+                                                        disabled={!form.reservationCardLinkSmsEnabled}
                                                     />
                                                     <SmsCheckText>
                                                         Wyślij SMS z linkiem do Karty Wizyty.
+                                                        {!form.reservationCardLinkSmsEnabled && (
+                                                            <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                        )}
                                                     </SmsCheckText>
                                                 </SmsCheckItem>
                                             )}
