@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
@@ -364,6 +364,15 @@ interface NotificationSectionProps {
 export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled, customerEmail, onCustomerEmailSaved, options, onChange }: NotificationSectionProps) => {
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const { visitCardActive } = useVisitCardSettings();
+    // Reguła SMS-a z linkiem do Karty Wizyty ma własny szablon i przełącznik w
+    // Ustawieniach → Szablony SMS, domyślnie wyłączony i z pustym szablonem — tak jak
+    // świeże/wyczyszczone konto. Bez tego pola przełącznik wyglądał na aktywny, mimo
+    // że backend i tak nic by nie wysłał (brak skonfigurowanej treści wiadomości).
+    const { data: automationConfig } = useQuery({
+        queryKey: ['sms-automation-config'],
+        queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
+    });
+    const visitCardLinkSmsEnabled = automationConfig?.visitCardLink?.enabled ?? true;
     const { sendEmail, sendVisitCard, emailOptions } = options;
     const hasCustomerEmail = !!customerEmail?.trim();
     const emailDisabled = !visitWelcomeEnabled || !hasCustomerEmail;
@@ -386,13 +395,14 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     }, [hasCustomerEmail, options.sendEmail]);
 
     // Ten sam powód co przy e-mailu: sam brak przełącznika nie wystarczy, bo domyślna
-    // wartość przychodzi z ustawień studia i może być włączona mimo wyłączonej Karty.
+    // wartość przychodzi z ustawień studia i może być włączona mimo wyłączonej Karty
+    // albo mimo pustego szablonu SMS-a z linkiem do niej.
     useEffect(() => {
-        if (sendVisitCard && !visitCardActive) {
+        if (sendVisitCard && (!visitCardActive || !visitCardLinkSmsEnabled)) {
             onChange({ ...options, sendVisitCard: false });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sendVisitCard, visitCardActive]);
+    }, [sendVisitCard, visitCardActive, visitCardLinkSmsEnabled]);
 
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
@@ -495,6 +505,8 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                     label="Wyślij SMS z linkiem do Karty Wizyty"
                     description="Klient otworzy Kartę Wizyty i sam domówi dodatkowe usługi"
                     active={sendVisitCard}
+                    disabled={!visitCardLinkSmsEnabled}
+                    disabledHint="Wyłączone globalnie w konfiguracji SMS"
                     onToggle={() => onChange({ ...options, sendVisitCard: !sendVisitCard })}
                 />
             )}
