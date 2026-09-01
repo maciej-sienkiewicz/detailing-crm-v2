@@ -176,6 +176,15 @@ const FooterLink = styled(Link)`
     }
 `;
 
+// 502 during login means the app is being redeployed behind the reverse proxy;
+// the backend never gets to respond, so there is no error message to relay.
+const getLoginErrorMessage = (error: any): string => {
+    if (error?.response?.status === 502) {
+        return t.auth.errors.maintenance;
+    }
+    return error?.response?.data?.message || t.auth.errors.serverError;
+};
+
 export const LoginView = () => {
     const location = useLocation();
     const successMessage = (location.state as { message?: string })?.message;
@@ -196,8 +205,7 @@ export const LoginView = () => {
         try {
             await demoMutation.mutateAsync();
         } catch (error: any) {
-            const message = error?.response?.data?.message || t.auth.errors.serverError;
-            setApiError(message);
+            setApiError(getLoginErrorMessage(error));
         }
     };
 
@@ -224,8 +232,7 @@ export const LoginView = () => {
         try {
             await loginMutation.mutateAsync(formData);
         } catch (error: any) {
-            const message = error?.response?.data?.message || t.auth.errors.serverError;
-            setApiError(message);
+            setApiError(getLoginErrorMessage(error));
         }
     };
 

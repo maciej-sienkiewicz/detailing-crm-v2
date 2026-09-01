@@ -130,6 +130,7 @@ export interface TranslationKeys {
             accountExists: string;
             serverError: string;
             networkError: string;
+            maintenance: string;
         };
     };
     customers: {

@@ -739,6 +739,7 @@ export const pl: TranslationKeys = {
             accountExists: 'Konto z tym adresem email już istnieje',
             serverError: 'Wystąpił błąd serwera. Spróbuj ponownie później',
             networkError: 'Błąd połączenia. Sprawdź połączenie z internetem',
+            maintenance: 'Jesteśmy w trakcie wdrażania nowej wersji programu. Spróbuj ponownie za 10 minut.',
         },
     },
     // src/common/i18n/pl.ts - Dodaj sekcję services do istniejącego obiektu
