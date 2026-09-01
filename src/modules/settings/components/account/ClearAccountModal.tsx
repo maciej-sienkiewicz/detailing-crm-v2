@@ -44,9 +44,8 @@ const WarnTitle = styled.p`
     color: #dc2626;
 `;
 
-const WarnList = styled.ul`
+const WarnText = styled.p`
     margin: 0;
-    padding-left: 18px;
     font-size: 13px;
     color: #0f172a;
     line-height: 1.6;
@@ -137,7 +136,7 @@ interface ClearAccountModalProps {
 
 /**
  * Nieodwracalne wyczyszczenie konta. Zamknięcie okna jest tu decyzją, więc
- * `dismissible={false}` — Escape i klik w tło nie wychodzą po cichu; krzyżyk
+ * `dismissible={false}`: Escape i klik w tło nie wychodzą po cichu; krzyżyk
  * działa i jest jedyną drogą wyjścia z formularza. W trakcie czyszczenia okna
  * nie da się zamknąć wcale: job i tak dokończy się po stronie serwera, ale
  * użytkownik ma zobaczyć wynik, a nie klikać po aplikacji, którą właśnie czyści.
@@ -222,7 +221,7 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                     <ModalTitle>Wyczyść konto</ModalTitle>
                     <ModalSubtitle>
                         {inProgress
-                            ? 'Trwa czyszczenie konta — nie zamykaj tego okna.'
+                            ? 'Trwa czyszczenie konta. Nie zamykaj tego okna.'
                             : 'Operacja jest nieodwracalna i obejmuje wszystkie dane studia.'}
                     </ModalSubtitle>
                 </ModalTitleGroup>
@@ -238,7 +237,7 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                         <ProgressLabel>
                             {job
                                 ? `Krok ${Math.min(job.currentStep + 1, job.totalSteps || 1)} z ${job.totalSteps || '…'}${
-                                      job.currentStepName ? ` — ${job.currentStepName}` : ''
+                                      job.currentStepName ? `: ${job.currentStepName}` : ''
                                   }`
                                 : 'Rozpoczynanie czyszczenia…'}
                         </ProgressLabel>
@@ -254,7 +253,7 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                         </ErrorMsg>
                         <HintText>
                             Skontaktuj się z pomocą techniczną i podaj identyfikator operacji: {jobId}.
-                            Żadne dane nie zostały częściowo &quot;przywrócone&quot; — operację można
+                            Żadne dane nie zostały częściowo &quot;przywrócone&quot;. Operację można
                             bezpiecznie wznowić po usunięciu przyczyny błędu.
                         </HintText>
                     </ProgressWrap>
@@ -262,14 +261,11 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                     <>
                         <WarnBox>
                             <WarnTitle>Zostaną bezpowrotnie usunięte:</WarnTitle>
-                            <WarnList>
-                                <li>wszyscy klienci, pojazdy i historia wizyt wraz z protokołami i podpisami,</li>
-                                <li>wszystkie pliki: zdjęcia, dokumenty, podpisane PDF-y i logo firmy,</li>
-                                <li>dokumenty finansowe, operacje kasowe i faktury (w tym pobrane z KSeF),</li>
-                                <li>leady, kampanie, komunikacja e-mail/SMS i zlecenia hurtowe,</li>
-                                <li>pracownicy, role, czas pracy oraz wszystkie konta poza Twoim,</li>
-                                <li>cennik usług, szablony i wszystkie ustawienia (wrócą domyślne).</li>
-                            </WarnList>
+                            <WarnText>
+                                Wszystkie dane operacyjne studia (klienci, pojazdy, wizyty, pliki,
+                                dokumenty finansowe, komunikacja, pracownicy i ustawienia) zostaną
+                                trwale usunięte. Nie ma możliwości ich odzyskania.
+                            </WarnText>
                         </WarnBox>
                         <KeepBox>
                             <KeepTitle>Zostaną zachowane:</KeepTitle>
@@ -281,7 +277,7 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                         </KeepBox>
                         <LegalNote>
                             Usunięcie obejmuje dokumenty księgowe studia. Upewnij się, że masz ich kopie
-                            wymagane przepisami — odpowiedzialność za archiwizację pozostaje po stronie firmy.
+                            wymagane przepisami. Odpowiedzialność za archiwizację pozostaje po stronie firmy.
                         </LegalNote>
                         <CheckboxRow>
                             <input
@@ -290,7 +286,7 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                                 onChange={e => setWipeCompanyData(e.target.checked)}
                             />
                             <span>
-                                Usuń również dane firmy (nazwa, NIP, adres, konto bankowe) — konto będzie
+                                Usuń również dane firmy (nazwa, NIP, adres, konto bankowe). Konto będzie
                                 dosłownie jak nowe.
                             </span>
                         </CheckboxRow>
