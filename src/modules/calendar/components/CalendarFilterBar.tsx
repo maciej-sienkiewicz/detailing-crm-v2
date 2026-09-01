@@ -30,6 +30,18 @@ const ALL_APPOINTMENT_STATUSES: AppointmentStatus[] = ['CREATED', 'ABANDONED', '
 const ALL_VISIT_STATUSES: VisitStatus[] = ['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'REJECTED', 'ARCHIVED'];
 const ALL_STATUSES = [...ALL_APPOINTMENT_STATUSES, ...ALL_VISIT_STATUSES] as (AppointmentStatus | VisitStatus)[];
 
+/* Kolejność i etykiety kategorii pierwszego poziomu menu filtrów. */
+type CategoryKey = 'visit' | 'appointment' | 'color';
+const CATEGORY_ORDER: CategoryKey[] = ['visit', 'appointment', 'color'];
+const CATEGORY_LABEL: Record<CategoryKey, string> = {
+    visit: 'Wizyty',
+    appointment: 'Rezerwacje',
+    color: 'Kolory',
+};
+
+/** CategoryPanel (220px) + OptionsPanel (300px), do wyliczenia bezpiecznej pozycji na desktopie. */
+const POPUP_FULL_WIDTH = 520;
+
 /* ─────────────────────────────────────────────────────────────────
    Styled components
 ───────────────────────────────────────────────────────────────── */
@@ -201,28 +213,169 @@ const CountBadge = styled.span`
     white-space: nowrap;
 `;
 
-/* ── Popup ── */
+/* ── Popup: two-level menu (kategoria -> panel z opcjami) ──────────────
+   Poziom 1 (CategoryPanel) wylicza tylko trzy kategorie: Wizyty, Rezerwacje,
+   Kolory. Na desktopie najechanie kursorem na kategorię rozsuwa panel z
+   opcjami (OptionsPanel) obok, jak we flyout-menu. Na wąskich ekranach (bez
+   hovera) panel z opcjami zajmuje całą szerokość i zastępuje listę kategorii
+   (nawigacja "w głąb" z przyciskiem powrotu), bo flyout obok nie mieści się. */
 
-const Popup = styled.div<{ $open: boolean }>`
-    display: ${p => (p.$open ? 'flex' : 'none')};
-    flex-direction: column;
-    gap: 2px;
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
+const Backdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: transparent;
+
+    @media (max-width: 768px) {
+        background: rgba(15, 23, 42, 0.25);
+    }
+`;
+
+const PopupRoot = styled.div<{ $top: number; $left: number }>`
+    display: flex;
+    align-items: stretch;
+    position: fixed;
+    top: ${p => p.$top}px;
+    left: ${p => p.$left}px;
     z-index: 1000;
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
-    width: 320px;
+    overflow: hidden;
+    max-width: calc(100vw - 24px);
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        max-height: 80vh;
+    }
+`;
+
+const CategoryPanel = styled.div<{ $hideOnMobile: boolean }>`
+    width: 220px;
+    flex-shrink: 0;
     padding: 8px;
-    max-height: calc(100vh - 140px);
     overflow-y: auto;
+    max-height: min(60vh, 420px);
 
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.12); border-radius: 2px; }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        max-height: 65vh;
+        display: ${p => (p.$hideOnMobile ? 'none' : 'block')};
+    }
+`;
+
+const CategoryRow = styled.div<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: ${p => (p.$active ? '#f0f9ff' : 'transparent')};
+    transition: background 120ms ease;
+    user-select: none;
+
+    &:hover {
+        background: ${p => (p.$active ? '#e0f2fe' : '#f8fafc')};
+    }
+`;
+
+const CategoryIcon = styled.span`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #64748b;
+    flex-shrink: 0;
+
+    svg { width: 15px; height: 15px; }
+`;
+
+const CategoryLabel = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    flex: 1;
+`;
+
+const CategoryCount = styled.span<{ $partial: boolean }>`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${p => (p.$partial ? '#0284c7' : '#94a3b8')};
+    background: ${p => (p.$partial ? '#e0f2fe' : '#f1f5f9')};
+    padding: 2px 7px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+    white-space: nowrap;
+`;
+
+const CategoryChevron = styled.span`
+    display: flex;
+    align-items: center;
+    color: #94a3b8;
+    flex-shrink: 0;
+
+    svg { width: 14px; height: 14px; }
+`;
+
+const OptionsPanel = styled.div`
+    width: 300px;
+    flex-shrink: 0;
+    border-left: 1px solid #e2e8f0;
+    padding: 8px;
+    overflow-y: auto;
+    max-height: min(60vh, 420px);
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.12); border-radius: 2px; }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        border-left: none;
+        max-height: 65vh;
+    }
+`;
+
+const BackRow = styled.button`
+    display: none;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    background: none;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 8px 10px 4px;
+    text-align: left;
+
+    svg { width: 13px; height: 13px; }
+
+    @media (max-width: 768px) {
+        display: flex;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #fff;
+    }
 `;
 
 const PopupSectionHeader = styled.div`
@@ -230,6 +383,15 @@ const PopupSectionHeader = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 8px 10px 4px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+
+    @media (max-width: 768px) {
+        /* Pod przyklejonym BackRow (dotyczy tylko OptionsPanel na mobile). */
+        top: 30px;
+    }
 `;
 
 const PopupSectionTitle = styled.span`
@@ -368,6 +530,47 @@ const XIcon = () => (
     </svg>
 );
 
+const ChevronRightIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 6 15 12 9 18" />
+    </svg>
+);
+
+const ChevronLeftIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="15 6 9 12 15 18" />
+    </svg>
+);
+
+const WrenchIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2-2z" />
+    </svg>
+);
+
+const CalendarIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+);
+
+const PaletteIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22a10 10 0 1 1 0-20 8 8 0 0 1 8 8c0 2.2-1.8 4-4 4h-1.6c-1 0-1.4 1.4-.6 2 .5.4.8 1 .8 1.6 0 1.3-1 2.4-2.6 2.4Z" />
+        <circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none" />
+        <circle cx="11.5" cy="7" r="1.2" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="10" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+);
+
 /* ─────────────────────────────────────────────────────────────────
    Props
 ───────────────────────────────────────────────────────────────── */
@@ -402,7 +605,11 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     eventsCount,
 }) => {
     const [popupOpen, setPopupOpen] = useState(false);
+    const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null);
+    const [popupPos, setPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const barRef = useRef<HTMLDivElement>(null);
+    const addButtonRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
 
     const { colors: availableColors } = useAppointmentColors({ limit: 100 });
 
@@ -460,19 +667,53 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
 
     const closePopup = () => {
         setPopupOpen(false);
+        setActiveCategory(null);
         onPopupClose?.();
     };
 
     const togglePopup = () => setPopupOpen(o => !o);
 
+    // Hover na desktopie ma sens tylko dla urządzeń z myszką — na dotyku
+    // (bez hover) zostaje wyłącznie klik, więc kategoria startuje zwinięta
+    // i użytkownik "wchodzi" w nią jawnym dotknięciem.
+    const supportsHover = () =>
+        typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+
+    const handleCategoryHover = (key: CategoryKey) => {
+        if (supportsHover()) setActiveCategory(key);
+    };
+
+    const handleCategoryClick = (key: CategoryKey) => {
+        setActiveCategory(prev => (prev === key ? (supportsHover() ? key : null) : key));
+    };
+
     useEffect(() => {
         if (popupOpenProp) setPopupOpen(true);
     }, [popupOpenProp]);
 
+    // Pozycja panelu wyliczona z przycisku "Dodaj filtr" — na mobile media
+    // query w PopupRoot i tak wymusza dolny arkusz (!important), więc to ma
+    // znaczenie tylko na desktopie, gdzie przycisk jest realnie widoczny.
+    // Gdy dużo aktywnych filtrów rozepchnie chipy, przycisk potrafi wylądować
+    // blisko prawej krawędzi — bez korekty rozsuwany OptionsPanel (300px)
+    // wystawałby poza viewport, więc lewą pozycję z góry ograniczamy tak, żeby
+    // zmieściła się pełna szerokość obu paneli (kategorie + opcje).
+    useEffect(() => {
+        if (popupOpen && addButtonRef.current) {
+            const rect = addButtonRef.current.getBoundingClientRect();
+            const maxLeft = window.innerWidth - POPUP_FULL_WIDTH - 12;
+            const left = Math.min(rect.left, Math.max(12, maxLeft));
+            setPopupPos({ top: rect.bottom + 6, left });
+        }
+    }, [popupOpen]);
+
     useEffect(() => {
         if (!popupOpen) return;
         const handler = (e: MouseEvent) => {
-            if (barRef.current && !barRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            const insideBar = barRef.current?.contains(target);
+            const insidePopup = popupRef.current?.contains(target);
+            if (!insideBar && !insidePopup) {
                 closePopup();
             }
         };
@@ -485,7 +726,20 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
             ? selectedAppointmentStatuses.includes(s as AppointmentStatus)
             : selectedVisitStatuses.includes(s as VisitStatus);
 
+    const categoryCount = (key: CategoryKey): { active: number; total: number } => {
+        if (key === 'appointment') return { active: selectedAppointmentStatuses.length, total: ALL_APPOINTMENT_STATUSES.length };
+        if (key === 'visit') return { active: selectedVisitStatuses.length, total: ALL_VISIT_STATUSES.length };
+        return { active: availableColors.length - hiddenColorIds.length, total: availableColors.length };
+    };
+
+    const categoryIcon = (key: CategoryKey) => {
+        if (key === 'appointment') return <CalendarIcon />;
+        if (key === 'visit') return <WrenchIcon />;
+        return <PaletteIcon />;
+    };
+
     return (
+        <>
         <BarWrapper>
             <Bar ref={barRef}>
                 {/* Search icon */}
@@ -543,7 +797,12 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                 )}
 
                 {/* Add filter button */}
-                <AddButton onClick={togglePopup} aria-expanded={popupOpen} aria-haspopup="listbox">
+                <AddButton
+                    ref={addButtonRef}
+                    onClick={togglePopup}
+                    aria-expanded={popupOpen}
+                    aria-haspopup="menu"
+                >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19" />
@@ -551,112 +810,6 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                     </svg>
                     Dodaj filtr
                 </AddButton>
-
-                {/* Popup */}
-                <Popup $open={popupOpen} role="listbox" aria-label="Filtruj po statusie">
-
-                    {/* ── Rezerwacje ── */}
-                    <PopupSectionHeader>
-                        <PopupSectionTitle>Rezerwacje</PopupSectionTitle>
-                        <SectionAllBtn
-                            onClick={e => { e.stopPropagation(); onAppointmentStatusesChange(ALL_APPOINTMENT_STATUSES); }}
-                        >
-                            Wszystkie
-                        </SectionAllBtn>
-                    </PopupSectionHeader>
-                    {ALL_APPOINTMENT_STATUSES.map(s => {
-                        const m = STATUS_META[s];
-                        const on = isActive(s);
-                        return (
-                            <PopupRow
-                                key={s}
-                                $active={on}
-                                onClick={() => toggle(s)}
-                                role="option"
-                                aria-selected={on}
-                            >
-                                <PopupDot $color={m.dot} />
-                                <PopupRowLabel>{m.label}</PopupRowLabel>
-                                <OnlyBtn
-                                    onClick={e => { e.stopPropagation(); onlyAppointmentStatus(s); }}
-                                    title={`Pokaż tylko: ${m.label}`}
-                                >
-                                    Tylko
-                                </OnlyBtn>
-                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
-                            </PopupRow>
-                        );
-                    })}
-
-                    {/* ── Wizyty ── */}
-                    <PopupSectionHeader>
-                        <PopupSectionTitle>Wizyty</PopupSectionTitle>
-                        <SectionAllBtn
-                            onClick={e => { e.stopPropagation(); onVisitStatusesChange(ALL_VISIT_STATUSES); }}
-                        >
-                            Wszystkie
-                        </SectionAllBtn>
-                    </PopupSectionHeader>
-                    {ALL_VISIT_STATUSES.map(s => {
-                        const m = STATUS_META[s];
-                        const on = isActive(s);
-                        return (
-                            <PopupRow
-                                key={s}
-                                $active={on}
-                                onClick={() => toggle(s)}
-                                role="option"
-                                aria-selected={on}
-                            >
-                                <PopupDot $color={m.dot} />
-                                <PopupRowLabel>{m.label}</PopupRowLabel>
-                                <OnlyBtn
-                                    onClick={e => { e.stopPropagation(); onlyVisitStatus(s); }}
-                                    title={`Pokaż tylko: ${m.label}`}
-                                >
-                                    Tylko
-                                </OnlyBtn>
-                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
-                            </PopupRow>
-                        );
-                    })}
-
-                    {/* ── Kolory ── */}
-                    {availableColors.length > 0 && (
-                        <>
-                            <PopupSectionHeader>
-                                <PopupSectionTitle>Kolory</PopupSectionTitle>
-                                <SectionAllBtn
-                                    onClick={e => { e.stopPropagation(); onHiddenColorIdsChange([]); }}
-                                >
-                                    Wszystkie
-                                </SectionAllBtn>
-                            </PopupSectionHeader>
-                            {availableColors.map(color => {
-                                const on = !hiddenColorIds.includes(color.id);
-                                return (
-                                    <PopupRow
-                                        key={color.id}
-                                        $active={on}
-                                        onClick={() => toggleColor(color.id)}
-                                        role="option"
-                                        aria-selected={on}
-                                    >
-                                        <ColorSwatch $hex={color.hexColor} />
-                                        <PopupRowLabel>{color.name}</PopupRowLabel>
-                                        <OnlyBtn
-                                            onClick={e => { e.stopPropagation(); onlyColor(color.id); }}
-                                            title={`Pokaż tylko kolor: ${color.name}`}
-                                        >
-                                            Tylko
-                                        </OnlyBtn>
-                                        {on && <PopupCheck><CheckIcon /></PopupCheck>}
-                                    </PopupRow>
-                                );
-                            })}
-                        </>
-                    )}
-                </Popup>
 
                 {/* Right side: clear + count */}
                 <Spacer>
@@ -669,5 +822,166 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                 </Spacer>
             </Bar>
         </BarWrapper>
+
+        {/* Popup: renderowany poza BarWrapper (który na mobile ma display:none),
+            żeby przycisk filtra z mobilnego nagłówka (poza tym komponentem, sterujący
+            przez `popupOpen`) też mógł go otworzyć — patrz CalendarView.tsx. */}
+        {popupOpen && (
+            <>
+                <Backdrop onClick={closePopup} />
+                <PopupRoot
+                    ref={popupRef}
+                    $top={popupPos.top}
+                    $left={popupPos.left}
+                    role="menu"
+                    aria-label="Filtruj kalendarz"
+                >
+                    <CategoryPanel $hideOnMobile={activeCategory !== null}>
+                        {CATEGORY_ORDER.map(key => {
+                            const { active, total } = categoryCount(key);
+                            const isCurrent = activeCategory === key;
+                            if (key === 'color' && availableColors.length === 0) return null;
+                            return (
+                                <CategoryRow
+                                    key={key}
+                                    $active={isCurrent}
+                                    onMouseEnter={() => handleCategoryHover(key)}
+                                    onClick={() => handleCategoryClick(key)}
+                                    role="menuitem"
+                                    aria-haspopup="true"
+                                    aria-expanded={isCurrent}
+                                >
+                                    <CategoryIcon>{categoryIcon(key)}</CategoryIcon>
+                                    <CategoryLabel>{CATEGORY_LABEL[key]}</CategoryLabel>
+                                    <CategoryCount $partial={active < total}>{active}/{total}</CategoryCount>
+                                    <CategoryChevron><ChevronRightIcon /></CategoryChevron>
+                                </CategoryRow>
+                            );
+                        })}
+                    </CategoryPanel>
+
+                    {activeCategory && (
+                        <OptionsPanel
+                            role="listbox"
+                            aria-label={`Filtruj: ${CATEGORY_LABEL[activeCategory]}`}
+                            onMouseLeave={() => { if (supportsHover()) setActiveCategory(null); }}
+                        >
+                            <BackRow onClick={() => setActiveCategory(null)}>
+                                <ChevronLeftIcon />
+                                Wróć do kategorii
+                            </BackRow>
+
+                            {activeCategory === 'appointment' && (
+                                <>
+                                    <PopupSectionHeader>
+                                        <PopupSectionTitle>Rezerwacje</PopupSectionTitle>
+                                        <SectionAllBtn
+                                            onClick={e => { e.stopPropagation(); onAppointmentStatusesChange(ALL_APPOINTMENT_STATUSES); }}
+                                        >
+                                            Wszystkie
+                                        </SectionAllBtn>
+                                    </PopupSectionHeader>
+                                    {ALL_APPOINTMENT_STATUSES.map(s => {
+                                        const m = STATUS_META[s];
+                                        const on = isActive(s);
+                                        return (
+                                            <PopupRow
+                                                key={s}
+                                                $active={on}
+                                                onClick={() => toggle(s)}
+                                                role="option"
+                                                aria-selected={on}
+                                            >
+                                                <PopupDot $color={m.dot} />
+                                                <PopupRowLabel>{m.label}</PopupRowLabel>
+                                                <OnlyBtn
+                                                    onClick={e => { e.stopPropagation(); onlyAppointmentStatus(s); }}
+                                                    title={`Pokaż tylko: ${m.label}`}
+                                                >
+                                                    Tylko
+                                                </OnlyBtn>
+                                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
+                                            </PopupRow>
+                                        );
+                                    })}
+                                </>
+                            )}
+
+                            {activeCategory === 'visit' && (
+                                <>
+                                    <PopupSectionHeader>
+                                        <PopupSectionTitle>Wizyty</PopupSectionTitle>
+                                        <SectionAllBtn
+                                            onClick={e => { e.stopPropagation(); onVisitStatusesChange(ALL_VISIT_STATUSES); }}
+                                        >
+                                            Wszystkie
+                                        </SectionAllBtn>
+                                    </PopupSectionHeader>
+                                    {ALL_VISIT_STATUSES.map(s => {
+                                        const m = STATUS_META[s];
+                                        const on = isActive(s);
+                                        return (
+                                            <PopupRow
+                                                key={s}
+                                                $active={on}
+                                                onClick={() => toggle(s)}
+                                                role="option"
+                                                aria-selected={on}
+                                            >
+                                                <PopupDot $color={m.dot} />
+                                                <PopupRowLabel>{m.label}</PopupRowLabel>
+                                                <OnlyBtn
+                                                    onClick={e => { e.stopPropagation(); onlyVisitStatus(s); }}
+                                                    title={`Pokaż tylko: ${m.label}`}
+                                                >
+                                                    Tylko
+                                                </OnlyBtn>
+                                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
+                                            </PopupRow>
+                                        );
+                                    })}
+                                </>
+                            )}
+
+                            {activeCategory === 'color' && (
+                                <>
+                                    <PopupSectionHeader>
+                                        <PopupSectionTitle>Kolory</PopupSectionTitle>
+                                        <SectionAllBtn
+                                            onClick={e => { e.stopPropagation(); onHiddenColorIdsChange([]); }}
+                                        >
+                                            Wszystkie
+                                        </SectionAllBtn>
+                                    </PopupSectionHeader>
+                                    {availableColors.map(color => {
+                                        const on = !hiddenColorIds.includes(color.id);
+                                        return (
+                                            <PopupRow
+                                                key={color.id}
+                                                $active={on}
+                                                onClick={() => toggleColor(color.id)}
+                                                role="option"
+                                                aria-selected={on}
+                                            >
+                                                <ColorSwatch $hex={color.hexColor} />
+                                                <PopupRowLabel>{color.name}</PopupRowLabel>
+                                                <OnlyBtn
+                                                    onClick={e => { e.stopPropagation(); onlyColor(color.id); }}
+                                                    title={`Pokaż tylko kolor: ${color.name}`}
+                                                >
+                                                    Tylko
+                                                </OnlyBtn>
+                                                {on && <PopupCheck><CheckIcon /></PopupCheck>}
+                                            </PopupRow>
+                                        );
+                                    })}
+                                </>
+                            )}
+                        </OptionsPanel>
+                    )}
+                </PopupRoot>
+            </>
+        )}
+        </>
     );
 };
