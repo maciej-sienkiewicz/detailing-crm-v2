@@ -47,7 +47,7 @@ const OutlineDangerBtn = styled.button`
 `;
 
 /**
- * Strefa niebezpieczna konta — widoczna wyłącznie dla ownera (gating w SecuritySection).
+ * Strefa niebezpieczna konta, widoczna wyłącznie dla ownera (gating w SecuritySection).
  * Sam przycisk niczego nie robi: pełne potwierdzenie (skutki, przepisanie nazwy firmy,
  * hasło) zbiera ClearAccountModal.
  */
@@ -59,7 +59,7 @@ export const DangerZoneCard = () => {
             <CardTitle>Strefa niebezpieczna</CardTitle>
             <CardDesc>
                 Wyczyszczenie konta usuwa bezpowrotnie wszystkich klientów, wizyty, pliki
-                i dokumenty oraz przywraca ustawienia domyślne — konto wraca do stanu
+                i dokumenty oraz przywraca ustawienia domyślne. Konto wraca do stanu
                 jak po rejestracji. Zostają: Twoje konto, plan subskrypcji i saldo SMS.
             </CardDesc>
             <Row>
