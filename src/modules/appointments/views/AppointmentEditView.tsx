@@ -20,6 +20,8 @@ import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
 import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
+import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 
 const SmsSeparator = styled.div`
     height: 1px;
@@ -60,13 +62,18 @@ const Container = styled.div`
     background-color: ${props => props.theme.colors.background};
     ${hexBackdrop}
     padding: ${props => props.theme.spacing.lg};
+    /* Miejsce na przyklejoną stopkę (StickyFooter) — więcej na mobile, bo
+       przyciski są tam pełnej szerokości, jeden nad drugim. */
+    padding-bottom: 140px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.xl};
+        padding-bottom: 120px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         padding: ${props => props.theme.spacing.xxl};
+        padding-bottom: 120px;
     }
 `;
 
@@ -94,11 +101,55 @@ const Actions = styled.div`
     gap: ${props => props.theme.spacing.md};
 `;
 
+// ─── Sticky footer (analogicznie do CheckInWizardView) ────────────────────────
+
+const StickyFooter = styled.footer<{ $sidebarWidth: number }>`
+    position: fixed;
+    bottom: 0;
+    left: ${p => p.$sidebarWidth}px;
+    right: 0;
+    background: ${st.bgCard};
+    border-top: 1px solid ${st.border};
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+    z-index: 50;
+    transition: left 0.2s ease;
+
+    @media (max-width: 768px) {
+        left: 0;
+        /* Ponad dolnym paskiem nawigacji – przycisk zapisu musi zostać klikalny. */
+        bottom: ${BOTTOM_NAV_SPACE};
+    }
+`;
+
+const FooterInner = styled.div`
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: flex-end;
+
+    @media (min-width: 640px) {
+        padding: 14px 24px;
+    }
+
+    @media (min-width: 768px) {
+        padding: 16px 40px;
+    }
+`;
+
 const FooterActions = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.md};
-    justify-content: flex-end;
-    margin-top: ${props => props.theme.spacing.lg};
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+
+    @media (max-width: 767px) {
+        width: 100%;
+
+        & > button {
+            flex: 1;
+        }
+    }
 `;
 
 export const AppointmentEditView = () => {
@@ -107,6 +158,8 @@ export const AppointmentEditView = () => {
     const location = useLocation();
     const queryClient = useQueryClient();
     const { showSuccess, showInfo } = useToast();
+    const { isCollapsed } = useSidebar();
+    const sidebarWidth = isCollapsed ? 64 : 240;
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
         queryKey: ['appointments', appointmentId],
@@ -491,16 +544,20 @@ export const AppointmentEditView = () => {
                         />
                     </>
                 )}
-
-                <FooterActions>
-                    <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
-                        {t.common.cancel}
-                    </Button>
-                    <Button $variant="primary" onClick={handleSave} disabled={isAnyMutating}>
-                        {isAnyMutating ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
-                    </Button>
-                </FooterActions>
             </ContentWrapper>
+
+            <StickyFooter $sidebarWidth={sidebarWidth}>
+                <FooterInner>
+                    <FooterActions>
+                        <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
+                            {t.common.cancel}
+                        </Button>
+                        <Button $variant="primary" onClick={handleSave} disabled={isAnyMutating}>
+                            {isAnyMutating ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
+                        </Button>
+                    </FooterActions>
+                </FooterInner>
+            </StickyFooter>
 
             {recurrenceInfo && (
                 <RecurrenceEditScopeModal

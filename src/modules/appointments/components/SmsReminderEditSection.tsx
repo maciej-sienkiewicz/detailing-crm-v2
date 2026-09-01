@@ -297,7 +297,7 @@ export const SmsReminderEditSection = ({
                     <Banner>
                         <BannerText>
                             SMS z przypomnieniami o wizycie są <strong>wyłączone</strong> w konfiguracji systemu.{' '}
-                            Włącz je w <a href="/sms-campaigns">ustawieniach SMS</a>, żeby planować przypomnienia.
+                            Włącz je w <a href="/settings?tab=templates">ustawieniach SMS</a>, żeby planować przypomnienia.
                         </BannerText>
                     </Banner>
                 )}
