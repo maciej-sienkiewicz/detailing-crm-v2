@@ -10,6 +10,7 @@ import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
+import { HoverInfo } from '@/common/components/InfoTooltip';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -827,6 +828,16 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     const { reminderSms } = smsInfo ?? { reminderSms: { requested: false, status: null, sentAt: null, editable: false } };
     const alreadySent = !reminderSms.editable && reminderSms.status === 'SENT';
     const canToggle = reminderSms.editable && preVisitEnabled;
+    // Wyjaśnienie pokazywane pod kursorem, gdy przełącznik jest zablokowany (poza
+    // przypadkiem "już wysłany", który dostaje własną plakietkę zamiast przełącznika).
+    // reminderSms.editable jest tu praktycznie zawsze true — staje się false tylko,
+    // gdy status to SENT, a to gałąź `alreadySent` obsługuje osobno — ale zostawiamy
+    // ten wariant na wszelki wypadek, gdyby backend kiedyś dodał inny powód niedostępności.
+    const disabledReason = !preVisitEnabled
+        ? 'Przypomnienia SMS przed wizytą są wyłączone w konfiguracji studia. Włącz je w Ustawieniach → Szablony SMS.'
+        : !reminderSms.editable
+            ? 'Tego przypomnienia nie można już edytować.'
+            : null;
 
     const [checked, setChecked] = useState(false);
 
@@ -853,6 +864,24 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
 
     const effectiveChecked = canToggle && checked;
 
+    // Natywny `disabled` blokuje hover i klik razem z toggle'owaniem — kiedy powód jest
+    // konfiguracyjny (nie chwilowy zapis), zostawiamy element klikalnym (handleToggle i
+    // tak nic nie zrobi) i owijamy go w HoverInfo, żeby po najechaniu było wiadomo,
+    // dlaczego się nie da, zamiast samej wyszarzonej ikonki bez wyjaśnienia.
+    const toggle = (
+        <ToggleLabel $disabled={!canToggle || mutation.isPending} aria-disabled={!canToggle || mutation.isPending}>
+            <ToggleInput
+                checked={effectiveChecked}
+                disabled={mutation.isPending}
+                onChange={e => handleToggle(e.target.checked)}
+            />
+            <ToggleTrack $checked={effectiveChecked} $saving={mutation.isPending} />
+            <ToggleValueText $checked={effectiveChecked} $saving={mutation.isPending}>
+                {mutation.isPending ? '...' : effectiveChecked ? 'Wł.' : 'Wył.'}
+            </ToggleValueText>
+        </ToggleLabel>
+    );
+
     return (
         <SmsRow>
             <SmsLabel>SMS z przypomnieniem</SmsLabel>
@@ -865,18 +894,10 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
                         </svg>
                         Wysłany
                     </SmsSentPill>
+                ) : disabledReason && !mutation.isPending ? (
+                    <HoverInfo text={disabledReason}>{toggle}</HoverInfo>
                 ) : (
-                    <ToggleLabel $disabled={!canToggle || mutation.isPending}>
-                        <ToggleInput
-                            checked={effectiveChecked}
-                            disabled={!canToggle || mutation.isPending}
-                            onChange={e => handleToggle(e.target.checked)}
-                        />
-                        <ToggleTrack $checked={effectiveChecked} $saving={mutation.isPending} />
-                        <ToggleValueText $checked={effectiveChecked} $saving={mutation.isPending}>
-                            {mutation.isPending ? '...' : effectiveChecked ? 'Wł.' : 'Wył.'}
-                        </ToggleValueText>
-                    </ToggleLabel>
+                    toggle
                 )}
             </SmsRight>
         </SmsRow>
