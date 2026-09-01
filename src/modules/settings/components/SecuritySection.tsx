@@ -5,6 +5,7 @@ import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useIdleTimeoutSetting, useSetIdleTimeout } from '../hooks/useIdleTimeout';
+import { DangerZoneCard } from './account/DangerZoneCard';
 
 /** Zgodne z backendem (PasswordResetProperties): link żyje 30 minut, kolejny da się wysłać po minucie. */
 const RESET_LINK_TTL_MINUTES = 30;
@@ -283,6 +284,7 @@ export const SecuritySection = () => {
             <AccountCard />
             <PinSetupSection />
             {isOwner && <IdleTimeoutCard />}
+            {isOwner && <DangerZoneCard />}
         </Wrap>
     );
 };
