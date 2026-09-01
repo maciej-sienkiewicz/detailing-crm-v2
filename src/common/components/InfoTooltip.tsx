@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
@@ -8,6 +8,12 @@ const Wrap = styled.span`
   margin-left: 5px;
   vertical-align: middle;
   flex-shrink: 0;
+`;
+
+const HoverTrigger = styled.span`
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
 `;
 
 const Icon = styled.span`
@@ -65,11 +71,20 @@ const PopupBox = styled.div`
 const POPUP_WIDTH = 240;
 const GAP = 8;
 
-interface InfoTooltipProps {
+interface HoverInfoProps {
+  /** Explanation shown while hovering [children]. */
   text: string;
+  children: ReactNode;
 }
 
-export function InfoTooltip({ text }: InfoTooltipProps) {
+/**
+ * Generic hover-triggered explanation, portalled to `document.body` so it is
+ * never clipped by a scrollable/overflow:hidden ancestor (a popover card,
+ * a modal). Wrap ANY element in it — a disabled-looking toggle, a locked
+ * button — to explain why it won't do anything, without needing the native
+ * `disabled` attribute (which silently swallows both hover and click).
+ */
+export function HoverInfo({ text, children }: HoverInfoProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -86,8 +101,8 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
   );
 
   return (
-    <Wrap ref={ref} onMouseEnter={show} onMouseLeave={hide}>
-      <Icon>i</Icon>
+    <HoverTrigger ref={ref} onMouseEnter={show} onMouseLeave={hide}>
+      {children}
       {rect &&
         createPortal(
           <PopupBox
@@ -101,6 +116,21 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
           </PopupBox>,
           document.body,
         )}
-    </Wrap>
+    </HoverTrigger>
+  );
+}
+
+interface InfoTooltipProps {
+  text: string;
+}
+
+/** The familiar "i" badge — an explanation with no element of its own to attach to. */
+export function InfoTooltip({ text }: InfoTooltipProps) {
+  return (
+    <HoverInfo text={text}>
+      <Wrap>
+        <Icon>i</Icon>
+      </Wrap>
+    </HoverInfo>
   );
 }
