@@ -7,11 +7,9 @@ interface IdleTimeoutContextType {
     /**
      * Whether the screen is currently locked behind the user-switcher panel.
      *
-     * Exposed for session telemetry: a locked screen is the one moment when we know for
-     * certain nobody is working, so the time-spent measurement must not count mouse
-     * movement over the lock overlay as engaged time. Reading the sessionStorage key
-     * directly from the telemetry module would couple it to this file's internals; a
-     * context value is the seam that is meant to be depended on.
+     * A context value rather than a sessionStorage key read from the outside: consumers
+     * that need to know "nobody is at the keyboard right now" depend on this seam instead
+     * of on this file's internals.
      */
     isLocked: boolean;
 }

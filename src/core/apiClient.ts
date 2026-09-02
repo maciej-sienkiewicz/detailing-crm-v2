@@ -15,7 +15,7 @@ declare module 'axios' {
         /**
          * Per-request opt-out from the automatic bounce to `/login` on 401.
          *
-         * For BACKGROUND calls the user never made: telemetry heartbeats, silent polls.
+         * For BACKGROUND calls the user never made: silent polls, live-metrics refetches.
          * Without it, a request the user did not trigger decides to throw them out of a
          * half-filled form. Logging out has to be a consequence of what the user did —
          * their own action hitting a dead session, or the idle lock — not of a timer
