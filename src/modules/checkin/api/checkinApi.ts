@@ -164,14 +164,14 @@ export const checkinApi = {
      * Returns sessionId + token for subsequent operations
      */
     createUploadSession: async (
-        appointmentId: string
+        appointmentId?: string
     ): Promise<MobileUploadSession> => {
         if (USE_MOCKS) {
-            return mockCreateUploadSession(appointmentId);
+            return mockCreateUploadSession(appointmentId ?? 'walk-in');
         }
         const response = await apiClient.post(
             `${PHOTO_SESSIONS_PATH}`,
-            { appointmentId }
+            appointmentId ? { appointmentId } : {}
         );
         return response.data;
     },
