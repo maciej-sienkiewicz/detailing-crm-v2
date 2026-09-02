@@ -14,6 +14,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
 | Zdarzenia leadów | `src/modules/leads/hooks/useLeadSocket.ts`, `src/modules/leads/types.ts` |
 | Zdarzenia dashboardu | `src/modules/dashboard/hooks/useDashboardSocket.ts`, `src/modules/dashboard/types.ts` |
 | Zdarzenia check-in | `src/modules/checkin/hooks/useCheckinSocket.ts`, `src/modules/checkin/types.ts` |
+| Metryki na żywo | `src/modules/live-metrics/hooks/useLiveMetricsSocket.ts`, `src/modules/live-metrics/types.ts` |
 
 ---
 
@@ -73,6 +74,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
 |---|---|---|
 | `/topic/studio.{studioId}.dashboard` | sidebar (cały czas po zalogowaniu) oraz widok Tablicy | zawsze, gdy użytkownik jest zalogowany |
 | `/topic/studio.{studioId}.checkin.{checkinId}` | ekran generatora QR check-in | tylko gdy otwarty jest konkretny check-in |
+| `/topic/studio.{studioId}.metrics` | widok „Metryki na żywo” (`/live-metrics`) | tylko gdy widok jest otwarty |
 
 - `studioId` pochodzi z profilu zalogowanego użytkownika (`GET auth/me` →
   `user.studioId`).
@@ -217,6 +219,41 @@ Tu **nie ma koperty** `{type, payload, timestamp}` — pola leżą płasko obok
 
 `x`/`y` to procenty (0–100). `note` może być `null` — frontend normalizuje do
 pustego stringa.
+
+### 5.x Metryki na żywo — `/topic/studio.{studioId}.metrics`
+
+Kanał modułu live-metrics. Backend rozgłasza tu każde zdarzenie biznesowe dopiero po
+odczytaniu go ze strumienia Redis, więc ramka dociera także wtedy, gdy zapisała ją inna
+instancja aplikacji.
+
+```json
+{
+  "kind": "BUSINESS_EVENT",
+  "timestamp": "2026-09-02T20:53:59.014Z",
+  "event": {
+    "id": "49fc4b30-c77c-4d10-a8f5-614e26b3ad88",
+    "tenantId": "48cf5ba1-e849-46fb-8baf-ae4c463d9de0",
+    "type": "VISIT_CREATED",
+    "series": ["VISIT_CREATED", "VISIT_CREATED:FROM_RESERVATION"],
+    "dimension": "origin",
+    "dimensionValue": "FROM_RESERVATION",
+    "occurredAt": "2026-09-02T20:53:59.002Z",
+    "attributes": { "visitId": "…", "appointmentId": "…", "userId": "…" }
+  }
+}
+```
+
+- `kind` przyjmuje `BUSINESS_EVENT` albo `HEARTBEAT`. Heartbeat istnieje po to, żeby
+  bliźniaczy kanał SSE nie zasnął za proxy; frontend go ignoruje.
+- `type` to jeden z pięciu obszarów: `RESERVATION_CREATED`, `VISIT_CREATED`,
+  `SERVICE_CREATED`, `PHOTO_UPLOADED`, `ACTIVITY_LOGGED`.
+- `series` niesie serie, których liczniki zdarzenie podbiło: bazową i — gdy typ ma wymiar
+  — pod-serię `TYP:WARTOŚĆ`. Frontend nanosi je na migawkę z `GET /api/v1/live-metrics/overview`
+  trzymaną w cache'u React Query, więc suma pod-serii zawsze równa się serii bazowej.
+- `attributes` to płaski, nieustrukturyzowany kontekst (identyfikatory, nazwa). Nie wolno
+  na nim opierać liczenia — służy wyłącznie do pokazania „które", nie „ile".
+- Ramka jest najlepszym-staraniem: po zerwaniu połączenia frontend nie odtwarza tego, co
+  przepadło, tylko unieważnia zapytanie `/overview` i bierze pełną migawkę z serwera.
 
 ## 6. Wylogowanie i zmiana użytkownika
 
