@@ -495,6 +495,12 @@ export interface DashboardSocketEvent<T = unknown> {
 
 export interface CommThreadUpdatedPayload {
     threadId: string;
+    /**
+     * Wątek dostał wiadomość PRZYCHODZĄCĄ — tylko wtedy warto zaczepić użytkownika
+     * powiadomieniem. Własna wysyłka (z CRM-a albo z telefonu, zassana z folderu
+     * Wysłane) też zmienia wątek, ale przychodzi z tą flagą wyłączoną: lista się
+     * odświeża, powiadomienie nie leci.
+     */
     newMessage: boolean;
 }
 
