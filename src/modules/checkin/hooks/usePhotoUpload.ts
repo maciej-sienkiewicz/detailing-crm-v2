@@ -3,12 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
 import type { PhotoSlot } from '../types';
 
-export const usePhotoUpload = (appointmentId: string) => {
+// appointmentId jest opcjonalne: check-in „z marszu" (/checkin/new) robi zdjęcia,
+// zanim istnieje rezerwacja — sesja powstaje wtedy bez powiązania z terminem.
+export const usePhotoUpload = (appointmentId?: string) => {
     const queryClient = useQueryClient();
 
     // Step 1: Create upload session
     const { data: uploadSession, isLoading: isLoadingSession } = useQuery({
-        queryKey: ['photo-session', appointmentId],
+        queryKey: ['photo-session', 'create', appointmentId ?? 'walk-in'],
         queryFn: () => checkinApi.createUploadSession(appointmentId),
     });
 
