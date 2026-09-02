@@ -54,6 +54,7 @@ export const commsApi = {
         if (filters.labelId) params.set('labelId', filters.labelId);
         if (filters.onlyUnread) params.set('onlyUnread', 'true');
         if (filters.onlyLeads) params.set('onlyLeads', 'true');
+        if (filters.folder) params.set('folder', filters.folder);
         if (filters.query) params.set('query', filters.query);
         params.set('page', String(filters.page ?? 0));
         params.set('pageSize', String(filters.pageSize ?? 30));
@@ -61,9 +62,12 @@ export const commsApi = {
         return data;
     },
 
-    /** Korekta językowa treści przed wysyłką (LLM po stronie serwera). */
-    proofread: async (text: string): Promise<string> => {
-        const { data } = await apiClient.post('/v1/comms/proofread', { text }, { skipErrorToast: true });
+    /**
+     * Korekta językowa treści przed wysyłką (LLM po stronie serwera).
+     * W trybie `html` korektor zostawia znaczniki z edytora na miejscu.
+     */
+    proofread: async (text: string, format: 'text' | 'html' = 'text'): Promise<string> => {
+        const { data } = await apiClient.post('/v1/comms/proofread', { text, format }, { skipErrorToast: true });
         return data.text;
     },
 
@@ -99,8 +103,29 @@ export const commsApi = {
 
     // ── Wysyłka ──────────────────────────────────────────────────────────────
 
-    send: async (request: SendMailRequest): Promise<{ messageId: string; threadId: string }> => {
-        const { data } = await apiClient.post('/v1/comms/send', request, { skipErrorToast: true });
+    /**
+     * Bez plików — JSON. Z plikami — multipart: część `request` (JSON) + `attachments`.
+     * [onUploadProgress] dostaje ułamek 0–1; przy kilkunastu megabajtach na łączu
+     * komórkowym przycisk „Wyślij" bez postępu wygląda jak zawieszony.
+     */
+    send: async (
+        request: SendMailRequest,
+        onUploadProgress?: (fraction: number) => void
+    ): Promise<{ messageId: string; threadId: string }> => {
+        const { attachments = [], ...body } = request;
+        if (attachments.length === 0) {
+            const { data } = await apiClient.post('/v1/comms/send', body, { skipErrorToast: true });
+            return data;
+        }
+        const form = new FormData();
+        form.append('request', new Blob([JSON.stringify(body)], { type: 'application/json' }));
+        attachments.forEach((file) => form.append('attachments', file, file.name));
+        const { data } = await apiClient.post('/v1/comms/send', form, {
+            skipErrorToast: true,
+            onUploadProgress: (event) => {
+                if (onUploadProgress && event.total) onUploadProgress(Math.min(1, event.loaded / event.total));
+            },
+        });
         return data;
     },
 

@@ -94,7 +94,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
     const runProofread = () => {
         const source = message.trim();
         if (!source || proofread.isPending) return;
-        proofread.mutate(source, {
+        proofread.mutate({ text: source }, {
             onSuccess: (corrected) => {
                 if (corrected.trim() === source) {
                     showSuccess('Bez zmian', 'Nie znaleźliśmy błędów w tej treści');

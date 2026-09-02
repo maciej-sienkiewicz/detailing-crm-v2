@@ -79,9 +79,11 @@ interface ComposePaneProps {
     /** Adres wpisany z góry — np. „napisz do tego klienta". */
     initialTo?: string;
     onClose: () => void;
+    /** Wiadomość poszła — rodzic pokazuje nowy wątek (w folderze Wysłane). */
+    onSent: (threadId: string) => void;
 }
 
-export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, onClose }: ComposePaneProps) {
+export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, onClose, onSent }: ComposePaneProps) {
     const { data: accounts } = useMailAccounts();
     const activeAccount = accounts?.find((account) => account.status !== 'DISABLED');
 
@@ -110,9 +112,9 @@ export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, onClose }: C
                         accountId={activeAccount.id}
                         initialTo={initialTo}
                         requireSubject
-                        onSent={onClose}
+                        onSent={onSent}
                     />
-                    <Hint>Wysłana wiadomość utworzy nowy wątek na liście po lewej.</Hint>
+                    <Hint>Wysłana wiadomość utworzy nowy wątek w folderze Wysłane — wróci do Odebranych, gdy klient odpisze.</Hint>
                 </Body>
             ) : (
                 <EmptyHint>Podłącz skrzynkę, żeby wysyłać wiadomości.</EmptyHint>
