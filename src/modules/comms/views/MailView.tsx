@@ -2,10 +2,13 @@
 // Skrzynka pocztowa CRM. Dwa tryby prezentacji:
 //  - desktop (≥1024px): lista + konwersacja obok siebie,
 //  - mobile/tablet: lista LUB konwersacja (przełączane, z przyciskiem wstecz).
-// Widok jest jednym strumieniem odebranej korespondencji: bez folderów, bez filtrów
-// i bez panelu klienta. Studio nie prowadzi katalogów, więc każdy przełącznik widoku
-// był kosztem uwagi bez pokrycia — do wątku dochodzi się wyszukiwarką albo przewijaniem.
-// Kontekst klienta przejął pasek nad korespondencją.
+// Widok ma dwa foldery i nic ponadto: Odebrane (rozmowy, w których klient napisał
+// choć raz) i Wysłane (rozmowy, w których my napisaliśmy choć raz). Wiadomość napisana
+// od zera, na którą nikt jeszcze nie odpisał, siedzi wyłącznie w Wysłanych — w głównym
+// widoku byłaby szumem udającym zapytanie. Gdy klient odpisze, ten sam wątek pojawia
+// się w Odebranych. Bez dalszych filtrów i bez panelu klienta: studio nie prowadzi
+// katalogów, do wątku dochodzi się wyszukiwarką albo przewijaniem. Kontekst klienta
+// przejął pasek nad korespondencją.
 // Widok wypełnia całą dostępną wysokość — scrolluje się wyłącznie lista i wiadomości.
 //
 // Przełączenie wątku nie przebudowuje ekranu: kolumny są sterowane wybranym id
@@ -41,18 +44,23 @@ import {
     useThread,
     useThreads,
 } from '../hooks/useComms';
-import type { CommThread } from '../types';
+import type { CommThread, MailFolder } from '../types';
 import { ComposePane } from '../components/ComposePane';
 import { ConversationView } from '../components/ConversationView';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import {
     EmptyHint,
+    FilterChip,
     IconButton,
     Pill,
     SurfaceCard,
     formatRelativeTime,
 } from '../components/shared';
+
+/** Foldery w adresie: ?folder=sent — odświeżenie strony ma zastać ten sam widok. */
+const FOLDER_PARAM: Record<MailFolder, string | null> = { INBOX: null, SENT: 'sent' };
+const folderFromParam = (value: string | null): MailFolder => (value === 'sent' ? 'SENT' : 'INBOX');
 
 // ── Media query hook ─────────────────────────────────────────────────────────
 
@@ -161,6 +169,15 @@ const SearchRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+`;
+
+/** Dwa chipy folderów pod wyszukiwarką — przełącznik, nie nawigacja. */
+const FolderRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    button { padding: 5px 13px; font-size: 12px; }
 `;
 
 const SearchInput = styled.div`
@@ -335,14 +352,38 @@ export default function MailView() {
     const [composeOpen, setComposeOpen] = useState(() => searchParams.get('compose') === '1');
     const { showInfo } = useToast();
 
+    const folder = folderFromParam(searchParams.get('folder'));
     const selectedThreadId = searchParams.get('thread');
+
+    /** Parametry adresu z folderem i wątkiem — jedyne, które przeżywają nawigację. */
+    const paramsFor = useCallback((nextFolder: MailFolder, threadId: string | null) => {
+        const params: Record<string, string> = {};
+        const folderParam = FOLDER_PARAM[nextFolder];
+        if (folderParam) params.folder = folderParam;
+        if (threadId) params.thread = threadId;
+        return params;
+    }, []);
+
     const selectThread = useCallback(
         (threadId: string | null) => {
             setFullMessageId(null);
             setComposeOpen(false);
-            setSearchParams(threadId ? { thread: threadId } : {}, { replace: true });
+            setSearchParams(paramsFor(folder, threadId), { replace: true });
         },
-        [setSearchParams]
+        [setSearchParams, paramsFor, folder]
+    );
+
+    // Zmiana folderu zamyka otwartą rozmowę: wątek mógłby nie należeć do nowego
+    // widoku, a lista i prawa kolumna mają opowiadać tę samą historię.
+    const selectFolder = useCallback(
+        (nextFolder: MailFolder) => {
+            if (nextFolder === folder) return;
+            setFullMessageId(null);
+            setComposeOpen(false);
+            setPage(0);
+            setSearchParams(paramsFor(nextFolder, null), { replace: true });
+        },
+        [setSearchParams, paramsFor, folder]
     );
 
     // Zamknięcie czyści parametry, żeby odświeżenie strony nie otwierało
@@ -350,9 +391,21 @@ export default function MailView() {
     const closeCompose = useCallback(() => {
         setComposeOpen(false);
         if (searchParams.get('compose') || searchParams.get('to')) {
-            setSearchParams({}, { replace: true });
+            setSearchParams(paramsFor(folder, null), { replace: true });
         }
-    }, [searchParams, setSearchParams]);
+    }, [searchParams, setSearchParams, paramsFor, folder]);
+
+    // Nowa wiadomość od zera ląduje w Wysłanych — pokazujemy ją tam od razu, żeby
+    // nie wyglądało, jakby zniknęła.
+    const openSentThread = useCallback(
+        (threadId: string) => {
+            setComposeOpen(false);
+            setFullMessageId(null);
+            setPage(0);
+            setSearchParams(paramsFor('SENT', threadId), { replace: true });
+        },
+        [setSearchParams, paramsFor]
+    );
 
     const { data: accounts } = useMailAccounts();
     const mailboxSync = useMailboxSyncState();
@@ -360,11 +413,12 @@ export default function MailView() {
     const filters = useMemo(
         () => ({
             archived: false,
+            folder,
             query: query || undefined,
             page,
             pageSize: 30,
         }),
-        [query, page]
+        [folder, query, page]
     );
     const { data: threadPage } = useThreads(filters);
     // Adresy oznaczone jako formularze — jedna cache'owana lista na całą skrzynkę.
@@ -501,10 +555,36 @@ export default function MailView() {
                                 <PenSquare />
                             </ComposeButton>
                         </SearchRow>
+                        <FolderRow role="tablist" aria-label="Folder">
+                            <FilterChip
+                                type="button"
+                                role="tab"
+                                aria-selected={folder === 'INBOX'}
+                                $active={folder === 'INBOX'}
+                                onClick={() => selectFolder('INBOX')}
+                            >
+                                Odebrane
+                            </FilterChip>
+                            <FilterChip
+                                type="button"
+                                role="tab"
+                                aria-selected={folder === 'SENT'}
+                                $active={folder === 'SENT'}
+                                onClick={() => selectFolder('SENT')}
+                            >
+                                Wysłane
+                            </FilterChip>
+                        </FolderRow>
                     </ListHeader>
                     <ThreadListScroll>
                         {threadPage && threadPage.items.length === 0 && (
-                            <EmptyHint>Brak wiadomości w tym widoku</EmptyHint>
+                            <EmptyHint>
+                                {query
+                                    ? 'Nic nie pasuje do wyszukiwania'
+                                    : folder === 'SENT'
+                                        ? 'Nie wysłano jeszcze żadnej wiadomości'
+                                        : 'Brak odebranych wiadomości'}
+                            </EmptyHint>
                         )}
                         {(threadPage?.items ?? []).map((thread: CommThread) => (
                             <ThreadItem
@@ -531,6 +611,11 @@ export default function MailView() {
                                         <Pill $bg="#eef2ff" $fg="#4338ca">Formularz</Pill>
                                     )}
                                     {thread.leadId && <Pill $bg="#f0fdf4" $fg="#15803d">Lead</Pill>}
+                                    {folder === 'SENT' && thread.inboundCount === 0 && (
+                                        <Pill $bg="#f8fafc" $fg="#64748b" title="Klient jeszcze nie odpisał">
+                                            Bez odpowiedzi
+                                        </Pill>
+                                    )}
                                     {thread.lastDirection === 'OUTBOUND' ? 'Ty: ' : ''}
                                     {thread.lastSnippet ?? ''}
                                 </div>
@@ -590,6 +675,7 @@ export default function MailView() {
                         isDesktop={isDesktop}
                         initialTo={composeTo ?? undefined}
                         onClose={closeCompose}
+                        onSent={openSentThread}
                     />
                 )}
 

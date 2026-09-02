@@ -59,11 +59,20 @@ export interface CommThread {
     lastSnippet: string | null;
     messageCount: number;
     unreadCount: number;
+    /** Kierunki w wątku — wynika z nich, w których folderach (Odebrane/Wysłane) go widać. */
+    inboundCount: number;
+    outboundCount: number;
     hasAttachments: boolean;
     leadId: string | null;
     labelId: string | null;
     archived: boolean;
 }
+
+/**
+ * Folder listy wątków. Wątek może być w obu naraz (klient napisał, my odpisaliśmy):
+ * to dwa spojrzenia na tę samą rozmowę, nie przenoszenie między katalogami.
+ */
+export type MailFolder = 'INBOX' | 'SENT';
 
 export interface CommThreadPage {
     items: CommThread[];
@@ -123,6 +132,8 @@ export interface ThreadListFilters {
     labelId?: string;
     onlyUnread?: boolean;
     onlyLeads?: boolean;
+    /** Brak = wszystkie wątki niezależnie od kierunku. */
+    folder?: MailFolder;
     query?: string;
     page?: number;
     pageSize?: number;
@@ -137,7 +148,20 @@ export interface SendMailRequest {
     bodyHtml: string;
     /** Stopkę dokleja serwer — zapisana treść jest jedynym źródłem prawdy. */
     appendSignature?: boolean;
+    /** Pliki z kompozytora; z nimi żądanie idzie jako multipart, bez nich jako JSON. */
+    attachments?: File[];
 }
+
+/** Limity załączników wychodzących — lustro OutgoingAttachmentPolicy na backendzie. */
+export const OUTGOING_ATTACHMENT_LIMITS = {
+    maxFiles: 10,
+    maxFileBytes: 15 * 1024 * 1024,
+    maxTotalBytes: 15 * 1024 * 1024,
+    blockedExtensions: new Set([
+        'exe', 'msi', 'bat', 'cmd', 'com', 'scr', 'pif', 'cpl', 'jar', 'js', 'jse',
+        'vbs', 'vbe', 'wsf', 'wsh', 'ps1', 'psm1', 'reg', 'lnk', 'hta', 'dll', 'sys',
+    ]),
+} as const;
 
 /** Stopka nadawcy — należy do zalogowanego użytkownika, nie do studia. */
 export interface MailSignature {

@@ -302,7 +302,11 @@ export const useSetThreadArchived = () => {
 export const useSendMail = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (request: SendMailRequest) => commsApi.send(request),
+        mutationFn: ({
+            onUploadProgress,
+            ...request
+        }: SendMailRequest & { onUploadProgress?: (fraction: number) => void }) =>
+            commsApi.send(request, onUploadProgress),
         onSuccess: (result) => {
             queryClient.invalidateQueries({
                 queryKey: [...COMMS_THREADS_KEY, 'detail', result.threadId],
@@ -429,7 +433,10 @@ export function useCommsSocket(): void {
 
 /** Korekta językowa treści wiadomości — świadomy krok użytkownika, nie automat. */
 export const useProofread = () =>
-    useMutation({ mutationFn: (text: string) => commsApi.proofread(text) });
+    useMutation({
+        mutationFn: ({ text, format }: { text: string; format?: 'text' | 'html' }) =>
+            commsApi.proofread(text, format),
+    });
 
 // ── Stopka nadawcy ───────────────────────────────────────────────────────────
 
