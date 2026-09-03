@@ -324,12 +324,20 @@ export interface GenerateInstagramPostRequest {
  * Odpowiedź /generate. Pole `content` zostaje bez zmian; reszta to informacja
  * o pętli weryfikacji reguł i identyfikator posta, po którym można go ocenić.
  */
+export interface FailedRule {
+    rule: string;
+    /** Cytat z posta, na który powołał się weryfikator. */
+    reason: string;
+}
+
 export interface InstagramPostResult {
     content: string;
     postId: string;
     verificationPassed: boolean;
     /** Reguły, których nie udało się spełnić mimo korekt (puste, gdy weryfikacja przeszła). */
     failedRules: string[];
+    /** To samo z uzasadnieniem — starsze odpowiedzi backendu tego pola nie mają. */
+    failedRuleDetails?: FailedRule[];
     /** Liczba rund weryfikacji; 0 oznacza, że studio nie ma żadnych reguł. */
     iterations: number;
 }
