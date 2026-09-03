@@ -50,3 +50,43 @@ export interface TemplatesPayload {
 }
 
 export type { SmsRuleKey, EmailRuleKey };
+
+// ─── Przekierowanie i próba generalna ────────────────────────────────────────
+
+export interface CommunicationRedirectSettings {
+  enabled: boolean;
+  phone: string;
+  email: string;
+  updatedAt: string | null;
+}
+
+export type RehearsalSeverity = 'ERROR' | 'WARNING';
+
+export interface RehearsalFinding {
+  severity: RehearsalSeverity;
+  rule: string;
+  detail: string;
+}
+
+export interface RehearsalItem {
+  seq: number;
+  total: number;
+  kind: string;
+  channel: 'SMS' | 'EMAIL';
+  enabled: boolean;
+  subject: string | null;
+  body: string;
+  segments: number | null;
+  findings: RehearsalFinding[];
+  delivery: { success: boolean; providerId: string | null; error: string | null } | null;
+}
+
+export interface RehearsalReport {
+  generatedAt: string;
+  redirectPhone: string | null;
+  redirectEmail: string | null;
+  sent: boolean;
+  errorCount: number;
+  warningCount: number;
+  items: RehearsalItem[];
+}
