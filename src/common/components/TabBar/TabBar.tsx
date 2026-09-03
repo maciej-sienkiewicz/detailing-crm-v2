@@ -60,6 +60,14 @@ const Bar = styled.nav`
     display: flex;
     gap: 6px;
     border-bottom: 1px solid ${st.border};
+    /* Na wąskim ekranie zakładki nie mieszczą się w jednym rzędzie: przewijamy je
+       w bok zamiast obcinać — trzecia i kolejne muszą być osiągalne kciukiem. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 `;
 
 const TabBtn = styled.button<{ $active: boolean }>`
@@ -78,6 +86,7 @@ const TabBtn = styled.button<{ $active: boolean }>`
     align-items: center;
     gap: 7px;
     white-space: nowrap;
+    flex-shrink: 0;
 
     &:hover { color: ${p => (p.$active ? st.accentBlue : st.text)}; }
 `;

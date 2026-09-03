@@ -302,6 +302,15 @@ export const MenuContainer = styled.nav`
     }
 `;
 
+/** Sekcja przyklejona do dołu: nie przewija się razem z resztą menu. */
+export const PinnedMenuContainer = styled.nav`
+    flex-shrink: 0;
+    padding: 0 8px 6px;
+    border-top: 1px solid ${S.border};
+
+    & > div { padding-top: 8px; }
+`;
+
 export const MenuSection = styled.div`
     padding: 14px 0 2px;
 
