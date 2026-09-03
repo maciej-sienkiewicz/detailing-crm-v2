@@ -65,7 +65,7 @@ import {
 // list). Entries the user cannot access are removed entirely: inaccessible
 // modules simply do not exist in the UI. Sections left empty are dropped.
 type GuardedMenuItem = MenuItem & { requires?: PermissionRequirement; showWhen?: boolean };
-type GuardedMenuSection = { title?: string; items: GuardedMenuItem[] };
+type GuardedMenuSection = { title?: string; pinned?: boolean; items: GuardedMenuItem[] };
 
 const buildMenuSections = (
     newLeadsCount: number,
@@ -119,6 +119,9 @@ const buildMenuSections = (
         },
         {
             title: 'Portal',
+            // Przyklejona do dołu menu: Ustawienia i zgłoszenie problemu mają być
+            // widoczne bez przewijania, niezależnie od liczby modułów wyżej.
+            pinned: true,
             items: [
                 // Parowanie telefonu do Click-to-Call przeniosło się stąd do
                 // Ustawień → Urządzenia mobilne, obok tabletów do podpisu:
@@ -131,8 +134,9 @@ const buildMenuSections = (
     ];
 
     return sections
-        .map(({ title, items }) => ({
+        .map(({ title, pinned, items }) => ({
             title,
+            pinned,
             items: items
                 .filter(({ requires, showWhen }) =>
                     (showWhen ?? true) && (!requires || can(requires)))

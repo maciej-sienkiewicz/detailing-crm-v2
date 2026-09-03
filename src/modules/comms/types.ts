@@ -576,38 +576,6 @@ export interface ContactNoteEvent {
     createdAt: string;
 }
 
-// ── Webhooki formularzy ──────────────────────────────────────────────────────
-
-export interface LeadIntakeWebhook {
-    id: string;
-    name: string;
-    /** Ostatnie znaki tokenu — do rozpoznania wpisu, bez ujawniania adresu. */
-    tokenHint: string;
-    active: boolean;
-    fieldMapping: string | null;
-    defaultTagCodes: string[];
-    createdAt: string;
-    lastReceivedAt: string | null;
-    receivedCount: number;
-}
-
-/** Token widać jeden raz — przy tworzeniu. */
-export interface CreatedLeadIntakeWebhook {
-    webhook: LeadIntakeWebhook;
-    token: string;
-}
-
-export type LeadIntakeDeliveryStatus = 'CREATED' | 'DUPLICATE' | 'REJECTED';
-
-export interface LeadIntakeDelivery {
-    id: string;
-    receivedAt: string;
-    status: LeadIntakeDeliveryStatus;
-    reason: string | null;
-    leadId: string | null;
-    payload: string;
-}
-
 // ── Wizytówka kontaktu ───────────────────────────────────────────────────────
 
 export interface ContactCardCustomer {
