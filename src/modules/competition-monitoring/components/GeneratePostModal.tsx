@@ -14,7 +14,6 @@ import type {
 } from '../types';
 import { MAX_ACTIVE_STYLE_RULES, MAX_STYLE_RULE_LENGTH } from '../types';
 import { instagramApi } from '../api/instagramApi';
-import { useIllusionProgress } from '../hooks/useIllusionProgress';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -636,17 +635,29 @@ const ProgressTrack = styled.div`
 `;
 
 /**
- * Szerokość steruje JS (krzywa „szybko na starcie, wolno na końcu"), więc CSS dokłada
- * tylko krótkie wygładzenie między klatkami. Domknięcie do 100% dostaje własny,
- * wyraźnie szybszy czas — koniec pracy ma być widoczny jako skok, a nie jako dalsze
- * pełznięcie.
+ * Pasek rośnie od 0 do 92% jedną animacją CSS — bez licznika w JS.
+ *
+ * Kształt jest tu całą treścią: `cubic-bezier(0.05, 0.7, 0.1, 1)` rusza gwałtownie
+ * i wyhamowuje na długim ogonie („progress illusion" — czekanie z paskiem, który
+ * zwalnia, wydaje się krótsze niż z paskiem liniowym albo z animacją w kółko).
+ *
+ * Dlaczego CSS, a nie requestAnimationFrame ze stanem Reacta: animacja czasowa działa
+ * niezależnie od tego, czy karta jest aktywna, nie generuje klatka po klatce nowych
+ * klas styled-components i nie zależy od tego, czy wątek główny akurat nadąża.
+ * 92%, bo 100% ma znaczyć „gotowe" — a to wie tylko odpowiedź serwera, po której
+ * ten widok i tak znika.
  */
-const ProgressFill = styled.div<{ $percent: number; $finishing: boolean }>`
+const grow = keyframes`
+  from { width: 0%; }
+  to   { width: 92%; }
+`;
+
+const ProgressFill = styled.div`
   height: 100%;
-  width: ${p => p.$percent}%;
+  width: 0;
   border-radius: 999px;
   background: linear-gradient(90deg, #3B82F6 0%, #6366F1 100%);
-  transition: width ${p => (p.$finishing ? '220ms cubic-bezier(0.22, 1, 0.36, 1)' : '120ms linear')};
+  animation: ${grow} 25s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
 `;
 
 const LoadingText = styled.p`
@@ -885,10 +896,6 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
     const topicRef    = useRef<HTMLInputElement>(null);
 
-    // Backend nie raportuje postępu (jedno żądanie, kilkanaście sekund), więc pasek
-    // jest wyliczany z czasu — patrz useIllusionProgress.
-    const progress = useIllusionProgress(phase === 'loading');
-
     const activeRuleCount = rules.filter(r => r.active).length;
 
     const canGenerate = topic.trim().length > 0;
@@ -1059,14 +1066,10 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         if (phase === 'loading') {
             return (
                 <LoadingWrap>
-                    <ProgressTrack
-                        role="progressbar"
-                        aria-label="Generowanie posta"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={Math.round(progress.percent)}
-                    >
-                        <ProgressFill $percent={progress.percent} $finishing={progress.isFinishing} />
+                    {/* Bez aria-valuenow: pasek nie mierzy postępu, tylko pokazuje, że
+                        praca trwa — deklarowanie fałszywej wartości myliłoby czytnik ekranu. */}
+                    <ProgressTrack role="progressbar" aria-label="Generowanie posta" aria-busy="true">
+                        <ProgressFill />
                     </ProgressTrack>
                     <LoadingText>Generuję post na Instagram...</LoadingText>
                     {topic && <LoadingEcho>„{topic}"</LoadingEcho>}
