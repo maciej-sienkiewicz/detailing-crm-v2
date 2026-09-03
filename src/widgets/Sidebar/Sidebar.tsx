@@ -22,7 +22,6 @@ import {
     UserRoundCog,
     Images,
     Activity,
-    Radio,
     CircleAlert,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -106,7 +105,6 @@ const buildMenuSections = (
             items: [
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
-                { path: '/live-metrics', label: 'Na żywo',  icon: Radio,      requires: 'STATISTICS_VIEW' },
                 { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' }
             ],
         },
