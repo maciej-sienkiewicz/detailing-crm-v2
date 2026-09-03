@@ -213,7 +213,12 @@ export const SigningRequirementModal = ({
             if (!visitId) throw new Error('No visit to confirm');
             return visitApi.confirmDraftVisit(visitId, toConfirmVisitOptions(notifOptions));
         },
-        onSuccess: () => {
+        onSuccess: (response) => {
+            // Wynik wysyłki karty przychodzi razem z potwierdzeniem; nikt nie wysyła jej po raz drugi.
+            if (response.visitCard) {
+                if (response.visitCard.emailSent || response.visitCard.smsSent) showSuccess(response.visitCard.message);
+                else showError('Nie udało się wysłać Karty Wizyty', response.visitCard.message);
+            }
             onConfirm({ sendVisitCard: notifOptions.sendVisitCard });
         },
         onError: (error: unknown) => {
