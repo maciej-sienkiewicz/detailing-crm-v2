@@ -30,7 +30,6 @@ import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
 import { StatisticsView, CategoryDetailView, CostsView } from "@/modules/statistics";
-import { LiveMetricsView } from "@/modules/live-metrics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
@@ -312,13 +311,6 @@ export const router = createBrowserRouter([
     {
         path: '/statistics',
         element: gatedPage(<StatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
-    },
-    {
-        // Metryki na żywo NIE są za bramką modułu STATISTICS: backend chroni je samym
-        // uprawnieniem STATISTICS_VIEW, a bramka w UI blokowałaby użytkowników, których
-        // serwer i tak obsłuży.
-        path: '/live-metrics',
-        element: page(<LiveMetricsView />, 'STATISTICS_VIEW'),
     },
     {
         path: '/statistics/costs',
