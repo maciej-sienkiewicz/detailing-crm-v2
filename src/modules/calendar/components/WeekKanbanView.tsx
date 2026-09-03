@@ -1,3 +1,4 @@
+import { isStartedVisit } from '../utils/visitStatus';
 import styled, { css, keyframes } from 'styled-components';
 import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData, CalendarViewType } from '../types';
@@ -355,6 +356,7 @@ const EmptySlot = styled.div`
 const Card = styled.div<{
     $accentColor: string;
     $deemphasised: boolean;
+    $started: boolean;
     $isAllDay: boolean;
     $isSolid: boolean;
 }>`
@@ -366,7 +368,7 @@ const Card = styled.div<{
     padding: 8px 10px 8px 9px;
     cursor: pointer;
     transition: box-shadow 0.15s, transform 0.15s;
-    opacity: ${p => p.$deemphasised ? 0.5 : 1};
+    opacity: ${p => p.$deemphasised ? 0.5 : p.$started ? 0.72 : 1};
     animation: ${fadeUp} 0.18s ease both;
 
     ${p => p.$isAllDay && css`
@@ -494,6 +496,7 @@ const EventCard = ({ slot, onClick }: EventCardProps) => {
         <Card
             $accentColor={accentColor}
             $deemphasised={deemphasised}
+            $started={isStartedVisit(status)}
             $isAllDay={isAllDay}
             $isSolid={props.type === 'APPOINTMENT' && !deemphasised}
             onClick={onClick}
