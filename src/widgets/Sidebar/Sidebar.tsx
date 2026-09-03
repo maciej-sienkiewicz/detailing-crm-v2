@@ -44,6 +44,7 @@ import {
     SidebarHeader,
     Logo,
     LogoIcon,
+    LogoImage,
     LogoText,
     HeaderActions,
     CollapseButton,
@@ -216,6 +217,20 @@ export const Sidebar = () => {
     // pasek albo szkielet migałby przy każdym wejściu do aplikacji.
     const companyName = company?.name?.trim() || 'AutoCRM';
 
+    /**
+     * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów — to jego
+     * znak firmowy, a litery były tylko namiastką na czas, gdy loga nie ma.
+     *
+     * Adres logo to podpisany link do S3, więc potrafi wygasnąć albo nie odpowiedzieć.
+     * Ikona zepsutego obrazka w nagłówku wygląda jak awaria aplikacji, dlatego przy
+     * błędzie wczytania wracamy do inicjałów. Zapamiętujemy ADRES, który zawiódł, a nie
+     * samą flagę — świeży link (po wgraniu nowego logo albo po odświeżeniu podpisu)
+     * jest wtedy próbowany od nowa, bez efektu czyszczącego stan.
+     */
+    const logoUrl = company?.logoUrl?.trim() || null;
+    const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+    const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
+
     const displayName = user
         ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email
         : '';
@@ -227,7 +242,16 @@ export const Sidebar = () => {
             <SidebarContainer $isCollapsed={isCollapsed} $isMobileOpen={isMobileOpen}>
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <Logo $isCollapsed={isCollapsed}>
-                        <LogoIcon>{companyInitials(company?.name)}</LogoIcon>
+                        {showLogo
+                            ? (
+                                <LogoImage
+                                    key={logoUrl}
+                                    src={logoUrl!}
+                                    alt={companyName}
+                                    onError={() => setFailedLogoUrl(logoUrl)}
+                                />
+                            )
+                            : <LogoIcon>{companyInitials(company?.name)}</LogoIcon>}
                         <LogoText $isCollapsed={isCollapsed} title={companyName}>
                             {companyName}
                         </LogoText>
