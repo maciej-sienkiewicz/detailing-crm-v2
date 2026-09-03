@@ -111,6 +111,24 @@ export const LogoIcon = styled.div`
     box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
 `;
 
+/**
+ * Kafelek z logo studia w miejscu inicjałów.
+ *
+ * Jasne tło pod logo jest konieczne, a nie kosmetyczne: pasek boczny jest ciemny
+ * (#0f172a), a logotypy bywają czarne albo granatowe — na ciemnym tle znikałyby.
+ * `contain` zamiast `cover`, bo logo przycięte do kwadratu przestaje być logiem.
+ */
+export const LogoImage = styled.img`
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    object-fit: contain;
+    background: #ffffff;
+    padding: 3px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+`;
+
 // Nazwa firmy z rejestru bywa długa („CARSLAB SPÓŁKA Z OGRANICZONĄ
 // ODPOWIEDZIALNOŚCIĄ"), więc zamiast ucinać ją w jednej linii łamiemy do dwóch
 // i dopiero tam przycinamy wielokropkiem.
