@@ -3,9 +3,16 @@ import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import {
     X, Copy, Check, RotateCcw, Sparkles, Wand2,
-    Award, Cpu, Heart, Coffee,
+    Award, Cpu, Heart, Coffee, ShieldCheck, ShieldAlert,
+    ThumbsUp, ThumbsDown, Plus, Trash2, AlertCircle,
 } from 'lucide-react';
-import type { GenerateInstagramPostRequest } from '../types';
+import type {
+    GeneratedPostRating,
+    GenerateInstagramPostRequest,
+    InstagramPostResult,
+    InstagramStyleRule,
+} from '../types';
+import { MAX_ACTIVE_STYLE_RULES, MAX_STYLE_RULE_LENGTH } from '../types';
 import { instagramApi } from '../api/instagramApi';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
@@ -390,75 +397,220 @@ const SegmentMeta = styled.span<{ $active: boolean }>`
   transition: color 180ms;
 `;
 
-// ─── Style notes (tag input) ───────────────────────────────────────────────────
+// ─── Reguły stylistyczne (trwałe, per studio) ─────────────────────────────────
 
-const TagsWrap = styled.div`
+const RuleCounter = styled.span`
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: none;
+  letter-spacing: 0;
+`;
+
+const RuleList = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
-  padding: 8px 10px;
-  border: 1.5px solid #E2E8F0;
-  border-radius: 10px;
-  min-height: 44px;
-  background: #fff;
-  cursor: text;
-  align-items: flex-start;
-  transition: border-color 150ms, box-shadow 150ms;
+  margin-bottom: 8px;
+`;
 
-  &:focus-within {
-    border-color: #3B82F6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+const RuleRow = styled.label<{ $active: boolean }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid ${p => p.$active ? '#BFDBFE' : '#E2E8F0'};
+  background: ${p => p.$active ? '#F8FBFF' : '#FFFFFF'};
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+
+  &:hover {
+    border-color: ${p => p.$active ? '#93C5FD' : '#CBD5E1'};
   }
 `;
 
-const Tag = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px 3px 10px;
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #2563EB;
-  line-height: 1.4;
+const RuleCheckbox = styled.input`
+  margin: 2px 0 0;
+  accent-color: #3B82F6;
+  cursor: pointer;
+  flex-shrink: 0;
 `;
 
-const TagRemoveBtn = styled.button`
+const RuleText = styled.span<{ $active: boolean }>`
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: ${p => p.$active ? '#1E293B' : '#94A3B8'};
+  word-break: break-word;
+`;
+
+const RuleDeleteBtn = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  color: #93C5FD;
+  color: #CBD5E1;
   padding: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
   flex-shrink: 0;
   transition: color 120ms;
 
-  &:hover {
-    color: #EF4444;
-  }
+  &:hover { color: #EF4444; }
 `;
 
-const TagInput = styled.input`
-  border: none;
-  outline: none;
-  font-size: 12px;
+const RuleAddRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+`;
+
+const RuleInput = styled.input`
+  flex: 1;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13px;
   font-family: inherit;
   color: #0F172A;
-  background: transparent;
-  flex: 1;
-  min-width: 140px;
-  padding: 3px 4px;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
 
-  &::placeholder {
-    color: #CBD5E1;
+  &:focus {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
   }
+
+  &::placeholder { color: #CBD5E1; }
+`;
+
+const RuleAddBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 150ms;
+
+  &:hover:not(:disabled) { background: #DBEAFE; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const InlineError = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #DC2626;
+`;
+
+// ─── Weryfikacja i ocena ──────────────────────────────────────────────────────
+
+const VerificationBanner = styled.div<{ $passed: boolean }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid ${p => p.$passed ? '#BBF7D0' : '#FDE68A'};
+  background: ${p => p.$passed ? '#F0FDF4' : '#FFFBEB'};
+  color: ${p => p.$passed ? '#166534' : '#92400E'};
+  font-size: 12px;
+  line-height: 1.6;
+`;
+
+const VerificationList = styled.ul`
+  margin: 4px 0 0;
+  padding-left: 18px;
+`;
+
+const RatingBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px dashed #E2E8F0;
+`;
+
+const RatingLabel = styled.span`
+  font-size: 12px;
+  color: #64748B;
+  margin-right: auto;
+`;
+
+const RatingBtn = styled.button<{ $variant: 'up' | 'down'; $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: 1.5px solid ${p => p.$active
+      ? (p.$variant === 'up' ? '#BBF7D0' : '#FECACA')
+      : '#E2E8F0'};
+  background: ${p => p.$active
+      ? (p.$variant === 'up' ? '#DCFCE7' : '#FEE2E2')
+      : 'transparent'};
+  color: ${p => p.$active
+      ? (p.$variant === 'up' ? '#16A34A' : '#DC2626')
+      : '#64748B'};
+
+  &:hover:not(:disabled) { border-color: #CBD5E1; }
+  &:disabled { cursor: default; }
+`;
+
+const CommentTextarea = styled.textarea`
+  width: 100%;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #0F172A;
+  resize: vertical;
+  min-height: 64px;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+
+  &:focus {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+
+  &::placeholder { color: #CBD5E1; }
+`;
+
+const CommentSendBtn = styled.button`
+  align-self: flex-end;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const RatingSavedNote = styled.p`
+  margin: 0;
+  font-size: 12px;
+  color: #16A34A;
 `;
 
 // ─── Loading ───────────────────────────────────────────────────────────────────
@@ -705,13 +857,26 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [context, setContext]       = useState(prefill?.context  ?? '');
     const [tone, setTone]             = useState<string | null>(null);
     const [length, setLength]         = useState<string | null>('full');
-    const [styleNotes, setNotes]      = useState<string[]>([]);
-    const [noteInput, setNoteInput]   = useState('');
-    const [result, setResult]         = useState('');
+    const [result, setResult]         = useState<InstagramPostResult | null>(null);
     const [copied, setCopied]         = useState(false);
+    const [genError, setGenError]     = useState<string | null>(null);
 
-    const tagsWrapRef = useRef<HTMLDivElement>(null);
+    // Reguły stylistyczne studia — trwałe, wspólne dla wszystkich generowań.
+    // Backend dokłada aktywne reguły do promptu sam, więc nie wysyłamy ich w żądaniu.
+    const [rules, setRules]           = useState<InstagramStyleRule[]>([]);
+    const [ruleInput, setRuleInput]   = useState('');
+    const [ruleBusy, setRuleBusy]     = useState(false);
+    const [ruleError, setRuleError]   = useState<string | null>(null);
+
+    // Ocena wygenerowanego posta — wejście do pętli uczenia po stronie backendu.
+    const [rating, setRating]         = useState<GeneratedPostRating | null>(null);
+    const [comment, setComment]       = useState('');
+    const [commentOpen, setCommentOpen] = useState(false);
+    const [ratingBusy, setRatingBusy] = useState(false);
+
     const topicRef    = useRef<HTMLInputElement>(null);
+
+    const activeRuleCount = rules.filter(r => r.active).length;
 
     const canGenerate = topic.trim().length > 0;
 
@@ -719,6 +884,15 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     useEffect(() => {
         const t = setTimeout(() => topicRef.current?.focus(), 80);
         return () => clearTimeout(t);
+    }, []);
+
+    // Reguły studia ładujemy raz przy otwarciu — ich brak nie może blokować generowania.
+    useEffect(() => {
+        let cancelled = false;
+        instagramApi.listStyleRules()
+            .then(loaded => { if (!cancelled) setRules(loaded); })
+            .catch(() => { if (!cancelled) setRules([]); });
+        return () => { cancelled = true; };
     }, []);
 
     // ESC closes
@@ -733,25 +907,34 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const handleGenerate = useCallback(async () => {
         if (!canGenerate) return;
         setPhase('loading');
+        setGenError(null);
+        setRating(null);
+        setComment('');
+        setCommentOpen(false);
         try {
             const req: GenerateInstagramPostRequest = {
                 topic:      topic.trim(),
                 context:    context.trim() || undefined,
                 postTone:   tone   as GenerateInstagramPostRequest['postTone']   ?? undefined,
                 postLength: length as GenerateInstagramPostRequest['postLength'] ?? undefined,
-                styleNotes: styleNotes.length > 0 ? styleNotes : undefined,
             };
             const data = await instagramApi.generatePost(req);
-            setResult(data.content);
+            setResult(data);
             setPhase('result');
-        } catch {
+        } catch (e) {
+            // Limit generowań (429) i błędy modelu mają czytelny komunikat z backendu —
+            // pokazujemy go przy formularzu, żeby nie zniknął razem z toastem.
+            const message = (e as { response?: { data?: { message?: string } } })
+                ?.response?.data?.message;
+            setGenError(message ?? 'Nie udało się wygenerować posta. Spróbuj ponownie.');
             setPhase('form');
         }
-    }, [canGenerate, topic, context, tone, length, styleNotes]);
+    }, [canGenerate, topic, context, tone, length]);
 
     const handleCopy = useCallback(async () => {
+        if (!result) return;
         try {
-            await navigator.clipboard.writeText(result);
+            await navigator.clipboard.writeText(result.content);
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         } catch {
@@ -761,38 +944,101 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
     const handleRegenerate = () => {
         setPhase('form');
-        setResult('');
+        setResult(null);
+        setRating(null);
+        setComment('');
+        setCommentOpen(false);
         setTimeout(() => topicRef.current?.focus(), 80);
     };
 
-    const addNote = useCallback(() => {
-        const note = noteInput.trim();
-        if (note && !styleNotes.includes(note)) {
-            setNotes(prev => [...prev, note]);
-        }
-        setNoteInput('');
-    }, [noteInput, styleNotes]);
+    // ── Reguły stylistyczne ───────────────────────────────────────────────────
 
-    const removeNote = (note: string) => {
-        setNotes(prev => prev.filter(n => n !== note));
+    const addRule = useCallback(async () => {
+        const ruleText = ruleInput.trim();
+        if (!ruleText || ruleBusy) return;
+
+        if (ruleText.length > MAX_STYLE_RULE_LENGTH) {
+            setRuleError(`Reguła może mieć maksymalnie ${MAX_STYLE_RULE_LENGTH} znaków.`);
+            return;
+        }
+        if (activeRuleCount >= MAX_ACTIVE_STYLE_RULES) {
+            setRuleError(`Limit ${MAX_ACTIVE_STYLE_RULES} aktywnych reguł. Wyłącz lub usuń którąś, zanim dodasz kolejną.`);
+            return;
+        }
+
+        setRuleBusy(true);
+        setRuleError(null);
+        try {
+            const created = await instagramApi.createStyleRule(ruleText);
+            setRules(prev => [...prev, created]);
+            setRuleInput('');
+        } catch (e) {
+            const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            setRuleError(message ?? 'Nie udało się zapisać reguły.');
+        } finally {
+            setRuleBusy(false);
+        }
+    }, [ruleInput, ruleBusy, activeRuleCount]);
+
+    const toggleRule = useCallback(async (rule: InstagramStyleRule) => {
+        setRuleError(null);
+        // Optymistycznie: przełącznik ma reagować natychmiast, a przy błędzie wracamy do stanu z serwera.
+        setRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r));
+        try {
+            const updated = await instagramApi.updateStyleRule(rule.id, { active: !rule.active });
+            setRules(prev => prev.map(r => r.id === rule.id ? updated : r));
+        } catch (e) {
+            setRules(prev => prev.map(r => r.id === rule.id ? rule : r));
+            const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            setRuleError(message ?? 'Nie udało się zmienić reguły.');
+        }
+    }, []);
+
+    const removeRule = useCallback(async (rule: InstagramStyleRule) => {
+        setRuleError(null);
+        setRules(prev => prev.filter(r => r.id !== rule.id));
+        try {
+            await instagramApi.deleteStyleRule(rule.id);
+        } catch {
+            setRules(prev => [...prev, rule].sort((a, b) => a.createdAt - b.createdAt));
+            setRuleError('Nie udało się usunąć reguły.');
+        }
+    }, []);
+
+    const handleRuleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            void addRule();
+        }
     };
 
-    const handleNoteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addNote();
+    // ── Ocena posta ───────────────────────────────────────────────────────────
+
+    const submitRating = useCallback(async (value: GeneratedPostRating, commentText?: string) => {
+        if (!result || ratingBusy) return;
+        setRatingBusy(true);
+        try {
+            await instagramApi.rateGeneratedPost(result.postId, value, commentText);
+            setRating(value);
+            setCommentOpen(false);
+        } finally {
+            setRatingBusy(false);
         }
-        if (e.key === 'Backspace' && !noteInput && styleNotes.length > 0) {
-            setNotes(prev => prev.slice(0, -1));
-        }
+    }, [result, ratingBusy]);
+
+    const handleThumbsDown = () => {
+        // Komentarz przy ocenie negatywnej jest najcenniejszą częścią oceny — pytamy o niego,
+        // zanim zapiszemy werdykt, zamiast wysyłać samo „słaby".
+        setCommentOpen(true);
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget && phase !== 'loading') onClose();
     };
 
-    const charCount   = result.length;
-    const wordCount   = result.trim() ? result.trim().split(/\s+/).length : 0;
+    const content     = result?.content ?? '';
+    const charCount   = content.length;
+    const wordCount   = content.trim() ? content.trim().split(/\s+/).length : 0;
 
     // ── Phases ────────────────────────────────────────────────────────────────
 
@@ -812,7 +1058,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             );
         }
 
-        if (phase === 'result') {
+        if (phase === 'result' && result) {
             return (
                 <ResultWrap>
                     <ResultTopBar>
@@ -822,12 +1068,92 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         </ResultMeta>
                     </ResultTopBar>
 
-                    <ContentBox>{result}</ContentBox>
+                    {/* Weryfikacja reguł: post z odstępstwem i tak trafia do studia,
+                        ale musi być widać, czego model nie dowiózł. */}
+                    {result.iterations > 0 && (
+                        <VerificationBanner $passed={result.verificationPassed}>
+                            {result.verificationPassed
+                                ? <ShieldCheck size={16} strokeWidth={2} />
+                                : <ShieldAlert size={16} strokeWidth={2} />}
+                            <span>
+                                {result.verificationPassed ? (
+                                    <>
+                                        Post spełnia wszystkie reguły stylistyczne
+                                        {result.iterations > 1 && ' (po automatycznej korekcie)'}.
+                                    </>
+                                ) : (
+                                    <>
+                                        Nie udało się spełnić wszystkich reguł po {result.iterations} próbach:
+                                        <VerificationList>
+                                            {result.failedRules.map(rule => <li key={rule}>{rule}</li>)}
+                                        </VerificationList>
+                                    </>
+                                )}
+                            </span>
+                        </VerificationBanner>
+                    )}
+
+                    <ContentBox>{result.content}</ContentBox>
 
                     <ContentStats>
                         <ContentStat>{wordCount} słów</ContentStat>
                         <ContentStat>{charCount} znaków</ContentStat>
                     </ContentStats>
+
+                    {/* Ocena uczy generator stylu tego studia — dlatego pytamy od razu,
+                        zanim post zniknie razem z zamkniętym oknem. */}
+                    <RatingBar>
+                        <RatingLabel>
+                            {rating
+                                ? 'Dzięki — kolejne posty będą bliżej Twojego stylu.'
+                                : 'Jak oceniasz ten post?'}
+                        </RatingLabel>
+                        <RatingBtn
+                            type="button"
+                            $variant="up"
+                            $active={rating === 'POSITIVE'}
+                            disabled={ratingBusy || rating !== null}
+                            onClick={() => void submitRating('POSITIVE')}
+                        >
+                            <ThumbsUp size={14} strokeWidth={2} />
+                            Dobry
+                        </RatingBtn>
+                        <RatingBtn
+                            type="button"
+                            $variant="down"
+                            $active={rating === 'NEGATIVE'}
+                            disabled={ratingBusy || rating !== null}
+                            onClick={handleThumbsDown}
+                        >
+                            <ThumbsDown size={14} strokeWidth={2} />
+                            Słaby
+                        </RatingBtn>
+                    </RatingBar>
+
+                    {commentOpen && rating === null && (
+                        <>
+                            <CommentTextarea
+                                autoFocus
+                                placeholder={'Co jest nie tak? Np. „za dużo wykrzykników”, „zbyt sprzedażowy ton”...'}
+                                value={comment}
+                                onChange={e => setComment(e.target.value)}
+                                maxLength={1000}
+                            />
+                            <CommentSendBtn
+                                type="button"
+                                disabled={ratingBusy || comment.trim().length === 0}
+                                onClick={() => void submitRating('NEGATIVE', comment.trim())}
+                            >
+                                Zapisz ocenę
+                            </CommentSendBtn>
+                        </>
+                    )}
+
+                    {rating === 'NEGATIVE' && (
+                        <RatingSavedNote>
+                            Uwaga zapisana — generator będzie jej unikał w kolejnych postach.
+                        </RatingSavedNote>
+                    )}
                 </ResultWrap>
             );
         }
@@ -907,35 +1233,62 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     </SegmentedWrap>
                 </FormSection>
 
-                {/* Style notes */}
+                {/* Style rules — trwałe reguły studia */}
                 <FormSection>
-                    <FieldLabel>Reguły stylistyczne</FieldLabel>
-                    <TagsWrap
-                        ref={tagsWrapRef}
-                        onClick={() => tagsWrapRef.current?.querySelector('input')?.focus()}
-                    >
-                        {styleNotes.map(note => (
-                            <Tag key={note}>
-                                {note}
-                                <TagRemoveBtn
-                                    type="button"
-                                    onClick={e => { e.stopPropagation(); removeNote(note); }}
-                                    aria-label="Usuń regułę"
-                                >
-                                    <X size={10} strokeWidth={2.5} />
-                                </TagRemoveBtn>
-                            </Tag>
-                        ))}
-                        <TagInput
-                            placeholder={styleNotes.length === 0 ? 'Np. Nie używaj emoji · Enter aby dodać' : 'Dodaj regułę...'}
-                            value={noteInput}
-                            onChange={e => setNoteInput(e.target.value)}
-                            onKeyDown={handleNoteKeyDown}
-                            onBlur={addNote}
+                    <FieldLabel>
+                        Reguły stylistyczne
+                        <RuleCounter>{activeRuleCount}/{MAX_ACTIVE_STYLE_RULES} aktywnych</RuleCounter>
+                    </FieldLabel>
+
+                    {rules.length > 0 && (
+                        <RuleList>
+                            {rules.map(rule => (
+                                <RuleRow key={rule.id} $active={rule.active}>
+                                    <RuleCheckbox
+                                        type="checkbox"
+                                        checked={rule.active}
+                                        onChange={() => void toggleRule(rule)}
+                                    />
+                                    <RuleText $active={rule.active}>{rule.ruleText}</RuleText>
+                                    <RuleDeleteBtn
+                                        type="button"
+                                        aria-label="Usuń regułę"
+                                        onClick={e => { e.preventDefault(); void removeRule(rule); }}
+                                    >
+                                        <Trash2 size={13} strokeWidth={2} />
+                                    </RuleDeleteBtn>
+                                </RuleRow>
+                            ))}
+                        </RuleList>
+                    )}
+
+                    <RuleAddRow>
+                        <RuleInput
+                            placeholder="Np. Nie używaj emoji"
+                            value={ruleInput}
+                            onChange={e => setRuleInput(e.target.value)}
+                            onKeyDown={handleRuleKeyDown}
+                            maxLength={MAX_STYLE_RULE_LENGTH}
                         />
-                    </TagsWrap>
-                    <HintText>Reguły nadrzędne wobec domyślnego stylu. Rozdziel Enterem lub przecinkiem.</HintText>
+                        <RuleAddBtn
+                            type="button"
+                            disabled={ruleBusy || ruleInput.trim().length === 0}
+                            onClick={() => void addRule()}
+                        >
+                            <Plus size={14} strokeWidth={2.5} />
+                            Dodaj
+                        </RuleAddBtn>
+                    </RuleAddRow>
+
+                    {ruleError && <InlineError><AlertCircle size={13} strokeWidth={2} />{ruleError}</InlineError>}
+
+                    <HintText>
+                        Reguły są zapisywane dla studia i obowiązują przy każdym generowaniu.
+                        AI sprawdza je po napisaniu posta i poprawia go, jeśli którejś nie spełnił.
+                    </HintText>
                 </FormSection>
+
+                {genError && <InlineError><AlertCircle size={13} strokeWidth={2} />{genError}</InlineError>}
 
             </>
         );

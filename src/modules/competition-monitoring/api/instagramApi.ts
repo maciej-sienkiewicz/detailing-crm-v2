@@ -5,10 +5,13 @@ import type {
     WeeklyDigest,
     CompetitorPulse,
     ContentPage,
+    GeneratedInstagramPost,
+    GeneratedPostRating,
     GenerateInstagramPostRequest,
     HashtagStat,
     Heatmap,
     InstagramPostResult,
+    InstagramStyleRule,
     InstagramProfile,
     Overview,
     ResyncResult,
@@ -18,6 +21,7 @@ import type {
 
 const PROFILES_PATH = '/v1/instagram/profiles';
 const ANALYTICS_PATH = '/v1/instagram';
+const AI_PATH = '/v1/instagram/ai';
 
 export interface ContentFilters {
     weeks: WeeksOption;
@@ -134,7 +138,51 @@ export const instagramApi = {
     },
 
     generatePost: async (req: GenerateInstagramPostRequest): Promise<InstagramPostResult> => {
-        const response = await apiClient.post<InstagramPostResult>('/v1/instagram/ai/generate', req);
+        const response = await apiClient.post<InstagramPostResult>(`${AI_PATH}/generate`, req);
+        return response.data;
+    },
+
+    // ── Reguły stylistyczne studia ───────────────────────────────────────────
+
+    listStyleRules: async (): Promise<InstagramStyleRule[]> => {
+        const response = await apiClient.get<InstagramStyleRule[]>(`${AI_PATH}/style-rules`);
+        return response.data;
+    },
+
+    createStyleRule: async (ruleText: string): Promise<InstagramStyleRule> => {
+        const response = await apiClient.post<InstagramStyleRule>(`${AI_PATH}/style-rules`, { ruleText });
+        return response.data;
+    },
+
+    updateStyleRule: async (
+        id: string,
+        patch: { ruleText?: string; active?: boolean },
+    ): Promise<InstagramStyleRule> => {
+        const response = await apiClient.put<InstagramStyleRule>(`${AI_PATH}/style-rules/${id}`, patch);
+        return response.data;
+    },
+
+    deleteStyleRule: async (id: string): Promise<void> => {
+        await apiClient.delete(`${AI_PATH}/style-rules/${id}`);
+    },
+
+    // ── Historia i ocena wygenerowanych postów ───────────────────────────────
+
+    listGeneratedPosts: async (limit = 20): Promise<GeneratedInstagramPost[]> => {
+        const response = await apiClient.get<GeneratedInstagramPost[]>(`${AI_PATH}/posts`, { params: { limit } });
+        return response.data;
+    },
+
+    rateGeneratedPost: async (
+        postId: string,
+        rating: GeneratedPostRating,
+        comment?: string,
+    ): Promise<GeneratedInstagramPost> => {
+        const response = await apiClient.post<GeneratedInstagramPost>(
+            `${AI_PATH}/posts/${postId}/rate`,
+            // Komentarz ma sens wyłącznie przy ocenie negatywnej — backend odrzuca go przy POSITIVE.
+            { rating, comment: rating === 'NEGATIVE' ? comment : undefined },
+        );
         return response.data;
     },
 };

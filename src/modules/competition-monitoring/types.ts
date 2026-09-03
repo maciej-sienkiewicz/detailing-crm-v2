@@ -306,18 +306,65 @@ export interface WeekDetail {
 }
 
 
-// ─── Generator AI (bez zmian) ─────────────────────────────────────────────────
+// ─── Generator AI ─────────────────────────────────────────────────────────────
 
 export interface GenerateInstagramPostRequest {
     topic: string;
     context?: string;
     postTone?: 'premium' | 'technical' | 'emotional' | 'casual';
     postLength?: 'short' | 'full';
+    /**
+     * Reguły ad-hoc, obowiązujące tylko dla tego jednego generowania.
+     * Reguły trwałe studia żyją w /style-rules i backend dokłada je sam.
+     */
     styleNotes?: string[];
 }
 
+/**
+ * Odpowiedź /generate. Pole `content` zostaje bez zmian; reszta to informacja
+ * o pętli weryfikacji reguł i identyfikator posta, po którym można go ocenić.
+ */
 export interface InstagramPostResult {
     content: string;
+    postId: string;
+    verificationPassed: boolean;
+    /** Reguły, których nie udało się spełnić mimo korekt (puste, gdy weryfikacja przeszła). */
+    failedRules: string[];
+    /** Liczba rund weryfikacji; 0 oznacza, że studio nie ma żadnych reguł. */
+    iterations: number;
+}
+
+// ─── Reguły stylistyczne studia ──────────────────────────────────────────────
+
+export interface InstagramStyleRule {
+    id: string;
+    ruleText: string;
+    active: boolean;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export const MAX_STYLE_RULE_LENGTH = 500;
+export const MAX_ACTIVE_STYLE_RULES = 20;
+
+// ─── Historia i ocena wygenerowanych postów ──────────────────────────────────
+
+export type GeneratedPostRating = 'POSITIVE' | 'NEGATIVE';
+
+export interface GeneratedInstagramPost {
+    id: string;
+    topic: string;
+    content: string;
+    requestedTone: string | null;
+    requestedLength: string | null;
+    rating: GeneratedPostRating | null;
+    ratingComment: string | null;
+    verificationPassed: boolean | null;
+    iterations: number | null;
+    failedRules: string[];
+    rulesSnapshot: string[];
+    createdAt: number;
+    ratedAt: number | null;
 }
 
 // ─── Stałe UI ─────────────────────────────────────────────────────────────────
