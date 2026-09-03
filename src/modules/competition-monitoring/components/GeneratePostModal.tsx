@@ -14,13 +14,9 @@ import type {
 } from '../types';
 import { MAX_ACTIVE_STYLE_RULES, MAX_STYLE_RULE_LENGTH } from '../types';
 import { instagramApi } from '../api/instagramApi';
+import { useIllusionProgress } from '../hooks/useIllusionProgress';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
-
-const dotBounce = keyframes`
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
-  30%           { transform: translateY(-8px); opacity: 1; }
-`;
 
 const overlayIn = keyframes`
   from { opacity: 0; }
@@ -630,19 +626,27 @@ const LoadingWrap = styled.div`
   animation: ${fadeSlide} 200ms ease;
 `;
 
-const DotsRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
+const ProgressTrack = styled.div`
+  width: 100%;
+  max-width: 420px;
+  height: 6px;
+  border-radius: 999px;
+  background: #E2E8F0;
+  overflow: hidden;
 `;
 
-const Dot = styled.span<{ $delay: string }>`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #3B82F6;
-  animation: ${dotBounce} 1.1s ease-in-out infinite;
-  animation-delay: ${p => p.$delay};
+/**
+ * Szerokość steruje JS (krzywa „szybko na starcie, wolno na końcu"), więc CSS dokłada
+ * tylko krótkie wygładzenie między klatkami. Domknięcie do 100% dostaje własny,
+ * wyraźnie szybszy czas — koniec pracy ma być widoczny jako skok, a nie jako dalsze
+ * pełznięcie.
+ */
+const ProgressFill = styled.div<{ $percent: number; $finishing: boolean }>`
+  height: 100%;
+  width: ${p => p.$percent}%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3B82F6 0%, #6366F1 100%);
+  transition: width ${p => (p.$finishing ? '220ms cubic-bezier(0.22, 1, 0.36, 1)' : '120ms linear')};
 `;
 
 const LoadingText = styled.p`
@@ -881,6 +885,10 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
     const topicRef    = useRef<HTMLInputElement>(null);
 
+    // Backend nie raportuje postępu (jedno żądanie, kilkanaście sekund), więc pasek
+    // jest wyliczany z czasu — patrz useIllusionProgress.
+    const progress = useIllusionProgress(phase === 'loading');
+
     const activeRuleCount = rules.filter(r => r.active).length;
 
     const canGenerate = topic.trim().length > 0;
@@ -1051,14 +1059,18 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         if (phase === 'loading') {
             return (
                 <LoadingWrap>
-                    <DotsRow>
-                        <Dot $delay="0s"    />
-                        <Dot $delay="0.18s" />
-                        <Dot $delay="0.36s" />
-                    </DotsRow>
+                    <ProgressTrack
+                        role="progressbar"
+                        aria-label="Generowanie posta"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(progress.percent)}
+                    >
+                        <ProgressFill $percent={progress.percent} $finishing={progress.isFinishing} />
+                    </ProgressTrack>
                     <LoadingText>Generuję post na Instagram...</LoadingText>
                     {topic && <LoadingEcho>„{topic}"</LoadingEcho>}
-                    <LoadingHint>Model AI analizuje styl i tworzy treść. Chwilę...</LoadingHint>
+                    <LoadingHint>Model pisze post, sprawdza go względem Twoich reguł i poprawia. Chwilę...</LoadingHint>
                 </LoadingWrap>
             );
         }

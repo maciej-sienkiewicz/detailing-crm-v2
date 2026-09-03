@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Bell,
     LayoutDashboard,
@@ -38,6 +38,7 @@ import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import { companyInitials } from './companyBadge';
+import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import {
     Overlay,
     SidebarContainer,
@@ -213,9 +214,27 @@ export const Sidebar = () => {
         navigate('/login');
     };
 
-    // Dopóki `/v1/company` nie odpowie, w nagłówku zostaje nazwa produktu — pusty
-    // pasek albo szkielet migałby przy każdym wejściu do aplikacji.
-    const companyName = company?.name?.trim() || 'AutoCRM';
+    /**
+     * Nagłówek rysuje się od pierwszej klatki z zapisu lokalnego, a `GET /v1/company`
+     * tylko go potwierdza. Wcześniej przy każdym odświeżeniu strony przez moment
+     * widać było inicjały, zanim doszło logo — dane nagłówka zmieniają się raz na
+     * ruski rok, więc czekanie na sieć nic nie wnosiło poza tym przeskokiem.
+     *
+     * Odpowiedź serwera ma pierwszeństwo: gdy studio usunęło logo, `company.logoUrl`
+     * jest nullem i zapis lokalny NIE może go wskrzesić — stąd rozróżnienie „mamy już
+     * odpowiedź" od „jeszcze jej nie ma", a nie zwykłe `??`.
+     */
+    const cachedHeader = useMemo(() => readCompanyHeader(user?.studioId), [user?.studioId]);
+
+    useEffect(() => {
+        if (company) {
+            writeCompanyHeader(user?.studioId, { name: company.name ?? null, logoUrl: company.logoUrl ?? null });
+        }
+    }, [company, user?.studioId]);
+
+    // Dopóki nie ma ani odpowiedzi, ani zapisu lokalnego, w nagłówku zostaje nazwa
+    // produktu — pusty pasek albo szkielet migałby przy każdym wejściu do aplikacji.
+    const companyName = (company?.name ?? cachedHeader?.name)?.trim() || 'AutoCRM';
 
     /**
      * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów — to jego
@@ -227,7 +246,7 @@ export const Sidebar = () => {
      * samą flagę — świeży link (po wgraniu nowego logo albo po odświeżeniu podpisu)
      * jest wtedy próbowany od nowa, bez efektu czyszczącego stan.
      */
-    const logoUrl = company?.logoUrl?.trim() || null;
+    const logoUrl = (company ? company.logoUrl : cachedHeader?.logoUrl)?.trim() || null;
     const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
     const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
 
