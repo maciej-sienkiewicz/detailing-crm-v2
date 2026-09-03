@@ -25,26 +25,66 @@ export const getPushSupportState = (): PushSupportState => {
     return 'supported';
 };
 
+/** Aplikacja uruchomiona z ekranu głównego (PWA), a nie z karty przeglądarki. */
+export const isStandaloneDisplay = (): boolean =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigator as any).standalone === true;
+
+export const isIosDevice = (): boolean =>
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    // iPadOS podaje się za Maca; rozpoznajemy go po ekranie dotykowym.
+    (/macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
 /** iOS allows Web Push ONLY inside a Home-Screen-installed PWA. */
-export const isIosOutsidePwa = (): boolean => {
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (navigator as any).standalone === true;
-    return isIos && !isStandalone;
-};
+export const isIosOutsidePwa = (): boolean => isIosDevice() && !isStandaloneDisplay();
 
 /**
- * Czy to urządzenie może w ogóle odbierać połączenia, czyli czy jest telefonem.
+ * Czy to urządzenie wygląda na telefon/tablet.
  *
- * Parowanie komputera nie ma sensu: powiadomienie ma zadzwonić z telefonu, a
- * push na tej samej maszynie, z której klikamy numer, tylko myli. Przeglądarki
- * nie mają pytania „czy jesteś telefonem", więc pytamy o system operacyjny —
- * jedyne, co tu naprawdę rozstrzyga (tablet z Androidem też ma dialer).
+ * Służy WYŁĄCZNIE do ustawienia kolejności i akcentów w panelu (na telefonie nie
+ * ma sensu pokazywać kodu QR do zeskanowania własnego ekranu). Nigdy nie decyduje
+ * o tym, czy da się tu sparować urządzenie: rozpoznawanie po User-Agent bywa
+ * mylne — iPadOS przedstawia się jako Mac, a przeglądarki w trybie desktopowym
+ * ukrywają system — a wtedy jedyny działający przycisk zniknąłby z ekranu.
  */
 export const isMobileDevice = (): boolean =>
-    /android|iphone|ipad|ipod|windows phone/i.test(navigator.userAgent);
+    /android|iphone|ipad|ipod|windows phone/i.test(navigator.userAgent) ||
+    isIosDevice() ||
+    (navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches);
+
+/**
+ * Rejestracja Service Workera gotowa do subskrypcji.
+ *
+ * `navigator.serviceWorker.ready` nigdy się nie rozstrzyga, jeśli w tym zakresie
+ * nie ma zarejestrowanego workera — a wtedy parowanie wisiało w nieskończoność na
+ * „Paruję…", bez żadnego komunikatu. Dlatego najpierw sami próbujemy rejestracji
+ * (samonaprawa, gdy ta ze startu aplikacji się nie powiodła), a potem czekamy
+ * z limitem czasu i jawnym błędem.
+ */
+export const waitForServiceWorker = async (timeoutMs = 15_000): Promise<ServiceWorkerRegistration> => {
+    if (!('serviceWorker' in navigator)) throw new Error('sw-unavailable');
+
+    try {
+        await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+    } catch {
+        // Rejestracja mogła już istnieć albo być zablokowana — rozstrzygnie to `ready`.
+    }
+
+    let timer: number | undefined;
+    try {
+        return await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise<never>((_, reject) => {
+                timer = window.setTimeout(() => reject(new Error('sw-unavailable')), timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timer !== undefined) window.clearTimeout(timer);
+    }
+};
 
 /** Best-effort human label for the devices list, e.g. "Android · Chrome". */
 export const describeThisDevice = (): string => {

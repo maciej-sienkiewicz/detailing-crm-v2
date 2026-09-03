@@ -466,7 +466,7 @@ export const MobileShortcutsView = () => {
                         <InstructionList>
                             <li>Zeskanuj QR kod telefonem i <strong>zaloguj się</strong> do CRM (jeśli poprosi)</li>
                             <li>Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong> (Safari wymaga tego dla powiadomień)</li>
-                            <li>Kliknij <strong>„Włącz powiadomienia o połączeniach"</strong> i zezwól na powiadomienia</li>
+                            <li>Dotknij <strong>„Włącz powiadomienia na tym telefonie"</strong> i zezwól na powiadomienia</li>
                             <li>Od teraz kliknięcie numeru klienta w CRM na komputerze wyświetli na telefonie powiadomienie — dotknij <strong>„Zadzwoń"</strong>, a numer wskoczy do systemowego dialera</li>
                         </InstructionList>
                     </InstructionsPanel>

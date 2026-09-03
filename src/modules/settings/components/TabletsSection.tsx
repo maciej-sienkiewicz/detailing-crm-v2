@@ -10,7 +10,6 @@ import {
 import { useTablets, useDeleteTablet, TABLETS_KEY } from '../hooks/useTablets';
 import { useTabletsSocket } from '../hooks/useTabletsSocket';
 import { TabletPairingModal } from './tablets/TabletPairingModal';
-import { CallPhonesPanel } from '@/modules/push/components/CallPhonesPanel';
 import type { TabletSocketEvent } from '../tabletTypes';
 
 function formatDate(iso: string): string {
@@ -33,32 +32,21 @@ function lastSeenLabel(lastSeenAt: string | null): { text: string; stale: boolea
 }
 
 /**
- * Ustawienia → Urządzenia mobilne: tablety do podpisu i telefony do połączeń.
+ * Ustawienia → Urządzenia mobilne → Tablety do podpisu.
  *
- * Telefony trafiły tu z bocznego menu („Telefon do połączeń"). Świadomie stoją
- * POZA bramką modułu podpisów: Click-to-Call nie ma z podpisami nic wspólnego,
- * a studio bez tego modułu nadal paruje telefony.
+ * Telefony (powiadomienia) i kontakty mają własne zakładki — patrz
+ * [MobileDevicesSection]. Trzy różne urządzenia i trzy różne konfiguracje nie
+ * mieszczą się czytelnie na jednym przewijanym ekranie.
  */
 export function TabletsSection() {
     return (
-        <Sections>
-            <Block>
-                <BlockTitle>Tablety do podpisu</BlockTitle>
-                <BlockHint>
-                    Tablet, na którym klient podpisuje protokoły przyjęcia i wydania pojazdu.
-                </BlockHint>
-                <TabletPairingPanel />
-            </Block>
-
-            <Block>
-                <BlockTitle>Telefony do połączeń</BlockTitle>
-                <BlockHint>
-                    Klikasz numer klienta na komputerze, dzwoni Twój telefon. Każdy paruje własne
-                    urządzenia, a powiadomienia trafiają wyłącznie na telefony właściciela konta.
-                </BlockHint>
-                <CallPhonesPanel />
-            </Block>
-        </Sections>
+        <Block>
+            <BlockTitle>Tablety do podpisu</BlockTitle>
+            <BlockHint>
+                Tablet, na którym klient podpisuje protokoły przyjęcia i wydania pojazdu.
+            </BlockHint>
+            <TabletPairingPanel />
+        </Block>
     );
 }
 
@@ -207,12 +195,6 @@ function TabletPairingPanel() {
 }
 
 // ─── Styled: układ sekcji ────────────────────────────────────────────────────
-
-const Sections = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-`;
 
 const Block = styled.section`
     display: flex;
