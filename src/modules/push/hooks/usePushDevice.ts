@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pushApi } from '../api/pushApi';
-import { describeThisDevice, getPushSupportState, isIosOutsidePwa, urlBase64ToUint8Array } from '../utils/webPush';
+import {
+    describeThisDevice, getPushSupportState, isIosOutsidePwa,
+    urlBase64ToUint8Array, waitForServiceWorker,
+} from '../utils/webPush';
 import type { PushSupportState } from '../types';
 
 export const pushQueryKeys = {
@@ -9,7 +12,8 @@ export const pushQueryKeys = {
 };
 
 /**
- * Pairing the CURRENT device (the phone) as a Click-to-Call receiver.
+ * Pairing the CURRENT device (the phone) as a receiver of the studio's push
+ * notifications — click-to-call requests, closed visits, new leads.
  *
  * The whole flow rides on a user gesture: `enable()` must be called from a
  * click handler, because Notification.requestPermission() without a gesture
@@ -37,7 +41,9 @@ export const usePushDevice = () => {
     useEffect(() => {
         let cancelled = false;
         if (getPushSupportState() !== 'supported') return;
-        navigator.serviceWorker.ready
+        // Z limitem czasu: bez zarejestrowanego workera `ready` nigdy nie odpowiada,
+        // a stan „sprawdzam" zostawał na ekranie na zawsze.
+        waitForServiceWorker()
             .then(registration => registration.pushManager.getSubscription())
             .then(subscription => {
                 if (!cancelled) setIsSubscribedHere(Boolean(subscription));
@@ -58,7 +64,7 @@ export const usePushDevice = () => {
                 throw new Error('permission-denied');
             }
 
-            const registration = await navigator.serviceWorker.ready;
+            const registration = await waitForServiceWorker();
             const applicationServerKey = urlBase64ToUint8Array(await pushApi.getVapidPublicKey());
             const subscription =
                 (await registration.pushManager.getSubscription()) ??
@@ -94,7 +100,7 @@ export const usePushDevice = () => {
             // call-request gets 410 Gone from the push service and the backend
             // revokes the row. Explicit server-side revoke stays available per
             // device via revokeDevice() in the devices list.
-            const registration = await navigator.serviceWorker.ready;
+            const registration = await waitForServiceWorker();
             const subscription = await registration.pushManager.getSubscription();
             if (subscription) await subscription.unsubscribe();
         },
@@ -121,6 +127,7 @@ export const usePushDevice = () => {
         enable: enableMutation.mutateAsync,
         isEnabling: enableMutation.isPending,
         disable: disableMutation.mutateAsync,
+        isDisabling: disableMutation.isPending,
         revokeDevice,
     };
 };

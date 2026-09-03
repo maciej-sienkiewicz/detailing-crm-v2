@@ -14,8 +14,7 @@ import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
-import { TabletsSection } from '../components/TabletsSection';
-import { ContactsSyncSection } from '../components/ContactsSyncSection';
+import { MobileDevicesSection, type MobileDevicesSubView } from '../components/MobileDevicesSection';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadFormsSection } from '../components/LeadFormsSection';
 import { SecuritySection } from '../components/SecuritySection';
@@ -339,15 +338,16 @@ const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = 
     'sms-credits': { section: 'credits' },
     // Numeracja wizyt przestała być osobną sekcją i jest widokiem „Oznaczeń".
     'visit-numbering': { section: 'labels', view: 'numbering' },
-    // Sekcja obejmuje też telefony do połączeń, więc nazwa "tablets" była myląca.
-    'tablets': { section: 'mobile-devices' },
+    // Sekcja obejmuje też powiadomienia i kontakty, więc nazwa "tablets" była myląca;
+    // stary link prowadzi do zakładki, którą opisywał.
+    'tablets': { section: 'mobile-devices', view: 'tablets' },
 };
 
 /** Sekcje z widokami wewnętrznymi trzymają je w tym samym parametrze URL. */
-type SubView = TeamSubView | LabelsSubView;
+type SubView = TeamSubView | LabelsSubView | MobileDevicesSubView;
 
 const VIEW_PARAM = 'view';
-const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels']);
+const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels', 'mobile-devices']);
 
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
@@ -407,6 +407,8 @@ export function SettingsView() {
     const viewParam = alias?.view ?? searchParams.get(VIEW_PARAM);
     const teamSubView: TeamSubView = viewParam === 'roles' ? 'roles' : 'employees';
     const labelsSubView: LabelsSubView = viewParam === 'colors' ? 'colors' : 'numbering';
+    const mobileDevicesSubView: MobileDevicesSubView =
+        viewParam === 'notifications' || viewParam === 'contacts' ? viewParam : 'tablets';
 
     const [helpOpen, setHelpOpen] = useState(false);
     // Lista sekcji na telefonie startuje zwinięta: wchodzisz w ustawienia po to,
@@ -458,13 +460,13 @@ export function SettingsView() {
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
     } else if (section === 'mobile-devices') {
-        // Zakładka „Urządzenia mobilne": tablety do podpisu i telefony
-        // z kontaktami studia — jeden ekran o sprzęcie sparowanym z CRM.
+        // Zakładka „Urządzenia mobilne": tablety do podpisu, powiadomienia na telefon
+        // i synchronizacja kontaktów — trzy osobne widoki jednego tematu.
         content = (
-            <>
-                <TabletsSection />
-                <ContactsSyncSection />
-            </>
+            <MobileDevicesSection
+                subView={mobileDevicesSubView}
+                onSubViewChange={view => goToSection('mobile-devices', view)}
+            />
         );
     } else if (section === 'visit-card') {
         content = <VisitCardSection />;
