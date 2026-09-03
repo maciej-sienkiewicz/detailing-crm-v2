@@ -533,6 +533,11 @@ const VerificationList = styled.ul`
   padding-left: 18px;
 `;
 
+const ViolationReason = styled.span`
+    opacity: 0.85;
+    font-style: italic;
+`;
+
 const RatingBar = styled.div`
   display: flex;
   align-items: center;
@@ -1085,7 +1090,17 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                                     <>
                                         Nie udało się spełnić wszystkich reguł po {result.iterations} próbach:
                                         <VerificationList>
-                                            {result.failedRules.map(rule => <li key={rule}>{rule}</li>)}
+                                            {/* Powód od weryfikatora obok reguły: „łamie regułę «bez emoji»"
+                                                przy poście bez emoji nie daje się ani sprawdzić, ani zgłosić. */}
+                                            {(result.failedRuleDetails?.length
+                                                ? result.failedRuleDetails
+                                                : result.failedRules.map(rule => ({ rule, reason: '' }))
+                                            ).map(({ rule, reason }) => (
+                                                <li key={rule}>
+                                                    {rule}
+                                                    {reason && <ViolationReason> — {reason}</ViolationReason>}
+                                                </li>
+                                            ))}
                                         </VerificationList>
                                     </>
                                 )}
