@@ -21,12 +21,13 @@ import { VisitCommunicationHistory } from '../components/VisitCommunicationHisto
 import { HandoverSheet, MarkReadyDialog } from '../components/handover';
 import { SmsReminderModal } from '../components/SmsReminderModal';
 import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminder';
+import { useDeleteVisit } from '../hooks/useDeleteVisit';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { DocumentType, ServiceStatus } from '../types';
 import { useToast } from '@/common/components/Toast';
 import { usePermissions } from '@/core/permissions';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
@@ -651,9 +652,13 @@ export const VisitDetailView = () => {
     };
     const docFileInputRef = useRef<HTMLInputElement>(null);
 
-    const { visitDetail, isLoading, isError, notStarted, refetch } = useVisitDetail(visitId!);
-    const { documents } = useVisitDocuments(visitId!);
-    const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(visitId!);
+    // Zapytania (GET-y) pytają o wizytę tylko dopóki ona istnieje; mutacje niżej
+    // dostają nadal `visitId`, bo działają na konkretnym rekordzie sprzed usunięcia.
+    const { deleteVisit, isDeleting, isDeleted, activeVisitId } = useDeleteVisit(visitId!);
+
+    const { visitDetail, isLoading, isError, notStarted, refetch } = useVisitDetail(activeVisitId);
+    const { documents } = useVisitDocuments(activeVisitId);
+    const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(activeVisitId);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { updateTitle } = useUpdateVisitTitle(visitId!);
     const { updateEstimatedCompletionDate } = useUpdateEstimatedCompletionDate(visitId!);
@@ -661,42 +666,31 @@ export const VisitDetailView = () => {
     const { uploadPhoto, isUploading: isUploadingPhoto } = useUploadPhoto(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
     const { deletePhoto } = useDeletePhoto(visitId!);
-    const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
-    const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(visitId!);
+    const { comments, isLoading: isLoadingComments } = useVisitComments(activeVisitId);
+    const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(activeVisitId);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
-    const { showSuccess, showWarning } = useToast();
-    const { pendingReminder } = useSmsReminder(visitId!);
+    const { showWarning } = useToast();
+    const { pendingReminder } = useSmsReminder(activeVisitId);
 
     const { can } = usePermissions();
 
     const queryClient = useQueryClient();
-    /**
-     * „Usuń wizytę" kasuje wizytę w dowolnym statusie — tak samo jak ta sama akcja
-     * w tabeli operacji.
-     *
-     * Wcześniej szło to na /cancel, czyli endpoint przerwanego PRZYJĘCIA pojazdu
-     * (tylko status DRAFT). Na wizycie IN_PROGRESS kończyło się to błędem
-     * „Anulować można tylko wizyty o statusie DRAFT", choć ta sama wizyta usuwała się
-     * bez problemu z listy — jedna akcja, dwa różne zachowania zależnie od ekranu.
-     */
-    const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
-        mutationFn: () => visitApi.deleteVisit(visitId!),
-        onSuccess: () => {
-            // Szczegół usuniętej wizyty musi zniknąć z cache, inaczej cofnięcie się
-            // w historii przeglądarki pokazuje wizytę, której już nie ma.
-            queryClient.removeQueries({ queryKey: visitDetailQueryKey(visitId!) });
-            queryClient.invalidateQueries({ queryKey: ['operations'] });
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-            navigate('/operations');
-        },
-        onError: (error: unknown) => {
-            const response = (error as { response?: { status?: number; data?: { message?: string } } })?.response;
-            // 403 objaśnia już globalny interceptor („Nie masz uprawnień…"); drugi dymek
-            // o tym samym tylko hałasuje.
-            if (response?.status === 403) return;
-            showWarning(response?.data?.message ?? 'Nie udało się usunąć wizyty. Spróbuj ponownie.');
-        },
-    });
+
+    // Między usunięciem a przejściem na listę widok nie ma czego pokazać: dane wizyty
+    // już nie przyjdą, a zwykła ścieżka renderu wyświetliłaby w tym miejscu „nie
+    // znaleziono wizyty" — komunikat o błędzie po operacji, która się udała.
+    if (isDeleted) {
+        return (
+            <ViewContainer>
+                <ContentArea>
+                    <LoadingContainer>
+                        <Spinner />
+                        <LoadingText>Usuwanie wizyty...</LoadingText>
+                    </LoadingContainer>
+                </ContentArea>
+            </ViewContainer>
+        );
+    }
 
     if (isLoading) {
         return (
