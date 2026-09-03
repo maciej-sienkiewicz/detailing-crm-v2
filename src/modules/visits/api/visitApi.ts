@@ -577,6 +577,25 @@ export const visitApi = {
         await apiClient.delete(`${BASE_PATH}/${visitId}/cancel`);
     },
 
+    /**
+     * Trwałe usunięcie wizyty w DOWOLNYM statusie — razem ze zdjęciami, protokołami,
+     * dokumentami i komentarzami. Wymaga uprawnienia VISITS_DELETE (właściciel/menedżer).
+     *
+     * To jest usunięcie, o które chodzi w „Usuń wizytę". [cancelDraftVisit] powyżej
+     * obsługuje zupełnie inny przypadek — przerwane przyjęcie pojazdu (DRAFT) — i na
+     * wizycie IN_PROGRESS kończy się błędem „Anulować można tylko wizyty o statusie DRAFT".
+     *
+     * `skipErrorToast`: komunikat pokazuje wywołujący, żeby użytkownik nie dostał
+     * dwóch dymków naraz — surowego z interceptora i własnego z widoku.
+     */
+    deleteVisit: async (visitId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return;
+        }
+        await apiClient.delete(`${BASE_PATH}/${visitId}`, { skipErrorToast: true });
+    },
+
     /** Kolejka nieukończonych przyjęć studia. */
     getOpenDrafts: async (): Promise<OpenDraftVisitListResponse> => {
         const response = await apiClient.get(`${BASE_PATH}/drafts`);

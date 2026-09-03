@@ -2301,7 +2301,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setIsConfirmDeleting(true);
         try {
             if (pendingDelete.type === 'VISIT') {
-                await visitApi.cancelDraftVisit(pendingDelete.id);
+                // Usunięcie wizyty w dowolnym statusie — tak samo jak w tabeli operacji
+                // i na szczegółach wizyty. Wcześniej szło to na /cancel, czyli endpoint
+                // przerwanego przyjęcia (tylko DRAFT), więc każda inna wizyta wracała
+                // z błędem statusu.
+                await visitApi.deleteVisit(pendingDelete.id);
                 showSuccess('Wizyta usunięta', 'Wizyta została usunięta.');
             } else {
                 await operationApi.deleteAppointment(pendingDelete.id);
@@ -2311,12 +2315,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             setPopoverOpen(false);
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
-        } catch {
-            // TODO: handled error silently
+        } catch (error) {
+            // Nieudane usunięcie musi być widoczne: po cichu połkniety błąd wyglądał
+            // dokładnie jak sukces, tyle że wpis zostawał w kalendarzu.
+            const response = (error as { response?: { status?: number; data?: { message?: string } } })?.response;
+            if (response?.status !== 403) {
+                showError('Nie udało się usunąć', response?.data?.message ?? 'Spróbuj ponownie.');
+            }
         } finally {
             setIsConfirmDeleting(false);
         }
-    }, [pendingDelete, showSuccess, queryClient]);
+    }, [pendingDelete, showSuccess, showError, queryClient]);
 
     const handleDeleteFromPopover = useCallback(async () => {
         if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
