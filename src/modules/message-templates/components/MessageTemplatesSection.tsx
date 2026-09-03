@@ -5,6 +5,7 @@ import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
 import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
 import { SmsSenderNameCard } from '@/modules/sms-campaigns/components/SmsSenderNameCard';
+import { RedirectCard } from './RedirectCard';
 import { TemplatesTable } from './TemplatesTable';
 import { RuleDrawer } from './RuleDrawer';
 import {
@@ -140,6 +141,7 @@ export const MessageTemplatesSection: React.FC = () => {
       message="Twój abonament nie obsługuje automatycznych wiadomości SMS i e-mail."
     >
       <Container>
+        <RedirectCard />
         <SmsSenderNameCard />
 
         {saveError && (

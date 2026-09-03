@@ -223,6 +223,15 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
             ],
         },
         {
+            id: 'redirect',
+            label: 'Przekierowanie na moje dane',
+            description: 'Przełącznik nad listą: gdy jest włączony, każdy SMS i e-mail, który wyszedłby do klienta, trafia na podany numer i adres studia, z dopiskiem, dla kogo był. Klienci w tym czasie nie dostają nic. Służy do obejrzenia prawdziwych wiadomości na własnym telefonie przed uruchomieniem ich dla ludzi; po sprawdzeniu wyłącz go. Obok jest próba generalna: wysyła wszystkie szablony naraz z przykładowymi danymi, a jeśli którykolwiek ma błąd (np. niedomknięte {{ }}), nie wysyła nic.',
+            usedIn: [
+                'Karta nad listą szablonów',
+                'Bramka wysyłkowa: podmiana odbiorcy tuż przed dostawcą',
+            ],
+        },
+        {
             id: 'channels',
             label: 'Kanały SMS i e-mail',
             description: 'Część wiadomości wychodzi obydwoma kanałami, na przykład link do Karty Wizyty. Chipy w kolumnie „Kanał" włączają i wyłączają każdy kanał osobno, bez otwierania szczegółów. Szary chip oznacza, że dana wiadomość nie jest wysyłana tym kanałem w ogóle.',
