@@ -3,8 +3,6 @@ import type {
     TransitionToReadyPayload,
     TransitionToCompletedPayload,
     CompleteVisitResponse,
-    SendNotificationPayload,
-    SendNotificationResponse,
 } from '../types/stateTransitions';
 
 const USE_MOCKS = false;
@@ -57,26 +55,5 @@ export const stateTransitionApi = {
             return;
         }
         await apiClient.post(`${BASE_PATH}/${visitId}/archive`);
-    },
-
-    sendNotifications: async (
-        payload: SendNotificationPayload
-    ): Promise<SendNotificationResponse> => {
-        if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 1200));
-            const result: SendNotificationResponse = {
-                sent: {
-                    sms: payload.channels.sms,
-                    email: payload.channels.email,
-                },
-                failed: [],
-            };
-            return result;
-        }
-        const response = await apiClient.post(
-            `${BASE_PATH}/${payload.visitId}/notifications`,
-            payload.channels
-        );
-        return response.data;
     },
 };

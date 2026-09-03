@@ -27,10 +27,10 @@ export const visitCardApi = {
     },
 
     /** Employee endpoint: send the card link to the customer over the chosen channel. */
-    sendCardLink: async (visitId: string, channel?: VisitCardSendChannel): Promise<VisitCardSendResponse> => {
+    sendCardLink: async (visitId: string, channel?: VisitCardSendChannel, resend = false): Promise<VisitCardSendResponse> => {
         const response = await apiClient.post<VisitCardSendResponse>(
             `/visits/${visitId}/card-link/send`,
-            channel ? { channel } : {},
+            { ...(channel ? { channel } : {}), resend },
         );
         return response.data;
     },
@@ -47,10 +47,11 @@ export const visitCardApi = {
     sendAppointmentCardLink: async (
         appointmentId: string,
         channel?: VisitCardSendChannel,
+        resend = false,
     ): Promise<VisitCardSendResponse> => {
         const response = await apiClient.post<VisitCardSendResponse>(
             `/appointments/${appointmentId}/card-link/send`,
-            channel ? { channel } : {},
+            { ...(channel ? { channel } : {}), resend },
         );
         return response.data;
     },

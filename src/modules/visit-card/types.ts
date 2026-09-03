@@ -166,6 +166,8 @@ export interface VisitCardSendResponse {
     emailSent: boolean;
     smsSent: boolean;
     message: string;
+    /** Backend odmówił, bo karta już poszła; wyślij ponownie z `resend: true`, gdy to celowe. */
+    alreadySent?: boolean;
 }
 
 // Employee-side upsell suggestion management

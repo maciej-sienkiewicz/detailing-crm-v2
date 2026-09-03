@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useToast } from '@/common/components/Toast';
@@ -6,6 +6,8 @@ import { useCapability } from '@/modules/subscription';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
+import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
+import { describeVisitCardAlreadySent } from '../utils/visitCardAlreadySent';
 import type { ConfirmVisitOptions } from '@/modules/visits/types';
 import {
     Section,
@@ -38,6 +40,7 @@ import {
     PhotoCheckOverlay,
     PhotoLoadingPlaceholder,
     NoPhotosHint,
+    AlreadySentNotice,
     MissingEmailPanel,
     MissingEmailNotice,
     MissingEmailIcon,
@@ -407,6 +410,25 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sendVisitCard, visitCardActive, visitCardLinkSmsEnabled]);
 
+    // Jeden link dla rezerwacji i wizyty: jeśli poszedł już przy rezerwacji, mówimy o tym
+    // i raz — przy pierwszym wczytaniu — zdejmujemy domyślne „wyślij". Operator może
+    // włączyć je z powrotem; nie blokujemy, tylko informujemy.
+    const { data: cardLink } = useQuery({
+        queryKey: ['visit-card-link', visitId],
+        queryFn: () => visitCardApi.getCardLink(visitId),
+        enabled: visitCardActive && !!visitId,
+        staleTime: 30_000,
+    });
+    const alreadySent = describeVisitCardAlreadySent(cardLink);
+    const suggestedRef = useRef(false);
+    useEffect(() => {
+        if (alreadySent && sendVisitCard && !suggestedRef.current) {
+            suggestedRef.current = true;
+            onChange({ ...options, sendVisitCard: false });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [alreadySent?.sentAt]);
+
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
     const updateEmailOptions = (patch: Partial<typeof emailOptions>) =>
@@ -512,6 +534,12 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                     disabledHint="Wyłączone globalnie w konfiguracji SMS"
                     onToggle={() => onChange({ ...options, sendVisitCard: !sendVisitCard })}
                 />
+            )}
+            {visitCardActive && alreadySent && (
+                <AlreadySentNotice role="note">
+                    {alreadySent.text}
+                    {sendVisitCard && ' Włączyłeś wysyłkę mimo to — klient dostanie link drugi raz.'}
+                </AlreadySentNotice>
             )}
             </LockedSection>
         </Section>

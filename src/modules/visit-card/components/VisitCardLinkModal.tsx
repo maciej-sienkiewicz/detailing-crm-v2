@@ -266,9 +266,12 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
         setIsSending(true);
         setSendResult(null);
         try {
+            // Modal pokazuje „Wyślij kartę ponownie", gdy karta już poszła — kliknięcie jest
+            // wtedy świadomą decyzją, więc mówimy to backendowi wprost (resend).
+            const resend = Boolean(lastEmailSentAt || lastSmsSentAt);
             const res = target.kind === 'visit'
-                ? await visitCardApi.sendCardLink(target.id, channel)
-                : await visitCardApi.sendAppointmentCardLink(target.id, channel);
+                ? await visitCardApi.sendCardLink(target.id, channel, resend)
+                : await visitCardApi.sendAppointmentCardLink(target.id, channel, resend);
             setSendResult({ success: res.emailSent || res.smsSent, message: res.message });
             const now = new Date().toISOString();
             if (res.emailSent) setLastEmailSentAt(now);
