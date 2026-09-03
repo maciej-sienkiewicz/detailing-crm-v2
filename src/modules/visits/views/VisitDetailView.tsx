@@ -670,14 +670,32 @@ export const VisitDetailView = () => {
     const { can } = usePermissions();
 
     const queryClient = useQueryClient();
+    /**
+     * „Usuń wizytę" kasuje wizytę w dowolnym statusie — tak samo jak ta sama akcja
+     * w tabeli operacji.
+     *
+     * Wcześniej szło to na /cancel, czyli endpoint przerwanego PRZYJĘCIA pojazdu
+     * (tylko status DRAFT). Na wizycie IN_PROGRESS kończyło się to błędem
+     * „Anulować można tylko wizyty o statusie DRAFT", choć ta sama wizyta usuwała się
+     * bez problemu z listy — jedna akcja, dwa różne zachowania zależnie od ekranu.
+     */
     const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
-        mutationFn: () => visitApi.cancelDraftVisit(visitId!),
+        mutationFn: () => visitApi.deleteVisit(visitId!),
         onSuccess: () => {
+            // Szczegół usuniętej wizyty musi zniknąć z cache, inaczej cofnięcie się
+            // w historii przeglądarki pokazuje wizytę, której już nie ma.
+            queryClient.removeQueries({ queryKey: visitDetailQueryKey(visitId!) });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
             navigate('/operations');
         },
-        onError: () => showWarning('Nie udało się usunąć wizyty. Spróbuj ponownie.'),
+        onError: (error: unknown) => {
+            const response = (error as { response?: { status?: number; data?: { message?: string } } })?.response;
+            // 403 objaśnia już globalny interceptor („Nie masz uprawnień…"); drugi dymek
+            // o tym samym tylko hałasuje.
+            if (response?.status === 403) return;
+            showWarning(response?.data?.message ?? 'Nie udało się usunąć wizyty. Spróbuj ponownie.');
+        },
     });
 
     if (isLoading) {
