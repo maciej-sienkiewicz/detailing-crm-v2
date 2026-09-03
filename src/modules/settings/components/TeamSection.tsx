@@ -10,7 +10,8 @@ import {
 import { useEmployees, useCreateEmployee } from '../hooks/useTeam';
 import { useRoles } from '../hooks/useRoles';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
-import type { CreateEmployeeFormOutput } from '../teamTypes';
+import { AttendanceSheetModal } from './team/AttendanceSheetModal';
+import type { CreateEmployeeFormOutput, TeamEmployeeListItem } from '../teamTypes';
 
 /** Also the page size the merged tab reads to label its segment. */
 export const TEAM_PAGE_SIZE = 20;
@@ -42,6 +43,16 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
 
     const [isAddOpen, setIsAddOpen] = useState(false);
 
+    /**
+     * Zaznaczeni pracownicy trzymani w całości, a nie jako same identyfikatory:
+     * wyszukiwarka i stronicowanie wymieniają wiersze pod spodem, więc lista widoczna
+     * na ekranie nie wystarcza, żeby odtworzyć, kogo zaznaczono wcześniej. Bez tego
+     * zaznaczenie ze strony 1 znikało z żądania po przejściu na stronę 2.
+     */
+    const [selected, setSelected] = useState<Map<string, TeamEmployeeListItem>>(new Map());
+    const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+    const [attendanceHintOpen, setAttendanceHintOpen] = useState(false);
+
     useEffect(() => {
         const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
         return () => clearTimeout(t);
@@ -55,6 +66,53 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
 
     const totalItems = pagination?.totalItems ?? 0;
     const totalPages = pagination?.totalPages ?? 1;
+
+    /**
+     * Moduł Czasu pracy jest cechą ROLI (`trackWorkTime`), nie pracownika — lista
+     * pracowników niesie tylko nazwę roli, więc flagę bierzemy z listy ról, którą ten
+     * widok i tak już ma wczytaną.
+     */
+    const workTimeRoleIds = new Set(roles.filter(r => r.trackWorkTime).map(r => r.id));
+    const hasWorkTime = (roleId: string | undefined) => !!roleId && workTimeRoleIds.has(roleId);
+
+    const selectedWithWorkTime = [...selected.values()].filter(emp => hasWorkTime(emp.role?.id));
+    const canGenerateAttendance = selectedWithWorkTime.length > 0;
+
+    const toggleSelection = (employee: TeamEmployeeListItem) => {
+        setAttendanceHintOpen(false);
+        setSelected(prev => {
+            const next = new Map(prev);
+            if (next.has(employee.id)) next.delete(employee.id);
+            else next.set(employee.id, employee);
+            return next;
+        });
+    };
+
+    // „Zaznacz wszystkich" obejmuje tylko widoczną stronę — zaznaczenie w tle ludzi,
+    // których użytkownik nie widzi, byłoby zaznaczeniem w ciemno.
+    const allOnPageSelected = items.length > 0 && items.every(emp => selected.has(emp.id));
+    const toggleSelectAllOnPage = () => {
+        setAttendanceHintOpen(false);
+        setSelected(prev => {
+            const next = new Map(prev);
+            if (allOnPageSelected) items.forEach(emp => next.delete(emp.id));
+            else items.forEach(emp => next.set(emp.id, emp));
+            return next;
+        });
+    };
+
+    /**
+     * Przycisk zostaje klikalny mimo braku zaznaczenia: `disabled` nie wysyła zdarzeń,
+     * więc kliknięcie w wyszarzony przycisk nie mogłoby powiedzieć, czego brakuje —
+     * a to jest jedyny moment, w którym użytkownik o to pyta.
+     */
+    const handleAttendanceClick = () => {
+        if (!canGenerateAttendance) {
+            setAttendanceHintOpen(true);
+            return;
+        }
+        setIsAttendanceOpen(true);
+    };
 
     // An account with no role is the quiet failure this list never used to show: the
     // person signs in and lands on "Brak przypisanych uprawnień".
@@ -115,6 +173,30 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                     />
                 </SearchWrap>
 
+                <AttendanceWrap>
+                    <AttendanceButton
+                        type="button"
+                        $enabled={canGenerateAttendance}
+                        aria-disabled={!canGenerateAttendance}
+                        onClick={handleAttendanceClick}
+                        onBlur={() => setAttendanceHintOpen(false)}
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8 2v3M16 2v3M3.5 9h17" />
+                            <rect x="3.5" y="4.5" width="17" height="17" rx="2.5" />
+                            <path d="m8.5 15 2 2 4-4" />
+                        </svg>
+                        Wygeneruj listę obecności
+                        {canGenerateAttendance && <CountPill>{selectedWithWorkTime.length}</CountPill>}
+                    </AttendanceButton>
+
+                    {attendanceHintOpen && !canGenerateAttendance && (
+                        <AttendanceTooltip role="tooltip">
+                            Zaznacz co najmniej jednego pracownika z modułem Czasu Pracy
+                        </AttendanceTooltip>
+                    )}
+                </AttendanceWrap>
+
                 <AddButton onClick={openAdd}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -157,6 +239,15 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
 
             <Card>
                 <ListHeader>
+                    <SelectCell onClick={e => e.stopPropagation()}>
+                        <Checkbox
+                            type="checkbox"
+                            checked={allOnPageSelected}
+                            onChange={toggleSelectAllOnPage}
+                            aria-label="Zaznacz wszystkich na tej stronie"
+                            disabled={items.length === 0}
+                        />
+                    </SelectCell>
                     <ColLabel>Pracownik</ColLabel>
                     <ColLabel>Kontakt</ColLabel>
                     <ColLabel>Rola</ColLabel>
@@ -166,6 +257,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                 {isLoading ? (
                     Array.from({ length: 6 }).map((_, i) => (
                         <SkeletonRow key={i}>
+                            <SkeletonBox $w="14px" />
                             <SkeletonBox $w={`${50 + (i % 3) * 12}%`} />
                             <SkeletonBox $w="70%" />
                             <SkeletonBox $w="60%" />
@@ -187,8 +279,18 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                 ) : (
                     items.map(emp => {
                         const hasAccount = emp.hasAccount;
+                        const tracksWorkTime = hasWorkTime(emp.role?.id);
                         return (
                             <Row key={emp.id} onClick={() => navigate(`/team/${emp.id}`)}>
+                                {/* Kliknięcie w pole wyboru nie może otwierać karty pracownika. */}
+                                <SelectCell onClick={e => e.stopPropagation()}>
+                                    <Checkbox
+                                        type="checkbox"
+                                        checked={selected.has(emp.id)}
+                                        onChange={() => toggleSelection(emp)}
+                                        aria-label={`Zaznacz: ${emp.fullName}`}
+                                    />
+                                </SelectCell>
                                 <NameCell>
                                     <Avatar>{(emp.firstName[0] ?? '') + (emp.lastName[0] ?? '')}</Avatar>
                                     <strong>{emp.fullName}</strong>
@@ -198,13 +300,16 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                                     {emp.phone && <span>{emp.phone}</span>}
                                     {!emp.email && !emp.phone && <Muted>-</Muted>}
                                 </ContactCell>
-                                <div>
+                                <RoleCell>
                                     {emp.role
                                         ? <Badge $variant="gray">{emp.role.name}</Badge>
                                         : hasAccount
                                             ? <Badge $variant="amber">Brak roli</Badge>
                                             : <Muted>-</Muted>}
-                                </div>
+                                    {/* Bez tego oznaczenia nie widać, kogo wolno zaznaczyć
+                                        do listy obecności — moduł jest cechą roli. */}
+                                    {tracksWorkTime && <Badge $variant="blue">Czas pracy</Badge>}
+                                </RoleCell>
                                 <div>
                                     {hasAccount
                                         ? <Badge $variant="blue"><Dot $color="#0284c7" />Ma konto</Badge>
@@ -237,6 +342,14 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                 )}
             </Card>
 
+            {isAttendanceOpen && (
+                <AttendanceSheetModal
+                    employeeIds={selectedWithWorkTime.map(emp => emp.id)}
+                    employeeCount={selectedWithWorkTime.length}
+                    onClose={() => setIsAttendanceOpen(false)}
+                />
+            )}
+
             {isAddOpen && (
                 <EmployeeFormModal
                     mode="add"
@@ -252,7 +365,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-const GRID = '1.3fr 1.1fr 150px 130px';
+const GRID = '32px 1.3fr 1.1fr 190px 130px';
 
 const ListHeader = styled.div`
     display: grid;
@@ -276,7 +389,7 @@ const SkeletonRow = styled.div`
     &:last-child { border-bottom: none; }
 
     @media (max-width: 900px) {
-        grid-template-columns: minmax(0, 1fr) 110px;
+        grid-template-columns: 24px minmax(0, 1fr) 110px;
         padding: 14px;
     }
 `;
@@ -296,15 +409,105 @@ const Row = styled.div`
     /* Cztery kolumny nie mieszczą się na telefonie: pracownik czyta się wtedy
        jako kafelka — nazwisko z rolą, pod nimi kontakt i status konta. */
     @media (max-width: 900px) {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: 24px minmax(0, 1fr) auto;
         gap: 8px 10px;
         padding: 12px 14px;
         align-items: start;
 
         > :nth-child(1) { grid-column: 1; grid-row: 1; }
-        > :nth-child(3) { grid-column: 2; grid-row: 1; justify-self: end; }
-        > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
-        > :nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
+        > :nth-child(2) { grid-column: 2; grid-row: 1; }
+        > :nth-child(4) { grid-column: 3; grid-row: 1; justify-self: end; }
+        > :nth-child(3) { grid-column: 2 / -1; grid-row: 2; }
+        > :nth-child(5) { grid-column: 2 / -1; grid-row: 3; }
+    }
+`;
+
+const SelectCell = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+const Checkbox = styled.input`
+    width: 15px;
+    height: 15px;
+    accent-color: #0284c7;
+    cursor: pointer;
+
+    &:disabled { cursor: default; opacity: 0.4; }
+`;
+
+const RoleCell = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+`;
+
+const AttendanceWrap = styled.div`
+    position: relative;
+    display: flex;
+`;
+
+const AttendanceButton = styled.button<{ $enabled: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 8px;
+    white-space: nowrap;
+    /* Nieaktywny wizualnie, ale wciąż klikalny: dopiero kliknięcie może powiedzieć,
+       czego brakuje — atrybut disabled połknąłby to zdarzenie. */
+    cursor: ${p => (p.$enabled ? 'pointer' : 'default')};
+    color: ${p => (p.$enabled ? '#0f172a' : '#94a3b8')};
+    background: ${p => (p.$enabled ? '#fff' : '#f8fafc')};
+    border: 1px solid ${p => (p.$enabled ? '#cbd5e1' : '#e2e8f0')};
+    transition: background 150ms, border-color 150ms, color 150ms;
+
+    &:hover { background: ${p => (p.$enabled ? '#f8fafc' : '#f1f5f9')}; }
+`;
+
+const CountPill = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+    font-size: 11px;
+    font-weight: 700;
+`;
+
+const AttendanceTooltip = styled.div`
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    max-width: 280px;
+    padding: 8px 11px;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.45;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -4px;
+        right: 18px;
+        width: 8px;
+        height: 8px;
+        background: #0f172a;
+        transform: rotate(45deg);
     }
 `;
 
