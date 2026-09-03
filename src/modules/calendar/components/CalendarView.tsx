@@ -413,6 +413,12 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         opacity: 0.35;
     }
 
+    /* Started visits (in progress / ready for pickup): lighter than a reservation,
+       still clearly readable. Cancelled and completed rules above stay stronger. */
+    .fc-event-in-progress {
+        opacity: 0.72;
+    }
+
     /* Overdue IN_PROGRESS visits */
     @keyframes fc-overdue-blink {
         0%, 100% { opacity: 0; }

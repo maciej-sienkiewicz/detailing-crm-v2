@@ -2,6 +2,7 @@
 // Mobile list view: shows upcoming days with their events, Google Calendar style.
 
 import React, { useRef, useEffect } from 'react';
+import { isStartedVisit } from '../utils/visitStatus';
 import styled, { keyframes } from 'styled-components';
 import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
@@ -222,7 +223,7 @@ const fadeUp = keyframes`
     to   { opacity: 1; transform: translateY(0); }
 `;
 
-const EventCard = styled.div<{ $color: string; $dimmed: boolean }>`
+const EventCard = styled.div<{ $color: string; $dimmed: boolean; $started: boolean }>`
     display: flex;
     align-items: stretch;
     gap: 0;
@@ -231,7 +232,7 @@ const EventCard = styled.div<{ $color: string; $dimmed: boolean }>`
     border-left: 3px solid ${p => p.$color};
     box-shadow: 0 1px 3px rgba(15,23,42,0.07), 0 0 0 1px rgba(15,23,42,0.04);
     cursor: pointer;
-    opacity: ${p => p.$dimmed ? 0.5 : 1};
+    opacity: ${p => p.$dimmed ? 0.5 : p.$started ? 0.72 : 1};
     animation: ${fadeUp} 0.14s ease both;
     transition: box-shadow 0.15s, transform 0.15s;
     overflow: hidden;
@@ -498,6 +499,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                                 key={`${event.id}-${idx}`}
                                                 $color={color}
                                                 $dimmed={isCancelled}
+                                                $started={isStartedVisit(statusKey)}
                                                 onClick={e => {
                                                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                                                     onEventClick(data, { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });

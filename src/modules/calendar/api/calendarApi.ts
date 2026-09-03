@@ -2,6 +2,7 @@
 
 import { apiClient } from '@/core';
 import { joinPiiName } from '@/common/pii';
+import { isStartedVisit } from '../utils/visitStatus';
 import type {
     CalendarEvent,
     CalendarEventsResponse,
@@ -184,7 +185,13 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         borderColor: 'transparent',
         textColor,
         extendedProps: eventData,
-        classNames: overdue ? ['fc-event-overdue'] : status === 'COMPLETED' ? ['fc-event-completed'] : [],
+        classNames: [
+            ...(overdue ? ['fc-event-overdue'] : []),
+            ...(status === 'COMPLETED' ? ['fc-event-completed'] : []),
+            // Rozpoczęta wizyta stoi w kalendarzu lżej niż rezerwacja: auto już jest
+            // w studiu, więc kafelek nie musi walczyć o uwagę z tym, co dopiero przyjedzie.
+            ...(isStartedVisit(status) ? ['fc-event-in-progress'] : []),
+        ],
         order: status === 'IN_PROGRESS' ? 1 : status === 'COMPLETED' ? 3 : 2,
     };
 };
