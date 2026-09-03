@@ -14,7 +14,6 @@ import { SigningRequirementModal } from '../components/SigningRequirementModal';
 import { ResumeCheckInModal } from '../components/ResumeCheckInModal';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import type { OpenDraftVisit } from '@/modules/visits/types';
-import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ProtocolResponse } from '../types';
@@ -274,7 +273,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     } = useCheckInWizard(reservationId, initialData, qrCheckinId);
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
-    const { showSuccess, showError } = useToast();
+    const { showSuccess } = useToast();
     const navigate = useNavigate();
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -309,19 +308,9 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         return () => cancelAnimationFrame(frame);
     }, [validationAttempt]);
 
-    // "Czy wysłać Kartę Wizyty do klienta?" mieszka teraz w oknie „Dokumentacja
-    // i Podpisy", obok pozostałych powiadomień dla klienta. Kartę wysyłamy dopiero
-    // po potwierdzeniu wizyty — a nie zaraz po jej utworzeniu, kiedy operator wciąż
-    // może wizytę anulować.
-    const sendVisitCardAfterConfirmation = (visitId: string) => {
-        visitCardApi.sendCardLink(visitId)
-            .then(result => {
-                if (result.emailSent || result.smsSent) showSuccess(result.message);
-                else showError('Nie udało się wysłać Karty Wizyty', result.message);
-            })
-            .catch(() => showError('Nie udało się wysłać Karty Wizyty'));
-    };
-
+    // „Czy wysłać Kartę Wizyty do klienta?" mieszka w oknie „Dokumentacja i Podpisy".
+    // Kartę wysyła backend w żądaniu potwierdzenia wizyty (flaga sendVisitCard) — tu nic
+    // nie dosyłamy, bo drugie wywołanie /card-link/send dublowało SMS do klienta.
     const [signingModalState, setSigningModalState] = useState<{
         isOpen: boolean;
         isCreating: boolean;
@@ -393,9 +382,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         }
     };
 
-    const handleSigningModalConfirm = ({ sendVisitCard }: { sendVisitCard: boolean }) => {
+    const handleSigningModalConfirm = () => {
         if (signingModalState.visitId) {
-            if (sendVisitCard) sendVisitCardAfterConfirmation(signingModalState.visitId);
             const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
             showSuccess(`Wizyta ${visitNumber} rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });

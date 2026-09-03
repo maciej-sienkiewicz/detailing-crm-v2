@@ -13,6 +13,7 @@ import type {
     ServiceLineItem,
     VisitPhotosResponse,
     ConfirmVisitOptions,
+    ConfirmVisitResponse,
     TechnicalNoteHistoryResponse,
     OpenDraftVisit,
     OpenDraftVisitListResponse,
@@ -646,15 +647,16 @@ export const visitApi = {
         return response.data;
     },
 
-    confirmDraftVisit: async (visitId: string, options?: ConfirmVisitOptions): Promise<{ visitId: string; message: string }> => {
+    confirmDraftVisit: async (visitId: string, options?: ConfirmVisitOptions): Promise<ConfirmVisitResponse> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 600));
             return {
                 visitId,
-                message: 'Visit confirmed successfully'
+                message: 'Visit confirmed successfully',
+                visitCard: null,
             };
         }
-        const response = await apiClient.post(`${BASE_PATH}/${visitId}/confirm`, options ?? {});
+        const response = await apiClient.post<ConfirmVisitResponse>(`${BASE_PATH}/${visitId}/confirm`, options ?? {});
         return response.data;
     },
 

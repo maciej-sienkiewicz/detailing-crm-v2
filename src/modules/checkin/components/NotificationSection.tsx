@@ -81,6 +81,9 @@ export const defaultNotificationOptions = (
 
 export const toConfirmVisitOptions = (opts: NotificationOptions): ConfirmVisitOptions => ({
     sendEmail: opts.sendEmail || undefined,
+    // Kartę wysyła backend w tym samym żądaniu — i tylko on. Osobne wywołanie
+    // /card-link/send po potwierdzeniu dublowało SMS do klienta.
+    sendVisitCard: opts.sendVisitCard || undefined,
     emailOptions: opts.sendEmail
         ? {
               attachProtocol: opts.emailOptions.attachProtocol || undefined,

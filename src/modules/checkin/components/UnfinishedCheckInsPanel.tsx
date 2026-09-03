@@ -6,7 +6,6 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useToast } from '@/common/components/Toast';
 import { usePermissions } from '@/core/permissions';
 import { visitApi } from '@/modules/visits/api/visitApi';
-import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
 import type { OpenDraftVisit } from '@/modules/visits/types';
 import { ResumeCheckInModal } from './ResumeCheckInModal';
 
@@ -155,7 +154,7 @@ export const UnfinishedCheckInsPanel = () => {
     const { can } = usePermissions();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { showSuccess, showError } = useToast();
+    const { showSuccess } = useToast();
 
     const [expanded, setExpanded] = useState(false);
     const [resuming, setResuming] = useState<OpenDraftVisit | null>(null);
@@ -216,15 +215,8 @@ export const UnfinishedCheckInsPanel = () => {
             {resuming && (
                 <ResumeCheckInModal
                     draft={resuming}
-                    onConfirmed={(visitId, { sendVisitCard }) => {
-                        if (sendVisitCard) {
-                            visitCardApi.sendCardLink(visitId)
-                                .then(result => {
-                                    if (result.emailSent || result.smsSent) showSuccess(result.message);
-                                    else showError('Nie udało się wysłać Karty Wizyty', result.message);
-                                })
-                                .catch(() => showError('Nie udało się wysłać Karty Wizyty'));
-                        }
+                    onConfirmed={(visitId) => {
+                        // Kartę Wizyty wysłał już backend razem z potwierdzeniem (flaga sendVisitCard).
                         setResuming(null);
                         refresh();
                         showSuccess(`Wizyta ${resuming.visitNumber} rozpoczęta pomyślnie!`);

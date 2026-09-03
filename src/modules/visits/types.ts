@@ -346,6 +346,21 @@ export interface ConfirmVisitOptions {
     sendSms?: boolean;
     sendEmail?: boolean;
     emailOptions?: ConfirmVisitEmailOptions;
+    /** „Wyślij Kartę Wizyty" z okna Dokumentacja i Podpisy. Backend wysyła kartę tylko, gdy true. */
+    sendVisitCard?: boolean;
+}
+
+/** Wynik wysyłki Karty Wizyty zleconej razem z potwierdzeniem; null, gdy nie zlecono. */
+export interface ConfirmVisitCardResult {
+    emailSent: boolean;
+    smsSent: boolean;
+    message: string;
+}
+
+export interface ConfirmVisitResponse {
+    visitId: string;
+    message: string;
+    visitCard: ConfirmVisitCardResult | null;
 }
 
 // ─── Communication History ────────────────────────────────────────────────────
