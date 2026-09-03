@@ -320,6 +320,19 @@ export const NoPhotosHint = styled.div`
     font-style: italic;
 `;
 
+/* ─── Karta już wysłana przy rezerwacji ─────────────────────── */
+
+export const AlreadySentNotice = styled.div`
+    margin: -4px 0 0;
+    padding: 8px 12px;
+    border-left: 3px solid #d97706;
+    background: #fffbeb;
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #92400e;
+`;
+
 /* ─── Missing customer e-mail (inline fix) ─────────────────── */
 
 export const MissingEmailPanel = styled.div`

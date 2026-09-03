@@ -81,19 +81,3 @@ export interface CompleteVisitResponse {
     /** Powód odrzucenia przez KSeF, obecny tylko przy ksefStatus === 'REJECTED'. */
     ksefError?: string | null;
 }
-
-export interface SendNotificationPayload {
-    visitId: string;
-    channels: {
-        sms: boolean;
-        email: boolean;
-    };
-}
-
-export interface SendNotificationResponse {
-    sent: {
-        sms: boolean;
-        email: boolean;
-    };
-    failed: string[];
-}

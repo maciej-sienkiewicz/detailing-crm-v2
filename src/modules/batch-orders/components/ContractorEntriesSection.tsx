@@ -8,6 +8,7 @@ import { DateRangeFilter, currentMonthRange } from './DateRangeFilter';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { SettlementModal } from './SettlementModal';
 import { SettlementHistoryModal } from './SettlementHistoryModal';
+import { useQuery } from '@tanstack/react-query';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry, EntryRequest, SettlementRequest } from '../types';
 
@@ -713,6 +714,19 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const settledCount = data?.settledCount ?? 0;
     const hasPartialSettlement = settledCount > 0;
 
+    // Historia rozliczeń mówi, czy zestawienie za ten okres poszło już e-mailem —
+    // modal ostrzega wtedy przed drugą wysyłką w trybie „Wszystkie" (nie blokuje).
+    const { data: settlementHistory } = useQuery({
+        queryKey: ['settlement-history', contractor.id],
+        queryFn: () => batchOrderApi.getSettlementHistory(contractor.id),
+        enabled: showSettlement,
+    });
+    const emailedCloses = (settlementHistory ?? [])
+        .filter(r => r.emailSent && r.periodFrom && r.periodTo && r.periodFrom <= filterTo && r.periodTo >= filterFrom)
+        .map(r => r.closedAt)
+        .sort();
+    const previousEmailSentAt = emailedCloses.length > 0 ? emailedCloses[emailedCloses.length - 1] : null;
+
     return (
         <>
             <Section>
@@ -1004,6 +1018,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     from={filterFrom}
                     to={filterTo}
                     hasPartialSettlement={hasPartialSettlement}
+                    previousEmailSentAt={previousEmailSentAt}
                     onConfirm={handleSettle}
                     onClose={() => setShowSettlement(false)}
                     isLoading={settle.isPending}

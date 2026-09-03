@@ -272,12 +272,14 @@ interface Props {
     from: string;
     to: string;
     hasPartialSettlement: boolean;
+    /** Kiedy zestawienie za ten okres poszło już e-mailem; null = nigdy. */
+    previousEmailSentAt?: string | null;
     onConfirm: (request: SettlementRequest) => Promise<void>;
     onClose: () => void;
     isLoading?: boolean;
 }
 
-export function SettlementModal({ contractor, from, to, hasPartialSettlement, onConfirm, onClose, isLoading }: Props) {
+export function SettlementModal({ contractor, from, to, hasPartialSettlement, previousEmailSentAt = null, onConfirm, onClose, isLoading }: Props) {
     const [mode, setMode] = useState<SettlementMode>(hasPartialSettlement ? 'NEW_ONLY' : 'ALL');
     const [addToFinances, setAddToFinances] = useState(false);
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
@@ -382,6 +384,12 @@ export function SettlementModal({ contractor, from, to, hasPartialSettlement, on
                         <CheckDescription>
                             Wysyła zestawienie za wybrany okres na adres e-mail kontrahenta.
                         </CheckDescription>
+                        {previousEmailSentAt && mode === 'ALL' && (
+                            <WarningBox role="note" onClick={e => e.stopPropagation()}>
+                                <WarningTitle>Zestawienie za ten okres poszło już e-mailem {new Date(previousEmailSentAt).toLocaleString('pl-PL')}.</WarningTitle>
+                                Tryb „Wszystkie" obejmuje wpisy rozliczone wcześniej, więc kontrahent dostanie drugi raz to samo zestawienie. Jeśli to celowe, wyślij; jeśli nie, wybierz „Tylko nowe".
+                            </WarningBox>
+                        )}
                         {sendEmail && (
                             <EmailField onClick={e => e.stopPropagation()}>
                                 <EmailLabel htmlFor="settlement-email">Adres e-mail</EmailLabel>

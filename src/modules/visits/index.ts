@@ -67,8 +67,6 @@ export type {
     CompleteVisitResponse,
     TransitionToReadyPayload,
     TransitionToCompletedPayload,
-    SendNotificationPayload,
-    SendNotificationResponse,
 } from './types/stateTransitions';
 
 export type {
