@@ -5,6 +5,7 @@ import { FormField, FieldLabel, InputShell, BareInput } from '@/common/component
 import { Toggle } from '@/common/components/Toggle';
 import { SharedButton } from '@/common/styles';
 import type { RehearsalReport } from '../types';
+import { summarizeReport } from '../utils/rehearsalReport';
 import {
   useCommunicationRedirect,
   usePlanRehearsal,
@@ -151,49 +152,15 @@ const ReportLine = styled.div<{ $tone: 'ok' | 'warn' | 'error' }>`
 const PHONE_HINT = 'np. +48 500 100 200';
 
 function describeReport(report: RehearsalReport): React.ReactNode {
-  const problems = report.items.filter(i => i.findings.some(f => f.severity === 'ERROR'));
-  const delivered = report.items.filter(i => i.delivery?.success).length;
-  const failed = report.items.filter(i => i.delivery && !i.delivery.success);
-  const withContent = report.items.filter(i => i.segments !== null || (i.subject && i.body)).length;
-
-  if (report.errorCount > 0) {
-    return (
-      <>
-        <ReportLine $tone="error">
-          Nic nie wysłano: {report.errorCount} {report.errorCount === 1 ? 'błąd' : 'błędów'} w szablonach. Popraw je i spróbuj ponownie.
-        </ReportLine>
-        <ul>
-          {problems.map(i => (
-            <li key={`${i.channel}-${i.kind}`}>
-              <code>{i.channel} · {i.kind}</code>{' '}
-              {i.findings.filter(f => f.severity === 'ERROR').map(f => `${f.rule}${f.detail ? ` (${f.detail})` : ''}`).join(', ')}
-            </li>
-          ))}
-        </ul>
-      </>
-    );
-  }
-
-  if (!report.sent) {
-    return (
-      <ReportLine $tone="ok">
-        Szablony są poprawne: {withContent} z {report.items.length} ma treść i przeszło sprawdzenie
-        {report.warningCount > 0 ? `, ${report.warningCount} ostrzeżeń` : ''}.
-      </ReportLine>
-    );
-  }
-
+  const summary = summarizeReport(report);
   return (
     <>
-      <ReportLine $tone={failed.length ? 'warn' : 'ok'}>
-        Wysłano {delivered} z {withContent} wiadomości na {report.redirectPhone} i {report.redirectEmail}.
-        Każda ma na początku numer, np. <code>[R03/10]</code> — odhacz je na telefonie po kolei.
-      </ReportLine>
-      {failed.length > 0 && (
+      <ReportLine $tone={summary.tone}>{summary.headline}</ReportLine>
+      {summary.problems.length > 0 && (
         <ul>
-          {failed.map(i => (
-            <li key={`${i.channel}-${i.kind}`}>
-              <code>{i.channel} · {i.kind}</code> {i.delivery?.error}
+          {summary.problems.map(p => (
+            <li key={p.key}>
+              <code>{p.label}</code> {p.detail}
             </li>
           ))}
         </ul>
