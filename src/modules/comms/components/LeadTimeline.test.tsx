@@ -125,7 +125,7 @@ describe('LeadTimeline', () => {
         expect(screen.queryByRole('button', { name: /Pokaż wiadomość/ })).toBeNull();
     });
 
-    it('telefon pokazuje notatkę od razu, bez rozwijania', () => {
+    it('kontakt poza pocztą pokazuje notatkę od razu, bez rozwijania', () => {
         // Notatka z rozmowy to jedno zdanie — chowanie go za przyciskiem byłoby
         // kliknięciem za nic.
         renderTimeline([
@@ -137,15 +137,15 @@ describe('LeadTimeline', () => {
             }),
         ]);
 
-        expect(screen.getByText('Oddzwoniliśmy')).toBeTruthy();
+        expect(screen.getByText('Kontakt poza pocztą')).toBeTruthy();
         expect(screen.getByText('prosił o kontakt po 15')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Pokaż wiadomość/ })).toBeNull();
     });
 
-    it('telefon bez notatki nadal jest zdarzeniem', () => {
+    it('kontakt bez notatki nadal jest zdarzeniem', () => {
         renderTimeline([entry({ id: '1', kind: 'CALLBACK', actorName: 'Maciej Sienkiewicz' })]);
 
-        expect(screen.getByText('Oddzwoniliśmy')).toBeTruthy();
+        expect(screen.getByText('Kontakt poza pocztą')).toBeTruthy();
     });
 
     it('pusta oś mówi wprost, że nic się nie wydarzyło', () => {

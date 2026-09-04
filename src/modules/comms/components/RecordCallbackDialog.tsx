@@ -1,15 +1,15 @@
 // src/modules/comms/components/RecordCallbackDialog.tsx
 //
-// „Oddzwoniłem" — telefon do klienta odnotowany na leadzie.
+// „Kontakt poza pocztą" — rozmowa, SMS albo spotkanie odnotowane na leadzie.
 //
-// Rozmowa telefoniczna nie zostawia śladu, który system mógłby przeczytać: w wątku
+// Kontakt spoza skrzynki nie zostawia śladu, który system mógłby przeczytać: w wątku
 // nie przybywa mail, więc lead po odbytej rozmowie wyglądał identycznie jak lead,
 // o którym nikt nie pamiętał. Oś czasu milczała o najważniejszym kontakcie, a lead
 // wisiał w kolejce „czeka na naszą odpowiedź" mimo że odpowiedź padła — tyle że głosem.
 //
-// Notatka jest opcjonalna świadomie: gdyby była wymagana, ludzie klikaliby „Oddzwoniłem"
+// Notatka jest opcjonalna świadomie: gdyby była wymagana, ludzie odnotowywaliby kontakt
 // rzadziej, a wtedy oś czasu kłamałaby dalej. Sam fakt kontaktu jest tu wartością,
-// treść rozmowy tylko jej uzupełnieniem.
+// jego treść tylko uzupełnieniem.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -97,13 +97,14 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
     return (
         <Backdrop onClick={onClose}>
             <Card onClick={(event) => event.stopPropagation()}>
-                <h4><PhoneCall /> Oddzwoniłem do klienta</h4>
+                <h4><PhoneCall /> Kontakt poza pocztą</h4>
                 <Hint>
-                    Rozmowa trafi na oś czasu leada, a lead zejdzie z kolejki oczekujących
-                    na naszą odpowiedź — tak samo jak po wysłaniu maila.
+                    Rozmowa telefoniczna, SMS albo spotkanie. Kontakt trafi na oś czasu
+                    leada, a lead zejdzie z kolejki oczekujących na naszą odpowiedź —
+                    tak samo jak po wysłaniu maila.
                 </Hint>
                 <textarea
-                    placeholder="Notatka z rozmowy (opcjonalnie) — np. prosił o kontakt po 15…"
+                    placeholder="Notatka (opcjonalnie) — np. prosił o kontakt po 15…"
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     autoFocus
@@ -121,7 +122,7 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
                         Anuluj
                     </IconButton>
                     <PrimaryButton type="button" onClick={submit} disabled={record.isPending}>
-                        {record.isPending ? 'Zapisywanie…' : 'Zapisz telefon'}
+                        {record.isPending ? 'Zapisywanie…' : 'Zapisz kontakt'}
                     </PrimaryButton>
                 </Actions>
             </Card>

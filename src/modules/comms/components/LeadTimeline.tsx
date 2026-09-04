@@ -230,7 +230,10 @@ const headlineOf = (entry: LeadTimelineEntry, isFirstInbound: boolean): string =
         case 'OUTBOUND_MESSAGE':
             return 'Odpisaliśmy';
         case 'CALLBACK':
-            return 'Oddzwoniliśmy';
+            // Nie „Oddzwoniliśmy": zapis nie niesie kanału, a kontaktem bywa SMS albo
+            // spotkanie. Nazwa ma opisywać to, co wiemy, i brzmieć tak samo jak
+            // przycisk, którym się ją tworzy.
+            return 'Kontakt poza pocztą';
         case 'STATUS':
         default:
             return entry.toStatus ? LEAD_STATUS_LABELS[entry.toStatus] : 'Zmiana statusu';
