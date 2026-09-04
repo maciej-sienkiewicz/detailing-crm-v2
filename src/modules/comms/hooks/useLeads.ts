@@ -69,10 +69,15 @@ export const useLeadAppointment = (appointmentId: string | null) =>
         retry: false,
     });
 
-export const useLeadHistory = (leadId: string | null) =>
+/**
+ * Przebieg sprawy: statusy, korespondencja i odnotowane telefony w jednej liście.
+ * Klucz zostaje pod nazwą „history" — to wciąż historia leada, tylko wreszcie pełna,
+ * a wszystkie unieważnienia w module już się do tej nazwy odwołują.
+ */
+export const useLeadTimeline = (leadId: string | null) =>
     useQuery({
         queryKey: [...LEADS_KEY, 'history', leadId],
-        queryFn: () => leadsApi.getHistory(leadId!),
+        queryFn: () => leadsApi.getTimeline(leadId!),
         enabled: leadId !== null,
     });
 
@@ -187,6 +192,31 @@ const useLeadInvalidation = () => {
             queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'history', leadId] });
         }
     };
+};
+
+/**
+ * „Oddzwoniłem": telefon do klienta zapisany jako kontakt.
+ *
+ * Unieważniamy oś czasu ORAZ samego leada z listą: backend przy pierwszym telefonie
+ * stempluje czas reakcji i przesuwa „Nowy" na „W kontakcie", więc odświeżenie samej
+ * osi zostawiłoby w tabeli status, który przestał być prawdziwy.
+ */
+export const useRecordLeadCallback = () => {
+    const invalidate = useLeadInvalidation();
+    const { showSuccess, showError } = useToast();
+    return useMutation({
+        mutationFn: ({ leadId, note }: { leadId: string; note?: string }) =>
+            leadsApi.recordCallback(leadId, note),
+        onSuccess: (_callback, { leadId }) => {
+            invalidate(leadId);
+            showSuccess('Telefon odnotowany', 'Lead zszedł z kolejki oczekujących na odpowiedź');
+        },
+        onError: (error) => {
+            const message =
+                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Nie udało się zapisać telefonu', message ?? 'Spróbuj ponownie');
+        },
+    });
 };
 
 /**
