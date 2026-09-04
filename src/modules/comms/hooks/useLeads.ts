@@ -218,33 +218,29 @@ export const useSimilarVisits = (leadId: string | null, options?: { enabled?: bo
     });
 
 /**
- * Ocena trafności dopasowania. Odpowiedź serwera jest pusta, więc wynik w pamięci
- * podręcznej poprawiamy na miejscu — odrzucone zlecenie ma zniknąć od razu, a nie
- * po ponownym policzeniu całej sekcji.
+ * Zdjęcie jednej podpowiedzi. Odpowiedź serwera jest pusta, więc wiersz usuwamy
+ * z pamięci podręcznej na miejscu — ma zniknąć od razu, a nie po ponownym
+ * policzeniu całej sekcji, które kosztuje osadzenie i przesiew.
+ *
+ * Serwer dosuwa na zwolnione miejsce następne zlecenie dopiero przy kolejnym
+ * odczycie. Tutaj lista po prostu się skraca i to jest uczciwsze: dosunięcie
+ * czegoś, czego użytkownik jeszcze nie widział, wyglądałoby jak podmiana wiersza
+ * pod ręką.
  */
-export const useRateSimilarVisit = (leadId: string) => {
+export const useDismissSimilarVisit = (leadId: string) => {
     const queryClient = useQueryClient();
     const { showError } = useToast();
     return useMutation({
-        mutationFn: ({ visitId, verdict }: { visitId: string; verdict: 'RELEVANT' | 'IRRELEVANT' }) =>
-            leadsApi.rateSimilarVisit(leadId, visitId, verdict),
-        onSuccess: (_result, { visitId, verdict }) => {
+        mutationFn: (visitId: string) => leadsApi.dismissSimilarVisit(leadId, visitId),
+        onSuccess: (_result, visitId) => {
             queryClient.setQueryData<SimilarVisits>(
                 [...LEADS_KEY, 'similar-visits', leadId],
-                (current) => {
-                    if (!current) return current;
-                    return {
-                        ...current,
-                        items: verdict === 'IRRELEVANT'
-                            ? current.items.filter((item) => item.visitId !== visitId)
-                            : current.items.map((item) =>
-                                item.visitId === visitId ? { ...item, feedback: verdict } : item
-                            ),
-                    };
-                }
+                (current) => current
+                    ? { ...current, items: current.items.filter((item) => item.visitId !== visitId) }
+                    : current
             );
         },
-        onError: () => showError('Nie udało się zapisać oceny', 'Spróbuj ponownie'),
+        onError: () => showError('Nie udało się usunąć podpowiedzi', 'Spróbuj ponownie'),
     });
 };
 

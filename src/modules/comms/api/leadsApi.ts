@@ -56,16 +56,11 @@ export const leadsApi = {
         return data;
     },
 
-    rateSimilarVisit: async (
-        leadId: string,
-        visitId: string,
-        verdict: 'RELEVANT' | 'IRRELEVANT'
-    ): Promise<void> => {
-        await apiClient.put(
-            `/v1/leads/${leadId}/similar-visits/${visitId}`,
-            { verdict },
-            { skipErrorToast: true }
-        );
+    /** Zdjęcie jednej podpowiedzi z tego leada. Przy innym leadzie zlecenie wraca. */
+    dismissSimilarVisit: async (leadId: string, visitId: string): Promise<void> => {
+        await apiClient.delete(`/v1/leads/${leadId}/similar-visits/${visitId}`, {
+            skipErrorToast: true,
+        });
     },
 
     /** „Oddzwoniłem" — notatka opcjonalna, sam fakt telefonu bywa całą informacją. */
