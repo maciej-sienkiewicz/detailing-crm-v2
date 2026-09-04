@@ -2,8 +2,10 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
-import { Button } from '@/common/components/Button';
 import { protocolsApi } from '@/modules/protocols/api/protocolsApi';
+// Ten sam wygląd przycisków co w modalu "Dokumentacja i Podpisy" — jeden komponent,
+// żeby style dwóch modali z tego samego etapu przyjęcia nie mogły się rozjechać.
+import { CancelBtn, ConfirmBtn } from './SigningRequirementModal.styles';
 
 const ModalContent = styled.div`
     display: flex;
@@ -253,12 +255,9 @@ export const DocumentPreview = ({
                         Twoja przeglądarka może nie obsługiwać podglądu PDF.
                         Spróbuj otworzyć dokument w nowej karcie.
                     </ErrorDetails>
-                    <Button
-                        $variant="primary"
-                        onClick={() => window.open(pdfUrl, '_blank')}
-                    >
+                    <ConfirmBtn onClick={() => window.open(pdfUrl, '_blank')}>
                         Otwórz w nowej karcie
-                    </Button>
+                    </ConfirmBtn>
                 </ErrorContainer>
             );
         }
@@ -287,16 +286,13 @@ export const DocumentPreview = ({
 
                 <FooterActions>
                     {pdfUrl && !pdfError && (
-                        <Button
-                            $variant="secondary"
-                            onClick={() => window.open(pdfUrl, '_blank')}
-                        >
+                        <CancelBtn onClick={() => window.open(pdfUrl, '_blank')}>
                             Otwórz w nowej karcie
-                        </Button>
+                        </CancelBtn>
                     )}
-                    <Button $variant="primary" onClick={onClose}>
+                    <ConfirmBtn onClick={onClose}>
                         Zamknij
-                    </Button>
+                    </ConfirmBtn>
                 </FooterActions>
             </ModalContent>
         </Modal>
