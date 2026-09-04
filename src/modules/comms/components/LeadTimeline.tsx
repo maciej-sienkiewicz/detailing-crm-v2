@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
-import { ChevronDown, Mail, PhoneCall, Reply } from 'lucide-react';
+import { Mail, MailOpen, PhoneCall, Reply } from 'lucide-react';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadTimelineEntry } from '../types';
 import { formatDateTime } from './shared';
 
@@ -91,26 +91,40 @@ const Headline = styled.strong`
     }
 `;
 
+/**
+ * Podgląd wiadomości jako PRZYCISK, nie jako podkreślone zdanie.
+ *
+ * Wcześniej stał tu goły tekst w kolorze akcentu, który zlewał się z datą i autorem
+ * tuż obok — wiersz osi czasu to i tak same drobne napisy, więc kolejny drobny napis
+ * nie mówi „kliknij mnie". Obwódka i tło wycinają go z tego ciągu, a koperta nazywa
+ * rzecz, która się otworzy, zanim ktokolwiek przeczyta etykietę.
+ */
 const Toggle = styled.button<{ $open: boolean }>`
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    margin-top: 3px;
-    padding: 0;
-    border: none;
-    background: none;
+    gap: 5px;
+    margin-top: 5px;
+    padding: 3px 8px;
+    border: 1px solid ${({ $open, theme }) => ($open ? theme.colors.primary : theme.colors.border)};
+    border-radius: 999px;
+    background: ${({ $open, theme }) => ($open ? 'rgba(14, 165, 233, 0.08)' : theme.colors.surface)};
     cursor: pointer;
     font: inherit;
     font-size: 11.5px;
-    color: ${p => p.theme.colors.primary};
+    font-weight: ${p => p.theme.fontWeights.medium};
+    line-height: 1.4;
+    color: ${({ $open, theme }) => ($open ? theme.colors.primary : theme.colors.textSecondary)};
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 
-    &:hover { text-decoration: underline; }
+    &:hover {
+        border-color: ${p => p.theme.colors.primary};
+        color: ${p => p.theme.colors.primary};
+    }
 
     svg {
-        width: 11px;
-        height: 11px;
-        transition: transform 150ms ease;
-        transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
     }
 `;
 
@@ -219,8 +233,11 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                                     onClick={() => toggle(entry.id)}
                                     aria-expanded={open}
                                 >
+                                    {/* Koperta otwarta w obu stanach: ikona nazywa RZECZ
+                                        (wiadomość), a o stanie mówi etykieta obok - dwa
+                                        znaki na tę samą informację tylko szumią. */}
+                                    <MailOpen />
                                     {open ? 'Ukryj wiadomość' : 'Pokaż wiadomość'}
-                                    <ChevronDown />
                                 </Toggle>
                                 {open && <Body>{entry.body}</Body>}
                             </>
