@@ -28,7 +28,13 @@ const entry = (over: Partial<LeadTimelineEntry> & Pick<LeadTimelineEntry, 'id' |
     ...over,
 });
 
-/** Wątek ze zgłoszenia: pytanie, wycena, kontroferta — plus statusy między nimi. */
+/**
+ * Wątek ze zgłoszenia: pytanie, wycena, kontroferta i rezerwacja na koniec.
+ *
+ * Bez „Nowy" i „W kontakcie" — te odsiewa serwer, bo są echem stojących obok
+ * wiadomości. Zostaje status, który jest decyzją człowieka i którego korespondencja
+ * nie widzi; komponent musi umieć pokazać jedno i drugie.
+ */
 const conversation: LeadTimelineEntry[] = [
     entry({
         id: '1',
@@ -36,10 +42,9 @@ const conversation: LeadTimelineEntry[] = [
         actorName: 'Maciej Sienkiewicz',
         body: 'ile za oklejenie full body porsze panamera?',
     }),
-    entry({ id: '2', kind: 'STATUS', toStatus: 'NEW', actorName: 'Maciej Sienkiewicz' }),
-    entry({ id: '3', kind: 'OUTBOUND_MESSAGE', body: '1200 dla Ciebie' }),
-    entry({ id: '4', kind: 'STATUS', toStatus: 'IN_PROGRESS' }),
-    entry({ id: '5', kind: 'INBOUND_MESSAGE', actorName: 'Maciej Sienkiewicz', body: 'za drogo. 800 dam' }),
+    entry({ id: '2', kind: 'OUTBOUND_MESSAGE', body: '1200 dla Ciebie' }),
+    entry({ id: '3', kind: 'INBOUND_MESSAGE', actorName: 'Maciej Sienkiewicz', body: 'za drogo. 800 dam' }),
+    entry({ id: '4', kind: 'STATUS', toStatus: 'CONFIRMED', actorName: 'Maciej Sienkiewicz' }),
 ];
 
 const renderTimeline = (entries: LeadTimelineEntry[]) =>
@@ -56,9 +61,9 @@ describe('LeadTimeline', () => {
         expect(screen.getByText('Pierwszy kontakt klienta')).toBeTruthy();
         expect(screen.getByText('Odpisaliśmy')).toBeTruthy();
         expect(screen.getByText('Klient odpisał')).toBeTruthy();
-        // Statusy zostają — nowe zdarzenia mają je uzupełnić, a nie wyprzeć.
-        expect(screen.getByText('Nowy')).toBeTruthy();
-        expect(screen.getByText('W kontakcie')).toBeTruthy();
+        // Statusy niosące własną treść zostają — nowe zdarzenia mają je uzupełnić,
+        // a nie wyprzeć.
+        expect(screen.getByText('Rezerwacja')).toBeTruthy();
     });
 
     it('pierwsze pytanie klienta ma inną nazwę niż jego kolejne wiadomości', () => {
@@ -78,6 +83,16 @@ describe('LeadTimeline', () => {
         await userEvent.click(screen.getAllByRole('button', { name: /Pokaż wiadomość/ })[1]);
 
         expect(screen.getByText('1200 dla Ciebie')).toBeTruthy();
+    });
+
+    it('podgląd wiadomości jest przyciskiem, nie zdaniem do przeczytania', () => {
+        // Wiersz osi czasu to same drobne napisy — kolejny drobny napis nie mówi
+        // „kliknij mnie". Rola przycisku i nazwa dostępnościowa są tu minimum.
+        renderTimeline(conversation);
+
+        const toggles = screen.getAllByRole('button', { name: /Pokaż wiadomość/ });
+        expect(toggles).toHaveLength(3);
+        expect(toggles[0].getAttribute('aria-expanded')).toBe('false');
     });
 
     it('rozwinięcie jednej wiadomości nie rozwija pozostałych', async () => {
