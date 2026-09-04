@@ -280,11 +280,36 @@ export interface LeadDictionaries {
     lostReasons: DictionaryEntry[];
 }
 
-export interface LeadStatusHistoryEntry {
+/**
+ * Rodzaje zdarzeń na osi czasu leada. Statusy to za mało: lead po wymianie trzech
+ * maili opisany samymi statusami milczy o tym, o co klient pytał i co odpowiedział.
+ */
+export type LeadTimelineKind =
+    | 'STATUS'
+    | 'INBOUND_MESSAGE'
+    | 'OUTBOUND_MESSAGE'
+    | 'CALLBACK';
+
+export interface LeadTimelineEntry {
+    id: string;
+    kind: LeadTimelineKind;
+    at: string;
+    /** Użytkownik studia, klient albo null przy zmianie automatycznej. */
+    actorName: string | null;
+    toStatus: LeadStatus | null;
     fromStatus: LeadStatus | null;
-    toStatus: LeadStatus;
     lostReasonLabel: string | null;
-    changedByName: string | null;
+    subject: string | null;
+    /** Treść wiadomości bez cytatów — „pokaż wiadomość" nie potrzebuje drugiego żądania. */
+    body: string | null;
+    /** Notatka przy odnotowanym telefonie; opcjonalna, jak samo pole. */
+    note: string | null;
+}
+
+export interface LeadCallback {
+    id: string;
+    note: string | null;
+    calledByName: string | null;
     createdAt: string;
 }
 

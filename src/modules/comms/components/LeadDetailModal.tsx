@@ -48,6 +48,7 @@ import {
     Mail,
     MessageSquare,
     Phone,
+    PhoneCall,
     Send,
     StickyNote,
     Trash2,
@@ -78,7 +79,7 @@ import {
     useDeleteLeadNote,
     useLead,
     useLeadAppointment,
-    useLeadHistory,
+    useLeadTimeline,
     useLeadNotes,
     useUpdateLeadServices,
     useUpdateLeadVehicle,
@@ -90,9 +91,11 @@ import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
 import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
 import { describeReplyState, leadReplyTone, type ReplyTone } from '../utils/leadReply';
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadServiceItemInput } from '../types';
+import type { LeadServiceItemInput } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
 import { LeadStatusPicker } from './LeadStatusPicker';
+import { LeadTimeline } from './LeadTimeline';
+import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
 /**
@@ -629,59 +632,11 @@ const NoteList = styled.div`
     gap: 8px;
 `;
 
-/**
- * Historia jako oś czasu, nie jako lista linijek.
- *
- * Zmiany statusu są ciągiem: „Nowy, potem W kontakcie, potem Rezerwacja". Płaskie
- * zdania z datą na początku każą ten ciąg złożyć w głowie, bo wszystkie linijki
- * ważą tyle samo. Pionowa nitka z kropkami pokazuje go wprost, a kropka w kolorze
- * etapu jest tym samym znakiem, którym etap oznaczony jest w tabeli i w wybieraku.
- */
-const Timeline = styled.ol`
-    position: relative;
-    list-style: none;
-    margin: 0;
-    padding: 2px 0 0 16px;
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: 3px;
-        top: 8px;
-        bottom: 8px;
-        width: 1px;
-        background: ${p => p.theme.colors.border};
-    }
-`;
-
-const TimelineItem = styled.li<{ $color: string }>`
-    position: relative;
-    padding-bottom: 10px;
+/** Kto i kiedy - podpis nad treścią ostatniej wiadomości. */
+const LastMessageMeta = styled.div`
     font-size: 11.5px;
     color: ${p => p.theme.colors.textMuted};
     font-variant-numeric: tabular-nums;
-
-    &:last-child { padding-bottom: 0; }
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: -16px;
-        top: 4px;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: ${p => p.$color};
-        /* Obwódka w kolorze tła panelu wycina nitkę pod kropką. */
-        box-shadow: 0 0 0 2px ${p => p.theme.colors.surfaceAlt};
-    }
-
-    strong {
-        display: block;
-        font-size: 12.5px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-    }
 `;
 
 /**
@@ -747,7 +702,18 @@ export function LeadDetailModal({
 }: LeadDetailModalProps) {
     const navigate = useNavigate();
     const { data: lead } = useLead(leadId);
-    const { data: history } = useLeadHistory(leadId);
+    const { data: timeline } = useLeadTimeline(leadId);
+    /*
+     * Ostatnia wiadomość w wątku - z osi czasu, nie z osobnego zapytania. Oś już
+     * niesie całą korespondencję, więc drugie żądanie po tę samą treść byłoby
+     * ceną za nic. Pokazujemy ją tylko wtedy, gdy NIE jest pierwszym pytaniem
+     * klienta: przy leadzie z jedną wiadomością panel powtarzałby to, co stoi
+     * linijkę wyżej w „O co pytał klient".
+     */
+    const messages = (timeline ?? []).filter(
+        (entry) => entry.kind === 'INBOUND_MESSAGE' || entry.kind === 'OUTBOUND_MESSAGE'
+    );
+    const lastMessage = messages.length > 1 ? messages[messages.length - 1] : null;
     // Termin rezerwacji dobierany osobno - lead niesie samo `appointmentId`.
     const { data: appointment } = useLeadAppointment(lead?.appointmentId ?? null);
     // null = podgląd, tablica = otwarty edytor wyceny (ten sam co przy przyjęciu auta).
@@ -756,6 +722,8 @@ export function LeadDetailModal({
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    // „Oddzwoniłem": telefon jest kontaktem, nie notatką — pyta o nią osobne okno.
+    const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
     // Drugie pytanie przy leadzie z rezerwacją: czy termin w kalendarzu idzie razem z nim.
     const [deleteAppointmentDialogOpen, setDeleteAppointmentDialogOpen] = useState(false);
     const [booking, setBooking] = useState(false);
@@ -934,6 +902,19 @@ export function LeadDetailModal({
                                     <Phone /> Zadzwoń
                                 </QuietLink>
                             )}
+                            {/* Odnotowanie rozmowy stoi tuż przy „Zadzwoń", bo to
+                                druga połowa tej samej czynności. W stopce konkurowałoby
+                                wagą z jedyną akcją, która ma tam stać, a rozmowa
+                                telefoniczna zdarza się przy leadzie bez numeru
+                                w kartotece równie często — stąd przycisk bez warunku
+                                na telefon. */}
+                            <QuietLink
+                                as="button"
+                                type="button"
+                                onClick={() => setCallbackDialogOpen(true)}
+                            >
+                                <PhoneCall /> Oddzwoniłem
+                            </QuietLink>
                             {lead.customerId && (
                                 <Link to={`/customers/${lead.customerId}`}>
                                     <QuietLink as="span"><UserRound /> Kartoteka klienta</QuietLink>
@@ -1231,17 +1212,6 @@ export function LeadDetailModal({
                                         </>
                                     )}
                                 </Panel>
-                            </Column>
-
-                            <Column>
-                                <Panel $quiet>
-                                    <h4><MessageSquare /> O co pytał klient</h4>
-                                    {lead.initialMessage ? (
-                                        <MessageQuote>{lead.initialMessage}</MessageQuote>
-                                    ) : (
-                                        <HistoryLine>Brak treści pierwszej wiadomości.</HistoryLine>
-                                    )}
-                                </Panel>
 
                                 <Panel $quiet>
                                     <h4><StickyNote /> Notatki</h4>
@@ -1295,29 +1265,40 @@ export function LeadDetailModal({
                                         </NoteList>
                                     )}
                                 </Panel>
+                            </Column>
+
+                            <Column>
+                                <Panel $quiet>
+                                    <h4><MessageSquare /> O co pytał klient</h4>
+                                    {lead.initialMessage ? (
+                                        <MessageQuote>{lead.initialMessage}</MessageQuote>
+                                    ) : (
+                                        <HistoryLine>Brak treści pierwszej wiadomości.</HistoryLine>
+                                    )}
+                                </Panel>
+
+                                {/* Pierwsze pytanie mówi, po co klient przyszedł; ostatnia
+                                    wiadomość mówi, na czym stanęło - i to ona decyduje, co
+                                    zrobić teraz. Żeby ją zobaczyć, trzeba było dotąd wyjść
+                                    do skrzynki albo rozwinąć właściwe zdarzenie na osi czasu.
+                                    Panel znika przy leadzie z jedną wiadomością: powtarzanie
+                                    tej samej treści dwa razy pod sobą niczego nie dodaje. */}
+                                {lastMessage && (
+                                    <Panel $quiet>
+                                        <h4><MessageSquare /> Ostatnia wiadomość</h4>
+                                        <LastMessageMeta>
+                                            {lastMessage.kind === 'INBOUND_MESSAGE' ? 'Od klienta' : 'Od nas'}
+                                            {' · '}
+                                            {formatDateTime(lastMessage.at)}
+                                            {lastMessage.actorName && <>, {lastMessage.actorName}</>}
+                                        </LastMessageMeta>
+                                        <MessageQuote>{lastMessage.body}</MessageQuote>
+                                    </Panel>
+                                )}
 
                                 <Panel $quiet>
                                     <h4>Historia</h4>
-                                    {(history ?? []).length === 0 && (
-                                        <HistoryLine>Brak zmian statusu.</HistoryLine>
-                                    )}
-                                    {(history ?? []).length > 0 && (
-                                        <Timeline>
-                                            {(history ?? []).map((entry, index) => (
-                                                <TimelineItem
-                                                    key={index}
-                                                    $color={LEAD_STATUS_COLORS[entry.toStatus].fg}
-                                                >
-                                                    <strong>
-                                                        {LEAD_STATUS_LABELS[entry.toStatus]}
-                                                        {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
-                                                    </strong>
-                                                    {formatDateTime(entry.createdAt)}
-                                                    {entry.changedByName && <>, {entry.changedByName}</>}
-                                                </TimelineItem>
-                                            ))}
-                                        </Timeline>
-                                    )}
+                                    <LeadTimeline entries={timeline ?? []} />
                                 </Panel>
                             </Column>
                         </BodyGrid>
@@ -1393,6 +1374,13 @@ export function LeadDetailModal({
                     <IconButton onClick={onClose}>Zamknij</IconButton>
                 </ModalFooter>
             </ModalShell>
+
+            {callbackDialogOpen && (
+                <RecordCallbackDialog
+                    leadId={leadId}
+                    onClose={() => setCallbackDialogOpen(false)}
+                />
+            )}
 
             {/* Wizytówka to ten sam komponent co w skrzynce - z wyszukiwarką klientów
                 i zakładaniem kartoteki. Druga, uboższa kopia tego formularza w oknie

@@ -9,7 +9,8 @@ import type {
     LeadPage,
     LeadServiceItemInput,
     LeadStatus,
-    LeadStatusHistoryEntry,
+    LeadTimelineEntry,
+    LeadCallback,
     MarkThreadAsLeadRequest,
 } from '../types';
 
@@ -37,8 +38,18 @@ export const leadsApi = {
         return data;
     },
 
-    getHistory: async (leadId: string): Promise<LeadStatusHistoryEntry[]> => {
-        const { data } = await apiClient.get(`/v1/leads/${leadId}/history`);
+    getTimeline: async (leadId: string): Promise<LeadTimelineEntry[]> => {
+        const { data } = await apiClient.get(`/v1/leads/${leadId}/timeline`);
+        return data;
+    },
+
+    /** „Oddzwoniłem" — notatka opcjonalna, sam fakt telefonu bywa całą informacją. */
+    recordCallback: async (leadId: string, note?: string): Promise<LeadCallback> => {
+        const { data } = await apiClient.post(
+            `/v1/leads/${leadId}/callbacks`,
+            { note: note?.trim() || null },
+            { skipErrorToast: true }
+        );
         return data;
     },
 
