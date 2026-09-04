@@ -233,7 +233,7 @@ Obie tablice mogą być puste `[]`. Nigdy `null`.
 
 ## Uwagi implementacyjne dla backendu
 
-1. **Parsowanie parametru `appointmentStatuses`:** split po `,`, trim whitespace, walidacja każdej wartości — odpowiedź `400` jeśli nieznana.
+1. **Parsowanie parametru `appointmentStatuses`:** split po `,`, trim whitespace, walidacja każdej wartości - odpowiedź `400` jeśli nieznana.
 2. **Brak parametru `appointmentStatuses`** → zwróć wszystkie statusy (nie filtruj).
 3. **Pusta wartość `appointmentStatuses=`** → zwróć pustą tablicę `appointments: []`.
 4. **Filtrowanie dat:** `scheduledDate` (wizyty) i `schedule.startDateTime` (rezerwacje) powinny przecinać się z zakresem `[startDate, endDate]`. Zalecany predykat: `startDateTime < endDate AND endDateTime > startDate`.
@@ -250,13 +250,13 @@ Frontend posiada flagę `USE_UNIFIED_CALENDAR_API` w `src/modules/calendar/api/c
 const USE_UNIFIED_CALENDAR_API = true;
 ```
 
-Przy `false` — używa starego wzorca N zapytań (wsteczna kompatybilność).  
-Przy `true` — używa nowego unified endpointu.
+Przy `false` - używa starego wzorca N zapytań (wsteczna kompatybilność).  
+Przy `true` - używa nowego unified endpointu.
 
 **Procedura wdrożenia:**
 1. Backend implementuje i deployuje `GET /v1/calendar/events`
-2. Frontend ustawia flagę na `true` (już ustawiona — wymaga tylko deploy frontendu po deploy backendu)
-3. Monitorujemy logi — fallback możliwy przez zmianę flagi
+2. Frontend ustawia flagę na `true` (już ustawiona - wymaga tylko deploy frontendu po deploy backendu)
+3. Monitorujemy logi - fallback możliwy przez zmianę flagi
 
 ---
 

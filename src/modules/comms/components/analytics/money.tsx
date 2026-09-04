@@ -1,9 +1,9 @@
 // src/modules/comms/components/analytics/money.tsx
-// Rachunek pieniędzy — trzy elementy, na których stoi cały widok analityki.
+// Rachunek pieniędzy - trzy elementy, na których stoi cały widok analityki.
 //
 // Wspólne założenie: właściciel studia myśli w złotówkach, nie w procentach.
 // Procent wymaga tłumaczenia na pieniądze, zanim cokolwiek znaczy, i nie ma skali
-// odniesienia — „skuteczność 41%" to ocena szkolna bez kryteriów. Przy rozrzucie
+// odniesienia - „skuteczność 41%" to ocena szkolna bez kryteriów. Przy rozrzucie
 // wartości zleceń od czterystu złotych do dwunastu tysięcy procent dodatkowo
 // kłamie: miesiąc z dziesięcioma przegranymi praniami tapicerki i jedną wygraną
 // powłoką to dziewięć procent i świetny miesiąc.
@@ -16,11 +16,11 @@ import { LOST, OPEN, SILENT, WON } from './tokens';
 
 /**
  * Wspólna powierzchnia robocza: biała karta z hairline'ową ramką, promieniem 14px
- * i miękkim cieniem — dokładnie ta sama, którą ma moduł statystyk.
+ * i miękkim cieniem - dokładnie ta sama, którą ma moduł statystyk.
  *
  * Sekcje bez tła kładły treść wprost na teksturze heksagonów z tła aplikacji.
  * Tekstura jest tam po to, żeby coś się delikatnie działo POD interfejsem, a nie
- * pod zdaniem, które ktoś czyta — litery na wzorze męczą przy pierwszym akapicie.
+ * pod zdaniem, które ktoś czyta - litery na wzorze męczą przy pierwszym akapicie.
  * Osobno: karta niesie informację o głębi. Biel z ramką mówi „to jest powierzchnia
  * robocza", tło strony mówi „to jest kontekst". Bez tej różnicy wszystko leży
  * na jednym planie i nic nie jest ważniejsze.
@@ -45,7 +45,7 @@ const HeroBand = styled.section<{ $urgent: boolean }>`
     padding: 26px 28px 24px;
 
     /*
-     * Czerwona listwa przy krawędzi, gdy jest zaległość — ten sam znak pilności,
+     * Czerwona listwa przy krawędzi, gdy jest zaległość - ten sam znak pilności,
      * co przy wierszu tabeli leadów. Kto nauczył się go tam, rozumie go tutaj bez
      * tłumaczenia, a listwa nie zabiera ani piksela szerokości treści.
      */
@@ -119,7 +119,7 @@ const HeroNote = styled.span`
 /**
  * Kwit za ostatnią wizytę: „w tym tygodniu zamieniłeś w rezerwacje 6 200 zł".
  *
- * Bez tego zdania ekran tylko wymaga i nigdy nie kwituje — a widok, który zawsze
+ * Bez tego zdania ekran tylko wymaga i nigdy nie kwituje - a widok, który zawsze
  * mówi, ile jeszcze zostało do zrobienia, i nigdy nie odnotowuje, co zostało
  * zrobione, przestaje być narzędziem, a staje się wyrzutem.
  */
@@ -137,7 +137,7 @@ interface HeroProps {
     action?: ReactNode;
     reward?: string;
     note?: ReactNode;
-    /** Jest zaległość — listwa przy krawędzi robi się czerwona. */
+    /** Jest zaległość - listwa przy krawędzi robi się czerwona. */
     urgent?: boolean;
 }
 
@@ -202,14 +202,14 @@ const LedgerTotal = styled.p`
 `;
 
 /**
- * Nie wykres — jeden przedmiot. Trzy odcinki jednej belki czyta się jak poziom
+ * Nie wykres - jeden przedmiot. Trzy odcinki jednej belki czyta się jak poziom
  * paliwa albo plik banknotów: bez osi, bez legendy do rozszyfrowania, bez
  * znajomości procentów. Wykres kołowy w tym miejscu kazałby porównywać kąty,
  * czyli wykonać najgorzej działające zadanie percepcyjne, jakie znamy.
  */
 const Bar = styled.div`
     display: flex;
-    /* Trzy piksele tła między odcinkami — bez szczeliny granica gubi się dokładnie
+    /* Trzy piksele tła między odcinkami - bez szczeliny granica gubi się dokładnie
        tam, gdzie siedzi cała treść. */
     gap: 3px;
     height: 30px;
@@ -225,7 +225,7 @@ const Segment = styled.div`
 
 /**
  * Pionowy gradient w obrębie JEDNEGO odcienia, nie tęcza. To jest zwykłe
- * cieniowanie bryły — nadaje paskowi materialność, której płaski prostokąt nie ma,
+ * cieniowanie bryły - nadaje paskowi materialność, której płaski prostokąt nie ma,
  * i nie koduje przy tym żadnej dodatkowej informacji, więc niczego nie zaciemnia.
  */
 const Kept = styled(Segment)`
@@ -239,7 +239,7 @@ const InPlay = styled(Segment)`
 `;
 
 /**
- * Rozmowy, które ucichły — otwarte dłużej niż klient realnie potrzebuje na decyzję.
+ * Rozmowy, które ucichły - otwarte dłużej niż klient realnie potrzebuje na decyzję.
  * Kreskowany kontur w tej samej szarości: to wciąż brak rozstrzygnięcia, ale już
  * nie pipeline.
  */
@@ -250,7 +250,7 @@ const Silent = styled(Segment)`
 
 /**
  * Strata jako dziura, nie jako blok. Sam kontur z pustym środkiem czyta się jak
- * brak, a nie jak trzeci wynik — i to jest dokładnie to, czym jest.
+ * brak, a nie jak trzeci wynik - i to jest dokładnie to, czym jest.
  */
 const Gone = styled(Segment)`
     border: 1px solid ${LOST}66;
@@ -266,7 +266,7 @@ const Gone = styled(Segment)`
 /**
  * Podpisy siedzą pod swoimi odcinkami, a nie w równej siatce trzech kolumn.
  * Ta sama szerokość co odcinek nad nimi wiąże etykietę z paskiem prawem
- * bliskości — w równej siatce „Poszło do konkurencji" stało pod środkiem
+ * bliskości - w równej siatce „Poszło do konkurencji" stało pod środkiem
  * odcinka „w grze" i trzeba było wodzić wzrokiem w górę i w dół, żeby sprawdzić,
  * co do czego należy.
  */
@@ -551,7 +551,7 @@ interface LeakListProps {
  * więc lista posortowana po liczbie zdarzeń wskazywałaby nie ten problem.
  *
  * Każdy wiersz prowadzi do rozmów, które go utworzyły. Kwota nieklikalna jest
- * twierdzeniem; klikalna jest dowodem — i to jest jedyny prawdziwy mechanizm
+ * twierdzeniem; klikalna jest dowodem - i to jest jedyny prawdziwy mechanizm
  * zaufania do liczby na ekranie.
  */
 export function LeakList({ rows, onPick }: LeakListProps) {

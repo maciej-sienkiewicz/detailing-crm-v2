@@ -21,7 +21,7 @@ export const Overlay = styled.div`
 export const Card = styled.div`
     width: min(400px, calc(100vw - 32px));
     /* Wysokość liczy nakładka (z safe-area i klawiaturą), karta bierze tyle,
-       ile dostanie — inaczej stopka z przyciskami wychodziła poza ekran. */
+       ile dostanie - inaczej stopka z przyciskami wychodziła poza ekran. */
     max-height: 100%;
     display: flex;
     flex-direction: column;

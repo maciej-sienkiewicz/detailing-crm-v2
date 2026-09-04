@@ -387,7 +387,7 @@ export function RoleEditorModal({
         groupBySection(nodes).map(group => (
             <NodeBlock key={group.section ?? group.nodes[0].code}>
                 {/* Nagłówek sekcji. Grupowanie liczyło się od dawna, ale etykieta
-                    nigdy nie trafiała na ekran — przez co „Zlecenia zbiorcze" czy
+                    nigdy nie trafiała na ekran - przez co „Zlecenia zbiorcze" czy
                     „Klienci i pojazdy" wyglądały jak kolejne pozycje na jednej liście,
                     a nie jak osobne obszary uprawnień. */}
                 {group.section && <SectionLabel>{group.section}</SectionLabel>}

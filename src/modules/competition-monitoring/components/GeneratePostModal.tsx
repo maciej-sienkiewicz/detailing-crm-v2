@@ -635,16 +635,16 @@ const ProgressTrack = styled.div`
 `;
 
 /**
- * Pasek rośnie od 0 do 92% jedną animacją CSS — bez licznika w JS.
+ * Pasek rośnie od 0 do 92% jedną animacją CSS - bez licznika w JS.
  *
  * Kształt jest tu całą treścią: `cubic-bezier(0.05, 0.7, 0.1, 1)` rusza gwałtownie
- * i wyhamowuje na długim ogonie („progress illusion" — czekanie z paskiem, który
+ * i wyhamowuje na długim ogonie („progress illusion" - czekanie z paskiem, który
  * zwalnia, wydaje się krótsze niż z paskiem liniowym albo z animacją w kółko).
  *
  * Dlaczego CSS, a nie requestAnimationFrame ze stanem Reacta: animacja czasowa działa
  * niezależnie od tego, czy karta jest aktywna, nie generuje klatka po klatce nowych
  * klas styled-components i nie zależy od tego, czy wątek główny akurat nadąża.
- * 92%, bo 100% ma znaczyć „gotowe" — a to wie tylko odpowiedź serwera, po której
+ * 92%, bo 100% ma znaczyć „gotowe" - a to wie tylko odpowiedź serwera, po której
  * ten widok i tak znika.
  */
 const grow = keyframes`
@@ -881,14 +881,14 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [copied, setCopied]         = useState(false);
     const [genError, setGenError]     = useState<string | null>(null);
 
-    // Reguły stylistyczne studia — trwałe, wspólne dla wszystkich generowań.
+    // Reguły stylistyczne studia - trwałe, wspólne dla wszystkich generowań.
     // Backend dokłada aktywne reguły do promptu sam, więc nie wysyłamy ich w żądaniu.
     const [rules, setRules]           = useState<InstagramStyleRule[]>([]);
     const [ruleInput, setRuleInput]   = useState('');
     const [ruleBusy, setRuleBusy]     = useState(false);
     const [ruleError, setRuleError]   = useState<string | null>(null);
 
-    // Ocena wygenerowanego posta — wejście do pętli uczenia po stronie backendu.
+    // Ocena wygenerowanego posta - wejście do pętli uczenia po stronie backendu.
     const [rating, setRating]         = useState<GeneratedPostRating | null>(null);
     const [comment, setComment]       = useState('');
     const [commentOpen, setCommentOpen] = useState(false);
@@ -906,7 +906,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         return () => clearTimeout(t);
     }, []);
 
-    // Reguły studia ładujemy raz przy otwarciu — ich brak nie może blokować generowania.
+    // Reguły studia ładujemy raz przy otwarciu - ich brak nie może blokować generowania.
     useEffect(() => {
         let cancelled = false;
         instagramApi.listStyleRules()
@@ -942,7 +942,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             setResult(data);
             setPhase('result');
         } catch (e) {
-            // Limit generowań (429) i błędy modelu mają czytelny komunikat z backendu —
+            // Limit generowań (429) i błędy modelu mają czytelny komunikat z backendu -
             // pokazujemy go przy formularzu, żeby nie zniknął razem z toastem.
             const message = (e as { response?: { data?: { message?: string } } })
                 ?.response?.data?.message;
@@ -1047,7 +1047,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     }, [result, ratingBusy]);
 
     const handleThumbsDown = () => {
-        // Komentarz przy ocenie negatywnej jest najcenniejszą częścią oceny — pytamy o niego,
+        // Komentarz przy ocenie negatywnej jest najcenniejszą częścią oceny - pytamy o niego,
         // zanim zapiszemy werdykt, zamiast wysyłać samo „słaby".
         setCommentOpen(true);
     };
@@ -1067,7 +1067,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             return (
                 <LoadingWrap>
                     {/* Bez aria-valuenow: pasek nie mierzy postępu, tylko pokazuje, że
-                        praca trwa — deklarowanie fałszywej wartości myliłoby czytnik ekranu. */}
+                        praca trwa - deklarowanie fałszywej wartości myliłoby czytnik ekranu. */}
                     <ProgressTrack role="progressbar" aria-label="Generowanie posta" aria-busy="true">
                         <ProgressFill />
                     </ProgressTrack>
@@ -1113,7 +1113,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                                             ).map(({ rule, reason }) => (
                                                 <li key={rule}>
                                                     {rule}
-                                                    {reason && <ViolationReason> — {reason}</ViolationReason>}
+                                                    {reason && <ViolationReason> - {reason}</ViolationReason>}
                                                 </li>
                                             ))}
                                         </VerificationList>
@@ -1130,12 +1130,12 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         <ContentStat>{charCount} znaków</ContentStat>
                     </ContentStats>
 
-                    {/* Ocena uczy generator stylu tego studia — dlatego pytamy od razu,
+                    {/* Ocena uczy generator stylu tego studia - dlatego pytamy od razu,
                         zanim post zniknie razem z zamkniętym oknem. */}
                     <RatingBar>
                         <RatingLabel>
                             {rating
-                                ? 'Dzięki — kolejne posty będą bliżej Twojego stylu.'
+                                ? 'Dzięki - kolejne posty będą bliżej Twojego stylu.'
                                 : 'Jak oceniasz ten post?'}
                         </RatingLabel>
                         <RatingBtn
@@ -1181,7 +1181,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
                     {rating === 'NEGATIVE' && (
                         <RatingSavedNote>
-                            Uwaga zapisana — generator będzie jej unikał w kolejnych postach.
+                            Uwaga zapisana - generator będzie jej unikał w kolejnych postach.
                         </RatingSavedNote>
                     )}
                 </ResultWrap>
@@ -1263,7 +1263,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     </SegmentedWrap>
                 </FormSection>
 
-                {/* Style rules — trwałe reguły studia */}
+                {/* Style rules - trwałe reguły studia */}
                 <FormSection>
                     <FieldLabel>
                         Reguły stylistyczne

@@ -31,7 +31,7 @@ export function useActivityFeed(filters: ActivityFilters) {
 }
 
 /**
- * Historia jednego obiektu — sekcja „Historia zmian" na karcie wizyty, klienta
+ * Historia jednego obiektu - sekcja „Historia zmian" na karcie wizyty, klienta
  * albo pojazdu. Ten sam feed i te same wiersze co zakładka Aktywność, zawężone
  * do zdarzeń wokół obiektu.
  */

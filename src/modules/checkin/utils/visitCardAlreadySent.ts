@@ -12,7 +12,7 @@ const fmt = (iso: string) =>
 
 /**
  * Karta Rezerwacji i Karta Wizyty to jeden link. Jeśli poszedł już przy rezerwacji,
- * przy przyjęciu auta mówimy o tym wprost i sugerujemy niewysyłanie go drugi raz —
+ * przy przyjęciu auta mówimy o tym wprost i sugerujemy niewysyłanie go drugi raz -
  * ale decyzja zostaje po stronie operatora, więc to jest tylko informacja.
  */
 export function describeVisitCardAlreadySent(link: VisitCardLinkResponse | null | undefined): VisitCardAlreadySent | null {

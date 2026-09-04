@@ -16,7 +16,7 @@ const Wrap = styled.div`
 `;
 
 /*
- * Wybór kanału to ten sam gest, co filtr na liście — więc ten sam chip. Osobna
+ * Wybór kanału to ten sam gest, co filtr na liście - więc ten sam chip. Osobna
  * „kapsuła" z białym prostokątem w środku była trzecim wzorem przełącznika
  * w aplikacji, która ma jeden.
  */
@@ -60,7 +60,7 @@ const Input = TextField;
 
 /*
  * Licznik znaków. Bursztyn zapala się dopiero wtedy, gdy wiadomość przekroczyła
- * jeden segment — czyli wtedy, gdy kosztuje podwójnie. Do tego momentu to zwykła
+ * jeden segment - czyli wtedy, gdy kosztuje podwójnie. Do tego momentu to zwykła
  * informacja i wygląda jak zwykła informacja.
  */
 const CounterRow = styled.div<{ $warn: boolean }>`
@@ -73,7 +73,7 @@ const CounterRow = styled.div<{ $warn: boolean }>`
   font-variant-numeric: tabular-nums;
 `;
 
-/** Materiał pomocniczy — na tle strony, bez ramki, cofnięty o plan. */
+/** Materiał pomocniczy - na tle strony, bez ramki, cofnięty o plan. */
 const TokenSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -123,7 +123,7 @@ const TokenRow = styled.div`
 `;
 
 /*
- * Zmienna do wstawienia. Monospace wystarcza, żeby odróżnić ją od tekstu —
+ * Zmienna do wstawienia. Monospace wystarcza, żeby odróżnić ją od tekstu -
  * kilkanaście błękitnych żetonów w rzędzie zabierało barwę akcji głównej.
  */
 const Token = styled.button`

@@ -3,12 +3,12 @@
 // „Powiadomienia" w Ustawieniach → Urządzenia mobilne.
 //
 // Powiadomienie ma zabuczeć w kieszeni, więc włącza się je NA TYM urządzeniu,
-// które ma je pokazywać — przeglądarka pyta o zgodę tylko dla siebie.
+// które ma je pokazywać - przeglądarka pyta o zgodę tylko dla siebie.
 //
 // Poprzednia wersja panelu wychodziła z założenia, że ustawienia otwiera się na
 // komputerze, i pokazywała wyłącznie kod QR do /call-device. Otwarty na telefonie
 // (a po dodaniu aplikacji do ekranu głównego to naturalne miejsce) dawał kod QR,
-// którego nie da się zeskanować własnym ekranem — funkcja była nieosiągalna.
+// którego nie da się zeskanować własnym ekranem - funkcja była nieosiągalna.
 // Teraz przycisk parowania jest ZAWSZE, gdy przeglądarka obsługuje push, a kod QR
 // pojawia się tylko tam, gdzie ma sens: na komputerze, jako droga na telefon.
 
@@ -54,13 +54,13 @@ export function PushNotificationsPanel() {
                 />
                 {!onPhone && !push.isSubscribedHere && push.support === 'supported' && (
                     <DesktopNote>
-                        Powiadomienia mają sens na telefonie, który nosisz przy sobie — na komputerze
+                        Powiadomienia mają sens na telefonie, który nosisz przy sobie - na komputerze
                         włącz je tylko wtedy, gdy pracujesz przy nim na co dzień.
                     </DesktopNote>
                 )}
             </PairingBlock>
 
-            {/* Na telefonie nie da się zeskanować własnego ekranu — kod QR zostaje
+            {/* Na telefonie nie da się zeskanować własnego ekranu - kod QR zostaje
                 dla komputera, jako sposób przeniesienia się na telefon. */}
             {!onPhone && (
                 <PhoneBlock>
@@ -84,7 +84,7 @@ export function PushNotificationsPanel() {
                                 <li>Zeskanuj kod telefonem i <strong>zaloguj się</strong> do CRM, jeśli poprosi.</li>
                                 <li>
                                     Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong>
-                                    {' '}(Safari → Udostępnij → „Dodaj do ekranu głównego") i otwórz ją z ikony —
+                                    {' '}(Safari → Udostępnij → „Dodaj do ekranu głównego") i otwórz ją z ikony -
                                     inaczej iOS nie pozwala na powiadomienia.
                                 </li>
                                 <li>Dotknij <strong>„Włącz powiadomienia"</strong> i zezwól, gdy telefon zapyta.</li>
@@ -105,7 +105,7 @@ export function PushNotificationsPanel() {
             {push.devices.length > 0 && (
                 <DevicesBlock>
                     <BlockLabel>Sparowane urządzenia</BlockLabel>
-                    {/* Komunikat o odłączeniu pokazuje sama lista — inaczej byłyby dwa. */}
+                    {/* Komunikat o odłączeniu pokazuje sama lista - inaczej byłyby dwa. */}
                     <PushDeviceList devices={push.devices} onRevoke={push.revokeDevice} />
                 </DevicesBlock>
             )}

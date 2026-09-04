@@ -9,7 +9,7 @@
 // • Kolor nigdy nie niesie znaczenia sam. Każdy segment ma podpis obok, więc wykres
 //   działa też dla kogoś, kto nie rozróżnia tych barw, i po wydrukowaniu.
 // • Jedna skala na wykres. Dwie osi Y na jednym rysunku dobiera się arbitralnie
-//   i produkują korelację, której w danych nie ma — dlatego „ile zapytań" i „jaka
+//   i produkują korelację, której w danych nie ma - dlatego „ile zapytań" i „jaka
 //   skuteczność" stoją pod sobą jako dwa osobne rysunki, a nie jeden z dwiema osiami.
 // • Cienkie znaki, zaokrąglone końce, wygaszona siatka. Grube nasycone bloki krzyczą.
 import { Fragment, useState, type ReactNode } from 'react';
@@ -20,7 +20,7 @@ import { LOST, MAGNITUDE, MUTED_COLUMN, OPEN, SILENT, TRACK, WON, percent } from
 
 // ── Karta z pytaniem i odpowiedzią ──────────────────────────────────────────
 
-/** Ta sama karta co w module statystyk — użytkownik ma czuć jedną aplikację. */
+/** Ta sama karta co w module statystyk - użytkownik ma czuć jedną aplikację. */
 const CardBox = styled.section`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
@@ -115,7 +115,7 @@ const ColumnsRow = styled.div<{ $height: number }>`
     align-items: flex-end;
     gap: 2px;
     height: ${p => p.$height}px;
-    /* Wygaszona linia podstawy — oś ma być obecna, nie widoczna. */
+    /* Wygaszona linia podstawy - oś ma być obecna, nie widoczna. */
     border-bottom: 1px solid ${p => p.theme.colors.border};
 `;
 
@@ -132,7 +132,7 @@ const ColumnMark = styled.div<{ $color: string }>`
     width: 100%;
     /* Górny limit szerokości: przy siedmiu kolumnach na całą kartę słupek robi
        się blokiem szerokim na sto pikseli, a taki wykres czyta się jak plakat,
-       nie jak dane. Wąski znak plus powietrze wokół — nie odwrotnie. */
+       nie jak dane. Wąski znak plus powietrze wokół - nie odwrotnie. */
     max-width: 34px;
     margin: 0 auto;
     background: ${p => p.$color};
@@ -179,7 +179,7 @@ export interface Column {
     key: string;
     tick: string;
     value: number;
-    /** Pełny opis do podpowiedzi — „poniedziałek: 14 zapytań". */
+    /** Pełny opis do podpowiedzi - „poniedziałek: 14 zapytań". */
     caption: string;
     /** Wyróżniona kolumna niesie odpowiedź; reszta jest dla niej tłem. */
     highlighted?: boolean;
@@ -188,7 +188,7 @@ export interface Column {
 interface ColumnChartProps {
     columns: Column[];
     height?: number;
-    /** Co ile kolumn podpisywać oś — przy 31 dniach każdy podpis to kasza. */
+    /** Co ile kolumn podpisywać oś - przy 31 dniach każdy podpis to kasza. */
     tickEvery?: number;
     color?: string;
 }
@@ -204,7 +204,7 @@ export function ColumnChart({ columns, height = 120, tickEvery = 1, color }: Col
     const max = Math.max(1, ...columns.map(c => c.value));
     /*
      * Wygaszenie ma sens tylko wtedy, gdy jest co wyróżnić. Wykres bez wskazanej
-     * kolumny (trend) to jedna seria i cała idzie pełnym kolorem — inaczej
+     * kolumny (trend) to jedna seria i cała idzie pełnym kolorem - inaczej
      * wyglądałby na wyblakłe tło czekające na treść, która nigdy nie przyjdzie.
      */
     const hasHighlight = columns.some(c => c.highlighted);
@@ -255,7 +255,7 @@ const RateFrame = styled.div`
 /**
  * Pole rysunku o jawnej wysokości. Bez niej SVG z preserveAspectRatio="none"
  * dostaje wysokość z proporcji viewBoxa i przy szerokości 900 px urósłby do
- * kilkuset — a znaczniki, ustawiane procentowo względem tego pola, rozjechałyby
+ * kilkuset - a znaczniki, ustawiane procentowo względem tego pola, rozjechałyby
  * się razem z nim.
  */
 const RatePlot = styled.div<{ $height: number }>`
@@ -509,9 +509,9 @@ interface WinLossBarsProps {
     rows: {
         key: string;
         label: string;
-        /** Dopisek pod nazwą — u nas średnia wycena segmentu. */
+        /** Dopisek pod nazwą - u nas średnia wycena segmentu. */
         note?: string;
-        /** Tooltip po najechaniu na nazwę — np. definicja segmentu z przykładowymi markami. */
+        /** Tooltip po najechaniu na nazwę - np. definicja segmentu z przykładowymi markami. */
         hint?: string;
         won: number;
         lost: number;
@@ -521,7 +521,7 @@ interface WinLossBarsProps {
 }
 
 /**
- * Wygrane i przegrane na jednym pasku, w skali wspólnej dla wszystkich wierszy —
+ * Wygrane i przegrane na jednym pasku, w skali wspólnej dla wszystkich wierszy -
  * inaczej temat z trzema zapytaniami wyglądałby na równie ważny co ten z pięćdziesięcioma.
  *
  * Skuteczność stoi liczbą z prawej, bo z samych długości nie da się jej odczytać,
@@ -568,7 +568,7 @@ const MatrixGrid = styled.div`
 
 const MatrixScroll = styled.div`
     overflow-x: auto;
-    /* Macierz nie skaluje się w dół bez utraty czytelności — siedem kolumn poniżej
+    /* Macierz nie skaluje się w dół bez utraty czytelności - siedem kolumn poniżej
        620px daje kratki, w których nie mieści się liczba. Na telefonie przewija
        się w bok, tak jak tabela. */
     margin: 0 -4px;
@@ -608,7 +608,7 @@ const MatrixRowLabel = styled.span`
 `;
 
 /**
- * Komórka macierzy. Nasycenie jednego odcienia niesie liczbę — ramp sekwencyjny,
+ * Komórka macierzy. Nasycenie jednego odcienia niesie liczbę - ramp sekwencyjny,
  * bo to jest wielkość, a nie tożsamość. Liczba stoi w środku, więc kolor nigdy
  * nie jest jedynym nośnikiem: macierz da się przeczytać po wydrukowaniu na
  * czarno-białej drukarce i przez kogoś, kto tych odcieni nie rozróżnia.
@@ -660,7 +660,7 @@ const MatrixScale = styled.div`
 export interface MatrixRow {
     key: string;
     label: string;
-    /** Podpis pod nazwą — u nas średnia wycena. */
+    /** Podpis pod nazwą - u nas średnia wycena. */
     note: string;
     counts: number[];
     total: number;
@@ -729,7 +729,7 @@ const StackSlot = styled.div`
 `;
 
 /**
- * Kawałek słupka. Zaokrąglenie tylko na skrajnych narożnikach całego stosu —
+ * Kawałek słupka. Zaokrąglenie tylko na skrajnych narożnikach całego stosu -
  * przy zaokrągleniu każdego kawałka z osobna trzy segmenty czytają się jak trzy
  * osobne pastylki wiszące jedna nad drugą, a nie jak jeden słupek podzielony
  * na części. Szczelina 2px zostaje: bez niej granica gubi się dokładnie tam,
@@ -757,7 +757,7 @@ const StackPiece = styled.div<{
 `;
 
 /**
- * Legenda słupków pieniędzy — własna, nie ta od wykresu usług.
+ * Legenda słupków pieniędzy - własna, nie ta od wykresu usług.
  *
  * Legenda musi wyglądać jak znak, który opisuje. Tam segment straty jest pełną
  * czerwienią, tutaj pustym konturem ze szrafurą, więc jedna legenda dla obu
@@ -801,7 +801,7 @@ interface MoneyColumnsProps {
  * zapytań danego okresu.
  *
  * Świadomie nie liczba zapytań. Czternaście pytań o mycie i trzy o folię to ta
- * sama liczba i zupełnie inny miesiąc — sztuki mierzą ruch, a ruch sam w sobie
+ * sama liczba i zupełnie inny miesiąc - sztuki mierzą ruch, a ruch sam w sobie
  * nie jest ani przychodem, ani problemem. Ten sam podział kolorów co w belce
  * wyżej znaczy, że nie trzeba się go uczyć drugi raz.
  */
@@ -827,7 +827,7 @@ export function MoneyColumns({ columns, height = 170, tickEvery = 1 }: MoneyColu
                         onMouseEnter={() => setHovered(index)}
                         onMouseLeave={() => setHovered(null)}
                     >
-                        {/* Kolejność od góry: stracone, w grze, zatrzymane — tak samo
+                        {/* Kolejność od góry: stracone, w grze, zatrzymane - tak samo
                             jak w belce rachunku, tylko pionowo. */}
                         {column.lost > 0 && (
                             <StackPiece

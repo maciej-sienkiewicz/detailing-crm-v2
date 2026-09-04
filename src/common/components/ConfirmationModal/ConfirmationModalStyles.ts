@@ -34,7 +34,7 @@ export const HeaderText = styled.div`
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-    /* Miejsce na krzyżyk w rogu — inaczej długi tytuł wchodzi pod niego. */
+    /* Miejsce na krzyżyk w rogu - inaczej długi tytuł wchodzi pod niego. */
     padding-right: 28px;
 `;
 
@@ -111,7 +111,7 @@ const confirmPalette: Record<ConfirmationVariant, { bg: string; hover: string }>
 };
 
 /*
- * Przyciski szerokie na tyle, ile trzeba na napis — nie na pół okna.
+ * Przyciski szerokie na tyle, ile trzeba na napis - nie na pół okna.
  *
  * `flex: 1` rozciągał je na połowę szerokości modala każdy, przez co zwykłe
  * „Anuluj" wyglądało jak akcja główna strony. Wymiary i promienie są teraz te

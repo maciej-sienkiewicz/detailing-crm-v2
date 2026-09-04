@@ -2,9 +2,9 @@
 // Treść jednej wiadomości. Dwie drogi renderu, dobierane do tego, czym wiadomość
 // naprawdę jest:
 //
-//  • ZWYKŁA KORESPONDENCJA (akapity, listy, linki — przytłaczająca większość poczty
+//  • ZWYKŁA KORESPONDENCJA (akapity, listy, linki - przytłaczająca większość poczty
 //    w CRM) renderuje się WPROST w naszej typografii. Jedna czcionka, jeden rytm,
-//    jedna szerokość kolumny — i zero mierzenia wysokości, więc nie ma czego uciąć.
+//    jedna szerokość kolumny - i zero mierzenia wysokości, więc nie ma czego uciąć.
 //    Warstwy bezpieczeństwa: sanityzacja na backendzie (jsoup Safelist) + DOMPurify tutaj.
 //
 //  • MAIL PROJEKTOWANY (newsletter na tabelach, własne style, tła) ląduje w izolowanym
@@ -14,10 +14,10 @@
 //    ekranami treści, więc dostaje własny scroll i przejście do pełnego podglądu.
 //
 //  • WIADOMOŚĆ GRAFICZNA (sam obrazek, zero tekstu) w wąskiej kolumnie wątku jest
-//    nieczytelna — pokazujemy przycisk otwierający pełny podgląd.
+//    nieczytelna - pokazujemy przycisk otwierający pełny podgląd.
 //
 // Doklejoną historię rozmowy chowamy pod przełącznikiem w obu trybach (patrz
-// utils/emailHtml.ts) — bez tego każda kolejna odpowiedź powtarza cały wątek.
+// utils/emailHtml.ts) - bez tego każda kolejna odpowiedź powtarza cały wątek.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import DOMPurify from 'dompurify';
@@ -40,7 +40,7 @@ const Prose = styled.div`
     color: ${p => p.theme.colors.text};
     overflow-wrap: anywhere;
 
-    /* Obcy HTML sprowadzamy do naszego rytmu — bez tego każdy mail ma inną skalę. */
+    /* Obcy HTML sprowadzamy do naszego rytmu - bez tego każdy mail ma inną skalę. */
     * { max-width: 100%; font-family: inherit !important; }
     font, span, div, p, td { font-size: inherit !important; line-height: inherit !important; }
 
@@ -63,7 +63,7 @@ const Prose = styled.div`
     td, th { padding: 2px 6px; }
 `;
 
-/** Cytat renderujemy przygaszony — jest kontekstem, nie treścią. */
+/** Cytat renderujemy przygaszony - jest kontekstem, nie treścią. */
 const QuotedProse = styled(Prose)`
     margin-top: 4px;
     padding-left: 12px;
@@ -202,7 +202,7 @@ const FRAME_STYLES = `
     </style>
 `;
 
-/** Warstwa kliencka nad sanityzacją backendu — obie muszą zawieść, żeby coś przeszło. */
+/** Warstwa kliencka nad sanityzacją backendu - obie muszą zawieść, żeby coś przeszło. */
 const PURIFY_CONFIG = {
     FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'base'],
     FORBID_ATTR: ['srcset', 'formaction'],
@@ -211,7 +211,7 @@ const PURIFY_CONFIG = {
 
 const sanitize = (html: string): string => DOMPurify.sanitize(html, PURIFY_CONFIG) as string;
 
-/** Wysokości zmierzonych ramek — klucz: id wiadomości + stan cytatu. */
+/** Wysokości zmierzonych ramek - klucz: id wiadomości + stan cytatu. */
 /**
  * Najbliższy przodek, który faktycznie ma co przewijać w danym kierunku.
  * Potrzebny, bo scroll domykamy ręcznie: kółko myszy nad ramką maila trafia do
@@ -229,7 +229,7 @@ const scrollableAncestor = (from: HTMLElement | null, delta: number): HTMLElemen
     return null;
 };
 
-/** Kółko myszy w pikselach — Firefox potrafi raportować linie albo strony. */
+/** Kółko myszy w pikselach - Firefox potrafi raportować linie albo strony. */
 const wheelPixels = (event: WheelEvent): number => {
     if (event.deltaMode === 1) return event.deltaY * 16;
     if (event.deltaMode === 2) return event.deltaY * window.innerHeight;
@@ -249,7 +249,7 @@ const rememberHeight = (key: string, value: number) => {
 
 interface MessageBodyProps {
     html: string;
-    /** Id wiadomości — pozwala pamiętać zmierzoną wysokość ramki między renderami. */
+    /** Id wiadomości - pozwala pamiętać zmierzoną wysokość ramki między renderami. */
     cacheKey?: string;
     /** Wysokość, powyżej której ramka maila projektowanego dostaje własny scroll. */
     maxHeight?: number;
@@ -276,12 +276,12 @@ export function MessageBody({
     /**
      * Przewija najpierw samą wiadomość, a resztę ruchu oddaje liście wątku.
      * Bez tego po dojechaniu do końca maila trzeba było wyprowadzić kursor poza
-     * ramkę i zacząć przewijać od nowa — przeglądarka zatrzaskuje gest na
+     * ramkę i zacząć przewijać od nowa - przeglądarka zatrzaskuje gest na
      * wewnętrznym kontenerze i nie przechodzi z nim na sekcję nadrzędną.
      */
     const handleWheel = useCallback((event: WheelEvent) => {
         const area = scrollRef.current;
-        // Nic do przewinięcia w środku (wiadomość mieści się w całości) — niech
+        // Nic do przewinięcia w środku (wiadomość mieści się w całości) - niech
         // zdarzenie poleci naturalnie do sekcji nadrzędnej.
         if (event.ctrlKey || !area || area.scrollHeight - area.clientHeight <= 1) return;
         event.preventDefault();
@@ -336,7 +336,7 @@ export function MessageBody({
 
         measure();
 
-        // Obrazki dociągają się po load — każdy z nich zmienia wysokość dokumentu.
+        // Obrazki dociągają się po load - każdy z nich zmienia wysokość dokumentu.
         const observer = new ResizeObserver(measure);
         observer.observe(doc.body);
         const images = Array.from(doc.images ?? []);
@@ -349,7 +349,7 @@ export function MessageBody({
         // Zapasowe pomiary dla treści, których obserwator nie złapie (webfonty).
         const timers = [120, 400, 1200].map((delay) => window.setTimeout(measure, delay));
 
-        // Kółko nad ramką obsługuje dokument iframe'a i nie dociera do nas —
+        // Kółko nad ramką obsługuje dokument iframe'a i nie dociera do nas -
         // przechwytujemy je tam i przewijamy łańcuchem: wiadomość → lista wątku.
         doc.addEventListener('wheel', handleWheel, { passive: false });
 
@@ -402,7 +402,7 @@ export function MessageBody({
                     <span className="icon"><ImageIcon size={16} /></span>
                     <span className="grow">
                         <span className="title">Wiadomość graficzna</span>
-                        <span className="hint"> — kliknij, żeby podejrzeć</span>
+                        <span className="hint"> - kliknij, żeby podejrzeć</span>
                     </span>
                     <Maximize2 size={14} />
                 </GraphicalCard>

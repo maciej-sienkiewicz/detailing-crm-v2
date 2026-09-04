@@ -1,5 +1,5 @@
 // src/modules/comms/hooks/useLeadStatusChange.tsx
-// Zmiana statusu leada w jednym miejscu — razem z jedynym wyjątkiem od reguły
+// Zmiana statusu leada w jednym miejscu - razem z jedynym wyjątkiem od reguły
 // „jedno kliknięcie, jeden status": przegrana wymaga powodu.
 //
 // Ten wyjątek żyje tu, a nie w każdym wywołującym, bo wywołujących jest już
@@ -14,10 +14,10 @@ import type { LeadStatus } from '../types';
 export interface LeadStatusChange {
     /** Przestaw status; „przegrany" najpierw zapyta o powód. */
     requestStatus: (leadId: string, status: LeadStatus) => void;
-    /** Otwórz samo pytanie o powód — dla wywołujących, którzy już wiedzą, że to przegrana. */
+    /** Otwórz samo pytanie o powód - dla wywołujących, którzy już wiedzą, że to przegrana. */
     requestLost: (leadId: string) => void;
     isPending: boolean;
-    /** Okno powodu przegranej — wstaw je w drzewo, inaczej pytanie nigdy nie padnie. */
+    /** Okno powodu przegranej - wstaw je w drzewo, inaczej pytanie nigdy nie padnie. */
     lostDialog: React.ReactNode;
 }
 

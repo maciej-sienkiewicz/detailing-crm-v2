@@ -21,7 +21,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
 ## 1. Transport i handshake
 
 - Protokół: **STOMP przez SockJS** (biblioteka `@stomp/stompjs` 7.2.1 + `sockjs-client` 1.6).
-- Endpoint: **`/ws-registry`** (ścieżka względna — w produkcji za tym samym
+- Endpoint: **`/ws-registry`** (ścieżka względna - w produkcji za tym samym
   hostem co SPA, proxowana przez nginx do backendu).
 - SockJS wykonuje najpierw `GET /ws-registry/info`, potem próbuje transportów
   w kolejności: `websocket` → `xhr-streaming` → `xhr-polling`.
@@ -29,7 +29,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
   `registry.addEndpoint("/ws-registry").withSockJS()`), a odpowiedź `/info`
   musi być JSON-em SockJS, nie HTML-em.
 - Frontend **nie wysyła żadnych nagłówków CONNECT** (brak tokenu w headerach
-  STOMP). Uwierzytelnienie opiera się wyłącznie na **cookie sesyjnym** —
+  STOMP). Uwierzytelnienie opiera się wyłącznie na **cookie sesyjnym** -
   wszystkie żądania REST idą z `withCredentials: true` i handshake SockJS
   niesie te same cookies. Backend musi autoryzować użytkownika na etapie
   handshake'u HTTP.
@@ -42,13 +42,13 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
   Jeśli backend odpowie `0,0`, frontend nie wykryje martwego połączenia i
   wrócimy do problemu „brak powiadomień do czasu odświeżenia strony".
 - Heartbeaty po stronie przeglądarki chodzą w Web Workerze, więc działają też
-  w kartach w tle — backend powinien się spodziewać ruchu heartbeat od
+  w kartach w tle - backend powinien się spodziewać ruchu heartbeat od
   nieaktywnych kart i **nie** ubijać takich sesji.
 - Po zerwaniu połączenia frontend robi automatyczny reconnect co **3 s**
   (bez backoffu) i po każdym połączeniu **subskrybuje wszystkie topici od
-  nowa**. Backend musi więc traktować subskrypcje jako ulotne — żadnych założeń,
+  nowa**. Backend musi więc traktować subskrypcje jako ulotne - żadnych założeń,
   że klient „już jest zapisany".
-- Proxy (nginx) ma `proxy_read_timeout 90s` na `/ws-registry` — przy działających
+- Proxy (nginx) ma `proxy_read_timeout 90s` na `/ws-registry` - przy działających
   heartbeatach co 10 s to bezpieczny margines.
 
 ## 3. Semantyka dostarczania i spójność z REST
@@ -60,7 +60,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
 - Z tego wynikają dwa twarde wymagania dla backendu:
   1. **Zdarzenie wolno opublikować dopiero po zatwierdzeniu transakcji w DB.**
      Jeśli event wyjdzie przed commitem, frontend po otrzymaniu toasta
-     zrobi refetch listy i leada tam jeszcze nie będzie — użytkownik widzi
+     zrobi refetch listy i leada tam jeszcze nie będzie - użytkownik widzi
      powiadomienie o leadzie, którego „nie ma".
   2. REST musi zawsze zwracać stan co najmniej tak świeży jak wyemitowane
      zdarzenia (brak cache'owania odpowiedzi listy leadów po stronie serwera).
@@ -80,7 +80,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
   `user.studioId`).
 - Uwaga: topic `…dashboard` jest subskrybowany **dwukrotnie** (dwa niezależne
   hooki na tej samej przeglądarce → dwie ramki SUBSCRIBE z różnymi `id`).
-  To poprawne zachowanie STOMP — broker musi dostarczyć wiadomość do obu
+  To poprawne zachowanie STOMP - broker musi dostarczyć wiadomość do obu
   subskrypcji.
 - **Bezpieczeństwo (do zweryfikowania po stronie backendu):** nazwa topicu
   zawiera `studioId`, a klient teoretycznie może wysłać SUBSCRIBE na dowolny
@@ -91,7 +91,7 @@ Stan na: lipiec 2026, branch `claude/websocket-lead-notifications-5awtzu`.
 ## 5. Format wiadomości
 
 Każda wiadomość to **pojedyncza ramka tekstowa z JSON-em**. Frontend robi
-`JSON.parse(message.body)` — nagłówek `content-type` nie jest sprawdzany,
+`JSON.parse(message.body)` - nagłówek `content-type` nie jest sprawdzany,
 ale body musi być poprawnym JSON-em (niepoprawny jest logowany i ignorowany).
 
 Wspólna koperta na topicu dashboardowym:
@@ -104,12 +104,12 @@ Wspólna koperta na topicu dashboardowym:
 }
 ```
 
-Nieznane wartości `type` są logowane ostrzeżeniem i **ignorowane** — można
+Nieznane wartości `type` są logowane ostrzeżeniem i **ignorowane** - można
 bezpiecznie dodawać nowe typy zdarzeń bez łamania starszych wersji frontendu.
 
 ### 5.1. Zdarzenia na `/topic/studio.{studioId}.dashboard`
 
-#### `NEW_LEAD` — nowy lead / kontakt przychodzący
+#### `NEW_LEAD` - nowy lead / kontakt przychodzący
 
 ```json
 {
@@ -144,7 +144,7 @@ na Tablicy.
 > `receivedAt`. Frontend nadal akceptuje oba warianty (fallback), ale
 > **kanonicznym kształtem jest powyższy** (`contactIdentifier` /
 > `customerName` / `createdAt`). Prosimy o potwierdzenie, który wariant
-> faktycznie wysyłacie — docelowo chcemy usunąć aliasy.
+> faktycznie wysyłacie - docelowo chcemy usunąć aliasy.
 
 #### `LEAD_UPDATED` oraz `LEAD_STATUS_CHANGED`
 
@@ -188,7 +188,7 @@ toast „… odpisał na zapytanie".
 
 ### 5.2. Zdarzenia na `/topic/studio.{studioId}.checkin.{checkinId}`
 
-Tu **nie ma koperty** `{type, payload, timestamp}` — pola leżą płasko obok
+Tu **nie ma koperty** `{type, payload, timestamp}` - pola leżą płasko obok
 `type`:
 
 #### `CHECKIN_PHOTO_UPLOADED`
@@ -217,10 +217,10 @@ Tu **nie ma koperty** `{type, payload, timestamp}` — pola leżą płasko obok
 }
 ```
 
-`x`/`y` to procenty (0–100). `note` może być `null` — frontend normalizuje do
+`x`/`y` to procenty (0–100). `note` może być `null` - frontend normalizuje do
 pustego stringa.
 
-### 5.x Metryki na żywo — `/topic/studio.{studioId}.metrics`
+### 5.x Metryki na żywo - `/topic/studio.{studioId}.metrics`
 
 Kanał modułu live-metrics. Backend rozgłasza tu każde zdarzenie biznesowe dopiero po
 odczytaniu go ze strumienia Redis, więc ramka dociera także wtedy, gdy zapisała ją inna
@@ -247,11 +247,11 @@ instancja aplikacji.
   bliźniaczy kanał SSE nie zasnął za proxy; frontend go ignoruje.
 - `type` to jeden z pięciu obszarów: `RESERVATION_CREATED`, `VISIT_CREATED`,
   `SERVICE_CREATED`, `PHOTO_UPLOADED`, `ACTIVITY_LOGGED`.
-- `series` niesie serie, których liczniki zdarzenie podbiło: bazową i — gdy typ ma wymiar
-  — pod-serię `TYP:WARTOŚĆ`. Frontend nanosi je na migawkę z `GET /api/v1/live-metrics/overview`
+- `series` niesie serie, których liczniki zdarzenie podbiło: bazową i - gdy typ ma wymiar
+  - pod-serię `TYP:WARTOŚĆ`. Frontend nanosi je na migawkę z `GET /api/v1/live-metrics/overview`
   trzymaną w cache'u React Query, więc suma pod-serii zawsze równa się serii bazowej.
 - `attributes` to płaski, nieustrukturyzowany kontekst (identyfikatory, nazwa). Nie wolno
-  na nim opierać liczenia — służy wyłącznie do pokazania „które", nie „ile".
+  na nim opierać liczenia - służy wyłącznie do pokazania „które", nie „ile".
 - Ramka jest najlepszym-staraniem: po zerwaniu połączenia frontend nie odtwarza tego, co
   przepadło, tylko unieważnia zapytanie `/overview` i bierze pełną migawkę z serwera.
 
@@ -276,7 +276,7 @@ powinien wiązać autoryzację subskrypcji z **bieżącą** sesją HTTP (patrz p
        studiem uwierzytelnionego użytkownika (analogicznie `checkinId`).
 6. [ ] Zdarzenia publikowane są **po commicie** transakcji (np.
        `TransactionalEventListener(AFTER_COMMIT)`), nigdy przed.
-7. [ ] `NEW_LEAD` niesie kanoniczny payload (pkt 5.1) — potwierdzić lub zgłosić
+7. [ ] `NEW_LEAD` niesie kanoniczny payload (pkt 5.1) - potwierdzić lub zgłosić
        rozbieżność.
 8. [ ] `LEAD_UPDATED` / `LEAD_STATUS_CHANGED` / `REPLY_APPENDED` niosą pełne DTO
        leada, identyczne z odpowiedzią `GET /api/v1/leads`.

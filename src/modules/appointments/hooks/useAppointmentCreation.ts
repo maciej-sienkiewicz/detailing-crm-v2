@@ -67,7 +67,7 @@ export const useAppointmentCreation = () => {
         selectedCustomer?.id && !selectedCustomer.isNew ? selectedCustomer.id : undefined
     );
 
-    // Kolor domyślny studia zamiast pierwszego z listy — ta sama reguła, co w
+    // Kolor domyślny studia zamiast pierwszego z listy - ta sama reguła, co w
     // check-inie i w szybkim dodawaniu z kalendarza.
     useEffect(() => {
         if (appointmentColors && appointmentColors.length > 0 && !selectedColorId) {

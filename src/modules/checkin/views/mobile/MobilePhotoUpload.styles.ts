@@ -343,7 +343,7 @@ export const HiddenInput = styled.input`
     display: none;
 `;
 
-/** Camera + gallery side by side — one tap each, no hidden picker menu. */
+/** Camera + gallery side by side - one tap each, no hidden picker menu. */
 export const CaptureRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -1,8 +1,8 @@
 // src/modules/campaigns/components/AudienceBuilder.tsx
-// Kryteria odbiorców — pięć sekcji, jeden wzór pola.
+// Kryteria odbiorców - pięć sekcji, jeden wzór pola.
 //
 // Wcześniej każde pole wyglądało inaczej: liczba wizyt to były dwa gołe inputy
-// obok siebie, dni — input i luźny wyraz „dni temu" wiszący z boku, pieniądze —
+// obok siebie, dni - input i luźny wyraz „dni temu" wiszący z boku, pieniądze -
 // input bez waluty, typ klienta zwykły <select> innej wysokości niż reszta.
 // Każdy wiersz trzeba było odczytać osobno, bo żaden nie wyglądał jak poprzedni.
 // Teraz wszystko stoi na jednym zestawie klocków (NumberField, RangeField,
@@ -11,7 +11,7 @@
 //
 // Druga zmiana jest o pamięci, nie o urodzie: sekcje zwijały się nawzajem
 // (otwarcie jednej zamykało poprzednią), a złożony filtr buduje się z kilku
-// naraz — nie dało się zobaczyć dwóch warunków jednocześnie. Teraz otwiera się
+// naraz - nie dało się zobaczyć dwóch warunków jednocześnie. Teraz otwiera się
 // ich dowolnie wiele, a zwinięta sekcja pokazuje w nagłówku, co w niej ustawiono,
 // więc stanu filtra nie trzeba trzymać w głowie.
 import { useState } from 'react';
@@ -35,7 +35,7 @@ import {
 } from './shared';
 import type { AudienceCriteria, CustomerTypeFilter } from '../types';
 
-// Chip kryterium ma jedną definicję na cały moduł — tu tylko przechodzi dalej,
+// Chip kryterium ma jedną definicję na cały moduł - tu tylko przechodzi dalej,
 // żeby kreator i okno kampanii nie musiały wiedzieć, skąd go brać.
 export { Chip, ChipRow };
 
@@ -74,7 +74,7 @@ export function audienceChips(a: AudienceCriteria, serviceNames: Map<string, str
  *
  * Pięć białych kart w białym panelu to biel na bieli i pięć ramek rysujących
  * granice tam, gdzie nic się nie kończy. Wiersze rozdzielone włoskową kreską
- * czytają się jako jedna lista kryteriów — czyli jako to, czym są.
+ * czytają się jako jedna lista kryteriów - czyli jako to, czym są.
  */
 const Section = styled.div`
   & + & { border-top: 1px solid ${(p) => p.theme.colors.surfaceAlt}; }
@@ -89,7 +89,7 @@ const SectionHead = styled.button<{ $open: boolean }>`
   background: transparent;
   cursor: pointer;
   /* Ujemny margines wchodzi w wyściółkę panelu, żeby podświetlenie pod kursorem
-     sięgało jego krawędzi — wiersz listy, a nie prostokąt pływający w środku. */
+     sięgało jego krawędzi - wiersz listy, a nie prostokąt pływający w środku. */
   padding: 11px 16px;
   margin: 0 -16px;
   width: calc(100% + 32px);
@@ -104,7 +104,7 @@ const SectionHead = styled.button<{ $open: boolean }>`
   }
 
   /*
-   * Streszczenie zwiniętej sekcji. Wcześniej stała tu sama kropka — mówiła
+   * Streszczenie zwiniętej sekcji. Wcześniej stała tu sama kropka - mówiła
    * „coś tu jest", ale nie „co", więc sprawdzenie własnego filtra wymagało
    * rozwinięcia pięciu sekcji po kolei.
    */
@@ -136,7 +136,7 @@ const SectionHead = styled.button<{ $open: boolean }>`
   &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
 `;
 
-/** Kropka „ta sekcja zawęża listę" — jedyny kolor w panelu i jedyny, który coś znaczy. */
+/** Kropka „ta sekcja zawęża listę" - jedyny kolor w panelu i jedyny, który coś znaczy. */
 const ActiveDot = styled.span`
   width: 6px;
   height: 6px;
@@ -385,7 +385,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
           </FilterGrid>
           {value.servicesUsedAnyOf.length > 1 && (
             <LogicHint>
-              Wystarczy, że klient miał <strong>dowolną</strong> z wybranych usług — nie wszystkie.
+              Wystarczy, że klient miał <strong>dowolną</strong> z wybranych usług - nie wszystkie.
             </LogicHint>
           )}
 

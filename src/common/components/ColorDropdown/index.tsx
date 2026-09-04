@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-/** Minimalny kształt koloru — pasuje do typów obu modułów, które go używają. */
+/** Minimalny kształt koloru - pasuje do typów obu modułów, które go używają. */
 export interface ColorOption {
     id: string;
     name: string;

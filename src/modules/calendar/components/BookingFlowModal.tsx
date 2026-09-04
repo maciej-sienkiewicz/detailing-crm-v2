@@ -1,15 +1,15 @@
 // src/modules/calendar/components/BookingFlowModal.tsx
-// Zakładanie rezerwacji z miejsca, w którym trwa rozmowa z klientem — z leada
+// Zakładanie rezerwacji z miejsca, w którym trwa rozmowa z klientem - z leada
 // albo z korespondencji.
 //
 // Dwa kroki, w kolejności, w jakiej myśli człowiek: najpierw KIEDY, potem CO.
-// Terminu nie da się sensownie wybrać z listy dat — trzeba zobaczyć, co już stoi
+// Terminu nie da się sensownie wybrać z listy dat - trzeba zobaczyć, co już stoi
 // w kalendarzu w okolicy, więc pierwszym krokiem jest pełny kalendarz, ten sam
 // co w widoku głównym, tylko bez przycisków zakładania czegokolwiek obok.
 //
 // Wybór dnia (lub przeciągnięcie kilku) zamyka kalendarz i otwiera formularz
 // rezerwacji wypełniony tym, co już wiemy: klientem, autem i wyceną z leada.
-// Sens całości jest właśnie tutaj — przepisywanie tych danych ręcznie było
+// Sens całości jest właśnie tutaj - przepisywanie tych danych ręcznie było
 // pracą, którą system mógł wykonać sam.
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -28,8 +28,8 @@ const Overlay = styled.div<{ $contentLeft: number }>`
     height: 100vh;
     height: 100dvh;
     /* Ta sama warstwa co formularz rezerwacji (QuickEventModalStyles.Overlay):
-       oba kroki kreatora otwierają się nad oknem, z którego wyszły — panelem
-       leada albo podglądem rozmowy — więc muszą leżeć nad warstwą ModalKit (1000). */
+       oba kroki kreatora otwierają się nad oknem, z którego wyszły - panelem
+       leada albo podglądem rozmowy - więc muszą leżeć nad warstwą ModalKit (1000). */
     z-index: 1300;
     /* I ta sama geometria: formularz rezerwacji zaczyna się za sidebarem, więc
        kalendarz też. Inaczej przejście między krokami przeskakuje o szerokość
@@ -109,7 +109,7 @@ const CloseButton = styled.button`
 
 /**
  * Kalendarz zajmuje resztę arkusza i przewija się sam. min-height: 0 jest tu
- * konieczne — bez niego element flex nie skurczy się poniżej swojej zawartości
+ * konieczne - bez niego element flex nie skurczy się poniżej swojej zawartości
  * i kalendarz wypycha stopkę arkusza poza ekran.
  */
 const CalendarSlot = styled.div`
@@ -121,7 +121,7 @@ const CalendarSlot = styled.div`
 `;
 
 /**
- * Kreator jest otwarty dokładnie wtedy, gdy jest zamontowany — nie ma propa `isOpen`.
+ * Kreator jest otwarty dokładnie wtedy, gdy jest zamontowany - nie ma propa `isOpen`.
  * Stan kroku (wybrany termin) żyje więc tyle, co jedno otwarcie, i nie ma jak
  * przetrwać do następnego; wariant z flagą wymagałby kasowania go efektem, czyli
  * dokładnie tej klasy błędu, którą to usuwa.
@@ -132,7 +132,7 @@ interface BookingFlowModalProps {
     prefill: QuickEventInitialData;
     /** Podany wiąże rezerwację z leadem i przestawia go w „Rezerwacja". */
     leadId?: string;
-    /** Podpis pod nagłówkiem kalendarza — np. imię klienta, dla kogo szukamy terminu. */
+    /** Podpis pod nagłówkiem kalendarza - np. imię klienta, dla kogo szukamy terminu. */
     subtitle?: string;
     onBooked?: () => void;
 }
@@ -184,7 +184,7 @@ export function BookingFlowModal({
         }
     };
 
-    // Krok 2: formularz rezerwacji. Kalendarz jest odmontowany — dwa nałożone
+    // Krok 2: formularz rezerwacji. Kalendarz jest odmontowany - dwa nałożone
     // modale to dwie warstwy do zamknięcia i pytanie, którą właśnie zamykam.
     if (range) {
         return (

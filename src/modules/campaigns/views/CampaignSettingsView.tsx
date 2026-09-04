@@ -1,5 +1,5 @@
 // src/modules/campaigns/views/CampaignSettingsView.tsx
-// Wspólne reguły wysyłki. Trzy panele, jedna akcja główna na dole — ten sam
+// Wspólne reguły wysyłki. Trzy panele, jedna akcja główna na dole - ten sam
 // układ i te same klocki, co w reszcie modułu.
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -27,7 +27,7 @@ const TimeRow = styled.div`
 `;
 
 /**
- * Stopka ustawień. Jedna akcja główna i nic obok niej — „Zapisz" wygląda tu
+ * Stopka ustawień. Jedna akcja główna i nic obok niej - „Zapisz" wygląda tu
  * inaczej po zapisie, żeby potwierdzenie nie musiało być osobnym komunikatem
  * gdzieś z boku ekranu.
  */

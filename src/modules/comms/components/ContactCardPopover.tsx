@@ -1,16 +1,16 @@
 // src/modules/comms/components/ContactCardPopover.tsx
 // Wizytówka klienta spod avatara albo nazwiska w nagłówku rozmowy.
 //
-// Pytanie zawsze brzmi tak samo: przyszedł mail „proszę o termin na przegląd folii" —
+// Pytanie zawsze brzmi tak samo: przyszedł mail „proszę o termin na przegląd folii" -
 // kto to w ogóle jest, kiedy tu był i czym jeździ? Odpowiedź musi paść w miejscu,
 // w którym się czyta, bo inaczej trzeba przerwać czytanie, otworzyć kartotekę,
-// odszukać klienta i wrócić — a wtedy odpowiedź i tak pisze się z pamięci.
+// odszukać klienta i wrócić - a wtedy odpowiedź i tak pisze się z pamięci.
 //
 // Chmurka pokazuje dokładnie tyle, ile potrzeba do napisania odpowiedzi: nazwisko,
 // kiedy był ostatnio, czym jeździ i trzy ostatnie zlecenia z kwotą. Wszystko inne
 // jest o jedno kliknięcie dalej, w kartotece.
 //
-// Gdy adresu nie ma w bazie, chmurka nie kończy się na „brak" — proponuje dwa
+// Gdy adresu nie ma w bazie, chmurka nie kończy się na „brak" - proponuje dwa
 // wyjścia, bo nieznany adres to zwykle albo klient zapisany pod innym mailem,
 // albo klient, którego jeszcze nie ma.
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -89,7 +89,7 @@ const Stats = styled.div`
     display: flex;
     gap: 8px;
 
-    /* Tylko bezpośrednie dzieci — inaczej ramkę dostają też .label i .value w środku. */
+    /* Tylko bezpośrednie dzieci - inaczej ramkę dostają też .label i .value w środku. */
     > div {
         flex: 1;
         min-width: 0;
@@ -128,7 +128,7 @@ const Section = styled.section`
     }
 `;
 
-/** Pojazd otwiera obok chmurkę ze zdjęciami — też przycisk, nie wiersz tekstu. */
+/** Pojazd otwiera obok chmurkę ze zdjęciami - też przycisk, nie wiersz tekstu. */
 const VehicleLine = styled.button<{ $active?: boolean }>`
     display: flex;
     align-items: center;
@@ -163,7 +163,7 @@ const VehicleLine = styled.button<{ $active?: boolean }>`
     }
 `;
 
-/** Wizyta jest wejściem w jej kartę — stąd przycisk, nie akapit. */
+/** Wizyta jest wejściem w jej kartę - stąd przycisk, nie akapit. */
 const VisitLine = styled.button`
     display: flex;
     align-items: baseline;
@@ -342,7 +342,7 @@ const DEFAULT_Z_INDEX = 120;
 
 interface ContactCardPopoverProps {
     email: string;
-    /** Nazwa z wątku — podpowiedź przy zakładaniu kartoteki. */
+    /** Nazwa z wątku - podpowiedź przy zakładaniu kartoteki. */
     participantName: string | null;
     anchor: HTMLElement;
     onClose: () => void;
@@ -363,10 +363,10 @@ export function ContactCardPopover({
     const [candidates, setCandidates] = useState<Customer[]>([]);
     const [searching, setSearching] = useState(false);
     const [saving, setSaving] = useState(false);
-    // Klient, którego adres mielibyśmy nadpisać — czeka na potwierdzenie.
+    // Klient, którego adres mielibyśmy nadpisać - czeka na potwierdzenie.
     const [replaceFor, setReplaceFor] = useState<Customer | null>(null);
     const [addOpen, setAddOpen] = useState(false);
-    // Który pojazd ma otwartą chmurkę ze zdjęciami — trzymamy element, bo od niego
+    // Który pojazd ma otwartą chmurkę ze zdjęciami - trzymamy element, bo od niego
     // liczona jest pozycja, a nie samo id.
     const [photosFor, setPhotosFor] = useState<{ id: string; label: string; anchor: HTMLElement } | null>(null);
     const cardRef = useRef<HTMLDivElement | null>(null);
@@ -398,10 +398,10 @@ export function ContactCardPopover({
         const onDocClick = (event: MouseEvent) => {
             const target = event.target as Node;
             if (cardRef.current?.contains(target) || anchor.contains(target)) return;
-            // Chmurka ze zdjęciami żyje we własnym portalu — kliknięcie w niej nie może
+            // Chmurka ze zdjęciami żyje we własnym portalu - kliknięcie w niej nie może
             // zamknąć wizytówki, z której wyszła.
             if ((target as HTMLElement).closest?.('[data-vehicle-photos]')) return;
-            // Modal zakładania klienta żyje we własnym portalu — kliknięcie w nim
+            // Modal zakładania klienta żyje we własnym portalu - kliknięcie w nim
             // nie może zamykać chmurki, która go otworzyła.
             if (addOpen) return;
             onClose();
@@ -417,7 +417,7 @@ export function ContactCardPopover({
         };
     }, [anchor, onClose, addOpen]);
 
-    // Wyszukiwanie kandydatów do powiązania — z opóźnieniem, żeby nie strzelać przy
+    // Wyszukiwanie kandydatów do powiązania - z opóźnieniem, żeby nie strzelać przy
     // każdej literze.
     useEffect(() => {
         if (!linking) return;
@@ -456,7 +456,7 @@ export function ContactCardPopover({
             // zostają WYCZYSZCZONE (`entity.firstName = command.firstName?.trim()`).
             // Dlatego pobieramy pełną kartotekę i odsyłamy ją w całości, podmieniając
             // wyłącznie adres. Wysłanie samego `{ email }` skasowałoby klientowi
-            // nazwisko, telefon i adres — i to po cichu.
+            // nazwisko, telefon i adres - i to po cichu.
             const full = await customerApi.getCustomerById(customer.id);
             await customerEditApi.updateCustomer(customer.id, {
                 firstName: full.firstName,
@@ -481,7 +481,7 @@ export function ContactCardPopover({
 
     /**
      * Kartoteka trzyma jeden adres, więc powiązanie z klientem, który już go ma,
-     * NADPISUJE stary. To jest utrata danych — pytamy, zamiast robić to po cichu.
+     * NADPISUJE stary. To jest utrata danych - pytamy, zamiast robić to po cichu.
      */
     const chooseCandidate = (candidate: Customer) => {
         const current = candidate.contact?.email;

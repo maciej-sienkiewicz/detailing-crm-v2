@@ -12,7 +12,7 @@ const VIEWPORT_HEIGHT = 900;
 
 /** Wysokość okna z pełną listą kafelków: nagłówek + lista przycięta do 320 px. */
 const FULL_HEIGHT = 372;
-/** Wysokość okna, zanim React doleje kafelki — sam nagłówek i pusty środek. */
+/** Wysokość okna, zanim React doleje kafelki - sam nagłówek i pusty środek. */
 const HEADER_ONLY_HEIGHT = 48;
 /** Komórka w ostatnim wierszu miesiąca: okno startuje nisko i nie ma gdzie zejść. */
 const LAST_ROW_TOP = 760;
@@ -62,7 +62,7 @@ describe('clampToViewport', () => {
 
 type ResizeCallback = () => void;
 
-/** jsdom nie ma ResizeObserver — podstawiamy taki, który da się wyzwolić z testu. */
+/** jsdom nie ma ResizeObserver - podstawiamy taki, który da się wyzwolić z testu. */
 class FakeResizeObserver {
     static instances: FakeResizeObserver[] = [];
     observed: Element[] = [];
@@ -84,7 +84,7 @@ class FakeResizeObserver {
 
 interface FakePopover {
     el: HTMLElement;
-    /** Podmienia zmierzoną wysokość — tak, jakby React dolał kafelki. */
+    /** Podmienia zmierzoną wysokość - tak, jakby React dolał kafelki. */
     setHeight: (height: number) => void;
     top: () => number;
     bottom: () => number;
@@ -164,7 +164,7 @@ describe('attachMorePopoverPlacement', () => {
 
         dispose = attachMorePopoverPlacement(popover.el);
 
-        // Pusty środek mieści się pod komórką, więc nic się nie dosuwa — i to jest
+        // Pusty środek mieści się pod komórką, więc nic się nie dosuwa - i to jest
         // dokładnie ten stan, w którym stary jednorazowy pomiar zostawiał okno.
         expect(popover.top()).toBe(LAST_ROW_TOP);
 
@@ -212,7 +212,7 @@ describe('attachMorePopoverPlacement', () => {
 
         expect(FakeResizeObserver.instances.every(o => o.disconnected)).toBe(true);
 
-        // Listener resize też ma zniknąć — inaczej zamknięte okno dalej by się
+        // Listener resize też ma zniknąć - inaczej zamknięte okno dalej by się
         // pozycjonowało.
         const before = popover.el.style.top;
         window.innerHeight = 300;

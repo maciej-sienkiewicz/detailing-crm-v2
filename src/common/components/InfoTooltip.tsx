@@ -80,8 +80,8 @@ interface HoverInfoProps {
 /**
  * Generic hover-triggered explanation, portalled to `document.body` so it is
  * never clipped by a scrollable/overflow:hidden ancestor (a popover card,
- * a modal). Wrap ANY element in it — a disabled-looking toggle, a locked
- * button — to explain why it won't do anything, without needing the native
+ * a modal). Wrap ANY element in it - a disabled-looking toggle, a locked
+ * button - to explain why it won't do anything, without needing the native
  * `disabled` attribute (which silently swallows both hover and click).
  */
 export function HoverInfo({ text, children }: HoverInfoProps) {
@@ -124,7 +124,7 @@ interface InfoTooltipProps {
   text: string;
 }
 
-/** The familiar "i" badge — an explanation with no element of its own to attach to. */
+/** The familiar "i" badge - an explanation with no element of its own to attach to. */
 export function InfoTooltip({ text }: InfoTooltipProps) {
   return (
     <HoverInfo text={text}>

@@ -39,7 +39,7 @@ export const useKsefCredentials = () => {
  *
  * Reads the non-owner `invoicing-status` endpoint rather than the credentials one:
  * the vehicle handover screen is used by ordinary staff, and the owner-only
- * credentials call answered 403 for them — indistinguishable from "no token",
+ * credentials call answered 403 for them - indistinguishable from "no token",
  * which is exactly the wrong thing to tell someone standing at the counter.
  *
  * The endpoint is gated on the KSeF module, so it is only queried for studios

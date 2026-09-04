@@ -1,18 +1,18 @@
 // src/modules/campaigns/utils/campaignState.ts
-// „Co się z tą kampanią dzieje" — cała arytmetyka stanu w jednym miejscu.
+// „Co się z tą kampanią dzieje" - cała arytmetyka stanu w jednym miejscu.
 //
 // Mieszka poza komponentami, bo z tej samej odpowiedzi korzystają trzy widoki:
 // pasek pilności przy krawędzi wiersza tabeli, znacznik pod statusem w tej samej
 // tabeli i komórka „Co dalej" w oknie kampanii. Progi liczone trzy razy
 // rozjechałyby się przy pierwszej zmianie.
 //
-// Odpowiednik leadReply.ts z modułu leadów — i celowo tego samego kształtu:
+// Odpowiednik leadReply.ts z modułu leadów - i celowo tego samego kształtu:
 // ton ('due' / 'stale' / 'neutral') znaczy tutaj dokładnie to, co tam, więc
 // czerwony pasek przy wierszu kampanii nie wymaga osobnego tłumaczenia od kogoś,
 // kto nauczył się go na liście leadów.
 import type { Campaign, CampaignStatus } from '../types';
 
-/** 'due' — coś nie wyszło i trzeba zareagować. 'stale' — stoi i czeka na człowieka. */
+/** 'due' - coś nie wyszło i trzeba zareagować. 'stale' - stoi i czeka na człowieka. */
 export type CampaignTone = 'neutral' | 'due' | 'stale';
 
 export interface CampaignMarker {
@@ -53,7 +53,7 @@ export function describeMoment(iso: string | null): string {
  * Kolejność jest kolejnością pilności, nie kolejnością statusów w enumie:
  * nieudane wiadomości biją wszystko inne, bo to jedyny stan, w którym klient
  * czegoś nie dostał, a my myślimy, że dostał. Zaraz za nimi brak kredytów na
- * zaplanowaną wysyłkę — jeszcze da się temu zapobiec, ale tylko przed terminem.
+ * zaplanowaną wysyłkę - jeszcze da się temu zapobiec, ale tylko przed terminem.
  *
  * [creditsShort] przychodzi z zewnątrz, bo stan konta kredytowego nie jest
  * własnością kampanii: ta sama kampania jest opłacalna rano i za droga po
@@ -66,21 +66,21 @@ export function describeCampaign(campaign: Campaign, creditsShort = false): Camp
         return {
             tone: 'due',
             label: 'Wysyłka nie powiodła się',
-            title: 'Kampania zakończyła się błędem — sprawdź listę odbiorców',
+            title: 'Kampania zakończyła się błędem - sprawdź listę odbiorców',
         };
     }
     if (failed > 0) {
         return {
             tone: 'due',
             label: `${failed} nie wyszło`,
-            title: `${failed} ${messageWord(failed)} nie dotarło do odbiorców — można ponowić wysyłkę`,
+            title: `${failed} ${messageWord(failed)} nie dotarło do odbiorców - można ponowić wysyłkę`,
         };
     }
     if (creditsShort && (campaign.status === 'SCHEDULED' || campaign.status === 'ACTIVE')) {
         return {
             tone: 'due',
             label: 'Zabraknie kredytów',
-            title: 'Kredytów SMS nie starczy na tę wysyłkę — doładuj przed terminem',
+            title: 'Kredytów SMS nie starczy na tę wysyłkę - doładuj przed terminem',
         };
     }
 
@@ -107,13 +107,13 @@ export function describeCampaign(campaign: Campaign, creditsShort = false): Camp
             return {
                 tone: 'stale',
                 label: 'Wstrzymana',
-                title: 'Warunek nie jest sprawdzany — nikt nie dostaje tych wiadomości',
+                title: 'Warunek nie jest sprawdzany - nikt nie dostaje tych wiadomości',
             };
         case 'DRAFT':
             return {
                 tone: 'stale',
                 label: 'Niedokończony szkic',
-                title: 'Szkic nie wysyła się sam — dokończ go albo usuń',
+                title: 'Szkic nie wysyła się sam - dokończ go albo usuń',
             };
         case 'COMPLETED':
             return { tone: 'neutral', label: 'Zakończona', title: 'Wysyłka dobiegła końca' };
@@ -125,7 +125,7 @@ export function describeCampaign(campaign: Campaign, creditsShort = false): Camp
 }
 
 /**
- * Sam ton, bez etykiety — dla wiersza tabeli, który zaznacza pilne kampanie
+ * Sam ton, bez etykiety - dla wiersza tabeli, który zaznacza pilne kampanie
  * paskiem przy krawędzi. Pasek nie zajmuje ani piksela szerokości tabeli,
  * więc znajduje kłopot szybciej niż jakakolwiek plakietka w środku wiersza.
  */
@@ -133,7 +133,7 @@ export const campaignTone = (campaign: Campaign, creditsShort = false): Campaign
     describeCampaign(campaign, creditsShort).tone;
 
 /**
- * Ilu ludzi dostało albo dostanie tę wiadomość — liczba, dla której ktoś w ogóle
+ * Ilu ludzi dostało albo dostanie tę wiadomość - liczba, dla której ktoś w ogóle
  * otwiera kampanię. Zwracamy też mianownik, gdy wysyłka jeszcze trwa: „412 z 980"
  * to inna informacja niż „412".
  */
@@ -150,5 +150,5 @@ export function recipientsFigure(campaign: Campaign): { value: string; note: str
     if (campaign.recipientsTotal > 0) {
         return { value: String(campaign.recipientsTotal), note: 'odbiorców na liście' };
     }
-    return { value: '—', note: 'lista powstanie przy wysyłce' };
+    return { value: '-', note: 'lista powstanie przy wysyłce' };
 }

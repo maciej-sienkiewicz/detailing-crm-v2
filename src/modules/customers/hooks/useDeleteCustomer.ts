@@ -5,13 +5,13 @@ import { customersQueryKey } from './useCustomers';
 import { customerDetailQueryKey } from './useCustomerDetail';
 
 /**
- * Usunięcie klienta — po stronie backendu anonimizacja RODO: dane osobowe znikają,
+ * Usunięcie klienta - po stronie backendu anonimizacja RODO: dane osobowe znikają,
  * historia wizyt, statystyki i podpisane dokumenty zostają, pojazdy tracą
  * powiązanie (osierocone idą do archiwum).
  *
  * Toasty mieszkają w opcjach useMutation, nie przy wywołaniu mutate: widok
  * szczegółów nawiguję do listy zaraz po kliknięciu, a callbacki przekazane do
- * mutate nie odpalają się po odmontowaniu komponentu — komunikat by przepadał.
+ * mutate nie odpalają się po odmontowaniu komponentu - komunikat by przepadał.
  */
 export const useDeleteCustomer = () => {
     const queryClient = useQueryClient();

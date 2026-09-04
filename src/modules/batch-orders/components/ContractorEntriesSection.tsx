@@ -43,7 +43,7 @@ const ContractorName = styled.h3`
 
 /**
  * „Edytuj" i „Usuń" działają na kontrahencie, a nie na liście wpisów, więc stoją
- * przy jego nazwie — a nie w rzędzie akcji po prawej, gdzie sąsiadowały
+ * przy jego nazwie - a nie w rzędzie akcji po prawej, gdzie sąsiadowały
  * z „Dodaj wpis" i „Rozlicz" i wyglądały jak operacje na wpisach.
  */
 const ContractorTitleRow = styled.div`
@@ -166,7 +166,7 @@ const SettledBadge = styled.span`
 /**
  * Metryka i warianty wzięte z SharedButton (rozmiar „sm"): 13px, 7/16px,
  * promień 8px. Wcześniej przyciski miały 12px i 5/12px z obramowaniem na
- * każdym z nich — rząd sześciu ramek obok siebie czytał się jak pasek
+ * każdym z nich - rząd sześciu ramek obok siebie czytał się jak pasek
  * narzędzi doklejony do karty, a nie jak część tego samego widoku co tabela.
  * Teraz akcję niesie wypełnienie, nie kontur: jedna akcja główna (primary),
  * jedna potwierdzająca (success) i reszta wyciszona (secondary).
@@ -262,7 +262,7 @@ const TableWrapper = styled.div`
     width: 100%;
     overflow-x: auto;
 
-    /* Na telefonie siedem kolumn nie ma jak się zmieścić — zamiast przewijania
+    /* Na telefonie siedem kolumn nie ma jak się zmieścić - zamiast przewijania
        w poziomie każdy wpis staje się kartą. Zmiana jest czysto prezentacyjna:
        znaczniki tabeli zostają, więc nic nie traci semantyki ani zachowania. */
     @media (max-width: 767px) {
@@ -453,7 +453,7 @@ const Money = styled.span`
     color: ${p => p.theme.colors.textSecondary};
 `;
 
-/* Brutto to kwota, po której skanuje się tabelę — jedyna w wierszu pisana
+/* Brutto to kwota, po której skanuje się tabelę - jedyna w wierszu pisana
    pełnym kontrastem, jak „wartość" leada. */
 const GrossMoney = styled(Money)`
     font-size: 13px;
@@ -565,7 +565,7 @@ const SummaryItem = styled.div`
     align-items: baseline;
     gap: 8px;
     /* Stopka czyta się jak drugi nagłówek tabeli, więc bierze jego wcięcie.
-       Pionowe kreski między pozycjami zniknęły — odstęp wystarcza, a kreski
+       Pionowe kreski między pozycjami zniknęły - odstęp wystarcza, a kreski
        robiły z podsumowania kratkownicę obcą reszcie widoku. */
     padding: 12px 20px;
 
@@ -714,7 +714,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const settledCount = data?.settledCount ?? 0;
     const hasPartialSettlement = settledCount > 0;
 
-    // Historia rozliczeń mówi, czy zestawienie za ten okres poszło już e-mailem —
+    // Historia rozliczeń mówi, czy zestawienie za ten okres poszło już e-mailem -
     // modal ostrzega wtedy przed drugą wysyłką w trybie „Wszystkie" (nie blokuje).
     const { data: settlementHistory } = useQuery({
         queryKey: ['settlement-history', contractor.id],
@@ -788,7 +788,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 </SectionHeader>
 
                 <MobileSecondaryPanel $open={showMoreActions}>
-                    {/* Bez „Edytuj" i „Usuń" — te siedzą teraz przy nazwie kontrahenta
+                    {/* Bez „Edytuj" i „Usuń" - te siedzą teraz przy nazwie kontrahenta
                         i są na telefonie widoczne od razu, bez rozwijania. */}
                     <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
                         {downloading ? 'Generowanie…' : (
@@ -884,7 +884,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                                 </li>
                                                             ))}
                                                         </ServiceList>
-                                                    ) : '—'}
+                                                    ) : '-'}
                                                 </Td>
                                                 <Td $align="right" data-label="Netto">
                                                     <Money>{formatMoney(entry.netAmountCents)}</Money>
@@ -894,7 +894,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 </Td>
                                                 <Td data-empty={!entry.notes}>
                                                     <NoteText title={entry.notes ?? undefined}>
-                                                        {entry.notes || '—'}
+                                                        {entry.notes || '-'}
                                                     </NoteText>
                                                 </Td>
                                                 <Td style={{ width: 40, paddingLeft: 4 }} data-cell="menu">

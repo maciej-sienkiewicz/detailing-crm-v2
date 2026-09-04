@@ -220,7 +220,7 @@ const SecondaryBtn = styled.button`
 `;
 
 const ShowDeletedBtn = styled.button<{ $active: boolean }>`
-    /* Przegląd usuniętych pojazdów zostaje na desktopie — na telefonie
+    /* Przegląd usuniętych pojazdów zostaje na desktopie - na telefonie
        nie mieści się w wierszu, a i tak jest używany sporadycznie. */
     @media (max-width: 767px) { display: none; }
 
@@ -248,7 +248,7 @@ const ShowDeletedBtn = styled.button<{ $active: boolean }>`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
-/* Eksport i przegląd usuniętych to operacje biurkowe — na telefonie tylko
+/* Eksport i przegląd usuniętych to operacje biurkowe - na telefonie tylko
    zabierały miejsce w wierszu filtrów. */
 const DesktopOnlyBtn = styled(SecondaryBtn)`
     @media (max-width: 767px) {

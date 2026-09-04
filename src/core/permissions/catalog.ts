@@ -20,7 +20,7 @@ export const PERMISSIONS = {
     FINANCE_MANAGE_CASH_REGISTER: 'FINANCE_MANAGE_CASH_REGISTER',
     FINANCE_VIEW_REPORTS: 'FINANCE_VIEW_REPORTS',
     // Powiadomienie push z kwotą po zamkniętej wizycie. Uprawnienie czysto
-    // wysyłkowe — nie odblokowuje żadnego widoku, więc świadomie nie wchodzi
+    // wysyłkowe - nie odblokowuje żadnego widoku, więc świadomie nie wchodzi
     // do ANY_FINANCE ani ANY_DASHBOARD: samo nie daje dostępu do finansów.
     FINANCE_EARNINGS_NOTIFICATIONS: 'FINANCE_EARNINGS_NOTIFICATIONS',
     // Pracownicy
@@ -38,7 +38,7 @@ export const PERMISSIONS = {
     TASKS_VIEW: 'TASKS_VIEW',
     TASKS_MANAGE: 'TASKS_MANAGE',
     // Zlecenia zbiorcze: osobna kategoria w module „Wizyty i kalendarz",
-    // niezależna od VISITS_VIEW. Obsługa kontrahenta B2B to własne stanowisko —
+    // niezależna od VISITS_VIEW. Obsługa kontrahenta B2B to własne stanowisko -
     // można nadać samo to uprawnienie i widok działa w całości.
     BATCH_ORDERS: 'BATCH_ORDERS',
     // Historia aktywności: feed przecina wszystkie moduły i pokazuje również

@@ -81,7 +81,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
                 status: p.status === 'uploading' ? 'pending' : p.status,
                 error: p.error,
             }));
-            // Re-running init (session recovery) replaces the list — free the old previews
+            // Re-running init (session recovery) replaces the list - free the old previews
             photosRef.current.forEach(p => URL.revokeObjectURL(p.previewUrl));
             setPhotos(restored);
         } catch {
@@ -183,14 +183,14 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
                 if (status.visitCreated) { setSessionState('visit_created'); return; }
                 if (!status.sessionActive) { setSessionState('expired'); return; }
                 if (sessionState === 'expired') {
-                    // Session is alive again (the earlier failure was a network blip) —
+                    // Session is alive again (the earlier failure was a network blip) -
                     // rebuild context and queue before letting the user upload again
                     await initSession();
                     return;
                 }
                 syncPending();
             } catch {
-                // Offline or unreachable — leave the current state, the poll will retry
+                // Offline or unreachable - leave the current state, the poll will retry
             }
         };
 
@@ -231,7 +231,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
 
         try {
             for (const picked of files) {
-                // Gallery picks arrive as untouched originals — HEIC from an iPhone, or a
+                // Gallery picks arrive as untouched originals - HEIC from an iPhone, or a
                 // 12 Mpx photo well over the 10 MB limit. Re-encode them instead of refusing.
                 const prepared = await prepareImageOrExplain(picked);
                 unprocessed -= 1;

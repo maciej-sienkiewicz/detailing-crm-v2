@@ -135,7 +135,7 @@ const Row = styled.div`
     &:last-child { border-bottom: none; }
     &:hover { background: #fafbfc; }
 
-    /* Pięć kolumn nie mieści się na telefonie — wiersz czyta się wtedy jako
+    /* Pięć kolumn nie mieści się na telefonie - wiersz czyta się wtedy jako
        kafelka: nazwa z VAT-em, pod nią cena, status i akcje w jednym rzędzie. */
     @media (max-width: 900px) {
         grid-template-columns: minmax(0, 1fr) auto;

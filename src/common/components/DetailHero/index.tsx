@@ -1,7 +1,7 @@
 // src/common/components/DetailHero/index.tsx
 //
 // Nagłówek karty szczegółów: ciemny pas z awatarem, nazwą, wierszem metadanych
-// i akcjami. Wspólny dla kart klienta i pojazdu — obie odpowiadają na to samo
+// i akcjami. Wspólny dla kart klienta i pojazdu - obie odpowiadają na to samo
 // pytanie („z czym mam do czynienia i co mogę z tym zrobić"), więc mają
 // wyglądać tak samo. Same style; treść i akcje dokłada widok.
 

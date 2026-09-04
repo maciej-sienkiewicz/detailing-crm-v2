@@ -39,7 +39,7 @@ import {
 // ─── Overlay & container ──────────────────────────────────────────────────────
 
 /**
- * Wszystkie trzy okna z tego pliku otwiera się z innego okna — z formularza
+ * Wszystkie trzy okna z tego pliku otwiera się z innego okna - z formularza
  * rezerwacji albo z edytora wyceny. Stąd warstwa okna podrzędnego, nie zwykłego.
  */
 export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`

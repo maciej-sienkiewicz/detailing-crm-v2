@@ -5,7 +5,7 @@ import { usePeriodDetail, useStandardToday } from '../hooks/useWorkTime';
 
 // Zgłoszenie standardowego dnia pracy jednym dotknięciem. Dla pracownika bez
 // dostępu do danych osobowych to jedyna czynność, jaką wykonuje na ekranie
-// startowym — więc ma być pierwszym, co widzi, i ma jasno mówić, czy dzień
+// startowym - więc ma być pierwszym, co widzi, i ma jasno mówić, czy dzień
 // został już zaraportowany.
 
 /** Lokalne YYYY-MM / YYYY-MM-DD: toISOString() liczy w UTC i po 22:00 wskazałby jutro. */

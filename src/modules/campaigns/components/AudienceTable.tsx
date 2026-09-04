@@ -1,13 +1,13 @@
 // src/modules/campaigns/components/AudienceTable.tsx
-// Lista odbiorców kampanii — tabela, w której da się kogoś wypisać i kogoś znaleźć.
+// Lista odbiorców kampanii - tabela, w której da się kogoś wypisać i kogoś znaleźć.
 //
 // Cztery kolumny, bo tyle wystarcza, żeby rozpoznać człowieka: kto, pod jaki numer,
 // kiedy był ostatnio. Model auta i osobna kolumna „status" tylko rozpychały tabelę
-// na całą szerokość ekranu — powód, dla którego ktoś nie dostanie wiadomości, stoi
+// na całą szerokość ekranu - powód, dla którego ktoś nie dostanie wiadomości, stoi
 // teraz drugą linijką pod nazwiskiem, czyli tam, gdzie i tak pada wzrok.
 //
 // Pole wyboru zamiast krzyżyka: krzyżyk to gest jednokierunkowy, po którym klient
-// znikał z listy i nie było jak go przywrócić. Domyślnie zaznaczeni są wszyscy —
+// znikał z listy i nie było jak go przywrócić. Domyślnie zaznaczeni są wszyscy -
 // kampania z definicji idzie do całej grupy, odznaczenie jest wyjątkiem.
 //
 // Wiersze wypisane przez system (brak zgody, brak numeru, STOP, limit częstości)
@@ -56,7 +56,7 @@ const Toolbar = styled.div`
 
 /**
  * Przełącznik zasięgu listy. Nie jest ozdobą widoku: klienci bez nazwiska wchodzą
- * albo nie wchodzą do kampanii, a decyzja zapisuje się razem z nią — więc etykieta
+ * albo nie wchodzą do kampanii, a decyzja zapisuje się razem z nią - więc etykieta
  * musi mówić o wysyłce, a nie o pokazywaniu.
  */
 const ScopeToggle = styled.label`
@@ -70,7 +70,7 @@ const ScopeToggle = styled.label`
     white-space: nowrap;
 `;
 
-/** Wyszukiwarka w pasku narzędzi — ten sam kształt, co nad tabelą leadów. */
+/** Wyszukiwarka w pasku narzędzi - ten sam kształt, co nad tabelą leadów. */
 const SearchBox = styled.div`
     display: flex;
     align-items: center;
@@ -155,7 +155,7 @@ const Table = styled.table`
 `;
 
 /**
- * Nazwisko, a pod nim — tylko gdy jest o czym mówić — powód, dla którego ten
+ * Nazwisko, a pod nim - tylko gdy jest o czym mówić - powód, dla którego ten
  * człowiek nie dostanie wiadomości. Osobna kolumna „status" byłaby pusta
  * w dziewięciu wierszach na dziesięć.
  */
@@ -249,13 +249,13 @@ const fullName = (first: string | null, last: string | null): string =>
     [first, last].filter(Boolean).join(' ') || 'Klient';
 
 const formatVisit = (iso: string | null): string =>
-    iso ? new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    iso ? new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 
 interface Props {
     estimate: AudienceEstimate | undefined;
     isEstimating: boolean;
     channel: RecipientChannel;
-    /** Identyfikatory odznaczone ręcznie — `excludeCustomerIds` z kryteriów odbiorców. */
+    /** Identyfikatory odznaczone ręcznie - `excludeCustomerIds` z kryteriów odbiorców. */
     excluded: string[];
     onExcludedChange: (next: string[]) => void;
     page: number;
@@ -287,7 +287,7 @@ export function AudienceTable({
      * Wpisywanie idzie do lokalnego stanu, a dopiero po chwili ciszy do zapytania:
      * inaczej każda litera kasowałaby wynik poprzedniej i lista migałaby przy pisaniu.
      *
-     * Pole jest tu jedynym źródłem frazy — nadrzędny [search] wraca wyłącznie stąd,
+     * Pole jest tu jedynym źródłem frazy - nadrzędny [search] wraca wyłącznie stąd,
      * więc nie ma czego z nim synchronizować w drugą stronę.
      */
     const [draft, setDraft] = useState(search);
@@ -304,7 +304,7 @@ export function AudienceTable({
     const excludedSet = new Set(excluded);
     const searching = search.trim().length > 0;
 
-    /** Wiersze, o których decyduje użytkownik — reszta jest poza jego zasięgiem. */
+    /** Wiersze, o których decyduje użytkownik - reszta jest poza jego zasięgiem. */
     const decidable = rows.filter(
         (r) => r.eligibility === 'ELIGIBLE' || r.eligibility === 'EXCLUDED_MANUALLY'
     );
@@ -372,7 +372,7 @@ export function AudienceTable({
 
             {awaitingTrigger ? (
                 <EmptyHint>
-                    Wybierz usługę w warunku wysyłki — dopiero ona wyznacza, kogo ta kampania
+                    Wybierz usługę w warunku wysyłki - dopiero ona wyznacza, kogo ta kampania
                     odezwie.
                 </EmptyHint>
             ) : empty ? (
@@ -384,9 +384,9 @@ export function AudienceTable({
                             : includeUnnamed
                                 ? 'Żaden klient nie pasuje do tych kryteriów.'
                                 /* Najczęstszy powód pustej listy w studiu, które
-                                   zakłada kartoteki na numer telefonu — mówimy o nim
+                                   zakłada kartoteki na numer telefonu - mówimy o nim
                                    wprost, zamiast zostawiać zagadkę. */
-                                : 'Żaden klient z uzupełnionym nazwiskiem nie pasuje do tych kryteriów. Klienci bez nazwiska są ukryci — pokaż ich przełącznikiem powyżej.'}
+                                : 'Żaden klient z uzupełnionym nazwiskiem nie pasuje do tych kryteriów. Klienci bez nazwiska są ukryci - pokaż ich przełącznikiem powyżej.'}
                 </EmptyHint>
             ) : (
                 <>
@@ -440,7 +440,7 @@ export function AudienceTable({
                                                 </Who>
                                             </td>
                                             <td className="contact">
-                                                {(channel === 'SMS' ? r.phone : r.email) ?? '—'}
+                                                {(channel === 'SMS' ? r.phone : r.email) ?? '-'}
                                             </td>
                                             <td className="when">{formatVisit(r.lastVisitDate)}</td>
                                         </Row>

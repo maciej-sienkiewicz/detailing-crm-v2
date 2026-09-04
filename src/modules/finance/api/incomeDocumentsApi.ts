@@ -25,7 +25,7 @@ export const incomeDocumentsApi = {
   },
 
   /**
-   * Ukrywa dokument ze statystyk i z domyślnej listy. Dokument zostaje w bazie —
+   * Ukrywa dokument ze statystyk i z domyślnej listy. Dokument zostaje w bazie -
    * o docelowym źródle decyduje `sourceKind` z wiersza listy, bo przychody łączą
    * ledger KSeF z dokumentami modułu finansowego.
    */

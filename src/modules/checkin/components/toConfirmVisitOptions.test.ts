@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 
 /**
- * Karta Wizyty jest wysyłana przez backend w żądaniu potwierdzenia — i tylko tam.
+ * Karta Wizyty jest wysyłana przez backend w żądaniu potwierdzenia - i tylko tam.
  * Te testy pilnują, że decyzja z przełącznika trafia do tego żądania, bo brak flagi
  * oznacza po stronie serwera „nie wysyłaj", a drugie, osobne wywołanie dublowało SMS.
  */

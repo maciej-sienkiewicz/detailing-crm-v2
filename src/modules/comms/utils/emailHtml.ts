@@ -1,13 +1,13 @@
 // src/modules/comms/utils/emailHtml.ts
-// Analiza HTML wiadomości po stronie klienta — dwie rzeczy, które psuły czytanie
+// Analiza HTML wiadomości po stronie klienta - dwie rzeczy, które psuły czytanie
 // korespondencji w CRM:
 //
 //  1. Cytowana historia. Klient odpisuje, jego program pocztowy dokleja całą
-//     dotychczasową rozmowę, a my pokazujemy ją drugi, trzeci i czwarty raz —
+//     dotychczasową rozmowę, a my pokazujemy ją drugi, trzeci i czwarty raz -
 //     mimo że mamy własną oś wątku. Tniemy treść w miejscu, w którym zaczyna się
 //     cytat, i chowamy resztę pod przełącznikiem (nic nie znika, tylko przestaje
 //     zaśmiecać widok). Backend robi to samo dla snippetów (EmailTextCleaner),
-//     ale bodyHtml celowo trzymamy w całości — dlatego cięcie żyje tu, w warstwie
+//     ale bodyHtml celowo trzymamy w całości - dlatego cięcie żyje tu, w warstwie
 //     prezentacji, i działa też dla wiadomości zassanych dawno temu.
 //
 //  2. Wiadomości graficzne. Newsletter to zwykle jeden wielki obrazek albo tabela
@@ -16,7 +16,7 @@
 //     otwierający pełny podgląd.
 
 export interface SplitQuoteResult {
-    /** Treść właściwa — to, co nadawca faktycznie napisał teraz. */
+    /** Treść właściwa - to, co nadawca faktycznie napisał teraz. */
     mainHtml: string;
     /** Doklejona historia rozmowy albo null, gdy nic nie znaleziono. */
     quotedHtml: string | null;
@@ -41,7 +41,7 @@ const QUOTE_SELECTORS = [
 ];
 
 /**
- * Nagłówki cytatu w treści. Dopasowujemy od początku tekstu elementu — element,
+ * Nagłówki cytatu w treści. Dopasowujemy od początku tekstu elementu - element,
  * który zaczyna się takim zdaniem, jest albo samym nagłówkiem, albo opakowaniem
  * całego cytatu; w obu przypadkach cięcie w tym miejscu jest poprawne.
  */
@@ -72,7 +72,7 @@ function findQuoteAnchor(body: HTMLElement): Element | null {
         if (element) return element;
     }
     for (const element of Array.from(body.querySelectorAll(BLOCK_TAGS))) {
-        // Kontener, którego cała treść zaczyna się nagłówkiem cytatu — tniemy przed nim.
+        // Kontener, którego cała treść zaczyna się nagłówkiem cytatu - tniemy przed nim.
         if (isQuoteMarker(element.textContent ?? '')) return element;
     }
     return null;
@@ -83,7 +83,7 @@ function collectFromAnchor(anchor: Node, body: HTMLElement): Node[] {
     const collected: Node[] = [];
     let node: Node | null = anchor;
     // Sam kotwiczący element wchodzi do cytatu; jego przodkowie zostają
-    // (niosą treść sprzed cytatu) — z nich bierzemy tylko dalsze rodzeństwo.
+    // (niosą treść sprzed cytatu) - z nich bierzemy tylko dalsze rodzeństwo.
     let includeSelf = true;
     while (node && node !== body) {
         let sibling: Node | null = includeSelf ? node : node.nextSibling;
@@ -126,7 +126,7 @@ const visibleTextLength = (element: HTMLElement): number =>
 
 /**
  * Dzieli treść wiadomości na część właściwą i doklejoną historię rozmowy.
- * Gdy cięcie zostawiłoby pustą treść (cała wiadomość jest cytatem — np. przekazana
+ * Gdy cięcie zostawiłoby pustą treść (cała wiadomość jest cytatem - np. przekazana
  * korespondencja), oddajemy oryginał: lepiej pokazać za dużo niż nic.
  */
 export function splitQuotedHistory(html: string): SplitQuoteResult {
@@ -151,7 +151,7 @@ export function splitQuotedHistory(html: string): SplitQuoteResult {
     const mainHasContent =
         visibleTextLength(body) > 0 || body.querySelector('img') !== null;
     if (!mainHasContent) return { mainHtml: html, quotedHtml: null };
-    // Kilka słów to nie „historia rozmowy" — nie zawracamy nią użytkownikowi głowy.
+    // Kilka słów to nie „historia rozmowy" - nie zawracamy nią użytkownikowi głowy.
     if (visibleTextLength(quoted) < 40) return { mainHtml: html, quotedHtml: null };
 
     return { mainHtml: body.innerHTML, quotedHtml: quoted.innerHTML };
@@ -160,7 +160,7 @@ export function splitQuotedHistory(html: string): SplitQuoteResult {
 export interface HtmlShape {
     textLength: number;
     imageCount: number;
-    /** Treść niesiona obrazkami — w „chmurce" rozmowy nie da się jej sensownie pokazać. */
+    /** Treść niesiona obrazkami - w „chmurce" rozmowy nie da się jej sensownie pokazać. */
     isGraphical: boolean;
 }
 
@@ -179,7 +179,7 @@ export function describeHtml(html: string): HtmlShape {
 
     document.body.querySelectorAll('style, script').forEach((node) => node.remove());
     const textLength = visibleTextLength(document.body);
-    // Obrazek bez źródła to pozostałość po wyciętym załączniku inline — nie niesie treści.
+    // Obrazek bez źródła to pozostałość po wyciętym załączniku inline - nie niesie treści.
     const imageCount = Array.from(document.body.querySelectorAll('img')).filter(
         (image) => (image.getAttribute('src') ?? '').trim().length > 0
     ).length;
@@ -194,10 +194,10 @@ export function describeHtml(html: string): HtmlShape {
 /**
  * Czy wiadomość wymaga izolowanej ramki?
  *
- * Zwykła korespondencja biznesowa to akapity, listy i linki — taki HTML renderujemy
+ * Zwykła korespondencja biznesowa to akapity, listy i linki - taki HTML renderujemy
  * wprost w naszej typografii: jedna czcionka, jeden rytm, żadnego mierzenia wysokości
- * (a więc i żadnego ucinania treści). Iframe zostawiamy dla maili PROJEKTOWANYCH —
- * newsletterów opartych o tabele, własne style i tła — bo tylko tam własny układ
+ * (a więc i żadnego ucinania treści). Iframe zostawiamy dla maili PROJEKTOWANYCH -
+ * newsletterów opartych o tabele, własne style i tła - bo tylko tam własny układ
  * wiadomości jest treścią, którą trzeba pokazać wiernie i odizolować od naszego CSS.
  */
 export function isRichHtml(html: string): boolean {
@@ -226,7 +226,7 @@ export function isRichHtml(html: string): boolean {
     return images.length > 2;
 }
 
-/** Pierwsze zdania treści — do zwiniętego wiersza wiadomości w wątku. */
+/** Pierwsze zdania treści - do zwiniętego wiersza wiadomości w wątku. */
 export function plainPreview(html: string, maxLength = 140): string {
     if (!html || typeof DOMParser === 'undefined') return '';
     try {
@@ -246,7 +246,7 @@ export function plainPreview(html: string, maxLength = 140): string {
 /**
  * Sprząta ogon wiadomości: obrazki bez źródła (pozostałości po wyciętych
  * załącznikach inline) oraz puste akapity i <br> na końcu treści. Bez tego
- * krótka wiadomość potrafi ciągnąć za sobą kilkaset pikseli pustki — a pustka
+ * krótka wiadomość potrafi ciągnąć za sobą kilkaset pikseli pustki - a pustka
  * w widoku czatu wygląda jak zgubiona treść.
  */
 export function trimEmptyEdges(html: string): string {
@@ -272,7 +272,7 @@ export function trimEmptyEdges(html: string): string {
         return (element.textContent ?? '').trim().length === 0;
     };
 
-    // Puste bloki obcinamy z obu końców — w środku bywają celową interlinią.
+    // Puste bloki obcinamy z obu końców - w środku bywają celową interlinią.
     // Schodzimy przy tym po ostatnich dzieciach, bo klienci pocztowe pakują treść
     // w kilka warstw <div>, a pustka siedzi na samym dole tej struktury.
     const trimTail = (element: Element) => {

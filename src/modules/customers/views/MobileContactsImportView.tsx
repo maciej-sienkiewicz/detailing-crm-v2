@@ -13,7 +13,7 @@ import { mobileContactImportApi, type PickedContact } from '../api/customerImpor
  * Cała „magia" polega na jednym wywołaniu `navigator.contacts.select()`: przeglądarka
  * otwiera SYSTEMOWE okno wyboru kontaktów, a strona dostaje wyłącznie to, co człowiek
  * w nim zaznaczy. Nie ma tu żadnego cichego odczytu książki adresowej i nie da się go
- * zrobić — i dobrze, bo inaczej mógłby to zrobić każdy inny adres w internecie.
+ * zrobić - i dobrze, bo inaczej mógłby to zrobić każdy inny adres w internecie.
  *
  * Na iPhonie tego API nie ma (Safari trzyma je za flagą eksperymentalną), więc ekran
  * mówi to wprost i odsyła do drogi przez plik. Martwy przycisk byłby gorszy niż
@@ -111,7 +111,7 @@ const Hint = styled.p`
 /* ─── Contact Picker API ──────────────────────────────────────────────────── */
 
 /**
- * API wyboru kontaktów nie jest w typach TypeScriptu, bo nie jest standardem — działa
+ * API wyboru kontaktów nie jest w typach TypeScriptu, bo nie jest standardem - działa
  * dziś w Chrome na Androidzie i nigdzie indziej. Dlatego deklaracja jest lokalna
  * i zawężona do tego, o co faktycznie prosimy.
  */
@@ -158,7 +158,7 @@ export const MobileContactsImportView = () => {
         queryKey: ['mobile-contacts-import', handoffToken],
         queryFn: () => mobileContactImportApi.getContext(handoffToken),
         enabled: handoffToken.length > 0,
-        // Kod jest jednorazowy — ponawianie po odmowie tylko opóźnia komunikat.
+        // Kod jest jednorazowy - ponawianie po odmowie tylko opóźnia komunikat.
         retry: false,
     });
 
@@ -181,7 +181,7 @@ export const MobileContactsImportView = () => {
         } catch (error) {
             const message = (error as { response?: { data?: { message?: string } } })
                 ?.response?.data?.message;
-            // Zamknięcie systemowego okna bez wyboru też rzuca wyjątkiem — to nie awaria
+            // Zamknięcie systemowego okna bez wyboru też rzuca wyjątkiem - to nie awaria
             // i nie może tak wyglądać. Bez odpowiedzi serwera wracamy do stanu wyjściowego.
             setOutcome(message
                 ? { kind: 'error', message }
@@ -228,7 +228,7 @@ export const MobileContactsImportView = () => {
                     <Title>Gotowe</Title>
                     <Notice $tone="success">
                         Wysłano {phase.count} {phase.count === 1 ? 'kontakt' : 'kontaktów'}.
-                        Wróć do komputera — tam zobaczysz listę i zdecydujesz, kogo zapisać.
+                        Wróć do komputera - tam zobaczysz listę i zdecydujesz, kogo zapisać.
                     </Notice>
                 </Card>
             </Page>
@@ -249,7 +249,7 @@ export const MobileContactsImportView = () => {
                     <>
                         <Description>
                             Dotknij przycisku i zaznacz kontakty, które mają trafić do CRM-a.
-                            Wybierasz je w oknie systemu — my zobaczymy tylko to, co zaznaczysz.
+                            Wybierasz je w oknie systemu - my zobaczymy tylko to, co zaznaczysz.
                         </Description>
                         <PrimaryButton
                             onClick={handlePick}
@@ -264,10 +264,10 @@ export const MobileContactsImportView = () => {
                     </>
                 ) : (
                     <Notice $tone="info">
-                        Ta przeglądarka nie pozwala stronom pytać o kontakty — dotyczy to
+                        Ta przeglądarka nie pozwala stronom pytać o kontakty - dotyczy to
                         wszystkich iPhone'ów i części przeglądarek na Androidzie.
                         <br /><br />
-                        Wróć do komputera i wybierz „Mam plik z kontaktami" — pokażemy tam,
+                        Wróć do komputera i wybierz „Mam plik z kontaktami" - pokażemy tam,
                         jak wyeksportować kontakty krok po kroku.
                     </Notice>
                 )}

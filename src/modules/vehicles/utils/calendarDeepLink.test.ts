@@ -8,7 +8,7 @@ describe('toCalendarDate', () => {
 
     it('trzyma się daty lokalnej, nie UTC', () => {
         // Godzina 01:00 czasu lokalnego to poprzedni dzień w UTC dla stref
-        // dodatnich — kafelek kalendarza ma być ten, który widzi użytkownik.
+        // dodatnich - kafelek kalendarza ma być ten, który widzi użytkownik.
         const local = new Date(2026, 7, 27, 1, 0, 0);
         expect(toCalendarDate(local.toISOString())).toBe('2026-08-27');
     });

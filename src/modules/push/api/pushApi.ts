@@ -4,7 +4,7 @@ import type { PushDeviceDto, RequestCallResponse } from '../types';
 const BASE_PATH = '/v1/push';
 
 /**
- * Click-to-Call API. Session-cookie authenticated like everything else —
+ * Click-to-Call API. Session-cookie authenticated like everything else -
  * the phone and the desktop are just two sessions of the same user; the
  * backend tells them apart by WHICH endpoint each one calls (the phone
  * registers a subscription, the desktop requests calls).

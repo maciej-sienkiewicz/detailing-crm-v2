@@ -1,9 +1,9 @@
 // src/modules/comms/components/LeadDetailModal.tsx
-// Okno szczegółów leada — jedno na całą aplikację.
+// Okno szczegółów leada - jedno na całą aplikację.
 //
 // Wcześniej mieszkało w widoku leadów i dało się je otworzyć wyłącznie stamtąd,
 // więc plakietka „Lead" w podglądzie rozmowy musiała przerzucać na inny adres.
-// Kliknięcie stanu wyrzucało z korespondencji, którą się właśnie czytało — żeby
+// Kliknięcie stanu wyrzucało z korespondencji, którą się właśnie czytało - żeby
 // pokazać dane o tej samej rozmowie. Okno otwiera się teraz na miejscu, w obu
 // widokach z tego samego komponentu, więc nie ma dwóch wersji tej samej prawdy.
 //
@@ -14,16 +14,16 @@
 // Hierarchia okna wynika z trzech pytań, które ktoś zadaje sobie, otwierając leada:
 // ile to jest warte, czy coś tu do mnie należy i o co właściwie klient pytał.
 // Dlatego u góry stoi pasek podsumowania z kwotą jako największym elementem
-// widoku, a treść zapytania — dotąd zepchnięta na sam dół pod wycenę — siedzi
+// widoku, a treść zapytania - dotąd zepchnięta na sam dół pod wycenę - siedzi
 // w prawej kolumnie, widoczna od pierwszej klatki.
 //
 // Kolor niesie znaczenie i nic poza tym: etap leada, pilność odpowiedzi, akcja
-// główna. Kwota jest dominantą przez rozmiar, nie przez barwę — liczba pieniędzy
+// główna. Kwota jest dominantą przez rozmiar, nie przez barwę - liczba pieniędzy
 // pomalowana na kolor wygląda jak ostrzeżenie, a nie jak fakt.
 //
 // Akcja główna jest jedna i wynika ze stanu leada, a nie z tego, gdzie akurat
 // stoi przycisk. Lead z zaległą odpowiedzią woła „odpisz", lead wyceniony bez
-// terminu — „umów", lead z rezerwacją — „zobacz termin". Stały przycisk w rogu
+// terminu - „umów", lead z rezerwacją - „zobacz termin". Stały przycisk w rogu
 // zostawiałby rozpoznanie właściwego ruchu użytkownikowi, a to jest dokładnie
 // ta praca, którą ma wykonać za niego okno. Reszta dróg (kartoteka, telefon,
 // wizyta) stoi przy swoim obiekcie, nie w stopce: stopka z pięcioma równymi
@@ -32,7 +32,7 @@
 // Na telefonie kolejność jest inna niż na monitorze, bo inne jest pytanie.
 // Przy szerokim oknie widać wszystko naraz i pierwsza jest kwota. Na ekranie,
 // po którym się przewija, pierwsze musi być to, co decyduje o działaniu: czyj
-// jest ruch. Kwota wyceny znika — kilka centymetrów niżej stoi tabela usług
+// jest ruch. Kwota wyceny znika - kilka centymetrów niżej stoi tabela usług
 // z tą samą sumą, a ta sama liczba dwa razy na jednym ekranie to nie jest
 // podkreślenie, tylko szum.
 import { useState } from 'react';
@@ -97,8 +97,8 @@ import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelative
 
 /**
  * Dwie kolumny o różnej roli, nie dwie równe połówki. Po lewej to, co się w leadzie
- * robi (pojazd, wycena) — szersza, bo wycena jest tabelą czterech kolumn kwot.
- * Po prawej to, co się o leadzie wie (zapytanie klienta, historia) — węższa i
+ * robi (pojazd, wycena) - szersza, bo wycena jest tabelą czterech kolumn kwot.
+ * Po prawej to, co się o leadzie wie (zapytanie klienta, historia) - węższa i
  * wizualnie cichsza. Wcześniej wszystko szło jedną kolumną w dół, więc zapytanie,
  * od którego cała sprawa się zaczęła, leżało poza pierwszym ekranem.
  */
@@ -163,12 +163,12 @@ const Panel = styled.section<{ $quiet?: boolean }>`
 `;
 
 /**
- * Pasek podsumowania — jedyny element, który ma się rzucić w oczy pierwszy.
+ * Pasek podsumowania - jedyny element, który ma się rzucić w oczy pierwszy.
  *
  * Cztery fakty, po które ludzie tu przychodzą, w kolejności ważności od lewej:
  * ile to jest warte, czego dotyczy, czy piłka jest po naszej stronie i jak stare
  * jest zapytanie. Kolorowy pasek przy krawędzi to ten sam język, którym pilność
- * oznaczona jest w tabeli leadów — kto nauczył się go tam, rozumie go tutaj.
+ * oznaczona jest w tabeli leadów - kto nauczył się go tam, rozumie go tutaj.
  */
 const Summary = styled.section<{ $tone: ReplyTone }>`
     position: relative;
@@ -223,7 +223,7 @@ const SummaryCell = styled.div<{ $order?: number; $hideOnPhone?: boolean }>`
      * Na telefonie pasek staje się kolumną, więc kreska pionowa nie ma czego
      * rozdzielać. Świadomie bez kreski poziomej w zamian: kolejność komórek jest
      * tu przestawiona przez order, a :first-of-type liczy elementy w kolejności
-     * dokumentu, nie widoku — kreska wylądowałaby nad środkiem paska. Odstęp
+     * dokumentu, nie widoku - kreska wylądowałaby nad środkiem paska. Odstęp
      * i wersalikowa etykieta rozdzielają wystarczająco.
      */
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -244,7 +244,7 @@ const CellLabel = styled.span`
 `;
 
 /**
- * Kwota wyceny — największy element okna. To jedyna liczba, dla której ktoś
+ * Kwota wyceny - największy element okna. To jedyna liczba, dla której ktoś
  * otwiera leada w biegu, więc ma być czytelna z odległości, z której reszta
  * jest jeszcze nieczytelna. Cyfry o stałej szerokości, żeby kolejne leady
  * dawały się porównać wzrokiem bez czytania.
@@ -300,7 +300,7 @@ const Dot = styled.span<{ $tone: ReplyTone }>`
         : theme.colors.textMuted};
 `;
 
-/** Odnośnik „Zmień" w komórce podsumowania — tekst, nie przycisk z ramką. */
+/** Odnośnik „Zmień" w komórce podsumowania - tekst, nie przycisk z ramką. */
 const CellLink = styled.button`
     align-self: flex-start;
     border: none;
@@ -314,7 +314,7 @@ const CellLink = styled.button`
     &:hover { text-decoration: underline; }
 `;
 
-/** Wybierak etapu w nagłówku — trzymany z dala od tytułu, tuż przed przyciskiem zamknięcia. */
+/** Wybierak etapu w nagłówku - trzymany z dala od tytułu, tuż przed przyciskiem zamknięcia. */
 const HeaderStatus = styled.div`
     display: flex;
     align-items: center;
@@ -330,7 +330,7 @@ const HeaderStatus = styled.div`
     }
 `;
 
-/** Wyjaśnienie stanu „przegrany" — jedna linia nad treścią, nie pole formularza. */
+/** Wyjaśnienie stanu „przegrany" - jedna linia nad treścią, nie pole formularza. */
 const LostNote = styled.div`
     display: flex;
     align-items: baseline;
@@ -346,7 +346,7 @@ const LostNote = styled.div`
 `;
 
 /**
- * Potwierdzenie terminu — bliźniak [LostNote], tylko po drugiej stronie wyniku.
+ * Potwierdzenie terminu - bliźniak [LostNote], tylko po drugiej stronie wyniku.
  * Rezerwacja jest tym, po co ten lead w ogóle istniał, więc gdy już jest, musi
  * być widoczna nad wszystkim innym, a nie tylko domyślna z etapu „Rezerwacja".
  */
@@ -368,10 +368,10 @@ const BookedNote = styled.div`
 `;
 
 /**
- * Droga do innego rekordu — kartoteka klienta, wizyta, kalendarz. Odnośnik
+ * Droga do innego rekordu - kartoteka klienta, wizyta, kalendarz. Odnośnik
  * tekstowy, nie przycisk: nawigacja nie jest akcją na leadzie i nie ma prawa
  * konkurować wagą z „umów" ani „odpisz". Wcześniej stała tu plakietka udająca
- * przycisk, co psuło jedno i drugie — plakietka przestaje znaczyć „stan",
+ * przycisk, co psuło jedno i drugie - plakietka przestaje znaczyć „stan",
  * a odnośnik i tak nie wygląda na klikalny.
  */
 const QuietLink = styled.button`
@@ -391,12 +391,12 @@ const QuietLink = styled.button`
 `;
 
 /**
- * Pasek klienta — pokazywany tylko wtedy, gdy jest o czym mówić.
+ * Pasek klienta - pokazywany tylko wtedy, gdy jest o czym mówić.
  *
  * Dwa powody, wzajemnie się wykluczające: kontakt nie ma kartoteki (jest co
  * zrobić) albo ma za sobą odwołane rezerwacje i porzucone zapytania (jest o czym
  * wiedzieć przed obiecaniem terminu). Klient znany i bez historii porzuceń nie
- * dostaje paska w ogóle — brak sygnału też jest informacją i nie zajmuje miejsca.
+ * dostaje paska w ogóle - brak sygnału też jest informacją i nie zajmuje miejsca.
  *
  * Ton [$warn] jest ostrzeżeniem, nie wyrokiem: liczby są podane wprost, żeby dało
  * się je zważyć samemu, a nie zaufać etykiecie „podwyższone ryzyko".
@@ -419,7 +419,7 @@ const ClientNote = styled.div<{ $warn?: boolean }>`
 `;
 
 /**
- * Kontrolka ikonowa w nagłówku — droga do korespondencji.
+ * Kontrolka ikonowa w nagłówku - droga do korespondencji.
  *
  * Etykieta tekstowa robiła z tego najszerszy element nagłówka, choć to nie jest
  * akcja główna; na telefonie zabierała całą linijkę. Ikona koperty jest tu
@@ -476,7 +476,7 @@ const VehiclePickers = styled.div`
 /**
  * Wycena w trybie podglądu. Jedna kwota brutto na pozycję nie wystarczała: lead
  * jest podstawą oferty, a rozmowa o cenie toczy się raz w netto (firma), raz
- * w brutto (klient prywatny) — przeliczanie w głowie przy każdym otwarciu panelu
+ * w brutto (klient prywatny) - przeliczanie w głowie przy każdym otwarciu panelu
  * to praca, którą tabela wykonuje raz. Kolumny i kolejność jak w edytorze wyceny,
  * żeby przejście w tryb edycji nie było przeskokiem na inny układ.
  */
@@ -519,7 +519,7 @@ const QuoteTable = styled.table`
         border-top: 1px solid ${p => p.theme.colors.text};
         padding-top: 8px;
     }
-    /* Brutto to liczba, o której rozmawia się z klientem — w wierszu sumy
+    /* Brutto to liczba, o której rozmawia się z klientem - w wierszu sumy
        ma być wyraźnie cięższa od netto i VAT-u stojących obok. */
     tfoot td:last-child { font-size: 15px; }
 
@@ -530,7 +530,7 @@ const QuoteTable = styled.table`
     }
 `;
 
-/** Jedyna akcja nieodwracalna w tym oknie — i jedyna, która wygląda groźnie. */
+/** Jedyna akcja nieodwracalna w tym oknie - i jedyna, która wygląda groźnie. */
 const DangerButton = styled.button`
     display: inline-flex;
     align-items: center;
@@ -594,7 +594,7 @@ const NoteItemRow = styled.div`
     font-size: 12.5px;
     line-height: 1.5;
     color: ${p => p.theme.colors.text};
-    /* Notatka to często jedno zdanie z entera w środku — zachowujemy łamania. */
+    /* Notatka to często jedno zdanie z entera w środku - zachowujemy łamania. */
     white-space: pre-wrap;
     word-break: break-word;
 
@@ -686,7 +686,7 @@ const TimelineItem = styled.li<{ $color: string }>`
 
 /**
  * Treść pierwszego pytania klienta. Zachowuje łamanie wierszy z maila i przewija się
- * w miejscu — dłuższe zapytanie nie ma prawa rozpychać okna na cały ekran, a jego
+ * w miejscu - dłuższe zapytanie nie ma prawa rozpychać okna na cały ekran, a jego
  * skrócenie do jednej linijki zabierałoby dokładnie to, po co się tu zagląda.
  */
 const MessageQuote = styled.blockquote`
@@ -698,7 +698,7 @@ const MessageQuote = styled.blockquote`
     line-height: 1.6;
     font-size: 13px;
     color: ${p => p.theme.colors.text};
-    /* Kreska cytatu: krótka, w kolorze marki — znak, że to cudze słowa, nie nasz opis. */
+    /* Kreska cytatu: krótka, w kolorze marki - znak, że to cudze słowa, nie nasz opis. */
     border-left: 2px solid ${p => p.theme.colors.primary};
     padding-left: 12px;
 `;
@@ -726,7 +726,7 @@ const leadWord = (count: number): string => {
 export interface LeadDetailModalProps {
     leadId: string;
     onClose: () => void;
-    /** Otworzyć od razu edytor wyceny — wejście „kliknięto wartość w tabeli". */
+    /** Otworzyć od razu edytor wyceny - wejście „kliknięto wartość w tabeli". */
     openServicesEditor?: boolean;
     /**
      * Droga do korespondencji („Odpisz klientowi" / „Napisz wiadomość"). Wyłączana
@@ -734,7 +734,7 @@ export interface LeadDetailModalProps {
      * w miejsce, w którym się stoi, to nie skrót, tylko zagadka.
      */
     showThreadLink?: boolean;
-    /** Wywoływane po usunięciu leada — okno jest wtedy już zamknięte. */
+    /** Wywoływane po usunięciu leada - okno jest wtedy już zamknięte. */
     onDeleted?: () => void;
 }
 
@@ -748,7 +748,7 @@ export function LeadDetailModal({
     const navigate = useNavigate();
     const { data: lead } = useLead(leadId);
     const { data: history } = useLeadHistory(leadId);
-    // Termin rezerwacji dobierany osobno — lead niesie samo `appointmentId`.
+    // Termin rezerwacji dobierany osobno - lead niesie samo `appointmentId`.
     const { data: appointment } = useLeadAppointment(lead?.appointmentId ?? null);
     // null = podgląd, tablica = otwarty edytor wyceny (ten sam co przy przyjęciu auta).
     const [editingServices, setEditingServices] = useState<ServiceLineItem[] | null>(null);
@@ -759,7 +759,7 @@ export function LeadDetailModal({
     // Drugie pytanie przy leadzie z rezerwacją: czy termin w kalendarzu idzie razem z nim.
     const [deleteAppointmentDialogOpen, setDeleteAppointmentDialogOpen] = useState(false);
     const [booking, setBooking] = useState(false);
-    // Wizytówka kontaktu — ta sama co w skrzynce, razem z „połącz" i „załóż".
+    // Wizytówka kontaktu - ta sama co w skrzynce, razem z „połącz" i „załóż".
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     // Edytor wyceny otwarty od pierwszej klatki, gdy wejściem było kliknięcie wartości.
     // Wystarczy stan początkowy: okno montuje się na jedno otwarcie jednego leada,
@@ -770,7 +770,7 @@ export function LeadDetailModal({
         setEditingServices(toServiceLines(lead.services));
     }
 
-    // Kartoteka kontaktu — stąd bierzemy telefon i auta klienta do rezerwacji.
+    // Kartoteka kontaktu - stąd bierzemy telefon i auta klienta do rezerwacji.
     // Pobierana dopiero, gdy okno jest otwarte: lista leadów jej nie potrzebuje.
     const { data: contactCard } = useContactCard(lead?.contactIdentifier ?? null, {
         enabled: Boolean(lead?.contactIdentifier),
@@ -839,7 +839,7 @@ export function LeadDetailModal({
     const confirmDelete = () => {
         setDeleteDialogOpen(false);
         // Lead z rezerwacją: rezerwacja to osobna rzecz w kalendarzu i jej los jest
-        // osobną decyzją — pada w drugim pytaniu, a nie w domyślnej regule, której
+        // osobną decyzją - pada w drugim pytaniu, a nie w domyślnej regule, której
         // nikt nie widzi.
         if (lead?.appointmentId) {
             setDeleteAppointmentDialogOpen(true);
@@ -851,11 +851,11 @@ export function LeadDetailModal({
     const performDelete = (deleteAppointment: boolean) => {
         // Okno zamykamy PRZED wysłaniem żądania. Otwarte odpytuje `GET /leads/{id}`
         // i `…/history`; unieważnienie cache po usunięciu kazałoby mu pobrać leada,
-        // którego już nie ma — i obok „Lead usunięty" wyskakiwało „Nie znaleziono
+        // którego już nie ma - i obok „Lead usunięty" wyskakiwało „Nie znaleziono
         // leada" z globalnego przechwytywacza błędów. Odmontowane okno nie pyta.
         //
         // Toasty (sukces i błąd) mieszkają w useDeleteLead: callbacki podane do
-        // `mutate` nie odpalają się po odmontowaniu komponentu — tak właśnie ginął
+        // `mutate` nie odpalają się po odmontowaniu komponentu - tak właśnie ginął
         // po cichu komunikat błędu przy leadzie z rezerwacją.
         setDeleteAppointmentDialogOpen(false);
         onClose();
@@ -901,8 +901,8 @@ export function LeadDetailModal({
     const netTotal = quoteTotal((row) => row.netCents);
 
     // Kreator rezerwacji zastępuje okno szczegółów, a nie kładzie się na nim. Dwie
-    // nałożone nakładki nie pokrywają się geometrycznie — kreator jest przesunięty
-    // o szerokość sidebara, okno leada nie — więc jedna z nich przyciemniała kawałek
+    // nałożone nakładki nie pokrywają się geometrycznie - kreator jest przesunięty
+    // o szerokość sidebara, okno leada nie - więc jedna z nich przyciemniała kawałek
     // ekranu drugi raz, zostawiając widoczny pionowy szew.
     if (booking) {
         return (
@@ -924,7 +924,7 @@ export function LeadDetailModal({
                     <ModalTitleGroup>
                         <ModalTitle>{lead.customerName ?? lead.contactIdentifier}</ModalTitle>
                         {/* Drogi do innych rekordów stoją przy tożsamości klienta,
-                            bo dotyczą klienta, a nie leada — w stopce konkurowałyby
+                            bo dotyczą klienta, a nie leada - w stopce konkurowałyby
                             wagą z jedyną akcją, która ma tam stać. */}
                         <LeadIdentity>
                             <LeadSourceIcon source={lead.source} />
@@ -942,7 +942,7 @@ export function LeadDetailModal({
                         </LeadIdentity>
                     </ModalTitleGroup>
                     {/* Etap stoi w nagłówku, przy nazwie leada, bo to jego główna
-                        właściwość i najczęściej zmieniane pole — a jako osobny panel
+                        właściwość i najczęściej zmieniane pole - a jako osobny panel
                         zajmował pół szerokości okna na jeden przycisk. Nagłówek jest
                         też jedynym miejscem widocznym niezależnie od przewinięcia.
                         „Czyj ruch" zeszło stąd do paska podsumowania: to nie jest
@@ -970,21 +970,21 @@ export function LeadDetailModal({
 
                 <ModalContent>
                     <ModalBody>
-                        {/* Powód przegranej to wyjaśnienie stanu, nie pole formularza —
+                        {/* Powód przegranej to wyjaśnienie stanu, nie pole formularza -
                             pokazujemy go raz, u góry, i tylko gdy jest czego wyjaśniać. */}
                         {lead.status === 'LOST' && lead.lostReasonLabel && (
                             <LostNote>
                                 <span>Przegrany:</span>
                                 <span>
                                     <strong>{lead.lostReasonLabel}</strong>
-                                    {lead.lostReason && <> — {lead.lostReason}</>}
+                                    {lead.lostReason && <> - {lead.lostReason}</>}
                                 </span>
                             </LostNote>
                         )}
 
                         {/* Pasek klienta pojawia się tylko wtedy, gdy niesie decyzję
                             albo ostrzeżenie. Znany klient bez porzuceń nie dostaje
-                            nic — cisza też jest informacją i nie zajmuje miejsca. */}
+                            nic - cisza też jest informacją i nie zajmuje miejsca. */}
                         {unknownContact && (
                             <ClientNote>
                                 <UserPlus />
@@ -1020,7 +1020,7 @@ export function LeadDetailModal({
                             </ClientNote>
                         )}
 
-                        {/* Rezerwacja to wynik, po który cały lead istniał — gdy jest,
+                        {/* Rezerwacja to wynik, po który cały lead istniał - gdy jest,
                             mówimy o niej wprost i z terminem. Sam etap „Rezerwacja"
                             w nagłówku nie odpowiada na pytanie „na kiedy". */}
                         {lead.appointmentId && (
@@ -1060,7 +1060,7 @@ export function LeadDetailModal({
                                     </>
                                 ) : (
                                     <>
-                                        <CellMoney $empty>—</CellMoney>
+                                        <CellMoney $empty>-</CellMoney>
                                         <CellNote>brak wyceny</CellNote>
                                     </>
                                 )}
@@ -1075,7 +1075,7 @@ export function LeadDetailModal({
                                     </CellValue>
                                 ) : (
                                     <CellValue $empty={!formatVehicle(lead)}>
-                                        {/* Awatar marki zamiast rodzajowej ikonki auta — ten sam
+                                        {/* Awatar marki zamiast rodzajowej ikonki auta - ten sam
                                             znak, którym auto oznaczone jest w module pojazdów.
                                             Gdy marki nie znamy, nie ma czego pokazać: ikonka auta
                                             obok „Nie rozpoznano" udawałaby, że coś tu jednak jest. */}
@@ -1165,7 +1165,7 @@ export function LeadDetailModal({
                                         <>
                                             {quoteRows.length === 0 && (
                                                 <HistoryLine>
-                                                    Nie przypisano jeszcze usług — wycena leada jest pusta.
+                                                    Nie przypisano jeszcze usług - wycena leada jest pusta.
                                                 </HistoryLine>
                                             )}
                                             {quoteRows.length > 0 && (
@@ -1213,13 +1213,13 @@ export function LeadDetailModal({
                                         <>
                                             {/* Ten sam edytor co przy przyjęciu pojazdu: rabaty, notatka
                                                 do pozycji, korekta ceny i podpowiedzi z cennika. Lead nie
-                                                potrzebuje własnej, uboższej listy — wycena to ta sama
+                                                potrzebuje własnej, uboższej listy - wycena to ta sama
                                                 czynność, tylko wcześniej. */}
                                             <EditableServicesTable
                                                 services={editingServices}
                                                 onChange={setEditingServices}
                                             />
-                                            {/* Sumy netto / VAT / łącznie liczy sam edytor —
+                                            {/* Sumy netto / VAT / łącznie liczy sam edytor -
                                                 druga suma pod nim byłaby tą samą liczbą
                                                 napisaną drugi raz, tylko innym stylem. */}
                                             <div style={{ display: 'flex', gap: 8 }}>
@@ -1250,7 +1250,7 @@ export function LeadDetailModal({
                                             placeholder="Np. oddzwoniłem, klient prosił o kontakt po 15…"
                                             value={noteDraft}
                                             onChange={(event) => setNoteDraft(event.target.value)}
-                                            /* Ctrl/Cmd+Enter zapisuje — sam Enter łamie
+                                            /* Ctrl/Cmd+Enter zapisuje - sam Enter łamie
                                                linię, jak w każdym polu wielolinijkowym. */
                                             onKeyDown={(event) => {
                                                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
@@ -1325,7 +1325,7 @@ export function LeadDetailModal({
                 </ModalContent>
 
                 <ModalFooter>
-                    {/* Usunięcie stoi po lewej, z dala od akcji głównej — dwie akcje
+                    {/* Usunięcie stoi po lewej, z dala od akcji głównej - dwie akcje
                         o wprost przeciwnych skutkach nie mają prawa sąsiadować pod
                         kursorem. */}
                     <DangerButton
@@ -1338,7 +1338,7 @@ export function LeadDetailModal({
                     </DangerButton>
 
                     {/*
-                        Akcja główna wynika ze stanu leada — w tej kolejności:
+                        Akcja główna wynika ze stanu leada - w tej kolejności:
 
                         1. zalegamy z odpowiedzią → „Odpisz klientowi". Zaległość jest
                            pilniejsza od wszystkiego innego: klient czeka teraz, a termin
@@ -1394,7 +1394,7 @@ export function LeadDetailModal({
                 </ModalFooter>
             </ModalShell>
 
-            {/* Wizytówka to ten sam komponent co w skrzynce — z wyszukiwarką klientów
+            {/* Wizytówka to ten sam komponent co w skrzynce - z wyszukiwarką klientów
                 i zakładaniem kartoteki. Druga, uboższa kopia tego formularza w oknie
                 leada rozjechałaby się z pierwszą przy najbliższej zmianie. */}
             {contactAnchor && (
@@ -1418,7 +1418,7 @@ export function LeadDetailModal({
             />
 
             {/* Drugie pytanie, tylko dla leada z rezerwacją. „Nie" jest pełnoprawną
-                decyzją (lead znika, termin zostaje w kalendarzu), a zamknięcie okna —
+                decyzją (lead znika, termin zostaje w kalendarzu), a zamknięcie okna -
                 rezygnacją z całego usuwania, po której nie dzieje się nic. */}
             <ChoiceModal
                 isOpen={deleteAppointmentDialogOpen}

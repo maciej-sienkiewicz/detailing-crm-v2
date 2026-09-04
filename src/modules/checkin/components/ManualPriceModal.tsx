@@ -4,7 +4,7 @@
 // Wygląd i mechanika są celowo takie same jak w „Wprowadź nową usługę": ten sam
 // zestaw styli, ten sam PriceInput z parą pól netto/brutto i ta sama lista stawek
 // VAT. Ktoś, kto raz nauczył się wpisywać cenę w jednym miejscu CRM-u, ma ją
-// wpisywać tak samo wszędzie — a my mamy jedną implementację przeliczeń zamiast
+// wpisywać tak samo wszędzie - a my mamy jedną implementację przeliczeń zamiast
 // dwóch, które z czasem rozjeżdżają się w zaokrągleniach.
 //
 // Jedyna różnica wobec tamtego modala: nazwa usługi jest tu zablokowana. Usługa
@@ -48,7 +48,7 @@ export interface ManualPriceResult {
 
 interface ManualPriceModalProps {
     isOpen: boolean;
-    /** Usługa wybrana z katalogu — jej nazwa i stawka VAT są punktem wyjścia. */
+    /** Usługa wybrana z katalogu - jej nazwa i stawka VAT są punktem wyjścia. */
     service: Service;
     onClose: () => void;
     onConfirm: (result: ManualPriceResult) => void;
@@ -77,7 +77,7 @@ export const ManualPriceModal = ({
         onConfirm({ basePriceNet, basePriceGross, vatRate });
     };
 
-    /** Zmiana stawki przelicza brutto od netto — netto jest tym, co wpisał użytkownik. */
+    /** Zmiana stawki przelicza brutto od netto - netto jest tym, co wpisał użytkownik. */
     const handleVatChange = (nextRate: VatRate) => {
         setVatRate(nextRate);
         const rate = Math.max(0, nextRate);

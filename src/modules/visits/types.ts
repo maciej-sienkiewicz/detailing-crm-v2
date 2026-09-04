@@ -170,7 +170,7 @@ export interface Visit {
  *
  * Pola są niezależne: dokument finansowy typu INVOICE może istnieć bez rekordu
  * KSeF (adnotacja bez wysyłki), więc podgląd faktury otwieramy wyłącznie wtedy,
- * gdy jest [revenueInvoiceId] — samo `documentType === 'INVOICE'` nie wystarcza.
+ * gdy jest [revenueInvoiceId] - samo `documentType === 'INVOICE'` nie wystarcza.
  */
 export interface VisitSettlement {
     documentType: 'INVOICE' | 'RECEIPT' | 'OTHER' | null;
@@ -378,7 +378,7 @@ export interface VisitCommunicationResponse {
  * Przyjęcie pojazdu, które zostało zapisane, ale nie zostało dokończone: wizyta
  * istnieje w bazie, lecz się nie rozpoczęła.
  *
- * To NIE jest wizyta, którą można otworzyć — szczegóły wizyty odpowiadają na taki
+ * To NIE jest wizyta, którą można otworzyć - szczegóły wizyty odpowiadają na taki
  * rekord 404 (`VISIT_NOT_STARTED`). Jedyne, co można z nim zrobić, to dokończyć
  * przyjęcie albo je anulować, i po to jest ten typ.
  */

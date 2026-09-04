@@ -113,11 +113,11 @@ export const SettlementSection = ({
         state.documentType === 'INVOICE' && !ksef.isLoading && ksef.moduleEnabled;
 
     /**
-     * Podpowiedź pod przełącznikiem mówi, co się stanie z tą fakturą — szczegóły
+     * Podpowiedź pod przełącznikiem mówi, co się stanie z tą fakturą - szczegóły
      * przeszkody i drogę wyjścia niesie baner poniżej, więc tu wystarczy jedno zdanie.
      */
     // Wadliwy token sprawdzany PRZED „!sendToKsef": przełącznik jest wtedy zgaszony
-    // przymusowo, a „wyślesz ją później" byłoby obietnicą bez pokrycia — wysyłka
+    // przymusowo, a „wyślesz ją później" byłoby obietnicą bez pokrycia - wysyłka
     // wróci dopiero po naprawie tokenu.
     const sendHint = ksef.isLoading
         ? 'Sprawdzamy konfigurację KSeF…'
@@ -219,14 +219,14 @@ export const SettlementSection = ({
                     </KsefNoticeIcon>
                     <div>
                         <KsefNoticeTitle>Brak tokenu KSeF</KsefNoticeTitle>
-                        Fakturę wystawimy i zapiszemy, ale nie wyślemy — plik pobierzesz po
+                        Fakturę wystawimy i zapiszemy, ale nie wyślemy - plik pobierzesz po
                         wydaniu pojazdu. Token dodasz w <strong>Ustawienia → Faktury</strong>.
                     </div>
                 </KsefNotice>
             )}
 
             {/* Token bez prawa wystawiania kończył wysyłkę odmową KSeF i fakturą
-                w kolejce retry bez szans powodzenia — dlatego przełącznik jest przy
+                w kolejce retry bez szans powodzenia - dlatego przełącznik jest przy
                 takim tokenie zgaszony i zablokowany, a baner mówi, co naprawić. */}
             {ksefAnswerKnown && ksef.configured && ksef.lacksIssuePermission && (
                 <KsefNotice>
@@ -240,7 +240,7 @@ export const SettlementSection = ({
                     <div>
                         <KsefNoticeTitle>Token KSeF nie pozwala wystawiać faktur</KsefNoticeTitle>
                         Ma prawo tylko do odczytu, więc wysyłka do KSeF jest wyłączona.
-                        Fakturę wystawimy i zapiszemy razem z danymi nabywcy — plik
+                        Fakturę wystawimy i zapiszemy razem z danymi nabywcy - plik
                         pobierzesz po wydaniu pojazdu, a po naprawie tokenu wyślesz ją
                         z dokumentów przychodowych. Token z prawem wystawiania faktur
                         dodasz w <strong>Ustawienia → Faktury</strong>.

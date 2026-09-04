@@ -60,7 +60,7 @@ const Container = styled.div`
     background-color: ${props => props.theme.colors.background};
     ${hexBackdrop}
     padding: ${props => props.theme.spacing.lg};
-    /* Miejsce na przyklejoną stopkę (StickyFooter) — więcej na mobile, bo
+    /* Miejsce na przyklejoną stopkę (StickyFooter) - więcej na mobile, bo
        przyciski są tam pełnej szerokości, jeden nad drugim. */
     padding-bottom: 140px;
 
@@ -244,7 +244,7 @@ export const AppointmentEditView = () => {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         queryClient.invalidateQueries({ queryKey: ['operations'] });
-        // Rezerwacja z leada niesie jego wycenę — backend przepisuje jedną listę
+        // Rezerwacja z leada niesie jego wycenę - backend przepisuje jedną listę
         // usług w drugą, więc lead w pamięci podręcznej jest po tym zapisie nieaktualny.
         queryClient.invalidateQueries({ queryKey: ['leads'] });
     };

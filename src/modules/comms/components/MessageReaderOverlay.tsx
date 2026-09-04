@@ -1,6 +1,6 @@
 // src/modules/comms/components/MessageReaderOverlay.tsx
 // Pełny podgląd jednej wiadomości: nakładka na całą szerokość obszaru skrzynki,
-// z własnym scrollem. Newslettery i oferty potrafią mieć kilka ekranów treści —
+// z własnym scrollem. Newslettery i oferty potrafią mieć kilka ekranów treści -
 // tu czyta się je bez walki z listą wątków obok.
 import { useEffect } from 'react';
 import styled from 'styled-components';

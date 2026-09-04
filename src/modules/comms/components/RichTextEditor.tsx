@@ -1,19 +1,19 @@
 // src/modules/comms/components/RichTextEditor.tsx
 // Uproszczony edytor treści wiadomości: pogrubienie, kursywa, podkreślenie,
-// przekreślenie, listy i odnośniki. Tyle wystarcza do wyceny i ustaleń z klientem —
+// przekreślenie, listy i odnośniki. Tyle wystarcza do wyceny i ustaleń z klientem -
 // wszystko ponad to (kolory, czcionki, tabele) zamienia mail w ulotkę i psuje się
 // w co drugim programie pocztowym.
 //
 // Pod spodem jest zwykły contentEditable i document.execCommand. Ta para jest
 // „przestarzała" od lat, ale każda przeglądarka ją wspiera, a alternatywą byłby
-// edytor z dziesiątkami kilobajtów zależności — dla sześciu przycisków. Wyjściowy
+// edytor z dziesiątkami kilobajtów zależności - dla sześciu przycisków. Wyjściowy
 // HTML i tak przechodzi przez normalizeComposerHtml, więc różnice między
 // przeglądarkami (span ze stylem vs <b>) nie mają znaczenia dla tego, co wychodzi.
 //
 // Komponent jest niekontrolowany z zewnętrznym „resetem": rodzic dostaje surowy
 // innerHTML po każdej zmianie i trzyma go jako wartość; gdy ustawi inną (korekta,
 // cofnięcie, wyczyszczenie po wysyłce), podmieniamy zawartość. Dopóki wartość
-// odpowiada temu, co jest w DOM, nie dotykamy go — inaczej kursor skakałby na
+// odpowiada temu, co jest w DOM, nie dotykamy go - inaczej kursor skakałby na
 // początek przy każdym naciśnięciu klawisza.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import styled from 'styled-components';
@@ -40,8 +40,8 @@ const Frame = styled.div<{ $focused: boolean }>`
 
 /**
  * Pasek narzędzi NAD treścią, nie pod nią: to, co formatuje, ma być tam, gdzie
- * oko już jest, gdy zaznacza się słowo. Na telefonie przyciski mają 32 px —
- * dolny próg dla palca — i zawijają się zamiast się ściskać.
+ * oko już jest, gdy zaznacza się słowo. Na telefonie przyciski mają 32 px -
+ * dolny próg dla palca - i zawijają się zamiast się ściskać.
  */
 const Toolbar = styled.div`
     display: flex;
@@ -108,7 +108,7 @@ const Editable = styled.div`
     }
 `;
 
-/** Wpisanie adresu odnośnika — na miejscu, zamiast systemowego okienka prompt(). */
+/** Wpisanie adresu odnośnika - na miejscu, zamiast systemowego okienka prompt(). */
 const LinkPopover = styled.form`
     display: flex;
     align-items: center;
@@ -177,7 +177,7 @@ interface RichTextEditorProps {
     disabled?: boolean;
     /** Elementy doklejane do paska narzędzi po prawej (np. spinacz załączników). */
     toolbarExtra?: ReactNode;
-    /** Pliki upuszczone na obszar edytora — obsługuje rodzic (kompozytor). */
+    /** Pliki upuszczone na obszar edytora - obsługuje rodzic (kompozytor). */
     onDropFiles?: (files: File[]) => void;
 }
 
@@ -194,7 +194,7 @@ export function RichTextEditor({
     const [focused, setFocused] = useState(false);
     const [activeCommands, setActiveCommands] = useState<Set<Command>>(new Set());
     const [linkDraft, setLinkDraft] = useState<string | null>(null);
-    // Zaznaczenie znika, gdy fokus przechodzi do pola adresu — zapamiętujemy je,
+    // Zaznaczenie znika, gdy fokus przechodzi do pola adresu - zapamiętujemy je,
     // żeby odnośnik trafił tam, gdzie użytkownik zaznaczył, a nie na koniec.
     const savedRange = useRef<Range | null>(null);
 
@@ -212,7 +212,7 @@ export function RichTextEditor({
             try {
                 if (document.queryCommandState(command)) next.add(command);
             } catch {
-                /* przeglądarka bez wsparcia — przycisk po prostu nie podświetla się */
+                /* przeglądarka bez wsparcia - przycisk po prostu nie podświetla się */
             }
         });
         setActiveCommands(next);
@@ -287,11 +287,11 @@ export function RichTextEditor({
 
     /**
      * Wklejanie: HTML z innej wiadomości czy dokumentu przechodzi przez tę samą
-     * normalizację co wysyłka — zostają pogrubienia i listy, odpadają czcionki,
+     * normalizację co wysyłka - zostają pogrubienia i listy, odpadają czcionki,
      * kolory i tabele. Czysty tekst dostaje po <div> na wiersz.
      */
     const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
-        // Zrzut ekranu ze schowka to załącznik, nie treść — obsługuje go kompozytor.
+        // Zrzut ekranu ze schowka to załącznik, nie treść - obsługuje go kompozytor.
         if (event.clipboardData.files.length > 0) return;
         const html = event.clipboardData.getData('text/html');
         const text = event.clipboardData.getData('text/plain');

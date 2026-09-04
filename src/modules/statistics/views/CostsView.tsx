@@ -766,7 +766,7 @@ const ConfirmAssignModal = ({ isOpen, onClose, onConfirm, itemCount, categoryNam
 
 /**
  * Netto w tabeli. Kwoty wyliczone z brutto oznaczamy „≈", żeby nie wyglądały na
- * dane wprost z faktury — jednocześnie nie pokazując pustego pola tam, gdzie
+ * dane wprost z faktury - jednocześnie nie pokazując pustego pola tam, gdzie
  * wartość da się policzyć.
  */
 function renderNet(item: CostExpenseItem): string {
@@ -891,7 +891,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
                                     <InvTd style={{ textAlign: 'left', color: undefined }}>{item.name ?? '-'}</InvTd>
                                     <InvTd>{item.quantity != null ? `${item.quantity} ${item.unit ?? ''}`.trim() : '-'}</InvTd>
                                     <InvTd>{item.unitPriceNet != null ? fmtPLN(item.unitPriceNet) : '-'}</InvTd>
-                                    <InvTd title={isNetDerived(item) ? 'Netto wyliczone z brutto i stawki VAT — sprzedawca nie podał go na fakturze' : undefined}>{renderNet(item)}</InvTd>
+                                    <InvTd title={isNetDerived(item) ? 'Netto wyliczone z brutto i stawki VAT - sprzedawca nie podał go na fakturze' : undefined}>{renderNet(item)}</InvTd>
                                     <InvTd>{item.vatRate ?? '-'}</InvTd>
                                     <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                     <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
@@ -1221,7 +1221,7 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
                                             <InvTd style={{ textAlign: 'left', color: undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {item.name ?? '-'}
                                             </InvTd>
-                                            <InvTd title={isNetDerived(item) ? 'Netto wyliczone z brutto i stawki VAT — sprzedawca nie podał go na fakturze' : undefined}>{renderNet(item)}</InvTd>
+                                            <InvTd title={isNetDerived(item) ? 'Netto wyliczone z brutto i stawki VAT - sprzedawca nie podał go na fakturze' : undefined}>{renderNet(item)}</InvTd>
                                             <InvTd>{item.vatRate ?? '-'}</InvTd>
                                             <InvTd>{fmtPLN(effectiveGross(item))}</InvTd>
                                             <InvTd style={{ textAlign: 'left', fontWeight: undefined }}>
@@ -1254,7 +1254,7 @@ type CtxMenuState = {
 };
 
 export const CostsView = () => {
-    // Ten sam domyślny zakres co po stronie przychodów — koszty czyta się
+    // Ten sam domyślny zakres co po stronie przychodów - koszty czyta się
     // w parze z nimi, więc oba widoki muszą startować z tego samego miesiąca.
     const [startDate, setStartDate] = useState(currentMonthStart());
     const [endDate,   setEndDate]   = useState(today());
@@ -1354,7 +1354,7 @@ export const CostsView = () => {
     const invoiceGroups = useMemo(() => groupByInvoice(visibleItems), [visibleItems]);
     const nameGroups    = useMemo(() => groupByName(visibleItems),    [visibleItems]);
 
-    // KPI totals derived from stats items — obie strony kwoty liczone tym samym
+    // KPI totals derived from stats items - obie strony kwoty liczone tym samym
     // fallbackiem (netto ⇄ brutto wg stawki VAT), żeby różnica brutto−netto była VAT-em,
     // a nie sumą pozycji z niewypełnioną jedną stroną.
     const totalCostGross = statsItems.reduce((s, i) => s + effectiveGross(i), 0);

@@ -1,8 +1,8 @@
 // src/modules/comms/components/VehiclePhotosPopover.tsx
-// Zdjęcia auta — druga chmurka, obok wizytówki klienta.
+// Zdjęcia auta - druga chmurka, obok wizytówki klienta.
 //
 // Pytanie, które to zamyka, brzmi „czy to TO auto?". Odpowiada na nie obrazek,
-// nie nazwa modelu — dwa czarne kombi tej samej marki różni tylko wygląd.
+// nie nazwa modelu - dwa czarne kombi tej samej marki różni tylko wygląd.
 //
 // Jedno zdjęcie na raz, a nie siatka miniatur: siatka 60 × 45 px odpowiada
 // „są jakieś zdjęcia", ale nie „to jest to auto". Strzałki i kropki pod spodem
@@ -82,7 +82,7 @@ const Stage = styled.div`
         object-fit: contain;
     }
 
-    /* Miniatura rozciągnięta na całą scenę jest miękka — rozmycie zamienia
+    /* Miniatura rozciągnięta na całą scenę jest miękka - rozmycie zamienia
        to z wady w celowy podkład, który znika, gdy dojdzie pełny plik. */
     img.thumb { filter: blur(6px); transform: scale(1.04); }
     img.full {
@@ -174,12 +174,12 @@ const Muted = styled.p`
 interface VehiclePhotosPopoverProps {
     vehicleId: string;
     label: string;
-    /** Element pojazdu w wizytówce — chmurka staje obok niego. */
+    /** Element pojazdu w wizytówce - chmurka staje obok niego. */
     anchor: HTMLElement;
     onClose: () => void;
 }
 
-/** Ile zdjęć wciągamy. Podgląd, nie galeria — pełna jest w kartotece pojazdu. */
+/** Ile zdjęć wciągamy. Podgląd, nie galeria - pełna jest w kartotece pojazdu. */
 const PHOTO_LIMIT = 12;
 
 /** Powyżej tylu zdjęć kropki przestają być czytelne i zamieniają się w licznik. */
@@ -188,7 +188,7 @@ const MAX_DOTS = 10;
 export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: VehiclePhotosPopoverProps) {
     const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
     const [index, setIndex] = useState(0);
-    // Pełne pliki, które już się doczytały — po nich poznajemy, czy podmienić podkład.
+    // Pełne pliki, które już się doczytały - po nich poznajemy, czy podmienić podkład.
     const [loaded, setLoaded] = useState<Record<string, boolean>>({});
     const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -238,7 +238,7 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                // Zamykamy tylko tę chmurkę — wizytówka pod spodem zostaje.
+                // Zamykamy tylko tę chmurkę - wizytówka pod spodem zostaje.
                 event.stopPropagation();
                 onClose();
                 return;
@@ -258,7 +258,7 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
             data-vehicle-photos
             style={{ top: pos.top, left: pos.left }}
             role="dialog"
-            aria-label={`Zdjęcia — ${label}`}
+            aria-label={`Zdjęcia - ${label}`}
         >
             <Head>
                 <span className="title">{label}</span>

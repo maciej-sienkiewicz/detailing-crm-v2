@@ -17,7 +17,7 @@ import {
  * „Przekieruj każdą wiadomość mailową i SMS na moje dane".
  *
  * Studio, które właśnie napisało szablony, chce zobaczyć na własnym telefonie i skrzynce,
- * co dostałby klient przy prawdziwych rezerwacjach — i dopiero potem puścić to do ludzi.
+ * co dostałby klient przy prawdziwych rezerwacjach - i dopiero potem puścić to do ludzi.
  * Dopóki przełącznik jest włączony, żaden klient nie dostaje nic; dlatego karta w tym stanie
  * jest głośna (bursztyn, ikona ostrzeżenia, zdanie wprost), a w stanie wyłączonym cicha.
  *

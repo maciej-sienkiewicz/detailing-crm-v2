@@ -45,7 +45,7 @@ export const activityApi = {
     },
 
     /**
-     * Historia wokół jednego obiektu — sekcje „Historia zmian" na kartach wizyty,
+     * Historia wokół jednego obiektu - sekcje „Historia zmian" na kartach wizyty,
      * klienta i pojazdu. Ten sam feed co zakładka Aktywność, zawężony parametrami
      * customerId/vehicleId/visitId, które backend czyta jako „wszystko wokół tego
      * obiektu" (nie tylko wpisy jego własnego modułu).
@@ -62,7 +62,7 @@ export const activityApi = {
     },
 };
 
-/** Dokładnie jeden z trzech — karta zna swój obiekt. */
+/** Dokładnie jeden z trzech - karta zna swój obiekt. */
 export type ActivityEntityScope =
     | { customerId: string }
     | { vehicleId: string }

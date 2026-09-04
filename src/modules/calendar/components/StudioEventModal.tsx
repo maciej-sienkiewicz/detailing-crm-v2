@@ -1,7 +1,7 @@
 // src/modules/calendar/components/StudioEventModal.tsx
 //
 // Zakładanie i edycja wydarzenia studia. Zakres dni przychodzi z zaznaczenia na
-// kalendarzu, ale zostaje edytowalny — łatwiej poprawić datę w polu niż trafić
+// kalendarzu, ale zostaje edytowalny - łatwiej poprawić datę w polu niż trafić
 // myszą w dokładnie te dni po raz drugi.
 
 import { useState } from 'react';
@@ -44,7 +44,7 @@ const FooterRow = styled.div`
     width: 100%;
     flex-wrap: wrap;
 
-    /* Usunięcie stoi po lewej, z dala od „Zapisz" — to jedyna nieodwracalna
+    /* Usunięcie stoi po lewej, z dala od „Zapisz" - to jedyna nieodwracalna
        akcja w tym oknie. */
     .spacer { flex: 1; }
 `;

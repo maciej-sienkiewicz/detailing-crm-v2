@@ -169,7 +169,7 @@ describe('buildAppointmentEditPayload', () => {
         expect(payload.vehicle).toEqual({ mode: 'NONE' });
     });
 
-    it('vehicle UPDATE wysyła "year" (nie "yearOfProduction") — kontrakt z backendem', () => {
+    it('vehicle UPDATE wysyła "year" (nie "yearOfProduction") - kontrakt z backendem', () => {
         const payload = buildAppointmentEditPayload(baseFormData())!;
         expect(payload.vehicle).toEqual({
             mode: 'UPDATE',
@@ -183,7 +183,7 @@ describe('buildAppointmentEditPayload', () => {
             },
         });
         // Regresja: backendowe NewVehicleDataRequest/VehicleIdentity.Update.year nie mają
-        // aliasu na "yearOfProduction" — Jackson po cichu odrzuca nieznany klucz i rok
+        // aliasu na "yearOfProduction" - Jackson po cichu odrzuca nieznany klucz i rok
         // produkcji nigdy się nie zapisuje. Ten test pilnuje dokładnego klucza w JSON-ie.
         expect(payload.vehicle).not.toHaveProperty('updateData.yearOfProduction');
     });

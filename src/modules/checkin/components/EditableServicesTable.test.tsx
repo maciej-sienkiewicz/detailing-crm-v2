@@ -312,7 +312,7 @@ describe('EditableServicesTable', () => {
 
             const [newList] = onChange.mock.calls[0];
             expect(newList[0].basePriceNet).toBe(10000);
-            // Brutto zostaje dokładnie takie, jak wpisano — bez dryfu z przeliczenia w tę i z powrotem.
+            // Brutto zostaje dokładnie takie, jak wpisano - bez dryfu z przeliczenia w tę i z powrotem.
             expect(newList[0].basePriceGross).toBe(12300);
         });
 

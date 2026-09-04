@@ -662,7 +662,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
     }
 
     // Net drives gross and gross drives net, through the same helpers the visit service
-    // editor uses — including for ZW (vatRate -1), where the two are equal. The previous
+    // editor uses - including for ZW (vatRate -1), where the two are equal. The previous
     // `vatRate >= 0` guard left the other field stale on a ZW position, so a service
     // exempt from VAT could be saved with a gross that disagreed with its net.
     function updateNet(idx: number, val: string) {
@@ -941,7 +941,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                                         {suggestionsFor(sheetQuery).length === 0 && (
                                                             <SheetEmpty>
                                                                 {sheetQuery.trim()
-                                                                    ? 'Brak usługi w katalogu — zostanie zapisana jako wpisana ręcznie.'
+                                                                    ? 'Brak usługi w katalogu - zostanie zapisana jako wpisana ręcznie.'
                                                                     : 'Katalog usług jest pusty.'}
                                                             </SheetEmpty>
                                                         )}

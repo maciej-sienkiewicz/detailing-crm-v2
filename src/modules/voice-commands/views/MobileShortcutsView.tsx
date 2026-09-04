@@ -458,7 +458,7 @@ export const MobileShortcutsView = () => {
                     </QrPanel>
                     <InstructionsPanel>
                         <div>
-                            <InstructionsHeading>Klikasz numer na komputerze — dzwonisz z telefonu</InstructionsHeading>
+                            <InstructionsHeading>Klikasz numer na komputerze - dzwonisz z telefonu</InstructionsHeading>
                             <InstructionsDesc>
                                 Telefon dostaje powiadomienie push z przyciskiem „Zadzwoń", nawet przy zamkniętej przeglądarce
                             </InstructionsDesc>
@@ -467,7 +467,7 @@ export const MobileShortcutsView = () => {
                             <li>Zeskanuj QR kod telefonem i <strong>zaloguj się</strong> do CRM (jeśli poprosi)</li>
                             <li>Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong> (Safari wymaga tego dla powiadomień)</li>
                             <li>Dotknij <strong>„Włącz powiadomienia na tym telefonie"</strong> i zezwól na powiadomienia</li>
-                            <li>Od teraz kliknięcie numeru klienta w CRM na komputerze wyświetli na telefonie powiadomienie — dotknij <strong>„Zadzwoń"</strong>, a numer wskoczy do systemowego dialera</li>
+                            <li>Od teraz kliknięcie numeru klienta w CRM na komputerze wyświetli na telefonie powiadomienie - dotknij <strong>„Zadzwoń"</strong>, a numer wskoczy do systemowego dialera</li>
                         </InstructionList>
                     </InstructionsPanel>
                 </SectionLayout>

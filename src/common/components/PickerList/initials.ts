@@ -4,5 +4,5 @@ export const initialsOf = (...parts: Array<string | null | undefined>): string =
         .map(p => (p || '').trim())
         .filter(Boolean)
         .map(p => p[0]!.toUpperCase());
-    return letters.slice(0, 2).join('') || '—';
+    return letters.slice(0, 2).join('') || '-';
 };

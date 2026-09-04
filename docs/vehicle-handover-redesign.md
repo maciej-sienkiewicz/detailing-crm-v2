@@ -1,4 +1,4 @@
-# Wydanie pojazdu — przeprojektowanie flow
+# Wydanie pojazdu - przeprojektowanie flow
 
 Dokument projektowy. Zakres: przejścia `IN_PROGRESS → READY_FOR_PICKUP` oraz
 `READY_FOR_PICKUP → COMPLETED` wraz z wystawieniem dokumentu sprzedaży.
@@ -11,10 +11,10 @@ Implementacja: osobne zadania, wg faz z sekcji 8.
 Wydanie pojazdu to z perspektywy recepcji **jedno zdarzenie przy ladzie**, przy
 kliencie, który czeka. Aplikacja rozbija je dziś na **dwa kreatory, pięć ekranów
 i jeden modal zagnieżdżony w modalu**. Trzy z pięciu ekranów nie zbierają żadnych
-danych — są rytuałem klikania „dalej".
+danych - są rytuałem klikania „dalej".
 
 Wydanie z fakturą dla firmy kosztuje dziś ok. **8 kliknięć i 4 pola przepisane
-ręcznie** (NIP, nazwa, ulica, kod i miasto) — mimo że NIP i adres firmy **są już
+ręcznie** (NIP, nazwa, ulica, kod i miasto) - mimo że NIP i adres firmy **są już
 w kartotece klienta**, a system i tak dokleja NIP po stronie backendu, tylko bez
 pokazania tego użytkownikowi.
 
@@ -37,7 +37,7 @@ mniej.
 
 ## 2. Jak to wygląda dziś
 
-### Etap A — „Oznacz jako gotowe" (`InProgressToReadyWizard`)
+### Etap A - „Oznacz jako gotowe" (`InProgressToReadyWizard`)
 
 ```
 [Wydaj pojazd / Oznacz jako gotowe] w nagłówku wizyty
@@ -51,7 +51,7 @@ mniej.
          [Wstecz] [Pomiń]             [Wyślij i kontynuuj]
 ```
 
-### Etap B — „Wydaj pojazd" (`ReadyToCompletedWizard`)
+### Etap B - „Wydaj pojazd" (`ReadyToCompletedWizard`)
 
 ```
 [Wydaj pojazd]
@@ -70,8 +70,8 @@ mniej.
          Dokument:          ( Faktura VAT ✓)( Paragon )( Inny )
          ┌─ Faktura KSeF: 1 722,00 zł · nabywca: Jan Kowalski  [Wprowadź zmiany] ─┐
          │                                                                        │
-         │   ▼ MODAL W MODALU (xl) — InvoiceAdjustmentModal                       │
-         │     • dane firmy (gdy niekompletne — formularz + osobny zapis)         │
+         │   ▼ MODAL W MODALU (xl) - InvoiceAdjustmentModal                       │
+         │     • dane firmy (gdy niekompletne - formularz + osobny zapis)         │
          │     • Nabywca: NIP □ / nazwa □ / ulica □ / kod+miasto □   ← 4 pola     │
          │     • Pozycje: nazwa / netto / brutto / VAT / usuń  + dodaj            │
          │     • Podstawa zwolnienia (gdy „zw")                                   │
@@ -90,38 +90,38 @@ dokumentu do pokazania klientowi, brak akcji „wyślij fakturę mailem".
 
 ## 3. Diagnoza
 
-### P1 — Kroki, które nic nie zapisują
+### P1 - Kroki, które nic nie zapisują
 
 **Weryfikacja jakości nie trafia nigdzie.** W `useStateTransition.ts:52` stan
 nazywa się `_qualityChecks` (podkreślnik = nieużywany), a payload przejścia to
 wyłącznie `{ sms, email }` (`stateTransitionApi.markReadyForPickup`). Backend
 `MarkVisitReadyForPickupHandler` przyjmuje tylko `sendSms` / `sendEmail`.
-Wszystkie trzy checkboxy są domyślnie zaznaczone, więc krok nawet nie blokuje —
+Wszystkie trzy checkboxy są domyślnie zaznaczone, więc krok nawet nie blokuje -
 jedyne, co robi, to odblokowuje przycisk, który i tak jest odblokowany.
 
 **To ekran, którego jedyną funkcją jest istnienie.** Realna bramka jakości już
 działa gdzie indziej: `VisitDetailView.tsx:816` blokuje przejście, gdy są usługi
 w statusie `PENDING`, i podświetla je na liście. To jest sensowna kontrola.
 
-**Odprawa klienta** (`ClientBriefingStep`) jest read-only — to informacja, nie
+**Odprawa klienta** (`ClientBriefingStep`) jest read-only - to informacja, nie
 decyzja. Informacja nie zasługuje na własny ekran w kreatorze; zasługuje na
 sekcję.
 
-### P2 — „Wymaga poprawek" to ślepy zaułek
+### P2 - „Wymaga poprawek" to ślepy zaułek
 
-`TransitionWizards.tsx:41` — `handleQualityReject` = `handleClose(); onClose();`.
+`TransitionWizards.tsx:41` - `handleQualityReject` = `handleClose(); onClose();`.
 Przycisk zamyka okno bez śladu: bez cofnięcia statusu, bez notatki, bez zadania
 dla pracownika. Użytkownik, który go kliknie, dostaje dokładnie to samo co po
 naciśnięciu X.
 
-### P3 — Podpis, którego nie ma, raportowany jako uzyskany
+### P3 - Podpis, którego nie ma, raportowany jako uzyskany
 
 `SignatureStep` to placeholder z plakietką „🚧 Funkcjonalność dostępna wkrótce",
 ale kliknięcie „Podpisano" wysyła `signatureObtained: true`
 (`useStateTransition.ts:88`). System twierdzi, że protokół został podpisany,
 choć nic nie zostało podpisane.
 
-To nie jest tylko dług UX — to **ryzyko dowodowe**. Przy sporze o stan pojazdu
+To nie jest tylko dług UX - to **ryzyko dowodowe**. Przy sporze o stan pojazdu
 po wydaniu w bazie stoi flaga „podpis uzyskany", której nie da się poprzeć
 niczym.
 
@@ -129,15 +129,15 @@ Jednocześnie backend **ma gotowy moduł podpisu na tablecie**:
 `SignatureRequestController` (`POST /api/v1/visits/{visitId}/protocols/{protocolId}/signature-requests`),
 z kanałem tabletu i SMS, ze zdarzeniami po WebSocket. Front używa go już w
 check-inie (`checkin/components/SigningRequirementModal.tsx`,
-`checkin/hooks/useSignatureRequestsSocket.ts`). W wydaniu pojazdu — nie.
+`checkin/hooks/useSignatureRequestsSocket.ts`). W wydaniu pojazdu - nie.
 
-### P4 — Faktura: przepisywanie danych, które system już ma
+### P4 - Faktura: przepisywanie danych, które system już ma
 
 **Kartoteka klienta zawiera NIP i adres firmy.** `CustomerEntity` ma
 `companyNip`, `companyAddressStreet`, `companyAddressCity`,
 `companyAddressPostalCode`. Ale DTO detalu wizyty `CustomerInfoResponse`
 (`GetVisitDetailDtos.kt:80`) zwraca tylko `id / firstName / lastName / email /
-phone / companyName / stats`. **Front fizycznie nie ma czym prefillować** — więc
+phone / companyName / stats`. **Front fizycznie nie ma czym prefillować** - więc
 pole NIP w `InvoiceAdjustmentModal` startuje puste, przy każdym wydaniu, dla
 tego samego stałego klienta.
 
@@ -150,7 +150,7 @@ Kowalski". Tymczasem `CompleteVisitInvoiceOrchestrator.kt:213` robi:
 val buyerNip = invoice.buyer.nip?…  ?: customer?.companyNip?…
 ```
 
-— czyli **backend i tak dokleja NIP z kartoteki**. Wystawiona faktura jest B2B,
+- czyli **backend i tak dokleja NIP z kartoteki**. Wystawiona faktura jest B2B,
 a użytkownik był przekonany, że wystawia dla konsumenta. Rozjazd między tym, co
 widać, a tym, co się dzieje, jest gorszy niż sama niewygoda: podważa zaufanie do
 całego modułu.
@@ -158,7 +158,7 @@ całego modułu.
 **Adres nabywcy nigdy nie jest prefillowany i nie ma fallbacku.** `addressLine1`
 / `addressLine2` idą do `IssueRevenueInvoiceHandler` jako `null`, jeśli nikt ich
 nie wpisze. KSeF ich nie wymaga (walidacja sprawdza tylko 10 cyfr NIP lub
-nazwisko konsumenta), więc faktury dla firm wychodzą **bez adresu nabywcy** —
+nazwisko konsumenta), więc faktury dla firm wychodzą **bez adresu nabywcy** -
 cicho, bez ostrzeżenia.
 
 **GUS jest podłączony i nieużywany.** `gusApi.getCompanyByNip` zwraca nazwę,
@@ -166,18 +166,18 @@ adres, REGON, status aktywności. W tym flow nie jest wywoływany ani razu.
 
 **Walidacja sprzedawcy przychodzi na końcu.** Dane firmy (nazwa + NIP studia)
 sprawdzane są dopiero po otwarciu zagnieżdżonego modala
-(`InvoiceAdjustmentModal.tsx:302`), czyli w ostatnim możliwym momencie — przy
+(`InvoiceAdjustmentModal.tsx:302`), czyli w ostatnim możliwym momencie - przy
 kliencie stojącym przy ladzie. Backend rzuca tę samą walidację
 (`CompleteVisitInvoiceOrchestrator.kt:126`). Powinna być widoczna zanim
 ktokolwiek zacznie wydawać.
 
-### P5 — Utrata pracy przy zamknięciu
+### P5 - Utrata pracy przy zamknięciu
 
 `handleClose()` (`useStateTransition.ts:144`) czyści `wizardData` i wraca do
-kroku 1. Escape, kliknięcie w tło albo X — i wszystko, co wpisano w fakturze,
+kroku 1. Escape, kliknięcie w tło albo X - i wszystko, co wpisano w fakturze,
 znika. Bez pytania, bez draftu.
 
-### P6 — Fałszywy pasek postępu
+### P6 - Fałszywy pasek postępu
 
 Trzy nakładające się korekty numeracji w `TransitionWizards.tsx:161-172`:
 
@@ -190,33 +190,33 @@ useEffect(() => { if (isOpen && currentStep === 1 && skipBriefing) handleNext();
 
 Pasek pokazuje „1/2", gdy wewnętrznie jesteśmy w kroku 2 z 3. Przy wizycie
 bezpłatnej stopka mówi „Zatwierdź i wydaj pojazd", a w treści stoi drugi
-przycisk „Podpisano" robiący dokładnie to samo. Konstrukcja jest krucha —
+przycisk „Podpisano" robiący dokładnie to samo. Konstrukcja jest krucha -
 każdy kolejny warunek pomijania kroku pomnoży liczbę przypadków brzegowych.
 
-### P7 — Podział płatności sklejony z podziałem dokumentu
+### P7 - Podział płatności sklejony z podziałem dokumentu
 
 Dziś jedyny sposób na „500 zł kartą, reszta gotówką" to mechanizm
 `remainderPaymentMethod`, który **jednocześnie tworzy drugi dokument
 (paragon)**. To dwa różne pojęcia sklejone w jedno:
 
-- **podział płatności** — jedna sprzedaż, jeden dokument, dwie formy zapłaty;
-- **podział dokumentu** — faktura na firmę na część kwoty + paragon na resztę.
+- **podział płatności** - jedna sprzedaż, jeden dokument, dwie formy zapłaty;
+- **podział dokumentu** - faktura na firmę na część kwoty + paragon na resztę.
 
 Realne scenariusze recepcji (karta + gotówka, wcześniejsza zaliczka, dopłata)
-wymagają pierwszego, a system oferuje wyłącznie drugi — schowany w
+wymagają pierwszego, a system oferuje wyłącznie drugi - schowany w
 zagnieżdżonym modalu, pod przyciskiem „Resztę kwoty pokryj drugim dokumentem".
 
-### P8 — Brak domknięcia po wydaniu
+### P8 - Brak domknięcia po wydaniu
 
 - Sukces → toast. Numer faktury przemyka i znika.
 - KSeF `REJECTED` → wizyta **jest zakończona**, faktura odrzucona, a użytkownik
   dostaje komunikat „Szczegóły znajdziesz w Finanse → Faktury KSeF"
   (`useStateTransition.ts:111`). Zostaje z zamkniętą wizytą i zepsutym
-  dokumentem, bez akcji naprawczej w miejscu, w którym się znajduje —
+  dokumentem, bez akcji naprawczej w miejscu, w którym się znajduje -
   **mimo że endpoint `POST /api/…/invoices/{id}/retry` już istnieje**.
 - Brak „wyślij fakturę mailem", brak „drukuj protokół wydania".
 
-### P9 — Rozproszone źródła danych ekranu
+### P9 - Rozproszone źródła danych ekranu
 
 Ekran płatności składa stan z: `useVisitDetail` + `useVisitComments` +
 `useServicePricing` + `companyApi.getCompanySettings` (leniwie, dopiero w
@@ -239,13 +239,13 @@ kontekstowe rozwiązuje oba problemy naraz.
    tym, co pójdzie do KSeF. Żadnych cichych fallbacków po stronie serwera bez
    odzwierciedlenia w UI.
 5. **Blokady na wejściu, nie na wyjściu.** Brakujące dane firmy, brak NIP
-   nabywcy przy fakturze B2B — sygnalizowane, zanim użytkownik zacznie.
+   nabywcy przy fakturze B2B - sygnalizowane, zanim użytkownik zacznie.
 6. **Praca się nie gubi.** Zamknięcie okna zachowuje stan.
 7. **Każda ścieżka ma domknięcie.** Także ta nieudana.
 
 ---
 
-## 5. Nowy projekt — etap A: „Pojazd gotowy"
+## 5. Nowy projekt - etap A: „Pojazd gotowy"
 
 Z dwóch kroków robi się **jedno potwierdzenie**.
 
@@ -269,24 +269,24 @@ Z dwóch kroków robi się **jedno potwierdzenie**.
 **Zmiany:**
 
 - **Krok „Weryfikacja jakości" znika.** Nie zapisywał danych i nie blokował
-  niczego. Kontrola, która realnie działa — blokada przy usługach `PENDING` —
+  niczego. Kontrola, która realnie działa - blokada przy usługach `PENDING` -
   zostaje bez zmian i dostaje jedną linijkę statusu na tym ekranie.
   *Jeśli biznes chce zachować weryfikację jako fakt audytowalny*, to trzeba ją
   zbudować od nowa: jeden checkbox + zapis do audytu z imieniem pracownika i
   znacznikiem czasu. Trzy checkboxy, które nigdzie nie trafiają, to nie kontrola
-  jakości, tylko jej pozór — patrz decyzja **D1** w sekcji 10.
-- **„Wymaga poprawek" → „Cofnij do realizacji"** — realna akcja: przywraca
+  jakości, tylko jej pozór - patrz decyzja **D1** w sekcji 10.
+- **„Wymaga poprawek" → „Cofnij do realizacji"** - realna akcja: przywraca
   `IN_PROGRESS` i wymusza notatkę wewnętrzną (jednowierszowe pole pojawiające
   się po kliknięciu). Alternatywa: usunąć przycisk. Ślepy zaułek nie zostaje.
 - Kanały powiadomień: prefill jak dziś; e-mail wyszarzony, gdy brak adresu.
-  „Pomiń" znika — odznaczenie obu checkboxów daje ten sam efekt, a przycisk
+  „Pomiń" znika - odznaczenie obu checkboxów daje ten sam efekt, a przycisk
   zmienia się wtedy na „Oznacz jako gotowe".
 
 **Koszt: 2 kliknięcia** (otwarcie + potwierdzenie), zamiast 3.
 
 ---
 
-## 6. Nowy projekt — etap B: „Wydanie pojazdu"
+## 6. Nowy projekt - etap B: „Wydanie pojazdu"
 
 Jeden ekran, stopka przyklejona, przycisk główny dostępny od pierwszej sekundy.
 
@@ -303,7 +303,7 @@ Jeden ekran, stopka przyklejona, przycisk główny dostępny od pierwszej sekund
 │     │ Piotr Wiśniewski · 14.08, 13:05                       │    │
 │     │ Powłoka wymaga 48 h bez mycia.                        │    │
 │     └───────────────────────────────────────────────────────┘    │
-│     — sekcja nie pojawia się, gdy brak komentarzy dla klienta —   │
+│     - sekcja nie pojawia się, gdy brak komentarzy dla klienta -   │
 │                                                                   │
 │  ② ROZLICZENIE                                                    │
 │     ┌───────────────────────────────────────────────────────┐    │
@@ -349,46 +349,46 @@ Jeden ekran, stopka przyklejona, przycisk główny dostępny od pierwszej sekund
 | „Zatwierdź i wydaj pojazd" po 3 ekranach | Przycisk widoczny od otwarcia |
 | Toast na koniec | Ekran potwierdzenia z akcjami |
 
-### Sekcja ② — rozliczenie, stany
+### Sekcja ② - rozliczenie, stany
 
-**Wiersz nabywcy** — cztery stany, wszystkie rozstrzygane automatycznie:
+**Wiersz nabywcy** - cztery stany, wszystkie rozstrzygane automatycznie:
 
 | stan | co widzi użytkownik | akcja |
 |---|---|---|
 | Klient ma NIP w kartotece | `ACME Sp. z o.o. · NIP 521-301-72-28 · ul. Kwiatowa 3, 00-001 Warszawa` | `[Zmień]` |
-| Klient bez NIP | `Faktura dla konsumenta: Jan Kowalski` | `[To firma — podaj NIP]` |
-| Po wpisaniu 10 cyfr NIP | spinner → dane z GUS → nazwa + adres, `☑ Zapisz w kartotece klienta` | — |
-| GUS niedostępny | pola ręczne z komunikatem „Nie udało się pobrać z GUS — uzupełnij ręcznie" | — |
+| Klient bez NIP | `Faktura dla konsumenta: Jan Kowalski` | `[To firma - podaj NIP]` |
+| Po wpisaniu 10 cyfr NIP | spinner → dane z GUS → nazwa + adres, `☑ Zapisz w kartotece klienta` | - |
+| GUS niedostępny | pola ręczne z komunikatem „Nie udało się pobrać z GUS - uzupełnij ręcznie" | - |
 
 Zasada **„interfejs nie kłamie"**: cokolwiek stoi w tym wierszu, dokładnie to
 idzie do KSeF. Cichy fallback `?: customer?.companyNip` po stronie serwera
 zostaje jako zabezpieczenie, ale przestaje być jedyną drogą, którą NIP trafia na
-fakturę — front ustala nabywcę jawnie i wysyła komplet.
+fakturę - front ustala nabywcę jawnie i wysyła komplet.
 
-**Pozycje faktury** — domyślnie zwinięte do jednej linijki
+**Pozycje faktury** - domyślnie zwinięte do jednej linijki
 (`3 · zgodne z usługami · 1 722,00 zł`). Rozwinięcie pokazuje dzisiejszą tabelę
 (nazwa / netto / brutto / VAT / usuń / dodaj) **w tym samym oknie**, z paskiem
 bilansu przyklejonym do dołu sekcji. Cała logika kwotowa
 (`mode: NET | GROSS`, „kwota wpisana jest źródłem prawdy", VAT „w stu")
-przechodzi bez zmian — jest poprawna i zgodna z backendem.
+przechodzi bez zmian - jest poprawna i zgodna z backendem.
 
-**Podział płatności — odłożony (D5).** Sekcja zapłaty ma jedną formę na całość;
+**Podział płatności - odłożony (D5).** Sekcja zapłaty ma jedną formę na całość;
 lista wpłat wejdzie osobno. Podział **dokumentu** (faktura na część kwoty +
 paragon na resztę) zostaje i działa jak dotąd, ale wyszedł z zagnieżdżonego
 modala do sekcji faktury: pasek bilansu pokazuje różnicę, a wybór metody
 płatności reszty pojawia się dopiero po kliknięciu „Resztę udokumentuj
-paragonem". Rozróżnienie z P7 zostaje w mocy jako kierunek — dopóki lista wpłat
+paragonem". Rozróżnienie z P7 zostaje w mocy jako kierunek - dopóki lista wpłat
 nie powstanie, podział dokumentu pozostaje jedynym sposobem na dwie formy
 zapłaty.
 
-**„Bez dokumentu"** — dzisiejsze `Inny` mapuje się na `DocumentType.OTHER`
+**„Bez dokumentu"** - dzisiejsze `Inny` mapuje się na `DocumentType.OTHER`
 i tworzy dokument z prefiksem `DOK`. Etykieta „Inny" nie mówi nic; zmiana na
-opis tego, co realnie się stanie — patrz decyzja **D3**.
+opis tego, co realnie się stanie - patrz decyzja **D3**.
 
-### Sekcja ③ — protokół
+### Sekcja ③ - protokół
 
 Wiersz dokumentu identyczny jak w modalu „Dokumentacja i Podpisy" przy
-przyjęciu pojazdu — ta sama maszyneria, te same akcje:
+przyjęciu pojazdu - ta sama maszyneria, te same akcje:
 
 ```
  ┌──────────────────────────────────────────────────────────────┐
@@ -397,21 +397,21 @@ przyjęciu pojazdu — ta sama maszyneria, te same akcje:
         podgląd · wydruk · wysyłka na telefon klienta · na tablet
 ```
 
-- **Podgląd** otwiera `DocumentPreview`, **wydruk** — wypełniony PDF.
+- **Podgląd** otwiera `DocumentPreview`, **wydruk** - wypełniony PDF.
 - **Telefon klienta** wysyła SMS z linkiem do podpisu, **tablet** kieruje na
-  sparowane urządzenie (przy kilku — lista wyboru). Obie drogi to istniejący
+  sparowane urządzenie (przy kilku - lista wyboru). Obie drogi to istniejący
   `POST /api/v1/visits/{visitId}/protocols/{protocolId}/signature-requests`.
 - Status podpisu przychodzi na żywo po WebSockecie; po zerwaniu połączenia
   stan jest dopytywany. Po podpisie ikona zmienia się w ✓, po odrzuceniu
   pojawia się „Ponów" na tym samym kanale.
-- Protokoły etapu `CHECK_OUT` generujemy przy otwarciu ekranu — nic wcześniej
+- Protokoły etapu `CHECK_OUT` generujemy przy otwarciu ekranu - nic wcześniej
   ich nie tworzy, a `generate` jest idempotentne. Gdy studio nie ma
   skonfigurowanego dokumentu na wydanie, sekcja mówi to wprost i odsyła do
   ustawień.
-- `signatureObtained` wysyłamy zgodnie ze stanem faktycznym — protokół
+- `signatureObtained` wysyłamy zgodnie ze stanem faktycznym - protokół
   podpisany albo nie. Koniec z twardym `true`.
 - Gdy pracownik nie ma dostępu do danych osobowych, imię podpisującego jest
-  zamaskowane — wysyłka do podpisu jest wtedy wyłączona z podaniem powodu,
+  zamaskowane - wysyłka do podpisu jest wtedy wyłączona z podaniem powodu,
   zamiast wpisywać `***` na dokument.
 
 ### Stopka
@@ -426,7 +426,7 @@ Jeden przycisk, etykieta zależna od wybranego dokumentu:
 | Wizyta bezpłatna (0 zł) | `Wydaj pojazd` + sekcja ② zwinięta do informacji |
 
 Blokada przycisku wyłącznie przy realnych brakach (bilans faktury się nie
-zgadza, brak podstawy prawnej przy stawce „zw", brak danych firmy) — z
+zgadza, brak podstawy prawnej przy stawce „zw", brak danych firmy) - z
 komunikatem **przy sekcji, której dotyczy**, nie w banerze na górze.
 
 ### Ekran potwierdzenia (nowy)
@@ -438,7 +438,7 @@ Zastępuje toast. Ta sama ramka, przewinięta do stanu końcowego:
 │                        ✓  Pojazd wydany                           │
 │                                                                   │
 │  Faktura FV/2026/0184 · przyjęta przez KSeF                       │
-│  Zapłacono 1 722,00 zł — karta 1 200,00 · gotówka 522,00          │
+│  Zapłacono 1 722,00 zł - karta 1 200,00 · gotówka 522,00          │
 │                                                                   │
 │  [Wyślij fakturę mailem]  [Drukuj protokół]  [Wróć do wizyty]     │
 └───────────────────────────────────────────────────────────────────┘
@@ -446,7 +446,7 @@ Zastępuje toast. Ta sama ramka, przewinięta do stanu końcowego:
 
 Warianty:
 
-- `QUEUED_RETRY` → „KSeF chwilowo niedostępny — faktura zostanie dosłana
+- `QUEUED_RETRY` → „KSeF chwilowo niedostępny - faktura zostanie dosłana
   automatycznie." + `[Sprawdź status]`
 - `REJECTED` → **`[Popraw dane i wyślij ponownie]`** w tym miejscu, bez
   odsyłania do innego modułu. Endpoint `POST /…/invoices/{id}/retry` już
@@ -477,10 +477,10 @@ data class CustomerInfoResponse(
 ```
 
 Uwaga na `@Pii`: NIP spółki nie jest daną osobową, ale adres firmowy JDG bywa
-adresem domowym. Oznaczyć spójnie z resztą modelu — do rozstrzygnięcia przy
+adresem domowym. Oznaczyć spójnie z resztą modelu - do rozstrzygnięcia przy
 implementacji.
 
-**7.2. `GET /api/visits/{visitId}/handover-context`** *(nowy — jedno zapytanie
+**7.2. `GET /api/visits/{visitId}/handover-context`** *(nowy - jedno zapytanie
 zamiast czterech)*
 
 ```jsonc
@@ -500,14 +500,14 @@ zamiast czterech)*
 ```
 
 Powód: dziś ekran składa stan z czterech źródeł, z czego ustawienia firmy
-ładują się leniwie **dopiero w zagnieżdżonym modalu** — stąd migotanie i
+ładują się leniwie **dopiero w zagnieżdżonym modalu** - stąd migotanie i
 walidacja przychodząca w najgorszym możliwym momencie.
 
-**7.3. `POST /api/visits/{visitId}/complete` — lista wpłat**
+**7.3. `POST /api/visits/{visitId}/complete` - lista wpłat**
 
 ```kotlin
 data class PaymentRequest(
-    val method: String,                    // zachowane — wstecznie zgodne
+    val method: String,                    // zachowane - wstecznie zgodne
     val invoiceType: String? = null,
     val dueDate: LocalDate? = null,
     val amount: Long? = null,
@@ -516,15 +516,15 @@ data class PaymentRequest(
 data class PaymentSplit(val method: String, val amount: Long, val dueDate: LocalDate? = null)
 ```
 
-Gdy `payments` jest `null` — zachowanie bez zmian. Gdy podane — walidacja sumy i
+Gdy `payments` jest `null` - zachowanie bez zmian. Gdy podane - walidacja sumy i
 zapis wielu form zapłaty do dokumentu finansowego.
 
-**7.4. Draft wydania** — opcjonalnie `PUT/GET /api/visits/{visitId}/handover-draft`.
+**7.4. Draft wydania** - opcjonalnie `PUT/GET /api/visits/{visitId}/handover-draft`.
 Na start wystarczy `localStorage` po stronie frontu (klucz per `visitId`,
-czyszczony po sukcesie) — tańsze i rozwiązuje P5 w całości dla pojedynczej
+czyszczony po sukcesie) - tańsze i rozwiązuje P5 w całości dla pojedynczej
 stacji roboczej.
 
-**7.5. Bez zmian** — `POST /…/invoices/{id}/retry` istnieje i wystarcza do
+**7.5. Bez zmian** - `POST /…/invoices/{id}/retry` istnieje i wystarcza do
 obsługi odrzuceń KSeF. Logika kwot w `CompleteVisitInvoiceOrchestrator`
 (niezmiennik „faktura + reszta == kwota wizyty") zostaje nietknięta.
 
@@ -556,11 +556,11 @@ pójść na produkcję niezależnie.
 | **2** | Kreator → jeden ekran; `InvoiceAdjustmentModal` → sekcja; pozycje zwinięte | **z ~8 kliknięć do 2**; koniec modala w modalu | **zrobione** |
 | **3** | Etap A: usunięcie kroku jakości (D1) | oznaczenie gotowości: 3 → 2 kliknięcia | **zrobione** |
 | **4** | Ekran potwierdzenia + ponowna wysyłka do KSeF w miejscu + autozapis draftu | domknięcie ścieżek, koniec gubienia pracy | **zrobione** |
-| **5** | Podpis na tablecie — po powstaniu formularza protokołu (D2) | podpis, który istnieje | odłożone |
-| **6** | Podział płatności — lista wpłat (D5) | karta + gotówka bez sztucznego paragonu | odłożone |
-| **—** | Endpoint `handover-context` (jedno zapytanie zamiast czterech) | mniej migotania przy otwarciu | niezrobione, opis w §7 |
+| **5** | Podpis na tablecie - po powstaniu formularza protokołu (D2) | podpis, który istnieje | odłożone |
+| **6** | Podział płatności - lista wpłat (D5) | karta + gotówka bez sztucznego paragonu | odłożone |
+| **-** | Endpoint `handover-context` (jedno zapytanie zamiast czterech) | mniej migotania przy otwarciu | niezrobione, opis w §7 |
 
-Faza 0 objęła wyłącznie rozszerzenie DTO — nowego endpointu agregującego nie
+Faza 0 objęła wyłącznie rozszerzenie DTO - nowego endpointu agregującego nie
 budowaliśmy. Problem „późnej walidacji sprzedawcy" rozwiązało przeniesienie
 pobrania ustawień studia z zagnieżdżonego modala na poziom ekranu wydania
 (`useHandover`), co daje ten sam efekt bez nowej powierzchni API.
@@ -573,7 +573,7 @@ pobrania ustawień studia z zagnieżdżonego modala na poziom ekranu wydania
 | `visits/hooks/useHandover.ts` | stan ekranu, draft w localStorage, zapis, wynik |
 | `visits/hooks/useMarkReady.ts` | oznaczenie gotowości |
 | `visits/api/apiError.ts` | odczyt błędu API bez `any` |
-| `handover/HandoverSheet.tsx` | ekran wydania — jedno okno, trzy sekcje |
+| `handover/HandoverSheet.tsx` | ekran wydania - jedno okno, trzy sekcje |
 | `handover/SettlementSection.tsx` | kwota, forma zapłaty, dokument |
 | `handover/InvoiceSection.tsx` | nabywca i pozycje zwinięte, bilans, reszta |
 | `handover/BuyerEditor.tsx` | nabywca z GUS (`NipInputWithGus`) |
@@ -588,10 +588,10 @@ Usunięte: `TransitionWizards`, `WizardLayout`, `QualityCheckStep`,
 `InvoiceAdjustmentModal`, `useStateTransition`.
 
 **Kolejność nie jest przypadkowa.** Faza 1 daje największy stosunek zysku do
-kosztu i jest niezależna od przebudowy ekranu — można ją wypuścić w tym tygodniu
+kosztu i jest niezależna od przebudowy ekranu - można ją wypuścić w tym tygodniu
 i biznes od razu odczuje różnicę. Faza 5 jest najpilniejsza z punktu widzenia
 ryzyka (P3), ale najdroższa; jeśli ryzyko dowodowe jest realne, przesunąć ją
-przed fazę 2 — patrz **D2**.
+przed fazę 2 - patrz **D2**.
 
 ---
 
@@ -600,25 +600,25 @@ przed fazę 2 — patrz **D2**.
 | metryka | dziś (szac.) | cel |
 |---|---|---|
 | Mediana kliknięć: wydanie z fakturą firmową | ~8 + 4 pola | ≤ 2, 0 pól |
-| Mediana czasu: „Wydaj pojazd" → zakończone | — | < 20 s |
-| Odsetek wydań porzuconych (okno otwarte, brak transakcji) | — | < 5 % |
-| Faktury odrzucone przez KSeF | — | < 1 % |
+| Mediana czasu: „Wydaj pojazd" → zakończone | - | < 20 s |
+| Odsetek wydań porzuconych (okno otwarte, brak transakcji) | - | < 5 % |
+| Faktury odrzucone przez KSeF | - | < 1 % |
 | Faktury B2B bez adresu nabywcy | prawdopodobnie wysoki | 0 % |
 | Wydania z `signatureObtained: true` bez realnego podpisu | 100 % | 0 % |
 
-Pierwsze trzy wymagają zdarzeń telemetrycznych, których dziś nie ma — do dołożenia
+Pierwsze trzy wymagają zdarzeń telemetrycznych, których dziś nie ma - do dołożenia
 w fazie 2 (`handover_opened`, `handover_completed`, `handover_abandoned`).
-Czwartą i piątą da się policzyć zapytaniem do bazy od razu, przed wdrożeniem —
+Czwartą i piątą da się policzyć zapytaniem do bazy od razu, przed wdrożeniem -
 warto to zrobić, żeby mieć punkt odniesienia.
 
 ---
 
-## 10. Decyzje dla biznesu — rozstrzygnięte
+## 10. Decyzje dla biznesu - rozstrzygnięte
 
 | | decyzja | co z niej wynikło |
 |---|---|---|
 | **D1** | Weryfikacja jakości: **usunąć** | `QualityCheckStep` skasowany, `MarkReadyDialog` to jedno potwierdzenie |
-| **D2** | Protokół ma wyglądać i działać jak wiersz w „Dokumentacji i Podpisach" | `ProtocolSection` używa istniejącej maszynerii podpisu: podgląd, wydruk, wysyłka na telefon i tablet, status na żywo. Okazało się, że backend obsługuje etap `CHECK_OUT` w całości — brakowało tylko wywołania generowania i UI. `signatureObtained` wysyła stan faktyczny zamiast twardego `true` |
+| **D2** | Protokół ma wyglądać i działać jak wiersz w „Dokumentacji i Podpisach" | `ProtocolSection` używa istniejącej maszynerii podpisu: podgląd, wydruk, wysyłka na telefon i tablet, status na żywo. Okazało się, że backend obsługuje etap `CHECK_OUT` w całości - brakowało tylko wywołania generowania i UI. `signatureObtained` wysyła stan faktyczny zamiast twardego `true` |
 | **D3** | „Inny” = rozliczenie poza dokumentem, **nienazywane wprost** | etykieta „Inne rozliczenie”, bez tekstu objaśniającego |
 | **D4** | Domyślny typ dokumentu: **bez zmian** | zostaje faktura VAT na sztywno |
 | **D5** | Podział płatności: **później** | usunięty z zakresu i z projektu dla czytelności; podział *dokumentu* (faktura + paragon na resztę) zostaje |
@@ -627,29 +627,29 @@ Poniższy zapis pytań zostaje jako uzasadnienie decyzji.
 
 ### Pytania w brzmieniu pierwotnym
 
-**D1 — Weryfikacja jakości: usunąć czy zbudować od nowa?**
+**D1 - Weryfikacja jakości: usunąć czy zbudować od nowa?**
 Dziś nie zapisuje niczego i nie blokuje niczego. Do wyboru:
-(a) usunąć — realna bramka (usługi `PENDING`) już działa;
-(b) zbudować jako fakt audytowalny — jeden checkbox, zapis do audytu z osobą i
+(a) usunąć - realna bramka (usługi `PENDING`) już działa;
+(b) zbudować jako fakt audytowalny - jeden checkbox, zapis do audytu z osobą i
 czasem, ewentualnie wymagany przy usługach powyżej progu kwotowego.
 *Rekomendacja: (a) teraz, (b) osobno, jeśli pojawi się realna potrzeba
 audytowa.* Nie ma sensu utrzymywać pozoru kontroli.
 
-**D2 — `signatureObtained: true` bez podpisu — jak pilne?**
+**D2 - `signatureObtained: true` bez podpisu - jak pilne?**
 Czy przy sporze o stan pojazdu ta flaga bywa przywoływana? Jeśli tak, faza 5
-idzie przed fazą 2. Jeśli nie — zostaje w kolejności.
+idzie przed fazą 2. Jeśli nie - zostaje w kolejności.
 
-**D3 — Co ma znaczyć „Bez dokumentu"?**
+**D3 - Co ma znaczyć „Bez dokumentu"?**
 Dziś opcja „Inny" tworzy dokument `DOK` w finansach. Czy chodzi o: (a) dokument
 inny niż paragon/faktura, (b) wydanie bez żadnego dokumentu (np. rozliczone
 wcześniej), czy (c) obie rzeczy jako osobne opcje? Wpływa na etykiety i na to,
 czy w ogóle dopuszczamy wydanie bez śladu przychodu.
 
-**D4 — Domyślny typ dokumentu.**
+**D4 - Domyślny typ dokumentu.**
 Dziś na sztywno `Faktura VAT`. Czy to odpowiada realnej strukturze sprzedaży,
-czy powinno być ustawieniem studia (a docelowo — pamiętane per klient)?
+czy powinno być ustawieniem studia (a docelowo - pamiętane per klient)?
 
-**D5 — Podział płatności — czy naprawdę występuje?**
+**D5 - Podział płatności - czy naprawdę występuje?**
 Sekcja 6 zakłada, że tak. Jeśli w praktyce nie zdarza się to nigdy, faza 6
 wypada z zakresu i zostaje sam podział dokumentu.
 
@@ -659,26 +659,26 @@ wypada z zakresu i zostaje sam podział dokumentu.
 
 - **Logika kwot faktury.** `mode: NET | GROSS`, zasada „kwota wpisana jest
   źródłem prawdy", VAT „w stu" (art. 106e ust. 7), lustrzane obliczenia po obu
-  stronach — to jest zrobione dobrze i zgodnie z przepisami. Przenosimy bez
+  stronach - to jest zrobione dobrze i zgodnie z przepisami. Przenosimy bez
   ingerencji.
 - **Niezmiennik księgowy** `faktura + reszta == kwota wizyty` w
   `CompleteVisitInvoiceOrchestrator`. Zostaje.
 - **Kolejność operacji w orkiestratorze** (pre-walidacja → zakończenie wizyty →
   dokument reszty → sieć do KSeF na końcu, poza transakcją). Świadoma i słuszna.
-- **Blokada przejścia przy usługach `PENDING`** wraz z podświetleniem listy —
+- **Blokada przejścia przy usługach `PENDING`** wraz z podświetleniem listy -
   to jedyna kontrola jakości, która realnie działa.
-- **`WizardLayout`** — zostaje dla pozostałych kreatorów w aplikacji.
+- **`WizardLayout`** - zostaje dla pozostałych kreatorów w aplikacji.
 
 ## 12. Odrzucone warianty
 
 - **„Szybkie wydanie" jako osobny przycisk-skrót w nagłówku.** Kusi, ale po
-  przeprojektowaniu pełny ekran kosztuje 2 kliknięcia — skrót oszczędziłby
+  przeprojektowaniu pełny ekran kosztuje 2 kliknięcia - skrót oszczędziłby
   jedno, dokładając drugą ścieżkę kodu, drugi zestaw przypadków brzegowych i
   ryzyko, że użytkownik wyda pojazd, nie widząc komentarzy dla klienta. Nie
   warto.
 - **Wydanie na osobnej stronie zamiast w modalu.** Traci kontekst wizyty,
   wymaga nawigacji i obsługi powrotu. Modal z przyklejoną stopką jest tu
-  właściwy — czynność jest krótka i zamknięta.
+  właściwy - czynność jest krótka i zamknięta.
 - **Zostawienie kreatora i skrócenie go do dwóch kroków.** Nie usuwa źródła
   problemu: kreator z natury wymusza uwagę tam, gdzie decyzja jest oczywista.
   Ekran podsumowania z domyślnymi odpowiedziami wymusza uwagę tylko tam, gdzie

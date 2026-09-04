@@ -1,5 +1,5 @@
 // src/modules/comms/components/LeadLostReasonDialog.tsx
-// Pytanie o powód przegranej — jedyne miejsce, w którym system nie pozwala
+// Pytanie o powód przegranej - jedyne miejsce, w którym system nie pozwala
 // przestawić statusu jednym kliknięciem.
 //
 // Powody są zamkniętym słownikiem ze słownika studia, a nie polem tekstowym:
@@ -15,7 +15,7 @@ import { IconButton, PrimaryButton } from './shared';
 const Backdrop = styled.div`
     position: fixed;
     inset: 0;
-    /* Ponad oknem szczegółów (ModalOverlay ma 1000) — pytanie o powód przegranej
+    /* Ponad oknem szczegółów (ModalOverlay ma 1000) - pytanie o powód przegranej
        pada właśnie z tamtego okna i musi być nad nim, a nie za nim. */
     z-index: 1100;
     display: flex;
@@ -71,7 +71,7 @@ interface LeadLostReasonDialogProps {
 }
 
 /**
- * Okno jest otwarte dokładnie wtedy, gdy jest zamontowane — wybrany powód żyje
+ * Okno jest otwarte dokładnie wtedy, gdy jest zamontowane - wybrany powód żyje
  * więc tyle, co jedno otwarcie, i nie trzeba go kasować efektem przy następnym.
  */
 export function LeadLostReasonDialog({ leadId, onClose }: LeadLostReasonDialogProps) {

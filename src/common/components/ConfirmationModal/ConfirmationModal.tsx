@@ -64,7 +64,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }, [isOpen, onCancel]);
 
     // Blokada przewijania tła, chowanie dolnych pasków i układ przy wysuniętej
-    // klawiaturze — wspólne z ModalShell. Escape zostaje w efekcie wyżej.
+    // klawiaturze - wspólne z ModalShell. Escape zostaje w efekcie wyżej.
     const overlayRef = useRef<HTMLDivElement>(null);
     useModalViewport(isOpen, overlayRef);
 

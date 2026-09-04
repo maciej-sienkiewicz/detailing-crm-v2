@@ -506,7 +506,7 @@ export const VisitHeader = ({
     const menuRef = useRef<HTMLDivElement>(null);
     /**
      * Sam panel menu. Osobna referencja, bo panel renderuje się PORTALEM do document.body
-     * — poza drzewem przycisku. Bez niej zamykanie „po kliknięciu obok" uznawało za
+     * - poza drzewem przycisku. Bez niej zamykanie „po kliknięciu obok" uznawało za
      * „obok" także kliknięcie we własną pozycję menu.
      */
     const menuPanelRef = useRef<HTMLDivElement>(null);
@@ -530,14 +530,14 @@ export const VisitHeader = ({
     useEffect(() => {
         if (!isMenuOpen) return;
         /*
-         * Zamknięcie na `mousedown`, nie na `click` — żeby menu znikało od razu przy
+         * Zamknięcie na `mousedown`, nie na `click` - żeby menu znikało od razu przy
          * kliknięciu w tło. Cena jest taka, że kliknięcie w POZYCJĘ menu też zaczyna się
          * od `mousedown`: jeśli uznamy je za „obok", panel zniknie przed `click`, a
          * `onClick` pozycji nigdy się nie wykona. Dokładnie tak umarły „Generuj post",
          * „Door to door" i „Usuń wizytę": przycisk reagował, menu się zamykało i nic
          * więcej się nie działo.
          *
-         * Dlatego sprawdzamy oba elementy — kotwicę i panel z portalu.
+         * Dlatego sprawdzamy oba elementy - kotwicę i panel z portalu.
          */
         const handler = (e: MouseEvent) => {
             const target = e.target as Node;

@@ -37,7 +37,7 @@ export const useVisitDetail = (visitId: string) => {
         isLoading,
         isError,
         /**
-         * Wizyta istnieje, ale nie została rozpoczęta — przyjęcie pojazdu nie zostało
+         * Wizyta istnieje, ale nie została rozpoczęta - przyjęcie pojazdu nie zostało
          * dokończone. To nie jest błąd ładowania i nie wolno go tak pokazać.
          */
         notStarted: isVisitNotStarted(error),
@@ -45,7 +45,7 @@ export const useVisitDetail = (visitId: string) => {
     };
 };
 
-/** 404 z kodem `VISIT_NOT_STARTED` — patrz VisitNotStartedException po stronie API. */
+/** 404 z kodem `VISIT_NOT_STARTED` - patrz VisitNotStartedException po stronie API. */
 const isVisitNotStarted = (error: unknown): boolean => {
     const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
     return response?.status === 404 && response?.data?.code === 'VISIT_NOT_STARTED';

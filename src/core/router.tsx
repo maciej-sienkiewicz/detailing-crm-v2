@@ -37,7 +37,7 @@ import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSet
 const GalleryView = lazy(() =>
     import("@/modules/gallery/views/GalleryView").then(m => ({ default: m.GalleryView }))
 );
-// Lazy — moduł komunikacji (webmail) i leadów
+// Lazy - moduł komunikacji (webmail) i leadów
 const MailView = lazy(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazy(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazy(() => import('@/modules/comms/views/LeadsView'));
@@ -188,7 +188,7 @@ export const router = createBrowserRouter([
     },
     {
         // Kolory przeniosły się do Ustawień → Oznaczenia. Adres zostaje, bo
-        // krąży w zakładkach i linkach — prowadzi teraz tam, gdzie widok jest.
+        // krąży w zakładkach i linkach - prowadzi teraz tam, gdzie widok jest.
         path: '/appointment-colors',
         element: <Navigate to="/settings?tab=labels&view=colors" replace />,
     },
@@ -252,7 +252,7 @@ export const router = createBrowserRouter([
     {
         // Click-to-Call pairing, opened ON THE PHONE (QR in Skróty mobilne).
         // No permission requirement: every logged-in user may pair their own
-        // phone — the backend scopes devices and call pushes to the session user.
+        // phone - the backend scopes devices and call pushes to the session user.
         path: '/call-device',
         element: page(<CallDeviceView />),
     },

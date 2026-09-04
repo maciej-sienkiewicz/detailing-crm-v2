@@ -1,17 +1,17 @@
 // src/modules/comms/components/MarkAsLeadModal.tsx
-// Oznaczenie rozmowy jako leada. Dwa pola i ani jednego więcej — resztę system wie
+// Oznaczenie rozmowy jako leada. Dwa pola i ani jednego więcej - resztę system wie
 // sam: kontakt z wątku, klienta po adresie, treść pierwszej wiadomości, a markę
 // i model auta odczytuje z korespondencji już po zapisaniu (backend, LLM).
 //
-//  • Okno jest celowo małe — to potwierdzenie decyzji, a nie formularz. Rozwlekłe
+//  • Okno jest celowo małe - to potwierdzenie decyzji, a nie formularz. Rozwlekłe
 //    objaśnienia pod polami kazałyby je czytać za każdym razem, choć wystarczy raz.
-//  • TAGI — dropdown wielokrotnego wyboru, ten sam wzorzec co „Kolor w kalendarzu”
+//  • TAGI - dropdown wielokrotnego wyboru, ten sam wzorzec co „Kolor w kalendarzu”
 //    przy przyjęciu: lista zamknięta w menu nie rozpycha okna, gdy tagów przybędzie.
-//  • USŁUGI — schowane za przyciskiem. Wycena na etapie oznaczania to wyjątek, nie
+//  • USŁUGI - schowane za przyciskiem. Wycena na etapie oznaczania to wyjątek, nie
 //    reguła: zwykle wiadomo, o czym jest rozmowa, a nie ile to będzie kosztować.
 //    Rozwinięta sekcja to ten sam edytor co przy przyjęciu pojazdu i w panelu
 //    leada: „Edytuj pozycję" i rabat na wiersz zamiast gołego pola z ceną. Wycena
-//    to ta sama czynność niezależnie od ekranu, więc i narzędzie ma być to samo —
+//    to ta sama czynność niezależnie od ekranu, więc i narzędzie ma być to samo -
 //    a rabat trzeba umieć zapisać jako rabat, nie jako niższą kwotę bez śladu.
 //    Ilości tu nie ma: pozycja z własną ceną i notatką niesie więcej niż mnożnik,
 //    a dwie takie same usługi to po prostu dwa wiersze.
@@ -93,7 +93,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
     const { data: dictionaries } = useLeadDictionaries();
     const markAsLead = useMarkThreadAsLead();
     const { showSuccess, showError } = useToast();
-    // Dodawanie i kasowanie tagów w słowniku — ta sama obsługa co przy edycji z tabeli.
+    // Dodawanie i kasowanie tagów w słowniku - ta sama obsługa co przy edycji z tabeli.
     const tagActions = useTagCatalogActions((code) =>
         setTags((current) => (current.includes(code) ? current : [...current, code]))
     );
@@ -102,7 +102,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
 
     const submit = () => {
         markAsLead.mutate(
-            // Kwoty po rabatach, nazwa i stawka VAT — dokładnie to samo tłumaczenie,
+            // Kwoty po rabatach, nazwa i stawka VAT - dokładnie to samo tłumaczenie,
             // którym zapisuje wycenę panel leada. Cennik jest podpowiedzią, wycena
             // ma zapamiętać kwotę uzgodnioną w rozmowie.
             { threadId, request: { tags, services: toLeadInputs(services) } },
@@ -126,7 +126,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         );
     };
 
-    // Rozwinięta wycena to tabela z czterema kolumnami kwot — w 480 px byłaby
+    // Rozwinięta wycena to tabela z czterema kolumnami kwot - w 480 px byłaby
     // nieczytelna. Okno rośnie dopiero wtedy, gdy naprawdę jest czym je wypełnić,
     // zamiast stać szerokie przy dwóch polach.
     return (
@@ -165,7 +165,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
             </ModalContent>
             <ModalFooter>
                 <Total>
-                    {total > 0 ? formatGrosze(total) : '—'}
+                    {total > 0 ? formatGrosze(total) : '-'}
                     <small>wartość potencjalnego zlecenia</small>
                 </Total>
                 <PrimaryButton onClick={submit} disabled={markAsLead.isPending}>

@@ -17,10 +17,10 @@ function formatDate(iso: string): string {
 }
 
 /**
- * Parowanie nie wygasa — kończy je dopiero odłączenie urządzenia. Zamiast daty
+ * Parowanie nie wygasa - kończy je dopiero odłączenie urządzenia. Zamiast daty
  * ważności pokazujemy więc to, co realnie mówi o stanie sprzętu: kiedy tablet
  * ostatnio się odezwał. Cisza dłuższa niż doba zwykle znaczy, że urządzenie jest
- * wyłączone albo poza siecią — i o tym warto wiedzieć przed wizytą klienta.
+ * wyłączone albo poza siecią - i o tym warto wiedzieć przed wizytą klienta.
  */
 function lastSeenLabel(lastSeenAt: string | null): { text: string; stale: boolean } {
     if (!lastSeenAt) return { text: 'Jeszcze się nie połączył', stale: true };
@@ -34,7 +34,7 @@ function lastSeenLabel(lastSeenAt: string | null): { text: string; stale: boolea
 /**
  * Ustawienia → Urządzenia mobilne → Tablety do podpisu.
  *
- * Telefony (powiadomienia) i kontakty mają własne zakładki — patrz
+ * Telefony (powiadomienia) i kontakty mają własne zakładki - patrz
  * [MobileDevicesSection]. Trzy różne urządzenia i trzy różne konfiguracje nie
  * mieszczą się czytelnie na jednym przewijanym ekranie.
  */
@@ -249,7 +249,7 @@ const ListHeader = styled.div`
     border-bottom: 1px solid #f1f5f9;
     background: #fafbfc;
 
-    /* Wiersze są na telefonie kafelkami — nagłówek kolumn nie ma czego opisywać. */
+    /* Wiersze są na telefonie kafelkami - nagłówek kolumn nie ma czego opisywać. */
     @media (max-width: 900px) { display: none; }
 `;
 

@@ -1,10 +1,10 @@
 // src/modules/comms/components/LeadCellEditor.tsx
-// Edycja pojedynczej komórki tabeli leadów — chmurka zaczepiona pod klikniętym polem.
+// Edycja pojedynczej komórki tabeli leadów - chmurka zaczepiona pod klikniętym polem.
 //
 // Poprawki w tabeli leadów są drobne i częste: dopisać model auta, którego LLM nie
 // wyłapał, zmienić status po telefonie, dorzucić tag. Droga „otwórz panel, znajdź
 // sekcję, zapisz, zamknij panel" kosztowała cztery kliknięcia i utratę miejsca na
-// liście — przy dziesięciu poprawkach z rzędu to różnica między pracą a mordęgą.
+// liście - przy dziesięciu poprawkach z rzędu to różnica między pracą a mordęgą.
 //
 // Panel szczegółów zostaje dla rzeczy większych: wyceny, historii, usunięcia.
 import { useEffect, useRef, useState } from 'react';
@@ -106,7 +106,7 @@ interface LeadCellEditorProps {
     field: LeadCellField;
     anchor: HTMLElement;
     onClose: () => void;
-    /** „Przegrany" wymaga powodu ze słownika — o to pyta osobne okno w widoku. */
+    /** „Przegrany" wymaga powodu ze słownika - o to pyta osobne okno w widoku. */
     onRequestLost: (leadId: string) => void;
     onChangeStatus: (leadId: string, status: LeadStatus) => void;
 }
@@ -128,7 +128,7 @@ export function LeadCellEditor({
     const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
     const cardRef = useRef<HTMLDivElement | null>(null);
 
-    // Stan startowy bierzemy z leada raz, przy montowaniu — chmurka żyje tylko przez
+    // Stan startowy bierzemy z leada raz, przy montowaniu - chmurka żyje tylko przez
     // jedną edycję, a jej remount (klucz w widoku) zeruje wszystko bez efektu.
     const [brand, setBrand] = useState(lead.vehicleBrand ?? '');
     const [model, setModel] = useState(lead.vehicleModel ?? '');
@@ -147,7 +147,7 @@ export function LeadCellEditor({
             const rect = anchor.getBoundingClientRect();
             const width = 300;
             const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
-            // Pod komórką, chyba że tam już nie ma miejsca — wtedy nad nią.
+            // Pod komórką, chyba że tam już nie ma miejsca - wtedy nad nią.
             const below = window.innerHeight - rect.bottom;
             const top = below > 280 ? rect.bottom + 6 : Math.max(12, rect.top - 286);
             setPos({ top, left });
@@ -210,7 +210,7 @@ export function LeadCellEditor({
                             placeholder="Marka…"
                             onChange={(next) => {
                                 setBrand(next);
-                                // Modele są per marka — zostawiony stary nie przeszedłby walidacji.
+                                // Modele są per marka - zostawiony stary nie przeszedłby walidacji.
                                 setModel('');
                             }}
                         />
@@ -268,7 +268,7 @@ export function LeadCellEditor({
                                 onClick={() => {
                                     onClose();
                                     if (status === lead.status) return;
-                                    // „Przegrany" nie zapisuje się jednym kliknięciem — powód
+                                    // „Przegrany" nie zapisuje się jednym kliknięciem - powód
                                     // przegranej jest osią raportu, więc pyta o niego osobne okno.
                                     if (status === 'LOST') onRequestLost(lead.id);
                                     else onChangeStatus(lead.id, status);

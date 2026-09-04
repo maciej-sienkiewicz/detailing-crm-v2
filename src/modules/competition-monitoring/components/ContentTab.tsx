@@ -7,7 +7,7 @@ import { DAYPART_LABELS, DAY_LABELS, FORMAT_LABELS } from '../types';
 import { useContent, useHashtags, useHeatmap, useReactToPost } from '../hooks/useAnalytics';
 import { Card, CardTitle, CardHint, CenterState, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
 
-/** „1 post", „3 posty", „12 postów" — polska odmiana po liczebniku. */
+/** „1 post", „3 posty", „12 postów" - polska odmiana po liczebniku. */
 const postsWordForm = (count: number): string => {
     const lastTwo = count % 100;
     if (lastTwo >= 12 && lastTwo <= 14) return 'postów';
@@ -533,13 +533,13 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                 </CardHint>
                             )}
                             {/* Bez tej informacji liczby w komórkach nie zgadzałyby się z tym,
-                                co widać na profilach konkurencji — a użytkownik nie miałby jak
+                                co widać na profilach konkurencji - a użytkownik nie miałby jak
                                 się domyślić, że część postów świadomie pomijamy. */}
                             {heatmapQuery.data.excludedOutliers > 0 && (
                                 <CardHint style={{ marginTop: 6, marginBottom: 0 }}>
                                     Pominięto {heatmapQuery.data.excludedOutliers}{' '}
                                     {postsWordForm(heatmapQuery.data.excludedOutliers)} o skrajnie
-                                    wysokich reakcjach (górne 10%) — oznaczenia znanych kont, płatne
+                                    wysokich reakcjach (górne 10%) - oznaczenia znanych kont, płatne
                                     promocje i virale zaburzałyby wskazanie pory.
                                 </CardHint>
                             )}

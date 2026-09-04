@@ -1,11 +1,11 @@
 // src/modules/campaigns/components/ContentPreview.tsx
 // Podgląd treści: tak zobaczy ją klient.
 //
-// Metafora nośnika zostaje — dymek w oknie telefonu i nagłówek klienta poczty
+// Metafora nośnika zostaje - dymek w oknie telefonu i nagłówek klienta poczty
 // mówią „SMS" i „e-mail" szybciej niż jakakolwiek etykieta. Zniknęły natomiast
 // barwy przypisane kanałom: błękitna kreska nad SMS-em i fioletowa nad e-mailem
 // nie niosły żadnej informacji poza „to są dwie różne rzeczy", co widać i bez
-// koloru. Kolor w tym module znaczy etap, pilność albo akcję główną — kanał
+// koloru. Kolor w tym module znaczy etap, pilność albo akcję główną - kanał
 // rozpoznaje się po ikonie i po kształcie podglądu.
 import { useMemo } from 'react';
 import styled from 'styled-components';
@@ -97,7 +97,7 @@ const ChannelHead = styled.header`
   }
 `;
 
-/** Liczby segmentów i kodowania — fakt techniczny, więc stoi cicho pod treścią. */
+/** Liczby segmentów i kodowania - fakt techniczny, więc stoi cicho pod treścią. */
 const MetaRow = styled.div`
   display: flex;
   align-items: center;
@@ -266,13 +266,13 @@ interface Props {
   /**
    * Kanał wymuszający ramkę podglądu, nawet gdy treści jeszcze nie ma.
    *
-   * W kreatorze podgląd stoi obok edytora i wypełnia się w trakcie pisania — pusta
+   * W kreatorze podgląd stoi obok edytora i wypełnia się w trakcie pisania - pusta
    * ramka pokazuje, gdzie wyląduje tekst. W oknie gotowej kampanii nie ma czego
    * wymuszać: pokazujemy to, co w niej naprawdę jest.
    */
   channel?: CampaignChannel;
   /**
-   * `stacked` układa kanały jeden pod drugim niezależnie od szerokości okna —
+   * `stacked` układa kanały jeden pod drugim niezależnie od szerokości okna -
    * dla wąskiej kolumny podglądu w kreatorze, której zapytanie o szerokość ekranu
    * i tak nie widzi.
    */

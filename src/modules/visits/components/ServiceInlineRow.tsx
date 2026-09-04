@@ -451,7 +451,7 @@ const ActionBtns = styled.div`
     gap: 6px;
     justify-content: flex-end;
 
-    /* Stacked, these three pills ate a third of the phone screen — keep them in
+    /* Stacked, these three pills ate a third of the phone screen - keep them in
        one row where they still read fine at 12px. */
     @media (max-width: 767px) {
         gap: 8px;

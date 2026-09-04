@@ -2,8 +2,8 @@
 //
 // Ustawienia → Oznaczenia.
 //
-// Numeracja wizyt i kolory odpowiadają na to samo pytanie — „po czym poznajemy
-// wizytę?" — i obie są ustawieniem studia, a nie modułem. Wcześniej numeracja
+// Numeracja wizyt i kolory odpowiadają na to samo pytanie - „po czym poznajemy
+// wizytę?" - i obie są ustawieniem studia, a nie modułem. Wcześniej numeracja
 // była osobną pozycją w nawigacji, a kolory nie miały jej wcale: widok istniał
 // pod /appointment-colors, do którego nic nie prowadziło.
 

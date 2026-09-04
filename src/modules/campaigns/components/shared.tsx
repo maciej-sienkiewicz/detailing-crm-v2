@@ -1,9 +1,9 @@
 // src/modules/campaigns/components/shared.tsx
-// Język wizualny modułu kampanii — ten sam, którym mówi moduł leadów.
+// Język wizualny modułu kampanii - ten sam, którym mówi moduł leadów.
 //
 // Prawo Jakoba działa też wewnątrz jednej aplikacji: użytkownik spędza w CRM-ie
 // cały dzień i uczy się jednego zestawu znaków. Kampanie miały do niedawna
-// własny — inne promienie, inne przyciski, własną paletę akcentów — więc każdy
+// własny - inne promienie, inne przyciski, własną paletę akcentów - więc każdy
 // ekran trzeba było czytać od zera. Podstawowe klocki (karta-powierzchnia, chip
 // filtra, przyciski, pusty stan) są tu dlatego **re-eksportowane** z modułu
 // komunikacji, a nie skopiowane: jedna definicja to jedyna gwarancja, że oba
@@ -40,7 +40,7 @@ export const ViewContainer = styled.main`
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
-/** @deprecated Nazwa z poprzedniego układu — zostaje, żeby nie przepisywać importów naraz. */
+/** @deprecated Nazwa z poprzedniego układu - zostaje, żeby nie przepisywać importów naraz. */
 export const Page = ViewContainer;
 
 /**
@@ -49,7 +49,7 @@ export const Page = ViewContainer;
  * panel jest białym prostokątem w identycznej ramce, żaden nie jest ważniejszy
  * i trzeba przeczytać wszystkie, żeby dowiedzieć się, co było istotne.
  *
- * Bliźniak panelu z okna leada — łącznie z nagłówkiem h4 pisanym wersalikami.
+ * Bliźniak panelu z okna leada - łącznie z nagłówkiem h4 pisanym wersalikami.
  */
 export const Panel = styled.section<{ $quiet?: boolean }>`
     display: flex;
@@ -77,7 +77,7 @@ export const Panel = styled.section<{ $quiet?: boolean }>`
     h4 .spacer { flex: 1; }
 `;
 
-/** @deprecated Używaj [Panel] — SectionCard to ta sama rzecz pod starą nazwą. */
+/** @deprecated Używaj [Panel] - SectionCard to ta sama rzecz pod starą nazwą. */
 export const SectionCard = Panel;
 
 export const Eyebrow = styled.div`
@@ -91,7 +91,7 @@ export const Eyebrow = styled.div`
 // ─── Etap kampanii ────────────────────────────────────────────────────────────
 
 /**
- * Etap: kropka i nazwa zdaniem — dokładnie jak status leada w tabeli leadów.
+ * Etap: kropka i nazwa zdaniem - dokładnie jak status leada w tabeli leadów.
  *
  * Poprzednio stała tu wypełniona plakietka pisana KAPITALIKAMI. W kolumnie,
  * w której każdy wiersz ma status, wypełnione plakietki nie wyróżniają niczego
@@ -127,7 +127,7 @@ export function CampaignStatusLine({ status }: { status: CampaignStatus }) {
 }
 
 /**
- * Rodzaj kampanii — ikona i słowo, bez ramki.
+ * Rodzaj kampanii - ikona i słowo, bez ramki.
  *
  * To nie jest stan i nie ma prawa wyglądać jak stan: w wierszu, który obok nosi
  * już etap, druga owalna plakietka zamienia komórkę w kolaż. Rodzaj rozpoznaje
@@ -164,7 +164,7 @@ export const MutedText = styled.span`
 `;
 
 /**
- * Chip kryterium odbiorców — opis, nie akcja i nie stan.
+ * Chip kryterium odbiorców - opis, nie akcja i nie stan.
  *
  * Wcześniej był wypełniony błękitem, tym samym, którym mówi akcja główna.
  * Kilkanaście niebieskich owali pod tabelą wyglądało jak kilkanaście przycisków
@@ -189,7 +189,7 @@ export const ChipRow = styled.div`
 `;
 
 /**
- * Notka nad treścią — wyjaśnienie stanu, nie pole formularza. Trzy tony,
+ * Notka nad treścią - wyjaśnienie stanu, nie pole formularza. Trzy tony,
  * te same co w oknie leada: bursztyn ostrzega, czerwień mówi „coś nie wyszło",
  * zieleń potwierdza wynik. Neutralna wersja niesie samą informację.
  */
@@ -226,7 +226,7 @@ export const Note = styled.div<{ $tone?: 'warn' | 'error' | 'ok' }>`
 export const InfoBanner = Note;
 
 /**
- * Droga do innego miejsca albo drobna akcja poboczna — odnośnik tekstowy,
+ * Droga do innego miejsca albo drobna akcja poboczna - odnośnik tekstowy,
  * nie przycisk. Nawigacja nie ma prawa konkurować wagą z akcją główną okna.
  */
 export const QuietLink = styled.button`
@@ -246,7 +246,7 @@ export const QuietLink = styled.button`
     &:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
 `;
 
-/** Akcja nieodwracalna — stoi z dala od akcji głównej. Bliźniak z okna leada. */
+/** Akcja nieodwracalna - stoi z dala od akcji głównej. Bliźniak z okna leada. */
 export const DangerButton = styled.button`
     display: inline-flex;
     align-items: center;
@@ -275,7 +275,7 @@ export const DangerButton = styled.button`
  *
  * Przebieg kampanii jest ciągiem: „utworzono, zaplanowano, ruszyło, skończyło
  * się". Płaskie zdania każą ten ciąg złożyć w głowie, bo wszystkie linijki ważą
- * tyle samo. Pionowa nitka z kropkami pokazuje go wprost — to ten sam element,
+ * tyle samo. Pionowa nitka z kropkami pokazuje go wprost - to ten sam element,
  * którym historia statusów rysowana jest w oknie leada.
  */
 export const Timeline = styled.ol`
@@ -326,7 +326,7 @@ export const TimelineItem = styled.li<{ $color: string }>`
 `;
 
 /**
- * Pole tekstowe / liczbowe w tokenach motywu — jedno na cały moduł.
+ * Pole tekstowe / liczbowe w tokenach motywu - jedno na cały moduł.
  *
  * [$invalid] to nie ozdoba, tylko odpowiedź na pytanie „dlaczego nie mogę iść
  * dalej": czerwona ramka zapala się dopiero wtedy, gdy ktoś spróbował przejść
@@ -351,7 +351,7 @@ export const TextField = styled.input<{ $invalid?: boolean }>`
 `;
 
 /**
- * Akcja główna, która nie może jeszcze zadziałać — ale odpowiada na kliknięcie.
+ * Akcja główna, która nie może jeszcze zadziałać - ale odpowiada na kliknięcie.
  *
  * `disabled` w HTML-u wycisza przycisk całkowicie: nie da się go kliknąć, nie da
  * się na niego wejść tabulatorem, a przeglądarka nie mówi, czego brakuje. Ktoś,
@@ -375,7 +375,7 @@ export const GuardedButton = styled(PrimaryButtonBase)`
 
 /**
  * Pole wyboru odbiorcy. Natywny [input type=checkbox] przemalowany akcentem
- * motywu — własna implementacja z div-ów traci obsługę klawiatury i czytników
+ * motywu - własna implementacja z div-ów traci obsługę klawiatury i czytników
  * ekranu, a nie daje w zamian nic poza kształtem.
  */
 export const CheckBox = styled.input.attrs({ type: 'checkbox' })`
@@ -444,7 +444,7 @@ export const TextAreaField = styled.textarea`
     &:focus { outline: none; border-color: ${p => p.theme.colors.primary}; }
 `;
 
-/** Etykieta pola: wersaliki, jak nagłówek panelu — nie krzyczy, porządkuje. */
+/** Etykieta pola: wersaliki, jak nagłówek panelu - nie krzyczy, porządkuje. */
 export const FieldLabel = styled.label`
     display: flex;
     align-items: center;
@@ -473,8 +473,8 @@ export const HintText = styled.p`
 // ─── System pól filtrów ───────────────────────────────────────────────────────
 //
 // Sekcje kryteriów odbiorców miały wcześniej tyle wzorów pola, ile pól: liczba
-// wizyt to były dwa gołe inputy obok siebie, dni — input i luźny napis „dni temu",
-// pieniądze — input bez waluty, a typ klienta zwykły <select>. Każdy wiersz trzeba
+// wizyt to były dwa gołe inputy obok siebie, dni - input i luźny napis „dni temu",
+// pieniądze - input bez waluty, a typ klienta zwykły <select>. Każdy wiersz trzeba
 // było odczytać osobno, bo żaden nie wyglądał jak poprzedni.
 //
 // Poniżej jest jeden zestaw klocków, z których zbudowane są wszystkie: wiersz ma
@@ -507,7 +507,7 @@ export const FilterGrid = styled.div`
 `;
 
 /**
- * Ramka kontrolki. Wszystko, co przyjmuje wartość — pole liczbowe, zakres, lista —
+ * Ramka kontrolki. Wszystko, co przyjmuje wartość - pole liczbowe, zakres, lista -
  * dostaje tę samą ramkę, ten sam promień i tę samą reakcję na fokus. Dzięki temu
  * „gdzie mogę pisać" rozpoznaje się kształtem, a nie zgadywaniem.
  */
@@ -607,7 +607,7 @@ interface RangeFieldProps {
  * Zakres „od–do" jako jedna kontrolka, nie dwa osobne pola.
  *
  * Dwa inputy obok siebie to dwie wartości; ta sama ramka z kreską w środku to
- * jeden przedział — a użytkownik myśli tu przedziałem („od trzech do pięciu wizyt"),
+ * jeden przedział - a użytkownik myśli tu przedziałem („od trzech do pięciu wizyt"),
  * nie dwiema niezależnymi liczbami.
  */
 export function RangeField({ from, to, onChange, unit, min, fromLabel = 'od', toLabel = 'do' }: RangeFieldProps) {

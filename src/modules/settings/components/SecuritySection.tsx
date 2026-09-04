@@ -192,7 +192,7 @@ const Hint = styled.p`
  *
  * Reset idzie tą samą drogą co „nie pamiętam hasła" z ekranu logowania:
  * backend wysyła na adres konta link ważny 30 minut. Świadomie nie robimy
- * zmiany hasła na miejscu — nie ma endpointu, który weryfikowałby stare hasło
+ * zmiany hasła na miejscu - nie ma endpointu, który weryfikowałby stare hasło
  * zalogowanego użytkownika, a zmiana bez tej weryfikacji oznaczałaby, że
  * porzucony na chwilę, odblokowany ekran wystarczy do przejęcia konta.
  * Link na skrzynkę wymaga dostępu do poczty, więc trzyma ten sam poziom.

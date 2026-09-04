@@ -109,13 +109,13 @@ interface SigningRequirementModalProps {
     isOpen: boolean;
     isCreating: boolean;
     /**
-     * Wyjście bez zmian — szkic zostaje nietknięty. Przekazywane TYLKO przy dokańczaniu
+     * Wyjście bez zmian - szkic zostaje nietknięty. Przekazywane TYLKO przy dokańczaniu
      * przyjęcia z listy „Nieukończone przyjęcia", gdzie zamknięcie okna niczego nie
      * zmienia. W kreatorze przyjęcia nie ma takiej drogi: przyjęcie albo się kończy,
      * albo się je anuluje (patrz [AbandonCheckInDialog]).
      */
     onLeaveForLater?: () => void;
-    /** Wizyta anulowana — szkic i jego dokumenty zostały usunięte. */
+    /** Wizyta anulowana - szkic i jego dokumenty zostały usunięte. */
     onCancel: () => void;
     visitId: string | null;
     visitNumber: string;
@@ -135,7 +135,7 @@ interface SigningRequirementModalProps {
     signedProtocolIds?: string[];
     /**
      * Wizyta potwierdzona. `sendVisitCard` niesie decyzję z przełącznika „Wyślij SMS
-     * z linkiem do Karty Wizyty" — samą wysyłkę robi właściciel kreatora, razem
+     * z linkiem do Karty Wizyty" - samą wysyłkę robi właściciel kreatora, razem
      * z własnymi komunikatami.
      */
     onConfirm: (result: { sendVisitCard: boolean }) => void;
@@ -200,7 +200,7 @@ export const SigningRequirementModal = ({
         },
         onSuccess: () => {
             setExitPromptOpen(false);
-            showSuccess('Wizyta została anulowana', 'Rezerwacja pozostała w kalendarzu — auto można przyjąć od nowa.');
+            showSuccess('Wizyta została anulowana', 'Rezerwacja pozostała w kalendarzu - auto można przyjąć od nowa.');
             onCancel();
         },
         onError: (error: unknown) => {
@@ -233,7 +233,7 @@ export const SigningRequirementModal = ({
 
     /*
      * Ostatnia zapora: zamknięcie karty, przeładowanie, „wstecz" przeglądarki.
-     * Przeglądarka pokaże własny komunikat — treści nie da się ustawić — ale samo
+     * Przeglądarka pokaże własny komunikat - treści nie da się ustawić - ale samo
      * pytanie wystarcza, żeby przypadkowe wyjście nie zostawiło rozgrzebanego
      * przyjęcia. Pilnujemy tego tylko wtedy, gdy wizyta naprawdę czeka na decyzję.
      */
@@ -336,13 +336,13 @@ export const SigningRequirementModal = ({
      * Wysyłka CAŁEGO kompletu jednym kliknięciem.
      *
      * Backend trzyma kolejkę FIFO per tablet, a tablet po każdym podpisie sam
-     * wyświetla następny dokument — pracownik nie wraca do tego okna między
+     * wyświetla następny dokument - pracownik nie wraca do tego okna między
      * dokumentami. Wysyłamy SEKWENCYJNIE, w kolejności listy: created_at żądań
      * wyznacza kolejność podpisywania na tablecie, więc równoległe POST-y
      * potrafiłyby ją przetasować.
      *
      * Pomijamy dokumenty, które nie mogą wystartować (już podpisane, w trakcie);
-     * błąd jednego dokumentu nie przerywa wysyłki pozostałych — jego wiersz
+     * błąd jednego dokumentu nie przerywa wysyłki pozostałych - jego wiersz
      * pokazuje „Ponów" jak przy wysyłce pojedynczej.
      */
     const batchSendableIds = protocols

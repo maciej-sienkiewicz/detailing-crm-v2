@@ -226,12 +226,12 @@ export const VehicleDetailView = () => {
     const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
-    // Pozycja dymka „Pokaż w kalendarzu" — jedna na całą listę, bo naraz
+    // Pozycja dymka „Pokaż w kalendarzu" - jedna na całą listę, bo naraz
     // najeżdżamy na jeden wiersz.
     const [rowHint, setRowHint] = useState<{ left: number; top: number; label: string } | null>(null);
 
     // Dymek jest pozycjonowany na sztywno względem okna, więc przy przewijaniu
-    // oderwałby się od swojego wiersza — chowamy go zamiast przeliczać.
+    // oderwałby się od swojego wiersza - chowamy go zamiast przeliczać.
     useEffect(() => {
         if (!rowHint) return;
         const hide = () => setRowHint(null);
@@ -239,7 +239,7 @@ export const VehicleDetailView = () => {
         return () => window.removeEventListener('scroll', hide, true);
     }, [rowHint]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    // Karta pojazdu jest długa — na telefonie dzielimy ją na sekcje przełączane
+    // Karta pojazdu jest długa - na telefonie dzielimy ją na sekcje przełączane
     // paskiem przy dolnej krawędzi, tak samo jak kartę klienta.
     const [mobileTab, setMobileTab] = useState<VehicleMobileTab>('visits');
     const [isKebabOpen, setIsKebabOpen] = useState(false);
@@ -496,7 +496,7 @@ export const VehicleDetailView = () => {
                     <LeftRail>
                       <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
 
-                        {/* Tożsamość pojazdu — logo, nazwa, tablica i ID — niesie teraz
+                        {/* Tożsamość pojazdu - logo, nazwa, tablica i ID - niesie teraz
                             nagłówek, więc lewa szyna zaczyna się od danych technicznych. */}
 
                         {/* Technical specs */}
@@ -682,7 +682,7 @@ export const VehicleDetailView = () => {
                                                         navigate(`/visits/${event.id}`);
                                                         return;
                                                     }
-                                                    // Rezerwacja nie ma własnego widoku — żyje w kalendarzu.
+                                                    // Rezerwacja nie ma własnego widoku - żyje w kalendarzu.
                                                     // Ten sam kontrakt, co deep-link z Aktywności: podświetl
                                                     // zdarzenie i otwórz jego podsumowanie.
                                                     setRowHint(null);

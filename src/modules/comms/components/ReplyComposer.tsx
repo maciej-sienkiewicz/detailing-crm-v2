@@ -3,17 +3,17 @@
 //
 // Treść pisze się w uproszczonym edytorze (RichTextEditor): pogrubienie, kursywa,
 // podkreślenie, listy, odnośniki. HTML z edytora jest sprowadzany do ustalonego
-// dialektu (normalizeComposerHtml) przed wysyłką i przed korektą — backend i tak
+// dialektu (normalizeComposerHtml) przed wysyłką i przed korektą - backend i tak
 // sanityzuje, ale ma dostać coś już czystego.
 //
 // Załączniki: spinacz w pasku edytora, upuszczenie pliku na kompozytor albo
 // wklejenie. Limity są sprawdzane tu, zanim plik poleci na serwer (OUTGOING_ATTACHMENT_LIMITS
-// to lustro OutgoingAttachmentPolicy z backendu) — błąd o 15 MB ma się pojawić w chwili
+// to lustro OutgoingAttachmentPolicy z backendu) - błąd o 15 MB ma się pojawić w chwili
 // wyboru pliku, a nie po minucie wysyłania.
 //
 // Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
 // uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
-// schowane pod dyskretnym przełącznikiem — na wypadek, gdy ktoś chce je sprawdzić.
+// schowane pod dyskretnym przełącznikiem - na wypadek, gdy ktoś chce je sprawdzić.
 import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
 import styled from 'styled-components';
 import {
@@ -47,7 +47,7 @@ const Composer = styled.div<{ $dragging: boolean }>`
     flex-direction: column;
     gap: 8px;
 
-    /* Cały kompozytor jest strefą zrzutu — nie trzeba celować w edytor. */
+    /* Cały kompozytor jest strefą zrzutu - nie trzeba celować w edytor. */
     ${({ $dragging, theme }) =>
         $dragging &&
         `
@@ -106,7 +106,7 @@ const LeftActions = styled.div`
 `;
 
 /**
- * Przełącznik stopki. Stan „włączony/wyłączony" musi być widoczny bez klikania —
+ * Przełącznik stopki. Stan „włączony/wyłączony" musi być widoczny bez klikania -
  * decyzja o tym, co dokleimy do cudzej skrzynki, nie może wymagać sprawdzania.
  */
 const SignatureToggle = styled.button<{ $on: boolean }>`
@@ -177,7 +177,7 @@ const RecipientToggle = styled.button`
     &:hover { color: #4b5563; }
 `;
 
-/** Przycisk korekty — obok „Wyślij", ale wizualnie wtórny wobec niego. */
+/** Przycisk korekty - obok „Wyślij", ale wizualnie wtórny wobec niego. */
 const ProofreadButton = styled.button`
     display: inline-flex;
     align-items: center;
@@ -214,7 +214,7 @@ const SendGroup = styled.div`
     gap: 8px;
 `;
 
-/** Spinacz w pasku edytora — tam, gdzie reszta narzędzi treści. */
+/** Spinacz w pasku edytora - tam, gdzie reszta narzędzi treści. */
 const AttachButton = styled.button<{ $active: boolean }>`
     display: inline-flex;
     align-items: center;
@@ -240,7 +240,7 @@ const AttachButton = styled.button<{ $active: boolean }>`
 `;
 
 /**
- * Lista dołączonych plików. Każdy chip pokazuje nazwę i wagę — waga jest tu
+ * Lista dołączonych plików. Każdy chip pokazuje nazwę i wagę - waga jest tu
  * ważniejsza niż zwykle, bo limit dotyczy sumy i użytkownik ma widzieć, ile zostało.
  */
 const AttachmentList = styled.div`
@@ -320,7 +320,7 @@ interface ReplyComposerProps {
     /** Nazwa odbiorcy do dyskretnej etykiety, gdy pole „Do" jest schowane. */
     recipientLabel?: string;
     requireSubject?: boolean;
-    /** Wywołane po wysłaniu — z id wątku, w którym wylądowała wiadomość. */
+    /** Wywołane po wysłaniu - z id wątku, w którym wylądowała wiadomość. */
     onSent?: (threadId: string) => void;
 }
 
@@ -334,7 +334,7 @@ export function ReplyComposer({
 }: ReplyComposerProps) {
     const [to, setTo] = useState(initialTo ?? '');
     const [subject, setSubject] = useState('');
-    // Surowy innerHTML edytora — normalizacja dopiero przy wysyłce i korekcie.
+    // Surowy innerHTML edytora - normalizacja dopiero przy wysyłce i korekcie.
     const [body, setBody] = useState('');
     const [attachments, setAttachments] = useState<File[]>([]);
     const [dragging, setDragging] = useState(false);
@@ -348,12 +348,12 @@ export function ReplyComposer({
     // Ręczna decyzja użytkownika wygrywa z ustawieniem domyślnym stopki; dopóki jej
     // nie podjął, przełącznik pokazuje to, co sam skonfigurował w ustawieniach.
     const [signatureChoice, setSignatureChoice] = useState<boolean | null>(null);
-    // Treść sprzed korekty — dopóki użytkownik jej nie tknął, można wrócić jednym kliknięciem.
+    // Treść sprzed korekty - dopóki użytkownik jej nie tknął, można wrócić jednym kliknięciem.
     const [beforeProofread, setBeforeProofread] = useState<string | null>(null);
     const proofread = useProofread();
     const hasSignature = Boolean(signature?.bodyHtml);
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
-    // W wątku odbiorca jest oczywisty — pokazujemy go dopiero na żądanie.
+    // W wątku odbiorca jest oczywisty - pokazujemy go dopiero na żądanie.
     const replyInThread = Boolean(threadId) && Boolean(initialTo);
     const [recipientShown, setRecipientShown] = useState(!replyInThread);
 
@@ -362,7 +362,7 @@ export function ReplyComposer({
 
     /**
      * Dokłada pliki z dowolnego źródła (okno wyboru, upuszczenie, schowek),
-     * odrzucając te, których i tak nie przyjmie backend — z tym samym komunikatem,
+     * odrzucając te, których i tak nie przyjmie backend - z tym samym komunikatem,
      * który dostałby użytkownik po wysyłce, tylko że od razu.
      */
     const addFiles = (incoming: File[]) => {
@@ -375,7 +375,7 @@ export function ReplyComposer({
                 if (accepted.some((existing) => sameFile(existing, file))) continue;
                 const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
                 if (blockedExtensions.has(extension)) {
-                    showError(`Nie dołączono „${file.name}"`, `Pliki .${extension} są odrzucane przez serwery pocztowe — spakuj plik do ZIP`);
+                    showError(`Nie dołączono „${file.name}"`, `Pliki .${extension} są odrzucane przez serwery pocztowe - spakuj plik do ZIP`);
                     continue;
                 }
                 if (file.size === 0) {
@@ -424,7 +424,7 @@ export function ReplyComposer({
         addFiles(Array.from(event.dataTransfer.files));
     };
 
-    /** Zrzut ekranu wklejony ze schowka — najczęstszy załącznik w rozmowie o aucie. */
+    /** Zrzut ekranu wklejony ze schowka - najczęstszy załącznik w rozmowie o aucie. */
     const onPasteFiles = (event: ClipboardEvent<HTMLDivElement>) => {
         const files = Array.from(event.clipboardData.files ?? []);
         if (files.length === 0) return;
@@ -640,7 +640,7 @@ export function ReplyComposer({
                     <ProofreadButton
                         onClick={runProofread}
                         disabled={proofread.isPending || bodyEmpty}
-                        title="Popraw literówki, interpunkcję i odmianę — bez zmiany treści"
+                        title="Popraw literówki, interpunkcję i odmianę - bez zmiany treści"
                     >
                         {proofread.isPending
                             ? <><Loader2 size={14} className="spin" /> Poprawiam…</>

@@ -69,7 +69,7 @@ const ListWrap = styled.div`
 
     @media (max-width: 900px) {
         min-width: 0;
-        /* Kafelki są białe — tło listy musi być od nich ciemniejsze, inaczej
+        /* Kafelki są białe - tło listy musi być od nich ciemniejsze, inaczej
            zaokrąglone rogi i odstępy nie są widoczne. */
         background: ${st.bg};
         padding: 2px 0;
@@ -133,7 +133,7 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOp
         background: ${st.bgCard};
         border: 1px solid ${st.border};
         border-radius: 12px;
-        /* Pasek statusu zostaje — tylko teraz obrysowuje róg kafelki. */
+        /* Pasek statusu zostaje - tylko teraz obrysowuje róg kafelki. */
         box-shadow: inset 3px 0 0 ${props => props.$accentColor}, 0 1px 2px rgba(15, 23, 42, 0.05);
         animation: none;
 
@@ -768,7 +768,7 @@ export const OperationalDataTable = ({
     // celem (otwarcie wizyty), więc odnośniki do profilu klienta i pojazdu
     // w jej środku tylko przenoszą użytkownika tam, gdzie nie chciał trafić.
     const isCompact = useMediaQuery('(max-width: 900px)');
-    // Rect wiersza, z którego otwarto menu — „Pokaż w kalendarzu" animuje
+    // Rect wiersza, z którego otwarto menu - „Pokaż w kalendarzu" animuje
     // przelot kafelki do siatki kalendarza i potrzebuje punktu startu.
     const [menuRowRect, setMenuRowRect] = useState<DOMRect | null>(null);
     const [contextMenu, setContextMenu] = useState<{ op: Operation; x: number; y: number; sourceRect: DOMRect } | null>(null);

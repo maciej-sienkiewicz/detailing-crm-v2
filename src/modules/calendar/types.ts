@@ -24,7 +24,7 @@ export interface CalendarSmsInfo {
 export type CalendarEventType = 'APPOINTMENT' | 'VISIT' | 'STUDIO_EVENT';
 
 /**
- * Wydarzenie studia — wpis w kalendarzu, który nie jest wizytą ani rezerwacją.
+ * Wydarzenie studia - wpis w kalendarzu, który nie jest wizytą ani rezerwacją.
  * Zakres dni jest domknięty z obu stron: [endDate] to ostatni dzień trwania,
  * tak jak widzi to użytkownik (FullCalendar dostaje koniec przesunięty o dzień).
  */

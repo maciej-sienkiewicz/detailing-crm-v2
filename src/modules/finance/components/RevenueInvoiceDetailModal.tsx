@@ -31,13 +31,13 @@ import type { RevenueInvoice, RevenueParty } from '../types';
 
 // ─── Wizualizacja dokumentu ──────────────────────────────────────────────────
 // Układ celowo bliźniaczy do podglądu faktury kosztowej: ta sama „kartka",
-// te same proporcje. Faktura to dokument, a nie lista pól — dlatego dane stron,
+// te same proporcje. Faktura to dokument, a nie lista pól - dlatego dane stron,
 // płatności i kwot mają własne wiersze, nigdy sklejenie separatorem.
 
 /**
  * ModalContent jest kolumną flex ze scrollem, więc każdy bezpośredni element musi
  * mieć flex-shrink: 0. Bez tego przeglądarka ściska kartkę do wysokości okna
- * zamiast pozwolić jej wystawać — a że kartka ma overflow: hidden, dół faktury
+ * zamiast pozwolić jej wystawać - a że kartka ma overflow: hidden, dół faktury
  * znikał bez możliwości doscrollowania.
  */
 const Paper = styled.div`
@@ -463,7 +463,7 @@ const formatBankAccount = (account: string): string => {
 };
 
 /**
- * Adres strony jako osobne wiersze. Kraj tylko wtedy, gdy nie jest polski —
+ * Adres strony jako osobne wiersze. Kraj tylko wtedy, gdy nie jest polski -
  * „PL" pod polskim adresem to szum, a nie informacja.
  */
 const partyAddressLines = (party: RevenueParty): string[] => {
@@ -554,7 +554,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             {invoice.excluded && (
               <HiddenBox>
-                Faktura jest ukryta ze statystyk — nie wchodzi do kafli podsumowania ani do
+                Faktura jest ukryta ze statystyk - nie wchodzi do kafli podsumowania ani do
                 raportów. Dokument nadal istnieje w KSeF i pozostaje prawnie wiążący.
               </HiddenBox>
             )}
@@ -588,7 +588,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             {invoice.ksefStatus === 'NOT_SENT' && (
               <OfflineBox>
-                Faktura została wystawiona bez wysyłki do KSeF — dokument istnieje w CRM,
+                Faktura została wystawiona bez wysyłki do KSeF - dokument istnieje w CRM,
                 ale nie w KSeF. Możesz pobrać jego plik XML i wgrać go ręcznie albo wysłać
                 fakturę przyciskiem poniżej.
               </OfflineBox>
@@ -683,7 +683,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     <ItemsEmpty>
                       {invoice.detailsSynced
                         ? 'Brak pozycji dla tego dokumentu.'
-                        : 'Pozycje zostaną uzupełnione przy najbliższej synchronizacji z KSeF — ' +
+                        : 'Pozycje zostaną uzupełnione przy najbliższej synchronizacji z KSeF - ' +
                           'pobranie treści faktury objęte jest limitem żądań, więc idzie osobno od listy.'}
                     </ItemsEmpty>
                   ) : (
@@ -738,7 +738,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                   </TotalsBox>
                 </TotalsRow>
 
-                {/* Płatność i dane uzupełniające — każde pole osobno, puste pomijamy */}
+                {/* Płatność i dane uzupełniające - każde pole osobno, puste pomijamy */}
                 <MetaGrid>
                   <div>
                     <Eyebrow>Status płatności</Eyebrow>
@@ -782,7 +782,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
                 {invoice.note && <NoteBox>{invoice.note}</NoteBox>}
 
-                {/* Kod QR KSeF (KOD I) — weryfikacja dokumentu u źródła */}
+                {/* Kod QR KSeF (KOD I) - weryfikacja dokumentu u źródła */}
                 {invoice.ksefVerificationUrl ? (
                   <QrPanel>
                     <QrFrame

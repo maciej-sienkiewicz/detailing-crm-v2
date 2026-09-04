@@ -148,7 +148,7 @@ const GridMain = styled.div`
     gap: 22px;
     align-items: flex-start;
 
-    /* Na telefonie stała szyna 232px zostawiała treści ~130px — sekcja robiła
+    /* Na telefonie stała szyna 232px zostawiała treści ~130px - sekcja robiła
        się nieczytelna. Nawigacja chowa się wtedy pod przyciskiem, a treść
        dostaje całą szerokość ekranu. */
     @media (max-width: 900px) {
@@ -179,7 +179,7 @@ const Nav = styled.nav<{ $openOnMobile?: boolean }>`
 
 /**
  * Przełącznik nawigacji na telefonie: pokazuje, gdzie jesteś, i rozwija listę
- * pozostałych sekcji. Na desktopie niepotrzebny — tam lista stoi obok treści.
+ * pozostałych sekcji. Na desktopie niepotrzebny - tam lista stoi obok treści.
  */
 const NavToggle = styled.button<{ $open: boolean }>`
     display: none;
@@ -284,7 +284,7 @@ const Content = styled.main`
     flex-direction: column;
     gap: 18px;
 
-    /* Treść sekcji bierze całą szerokość ekranu — szerokie tabele i siatki
+    /* Treść sekcji bierze całą szerokość ekranu - szerokie tabele i siatki
        przewijają się w swoim kontenerze, nie rozpychają strony. */
     @media (max-width: 900px) {
         gap: 12px;
@@ -458,7 +458,7 @@ export function SettingsView() {
         content = <SmsCreditSection />;
     } else if (section === 'mobile-devices') {
         // Zakładka „Urządzenia mobilne": tablety do podpisu, powiadomienia na telefon
-        // i synchronizacja kontaktów — trzy osobne widoki jednego tematu.
+        // i synchronizacja kontaktów - trzy osobne widoki jednego tematu.
         content = (
             <MobileDevicesSection
                 subView={mobileDevicesSubView}

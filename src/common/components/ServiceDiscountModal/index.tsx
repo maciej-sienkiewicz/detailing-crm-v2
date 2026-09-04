@@ -30,7 +30,7 @@ const DEFAULT_DISCOUNT_TYPES: AdjustmentType[] = [
 export interface ServiceDiscountModalProps {
     /** Nazwa usługi pokazywana pod tytułem. */
     serviceName: string;
-    /** Cena bazowa (przed rabatem) w groszach — netto. */
+    /** Cena bazowa (przed rabatem) w groszach - netto. */
     basePriceNet?: number | null;
     /** Dokładne brutto z cennika, jeśli jest; inaczej wyliczane z netto i VAT. */
     basePriceGross?: number | null;
@@ -40,7 +40,7 @@ export interface ServiceDiscountModalProps {
     /** Dostępne rodzaje rabatu; domyślnie wszystkie. */
     types?: AdjustmentType[];
     onApply: (adjustment: PriceAdjustment) => void;
-    /** Gdy podane i rabat już istnieje — pokazujemy "Usuń rabat". */
+    /** Gdy podane i rabat już istnieje - pokazujemy "Usuń rabat". */
     onRemove?: () => void;
     onClose: () => void;
 }
@@ -75,7 +75,7 @@ export const ServiceDiscountModal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
 
-    // Blokada przewijania tła i układ przy wysuniętej klawiaturze — jak
+    // Blokada przewijania tła i układ przy wysuniętej klawiaturze - jak
     // w ModalShell. Escape zostaje wyżej, bo zatrzymuje propagację.
     const overlayRef = useRef<HTMLDivElement>(null);
     useModalViewport(true, overlayRef);

@@ -253,7 +253,7 @@ export const pl: TranslationKeys = {
             titleNew: 'Nowy klient',
             subtitleSelect: 'Znajdź klienta po nazwisku, telefonie lub adresie e-mail.',
             subtitleChange: 'Wybierz innego klienta dla tej wizyty lub dodaj nowego.',
-            subtitleNew: 'Uzupełnij dane — klient zostanie utworzony po zapisaniu wizyty.',
+            subtitleNew: 'Uzupełnij dane - klient zostanie utworzony po zapisaniu wizyty.',
             searchPlaceholder: 'Szukaj po nazwisku, emailu lub telefonie...',
             searching: 'Wyszukiwanie...',
             noResults: 'Nie znaleziono klientów',

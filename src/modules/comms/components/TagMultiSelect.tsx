@@ -4,10 +4,10 @@
 // Wydzielone z okna „Oznacz jako lead", bo tagi poprawia się częściej niż nadaje:
 // raz przy tworzeniu leada, potem wprost z tabeli, gdy okaże się, że rozmowa jest
 // jednak o czymś innym. Jeden komponent znaczy jeden sposób zaznaczania, dodawania
-// i kasowania tagów — niezależnie od tego, skąd użytkownik do nich wchodzi.
+// i kasowania tagów - niezależnie od tego, skąd użytkownik do nich wchodzi.
 //
 // Mechanika jak w ColorDropdown przy przyjęciu pojazdu: menu w portalu, pozycja
-// liczona od triggera, zamykanie kliknięciem obok. Różnica jest jedna — wybór jest
+// liczona od triggera, zamykanie kliknięciem obok. Różnica jest jedna - wybór jest
 // wielokrotny, więc menu zostaje otwarte po kliknięciu pozycji.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -59,7 +59,7 @@ const SelectTrigger = styled.button`
 /**
  * Menu jest kolumną: przewija się wyłącznie lista tagów, wiersz „Nowy tag" stoi.
  * Gdy tagów przybędzie, dopisanie kolejnego nie może wymagać przewinięcia na sam
- * dół — pole, którego nie widać, nie istnieje.
+ * dół - pole, którego nie widać, nie istnieje.
  */
 const SelectMenu = styled.div`
     position: fixed;
@@ -100,7 +100,7 @@ const SelectOption = styled.button<{ $selected: boolean }>`
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
-/** Kwadracik zaznaczenia — bez niego nie widać, że wyborów może być kilka. */
+/** Kwadracik zaznaczenia - bez niego nie widać, że wyborów może być kilka. */
 const OptionBox = styled.span<{ $selected: boolean }>`
     width: 16px;
     height: 16px;
@@ -117,7 +117,7 @@ const OptionBox = styled.span<{ $selected: boolean }>`
 
 /**
  * Wiersz opcji trzyma dwa cele kliknięcia: całą pozycję (zaznacz) i kosz (usuń ze
- * słownika). Kosz pojawia się dopiero po najechaniu na wiersz — stale widoczny przy
+ * słownika). Kosz pojawia się dopiero po najechaniu na wiersz - stale widoczny przy
  * każdym tagu robiłby z listy wyboru listę do kasowania.
  */
 const OptionRow = styled.div`
@@ -183,7 +183,7 @@ const MenuFooter = styled.div`
     }
 
     /**
-     * „Gotowe" zamyka listę. Wybór wielokrotny nie ma naturalnego końca — po ostatnim
+     * „Gotowe" zamyka listę. Wybór wielokrotny nie ma naturalnego końca - po ostatnim
      * kliknięciu menu zostaje otwarte i trzeba było trafić gdzieś obok, żeby wrócić do
      * formularza. Klikanie w pustkę jako sposób na zamknięcie okna jest wiedzą tajemną;
      * przycisk mówi to wprost i stoi tam, gdzie kończy się praca z listą.
@@ -254,7 +254,7 @@ export function TagMultiSelect({ options, value, onChange, onCreate, onDelete, i
                 setOpen(false);
             }
         };
-        // Escape ma zamknąć listę, a nie całe okno — dlatego faza przechwytywania
+        // Escape ma zamknąć listę, a nie całe okno - dlatego faza przechwytywania
         // i zatrzymanie zdarzenia, zanim dojdzie do nasłuchu modala.
         const onEsc = (event: KeyboardEvent) => {
             if (event.key !== 'Escape') return;
@@ -310,7 +310,7 @@ export function TagMultiSelect({ options, value, onChange, onCreate, onDelete, i
                         style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
                     >
                         <OptionsScroll role="listbox" aria-multiselectable>
-                        {options.length === 0 && <EmptyHint>Brak tagów — dodaj pierwszy niżej</EmptyHint>}
+                        {options.length === 0 && <EmptyHint>Brak tagów - dodaj pierwszy niżej</EmptyHint>}
                         {options.map((option) => {
                             const selected = value.includes(option.code);
                             return (

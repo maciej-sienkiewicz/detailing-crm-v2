@@ -64,7 +64,7 @@ export const useLeadAppointment = (appointmentId: string | null) =>
         },
         enabled: appointmentId !== null,
         staleTime: 60_000,
-        // Rezerwacji mogło już nie być (usunięta poza CRM-em) — bez ponawiania.
+        // Rezerwacji mogło już nie być (usunięta poza CRM-em) - bez ponawiania.
         retry: false,
     });
 
@@ -87,7 +87,7 @@ export const useLeadDictionaries = () =>
  *
  * Granice przychodzą gotowe z widoku i są zaokrąglone do dnia, więc klucz
  * zapytania jest stabilny. Wcześniej data liczyła się w trakcie renderu i
- * zmieniała co milisekundę razem z kluczem — każde przerysowanie widoku było
+ * zmieniała co milisekundę razem z kluczem - każde przerysowanie widoku było
  * nowym zapytaniem, a pamięć podręczna nie trafiała nigdy.
  */
 export const useLeadAnalytics = (from: Date, to: Date) => {
@@ -105,7 +105,7 @@ export const useLeadAnalytics = (from: Date, to: Date) => {
  *
  * Sama liczba nowych kłamała: lead „w kontakcie", w którym klient odpisał wczoraj,
  * jest pilniejszy niż świeży, a plakietka milczała. Klucz celowo pod prefiksem
- * `list` — każde unieważnienie listy leadów (mutacje, socket) odświeża i licznik,
+ * `list` - każde unieważnienie listy leadów (mutacje, socket) odświeża i licznik,
  * bez osobnego okablowania.
  */
 export const useNewLeadsCount = (options?: { enabled?: boolean }): number => {
@@ -162,13 +162,13 @@ const useLeadInvalidation = () => {
 };
 
 /**
- * Usunięcie leada. Wiersz znika z listy od razu — czekanie na odświeżenie po
+ * Usunięcie leada. Wiersz znika z listy od razu - czekanie na odświeżenie po
  * potwierdzonym kliknięciu „Usuń" wygląda jak zawieszenie, a nie jak ostrożność.
  *
  * Toasty stoją TUTAJ, a nie przy wywołaniu `mutate`: okno leada zamyka się przed
  * wysłaniem żądania (patrz komentarz przy confirmDelete), a callbacki przekazane
  * do `mutate` nie odpalają się po odmontowaniu komponentu. Tak właśnie ginął
- * po cichu błąd „lead ma rezerwację" — żądanie padało, komunikatu nie było.
+ * po cichu błąd „lead ma rezerwację" - żądanie padało, komunikatu nie było.
  * Callbacki z opcji `useMutation` odpalają się zawsze.
  */
 export const useDeleteLead = () => {
@@ -189,7 +189,7 @@ export const useDeleteLead = () => {
                 };
             });
             queryClient.removeQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
-            // Wątek odzyskuje możliwość ponownego oznaczenia — skrzynka musi o tym wiedzieć.
+            // Wątek odzyskuje możliwość ponownego oznaczenia - skrzynka musi o tym wiedzieć.
             queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY });
             invalidate();
             showSuccess(
@@ -217,7 +217,7 @@ export const useCreateLeadTag = () => {
 };
 
 /**
- * Usunięcie tagu ze słownika. Leady, które go mają, zachowują go w swojej historii —
+ * Usunięcie tagu ze słownika. Leady, które go mają, zachowują go w swojej historii -
  * dlatego unieważniamy też listę: etykiety na wierszach przestają być aktualne.
  */
 export const useDeleteLeadTag = () => {
@@ -257,7 +257,7 @@ export const useUpdateLeadVehicle = () => {
 
 /**
  * Nasłuch zmian leadów na topicu studia. Backend przysyła pełny wiersz, więc
- * podmieniamy go w cache zamiast odpytywać serwer — dzięki temu spinner przy
+ * podmieniamy go w cache zamiast odpytywać serwer - dzięki temu spinner przy
  * rozpoznawaniu auta zamienia się w wynik sam, bez odświeżania strony.
  */
 export function useLeadsSocket(): void {
@@ -337,7 +337,7 @@ export const useChangeLeadStatus = () => {
 };
 
 /**
- * Wycena leada i lista usług powiązanej rezerwacji to jedna lista — backend
+ * Wycena leada i lista usług powiązanej rezerwacji to jedna lista - backend
  * przepisuje jedną w drugą. Dlatego po zapisie unieważniamy też kalendarz:
  * inaczej ten sam użytkownik widziałby w drugiej zakładce swoją poprzednią wersję.
  */

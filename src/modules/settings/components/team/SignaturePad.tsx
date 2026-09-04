@@ -77,7 +77,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
             drawing = true;
             canvas.setPointerCapture(event.pointerId);
             last = positionOf(event);
-            // Kropka od razu przy dotknięciu — kropka nad „i" to też podpis.
+            // Kropka od razu przy dotknięciu - kropka nad „i" to też podpis.
             ctx.beginPath();
             ctx.arc(last.x, last.y, STROKE_WIDTH / 2, 0, Math.PI * 2);
             ctx.fillStyle = STROKE_COLOR;
@@ -121,7 +121,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
 
     return (
         <PadWrap>
-            {/* touch-action: none — bez tego przeciągnięcie palcem przewija stronę zamiast rysować. */}
+            {/* touch-action: none - bez tego przeciągnięcie palcem przewija stronę zamiast rysować. */}
             <Canvas ref={canvasRef} />
             {!hasInk && <Placeholder>Podpisz w tym polu</Placeholder>}
             <BaselineHint />

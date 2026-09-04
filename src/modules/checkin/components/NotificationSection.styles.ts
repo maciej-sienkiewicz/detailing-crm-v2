@@ -128,7 +128,7 @@ export const EmailBody = styled.div<{ $visible: boolean }>`
     max-height: ${props => props.$visible ? '600px' : '0'};
     overflow: hidden;
     transition: max-height 0.3s ease, visibility 0s linear ${props => props.$visible ? '0s' : '0.3s'};
-    /* Samo max-height: 0 nie wystarcza — ukryte checkboxy są pozycjonowane
+    /* Samo max-height: 0 nie wystarcza - ukryte checkboxy są pozycjonowane
        absolutnie, więc uciekają spod clipu i zostają klikalne oraz w kolejce
        fokusa mimo zwiniętego panelu. */
     visibility: ${props => props.$visible ? 'visible' : 'hidden'};

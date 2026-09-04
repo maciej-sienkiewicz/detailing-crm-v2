@@ -67,7 +67,7 @@ export function summarizeReport(report: RehearsalReport): ReportSummary {
   const failed = report.items.filter(i => i.delivery && !i.delivery.success);
   return {
     tone: failed.length ? 'warn' : 'ok',
-    headline: `Wysłano ${delivered} z ${withContent} wiadomości na ${report.redirectPhone} i ${report.redirectEmail}. Każda ma na początku numer, np. [R03/10] — odhacz je na telefonie po kolei.`,
+    headline: `Wysłano ${delivered} z ${withContent} wiadomości na ${report.redirectPhone} i ${report.redirectEmail}. Każda ma na początku numer, np. [R03/10] - odhacz je na telefonie po kolei.`,
     problems: failed.map(i => ({ key: itemKey(i), label: itemLabel(i), detail: i.delivery?.error ?? 'nieznany błąd' })),
   };
 }

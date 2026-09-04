@@ -12,8 +12,8 @@ import { SUBMODAL_Z_INDEX } from '@/common/styles';
 /*
  * Wyjście z okna „Dokumentacja i Podpisy" jest decyzją, nie zamknięciem okna.
  *
- * Wizyta w tym momencie JUŻ istnieje w bazie — ze swoim numerem, protokołami i
- * zdjęciami — ale jeszcze się nie rozpoczęła. Odruchowy Escape zostawiał ją w tym
+ * Wizyta w tym momencie JUŻ istnieje w bazie - ze swoim numerem, protokołami i
+ * zdjęciami - ale jeszcze się nie rozpoczęła. Odruchowy Escape zostawiał ją w tym
  * stanie na zawsze: nie było jej na żadnej liście, nie dało się jej ani prowadzić, ani
  * anulować, a jedyne, co po niej zostawało, to wpis w Aktywności obiecujący wizytę,
  * której nie ma. Dlatego zamiast cichego wyjścia użytkownik dostaje trzy jawne wyjścia
@@ -123,18 +123,18 @@ interface AbandonCheckInDialogProps {
     visitNumber: string;
     /** Blokuje przyciski na czas anulowania wizyty. */
     isCancelling: boolean;
-    /** Wróć do dokumentów — nic się nie zmienia. */
+    /** Wróć do dokumentów - nic się nie zmienia. */
     onBack: () => void;
-    /** Anuluj wizytę — szkic i jego dokumenty znikają, rezerwacja wraca do kalendarza. */
+    /** Anuluj wizytę - szkic i jego dokumenty znikają, rezerwacja wraca do kalendarza. */
     onCancelVisit: () => void;
     /**
-     * Wyjście bez zmian — pokazywane TYLKO tam, gdzie odłożenie przyjęcia niczego nie
+     * Wyjście bez zmian - pokazywane TYLKO tam, gdzie odłożenie przyjęcia niczego nie
      * psuje, czyli przy dokańczaniu z listy „Nieukończone przyjęcia": szkic już tam
      * jest, więc zamknięcie okna niczego nie zmienia.
      *
      * W kreatorze przyjęcia tej opcji nie ma i to jest celowe. „Zostaw na później"
      * brzmi niewinnie, a znaczy „zostaw auto przyjęte, wizytę nierozpoczętą i licz, że
-     * ktoś do tego wróci" — czyli produkuje dokładnie ten stan, który cała ta praca
+     * ktoś do tego wróci" - czyli produkuje dokładnie ten stan, który cała ta praca
      * miała wyeliminować. Przyjęcie albo się kończy, albo się je anuluje.
      */
     onLeaveForLater?: () => void;
@@ -166,7 +166,7 @@ export const AbandonCheckInDialog = ({
 
                 <Description>
                     Dane przyjęcia są już zapisane, ale dopóki nie zatwierdzisz wizyty, nie trafi
-                    ona na listę wizyt ani do obsługi. Dokończ ją albo anuluj — nie da się jej
+                    ona na listę wizyt ani do obsługi. Dokończ ją albo anuluj - nie da się jej
                     zostawić w tym stanie.
                 </Description>
 

@@ -66,7 +66,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const overlayRef = useRef<HTMLDivElement>(null);
-    // Escape, blokada przewijania tła i układ przy wysuniętej klawiaturze —
+    // Escape, blokada przewijania tła i układ przy wysuniętej klawiaturze -
     // to samo, co robi ModalShell dla okien zbudowanych na jego bazie.
     useModalViewport(isOpen, overlayRef, onClose);
 

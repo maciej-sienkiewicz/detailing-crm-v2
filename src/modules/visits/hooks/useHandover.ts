@@ -180,7 +180,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         };
     }, [visit, priceOf, totals.gross]);
 
-    // Odcisk usług, z których powstały pozycje faktury — decyduje, czy zapisany
+    // Odcisk usług, z których powstały pozycje faktury - decyduje, czy zapisany
     // draft opisuje jeszcze tę samą wizytę (patrz restoreDraft).
     const fingerprint = useMemo(
         () => servicesFingerprint(visit.services, service => priceOf(service as ServiceLineItem).finalPriceGross),
@@ -209,7 +209,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
 
     // Stan integracji z KSeF (token, jego uprawnienia, domyślna odpowiedź studia).
-    // Pytamy tylko wtedy, gdy faktura w ogóle wchodzi w grę — wizyta bezpłatna ani
+    // Pytamy tylko wtedy, gdy faktura w ogóle wchodzi w grę - wizyta bezpłatna ani
     // paragon nie mają czego wysyłać.
     const ksef = useKsefAutomation({
         enabled: canIssueDocuments && !isFreeVisit && state.documentType === 'INVOICE',
@@ -221,14 +221,14 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
      * odmową KSeF i fakturą wiszącą w kolejce retry, która nigdy się nie uda.
      * W obu przypadkach nie ma czego wybierać: przełącznik jest zgaszony
      * i zablokowany, zamiast obiecywać wysyłkę bez szans powodzenia.
-     * Studio bez modułu KSeF zachowuje się jak dotąd — o wysyłce nie decyduje.
+     * Studio bez modułu KSeF zachowuje się jak dotąd - o wysyłce nie decyduje.
      */
     const canChooseSendToKsef =
         ksef.moduleEnabled && !ksef.isLoading && ksef.configured && !ksef.lacksIssuePermission;
 
     /**
      * Rozstrzygnięta odpowiedź na pytanie „wysłać do KSeF?": wybór użytkownika,
-     * a zanim go dokona — domyślna wartość z ustawień studia. Do czasu wczytania
+     * a zanim go dokona - domyślna wartość z ustawień studia. Do czasu wczytania
      * ustawień zakładamy wysyłkę, bo tak działał system, zanim przełącznik powstał.
      * Wadliwy token wymusza „nie" niezależnie od wyboru i ustawień.
      */

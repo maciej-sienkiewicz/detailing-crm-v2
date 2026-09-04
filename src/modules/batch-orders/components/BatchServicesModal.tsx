@@ -5,7 +5,7 @@
 // Deliberately built out of the same primitives as EditableServicesTable
 // (@/common/components/ServicesTable/styles): a studio that has learned to read one
 // service list should not have to learn a second one. That includes the mobile
-// behaviour those styles carry — under 640px the row collapses to name + gross with
+// behaviour those styles carry - under 640px the row collapses to name + gross with
 // the actions beneath, because a five-column price table cannot be read on a phone.
 
 import { useMemo, useState } from 'react';
@@ -230,7 +230,7 @@ export function BatchServicesModal({ onClose }: Props) {
         setError('');
     }
 
-    // Typing net drives gross and typing gross drives net — the same contract as the
+    // Typing net drives gross and typing gross drives net - the same contract as the
     // visit service editor, so a price entered from either side lands where expected.
     function handleNetChange(raw: string) {
         if (!MAX_2_DECIMALS.test(raw)) return;
@@ -454,7 +454,7 @@ export function BatchServicesModal({ onClose }: Props) {
 
                     <HistoryNote>
                         Zmiany dotyczą wyłącznie podpowiedzi przy kolejnych wpisach. Wpisy już
-                        zapisane — w tym rozliczone — przechowują własną kopię nazwy i kwot, więc
+                        zapisane - w tym rozliczone - przechowują własną kopię nazwy i kwot, więc
                         edycja ani usunięcie pozycji ich nie zmieni.
                     </HistoryNote>
                 </ModalContent>

@@ -30,7 +30,7 @@ export { overlayFadeIn, modalScaleIn };
  * Pięćdziesiątka działała wyłącznie dzięki geometrii: nakładka jest przesunięta
  * o szerokość sidebara (`left`), więc nie miała z czym się nakładać, choć leżała
  * *pod* nim (100) i pod każdym oknem z ModalKit (1000). Wystarczyło otworzyć ten
- * modal z innego okna — rezerwacja zakładana z panelu leada — żeby wylądował pod
+ * modal z innego okna - rezerwacja zakładana z panelu leada - żeby wylądował pod
  * tamtym i przestał być klikalny. 1300 stawia go nad warstwą okien aplikacji
  * i pod jego własnymi listami rozwijanymi (9999).
  */
@@ -1817,7 +1817,7 @@ export const MobileSheetScrollable = styled.div`
     overscroll-behavior: contain;
     /* Zapas pod ostatnią pozycją: bezpieczny margines telefonu plus wysokość
        klawiatury (--kb-inset ustawia useVisualViewportSheet). Dzięki temu sam
-       arkusz nie musi zmieniać rozmiaru — nic się nie przesuwa, a do ostatniej
+       arkusz nie musi zmieniać rozmiaru - nic się nie przesuwa, a do ostatniej
        pozycji da się doscrollować ponad klawiaturą. */
     padding-bottom: calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px));
 `;

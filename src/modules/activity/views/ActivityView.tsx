@@ -331,7 +331,7 @@ export const ActivityView = () => {
 
     // Odsiew po id, a nie zwykłe sklejenie stron. Strony feedu są kursorowe i normalnie
     // nie zachodzą na siebie, ale wystarczy jedno odświeżenie pierwszej strony przy już
-    // pobranych kolejnych, żeby ten sam wpis trafił na ekran dwa razy — a wiersz obok
+    // pobranych kolejnych, żeby ten sam wpis trafił na ekran dwa razy - a wiersz obok
     // wiersza wygląda jak zdublowane powiadomienie, nie jak artefakt stronicowania.
     const items = useMemo(() => {
         const seen = new Set<string>();

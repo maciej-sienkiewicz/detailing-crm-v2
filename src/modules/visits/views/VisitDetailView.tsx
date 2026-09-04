@@ -434,7 +434,7 @@ const ErrorMessage = styled.p`
     font-size: ${st.fontSm};
 `;
 
-/** Nierozpoczęta wizyta to stan procesu, nie awaria — stąd inny kolor niż przy błędzie. */
+/** Nierozpoczęta wizyta to stan procesu, nie awaria - stąd inny kolor niż przy błędzie. */
 const NotStartedTitle = styled.h2`
     margin: 0 0 8px;
     font-size: 20px;
@@ -618,7 +618,7 @@ const DesktopOnlyWrap = styled.div`
 
 type MobileTab = 'services' | 'info' | 'docs' | 'communication' | 'history';
 
-// Pasek zakładek i sekcje są wspólne z kartą klienta — patrz
+// Pasek zakładek i sekcje są wspólne z kartą klienta - patrz
 // common/components/MobileSectionNav.
 
 // ─── View ─────────────────────────────────────────────────────────────────────
@@ -678,7 +678,7 @@ export const VisitDetailView = () => {
 
     // Między usunięciem a przejściem na listę widok nie ma czego pokazać: dane wizyty
     // już nie przyjdą, a zwykła ścieżka renderu wyświetliłaby w tym miejscu „nie
-    // znaleziono wizyty" — komunikat o błędzie po operacji, która się udała.
+    // znaleziono wizyty" - komunikat o błędzie po operacji, która się udała.
     if (isDeleted) {
         return (
             <ViewContainer>
@@ -707,7 +707,7 @@ export const VisitDetailView = () => {
 
     /*
      * Wizyta w statusie DRAFT nie jest wizytą, tylko przyjęciem pojazdu, którego nikt
-     * nie dokończył — API odpowiada na nią 404. Wejście tu bierze się z zapamiętanego
+     * nie dokończył - API odpowiada na nią 404. Wejście tu bierze się z zapamiętanego
      * adresu albo ze starego linku; „Błąd ładowania" byłby w tym miejscu kłamstwem,
      * a użytkownik i tak nie wiedziałby, co dalej. Mówimy więc, co się stało, i
      * odsyłamy tam, gdzie da się to domknąć.
@@ -719,7 +719,7 @@ export const VisitDetailView = () => {
                     <ErrorContainer>
                         <NotStartedTitle>Wizyta nie została rozpoczęta</NotStartedTitle>
                         <ErrorMessage>
-                            Przyjęcie tego pojazdu zostało zapisane, ale nie zostało dokończone —
+                            Przyjęcie tego pojazdu zostało zapisane, ale nie zostało dokończone -
                             brakuje podpisów i zatwierdzenia, więc wizyta jeszcze nie ruszyła.
                             Znajdziesz ją w sekcji „Nieukończone przyjęcia".
                         </ErrorMessage>
@@ -798,7 +798,7 @@ export const VisitDetailView = () => {
         /*
          * Rozpoznana kategoria usługi trafia do KONTEKSTU, a nie do osobnego pola.
          * Wcześniej wracała jako `serviceType`, którego okno generatora nigdy nie
-         * czytało — heurystyka liczyła się przy każdym otwarciu i lądowała w koszu
+         * czytało - heurystyka liczyła się przy każdym otwarciu i lądowała w koszu
          * (obiekt z nadmiarowym polem to po stronie JS zwykłe pominięcie, więc nikt
          * tego nie zauważył poza kompilatorem typów).
          */

@@ -68,7 +68,7 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
                     <BlockHint>
                         Telefon dostaje powiadomienia z CRM: prośbę o połączenie kliknięte na
                         komputerze (z przyciskiem „Zadzwoń"), zakończone wizyty i nowe zapytania.
-                        Każdy włącza je na swoich urządzeniach — i tylko on je dostaje.
+                        Każdy włącza je na swoich urządzeniach - i tylko on je dostaje.
                     </BlockHint>
                     <PushNotificationsPanel />
                 </Block>

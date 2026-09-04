@@ -37,7 +37,7 @@ export interface Storefront {
 // ─── Tydzień ──────────────────────────────────────────────────────────────────
 
 /**
- * Werdykt tygodnia dla jednego profilu — dokładnie jeden na profil.
+ * Werdykt tygodnia dla jednego profilu - dokładnie jeden na profil.
  *
  * SILENT nie znaczy „brak danych", tylko „zwykle publikuje, a w tym tygodniu nie".
  * NEW to profil obserwowany za krótko, żeby cokolwiek nazwać u niego zwykłym.
@@ -57,11 +57,11 @@ export interface ProfileDigest {
     username: string;
     isSelf: boolean;
     verdict: DigestVerdict;
-    /** „@x zwiększył aktywność" — nagłówek wiersza. */
+    /** „@x zwiększył aktywność" - nagłówek wiersza. */
     headline: string;
     /** Co faktycznie zrealizowali, wyciągnięte z opisów postów. Null, gdy opisy milczą. */
     achievements: string | null;
-    /** Liczby stojące za werdyktem — dowód, nie komunikat. */
+    /** Liczby stojące za werdyktem - dowód, nie komunikat. */
     evidence: string;
     postsCount: number;
     engagementTotal: number;
@@ -148,7 +148,7 @@ export interface FollowerSeries {
     profileId: string;
     username: string;
     isSelf: boolean;
-    /** Dzień dodania profilu do obserwacji — wcześniejszej historii nie da się odtworzyć. */
+    /** Dzień dodania profilu do obserwacji - wcześniejszej historii nie da się odtworzyć. */
     observedSince: string;
     points: { date: string; count: number | null }[];
 }
@@ -253,7 +253,7 @@ export interface Heatmap {
     bestDayOfWeek: number | null;
     bestDaypart: number | null;
     /**
-     * Posty odrzucone jako wyskoki — powyżej percentyla 90. zaangażowania w całym oknie.
+     * Posty odrzucone jako wyskoki - powyżej percentyla 90. zaangażowania w całym oknie.
      * Zwykle oznaczenie kogoś znanego, płatna promocja albo przypadkowy viral: zdarzenia
      * bez związku z porą publikacji, a zdolne samodzielnie przesądzić o rekomendacji.
      * Nie ma ich ani w licznikach komórek, ani w średnich.
@@ -336,7 +336,7 @@ export interface InstagramPostResult {
     verificationPassed: boolean;
     /** Reguły, których nie udało się spełnić mimo korekt (puste, gdy weryfikacja przeszła). */
     failedRules: string[];
-    /** To samo z uzasadnieniem — starsze odpowiedzi backendu tego pola nie mają. */
+    /** To samo z uzasadnieniem - starsze odpowiedzi backendu tego pola nie mają. */
     failedRuleDetails?: FailedRule[];
     /** Liczba rund weryfikacji; 0 oznacza, że studio nie ma żadnych reguł. */
     iterations: number;

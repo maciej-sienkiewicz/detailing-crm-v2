@@ -1,6 +1,6 @@
 // src/modules/visits/utils/serviceChangeSms.ts
 //
-// Treść SMS-a o zmianach w zakresie usług budujemy z danych, które CRM już ma —
+// Treść SMS-a o zmianach w zakresie usług budujemy z danych, które CRM już ma -
 // bez odpytywania serwera i bez modelu językowego: nazwy usług i cena końcowa
 // wystarczą, a użytkownik i tak może wiadomość dowolnie poprawić.
 
@@ -17,13 +17,13 @@ const POLISH_CHARS_RE = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
 /** Czy tekst zawiera znaki, które wypychają SMS-a do kodowania UCS-2. */
 export const hasPolishCharacters = (text: string): boolean => POLISH_CHARS_RE.test(text);
 
-/** Zamiana polskich znaków na ASCII — tańszy SMS (160 znaków na segment zamiast 70). */
+/** Zamiana polskich znaków na ASCII - tańszy SMS (160 znaków na segment zamiast 70). */
 export const toAscii = (text: string): string =>
     text.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, ch => POLISH_TO_ASCII[ch] ?? ch);
 
 /**
  * Kwota w formacie SMS-owym: "2 830,18 zł".
- * Świadomie nie używamy Intl — wstawia twardą spację (U+00A0), której nie ma
+ * Świadomie nie używamy Intl - wstawia twardą spację (U+00A0), której nie ma
  * w alfabecie GSM-7, przez co cała wiadomość poszłaby drożej.
  */
 export const formatSmsAmount = (cents: number): string => {
@@ -47,7 +47,7 @@ const shortList = (names: string[], maxItems = 3): string =>
         : `${names.slice(0, maxItems).join(', ')} i inne`;
 
 /**
- * Buduje treść wiadomości (bez frazy o odpowiedzi — tę dokleja backend przy wysyłce).
+ * Buduje treść wiadomości (bez frazy o odpowiedzi - tę dokleja backend przy wysyłce).
  *
  * Przykład: "Dodano: Pranie tapicerki. Usunięto: Naprawa wgniecenia.
  *            Zmieniono cenę: Polerowanie. Razem 2 830,18 zł."

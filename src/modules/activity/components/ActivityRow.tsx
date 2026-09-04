@@ -167,7 +167,7 @@ const Title = styled.h3`
     min-width: 0;
 `;
 
-// Kwota ujemna to pieniądze wychodzące — korekta kasy na minus, wypłata. W zielonej
+// Kwota ujemna to pieniądze wychodzące - korekta kasy na minus, wypłata. W zielonej
 // plakietce „przychodowej" czytałaby się jako wpływ, a minus przed liczbą jest zbyt
 // drobny, żeby to odkręcić; kolor niesie tu ten sam sygnał co znak.
 const Amount = styled.span<{ $outgoing: boolean }>`

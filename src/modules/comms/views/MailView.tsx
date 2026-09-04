@@ -4,16 +4,16 @@
 //  - mobile/tablet: lista LUB konwersacja (przełączane, z przyciskiem wstecz).
 // Widok ma dwa foldery i nic ponadto: Odebrane (rozmowy, w których klient napisał
 // choć raz) i Wysłane (rozmowy, w których my napisaliśmy choć raz). Wiadomość napisana
-// od zera, na którą nikt jeszcze nie odpisał, siedzi wyłącznie w Wysłanych — w głównym
+// od zera, na którą nikt jeszcze nie odpisał, siedzi wyłącznie w Wysłanych - w głównym
 // widoku byłaby szumem udającym zapytanie. Gdy klient odpisze, ten sam wątek pojawia
 // się w Odebranych. Bez dalszych filtrów i bez panelu klienta: studio nie prowadzi
 // katalogów, do wątku dochodzi się wyszukiwarką albo przewijaniem. Kontekst klienta
 // przejął pasek nad korespondencją.
-// Widok wypełnia całą dostępną wysokość — scrolluje się wyłącznie lista i wiadomości.
+// Widok wypełnia całą dostępną wysokość - scrolluje się wyłącznie lista i wiadomości.
 //
 // Przełączenie wątku nie przebudowuje ekranu: kolumny są sterowane wybranym id
 // (a nie tym, czy dane zdążyły dojść), nagłówek rozmowy renderuje się od razu z
-// danych z listy, a dociąga się wyłącznie treść korespondencji — w wydzielonym,
+// danych z listy, a dociąga się wyłącznie treść korespondencji - w wydzielonym,
 // memoizowanym ConversationView. Dzięki temu nic nie „przeskakuje" pod kursorem.
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -58,14 +58,14 @@ import {
     formatRelativeTime,
 } from '../components/shared';
 
-/** Foldery w adresie: ?folder=sent — odświeżenie strony ma zastać ten sam widok. */
+/** Foldery w adresie: ?folder=sent - odświeżenie strony ma zastać ten sam widok. */
 const FOLDER_PARAM: Record<MailFolder, string | null> = { INBOX: null, SENT: 'sent' };
 const folderFromParam = (value: string | null): MailFolder => (value === 'sent' ? 'SENT' : 'INBOX');
 
 // ── Media query hook ─────────────────────────────────────────────────────────
 
 /**
- * Szerokość okna jest stanem przeglądarki, nie Reacta — czytamy ją przez
+ * Szerokość okna jest stanem przeglądarki, nie Reacta - czytamy ją przez
  * useSyncExternalStore zamiast kopiować do useState w efekcie. Kopia wymagała
  * setState w ciele efektu (kaskadowe renderowanie przy każdym montowaniu) i potrafiła
  * przez jedną klatkę pokazać stan sprzed zmiany rozmiaru.
@@ -171,7 +171,7 @@ const SearchRow = styled.div`
     gap: 8px;
 `;
 
-/** Dwa chipy folderów pod wyszukiwarką — przełącznik, nie nawigacja. */
+/** Dwa chipy folderów pod wyszukiwarką - przełącznik, nie nawigacja. */
 const FolderRow = styled.div`
     display: flex;
     align-items: center;
@@ -207,7 +207,7 @@ const SearchInput = styled.div`
     }
 `;
 
-/** Ołówek przy wyszukiwarce — jedyne wejście w wiadomość pisaną od zera. */
+/** Ołówek przy wyszukiwarce - jedyne wejście w wiadomość pisaną od zera. */
 const ComposeButton = styled.button`
     flex-shrink: 0;
     display: inline-flex;
@@ -313,7 +313,7 @@ const Pager = styled.div`
     }
 `;
 
-/** Pusta prawa kolumna — te same reguły widoczności co ConversationView. */
+/** Pusta prawa kolumna - te same reguły widoczności co ConversationView. */
 const ConversationEmptyPane = styled.div<{ $hiddenOnMobile: boolean }>`
     flex: 1;
     min-width: 0;
@@ -355,7 +355,7 @@ export default function MailView() {
     const folder = folderFromParam(searchParams.get('folder'));
     const selectedThreadId = searchParams.get('thread');
 
-    /** Parametry adresu z folderem i wątkiem — jedyne, które przeżywają nawigację. */
+    /** Parametry adresu z folderem i wątkiem - jedyne, które przeżywają nawigację. */
     const paramsFor = useCallback((nextFolder: MailFolder, threadId: string | null) => {
         const params: Record<string, string> = {};
         const folderParam = FOLDER_PARAM[nextFolder];
@@ -395,7 +395,7 @@ export default function MailView() {
         }
     }, [searchParams, setSearchParams, paramsFor, folder]);
 
-    // Nowa wiadomość od zera ląduje w Wysłanych — pokazujemy ją tam od razu, żeby
+    // Nowa wiadomość od zera ląduje w Wysłanych - pokazujemy ją tam od razu, żeby
     // nie wyglądało, jakby zniknęła.
     const openSentThread = useCallback(
         (threadId: string) => {
@@ -421,7 +421,7 @@ export default function MailView() {
         [folder, query, page]
     );
     const { data: threadPage } = useThreads(filters);
-    // Adresy oznaczone jako formularze — jedna cache'owana lista na całą skrzynkę.
+    // Adresy oznaczone jako formularze - jedna cache'owana lista na całą skrzynkę.
     // Plakietka przy wątku mówi, że to zgłoszenia z formularza, zanim się go otworzy.
     const { data: formSources } = useFormMailSources();
     const formSenderEmails = useMemo(
@@ -430,7 +430,7 @@ export default function MailView() {
     );
     const { data: detail } = useThread(selectedThreadId);
 
-    // Nagłówek rozmowy stawiamy na danych z listy — są już w cache, więc pojawia
+    // Nagłówek rozmowy stawiamy na danych z listy - są już w cache, więc pojawia
     // się w tej samej klatce co kliknięcie. Dociąga się wyłącznie treść wiadomości.
     const listThread = useMemo(
         () => (threadPage?.items ?? []).find((item) => item.id === selectedThreadId) ?? null,
@@ -440,7 +440,7 @@ export default function MailView() {
     const openThread: CommThread | null = detailMatches ? detail!.thread : listThread;
     const openMessages = detailMatches ? detail!.messages : null;
 
-    // Ten sam cache co panel Insights — chip w nagłówku nie kosztuje drugiego requestu.
+    // Ten sam cache co panel Insights - chip w nagłówku nie kosztuje drugiego requestu.
     const { data: insights } = useContactInsights(
         openThread?.participantEmail ?? null,
         openThread?.id
@@ -450,7 +450,7 @@ export default function MailView() {
     const setArchived = useSetThreadArchived();
     const syncAccount = useSyncAccount();
 
-    // Otwarcie konwersacji oznacza ją jako przeczytaną — lokalnie od razu,
+    // Otwarcie konwersacji oznacza ją jako przeczytaną - lokalnie od razu,
     // na serwerze pocztowym przez kolejkę w tle.
     useEffect(() => {
         if (detail && detail.thread.unreadCount > 0) {
@@ -487,17 +487,17 @@ export default function MailView() {
         status === 'ACTIVE' ? '#22c55e' : status === 'AUTH_FAILED' ? '#ef4444' : '#d1d5db';
 
     const knownClient = insights?.customer ?? null;
-    // Otwartość rozmowy zależy od wyboru użytkownika, nie od stanu zapytania —
+    // Otwartość rozmowy zależy od wyboru użytkownika, nie od stanu zapytania -
     // inaczej kolumny znikałyby i wracały przy każdym przełączeniu wątku.
     const conversationOpen = Boolean(selectedThreadId);
-    // Na telefonie kolumny wykluczają się nawzajem: lista albo prawa strona —
+    // Na telefonie kolumny wykluczają się nawzajem: lista albo prawa strona -
     // a prawą stroną jest teraz albo rozmowa, albo pisanie nowej wiadomości.
     const rightPaneOpen = conversationOpen || composeOpen;
     const fullMessage = openMessages?.find((message) => message.id === fullMessageId) ?? null;
 
     // Pierwsza synchronizacja w toku: jeden spokojny ekran zamiast listy, która
     // rośnie z sekundy na sekundę, i lawiny powiadomień. Stan sprawdzamy PRZED
-    // renderem list — połowicznie zsynchronizowana skrzynka wygląda jak zepsuta,
+    // renderem list - połowicznie zsynchronizowana skrzynka wygląda jak zepsuta,
     // nie jak niepełna.
     if (mailboxSync.syncing) {
         return (
@@ -518,7 +518,7 @@ export default function MailView() {
                             <Mail size={40} color="#94a3b8" style={{ marginBottom: 12 }} />
                             <h3>Podłącz swoją skrzynkę</h3>
                             <p>
-                                Wystarczy adres e-mail i hasło — resztą zajmiemy się my. Twoje
+                                Wystarczy adres e-mail i hasło - resztą zajmiemy się my. Twoje
                                 wiadomości pojawią się tutaj i będziesz mógł odpowiadać bez
                                 wychodzenia z CRM.
                             </p>
@@ -593,7 +593,7 @@ export default function MailView() {
                                 $unread={thread.unreadCount > 0}
                                 onClick={() => selectThread(thread.id)}
                                 // Zanim palec/kursor dojdzie do kliknięcia, wątek zdąży
-                                // trafić do cache — treść podmienia się wtedy bez migotania.
+                                // trafić do cache - treść podmienia się wtedy bez migotania.
                                 onMouseEnter={() => prefetchThread(thread.id, thread.participantEmail)}
                                 onFocus={() => prefetchThread(thread.id, thread.participantEmail)}
                                 onTouchStart={() => prefetchThread(thread.id, thread.participantEmail)}
@@ -683,7 +683,7 @@ export default function MailView() {
                     <ConversationEmptyPane $hiddenOnMobile={!conversationOpen}>
                         {conversationOpen ? (
                             // Wątek spoza bieżącej strony listy (np. z „wcześniejszych rozmów")
-                            // — nagłówka nie mamy jeszcze z czego postawić.
+                            // - nagłówka nie mamy jeszcze z czego postawić.
                             <EmptyHint>Wczytywanie rozmowy…</EmptyHint>
                         ) : (
                             <EmptyStateWrap>

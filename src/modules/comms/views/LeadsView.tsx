@@ -1,6 +1,6 @@
 // src/modules/comms/views/LeadsView.tsx
 // Pipeline leadów w języku wizualnym reszty aplikacji: wspólny PageHeader,
-// karty-powierzchnie, Badge, tokeny motywu. Szczegóły w oknie LeadDetailModal —
+// karty-powierzchnie, Badge, tokeny motywu. Szczegóły w oknie LeadDetailModal -
 // tym samym, które otwiera plakietka „Lead" w podglądzie rozmowy.
 import { useState, type MouseEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -37,7 +37,7 @@ import {
 
 
 /**
- * Pasek zaległości nad listą — to samo zdanie, co bohater analityki.
+ * Pasek zaległości nad listą - to samo zdanie, co bohater analityki.
  *
  * Właściciel wchodzi codziennie tutaj, a nie do analityki. Kwota czekająca na
  * odpowiedź musi stać tam, gdzie on faktycznie bywa; ekran analityki jest lekturą
@@ -172,7 +172,7 @@ const spin = keyframes`
 
 /**
  * Rozpoznawanie auta chodzi w tle, więc komórka ma trzy stany: pracuje (spinner),
- * zna odpowiedź (marka i model) albo nie znalazła nic („—"). Pusta komórka bez
+ * zna odpowiedź (marka i model) albo nie znalazła nic („-"). Pusta komórka bez
  * spinnera i pusta komórka w trakcie pracy wyglądałyby tak samo, a to dwie różne
  * informacje dla kogoś, kto właśnie oznaczył leada.
  */
@@ -191,10 +191,10 @@ const VehicleSpinner = styled.span`
 `;
 
 /**
- * Plakietka tagu — wszystkie i w całości, bez wielokropka. Ucinanie odbierało
+ * Plakietka tagu - wszystkie i w całości, bez wielokropka. Ucinanie odbierało
  * kolumnie sens: „Powłoka cer…" i „Powłoka cer…" to dwa różne tagi, których nie da
  * się odróżnić. Nazwy bywają długie, więc plakietki zawijają się do drugiej linii
- * wewnątrz komórki, a wiersz rośnie — czytelność wygrywa z równą wysokością wierszy.
+ * wewnątrz komórki, a wiersz rośnie - czytelność wygrywa z równą wysokością wierszy.
  */
 const TagPill = styled.span`
     display: inline-block;
@@ -237,7 +237,7 @@ const Row = styled.div<{ $active?: boolean; $tone: ReplyTone }>`
 
     /*
      * Pasek pilności przy lewej krawędzi. Zaległość jest cechą całego leada,
-     * a nie zawartością którejś komórki, więc mieszka na wierszu — i, co
+     * a nie zawartością którejś komórki, więc mieszka na wierszu - i, co
      * ważniejsze, nie zabiera ani piksela szerokości tabeli. Skanuje się go
      * jednym spojrzeniem w dół listy, czego żadna plakietka w środku wiersza
      * nie potrafi. Sam kolor niczego nie niesie: to samo mówi znacznik
@@ -288,7 +288,7 @@ const Row = styled.div<{ $active?: boolean; $tone: ReplyTone }>`
 `;
 
 /**
- * Komórka, którą da się poprawić na miejscu. Nie krzyczy — obramowanie pojawia się
+ * Komórka, którą da się poprawić na miejscu. Nie krzyczy - obramowanie pojawia się
  * dopiero pod kursorem, żeby tabela pozostała tabelą, a nie formularzem. Sygnał
  * „to jest klikalne" ma być dostępny, gdy ktoś go szuka, a nie narzucać się reszcie.
  */
@@ -319,7 +319,7 @@ const EditableCell = styled.button`
     .none { color: ${p => p.theme.colors.textMuted}; }
     .value {
         /* Bazowy rozmiar 0, więc przy logo marki obok tekst kurczy się w tej
-           samej linii zamiast spaść pod nie — zawijanie zostaje dla tagów. */
+           samej linii zamiast spaść pod nie - zawijanie zostaje dla tagów. */
         flex: 1 1 0;
         min-width: 0;
         overflow: hidden;
@@ -341,8 +341,8 @@ const StatusStack = styled.span`
  * Etap leada: kropka i etykieta zdaniem, dokładnie tak jak w LeadStatusPicker,
  * który tę samą wartość pokazuje w oknie szczegółów.
  *
- * Wypełniona plakietka w każdym wierszu nie wyróżnia niczego — jeśli świeci
- * cała kolumna, nie świeci nic — a wersalikami i odstępem między literami
+ * Wypełniona plakietka w każdym wierszu nie wyróżnia niczego - jeśli świeci
+ * cała kolumna, nie świeci nic - a wersalikami i odstępem między literami
  * zjada szerokość, przez którą treść wchodziła na sąsiednią kolumnę. Kropka
  * niesie ten sam kolor na kilkunastu pikselach, a nazwa pisana normalnie
  * czyta się szybciej niż KAPITALIKAMI.
@@ -372,7 +372,7 @@ export default function LeadsView() {
      *
      * Analityka prowadzi tu z konkretnym pytaniem: „pokaż mi te zaległe rozmowy",
      * „pokaż przegrane". Bez tego kliknięcie kwoty wysyłałoby na nieprzefiltrowaną
-     * listę i użytkownik musiałby odtworzyć filtr ręcznie — czyli kwota na
+     * listę i użytkownik musiałby odtworzyć filtr ręcznie - czyli kwota na
      * poprzednim ekranie byłaby twierdzeniem, a nie dowodem.
      *
      * Tylko wartość początkowa: dalej filtrami rządzą przyciski, więc kliknięcie
@@ -384,7 +384,7 @@ export default function LeadsView() {
         return LEAD_STATUS_FLOW.includes(requested as LeadStatus) ? (requested as LeadStatus) : undefined;
     });
     // „Do odpisania" to nie kolejny status, tylko zawężenie listy do leadów,
-    // w których ostatnie słowo należy do klienta — czyli do naszej kolejki zaległości.
+    // w których ostatnie słowo należy do klienta - czyli do naszej kolejki zaległości.
     const [awaitingReply, setAwaitingReply] = useState(() => searchParams.get('awaiting') === '1');
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
@@ -411,15 +411,15 @@ export default function LeadsView() {
         awaitingReply: awaitingReply || undefined,
         page,
     });
-    // Zmiana statusu prosto z tabeli — razem z pytaniem o powód przegranej.
+    // Zmiana statusu prosto z tabeli - razem z pytaniem o powód przegranej.
     const status = useLeadStatusChange();
-    // Zmiany leadów przychodzą WebSocketem — spinner przy rozpoznawaniu auta
+    // Zmiany leadów przychodzą WebSocketem - spinner przy rozpoznawaniu auta
     // zamienia się w wynik bez odświeżania strony.
     useLeadsSocket();
     const mailboxSync = useMailboxSyncState();
     /*
      * Zaległości do paska nad listą. Okres bieżącego miesiąca, ten sam co domyślny
-     * w analityce — dzięki temu przejście między widokami trafia w tę samą pamięć
+     * w analityce - dzięki temu przejście między widokami trafia w tę samą pamięć
      * podręczną i nie kosztuje drugiego zapytania. Same zaległości i tak liczą się
      * poza oknem, więc wybór okresu na nie nie wpływa.
      */
@@ -437,7 +437,7 @@ export default function LeadsView() {
         setCellEditor({ lead: item, field, anchor: event.currentTarget });
     };
 
-    /** Wartość leada to suma wyceny — kliknięcie prowadzi do edytora usług w oknie. */
+    /** Wartość leada to suma wyceny - kliknięcie prowadzi do edytora usług w oknie. */
     const editServicesOf = (item: Lead) => {
         setOpenServicesEditor(true);
         setSearchParams({ lead: item.id }, { replace: true });
@@ -488,7 +488,7 @@ export default function LeadsView() {
                         <strong>{owed.count} {owed.count === 1 ? 'rozmowie' : 'rozmowach'}</strong>
                         {owed.oldest && (
                             <>
-                                {' — najdłużej '}
+                                {' - najdłużej '}
                                 <strong>{owed.oldest.name}</strong>
                                 {owed.oldest.vehicle && <>, {owed.oldest.vehicle}</>}
                                 {owed.oldest.waitingDays > 0 && <>, {owed.oldest.waitingDays} dni</>}
@@ -513,7 +513,7 @@ export default function LeadsView() {
                     </FilterChip>
                 ))}
                 {/* Stoi za statusami i wizualnie osobno, bo to inna oś: statusy dzielą
-                    leady po etapie, ten filtr — po tym, kto ma teraz ruch. Można je
+                    leady po etapie, ten filtr - po tym, kto ma teraz ruch. Można je
                     złożyć („W kontakcie" + „Do odpisania"), i o to chodzi. */}
                 <FilterSeparator />
                 <FilterChip
@@ -588,10 +588,10 @@ export default function LeadsView() {
                                     {/* Awatar marki, ten sam co w module pojazdów: w kolumnie
                                         pełnej podobnych do siebie napisów logo jest znakiem,
                                         który wpada w oko przed przeczytaniem nazwy. Bez marki
-                                        nie ma czego pokazać — zostaje samo „—". */}
+                                        nie ma czego pokazać - zostaje samo „-". */}
                                     {item.vehicleBrand && <CarLogoImage brand={item.vehicleBrand} size="xs" />}
                                     <span className={formatVehicle(item) ? 'value' : 'value none'}>
-                                        {formatVehicle(item) ?? '—'}
+                                        {formatVehicle(item) ?? '-'}
                                     </span>
                                 </EditableCell>
                             )}
@@ -601,7 +601,7 @@ export default function LeadsView() {
                                 title="Kliknij, żeby zmienić tagi"
                                 onClick={(event) => openCellEditor(event, item, 'tags')}
                             >
-                                {item.tagLabels.length === 0 && <span className="none">—</span>}
+                                {item.tagLabels.length === 0 && <span className="none">-</span>}
                                 {item.tagLabels.map((label) => (
                                     <TagPill key={label}>{label}</TagPill>
                                 ))}
@@ -615,10 +615,10 @@ export default function LeadsView() {
                                     editServicesOf(item);
                                 }}
                             >
-                                {/* Wartość to suma wyceny, więc nie da się jej wpisać wprost —
+                                {/* Wartość to suma wyceny, więc nie da się jej wpisać wprost -
                                     kliknięcie prowadzi tam, gdzie ta liczba naprawdę powstaje. */}
                                 <span className="value" style={{ fontWeight: 600, color: '#0f172a' }}>
-                                    {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '—'}
+                                    {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '-'}
                                 </span>
                             </EditableCell>
 

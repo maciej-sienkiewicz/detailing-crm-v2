@@ -38,7 +38,7 @@ interface CustomerCellProps {
   sub?: string | null;
   /**
    * Wyłącza przejście do profilu klienta. Na liście dotykowej cała kafelka jest
-   * jednym celem — wejście w wizytę — a osobny odnośnik w jej środku znaczy
+   * jednym celem - wejście w wizytę - a osobny odnośnik w jej środku znaczy
    * tylko tyle, że trafia się nie tam, gdzie się chciało.
    */
   disableNavigation?: boolean;

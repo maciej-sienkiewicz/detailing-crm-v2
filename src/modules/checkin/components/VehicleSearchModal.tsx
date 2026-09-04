@@ -187,7 +187,7 @@ export const VehicleSearchModal = ({
         ? 'Nowy pojazd'
         : (isReplacing ? 'Zmień pojazd' : 'Wybierz pojazd');
     const modalSubtitle = mode === 'new'
-        ? 'Uzupełnij dane — pojazd zostanie utworzony po zapisaniu wizyty.'
+        ? 'Uzupełnij dane - pojazd zostanie utworzony po zapisaniu wizyty.'
         : (isReplacing
             ? 'Wybierz inny pojazd dla tej wizyty lub dodaj nowy.'
             : 'Znajdź pojazd po marce, modelu lub numerze rejestracyjnym.');
@@ -241,7 +241,7 @@ export const VehicleSearchModal = ({
                         <PickerRowMain>
                             <PickerRowTitle>{v.brand} {v.model}</PickerRowTitle>
                             <PickerRowSub>
-                                {[v.licensePlate, v.year].filter(Boolean).join(' · ') || '—'}
+                                {[v.licensePlate, v.year].filter(Boolean).join(' · ') || '-'}
                             </PickerRowSub>
                         </PickerRowMain>
                         {v.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
@@ -280,7 +280,7 @@ export const VehicleSearchModal = ({
                             vehicle.licensePlate,
                             vehicle.yearOfProduction,
                             vehicle.owners[0]?.customerName,
-                        ].filter(Boolean).join(' · ') || '—'}
+                        ].filter(Boolean).join(' · ') || '-'}
                     </PickerRowSub>
                 </PickerRowMain>
                 {vehicle.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}

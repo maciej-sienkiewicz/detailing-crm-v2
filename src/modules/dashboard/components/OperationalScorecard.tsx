@@ -96,7 +96,7 @@ const ScorecardContainer = styled.div<{ $collapsed?: boolean }>`
   gap: ${p => p.theme.spacing.md};
   margin-top: ${p => p.theme.spacing.md};
 
-  /* Kontener widoku ma juz swoj gap — drugi odstep tylko rozpycha ekran. */
+  /* Kontener widoku ma juz swoj gap - drugi odstep tylko rozpycha ekran. */
   @media (max-width: 767px) {
     gap: 10px;
     margin-top: 10px;
@@ -148,7 +148,7 @@ const CompactItem = styled.button`
 `;
 
 // Cztery nasycone kolory obok siebie czytaly sie jak przypadkowa paleta.
-// Liczby wracaja do koloru tekstu, a kategoria zostaje oznaczona kropka —
+// Liczby wracaja do koloru tekstu, a kategoria zostaje oznaczona kropka -
 // tak jak w legendzie wykresu. Kolorem krzyczy tylko to, co wymaga reakcji.
 const CompactValue = styled.span`
   display: inline-flex;
@@ -822,10 +822,10 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
               <CompactItem
                 key={key}
                 onClick={() => toggle(key)}
-                aria-label={`${short}: ${value ?? '—'}`}
+                aria-label={`${short}: ${value ?? '-'}`}
               >
                 <CompactValue>
-                  {value ?? '—'}
+                  {value ?? '-'}
                   {key === 'inProgress' && !!stats?.overdue && (
                     <CompactOverdue title="Po terminie">{stats.overdue}</CompactOverdue>
                   )}

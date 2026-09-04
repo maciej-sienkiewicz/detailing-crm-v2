@@ -151,7 +151,7 @@ const TotalsNew = styled.span`
     color: ${BRAND_DARK};
 `;
 
-/* Jedna wspólna ramka wokół pola tekstowego i doklejanej frazy — nic jej nie
+/* Jedna wspólna ramka wokół pola tekstowego i doklejanej frazy - nic jej nie
    "przecina" niezależnie od długości tekstu ani liczby linii w polu. */
 const FieldGroup = styled.div<{ $focused?: boolean }>`
     border: 1.5px solid ${p => p.$focused ? BRAND : st.border};
@@ -340,7 +340,7 @@ export const ServiceChangeSmsModal = ({
     onCancel,
     onConfirm,
 }: Props) => {
-    // Wersja kanoniczna — z ogonkami. To, co widać w polu, zależy od przełącznika:
+    // Wersja kanoniczna - z ogonkami. To, co widać w polu, zależy od przełącznika:
     // przy wyłączonych polskich znakach pokazujemy transliterację. Dzięki temu
     // przełączanie tam i z powrotem nie gubi treści.
     const initialMessage = useMemo(() => buildServiceChangeSmsMessage(summary), [summary]);
@@ -353,7 +353,7 @@ export const ServiceChangeSmsModal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel, isSaving]);
 
-    // Blokada przewijania tła i układ przy wysuniętej klawiaturze — wspólne
+    // Blokada przewijania tła i układ przy wysuniętej klawiaturze - wspólne
     // z ModalShell; Escape obsługuje efekt wyżej (zna stan zapisu).
     const overlayRef = useRef<HTMLDivElement>(null);
     useModalViewport(true, overlayRef);
@@ -426,7 +426,7 @@ export const ServiceChangeSmsModal = ({
                                 autoFocus={shouldAutoFocusInput()}
                             />
                             {suffix && (
-                                <LockedSuffix title="Tej frazy nie można edytować — dopisujemy ją zawsze na końcu">
+                                <LockedSuffix title="Tej frazy nie można edytować - dopisujemy ją zawsze na końcu">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" />
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -442,7 +442,7 @@ export const ServiceChangeSmsModal = ({
                             <ToggleTitle>Polskie znaki</ToggleTitle>
                             <ToggleHint>
                                 {usePolish
-                                    ? 'Wiadomość idzie w UCS-2 — 70 znaków na SMS'
+                                    ? 'Wiadomość idzie w UCS-2 - 70 znaków na SMS'
                                     : 'Taniej: 160 znaków na SMS zamiast 70'}
                             </ToggleHint>
                         </ToggleTexts>
@@ -458,7 +458,7 @@ export const ServiceChangeSmsModal = ({
                         <span>
                             {suffix
                                 ? 'Fraza z prośbą o odpowiedź jest doklejana automatycznie.'
-                                : 'Klient nie musi potwierdzać — SMS jest informacyjny.'}
+                                : 'Klient nie musi potwierdzać - SMS jest informacyjny.'}
                         </span>
                         <Counter $warn={segments > 2}>
                             <span>{fullLength} znaków</span>

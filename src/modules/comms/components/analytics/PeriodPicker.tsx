@@ -1,8 +1,8 @@
 // src/modules/comms/components/analytics/PeriodPicker.tsx
-// Wybór okresu — w nagłówku strony, nie nad treścią.
+// Wybór okresu - w nagłówku strony, nie nad treścią.
 //
 // Okres jest właściwością CAŁEGO widoku, tak samo jak jego tytuł: „Pieniądze
-// w zapytaniach — sierpień" to jedno zdanie, a nie tytuł i osobny pasek filtrów
+// w zapytaniach - sierpień" to jedno zdanie, a nie tytuł i osobny pasek filtrów
 // pod spodem. Postawiony niżej wyglądał jak jeszcze jedna sekcja do przeczytania
 // i odbierał pierwszy ruch wzroku kwocie, która ma go dostać.
 import { useEffect, useRef, useState } from 'react';
@@ -23,7 +23,7 @@ const Wrap = styled.div`
 
 /**
  * Przełącznik segmentowy na ciemnym nagłówku. Trzy stany widoczne naraz, bo są
- * trzy — rozwijana lista chowałaby wybór za kliknięciem i kazała pamiętać,
+ * trzy - rozwijana lista chowałaby wybór za kliknięciem i kazała pamiętać,
  * co jest ustawione.
  */
 const Segments = styled.div`

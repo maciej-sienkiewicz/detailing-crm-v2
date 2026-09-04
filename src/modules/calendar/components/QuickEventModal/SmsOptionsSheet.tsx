@@ -1,7 +1,7 @@
 // src/modules/calendar/components/QuickEventModal/SmsOptionsSheet.tsx
 //
 // Trzy powiadomienia SMS jako trzy niezależne przełączniki: każda kombinacja
-// jest poprawna — sama karta wizyty, samo potwierdzenie, wszystko naraz albo nic.
+// jest poprawna - sama karta wizyty, samo potwierdzenie, wszystko naraz albo nic.
 // Wcześniej siedziały jako kwadraciki 15 px pod sekcją „Notatka, SMS, door to
 // door", więc podczas rozmowy z klientem nikt do nich nie docierał.
 import { useEffect, useRef } from 'react';
@@ -16,7 +16,7 @@ export interface SmsOption {
     label: string;
     description: string;
     checked: boolean;
-    /** Wyłączone globalnie w konfiguracji studia — przełącznik nieaktywny. */
+    /** Wyłączone globalnie w konfiguracji studia - przełącznik nieaktywny. */
     disabledReason?: string;
     onChange: (checked: boolean) => void;
 }
@@ -54,7 +54,7 @@ export const SmsOptionsSheet = ({ isMobile, options, phone, onClose }: Props) =>
                 <Body>
                     {phone
                         ? <Recipient>Wiadomości pójdą na <strong>{phone}</strong></Recipient>
-                        : <Recipient $warn>Klient nie ma numeru telefonu — nie wyślemy żadnej wiadomości.</Recipient>
+                        : <Recipient $warn>Klient nie ma numeru telefonu - nie wyślemy żadnej wiadomości.</Recipient>
                     }
 
                     {options.map(opt => {
@@ -166,7 +166,7 @@ const OptionDesc = styled.div`
     color: #94a3b8;
 `;
 
-/** Przełącznik 52x32 — cel dotyku, nie kwadracik 15 px. */
+/** Przełącznik 52x32 - cel dotyku, nie kwadracik 15 px. */
 const Switch = styled.button<{ $on: boolean }>`
     position: relative;
     flex-shrink: 0;

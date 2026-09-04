@@ -13,7 +13,7 @@ export interface UseCheckinQRTokenResult {
     isExpired: boolean;
     isLoading: boolean;
     error: string | null;
-    /** Extends the current session — keeps a QR code that a phone already scanned alive. */
+    /** Extends the current session - keeps a QR code that a phone already scanned alive. */
     refresh: () => Promise<void>;
     /** Issues a brand-new code and invalidates the previous one on purpose. */
     rotate: () => Promise<void>;
@@ -24,7 +24,7 @@ export interface UseCheckinQRTokenResult {
  *
  * The backend deliberately returns the SAME token on every call (refreshing its TTL):
  * this hook runs on every mount of the photo step, and issuing a new token there used to
- * revoke the code a phone had already scanned — so after leaving and re-entering the step
+ * revoke the code a phone had already scanned - so after leaving and re-entering the step
  * the phone could no longer upload ("Błąd podczas przesyłania zdjęcia"). Only [rotate]
  * replaces the code.
  */

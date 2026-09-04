@@ -2,7 +2,7 @@
 // Status leada w panelu szczegółów: bieżący + strzałka, reszta pod kliknięciem.
 //
 // Sześć statusów rozłożonych jednocześnie na kafelki kazało czytać całą siatkę,
-// żeby znaleźć ten jeden podświetlony — a pytanie brzmi „w jakim stanie jest ten
+// żeby znaleźć ten jeden podświetlony - a pytanie brzmi „w jakim stanie jest ten
 // lead", nie „jakie stany istnieją". Lista pozostałych to informacja potrzebna
 // dopiero w chwili zmiany, więc mieszka pod strzałką.
 //
@@ -16,7 +16,7 @@ import { LEAD_STATUS_COLORS, LEAD_STATUS_FLOW, LEAD_STATUS_LABELS, type LeadStat
 
 const MENU_WIDTH = 220;
 const MENU_GAP = 6;
-/** Zapas na wysokość menu, gdy nie mieści się pod przyciskiem — wtedy otwiera się nad. */
+/** Zapas na wysokość menu, gdy nie mieści się pod przyciskiem - wtedy otwiera się nad. */
 const MENU_MAX_HEIGHT = 280;
 
 const Trigger = styled.button`
@@ -104,7 +104,7 @@ export function LeadStatusPicker({ status, onChange, disabled }: LeadStatusPicke
     const [open, setOpen] = useState(false);
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
-    // Pozycję liczymy przed malowaniem — menu nie ma prawa mrugnąć w lewym górnym rogu.
+    // Pozycję liczymy przed malowaniem - menu nie ma prawa mrugnąć w lewym górnym rogu.
     useLayoutEffect(() => {
         if (!open || !triggerRef.current) return;
         const rect = triggerRef.current.getBoundingClientRect();

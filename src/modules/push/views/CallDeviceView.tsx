@@ -4,13 +4,13 @@ import { PushPairingCard } from '../components/PushPairingCard';
 import { PushDeviceList } from '../components/PushDeviceList';
 
 /**
- * „Powiadomienia na telefon" — strona otwierana NA TELEFONIE (trasa /call-device,
+ * „Powiadomienia na telefon" - strona otwierana NA TELEFONIE (trasa /call-device,
  * zwykle z kodu QR w ustawieniach na komputerze). Jedno dotknięcie włącza na tym
  * urządzeniu powiadomienia z CRM: prośby o połączenie, zakończone wizyty, nowe
  * zapytania. Niżej lista wszystkich urządzeń konta z możliwością odłączenia.
  *
  * Stan parowania i lista urządzeń są tymi samymi komponentami, których używa
- * panel w Ustawieniach — jedna implementacja znaczy, że telefon zachowuje się
+ * panel w Ustawieniach - jedna implementacja znaczy, że telefon zachowuje się
  * identycznie niezależnie od tego, którą drogą użytkownik tu trafił.
  */
 

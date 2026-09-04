@@ -2,14 +2,14 @@
 // Przykładowe dane pokazowe dla pustej analityki.
 //
 // Studio, które dopiero zaczyna, widzi tu same komunikaty „za mało danych" i nie
-// ma jak się dowiedzieć, po co w ogóle ma zbierać leady — a to jest dokładnie ten
+// ma jak się dowiedzieć, po co w ogóle ma zbierać leady - a to jest dokładnie ten
 // moment, w którym warto mu to pokazać. Pusty ekran uczy, że tu nic nie ma;
 // wypełniony przykładem uczy, co tu będzie.
 //
 // Liczby są zmyślone, ale nie losowe: odpowiadają realnemu studiu detailingowemu
 // przy sześćdziesięciu kilku zapytaniach miesięcznie, z rozrzutem cen od mycia za
 // niecałe trzysta złotych po folię PPF za blisko dziesięć tysięcy. Dane, które nie
-// trzymają się prawdopodobieństwa, uczą fałszywych odruchów — właściciel zobaczyłby
+// trzymają się prawdopodobieństwa, uczą fałszywych odruchów - właściciel zobaczyłby
 // skuteczność 90% i uznał swoją realną za porażkę.
 //
 // Wszystko jest deterministyczne i wyliczone z podanej daty, bez sięgania po zegar:
@@ -27,7 +27,7 @@ const isoDay = (base: Date, offsetDays: number): string => {
  *
  * Rozmowy „w grze" pojawiają się WYŁĄCZNIE w dwóch ostatnich tygodniach, bo tyle
  * realnie trwa decyzja o detailingu: kto pyta o mycie, decyduje w dzień, kto
- * o powłokę — po obejrzeniu auta i jednej rozmowie o cenie. Otwarte zapytanie
+ * o powłokę - po obejrzeniu auta i jednej rozmowie o cenie. Otwarte zapytanie
  * sprzed miesiąca nie jest pipeline'em, tylko czymś, czego nikt nie zamknął;
  * w starszych tygodniach stoi więc w kolumnie „ucichło", i to w małych kwotach,
  * bo to ma być wyjątek, a nie reguła.
@@ -44,12 +44,12 @@ const WEEKS: [number, number, number, number, number, number | null][] = [
 ];
 
 /**
- * Pieniądze wciąż w grze, doklejane do DWÓCH OSTATNICH tygodni wybranego zakresu —
+ * Pieniądze wciąż w grze, doklejane do DWÓCH OSTATNICH tygodni wybranego zakresu -
  * bez względu na to, ile ich w nim jest.
  *
  * Wpisanie ich na sztywno w ostatnie wiersze tablicy wywracało się przy krótszym
  * zakresie: miesięczny wykres brał cztery pierwsze tygodnie i nie miał ani złotówki
- * w grze, co jest odwrotnością prawdy — w grze są zawsze te najświeższe rozmowy.
+ * w grze, co jest odwrotnością prawdy - w grze są zawsze te najświeższe rozmowy.
  */
 const OPEN_TAIL: [number, number] = [1840000, 4260000];
 
@@ -65,7 +65,7 @@ const DEMO_CATEGORIES = [
 /*
  * Dwie osie pojazdu. Premium wygrywa najczęściej nie dlatego, że klienci
  * są bogatsi, tylko dlatego, że przychodzą po konkretną usługę i porównują
- * ją z ceną serwisu autoryzowanego — a nie z myjnią za rogiem. Budżetowe
+ * ją z ceną serwisu autoryzowanego - a nie z myjnią za rogiem. Budżetowe
  * przegrywają na cenie i to jest normalne, nie do naprawienia.
  */
 const DEMO_MARKET_TIERS = [
@@ -85,15 +85,15 @@ const DEMO_SIZE_SEGMENTS = [
 
 /**
  * Surowe fakty do przekrojowego filtrowania „usługa × segment auta" w trybie
- * pokazowym — ten sam kształt, jaki oddaje backend.
+ * pokazowym - ten sam kształt, jaki oddaje backend.
  *
  * Rozłożone cyklicznie po usługach i segmentach, z jednym świadomym wyjątkiem:
  * w segmencie Premium × Sportowe wygrane są przycięte, a w Premium × SUV
- * podbite. To jest dokładnie ta historia, po którą sięga się po filtr —
- * „wygrywamy w premium, ale głównie w SUV-ach, nie w sportowych" — a bez niej
+ * podbite. To jest dokładnie ta historia, po którą sięga się po filtr -
+ * „wygrywamy w premium, ale głównie w SUV-ach, nie w sportowych" - a bez niej
  * przykład nie pokazywałby, po co w ogóle filtrować.
  */
-// Średnia wycena usługi — te same liczby co w weekdayMatrix poniżej, żeby
+// Średnia wycena usługi - te same liczby co w weekdayMatrix poniżej, żeby
 // przefiltrowany przekrój w trybie pokazowym trzymał się tej samej ceny.
 const DEMO_CATEGORY_VALUE: Record<string, number> = {
     ppf: 984000,
@@ -149,7 +149,7 @@ const buildDemoLeadFacts = (): LeadFact[] => {
  * Pełny komplet danych analitycznych do trybu pokazowego.
  *
  * Oś czasu układa się na wybranym okresie, żeby podpisy pod wykresem zgadzały się
- * z zakresem widocznym w nagłówku strony — przykład z datami sprzed roku albo
+ * z zakresem widocznym w nagłówku strony - przykład z datami sprzed roku albo
  * wychodzącymi poza wybrany miesiąc wyglądałby na zepsuty, a nie na przykład.
  * Stąd przycięcie liczby tygodni do długości okresu, z dolną granicą czterech:
  * krócej nie ma czego nazywać trendem.
@@ -198,7 +198,7 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
             },
         },
 
-        // Największa pozycja to cena, ale zaraz za nią cisza — i to ona jest tu
+        // Największa pozycja to cena, ale zaraz za nią cisza - i to ona jest tu
         // pointą przykładu: da się ją naprawić w tym tygodniu i za zero złotych.
         leaks: [
             { code: 'TOO_EXPENSIVE', label: 'Za drogo', value: 4180000, count: 11 },
@@ -232,15 +232,15 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
         /*
          * Rytm tygodnia odwzorowuje sposób, w jaki ludzie realnie planują:
          *
-         * • FOLIA PPF i POWŁOKA CERAMICZNA — piątek i sobota. To decyzja na kilka
+         * • FOLIA PPF i POWŁOKA CERAMICZNA - piątek i sobota. To decyzja na kilka
          *   tysięcy, przy nowym aucie, podejmowana wtedy, gdy właściciel ma czas
          *   usiąść, przeczytać wycenę i pogadać. W środku tygodnia takich rozmów
          *   po prostu nie ma kto prowadzić.
-         * • KOREKTA LAKIERU — rozłożona równo. Bierze się z niezadowolenia ze stanu
+         * • KOREKTA LAKIERU - rozłożona równo. Bierze się z niezadowolenia ze stanu
          *   lakieru, a to nie ma dnia tygodnia; człowiek pisze wtedy, kiedy zauważy.
-         * • DETAILING WNĘTRZA — poniedziałek i wtorek. Bezpośrednia konsekwencja
+         * • DETAILING WNĘTRZA - poniedziałek i wtorek. Bezpośrednia konsekwencja
          *   weekendu: dzieci, pies, wyjazd, rozlana kawa w niedzielę.
-         * • MYCIE I PIELĘGNACJA — poniedziałek oraz czwartek/piątek. Dwie różne
+         * • MYCIE I PIELĘGNACJA - poniedziałek oraz czwartek/piątek. Dwie różne
          *   sprawy: sprzątanie po weekendzie i przygotowanie auta na nadchodzący.
          *
          * Efekt uboczny jest tu treścią: przekątna od lewego dołu do prawej góry.
@@ -267,10 +267,10 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
             slowWinRate: 0.17,
         },
 
-        // Dwie osie pojazdu — patrz komentarz przy DEMO_MARKET_TIERS / DEMO_SIZE_SEGMENTS.
+        // Dwie osie pojazdu - patrz komentarz przy DEMO_MARKET_TIERS / DEMO_SIZE_SEGMENTS.
         byMarketTier: DEMO_MARKET_TIERS,
         bySizeSegment: DEMO_SIZE_SEGMENTS,
-        // Surowe fakty pod filtr karty „Usługi" — patrz buildDemoLeadFacts.
+        // Surowe fakty pod filtr karty „Usługi" - patrz buildDemoLeadFacts.
         leadFacts: buildDemoLeadFacts(),
 
         vehicleOutliers: [

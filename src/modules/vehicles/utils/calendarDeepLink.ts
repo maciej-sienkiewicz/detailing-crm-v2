@@ -1,8 +1,8 @@
 /**
- * Rezerwacja w historii pojazdu nie ma własnego widoku — prowadzi do kalendarza.
+ * Rezerwacja w historii pojazdu nie ma własnego widoku - prowadzi do kalendarza.
  * Kalendarz szuka dnia po atrybucie `data-date` FullCalendara, czyli po dacie
  * LOKALNEJ. `toISOString()` przeliczyłby ją na UTC i wizyta z 27. o 01:00
- * wskazywałaby na 26., czyli inny kafelek, a przy przełomie miesiąca — inny
+ * wskazywałaby na 26., czyli inny kafelek, a przy przełomie miesiąca - inny
  * ekran kalendarza.
  */
 export const toCalendarDate = (iso: string): string => {

@@ -1,7 +1,7 @@
 // src/modules/calendar/components/QuickEventModal/MobileNewCustomerSheet.tsx
 //
 // „Dodaj nowego klienta" na telefonie zapisywało klienta od razu, z samym
-// imieniem wpisanym w wyszukiwarkę — bez telefonu i maila, czyli bez czegokolwiek,
+// imieniem wpisanym w wyszukiwarkę - bez telefonu i maila, czyli bez czegokolwiek,
 // czym można go później zawiadomić o wizycie. Zamiast tego pokazujemy krótki
 // formularz: cztery pola, „Zatwierdź" i „X" na wycofanie się z operacji.
 import { useEffect, useRef, useState } from 'react';
@@ -38,7 +38,7 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
     // krawędź musi dojechać nad klawiaturę.
     useVisualViewportSheet(true, sheetRef, { keyboard: 'resize' });
 
-    // Escape zamyka arkusz tak samo jak „X" — na tablecie z klawiaturą to odruch.
+    // Escape zamyka arkusz tak samo jak „X" - na tablecie z klawiaturą to odruch.
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
         document.addEventListener('keydown', onKey);
@@ -135,7 +135,7 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
                     {emailLooksWrong ? (
                         <Hint $error>Adres e-mail wygląda na niepełny.</Hint>
                     ) : touched && !hasContact ? (
-                        <Hint $error>Podaj numer telefonu albo adres e-mail — bez tego nie zapiszemy klienta.</Hint>
+                        <Hint $error>Podaj numer telefonu albo adres e-mail - bez tego nie zapiszemy klienta.</Hint>
                     ) : (
                         <Hint>Wystarczy jedno: numer telefonu albo adres e-mail.</Hint>
                     )}

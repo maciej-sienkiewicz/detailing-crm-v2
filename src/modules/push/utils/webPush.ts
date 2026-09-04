@@ -47,8 +47,8 @@ export const isIosOutsidePwa = (): boolean => isIosDevice() && !isStandaloneDisp
  * Służy WYŁĄCZNIE do ustawienia kolejności i akcentów w panelu (na telefonie nie
  * ma sensu pokazywać kodu QR do zeskanowania własnego ekranu). Nigdy nie decyduje
  * o tym, czy da się tu sparować urządzenie: rozpoznawanie po User-Agent bywa
- * mylne — iPadOS przedstawia się jako Mac, a przeglądarki w trybie desktopowym
- * ukrywają system — a wtedy jedyny działający przycisk zniknąłby z ekranu.
+ * mylne - iPadOS przedstawia się jako Mac, a przeglądarki w trybie desktopowym
+ * ukrywają system - a wtedy jedyny działający przycisk zniknąłby z ekranu.
  */
 export const isMobileDevice = (): boolean =>
     /android|iphone|ipad|ipod|windows phone/i.test(navigator.userAgent) ||
@@ -59,7 +59,7 @@ export const isMobileDevice = (): boolean =>
  * Rejestracja Service Workera gotowa do subskrypcji.
  *
  * `navigator.serviceWorker.ready` nigdy się nie rozstrzyga, jeśli w tym zakresie
- * nie ma zarejestrowanego workera — a wtedy parowanie wisiało w nieskończoność na
+ * nie ma zarejestrowanego workera - a wtedy parowanie wisiało w nieskończoność na
  * „Paruję…", bez żadnego komunikatu. Dlatego najpierw sami próbujemy rejestracji
  * (samonaprawa, gdy ta ze startu aplikacji się nie powiodła), a potem czekamy
  * z limitem czasu i jawnym błędem.
@@ -70,7 +70,7 @@ export const waitForServiceWorker = async (timeoutMs = 15_000): Promise<ServiceW
     try {
         await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
     } catch {
-        // Rejestracja mogła już istnieć albo być zablokowana — rozstrzygnie to `ready`.
+        // Rejestracja mogła już istnieć albo być zablokowana - rozstrzygnie to `ready`.
     }
 
     let timer: number | undefined;

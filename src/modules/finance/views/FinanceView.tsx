@@ -375,7 +375,7 @@ type ToolbarMenuItem =
   | { kind: 'toggle'; key: string; label: string; on: boolean; onSelect: () => void }
   | { kind: 'action'; key: string; label: string; icon?: React.ReactNode; onSelect: () => void };
 
-/** Menu „trzy kropki" paska narzędzi tabeli — widoczne tylko na telefonie. */
+/** Menu „trzy kropki" paska narzędzi tabeli - widoczne tylko na telefonie. */
 const ToolbarKebab: React.FC<{ items: ToolbarMenuItem[] }> = ({ items }) => {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
@@ -587,7 +587,7 @@ const FinHdrActions = styled.div`
   gap: 8px;
 
   /* Telefon: trzy pełnowymiarowe przyciski zajmowały pół ekranu powitalnego.
-     Zostaje jeden rząd — zakres dat i skrócone akcje. */
+     Zostaje jeden rząd - zakres dat i skrócone akcje. */
   @media (max-width: 639px) {
     width: 100%;
     gap: 6px;
@@ -603,7 +603,7 @@ const FinHdrActions = styled.div`
   }
 `;
 
-/** Pełna nazwa akcji na dużym ekranie, skrót na telefonie — bez dwóch drzewek JSX. */
+/** Pełna nazwa akcji na dużym ekranie, skrót na telefonie - bez dwóch drzewek JSX. */
 const FullLabel = styled.span`
   @media (max-width: 639px) { display: none; }
 `;
@@ -774,7 +774,7 @@ export const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?
 
   // Bieżący miesiąc to miesiąc kalendarzowy, a nie ostatnie 30 dni: rozliczenia
   // prowadzi się od pierwszego do ostatniego dnia, więc zakres obejmuje cały miesiąc
-  // (także dni, które dopiero nadejdą — faktura bywa wystawiona z datą w przód).
+  // (także dni, które dopiero nadejdą - faktura bywa wystawiona z datą w przód).
   if (preset === 'currentMonth') {
     const from = new Date(today.getFullYear(), today.getMonth(), 1);
     const to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -787,7 +787,7 @@ export const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?
   return { dateFrom: toISODate(from), dateTo: toISODate(today) };
 };
 
-/** Nazwa bieżącego miesiąca jako podpowiedź przy presecie — „sierpień 2026". */
+/** Nazwa bieżącego miesiąca jako podpowiedź przy presecie - „sierpień 2026". */
 const currentMonthHint = (): string =>
   new Date().toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
 

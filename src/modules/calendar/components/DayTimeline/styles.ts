@@ -94,7 +94,7 @@ export const BoardScroll = styled.div`
 
     /* Telefon: tablica statusów przestaje być czterema kolumnami obok siebie
        (640px minimum na ekranie szerokim na 390px) i staje się jedną kolumną
-       sekcji pod sobą — przewijaną pionowo, tak jak reszta aplikacji. */
+       sekcji pod sobą - przewijaną pionowo, tak jak reszta aplikacji. */
     @media (max-width: 767px) {
         overflow-x: hidden;
         overflow-y: auto;
@@ -148,7 +148,7 @@ export const ColHeader = styled.div<{ $color: string }>`
     border-bottom: 2px solid ${p => p.$color}44;
     flex-shrink: 0;
 
-    /* Nagłówek sekcji zostaje na wierzchu przy przewijaniu długiej listy —
+    /* Nagłówek sekcji zostaje na wierzchu przy przewijaniu długiej listy -
        inaczej po kilku kartach nie widać już, do jakiego statusu należą. */
     @media (max-width: 767px) {
         position: sticky;

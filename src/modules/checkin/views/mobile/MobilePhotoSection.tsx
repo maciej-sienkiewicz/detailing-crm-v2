@@ -78,7 +78,7 @@ export const MobilePhotoSection = ({ logic }: Props) => {
             </InfoCard>
 
             {/* Two separate inputs: `capture` forces the camera, so the gallery needs its
-                own input without it — a single combined button never offers the gallery. */}
+                own input without it - a single combined button never offers the gallery. */}
             <CaptureRow>
                 <CameraBtn htmlFor="camera-input-mobile">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

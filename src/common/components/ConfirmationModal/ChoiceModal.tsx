@@ -1,11 +1,11 @@
 // src/common/components/ConfirmationModal/ChoiceModal.tsx
-// Pytanie z dwiema pełnoprawnymi odpowiedziami — „tak" i „nie" to dwie różne
+// Pytanie z dwiema pełnoprawnymi odpowiedziami - „tak" i „nie" to dwie różne
 // decyzje, a nie decyzja i jej brak.
 //
 // ConfirmationModal tego nie udźwignie: jego „Anuluj" jest zszyte z zamknięciem
 // okna (Escape, tło i przycisk wołają ten sam onCancel), więc odpowiedź „nie"
 // odpalałaby się także wtedy, gdy użytkownik chciał tylko uciec od pytania.
-// Tutaj zamknięcie (X, Escape, kliknięcie w tło) jest trzecim wyjściem — rezygnacją,
+// Tutaj zamknięcie (X, Escape, kliknięcie w tło) jest trzecim wyjściem - rezygnacją,
 // po której nie dzieje się nic.
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -32,10 +32,10 @@ interface ChoiceModalProps {
     title: string;
     message: string;
     variant?: ConfirmationVariant;
-    /** Odpowiedź twierdząca — przycisk w kolorze wariantu. */
+    /** Odpowiedź twierdząca - przycisk w kolorze wariantu. */
     primaryText: string;
     onPrimary: () => void;
-    /** Odpowiedź przecząca — pełnoprawna decyzja, nie zamknięcie. */
+    /** Odpowiedź przecząca - pełnoprawna decyzja, nie zamknięcie. */
     secondaryText: string;
     onSecondary: () => void;
     /** Rezygnacja: X, Escape, kliknięcie w tło. Nie dzieje się nic. */

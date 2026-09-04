@@ -12,7 +12,7 @@ describe('pickInitialColorId', () => {
         expect(pickInitialColorId([color('a'), color('b', true), color('c')])).toBe('b');
     });
 
-    it('bez domyślnego zostaje pierwszy — pole i tak jest wymagane', () => {
+    it('bez domyślnego zostaje pierwszy - pole i tak jest wymagane', () => {
         expect(pickInitialColorId([color('a'), color('b')])).toBe('a');
     });
 

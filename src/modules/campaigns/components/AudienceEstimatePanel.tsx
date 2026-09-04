@@ -3,12 +3,12 @@
 //
 // Filtrów obok jest kilkanaście i wszystkie ważą tyle samo; jedyna liczba, dla
 // której ktoś je w ogóle ustawia, stoi tutaj i jest największym elementem kroku.
-// Hierarchia rozmiarem, nie barwą — liczba odbiorców pomalowana na kolor
+// Hierarchia rozmiarem, nie barwą - liczba odbiorców pomalowana na kolor
 // wyglądałaby jak ostrzeżenie, a nie jak fakt.
 //
 // Pod liczbą stoi rachunek, nie wykres: „pasuje 480, minus 41 bez zgody, minus 12
 // bez numeru". Różnica między tym, czego ktoś się spodziewał, a tym, co wyjdzie,
-// jest jedyną rzeczą, o którą pyta po wysyłce — więc pokazujemy ją przed.
+// jest jedyną rzeczą, o którą pyta po wysyłce - więc pokazujemy ją przed.
 //
 // Sama lista odbiorców przeniosła się do [AudienceTable]: w wąskiej kolumnie była
 // nieczytelna, a jako tabela na pełnej szerokości może mieć pola wyboru.
@@ -21,7 +21,7 @@ const Panel = styled.div`
   top: 24px;
   background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  /* Ta sama krawędź i ten sam promień, co panel filtrów obok — dominanta bierze
+  /* Ta sama krawędź i ten sam promień, co panel filtrów obok - dominanta bierze
      się z czterdziestopikselowej liczby, nie z grubszego cienia pod ramką. */
   border-radius: ${(p) => p.theme.radii.lg};
   padding: 18px;
@@ -49,7 +49,7 @@ const BigLabel = styled.div`
   align-items: center;
 `;
 
-/** Okno prognozy automatu — zdanie, nie plakietka: to warunek odczytu liczby wyżej. */
+/** Okno prognozy automatu - zdanie, nie plakietka: to warunek odczytu liczby wyżej. */
 const HorizonNote = styled.p`
   margin: -8px 0 14px;
   font-size: 12px;
@@ -102,7 +102,7 @@ interface Props {
   estimate: AudienceEstimate | undefined;
   isEstimating: boolean;
   showCost?: boolean;
-  /** Kampania automatyczna bez wybranej usługi — liczba nie ma jeszcze o czym mówić. */
+  /** Kampania automatyczna bez wybranej usługi - liczba nie ma jeszcze o czym mówić. */
   awaitingTrigger?: boolean;
 }
 
@@ -111,7 +111,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
 
   return (
     <Panel>
-      <BigNumber $dim={isEstimating}>{awaitingTrigger ? '—' : e ? e.eligible : '—'}</BigNumber>
+      <BigNumber $dim={isEstimating}>{awaitingTrigger ? '-' : e ? e.eligible : '-'}</BigNumber>
       <BigLabel>
         {e?.projectionHorizonDays ? 'Odezwiemy się do tylu klientów' : 'Odbiorców dostanie wiadomość'}
         <InfoTooltip text="Finalna liczba klientów po odjęciu wszystkich wykluczeń systemowych (brak zgody, brak kontaktu, STOP, limit częstości) oraz odznaczonych ręcznie." />
@@ -120,13 +120,13 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
       {awaitingTrigger ? (
         <HorizonNote>
           Kampania automatyczna wychodzi od warunku, nie od filtrów. Wybierz usługę, po której
-          ma się odezwać — dopiero wtedy da się policzyć, kogo obejmie.
+          ma się odezwać - dopiero wtedy da się policzyć, kogo obejmie.
         </HorizonNote>
       ) : (
         e?.projectionHorizonDays != null && (
           <HorizonNote>
             Prognoza na najbliższe <strong>{e.projectionHorizonDays} dni</strong>: tylu klientów
-            przejdzie w tym czasie przez warunek. Kampania działa dalej — to nie jest limit.
+            przejdzie w tym czasie przez warunek. Kampania działa dalej - to nie jest limit.
           </HorizonNote>
         )
       )}

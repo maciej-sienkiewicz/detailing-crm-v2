@@ -37,7 +37,7 @@ export const useTasks = () => {
   });
 
   // Dyktowanie: bez optymistycznego wpisu, bo treści zadania nie znamy przed
-  // transkrypcją — lista odświeża się po odpowiedzi serwera.
+  // transkrypcją - lista odświeża się po odpowiedzi serwera.
   const createFromVoiceMutation = useMutation({
     mutationFn: ({ audioBlob, mimeType }: { audioBlob: Blob; mimeType: string }) =>
       tasksApi.createFromVoice(audioBlob, mimeType),

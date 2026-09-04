@@ -18,7 +18,7 @@ export type CustomerTypeFilter = 'ALL' | 'INDIVIDUAL' | 'COMPANY';
 
 export type AudienceEligibility =
   | 'ELIGIBLE' | 'OPTED_OUT' | 'NO_CONSENT' | 'NO_ADDRESS' | 'FREQUENCY_CAP'
-  /** Odznaczony ręcznie w kreatorze — widoczny na liście, poza wysyłką. */
+  /** Odznaczony ręcznie w kreatorze - widoczny na liście, poza wysyłką. */
   | 'EXCLUDED_MANUALLY';
 
 export interface VehicleBrandFilter {
@@ -136,14 +136,14 @@ export interface AudienceEstimate {
   noAddress: number;
   frequencyCapped: number;
   eligible: number;
-  /** Odznaczeni ręcznie — wliczeni do `matched`, ale nie do `eligible`. */
+  /** Odznaczeni ręcznie - wliczeni do `matched`, ale nie do `eligible`. */
   excludedManually: number;
   estimatedSmsSegments: number | null;
   estimatedCredits: number | null;
-  /** Jedna strona listy odbiorców — całość liczy `matched`. */
+  /** Jedna strona listy odbiorców - całość liczy `matched`. */
   sample: AudienceCustomer[];
   sampleOffset: number;
-  /** Długość listy, po której stronicujemy — mniejsza od `matched`, gdy działa wyszukiwarka. */
+  /** Długość listy, po której stronicujemy - mniejsza od `matched`, gdy działa wyszukiwarka. */
   sampleTotal: number;
   /** Okno prognozy dla kampanii automatycznej (dni); null dla jednorazowej. */
   projectionHorizonDays: number | null;
@@ -153,7 +153,7 @@ export interface AudienceEstimate {
  * Warunek kampanii automatycznej w wersji „na próbę".
  *
  * Osobny od [TriggerConfig], bo kreator pyta o prognozę także wtedy, gdy usługa nie
- * jest jeszcze wybrana — a warunek bez usługi nie jest poprawnym [TriggerConfig].
+ * jest jeszcze wybrana - a warunek bez usługi nie jest poprawnym [TriggerConfig].
  */
 export interface AudienceTriggerProjection {
   serviceIds: string[];
@@ -163,7 +163,7 @@ export interface AudienceTriggerProjection {
   horizonDays: number;
 }
 
-/** Parametry pytania „kto to dostanie" — jeden obiekt, bo jest ich już sześć. */
+/** Parametry pytania „kto to dostanie" - jeden obiekt, bo jest ich już sześć. */
 export interface AudienceEstimateParams {
   audience: AudienceCriteria;
   channel: RecipientChannel;
@@ -171,7 +171,7 @@ export interface AudienceEstimateParams {
   trigger?: AudienceTriggerProjection | null;
   sampleLimit?: number;
   sampleOffset?: number;
-  /** Fraza z wyszukiwarki nad tabelą — zawęża listę, nie liczniki. */
+  /** Fraza z wyszukiwarki nad tabelą - zawęża listę, nie liczniki. */
   sampleSearch?: string;
 }
 

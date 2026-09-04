@@ -63,7 +63,7 @@ export const leadsApi = {
         await apiClient.delete(`/v1/leads/${leadId}/notes/${noteId}`);
     },
 
-    /** Nowe + otwarte z zaległą odpowiedzią — plakietka przy „Leady" w menu. */
+    /** Nowe + otwarte z zaległą odpowiedzią - plakietka przy „Leady" w menu. */
     getAttentionCount: async (): Promise<number> => {
         const { data } = await apiClient.get('/v1/leads/attention-count');
         return Number(data?.count ?? 0);

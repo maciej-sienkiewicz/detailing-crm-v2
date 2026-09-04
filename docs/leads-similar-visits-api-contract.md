@@ -12,7 +12,7 @@ Widok `/leads` otwiera modal szczegółów leada (`LeadDetailModal`). Sekcja **�
 
 ---
 
-## 1. `GET /v1/leads/:id` — szczegóły leada
+## 1. `GET /v1/leads/:id` - szczegóły leada
 
 ### Pole do uzupełnienia w odpowiedzi
 
@@ -34,7 +34,7 @@ Widok `/leads` otwiera modal szczegółów leada (`LeadDetailModal`). Sekcja **�
 
 ---
 
-## 2. `GET /visits/:visitId` — szczegóły wizyty
+## 2. `GET /visits/:visitId` - szczegóły wizyty
 
 Endpoint już istnieje. Poniżej lista **wszystkich pól których frontend aktywnie używa** w nowym modal podglądu oraz w kartach referencyjnych.
 
@@ -156,10 +156,10 @@ Endpoint już istnieje. Poniżej lista **wszystkich pól których frontend aktyw
 | `totalCost.netAmount` | Kafelek „Wartość netto" |
 | `totalCost.grossAmount` | Kafelek „Wartość brutto" |
 | `grossAmount - netAmount` | Kafelek „VAT" (obliczany po stronie frontend) |
-| `services[].serviceName` | Tabela usług — kolumna „Usługa" |
-| `services[].finalPriceNet` | Tabela usług — kolumna „Netto" |
-| `services[].finalPriceGross` | Tabela usług — kolumna „Brutto" |
-| `services[].vatRate` | Tabela usług — kolumna „VAT" |
+| `services[].serviceName` | Tabela usług - kolumna „Usługa" |
+| `services[].finalPriceNet` | Tabela usług - kolumna „Netto" |
+| `services[].finalPriceGross` | Tabela usług - kolumna „Brutto" |
+| `services[].vatRate` | Tabela usług - kolumna „VAT" |
 | `services[].note` | Pod-wiersz z notatką do usługi |
 | `technicalNotes` | Sekcja „Notatki z realizacji" |
 | `customer.firstName + lastName` | Karta klienta + hero |
@@ -171,7 +171,7 @@ Endpoint już istnieje. Poniżej lista **wszystkich pól których frontend aktyw
 
 ---
 
-## 3. `GET /visits/:visitId/photos` — zdjęcia wizyty
+## 3. `GET /visits/:visitId/photos` - zdjęcia wizyty
 
 Endpoint już istnieje.
 
@@ -192,19 +192,19 @@ Endpoint już istnieje.
 ```
 
 **Krytyczne wymagania:**
-- `thumbnailUrl` — okładka karty referencyjnej i miniatura w galerii. Dostępny przez przeglądarkę bez dodatkowych nagłówków (CORS OK).
-- `fullSizeUrl` — używany w lightboxie po kliknięciu zdjęcia.
+- `thumbnailUrl` - okładka karty referencyjnej i miniatura w galerii. Dostępny przez przeglądarkę bez dodatkowych nagłówków (CORS OK).
+- `fullSizeUrl` - używany w lightboxie po kliknięciu zdjęcia.
 - Presigned URL-e muszą być ważne przez co najmniej **10 minut** (frontend trzyma w cache przez ≤ 60 s via `staleTime`).
-- `photos[0]` staje się okładką karty — backend powinien sortować po priorytecie lub `uploadedAt`.
+- `photos[0]` staje się okładką karty - backend powinien sortować po priorytecie lub `uploadedAt`.
 
 ---
 
 ## 4. Wymagania wydajnościowe
 
-Sekcja „Podobne realizacje" renderuje **N kart równolegle** (N = liczba elementów w `relatedVisits`, max ~6). Każda karta wysyła **2 zapytania** (detail + photos) po montażu — łącznie do 12 requestów jednocześnie.
+Sekcja „Podobne realizacje" renderuje **N kart równolegle** (N = liczba elementów w `relatedVisits`, max ~6). Każda karta wysyła **2 zapytania** (detail + photos) po montażu - łącznie do 12 requestów jednocześnie.
 
 **Rekomendacje:**
-- Rozważyć endpoint `GET /visits/bulk?ids=id1,id2,...` lub embedded dane w `relatedVisits` bezpośrednio w odpowiedzi leada — eliminuje 2×N requestów.
+- Rozważyć endpoint `GET /visits/bulk?ids=id1,id2,...` lub embedded dane w `relatedVisits` bezpośrednio w odpowiedzi leada - eliminuje 2×N requestów.
 - Jeśli pozostają osobne requesty: CDN/cache na `GET /visits/:id` (wizyty ze statusem `COMPLETED` rzadko się zmieniają).
 
 ---
@@ -233,7 +233,7 @@ Przy takim podejściu `RelatedVisitCard` renderuje się natychmiastowo bez osobn
 
 ---
 
-## 6. Nawigacja (tylko frontend — brak zmian po stronie backend)
+## 6. Nawigacja (tylko frontend - brak zmian po stronie backend)
 
 | Przycisk | Docelowy URL |
 |---|---|
@@ -249,12 +249,12 @@ Wszystkie trasy już istnieją w routerze aplikacji.
 ## 7. Implementacja frontendu
 
 Kod referencyjny:
-- `src/modules/leads/components/LeadDetailModal/index.tsx` — `VisitPreviewModal` (linie ~1366–1628), `RelatedVisitCard` (linie ~1641–1750)
-- `src/modules/visits/api/visitApi.ts` — `getVisitDetail`, `getVisitPhotos` (z danymi mock dla trzech wizyt referencyjnych)
-- `src/modules/visits/types.ts` — typy `Visit`, `VisitPhoto`, `VisitDetailResponse`, `VisitPhotosResponse`
+- `src/modules/leads/components/LeadDetailModal/index.tsx` - `VisitPreviewModal` (linie ~1366–1628), `RelatedVisitCard` (linie ~1641–1750)
+- `src/modules/visits/api/visitApi.ts` - `getVisitDetail`, `getVisitPhotos` (z danymi mock dla trzech wizyt referencyjnych)
+- `src/modules/visits/types.ts` - typy `Visit`, `VisitPhoto`, `VisitDetailResponse`, `VisitPhotosResponse`
 
 Query keys używane przez frontend:
-- `['visit-preview', visitId]` — szczegóły wizyty (staleTime: 60 s)
-- `['visit-photos-preview', visitId]` — zdjęcia wizyty (staleTime: 60 s)
+- `['visit-preview', visitId]` - szczegóły wizyty (staleTime: 60 s)
+- `['visit-photos-preview', visitId]` - zdjęcia wizyty (staleTime: 60 s)
 
-Flaga mock: `USE_MOCKS = true` w `visitApi.ts` — do wyłączenia po integracji z backendem.
+Flaga mock: `USE_MOCKS = true` w `visitApi.ts` - do wyłączenia po integracji z backendem.

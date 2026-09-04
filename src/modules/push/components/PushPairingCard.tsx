@@ -1,13 +1,13 @@
 // src/modules/push/components/PushPairingCard.tsx
 //
-// Parowanie TEGO urządzenia do powiadomień push — jeden komponent dla obu miejsc,
+// Parowanie TEGO urządzenia do powiadomień push - jeden komponent dla obu miejsc,
 // w których się to robi: strony /call-device (otwieranej z kodu QR na telefonie)
 // oraz Ustawień → Urządzenia mobilne → Powiadomienia.
 //
 // Wcześniej każde z tych miejsc miało własną wersję tej samej logiki i tylko strona
 // /call-device pokazywała, co jest nie tak (brak PWA na iOS, zablokowane
 // powiadomienia). Panel w ustawieniach po cichu chował przycisk i zostawiał sam kod
-// QR — czyli na telefonie nie dawał się użyć w ogóle: nie da się zeskanować
+// QR - czyli na telefonie nie dawał się użyć w ogóle: nie da się zeskanować
 // własnego ekranu.
 
 import styled from 'styled-components';
@@ -21,12 +21,12 @@ interface Props {
     push: PushDevice;
     /**
      * Napis na przycisku. Na telefonie „ten telefon", w ustawieniach na komputerze
-     * neutralne „to urządzenie" — użytkownik i tak widzi, gdzie stoi.
+     * neutralne „to urządzenie" - użytkownik i tak widzi, gdzie stoi.
      */
     actionLabel?: string;
 }
 
-/** Komunikat błędu parowania — po przyczynie, nie po ogólnym „spróbuj ponownie". */
+/** Komunikat błędu parowania - po przyczynie, nie po ogólnym „spróbuj ponownie". */
 function pairingErrorMessage(error: unknown): string {
     const code = error instanceof Error ? error.message : '';
     if (code === 'permission-denied') {
@@ -35,7 +35,7 @@ function pairingErrorMessage(error: unknown): string {
             : 'Powiadomienia są zablokowane. Odblokuj je w ustawieniach przeglądarki dla tej strony.';
     }
     if (code === 'sw-unavailable') {
-        return 'Nie udało się uruchomić tła aplikacji. Odśwież stronę i spróbuj ponownie — ' +
+        return 'Nie udało się uruchomić tła aplikacji. Odśwież stronę i spróbuj ponownie - ' +
             'w trybie prywatnym przeglądarki powiadomienia nie działają.';
     }
     if (code === 'subscription-incomplete') {
@@ -124,7 +124,7 @@ export function PushPairingCard({ push, actionLabel = 'Włącz powiadomienia na 
                 {push.isEnabling ? 'Włączam…' : actionLabel}
             </PrimaryBtn>
             <Hint>
-                Przeglądarka zapyta o zgodę — wybierz <strong>Zezwól</strong>.
+                Przeglądarka zapyta o zgodę - wybierz <strong>Zezwól</strong>.
                 Powiadomienia przychodzą także przy zamkniętej aplikacji.
             </Hint>
         </Stack>
@@ -179,7 +179,7 @@ const PrimaryBtn = styled.button`
     &:active:not(:disabled) { transform: scale(0.98); }
     &:disabled { opacity: 0.6; cursor: default; }
 
-    /* Na telefonie to jedyna akcja na ekranie — niech będzie na pełną szerokość. */
+    /* Na telefonie to jedyna akcja na ekranie - niech będzie na pełną szerokość. */
     @media (max-width: 600px) { width: 100%; }
 `;
 

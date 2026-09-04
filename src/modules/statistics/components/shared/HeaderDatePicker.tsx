@@ -151,7 +151,7 @@ const CheckIcon = () => (
 type Preset = { label: string; hint: string; startDate: string; endDate: string; granularity: Granularity };
 
 const getPresets = (): Preset[] => [
-    // Rozliczenia prowadzi się miesiącami — to jest pytanie, z którym najczęściej
+    // Rozliczenia prowadzi się miesiącami - to jest pytanie, z którym najczęściej
     // wchodzi się w statystyki, więc stoi pierwsze i jest domyślne.
     { label: 'Bieżący miesiąc',      hint: currentMonthName(), startDate: currentMonthStart(), endDate: today(), granularity: 'DAILY' },
     { label: 'Ostatnie 7 dni',       hint: '7 dni',    startDate: spDaysAgo(7),    endDate: today(), granularity: 'DAILY' },
@@ -163,7 +163,7 @@ const getPresets = (): Preset[] => [
 // ─── Grupowanie ───────────────────────────────────────────────────────────────
 //
 // Dziennie / tygodniowo / miesięcznie to ustawienie, które prawie zawsze wynika
-// z wybranego zakresu — użytkownik zmienia je raz na sto wejść. Zajmowało własną
+// z wybranego zakresu - użytkownik zmienia je raz na sto wejść. Zajmowało własną
 // kartę na całą szerokość ekranu; teraz siedzi cicho pod przyciskiem zakresu,
 // a przy zmianie zakresu ustawia się samo.
 
@@ -180,7 +180,7 @@ const GRANULARITY_ORDER: Granularity[] = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEE
 const daysBetween = (start: string, end: string) =>
     Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000));
 
-/** Które grupowania mają sens dla zakresu — te same progi co wcześniej. */
+/** Które grupowania mają sens dla zakresu - te same progi co wcześniej. */
 const allowedGranularities = (days: number): Set<Granularity> => {
     if (days <= 7)  return new Set<Granularity>(['DAILY']);
     if (days <= 30) return new Set<Granularity>(['DAILY', 'WEEKLY']);

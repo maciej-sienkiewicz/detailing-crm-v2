@@ -7,13 +7,13 @@
 //     przeczytano); wcześniejsze są jednolinijkowymi wierszami z nadawcą, początkiem
 //     treści i godziną. Wątek na 28 wiadomości mieści się wtedy na ekranie, a oko ma
 //     jedno miejsce, w które ma patrzeć. Dłuższe historie zwijają środek pod jeden
-//     przycisk — jak w Gmailu.
+//     przycisk - jak w Gmailu.
 //  2. WIERSZ, NIE DYMEK. Mail to dokument: pełna szerokość, stała kolumna czytelnicza,
 //     kierunek zaznaczony akcentem i tłem, a nie przesunięciem w bok. Dymki z
 //     marginesem 40px zjadały szerokość dokładnie tam, gdzie potrzebna jest treść.
 //  3. JEDNO MIEJSCE NA ADRES. Adres uczestnika stoi w podtytule nagłówka i nigdzie
 //     indziej. Nazwa nadawcy jest przy każdej wiadomości (bo mówi, kto mówi), ale
-//     adres tylko wtedy, gdy odbiega od uczestnika wątku — w kółko powtarzany e-mail
+//     adres tylko wtedy, gdy odbiega od uczestnika wątku - w kółko powtarzany e-mail
 //     to szum, nie informacja.
 //  4. KONTEKST KLIENTA JAKO PASEK, NIE PANEL. Jeśli rozpoznaliśmy nadawcę w kartotece,
 //     nad korespondencją pojawia się jedno zdanie z liczbami, które zmieniają ton
@@ -99,7 +99,7 @@ const Header = styled.div`
     }
 `;
 
-/** Nazwisko i adres w nagłówku — wygląda jak tekst, zachowuje się jak przycisk. */
+/** Nazwisko i adres w nagłówku - wygląda jak tekst, zachowuje się jak przycisk. */
 const IdentityButton = styled.button`
     border: none;
     background: transparent;
@@ -125,13 +125,13 @@ const HeaderActions = styled.div`
 
 /**
  * Plakietki przy adresie nadawcy: ile jeszcze rozmów mamy z tym adresem i notatki
- * o kliencie. Świadomie ciche — szara ramka, ten sam rozmiar co adres obok. To
+ * o kliencie. Świadomie ciche - szara ramka, ten sam rozmiar co adres obok. To
  * kontekst do zerknięcia, nie akcja, a nagłówek ma prowadzić wzrok do tematu wątku.
  */
 const BADGE_TONES = {
-    /** Domyślny — szarość adresu obok. Kontekst, na który nie trzeba patrzeć. */
+    /** Domyślny - szarość adresu obok. Kontekst, na który nie trzeba patrzeć. */
     neutral: { border: '#e2e8f0', background: '#f8fafc', color: '#64748b' },
-    /** Panel otwarty — plakietka pokazuje, że to ona go trzyma. */
+    /** Panel otwarty - plakietka pokazuje, że to ona go trzyma. */
     active: { border: '#0ea5e9', background: '#f0f9ff', color: '#0284c7' },
     /**
      * Notatki istnieją. Bursztyn, a nie czerwień: to nie ostrzeżenie, tylko „ktoś
@@ -139,7 +139,7 @@ const BADGE_TONES = {
      * nie da się odróżnić od pustej, nie skłoniłaby nikogo do kliknięcia.
      */
     filled: { border: '#fcd34d', background: '#fffbeb', color: '#b45309' },
-    /** Rozmowa jest leadem. Stan, nie ostrzeżenie — dlatego chłodny błękit. */
+    /** Rozmowa jest leadem. Stan, nie ostrzeżenie - dlatego chłodny błękit. */
     lead: { border: '#bae6fd', background: '#f0f9ff', color: '#0369a1' },
     /** Rozmowa ma już termin. Zieleń kończy ścieżkę: nie ma tu nic do zrobienia. */
     booked: { border: '#bbf7d0', background: '#f0fdf4', color: '#15803d' },
@@ -174,7 +174,7 @@ const ContextBadge = styled.button<{ $tone?: BadgeTone }>`
 `;
 
 /**
- * Pasek rozpoznanego klienta — jedno zdanie między nagłówkiem a korespondencją.
+ * Pasek rozpoznanego klienta - jedno zdanie między nagłówkiem a korespondencją.
  * Liczby, które realnie zmieniają ton odpowiedzi: ile razy u nas był i ile zostawił.
  */
 const ClientBar = styled.button`
@@ -239,7 +239,7 @@ const Article = styled.article<{ $outbound: boolean }>`
     @media (min-width: ${p => p.theme.breakpoints.md}) { padding: 16px 20px 18px; }
 `;
 
-/** Zwinięta wiadomość: kto, o czym, kiedy — jedna linijka, całość klikalna. */
+/** Zwinięta wiadomość: kto, o czym, kiedy - jedna linijka, całość klikalna. */
 const CollapsedRow = styled.button<{ $outbound: boolean }>`
     flex-shrink: 0;
     display: flex;
@@ -281,7 +281,7 @@ const CollapsedRow = styled.button<{ $outbound: boolean }>`
     .clip { color: ${p => p.theme.colors.textMuted}; flex-shrink: 0; }
 `;
 
-/** Zwinięty środek długiej historii — jeden przycisk zamiast dwudziestu wierszy. */
+/** Zwinięty środek długiej historii - jeden przycisk zamiast dwudziestu wierszy. */
 const GapRow = styled.button`
     flex-shrink: 0;
     align-self: center;
@@ -302,7 +302,7 @@ const GapRow = styled.button`
 `;
 
 /**
- * Inicjały nadawcy — najszybszy sposób na „kto mówi" przy skanowaniu wątku.
+ * Inicjały nadawcy - najszybszy sposób na „kto mówi" przy skanowaniu wątku.
  * Przy wiadomości od klienta jest też najkrótszą drogą do pytania „a kto to
  * właściwie jest": kliknięcie otwiera wizytówkę.
  */
@@ -402,7 +402,7 @@ const AttachmentChip = styled.button`
 
 /**
  * „Podgląd Leada" przy pojedynczej wiadomości. W wątku formularza każda wiadomość
- * to osobne zgłoszenie osobnego klienta, więc lead jest własnością wiadomości —
+ * to osobne zgłoszenie osobnego klienta, więc lead jest własnością wiadomości -
  * i tylko tu da się go otworzyć bez zgadywania, o którego klienta chodzi.
  */
 const LeadPeekButton = styled.button`
@@ -426,7 +426,7 @@ const LeadPeekButton = styled.button`
     svg { width: 13px; height: 13px; }
 `;
 
-/** To samo wejście w zwiniętym wierszu — span, bo wiersz sam jest przyciskiem. */
+/** To samo wejście w zwiniętym wierszu - span, bo wiersz sam jest przyciskiem. */
 const LeadPeekChip = styled.span`
     display: inline-flex;
     align-items: center;
@@ -450,7 +450,7 @@ const LeadPeekChip = styled.span`
  * Szkielet na czas dociągania treści. Pojawia się z opóźnieniem: wątek trafia do
  * cache przy najechaniu na listę, więc zwykle przychodzi w kilkadziesiąt milisekund,
  * a szkielet mignąłby wtedy tylko po to, żeby zaraz zniknąć. Opóźnienie robi CSS,
- * nie stan — dzięki temu nie kosztuje ani jednego dodatkowego renderu.
+ * nie stan - dzięki temu nie kosztuje ani jednego dodatkowego renderu.
  */
 const SkeletonCard = styled.div<{ $height: number }>`
     height: ${({ $height }) => $height}px;
@@ -498,7 +498,7 @@ const initialsOf = (name: string | null, email: string): string => {
     return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
-/** Stabilny odcień awatara — ten sam nadawca zawsze w tym samym kolorze. */
+/** Stabilny odcień awatara - ten sam nadawca zawsze w tym samym kolorze. */
 const hueOf = (value: string): number => {
     let hash = 0;
     for (let index = 0; index < value.length; index += 1) {
@@ -507,8 +507,8 @@ const hueOf = (value: string): number => {
     return hash;
 };
 
-/** Nazwa nadawcy w wierszu wiadomości — krótka, bo kontekst daje nagłówek wątku. */
-/** Stała referencja — pusta mapa rozwinięć dla świeżo otwartego wątku. */
+/** Nazwa nadawcy w wierszu wiadomości - krótka, bo kontekst daje nagłówek wątku. */
+/** Stała referencja - pusta mapa rozwinięć dla świeżo otwartego wątku. */
 const EMPTY_OVERRIDES: Record<string, boolean> = {};
 
 const senderName = (message: CommMessage): string =>
@@ -520,7 +520,7 @@ export interface ConversationClientSummary {
     totalSpentGross: number;
 }
 
-/** Odmiana „wizyta/wizyty/wizyt" — pasek ma brzmieć jak zdanie, nie jak raport. */
+/** Odmiana „wizyta/wizyty/wizyt" - pasek ma brzmieć jak zdanie, nie jak raport. */
 const visitsLabel = (count: number): string => {
     if (count === 1) return 'wizytę';
     const lastDigit = count % 10;
@@ -529,7 +529,7 @@ const visitsLabel = (count: number): string => {
     return plural ? 'wizyty' : 'wizyt';
 };
 
-/** Odmiana „wątek/wątki/wątków" — plakietka też ma brzmieć po polsku. */
+/** Odmiana „wątek/wątki/wątków" - plakietka też ma brzmieć po polsku. */
 const threadsLabel = (count: number): string => {
     if (count === 1) return 'inny wątek';
     const lastDigit = count % 10;
@@ -544,7 +544,7 @@ interface ConversationViewProps {
     messages: CommMessage[] | null;
     isDesktop: boolean;
     hiddenOnMobile: boolean;
-    /** Rozpoznany klient z kartoteki — źródło paska nad korespondencją. */
+    /** Rozpoznany klient z kartoteki - źródło paska nad korespondencją. */
     clientSummary: ConversationClientSummary | null;
     onBack: () => void;
     onToggleArchived: (thread: CommThread) => void;
@@ -563,22 +563,22 @@ function ConversationViewImpl({
     onOpenFullMessage,
     onDownloadAttachment,
 }: ConversationViewProps) {
-    // Popover trzyma id wątku, w którym go otwarto — zmiana rozmowy zamyka go
+    // Popover trzyma id wątku, w którym go otwarto - zmiana rozmowy zamyka go
     // sama z siebie, bez efektu synchronizującego stan.
     const [leadPopoverThreadId, setLeadPopoverThreadId] = useState<string | null>(null);
     const leadPopoverOpen = leadPopoverThreadId === thread.id;
-    // Kreator rezerwacji — trzymany tak samo jak popover leada: id wątku, w którym
+    // Kreator rezerwacji - trzymany tak samo jak popover leada: id wątku, w którym
     // go otwarto, więc przejście do innej rozmowy zamyka go samo.
     const [bookingThreadId, setBookingThreadId] = useState<string | null>(null);
     const bookingOpen = bookingThreadId === thread.id;
-    // Okno szczegółów leada — to samo, które otwiera widok leadów.
+    // Okno szczegółów leada - to samo, które otwiera widok leadów.
     const [leadDetailThreadId, setLeadDetailThreadId] = useState<string | null>(null);
     const leadDetailOpen = leadDetailThreadId === thread.id && thread.leadId !== null;
-    // Okno „Lead z formularza" — trzymane jak pozostałe: id wątku, w którym je otwarto.
+    // Okno „Lead z formularza" - trzymane jak pozostałe: id wątku, w którym je otwarto.
     const [formLeadThreadId, setFormLeadThreadId] = useState<string | null>(null);
     const formLeadOpen = formLeadThreadId === thread.id;
     // Lead otwarty z konkretnej wiadomości wątku formularza. Trzymany razem z id
-    // wątku, tak jak pozostałe okna — przejście do innej rozmowy zamyka go samo.
+    // wątku, tak jak pozostałe okna - przejście do innej rozmowy zamyka go samo.
     const [messageLead, setMessageLead] = useState<{ threadId: string; leadId: string } | null>(null);
     const openMessageLeadId = messageLead?.threadId === thread.id ? messageLead.leadId : null;
     // Oznaczeni nadawcy-formularze: jedna cache'owana lista na całą skrzynkę.
@@ -587,14 +587,14 @@ function ConversationViewImpl({
     const activeFormSource = formSources?.find(
         (entry) => entry.active && entry.senderEmail === thread.participantEmail.trim().toLowerCase()
     );
-    // Kartoteka kontaktu — telefon i auta klienta do wypełnienia rezerwacji.
+    // Kartoteka kontaktu - telefon i auta klienta do wypełnienia rezerwacji.
     // Pobierana dopiero przy otwartym kreatorze; sam podgląd rozmowy jej nie potrzebuje.
     const { data: contactCard } = useContactCard(thread.participantEmail, { enabled: bookingOpen });
-    // Lead rozmowy — jeden odczyt, dwa zastosowania: plakietka stanu w nagłówku
+    // Lead rozmowy - jeden odczyt, dwa zastosowania: plakietka stanu w nagłówku
     // i wypełnienie kreatora rezerwacji (wycena, rozpoznane auto, klient). Bez tego
     // usługi uzgodnione w tej właśnie korespondencji trzeba by wpisywać od nowa.
     const { data: threadLead } = useLead(thread.leadId);
-    // Rozmowa jest leadem, ale jego dane jeszcze lecą — kreator czeka. Otwarcie go
+    // Rozmowa jest leadem, ale jego dane jeszcze lecą - kreator czeka. Otwarcie go
     // teraz i domontowanie wyceny później znaczyłoby przemontowanie komponentu,
     // czyli skasowanie terminu, który użytkownik zdążył już wybrać.
     const bookingWaitsForLead = bookingOpen && thread.leadId !== null && !threadLead;
@@ -610,15 +610,15 @@ function ConversationViewImpl({
     /**
      * Nagłówek pokazuje dokładnie jeden przycisk główny: następny krok tej rozmowy.
      * Trzy równorzędne pigułki obok tematu wątku sprawiały, że żadna nie była
-     * odpowiedzią na pytanie „co mam teraz zrobić", a temat — jedyna rzecz, po którą
-     * się tu patrzy — przegrywał z nimi o uwagę.
+     * odpowiedzią na pytanie „co mam teraz zrobić", a temat - jedyna rzecz, po którą
+     * się tu patrzy - przegrywał z nimi o uwagę.
      *
      * Kolejność kroków jest ta sama co w module leadów: rozmowa → lead → rezerwacja.
      * Gdy termin już stoi, kroku nie ma i zostaje samo menu; stan mówi plakietka.
      */
     // Wątek formularza jest wyjątkiem: nadawcą jest robot, a klienci siedzą w treści
     // kolejnych wiadomości. „Oznacz jako lead" wzięłoby wtedy adres robota za kontakt,
-    // a „Stwórz rezerwację" — nie wiadomo czyją. Leady zakłada tu automat, po jednym
+    // a „Stwórz rezerwację" - nie wiadomo czyją. Leady zakłada tu automat, po jednym
     // na wiadomość, i do nich prowadzi „Podgląd Leada" przy każdej z nich.
     const primaryAction: ThreadAction | null = activeFormSource
         ? null
@@ -634,11 +634,11 @@ function ConversationViewImpl({
             };
 
     // Menu zbiera resztę: porządki i akcje, które akurat nie są krokiem następnym.
-    // Rezerwację da się założyć także bez leada i także drugą — schowana, ale nigdy
+    // Rezerwację da się założyć także bez leada i także drugą - schowana, ale nigdy
     // niedostępna tylko dlatego, że nie stoi teraz na wierzchu.
     const menuActions: ThreadAction[] = [
         ...(activeFormSource || primaryAction === bookAction ? [] : [bookAction]),
-        // Mail od robota formularzy: klient jest w treści, nie w polu nadawcy —
+        // Mail od robota formularzy: klient jest w treści, nie w polu nadawcy -
         // dlatego to osobna akcja, a nie zwykłe „Oznacz jako lead" (tamto wzięłoby
         // adres robota za kontakt klienta).
         {
@@ -655,7 +655,7 @@ function ConversationViewImpl({
         },
     ];
 
-    // Do odczytu idzie ostatnia wiadomość PRZYCHODZĄCA — wątek formularza potrafi
+    // Do odczytu idzie ostatnia wiadomość PRZYCHODZĄCA - wątek formularza potrafi
     // zbierać zgłoszenia wielu klientów pod wspólnym tematem, więc liczy się
     // konkretna wiadomość, nie wątek.
     const latestInboundId = useMemo(
@@ -665,7 +665,7 @@ function ConversationViewImpl({
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Ręczne rozwinięcia trzymamy razem z id wątku — zmiana rozmowy zeruje je sama,
+    // Ręczne rozwinięcia trzymamy razem z id wątku - zmiana rozmowy zeruje je sama,
     // bez efektu synchronizującego stan.
     const [manual, setManual] = useState<{ threadId: string; map: Record<string, boolean> }>({
         threadId: thread.id,
@@ -684,7 +684,7 @@ function ConversationViewImpl({
             },
         }));
 
-    // Podgląd treści bez cytatów — to on trafia do zwiniętego wiersza.
+    // Podgląd treści bez cytatów - to on trafia do zwiniętego wiersza.
     const previews = useMemo(() => {
         const map = new Map<string, string>();
         (messages ?? []).forEach((message) => {
@@ -695,7 +695,7 @@ function ConversationViewImpl({
     }, [messages]);
 
     // Co jest otwarte domyślnie: ostatnia wiadomość, wszystko nieprzeczytane i całe
-    // krótkie wątki. Reszta czeka zwinięta — jedno kliknięcie od treści.
+    // krótkie wątki. Reszta czeka zwinięta - jedno kliknięcie od treści.
     const total = messages?.length ?? 0;
     const isExpanded = (message: CommMessage, index: number): boolean => {
         const manualChoice = manualMap[message.id];
@@ -714,11 +714,11 @@ function ConversationViewImpl({
         scrollRef.current?.scrollTo({ top: 0 });
     }, [thread.id]);
 
-    // Kotwicą chmurki notatek jest sama plakietka — trzymamy jej element, a nie flagę,
+    // Kotwicą chmurki notatek jest sama plakietka - trzymamy jej element, a nie flagę,
     // bo pozycja przelicza się przy przewinięciu nagłówka i zmianie szerokości okna.
     const [notesAnchor, setNotesAnchor] = useState<HTMLElement | null>(null);
     const [historyOpen, setHistoryOpen] = useState(false);
-    // Wizytówka klienta — kotwicą jest to, w co kliknięto: avatar przy wiadomości,
+    // Wizytówka klienta - kotwicą jest to, w co kliknięto: avatar przy wiadomości,
     // nazwisko w nagłówku albo pasek rozpoznanego klienta.
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     const { data: contactBadges } = useThreadContactBadges(thread.id);
@@ -791,12 +791,12 @@ function ConversationViewImpl({
                             </>
                         )}
 
-                        {/* Stan rozmowy, nie akcja — dlatego stoi wśród plakietek przy
+                        {/* Stan rozmowy, nie akcja - dlatego stoi wśród plakietek przy
                             adresie, a nie wśród przycisków. Kształt niesie znaczenie:
                             pigułka mówi „tak jest", przycisk mówi „kliknij".
 
                             Kliknięcie otwiera szczegóły leada na miejscu. Wcześniej
-                            przerzucało na widok leadów — czyli wyrzucało z rozmowy,
+                            przerzucało na widok leadów - czyli wyrzucało z rozmowy,
                             którą się właśnie czytało, żeby pokazać dane o tej samej
                             rozmowie, i kazało wracać przyciskiem wstecz. */}
                         {thread.leadId && (
@@ -812,13 +812,13 @@ function ConversationViewImpl({
                         )}
 
                         {/* Nadawca-robot formularza: maile stąd automatycznie stają się
-                            leadami. Stan, nie akcja — ale kliknięcie otwiera zarządzanie,
+                            leadami. Stan, nie akcja - ale kliknięcie otwiera zarządzanie,
                             bo to jedyne miejsce, w którym automat da się wyłączyć. */}
                         {activeFormSource && (
                             <ContextBadge
                                 type="button"
                                 $tone="lead"
-                                title="Maile z tego adresu automatycznie stają się leadami — kliknij, aby zarządzać"
+                                title="Maile z tego adresu automatycznie stają się leadami - kliknij, aby zarządzać"
                                 onClick={() => setFormLeadThreadId(thread.id)}
                             >
                                 <FileInput />
@@ -884,7 +884,7 @@ function ConversationViewImpl({
                 )}
                 {bookingOpen && !bookingWaitsForLead && (
                     <BookingFlowModal
-                        /* Lead z już przypiętą rezerwacją odrzuciłby drugą — wtedy
+                        /* Lead z już przypiętą rezerwacją odrzuciłby drugą - wtedy
                            zakładamy zwykłą, bez wiązania, zamiast pokazywać błąd. */
                         leadId={threadLead && !threadLead.appointmentId ? threadLead.id : undefined}
                         subtitle={contactCard?.customer?.fullName ?? thread.participantName ?? thread.participantEmail}
@@ -931,7 +931,7 @@ function ConversationViewImpl({
 
                 {(messages ?? []).map((message: CommMessage, index: number) => {
                     if (isInHiddenMiddle(index)) {
-                        // Jeden przycisk zamiast całej zwiniętej historii — rysujemy go
+                        // Jeden przycisk zamiast całej zwiniętej historii - rysujemy go
                         // w miejscu pierwszej schowanej wiadomości.
                         return index === 1 ? (
                             <GapRow
@@ -991,7 +991,7 @@ function ConversationViewImpl({
                         );
                     }
 
-                    // Adres pokazujemy tylko, gdy wnosi informację — inaczej powtarzalibyśmy
+                    // Adres pokazujemy tylko, gdy wnosi informację - inaczej powtarzalibyśmy
                     // to, co stoi w nagłówku rozmowy i w panelu klienta.
                     const showEmail =
                         !outbound && !sameAddress(message.fromEmail, thread.participantEmail);
@@ -1096,7 +1096,7 @@ function ConversationViewImpl({
                 <LeadDetailModal
                     key={openMessageLeadId}
                     leadId={openMessageLeadId}
-                    /* Korespondencja tego leada to ta rozmowa — odnośnik prowadziłby tu. */
+                    /* Korespondencja tego leada to ta rozmowa - odnośnik prowadziłby tu. */
                     showThreadLink={false}
                     onClose={() => setMessageLead(null)}
                 />

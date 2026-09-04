@@ -5,7 +5,7 @@
  *
  * FullCalendar pozycjonuje to okno raz, w `Popover.componentDidMount`, i pilnuje
  * wyłącznie górnej krawędzi (`popoverTop = Math.max(popoverTop, PADDING)`) oraz
- * prawej. Dolnej nie sprawdza w ogóle — w ostatnim wierszu miesiąca okno startuje
+ * prawej. Dolnej nie sprawdza w ogóle - w ostatnim wierszu miesiąca okno startuje
  * przy górze komórki i schodzi poniżej ekranu. Ucięcie widać tylko tam, bo tylko
  * tam dół ma znaczenie.
  *
@@ -20,7 +20,7 @@
  * bez możliwości powtórzenia na życzenie.
  *
  * Dlatego pomiar nie jest jednorazowy: [attachMorePopoverPlacement] trzyma
- * ResizeObserver i przelicza pozycję przy każdej zmianie rozmiaru — tak samo, jak
+ * ResizeObserver i przelicza pozycję przy każdej zmianie rozmiaru - tak samo, jak
  * robi to EventSummaryPopover dla własnej treści doładowywanej asynchronicznie.
  * O to, żeby okno nigdy nie było wyższe od ekranu, dba `max-height` listy w CSS.
  */
@@ -29,7 +29,7 @@
 export const VIEWPORT_MARGIN = 8;
 
 export interface PlacementInput {
-    /** Pozycja, którą wyliczył FullCalendar — we współrzędnych ekranu. */
+    /** Pozycja, którą wyliczył FullCalendar - we współrzędnych ekranu. */
     desiredTop: number;
     desiredLeft: number;
     /** Zmierzony rozmiar okna. */

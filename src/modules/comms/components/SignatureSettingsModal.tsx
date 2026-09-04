@@ -3,11 +3,11 @@
 //
 // Stopka należy do osoby, nie do studia: z jednej skrzynki (biuro@…) odpisuje kilka
 // osób i każda podpisuje się własnym nazwiskiem i telefonem. Backend trzyma ją per
-// użytkownik i sam dokleja przy wysyłce — tu edytujemy treść i to, czy przełącznik
+// użytkownik i sam dokleja przy wysyłce - tu edytujemy treść i to, czy przełącznik
 // „Dodaj stopkę" ma startować włączony.
 //
 // Edycja jest tekstowa (linie zamieniamy na <br>), bo stopka to cztery linijki
-// danych kontaktowych, a nie dokument — pełny edytor WYSIWYG byłby tu ciężarem.
+// danych kontaktowych, a nie dokument - pełny edytor WYSIWYG byłby tu ciężarem.
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Trash2 } from 'lucide-react';
@@ -94,7 +94,7 @@ const escapeHtml = (value: string): string =>
 const textToHtml = (value: string): string =>
     `<div>${escapeHtml(value.trim()).replace(/\n/g, '<br>')}</div>`;
 
-/** Zapisany HTML z powrotem na tekst — stopkę edytujemy tak, jak ją napisano. */
+/** Zapisany HTML z powrotem na tekst - stopkę edytujemy tak, jak ją napisano. */
 const htmlToText = (html: string | null): string => {
     if (!html) return '';
     const withBreaks = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/div>\s*<div>/gi, '\n');
@@ -114,7 +114,7 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
     const { showSuccess, showError } = useToast();
 
     // Modal montuje się przy otwarciu (key w rodzicu), więc stan startowy
-    // bierzemy raz — bez efektu synchronizującego go z zapytaniem.
+    // bierzemy raz - bez efektu synchronizującego go z zapytaniem.
     const [text, setText] = useState(() => htmlToText(signature?.bodyHtml ?? null));
     const [enabledByDefault, setEnabledByDefault] = useState(signature?.enabledByDefault ?? true);
 
@@ -136,7 +136,7 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
         <Modal isOpen={isOpen} onClose={onClose} title="Twoja stopka">
             <Body>
                 <Hint>
-                    Stopka jest przypisana do Ciebie, nie do skrzynki — inne osoby w studiu
+                    Stopka jest przypisana do Ciebie, nie do skrzynki - inne osoby w studiu
                     podpisują się własną.
                 </Hint>
 

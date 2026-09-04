@@ -1,5 +1,5 @@
 // src/modules/comms/components/shared.ts
-// Współdzielone elementy wizualne modułu komunikacji — oparte o tokeny motywu
+// Współdzielone elementy wizualne modułu komunikacji - oparte o tokeny motywu
 // aplikacji (kolory, promienie, cienie), żeby moduł wyglądał jak reszta CRM.
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';

@@ -1,7 +1,7 @@
 /**
  * Nagłówek menu pokazuje nazwę firmy z `GET /api/v1/company`. Nazwy w rejestrze
  * bywają pełnymi nazwami prawnymi („CARSLAB SPÓŁKA Z OGRANICZONĄ
- * ODPOWIEDZIALNOŚCIĄ”), więc inicjały w kafelku liczymy z członu właściwego —
+ * ODPOWIEDZIALNOŚCIĄ”), więc inicjały w kafelku liczymy z członu właściwego -
  * forma prawna jest taka sama u wszystkich i nic nie odróżnia.
  */
 
@@ -23,7 +23,7 @@ const meaningfulWords = (name: string): string[] =>
 
 /**
  * Inicjały do kafelka: pierwsze litery dwóch pierwszych znaczących słów, a przy
- * nazwie jednowyrazowej — jej dwie pierwsze litery. Zawsze 1-2 znaki.
+ * nazwie jednowyrazowej - jej dwie pierwsze litery. Zawsze 1-2 znaki.
  */
 export const companyInitials = (name: string | null | undefined, fallback = 'AC'): string => {
     const words = meaningfulWords((name ?? '').trim());

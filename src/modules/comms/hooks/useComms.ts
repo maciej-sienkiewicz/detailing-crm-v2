@@ -33,12 +33,12 @@ export const useMailAccounts = (options?: { enabled?: boolean }) =>
     });
 
 /**
- * Czy trwa pierwsza synchronizacja którejś ze skrzynek — i jak daleko zaszła.
+ * Czy trwa pierwsza synchronizacja którejś ze skrzynek - i jak daleko zaszła.
  *
  * Pierwszy import potrafi trwać minuty; przez ten czas widoki poczty i leadów
  * pokazują stan „trwa synchronizacja" zamiast list, które rosną z sekundy na
  * sekundę, i zamiast lawiny powiadomień. Dopóki trwa, konta odpytujemy co parę
- * sekund — pasek postępu bez odświeżania byłby martwy; po zakończeniu odpytywanie
+ * sekund - pasek postępu bez odświeżania byłby martwy; po zakończeniu odpytywanie
  * gaśnie samo.
  */
 export const useMailboxSyncState = () => {
@@ -62,7 +62,7 @@ export const useMailboxSyncState = () => {
     const processed = syncingAccounts.reduce((sum, account) => sum + (account.syncProcessed ?? 0), 0);
 
     return {
-        /** false także wtedy, gdy konta jeszcze się nie wczytały — widok nie ma migać. */
+        /** false także wtedy, gdy konta jeszcze się nie wczytały - widok nie ma migać. */
         syncing: syncingAccounts.length > 0,
         /** Ułamek 0–1 albo null, gdy przebieg jeszcze nie zgłosił liczby wiadomości. */
         progress: total > 0 ? Math.min(1, processed / total) : null,
@@ -81,7 +81,7 @@ export const useThreads = (filters: ThreadListFilters) =>
 const threadDetailQuery = (threadId: string) => ({
     queryKey: [...COMMS_THREADS_KEY, 'detail', threadId],
     queryFn: () => commsApi.getThread(threadId),
-    // Wątek otwarty przed chwilą wraca z cache bez requestu — przełączanie tam
+    // Wątek otwarty przed chwilą wraca z cache bez requestu - przełączanie tam
     // i z powrotem nie miga wtedy w ogóle. Świeżość pilnuje WebSocket, który
     // unieważnia konkretny wątek, gdy coś się w nim zmieni.
     staleTime: 5 * 60_000,
@@ -102,7 +102,7 @@ export const usePrefetchThread = () => {
     return useCallback(
         (threadId: string, participantEmail?: string) => {
             queryClient.prefetchQuery(threadDetailQuery(threadId));
-            // Pasek klienta korzysta z tego samego cache — pobrany razem z wątkiem
+            // Pasek klienta korzysta z tego samego cache - pobrany razem z wątkiem
             // nie dosuwa treści w dół chwilę po jej pokazaniu.
             if (participantEmail) {
                 queryClient.prefetchQuery({
@@ -137,7 +137,7 @@ export const useThreadContactBadges = (threadId: string | null) =>
         staleTime: 60_000,
     });
 
-/** Pozostałe rozmowy z tym adresem — pobierane dopiero po otwarciu panelu. */
+/** Pozostałe rozmowy z tym adresem - pobierane dopiero po otwarciu panelu. */
 export const useRelatedThreads = (threadId: string | null, options?: { enabled?: boolean }) =>
     useQuery({
         queryKey: [...COMMS_THREADS_KEY, 'related', threadId],
@@ -146,7 +146,7 @@ export const useRelatedThreads = (threadId: string | null, options?: { enabled?:
         staleTime: 60_000,
     });
 
-/** Wizytówka kontaktu — pobierana dopiero po otwarciu chmurki. */
+/** Wizytówka kontaktu - pobierana dopiero po otwarciu chmurki. */
 export const useContactCard = (email: string | null, options?: { enabled?: boolean }) =>
     useQuery({
         queryKey: [...COMMS_CONTACT_CARD_KEY, email],
@@ -158,7 +158,7 @@ export const useContactCard = (email: string | null, options?: { enabled?: boole
 // ── Lead z formularza ────────────────────────────────────────────────────────
 
 /**
- * Oznaczeni nadawcy-formularze. Jedna krótka lista na całą skrzynkę, z cache —
+ * Oznaczeni nadawcy-formularze. Jedna krótka lista na całą skrzynkę, z cache -
  * czyta ją nagłówek każdej rozmowy, żeby pokazać plakietkę „Formularz".
  */
 export const useFormMailSources = () =>
@@ -203,7 +203,7 @@ export const useContactNoteHistory = (email: string | null, options?: { enabled?
     });
 
 /**
- * Po każdej zmianie notatki odświeżamy listę, historię i plakietkę z licznikiem —
+ * Po każdej zmianie notatki odświeżamy listę, historię i plakietkę z licznikiem -
  * licznik pokazujący inną liczbę niż widoczna lista jest gorszy niż brak licznika.
  */
 const useNotesInvalidation = () => {
@@ -241,7 +241,7 @@ export const useDeleteContactNote = () => {
     });
 };
 
-/** Liczba nieprzeczytanych — do plakietki w menu bocznym. */
+/** Liczba nieprzeczytanych - do plakietki w menu bocznym. */
 export const useUnreadMailCount = (options?: { enabled?: boolean }): number => {
     const { data } = useQuery({
         queryKey: [...COMMS_THREADS_KEY, 'list', { page: 0, pageSize: 1, archived: false }],
@@ -256,9 +256,9 @@ export const useMarkThreadRead = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (threadId: string) => commsApi.markThreadRead(threadId),
-        // Optymistycznie: wątek od razu przestaje być nieprzeczytany — i na tym
+        // Optymistycznie: wątek od razu przestaje być nieprzeczytany - i na tym
         // koniec. Wcześniejsze unieważnienie listy powodowało jej refetch przy
-        // KAŻDYM otwarciu wiadomości, a więc przerysowanie całej lewej kolumny —
+        // KAŻDYM otwarciu wiadomości, a więc przerysowanie całej lewej kolumny -
         // to był główny „mrugający" element widoku. Licznik korygujemy lokalnie,
         // bo dokładnie wiemy, o ile spadł.
         onMutate: async (threadId) => {
@@ -357,7 +357,7 @@ export const useDisconnectAccount = () => {
 const NEW_MAIL_TOAST_THROTTLE_MS = 15_000;
 
 /**
- * Subskrypcja zdarzeń komunikacji na topicu dashboardu. Payloady niosą tylko id —
+ * Subskrypcja zdarzeń komunikacji na topicu dashboardu. Payloady niosą tylko id -
  * po zdarzeniu odświeżamy dane przez REST, więc cache nigdy nie rozjeżdża się
  * z serwerem, a utracone podczas rozłączenia zdarzenia nadrabia refetch po reconnable.
  */
@@ -366,7 +366,7 @@ export function useCommsSocket(): void {
     const queryClient = useQueryClient();
     const { showInfo } = useToast();
     // Jedna paczka poczty (sync co 3 minuty po nocy) to jedno powiadomienie, nie
-    // dziesięć. Toast mówi „zajrzyj do skrzynki" — drugi w tej samej minucie nie
+    // dziesięć. Toast mówi „zajrzyj do skrzynki" - drugi w tej samej minucie nie
     // niesie żadnej nowej informacji, tylko frustrację.
     const lastNewMailToastAt = useRef(0);
 
@@ -431,7 +431,7 @@ export function useCommsSocket(): void {
     }, [isAuthenticated, user?.studioId, queryClient]);
 }
 
-/** Korekta językowa treści wiadomości — świadomy krok użytkownika, nie automat. */
+/** Korekta językowa treści wiadomości - świadomy krok użytkownika, nie automat. */
 export const useProofread = () =>
     useMutation({
         mutationFn: ({ text, format }: { text: string; format?: 'text' | 'html' }) =>

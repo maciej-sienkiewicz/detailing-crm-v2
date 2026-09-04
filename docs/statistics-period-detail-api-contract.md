@@ -1,8 +1,8 @@
-# Statistics — Period Detail (drill-down wizyt) API Contract
+# Statistics - Period Detail (drill-down wizyt) API Contract
 
 **Adresaci:** zespół backendowy  
 **Status:** do implementacji  
-**Priorytet:** średni — endpoint opcjonalny dla istniejącego widoku statystyk  
+**Priorytet:** średni - endpoint opcjonalny dla istniejącego widoku statystyk  
 **Kontekst UI:** drawer boczny otwierany po kliknięciu słupka na wykresie przychodów
 
 ---
@@ -13,8 +13,8 @@ Widok `/statistics` pozwala użytkownikowi kliknąć dowolny słupek na wykresie
 aby zobaczyć listę wizyt składających się na tę wartość oraz usługi wykonane w ramach
 każdej wizyty. Endpoint obsługuje dwa tryby:
 
-- **Bez filtra kategorii** — wszystkie wizyty i usługi z danego okresu
-- **Z filtrem kategorii** — wszystkie wizyty z danego okresu, z oznaczeniem
+- **Bez filtra kategorii** - wszystkie wizyty i usługi z danego okresu
+- **Z filtrem kategorii** - wszystkie wizyty z danego okresu, z oznaczeniem
   które usługi należą do wybranej kategorii (pozostałe widoczne jako kontekst,
   ale wizualnie wyciszone)
 
@@ -30,7 +30,7 @@ GET /v1/statistics/periods/{period}/visits
 
 | Parametr | Typ | Opis |
 |---|---|---|
-| `period` | `string` | Identyfikator okresu — **ten sam format co `StatsDataPoint.period`** z `/v1/statistics/breakdown`. Frontend przekazuje wartość 1:1 z osi X wykresu, backend musi umieć go sparsować. |
+| `period` | `string` | Identyfikator okresu - **ten sam format co `StatsDataPoint.period`** z `/v1/statistics/breakdown`. Frontend przekazuje wartość 1:1 z osi X wykresu, backend musi umieć go sparsować. |
 
 Format `period` zależy od `granularity`:
 
@@ -47,9 +47,9 @@ Format `period` zależy od `granularity`:
 | Parametr | Typ | Wymagany | Opis |
 |---|---|---|---|
 | `granularity` | `Granularity` | **tak** | Wymagany do interpretacji formatu `period` w ścieżce. |
-| `categoryId` | `string` (UUID) | nie | Jeśli podany, każda usługa w odpowiedzi otrzymuje pole `inCategory: boolean`. Wizyty i KPI na poziomie okresu są liczone dla **wszystkich usług** — `categoryId` wpływa tylko na tagowanie, nie na filtrowanie. |
+| `categoryId` | `string` (UUID) | nie | Jeśli podany, każda usługa w odpowiedzi otrzymuje pole `inCategory: boolean`. Wizyty i KPI na poziomie okresu są liczone dla **wszystkich usług** - `categoryId` wpływa tylko na tagowanie, nie na filtrowanie. |
 
-> **Uwaga:** `categoryId` nie filtruje wizyt — wizyta pojawia się w liście niezależnie od tego,
+> **Uwaga:** `categoryId` nie filtruje wizyt - wizyta pojawia się w liście niezależnie od tego,
 > czy ma usługi z danej kategorii. Nawet wizyta z zerowym wkładem kategorii powinna być widoczna,
 > bo informacja "ta wizyta nie miała usług z Myjni" jest wartościowa dla użytkownika.
 
@@ -62,7 +62,7 @@ type Granularity = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
 
 interface PeriodDetailResponse {
     /**
-     * Echo parametrów żądania — frontend używa do nagłówka drawera.
+     * Echo parametrów żądania - frontend używa do nagłówka drawera.
      */
     period: string;
     granularity: Granularity;
@@ -88,7 +88,7 @@ interface PeriodDetailResponse {
     totalRevenueGrossAll: number;
 
     /**
-     * Nazwa kategorii filtra — echo parametru categoryId.
+     * Nazwa kategorii filtra - echo parametru categoryId.
      * null gdy categoryId nie podano.
      * Używany w nagłówku drawera i labelach sekcji usług.
      */
@@ -143,8 +143,8 @@ interface PeriodVisit {
     /**
      * Lista pozycji zrealizowanych w ramach wizyty.
      * Sortowanie:
-     *   1. Usługi z kategorii (inCategory = true) — malejąco wg priceGross
-     *   2. Pozostałe usługi (inCategory = false) — malejąco wg priceGross
+     *   1. Usługi z kategorii (inCategory = true) - malejąco wg priceGross
+     *   2. Pozostałe usługi (inCategory = false) - malejąco wg priceGross
      *   Gdy categoryId nie podano: wszystkie malejąco wg priceGross.
      */
     services: PeriodVisitService[];
@@ -391,10 +391,10 @@ PeriodDetailResponse.totalRevenueGrossAll =
 
 > Wartości `totalRevenueGross` na poziomie okresu muszą być **spójne z danymi na wykresie**
 > z endpointu `GET /v1/statistics/breakdown`. Jeśli użytkownik kliknie słupek "kwiecień 2025",
-> wartość w KPI tytułowym drawera musi być identyczna z wysokością słupka — inaczej użytkownik
+> wartość w KPI tytułowym drawera musi być identyczna z wysokością słupka - inaczej użytkownik
 > straci zaufanie do danych.
 
-### 6.3 `inCategory` — reguła przypisania
+### 6.3 `inCategory` - reguła przypisania
 
 ```
 inCategory = true
@@ -410,9 +410,9 @@ inCategory = true
 ### 6.4 Usługi z usuniętą/nieaktywną kategorią
 
 Jeśli `categoryId` wskazuje na kategorię, która istnieje w bazie, ale:
-- `is_active = false` — endpoint zwraca `404 CATEGORY_NOT_FOUND` (kategoria wycofana)
-- Kategoria należy do innego warsztatu — `403 FORBIDDEN`
-- Kategoria usunięta (`deleted_at IS NOT NULL`) — `404 CATEGORY_NOT_FOUND`
+- `is_active = false` - endpoint zwraca `404 CATEGORY_NOT_FOUND` (kategoria wycofana)
+- Kategoria należy do innego warsztatu - `403 FORBIDDEN`
+- Kategoria usunięta (`deleted_at IS NOT NULL`) - `404 CATEGORY_NOT_FOUND`
 
 ---
 
@@ -487,12 +487,12 @@ CREATE INDEX IF NOT EXISTS idx_sca_service_category
 Identyczna z innymi endpointami statystyk:
 
 - Wymagany nagłówek `Authorization: Bearer {token}`
-- Token JWT z claimem `studioId` — endpoint zwraca dane wyłącznie dla warsztatu z tokenu
+- Token JWT z claimem `studioId` - endpoint zwraca dane wyłącznie dla warsztatu z tokenu
 - Wymagana rola: `OWNER` lub `MANAGER` (nie `TECHNICIAN`)
 
 ---
 
-## 9. Kontrakt frontendu — jak frontend używa tego endpointu
+## 9. Kontrakt frontendu - jak frontend używa tego endpointu
 
 ### 9.1 Kiedy jest wywoływany
 
@@ -510,7 +510,7 @@ Użytkownik klika słupek na wykresie
 src/modules/statistics/api/periodDetailMockApi.ts
 ```
 
-Funkcja `fetchPeriodDetail` — po implementacji backendu należy ją zastąpić wywołaniem HTTP.
+Funkcja `fetchPeriodDetail` - po implementacji backendu należy ją zastąpić wywołaniem HTTP.
 Sygnatura publiczna (nie zmieni się):
 
 ```typescript
@@ -562,4 +562,4 @@ fetchPeriodDetail(
 - [ ] Obsługa `clientName` dla usuniętych klientów (`"Klient usunięty"`)
 - [ ] Kody błędów z sekcji 5
 - [ ] Testy jednostkowe: obliczanie `totalRevenueGross` z filtrem i bez
-- [ ] Testy integracyjne: `WEEKLY` i `QUARTERLY` — poprawne granice zakresu
+- [ ] Testy integracyjne: `WEEKLY` i `QUARTERLY` - poprawne granice zakresu

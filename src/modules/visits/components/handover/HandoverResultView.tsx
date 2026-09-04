@@ -103,7 +103,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
                 : 'Wizyta została zakończona.',
         };
     }
-    // Faktura wystawiona świadomie bez wysyłki — nic nie zawiodło, więc to nie jest
+    // Faktura wystawiona świadomie bez wysyłki - nic nie zawiodło, więc to nie jest
     // ostrzeżenie. Mówimy tylko, gdzie ją znaleźć, gdy jednak trzeba ją wysłać.
     if (result.ksefStatus === 'NOT_SENT') {
         return {

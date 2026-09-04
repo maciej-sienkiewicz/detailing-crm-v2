@@ -3,7 +3,7 @@
 // Usunięcie wizyty z jej WŁASNEGO widoku szczegółów.
 //
 // Cała trudność jest w kolejności. Klucze zapytań wizyty są prefiksowane
-// (`['visit', id, ...]`), a react-query dopasowuje klucze po prefiksie — jedno
+// (`['visit', id, ...]`), a react-query dopasowuje klucze po prefiksie - jedno
 // `removeQueries` obejmuje więc szczegół, dokumenty, zdjęcia, komentarze,
 // komunikację i przypomnienia SMS naraz. Wywołane, gdy widok jeszcze stoi na
 // ekranie, nie kasuje ich po cichu: każdy żywy obserwator natychmiast pobiera swoje
@@ -11,8 +11,8 @@
 // przez to trzy dymki o błędzie („Visit not found…") po operacji, która się UDAŁA.
 //
 // Stąd rozdzielenie na dwa takty: najpierw wygaszenie zapytań (pusty identyfikator
-// wyłącza `enabled: !!visitId` w każdym hooku wizyty), a dopiero potem — w efekcie,
-// czyli po commicie i po odmontowaniu dzieci widoku — czyszczenie cache i wyjście.
+// wyłącza `enabled: !!visitId` w każdym hooku wizyty), a dopiero potem - w efekcie,
+// czyli po commicie i po odmontowaniu dzieci widoku - czyszczenie cache i wyjście.
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,13 +29,13 @@ export const useDeleteVisit = (visitId: string) => {
     const [deletedVisitId, setDeletedVisitId] = useState<string | null>(null);
 
     /**
-     * „Usuń wizytę" kasuje wizytę w dowolnym statusie — tak samo jak ta sama akcja
+     * „Usuń wizytę" kasuje wizytę w dowolnym statusie - tak samo jak ta sama akcja
      * w tabeli operacji.
      *
      * Wcześniej szło to na /cancel, czyli endpoint przerwanego PRZYJĘCIA pojazdu
      * (tylko status DRAFT). Na wizycie IN_PROGRESS kończyło się to błędem
      * „Anulować można tylko wizyty o statusie DRAFT", choć ta sama wizyta usuwała się
-     * bez problemu z listy — jedna akcja, dwa różne zachowania zależnie od ekranu.
+     * bez problemu z listy - jedna akcja, dwa różne zachowania zależnie od ekranu.
      */
     const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
         mutationFn: () => visitApi.deleteVisit(visitId),
@@ -67,7 +67,7 @@ export const useDeleteVisit = (visitId: string) => {
     return {
         deleteVisit,
         isDeleting,
-        /** Widok nie ma już czego pokazywać — czeka tylko na przejście na listę. */
+        /** Widok nie ma już czego pokazywać - czeka tylko na przejście na listę. */
         isDeleted: deletedVisitId !== null,
         /** Pusty po usunięciu: wygasza wszystkie zapytania tej wizyty. */
         activeVisitId: deletedVisitId ? '' : visitId,

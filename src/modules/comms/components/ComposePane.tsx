@@ -1,12 +1,12 @@
 // src/modules/comms/components/ComposePane.tsx
-// Nowa wiadomość od zera — jedyna droga do napisania maila do kogoś, kto jeszcze
+// Nowa wiadomość od zera - jedyna droga do napisania maila do kogoś, kto jeszcze
 // nie napisał do nas.
 //
 // Pisze się tam, gdzie się czyta: w prawej kolumnie, w miejscu podglądu rozmowy.
 // Okno modalne zasłoniłoby listę wątków, a przy pisaniu do klienta zwykle trzeba
-// mieć ją pod ręką — choćby po to, żeby sprawdzić adres w innej rozmowie.
+// mieć ją pod ręką - choćby po to, żeby sprawdzić adres w innej rozmowie.
 //
-// Treść pisze ten sam ReplyComposer co w wątku (stopka, korekta, wysyłka) —
+// Treść pisze ten sam ReplyComposer co w wątku (stopka, korekta, wysyłka) -
 // w trybie bez wątku dokłada pola „Do" i „Temat".
 import styled from 'styled-components';
 import { ArrowLeft, PenSquare, X } from 'lucide-react';
@@ -53,7 +53,7 @@ const Header = styled.div`
 
 /**
  * Kompozytor stoi u góry, nie u dołu: nie odpowiadamy tu na nic, co byłoby nad nim.
- * Reszta kolumny zostaje pusta — i to jest informacja sama w sobie: wątku jeszcze
+ * Reszta kolumny zostaje pusta - i to jest informacja sama w sobie: wątku jeszcze
  * nie ma, powstanie dopiero po wysłaniu.
  */
 const Body = styled.div`
@@ -76,10 +76,10 @@ interface ComposePaneProps {
     /** Chowany na telefonie, gdy widoczna jest lista wątków. */
     hiddenOnMobile: boolean;
     isDesktop: boolean;
-    /** Adres wpisany z góry — np. „napisz do tego klienta". */
+    /** Adres wpisany z góry - np. „napisz do tego klienta". */
     initialTo?: string;
     onClose: () => void;
-    /** Wiadomość poszła — rodzic pokazuje nowy wątek (w folderze Wysłane). */
+    /** Wiadomość poszła - rodzic pokazuje nowy wątek (w folderze Wysłane). */
     onSent: (threadId: string) => void;
 }
 
@@ -114,7 +114,7 @@ export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, onClose, onS
                         requireSubject
                         onSent={onSent}
                     />
-                    <Hint>Wysłana wiadomość utworzy nowy wątek w folderze Wysłane — wróci do Odebranych, gdy klient odpisze.</Hint>
+                    <Hint>Wysłana wiadomość utworzy nowy wątek w folderze Wysłane - wróci do Odebranych, gdy klient odpisze.</Hint>
                 </Body>
             ) : (
                 <EmptyHint>Podłącz skrzynkę, żeby wysyłać wiadomości.</EmptyHint>

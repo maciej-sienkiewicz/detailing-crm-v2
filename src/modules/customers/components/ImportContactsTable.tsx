@@ -9,7 +9,7 @@ import type { ImportPreviewRow, ImportRowStatus } from '../types';
  * Dwie decyzje, które trzymają tę funkcję w ryzach:
  *
  * 1. Domyślnie zaznaczone są WYŁĄCZNIE kontakty nowe. Książka adresowa to szuflada ze
- *    śmieciami — rodzina, pizzeria, infolinia operatora — a stąd wychodzi baza, z której
+ *    śmieciami - rodzina, pizzeria, infolinia operatora - a stąd wychodzi baza, z której
  *    idą kampanie SMS. Gdyby wszystko było zaznaczone, jedno odruchowe „Zapisz"
  *    zamieniałoby kartotekę klientów w kopię książki adresowej.
  *
@@ -155,7 +155,7 @@ const EmptyRow = styled.div`
     color: ${st.textSecondary};
 `;
 
-/** Etykieta statusu razem z powodem — sam status bez „dlaczego" rodzi telefon do wsparcia. */
+/** Etykieta statusu razem z powodem - sam status bez „dlaczego" rodzi telefon do wsparcia. */
 const describeStatus = (row: ImportPreviewRow): { label: string; hint: string | null } => {
     switch (row.status) {
         case 'NEW':
@@ -164,7 +164,7 @@ const describeStatus = (row: ImportPreviewRow): { label: string; hint: string | 
             return {
                 label: 'Już w bazie',
                 hint: row.matchedCustomerName
-                    ? `${row.matchedCustomerName} — ${row.matchedBy === 'email' ? 'ten sam e-mail' : 'ten sam numer'}`
+                    ? `${row.matchedCustomerName} - ${row.matchedBy === 'email' ? 'ten sam e-mail' : 'ten sam numer'}`
                     : 'Klient o tych danych już istnieje',
             };
         case 'DUPLICATE_IN_FILE':
@@ -302,8 +302,8 @@ export const ImportContactsTable = ({ rows, selected, onChange }: ImportContacts
                                             <Name>{name}</Name>
                                             {row.companyName && <Secondary>{row.companyName}</Secondary>}
                                         </Td>
-                                        <Td>{row.phone ?? '—'}</Td>
-                                        <Td>{row.email ?? '—'}</Td>
+                                        <Td>{row.phone ?? '-'}</Td>
+                                        <Td>{row.email ?? '-'}</Td>
                                         <Td>
                                             <StatusPill $status={row.status}>{status.label}</StatusPill>
                                             {status.hint && <Secondary>{status.hint}</Secondary>}

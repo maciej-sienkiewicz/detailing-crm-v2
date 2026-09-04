@@ -168,7 +168,7 @@ const mockDeleteDocument = async (documentId: string): Promise<void> => {
 export const customerEditApi = {
     /**
      * SMS napisany ręcznie z karty klienta. Backend zwraca 400/402/502 z opisem,
-     * gdy studio nie ma modułu, kredytów albo klient nie ma numeru — komunikat
+     * gdy studio nie ma modułu, kredytów albo klient nie ma numeru - komunikat
      * pokazujemy wprost, bo użytkownik może na niego zareagować.
      */
     sendSms: async (customerId: string, message: string): Promise<void> => {

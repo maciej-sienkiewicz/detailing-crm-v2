@@ -23,7 +23,7 @@ export interface AttendanceSheet {
 export const attendanceApi = {
     /**
      * `skipErrorToast`: backend odpowiada błędem walidacji, gdy żaden z zaznaczonych
-     * pracowników nie ma modułu Czasu pracy — komunikat pokazuje modal, przy którym
+     * pracowników nie ma modułu Czasu pracy - komunikat pokazuje modal, przy którym
      * użytkownik stoi, a nie globalny dymek nad całą aplikacją.
      */
     generateAttendanceSheet: async (period: string, employeeIds: string[]): Promise<AttendanceSheet> => {
@@ -45,7 +45,7 @@ export const attendanceApi = {
         return response.data;
     },
 
-    /** Plik arkusza — podpisany, jeśli podpis już złożono. */
+    /** Plik arkusza - podpisany, jeśli podpis już złożono. */
     downloadAttendanceSheet: async (sheetId: string): Promise<Blob> => {
         const response = await apiClient.get(`${BASE}/attendance-sheet/${sheetId}/file`, {
             responseType: 'blob',
@@ -57,7 +57,7 @@ export const attendanceApi = {
 
 /**
  * Błąd z żądania o `responseType: 'blob'` też przychodzi jako Blob, więc treść
- * komunikatu trzeba z niego odczytać — inaczej użytkownik dostaje „[object Blob]".
+ * komunikatu trzeba z niego odczytać - inaczej użytkownik dostaje „[object Blob]".
  */
 export async function readBlobErrorMessage(error: unknown): Promise<string | null> {
     const data = (error as { response?: { data?: unknown } })?.response?.data;

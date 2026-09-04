@@ -27,13 +27,13 @@ export function hasPermission(user: User | null, required: AccessRequirement): b
  *
  * Prawie każde uprawnienie w katalogu pociąga za sobą VISITS_VIEW przez graf
  * zależności, więc zapasowe /dashboard jest osiągalne dla niemal każdego
- * niepustego zestawu. Wyjątkiem jest BATCH_ORDERS — samodzielny korzeń, który
- * nie daje ani kalendarza, ani kartoteki — i dlatego /batch-orders musi stać
+ * niepustego zestawu. Wyjątkiem jest BATCH_ORDERS - samodzielny korzeń, który
+ * nie daje ani kalendarza, ani kartoteki - i dlatego /batch-orders musi stać
  * na tej liście: bez tego obsługa kontrahenta lądowała po zalogowaniu na
  * powiadomieniach, mimo że ma swój kompletny widok.
  *
  * Użytkownik z pustym zestawem (bez roli albo z rolą bez zaznaczeń) trafia na
- * /notifications — nigdy w pętlę przekierowań.
+ * /notifications - nigdy w pętlę przekierowań.
  */
 export function getDefaultRoute(user: User | null): string {
     const candidates: Array<{ path: string; requires: PermissionRequirement }> = [

@@ -196,7 +196,7 @@ const SecondaryBtn = styled.button`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
-/* Eksport to operacja biurkowa — plik i tak trafia na dysk, a na telefonie
+/* Eksport to operacja biurkowa - plik i tak trafia na dysk, a na telefonie
    przycisk tylko zabierał miejsce w wierszu filtrów. */
 const DesktopOnlyBtn = styled(SecondaryBtn)`
     @media (max-width: 767px) {
@@ -402,7 +402,7 @@ export const CustomerListView = () => {
                         </SecondaryBtn>
                         {/* Import stoi obok eksportu i tak samo jest schowany na telefonie:
                             przeglądanie kilkuset kontaktów i odznaczanie ich to praca na
-                            duży ekran — telefon w tym przebiegu tylko wysyła dane. */}
+                            duży ekran - telefon w tym przebiegu tylko wysyła dane. */}
                         <DesktopOnlyBtn onClick={() => setIsImportModalOpen(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M12 18h.01M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z" />
@@ -448,7 +448,7 @@ export const CustomerListView = () => {
 
             {/* Montowane warunkowo, nie sterowane `isOpen`: kreator importu ma kilka
                 kroków i sesję po stronie serwera, więc każde otwarcie musi zaczynać się
-                od czystego stanu — odmontowanie załatwia to bez ani jednego efektu. */}
+                od czystego stanu - odmontowanie załatwia to bez ani jednego efektu. */}
             {isImportModalOpen && (
                 <ImportContactsModal
                     onClose={() => setIsImportModalOpen(false)}
@@ -469,12 +469,12 @@ export const CustomerListView = () => {
             />
 
             {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,
-                a co zostaje — „nie można cofnąć" bez tej informacji brzmiałoby
+                a co zostaje - „nie można cofnąć" bez tej informacji brzmiałoby
                 jak skasowanie całej historii współpracy. */}
             <ConfirmationModal
                 isOpen={pendingDeleteId !== null}
                 title="Usunąć tego klienta?"
-                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane — wymaga tego prawo."
+                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane - wymaga tego prawo."
                 variant="danger"
                 confirmText="Usuń dane klienta"
                 cancelText="Anuluj"

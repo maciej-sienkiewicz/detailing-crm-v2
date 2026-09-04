@@ -18,7 +18,7 @@
  *     → 204  (empty body)
  *
  *   POST   /v1/tasks/voice          (multipart/form-data)
- *     ← audio: plik nagrania (webm/ogg/m4a — zależy od przeglądarki)
+ *     ← audio: plik nagrania (webm/ogg/m4a - zależy od przeglądarki)
  *     → 201  DashboardTask          (backend transkrybuje i tworzy zadanie)
  */
 
@@ -129,7 +129,7 @@ export const tasksApi = {
 
   /**
    * Dyktowanie zadania. Backend transkrybuje nagranie (Whisper) i tworzy z niego
-   * zadanie, więc front nie dostaje samego tekstu — dostaje gotową pozycję listy.
+   * zadanie, więc front nie dostaje samego tekstu - dostaje gotową pozycję listy.
    * Nazwa pliku niesie kontener, bo Blob z MediaRecordera nie ma rozszerzenia,
    * a po nim serwer rozpoznaje format.
    */

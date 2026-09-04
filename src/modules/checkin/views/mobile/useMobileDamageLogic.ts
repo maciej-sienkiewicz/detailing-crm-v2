@@ -189,7 +189,7 @@ export function useMobileDamageLogic(
                 mutatePhoto(pointsRef.current, pointId, localId, ph => ({ ...ph, status: 'failed' }))
             );
 
-            // Gallery picks are raw originals (HEIC, >10 MB) — normalise before uploading
+            // Gallery picks are raw originals (HEIC, >10 MB) - normalise before uploading
             prepareImageOrExplain(file)
                 .then(prepared => {
                     if (!prepared.file) {

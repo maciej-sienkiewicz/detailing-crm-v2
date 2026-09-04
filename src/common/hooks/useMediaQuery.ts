@@ -19,7 +19,7 @@ export const useMediaQuery = (query: string): boolean => {
         const mql = window.matchMedia(query);
         const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
         // Stan startowy bierzemy z inicjalizatora useState, więc tu tylko
-        // nasłuchujemy — bez ustawiania stanu w ciele efektu.
+        // nasłuchujemy - bez ustawiania stanu w ciele efektu.
         mql.addEventListener('change', onChange);
         return () => mql.removeEventListener('change', onChange);
     }, [query]);

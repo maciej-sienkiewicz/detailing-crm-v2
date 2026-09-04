@@ -200,7 +200,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
                                                     {customer.firstName} {customer.lastName}
                                                 </PickerRowTitle>
                                                 <PickerRowSub>
-                                                    {[customer.phone, customer.email].filter(Boolean).join(' · ') || '—'}
+                                                    {[customer.phone, customer.email].filter(Boolean).join(' · ') || '-'}
                                                 </PickerRowSub>
                                             </PickerRowMain>
                                             {customer.id === currentCustomerId && (

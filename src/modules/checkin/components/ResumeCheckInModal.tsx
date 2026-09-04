@@ -7,12 +7,12 @@ import type { OpenDraftVisit } from '@/modules/visits/types';
 /*
  * Dokończenie przerwanego przyjęcia pojazdu.
  *
- * Wizyta i jej protokoły już istnieją — brakuje wyłącznie ostatniego kroku, tego samego,
+ * Wizyta i jej protokoły już istnieją - brakuje wyłącznie ostatniego kroku, tego samego,
  * którym kończy się kreator: podpisów i zatwierdzenia. Dlatego wznowienie NIE wraca do
  * kreatora (dane przyjęcia są już zapisane i formularza nie ma z czego odtworzyć), tylko
  * otwiera dokładnie to okno, w którym przyjęcie zostało porzucone.
  *
- * Protokoły dociągamy z serwera, bo tylko on wie, co zostało w międzyczasie podpisane —
+ * Protokoły dociągamy z serwera, bo tylko on wie, co zostało w międzyczasie podpisane -
  * np. na tablecie już po zamknięciu okna.
  */
 
@@ -32,20 +32,20 @@ const toProtocolResponse = (protocol: {
 
 interface ResumeCheckInModalProps {
     draft: OpenDraftVisit;
-    /** Wizyta zatwierdzona — przyjęcie domknięte. */
+    /** Wizyta zatwierdzona - przyjęcie domknięte. */
     onConfirmed: (visitId: string, options: { sendVisitCard: boolean }) => void;
-    /** Wizyta anulowana — szkicu już nie ma. */
+    /** Wizyta anulowana - szkicu już nie ma. */
     onCancelled: () => void;
     /**
-     * Zamknięcie bez zmian — opcjonalne, bo sensowne tylko w jednym z dwóch miejsc,
+     * Zamknięcie bez zmian - opcjonalne, bo sensowne tylko w jednym z dwóch miejsc,
      * z których to okno się otwiera.
      *
      * Z listy „Nieukończone przyjęcia": szkic już tam jest, więc zamknięcie okna
-     * niczego nie psuje ani nie ukrywa — przekazujemy powrót do listy.
+     * niczego nie psuje ani nie ukrywa - przekazujemy powrót do listy.
      *
      * Z kreatora przyjęcia (po napotkaniu trwającego przyjęcia tej rezerwacji):
      * nie przekazujemy niczego. Wyjście bez decyzji zostawiłoby auto przyjęte,
-     * a wizytę nierozpoczętą — czyli dokładnie ten stan, którego to okno pilnuje.
+     * a wizytę nierozpoczętą - czyli dokładnie ten stan, którego to okno pilnuje.
      */
     onLeaveForLater?: () => void;
 }

@@ -12,7 +12,7 @@ const BASE_PATH = '/v1/customers/import';
  *
  * Dwa wejścia (telefon przez kod QR, plik `.vcf` z komputera) i jedno wyjście: sesja,
  * którą się przegląda i zatwierdza. Kontakty nigdy nie trafiają do bazy klientów wprost
- * z urządzenia — zawsze przechodzą przez podgląd, w którym człowiek widzi duplikaty
+ * z urządzenia - zawsze przechodzą przez podgląd, w którym człowiek widzi duplikaty
  * i decyduje, co zapisać.
  */
 export const customerImportApi = {
@@ -23,7 +23,7 @@ export const customerImportApi = {
         return response.data;
     },
 
-    /** Wgranie pliku `.vcf` — od razu zwraca gotowy podgląd. */
+    /** Wgranie pliku `.vcf` - od razu zwraca gotowy podgląd. */
     uploadVCard: async (file: File): Promise<ImportPreview> => {
         const form = new FormData();
         form.append('file', file);

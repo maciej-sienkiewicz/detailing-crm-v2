@@ -1,26 +1,26 @@
 // src/modules/campaigns/components/CampaignDetailModal.tsx
-// Okno kampanii — jedno na całą aplikację, otwierane z listy kampanii.
+// Okno kampanii - jedno na całą aplikację, otwierane z listy kampanii.
 //
 // Wcześniej był to osobny adres i osobna strona. Kliknięcie wiersza wyrzucało
 // z listy, powrót kosztował drugie wczytanie tabeli, a filtr, który ktoś sobie
-// ustawił, przepadał. Kampanię przegląda się tak samo jak leada — rzut oka,
-// decyzja, zamknięcie — więc i okno jest to samo co przy leadzie: szeroki modal,
+// ustawił, przepadał. Kampanię przegląda się tak samo jak leada - rzut oka,
+// decyzja, zamknięcie - więc i okno jest to samo co przy leadzie: szeroki modal,
 // nie wysuwany panel, bo lista odbiorców jest tabelą i w wąskiej szufladzie
 // ucina adresy do jednej litery.
 //
 // Hierarchia okna wynika z trzech pytań, które ktoś zadaje sobie, otwierając
 // kampanię: do ilu ludzi to poszło (albo pójdzie), ile to kosztuje i czy coś tu
 // do mnie należy. Dlatego u góry stoi pasek podsumowania z liczbą odbiorców jako
-// największym elementem widoku, a treść wiadomości — to, co klient naprawdę
-// zobaczy — zajmuje szerszą, roboczą kolumnę pod nim.
+// największym elementem widoku, a treść wiadomości - to, co klient naprawdę
+// zobaczy - zajmuje szerszą, roboczą kolumnę pod nim.
 //
 // Kolor niesie znaczenie i nic poza tym: etap kampanii, pilność, akcja główna.
-// Liczba odbiorców jest dominantą przez rozmiar, nie przez barwę — liczba
+// Liczba odbiorców jest dominantą przez rozmiar, nie przez barwę - liczba
 // pomalowana na kolor wygląda jak ostrzeżenie, a nie jak fakt.
 //
 // Akcja główna jest jedna i wynika ze stanu kampanii, a nie z tego, gdzie akurat
-// stoi przycisk. Szkic woła „dokończ", zaplanowana — „wyślij teraz", działająca
-// — „wstrzymaj", zakończona z błędami — „ponów nieudane". Poprzedni nagłówek
+// stoi przycisk. Szkic woła „dokończ", zaplanowana - „wyślij teraz", działająca
+// - „wstrzymaj", zakończona z błędami - „ponów nieudane". Poprzedni nagłówek
 // niósł do pięciu równych przycisków naraz; pięć równoważnych podpowiedzi to
 // zero podpowiedzi (prawo Hicka), a przy tym „Usuń" sąsiadowało pod kursorem
 // z „Dokończ".
@@ -60,13 +60,13 @@ import {
     CampaignKindMark, CampaignStatusLine, Chip, ChipRow, DangerButton, IconButton,
     MutedText, Note, Panel, PrimaryButton, QuietLink, TextField, Timeline, TimelineItem,
 } from './shared';
-// Daty w tym samym formacie, co w oknie leada — jedna implementacja na aplikację.
+// Daty w tym samym formacie, co w oknie leada - jedna implementacja na aplikację.
 import { formatDateTime } from '@/modules/comms/components/shared';
 
 /**
  * Dwie kolumny o różnej roli, nie dwie równe połówki. Po lewej to, czym kampania
- * jest (treść wiadomości, lista odbiorców) — szersza, bo to tabele i podglądy.
- * Po prawej to, co się o niej wie (kryteria, warunek, przebieg) — węższa
+ * jest (treść wiadomości, lista odbiorców) - szersza, bo to tabele i podglądy.
+ * Po prawej to, co się o niej wie (kryteria, warunek, przebieg) - węższa
  * i wizualnie cichsza.
  */
 const BodyGrid = styled.div`
@@ -109,7 +109,7 @@ const CampaignIdentity = styled.div`
     color: ${p => p.theme.colors.textSecondary};
 `;
 
-/** Etap w nagłówku — jedyne miejsce widoczne niezależnie od przewinięcia. */
+/** Etap w nagłówku - jedyne miejsce widoczne niezależnie od przewinięcia. */
 const HeaderStatus = styled.div`
     display: flex;
     align-items: center;
@@ -124,7 +124,7 @@ const HeaderStatus = styled.div`
 `;
 
 /**
- * Pasek podsumowania — jedyny element, który ma się rzucić w oczy pierwszy.
+ * Pasek podsumowania - jedyny element, który ma się rzucić w oczy pierwszy.
  *
  * Cztery fakty, po które ludzie tu przychodzą, w kolejności ważności od lewej:
  * do ilu ludzi to idzie, ile kosztuje, czy coś się z tym dzieje i którym kanałem.
@@ -193,7 +193,7 @@ const CellLabel = styled.span`
 `;
 
 /**
- * Liczba odbiorców — największy element okna. To jedyna liczba, dla której ktoś
+ * Liczba odbiorców - największy element okna. To jedyna liczba, dla której ktoś
  * otwiera kampanię w biegu, więc ma być czytelna z odległości, z której reszta
  * jest jeszcze nieczytelna. Cyfry o stałej szerokości, żeby kolejne kampanie
  * dawały się porównać wzrokiem bez czytania.
@@ -289,7 +289,7 @@ const RecipientsTable = styled.table`
     td.retry { width: 32px; text-align: right; }
 `;
 
-/** Lista odbiorców bywa długa — przewija się w miejscu, nie rozpycha okna. */
+/** Lista odbiorców bywa długa - przewija się w miejscu, nie rozpycha okna. */
 const TableScroll = styled.div`
     max-height: 320px;
     overflow-y: auto;
@@ -356,7 +356,7 @@ type PendingAction = 'stop' | 'cancel' | 'delete' | 'send' | null;
 export interface CampaignDetailModalProps {
     campaignId: string;
     onClose: () => void;
-    /** Wywoływane po usunięciu kampanii — okno jest wtedy już zamknięte. */
+    /** Wywoływane po usunięciu kampanii - okno jest wtedy już zamknięte. */
     onDeleted?: () => void;
 }
 
@@ -384,7 +384,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
     /*
      * Prognoza odbiorców tylko dla kampanii, która jeszcze nie ruszyła. Hook
      * wołany jest bezwarunkowo (reguły hooków), więc przed przyjściem kampanii
-     * dostaje puste kryteria — zapytanie i tak nikomu wtedy nie służy.
+     * dostaje puste kryteria - zapytanie i tak nikomu wtedy nie służy.
      */
     const projectionAudience: AudienceCriteria = campaign?.audience ?? emptyAudience();
     const projectionChannel: RecipientChannel = campaign?.channel === 'EMAIL' ? 'EMAIL' : 'SMS';
@@ -482,7 +482,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                     <ModalBody>
                         {/* Notki nad treścią pojawiają się wyłącznie wtedy, gdy jest
                             czego wyjaśniać. Cisza też jest informacją i nie zajmuje
-                            miejsca — kampania, która idzie zgodnie z planem, nie
+                            miejsca - kampania, która idzie zgodnie z planem, nie
                             dostaje nad sobą ani jednego paska. */}
                         {failed > 0 && (
                             <Note $tone="error">
@@ -537,7 +537,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                              */}
                             <SummaryCell $hideOnPhone>
                                 <CellLabel>{isProjection ? 'Prognoza odbiorców' : 'Odbiorcy'}</CellLabel>
-                                <CellBig $empty={(projectedRecipients ?? figure.value) === '—'}>
+                                <CellBig $empty={(projectedRecipients ?? figure.value) === '-'}>
                                     {projectedRecipients ?? figure.value}
                                 </CellBig>
                                 <CellNote>
@@ -605,7 +605,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
 
                                     {isProjection && (
                                         <MutedText>
-                                            Stan na dziś — ostateczną listę wyliczymy w dniu wysyłki.
+                                            Stan na dziś - ostateczną listę wyliczymy w dniu wysyłki.
                                             Ręczne wykluczenia zostaną zachowane.
                                         </MutedText>
                                     )}
@@ -649,10 +649,10 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                                 <td className="address">{r.address}</td>
                                                                 <td>
                                                                     {RECIPIENT_STATUS_LABELS[r.status]}
-                                                                    {r.errorMessage && <> — {r.errorMessage}</>}
+                                                                    {r.errorMessage && <> - {r.errorMessage}</>}
                                                                 </td>
                                                                 <td className="when">
-                                                                    {r.sentAt ? formatDateTime(r.sentAt) : '—'}
+                                                                    {r.sentAt ? formatDateTime(r.sentAt) : '-'}
                                                                 </td>
                                                                 <td className="retry">
                                                                     {!NON_RETRYABLE.has(r.status) && (
@@ -690,7 +690,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                                 {[s.firstName, s.lastName].filter(Boolean).join(' ') || 'Klient'}
                                                             </td>
                                                             <td>
-                                                                {(projectionChannel === 'SMS' ? s.phone : s.email) ?? '—'}
+                                                                {(projectionChannel === 'SMS' ? s.phone : s.email) ?? '-'}
                                                             </td>
                                                             <td>{ELIGIBILITY_LABELS[s.eligibility] ?? s.eligibility}</td>
                                                         </tr>
@@ -714,7 +714,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                             <strong>
                                                 {c.trigger.serviceIds
                                                     .map((sid) => serviceNames.get(sid) ?? 'usługa')
-                                                    .join(', ') || '—'}
+                                                    .join(', ') || '-'}
                                             </strong>
                                             , o {c.trigger.sendTime}
                                             {c.trigger.onlyIfNoVisitSince &&
@@ -729,7 +729,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                     {chips.length > 0 ? (
                                         <ChipRow>{chips.map((ch) => <Chip key={ch}>{ch}</Chip>)}</ChipRow>
                                     ) : (
-                                        <MutedText>Bez zawężeń — wszyscy klienci ze zgodą.</MutedText>
+                                        <MutedText>Bez zawężeń - wszyscy klienci ze zgodą.</MutedText>
                                     )}
                                 </Panel>
 
@@ -781,7 +781,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                 <ModalFooter>
                     {/*
                         Po lewej, z dala od akcji głównej, stoi ruch nieodwracalny albo
-                        odwrotny do niej — dwie akcje o przeciwnych skutkach nie mają
+                        odwrotny do niej - dwie akcje o przeciwnych skutkach nie mają
                         prawa sąsiadować pod kursorem.
                     */}
                     {c.status === 'DRAFT' && (
@@ -824,7 +824,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                     )}
 
                     {/*
-                        Akcja główna wynika ze stanu kampanii — w tej kolejności:
+                        Akcja główna wynika ze stanu kampanii - w tej kolejności:
 
                         1. są nieudane wiadomości → „Ponów nieudane". Ktoś nie dostał
                            tego, co miał dostać; to bije wszystko inne, także etap.

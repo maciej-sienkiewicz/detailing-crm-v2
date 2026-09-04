@@ -2,7 +2,7 @@
 // Menu „reszty" akcji nagłówka rozmowy.
 //
 // Nagłówek rósł o jeden przycisk za każdym razem, gdy dochodziła funkcja, aż
-// przestał być nagłówkiem, a stał się paskiem narzędzi — i temat wątku, czyli
+// przestał być nagłówkiem, a stał się paskiem narzędzi - i temat wątku, czyli
 // jedyna rzecz, po którą się tu patrzy, przegrywał z trzema pigułkami obok.
 // Menu jest miejscem, które może przyjąć kolejne akcje bez odbierania miejsca
 // tematowi: zamiast rosnąć w bok, rośnie w dół i tylko po kliknięciu.
@@ -17,7 +17,7 @@ import { MoreHorizontal } from 'lucide-react';
 
 const MENU_WIDTH = 232;
 const MENU_GAP = 6;
-/** Zapas na wysokość menu, gdy nie mieści się pod przyciskiem — wtedy otwiera się nad. */
+/** Zapas na wysokość menu, gdy nie mieści się pod przyciskiem - wtedy otwiera się nad. */
 const MENU_MAX_HEIGHT = 260;
 
 const Trigger = styled.button<{ $open: boolean }>`
@@ -93,7 +93,7 @@ export interface ThreadAction {
 
 interface ThreadActionsMenuProps {
     actions: ThreadAction[];
-    /** Opis dla czytników ekranu — nagłówek ma tylko ikonę. */
+    /** Opis dla czytników ekranu - nagłówek ma tylko ikonę. */
     label?: string;
 }
 
@@ -102,7 +102,7 @@ export function ThreadActionsMenu({ actions, label = 'Więcej akcji' }: ThreadAc
     const [open, setOpen] = useState(false);
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
-    // Pozycję liczymy przed malowaniem — menu nie ma prawa mrugnąć w lewym górnym rogu.
+    // Pozycję liczymy przed malowaniem - menu nie ma prawa mrugnąć w lewym górnym rogu.
     useLayoutEffect(() => {
         if (!open || !triggerRef.current) return;
         const rect = triggerRef.current.getBoundingClientRect();

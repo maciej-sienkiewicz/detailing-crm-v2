@@ -44,7 +44,7 @@ const TopRow = styled.div`
 
 // Na telefonie szukanie po nazwisku i wybor daty to filtry uzywane rzadko,
 // a zajmowaly dwa pelne wiersze nad kazda lista. Chowamy je za przyciskiem
-// lupy — a gdy sa ustawione, przycisk swieci sie jak aktywny filtr, zeby
+// lupy - a gdy sa ustawione, przycisk swieci sie jak aktywny filtr, zeby
 // zwinieta wyszukiwarka nigdy nie ukryla dzialajacego warunku.
 const SearchWrapper = styled.div<{ $mobileOpen: boolean }>`
     position: relative;
@@ -185,7 +185,7 @@ const FiltersRow = styled.div`
 const MobileSelectRow = styled.div`
     display: none;
 
-    /* Status, lupa i filtry mieszczą się w jednym wierszu — status bierze tyle,
+    /* Status, lupa i filtry mieszczą się w jednym wierszu - status bierze tyle,
        ile zostanie po dwóch przyciskach ikonowych. */
     @media (max-width: 900px) {
         display: flex;

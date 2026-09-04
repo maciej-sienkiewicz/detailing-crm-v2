@@ -153,7 +153,7 @@ export const PickerPane = styled.div`
  * which is what keeps the window still: one result, twenty results, a spinner or an empty
  * state all occupy exactly the same block, so nothing below the list ever moves.
  *
- * Requires a parent with a settled height — pair it with `stableHeight` on ModalShell.
+ * Requires a parent with a settled height - pair it with `stableHeight` on ModalShell.
  */
 export const PickerResults = styled.div<{ $stale?: boolean }>`
     flex: 1;
@@ -178,7 +178,7 @@ export const PickerResults = styled.div<{ $stale?: boolean }>`
 `;
 
 /**
- * One-line caption above the results — "Znaleziono 5 klientów", "Pojazdy tego klienta".
+ * One-line caption above the results - "Znaleziono 5 klientów", "Pojazdy tego klienta".
  * Always rendered, so its line is part of the layout whether or not there is anything to
  * count, and the list below it never shifts by a line height.
  */

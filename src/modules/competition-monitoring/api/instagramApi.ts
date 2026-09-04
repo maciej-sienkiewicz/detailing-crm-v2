@@ -78,7 +78,7 @@ export const instagramApi = {
 
     /**
      * Ponawia pobranie danych wyłącznie dla profili z etykietą "problem z pobraniem".
-     * Backend ma cooldown per studio — 429 obsługujemy lokalnie własnym komunikatem.
+     * Backend ma cooldown per studio - 429 obsługujemy lokalnie własnym komunikatem.
      */
     resyncFailedProfiles: async (): Promise<ResyncResult> => {
         const response = await apiClient.post<ResyncResult>(`${PROFILES_PATH}/resync-failed`, null, {
@@ -180,7 +180,7 @@ export const instagramApi = {
     ): Promise<GeneratedInstagramPost> => {
         const response = await apiClient.post<GeneratedInstagramPost>(
             `${AI_PATH}/posts/${postId}/rate`,
-            // Komentarz ma sens wyłącznie przy ocenie negatywnej — backend odrzuca go przy POSITIVE.
+            // Komentarz ma sens wyłącznie przy ocenie negatywnej - backend odrzuca go przy POSITIVE.
             { rating, comment: rating === 'NEGATIVE' ? comment : undefined },
         );
         return response.data;

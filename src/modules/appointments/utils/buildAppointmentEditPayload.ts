@@ -83,7 +83,7 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                         brand: formData.vehicleData.brand,
                         model: formData.vehicleData.model,
                         // Wire key is `year`, not `yearOfProduction` (which is only the
-                        // internal form-state field name) — the backend's
+                        // internal form-state field name) - the backend's
                         // NewVehicleDataRequest DTO has no alias for the old key, and
                         // Jackson silently drops unknown properties, so sending the
                         // wrong key here means "rok produkcji" is never persisted.

@@ -21,13 +21,13 @@ import type { ImportPreview } from '../types';
  *
  * Kolejność ekranów jest wynikiem jednego ustalenia: **telefon tylko wysyła, decyduje
  * komputer**. Odznaczanie ośmiuset kontaktów na ekranie telefonu jest udręką, na
- * komputerze zajmuje minutę — a to właśnie odznaczanie jest tu całą pracą. Ten sam
+ * komputerze zajmuje minutę - a to właśnie odznaczanie jest tu całą pracą. Ten sam
  * podział działa już przy przyjęciu pojazdu: telefon robi zdjęcia, obsługa weryfikuje
  * je w panelu.
  *
  * Dwie drogi wejścia, bo systemy dają różne możliwości:
- *  - **Android** — telefon oddaje kontakty po zeskanowaniu kodu QR (systemowe okno wyboru),
- *  - **iPhone** — Safari nie pozwala stronom pytać o kontakty, więc jedyną drogą jest
+ *  - **Android** - telefon oddaje kontakty po zeskanowaniu kodu QR (systemowe okno wyboru),
+ *  - **iPhone** - Safari nie pozwala stronom pytać o kontakty, więc jedyną drogą jest
  *    plik `.vcf`; ekran mówi krok po kroku, jak go zdobyć, zamiast zakładać, że
  *    użytkownik wie, co to vCard.
  *
@@ -201,14 +201,14 @@ const ErrorNote = styled.p`
 
 /**
  * Ekran wyboru źródła. Podgląd nie jest osobnym krokiem w tym typie: pojawia się
- * z chwilą, gdy kontakty są w sesji — niezależnie od tego, którą drogą przyszły.
+ * z chwilą, gdy kontakty są w sesji - niezależnie od tego, którą drogą przyszły.
  */
 type Mode = 'source' | 'phone' | 'file';
 
 interface ImportContactsModalProps {
     /** Rodzic montuje ten komponent dopiero po otwarciu, więc stan czyści się sam. */
     onClose: () => void;
-    /** Zaimportowano klientów — lista w tle wymaga odświeżenia. */
+    /** Zaimportowano klientów - lista w tle wymaga odświeżenia. */
     onImported: (count: number) => void;
 }
 
@@ -235,7 +235,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
     /*
      * Odpytywanie zamiast gniazda: telefon przysyła kontakty raz, w ciągu kilkudziesięciu
      * sekund od zeskanowania kodu. Utrzymywanie połączenia przez ten czas byłoby większą
-     * maszynerią niż samo zadanie — a odpytywanie co dwie sekundy przez kwadrans to
+     * maszynerią niż samo zadanie - a odpytywanie co dwie sekundy przez kwadrans to
      * kilkaset lekkich zapytań w całym życiu studia, nie w ciągu dnia.
      */
     const { data: polled } = useQuery({
@@ -272,14 +272,14 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
     /*
      * Podgląd jest stanem POCHODNYM, nie kolejnym `useState`: przychodzi albo z odpowiedzi
      * na wgrany plik, albo z odpytywania sesji telefonu. Trzymanie go osobno znaczyłoby
-     * przepisywanie tej samej informacji z react-query do stanu komponentu — i pilnowanie
+     * przepisywanie tej samej informacji z react-query do stanu komponentu - i pilnowanie
      * w efekcie, żeby obie kopie się nie rozjechały.
      */
     const preview: ImportPreview | null =
         upload.data ?? (polled?.status === 'READY' ? polled : null);
 
     /*
-     * Zaznaczenie startowe ustawiane w trakcie renderu, gdy pojawi się nowa sesja —
+     * Zaznaczenie startowe ustawiane w trakcie renderu, gdy pojawi się nowa sesja -
      * wzorzec „dostosowanie stanu przy zmianie danych wejściowych" z dokumentacji Reacta.
      * W efekcie oznaczałoby to dodatkowy przebieg renderowania z pustym zaznaczeniem,
      * czyli mignięcie „Zaznaczono 0" zanim pojawią się właściwe liczby.
@@ -303,7 +303,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                 showSuccess(
                     `Zaimportowano ${result.imported} ${result.imported === 1 ? 'klienta' : 'klientów'}`,
                     result.skipped > 0
-                        ? `${result.skipped} pominięto — w międzyczasie przestały być nowe.`
+                        ? `${result.skipped} pominięto - w międzyczasie przestały być nowe.`
                         : undefined,
                 );
             }
@@ -352,7 +352,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                                     <SourceTitle>Mam plik z kontaktami (iPhone, Outlook)</SourceTitle>
                                     <SourceDesc>
                                         Wgraj plik vCard (.vcf). Pokażemy krok po kroku, jak go
-                                        pobrać — na iPhonie to jedyna droga.
+                                        pobrać - na iPhonie to jedyna droga.
                                     </SourceDesc>
                                 </SourceCard>
                             </SourceGrid>
@@ -375,7 +375,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                                         <li>Zeskanuj kod aparatem telefonu.</li>
                                         <li>Na telefonie dotknij „Wybierz kontakty".</li>
                                         <li>Zaznacz kontakty w oknie systemu i potwierdź.</li>
-                                        <li>Wróć tutaj — lista pojawi się sama.</li>
+                                        <li>Wróć tutaj - lista pojawi się sama.</li>
                                     </Steps>
                                     <Waiting>Czekam na kontakty z telefonu…</Waiting>
                                 </div>
@@ -383,7 +383,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
 
                             <Note>
                                 Kod działa raz i wygasa po kilkunastu minutach. Na iPhonie ta droga
-                                nie zadziała — Safari nie pozwala stronom pytać o kontakty; użyj
+                                nie zadziała - Safari nie pozwala stronom pytać o kontakty; użyj
                                 wtedy pliku.
                             </Note>
 
@@ -451,7 +451,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                         <>
                             <Note>
                                 Zaznaczone są tylko kontakty, których jeszcze nie ma w bazie.
-                                Odznacz te, których nie chcesz — resztę zapiszemy jako klientów.
+                                Odznacz te, których nie chcesz - resztę zapiszemy jako klientów.
                             </Note>
 
                             <ImportContactsTable

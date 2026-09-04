@@ -14,14 +14,14 @@ import {
 } from '../hooks';
 
 /**
- * Nazwa nadawcy SMS — to, co klient widzi zamiast numeru telefonu, plus podpisane
+ * Nazwa nadawcy SMS - to, co klient widzi zamiast numeru telefonu, plus podpisane
  * upoważnienie, którego wymaga operator.
  *
  * Wcześniej była to cienka szara belka nad tabelą szablonów: studio, które nigdy
  * nie ustawiło nadawcy, mogło jej nie zauważyć i przez miesiące wysyłać SMS-y
  * z przypadkowego numeru. Dlatego dopóki nazwa nie jest ustawiona, karta stoi
  * otwarta i sama mówi, co trzeba zrobić; po zatwierdzeniu zwija się do jednej
- * linijki — konfiguracja kanału nie ma prawa zabierać uwagi codziennej pracy.
+ * linijki - konfiguracja kanału nie ma prawa zabierać uwagi codziennej pracy.
  *
  * Styl: wspólne pola formularza aplikacji (Form) i wspólny przycisk (SharedButton),
  * te same co w formularzach leadów, usług czy finansów.
@@ -33,7 +33,7 @@ const MAX_LENGTH = 11;
 
 /**
  * Operator przyjmuje tylko litery bez ogonków, cyfry, spację, kropkę i myślnik.
- * Wielkość liter jest wyborem studia — „DetailBoost" to nie to samo co „DETAILBOOST",
+ * Wielkość liter jest wyborem studia - „DetailBoost" to nie to samo co „DETAILBOOST",
  * a wcześniej pole na siłę podnosiło wszystko do wersalików.
  */
 const sanitize = (value: string) => value.replace(/[^A-Za-z0-9 .-]/g, '');
@@ -267,7 +267,7 @@ export const SmsSenderNameCard: React.FC = () => {
 
   const status = isLoading ? 'none' : statusOf(config);
   const needsSetup = !isLoading && status === 'none';
-  // Nieustawiony nadawca to zadanie do zrobienia, nie ustawienie do schowania —
+  // Nieustawiony nadawca to zadanie do zrobienia, nie ustawienie do schowania -
   // karta otwiera się sama, dopóki nazwa nie zostanie zapisana.
   const expanded = open || needsSetup;
 
@@ -293,7 +293,7 @@ export const SmsSenderNameCard: React.FC = () => {
   const handleSign = async () => {
     const base64 = padRef.current?.toPngBase64();
     if (!base64 || padRef.current?.isEmpty()) {
-      flash(true, 'Podpis jest pusty — narysuj go przed zapisaniem.');
+      flash(true, 'Podpis jest pusty - narysuj go przed zapisaniem.');
       return;
     }
     try {
@@ -355,7 +355,7 @@ export const SmsSenderNameCard: React.FC = () => {
           </h3>
           <p>
             {needsSetup
-              ? 'Dopóki nazwa nie jest ustawiona, SMS-y do klientów wychodzą z przypadkowego numeru — bez informacji, kto pisze.'
+              ? 'Dopóki nazwa nie jest ustawiona, SMS-y do klientów wychodzą z przypadkowego numeru - bez informacji, kto pisze.'
               : 'To ją klient widzi zamiast numeru telefonu przy każdym SMS-ie ze studia.'}
           </p>
         </Titles>
@@ -411,7 +411,7 @@ export const SmsSenderNameCard: React.FC = () => {
 
           <AuthRow>
               <span className="text">
-                Podpisz upoważnienie dla operatora SMS — treść złożymy z danych Twojej firmy
+                Podpisz upoważnienie dla operatora SMS - treść złożymy z danych Twojej firmy
                 i nazwy nadawcy, z dzisiejszą datą.
               </span>
               {!signing && (
@@ -422,7 +422,7 @@ export const SmsSenderNameCard: React.FC = () => {
                   disabled={!savedName || dirty}
                   title={
                     !savedName || dirty
-                      ? 'Najpierw zapisz nazwę nadawcy — to jej dotyczy upoważnienie'
+                      ? 'Najpierw zapisz nazwę nadawcy - to jej dotyczy upoważnienie'
                       : undefined
                   }
                   onClick={() => setSigning(true)}

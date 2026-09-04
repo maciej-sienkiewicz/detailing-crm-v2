@@ -40,7 +40,7 @@ const CATEGORY_LABEL: Record<CategoryKey, string> = {
 };
 
 /* Szerokości obu paneli menu. Panele mają box-sizing: border-box, więc te
-   liczby są ich rzeczywistą szerokością na ekranie (padding i ramka w środku) —
+   liczby są ich rzeczywistą szerokością na ekranie (padding i ramka w środku) -
    inaczej wyliczona z nich pozycja rozjeżdża się z realnym renderem i menu
    wystaje poza prawą krawędź ekranu. */
 const CATEGORY_PANEL_WIDTH = 220;
@@ -615,7 +615,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     const [popupOpen, setPopupOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null);
     // `null` = jeszcze nie zmierzono. Panel nie jest renderowany, dopóki nie
-    // znamy pozycji, więc nie ma jak mignąć w (0,0) — patrz measurePopupPos.
+    // znamy pozycji, więc nie ma jak mignąć w (0,0) - patrz measurePopupPos.
     const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
     const barRef = useRef<HTMLDivElement>(null);
     const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -685,7 +685,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     // w PopupRoot i tak wymusza dolny arkusz (!important), więc liczy się to
     // tylko na desktopie, gdzie przycisk jest realnie widoczny.
     // Gdy dużo aktywnych filtrów rozepchnie chipy, przycisk potrafi wylądować
-    // blisko prawej krawędzi — bez korekty rozsuwany OptionsPanel (300px)
+    // blisko prawej krawędzi - bez korekty rozsuwany OptionsPanel (300px)
     // wystawałby poza viewport, więc lewą pozycję z góry ograniczamy tak, żeby
     // zmieściła się pełna szerokość obu paneli (kategorie + opcje).
     const measurePopupPos = useCallback(() => {
@@ -699,13 +699,13 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     // Mierzymy synchronicznie już w handlerze kliknięcia, żeby pierwszy render
     // panelu miał gotową pozycję. Pomiar dopiero w efekcie (nawet layoutowym)
     // dokłada osobny commit, a w wariancie pasywnym przeglądarka zdążyła
-    // namalować panel w (0,0) — stąd mignięcie w lewym górnym rogu.
+    // namalować panel w (0,0) - stąd mignięcie w lewym górnym rogu.
     const togglePopup = () => {
         if (!popupOpen) measurePopupPos();
         setPopupOpen(o => !o);
     };
 
-    // Hover na desktopie ma sens tylko dla urządzeń z myszką — na dotyku
+    // Hover na desktopie ma sens tylko dla urządzeń z myszką - na dotyku
     // (bez hover) zostaje wyłącznie klik, więc kategoria startuje zwinięta
     // i użytkownik "wchodzi" w nią jawnym dotknięciem.
     const supportsHover = () =>
@@ -724,7 +724,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     }, [popupOpenProp]);
 
     // Otwarcie sterowane z zewnątrz (mobilna pigułka filtra) nie przechodzi
-    // przez togglePopup, więc pomiar trzeba dorobić tutaj — w layoutowym
+    // przez togglePopup, więc pomiar trzeba dorobić tutaj - w layoutowym
     // efekcie, czyli jeszcze przed malowaniem klatki.
     useLayoutEffect(() => {
         if (popupOpen) measurePopupPos();
@@ -848,7 +848,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
 
         {/* Popup: renderowany poza BarWrapper (który na mobile ma display:none),
             żeby przycisk filtra z mobilnego nagłówka (poza tym komponentem, sterujący
-            przez `popupOpen`) też mógł go otworzyć — patrz CalendarView.tsx. */}
+            przez `popupOpen`) też mógł go otworzyć - patrz CalendarView.tsx. */}
         {popupOpen && popupPos && (
             <>
                 <Backdrop onClick={closePopup} />

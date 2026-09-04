@@ -119,7 +119,7 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
   const [channel, setChannel] = useState<Channel>(initialChannel);
   const panelRef = useRef<HTMLElement>(null);
 
-  // Focus i blokada przewijania tła — raz, przy otwarciu panelu.
+  // Focus i blokada przewijania tła - raz, przy otwarciu panelu.
   //
   // Wcześniej siedziały w jednym efekcie z obsługą Escape, zależnym od `onClose`.
   // Rodzic przekazuje tam funkcję tworzoną w locie, więc każdy render (a render
@@ -135,7 +135,7 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
     };
   }, []);
 
-  // Escape zamyka panel. Ten efekt może się przepinać przy zmianie `onClose` —
+  // Escape zamyka panel. Ten efekt może się przepinać przy zmianie `onClose` -
   // podmiana nasłuchu jest niewidoczna dla użytkownika, w odróżnieniu od focusu.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

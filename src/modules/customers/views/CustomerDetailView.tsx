@@ -283,7 +283,7 @@ const HeroMetaItem = styled.span`
     svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
 `;
 
-// Click-to-Call: numer wygląda jak reszta metadanych, ale jest przyciskiem —
+// Click-to-Call: numer wygląda jak reszta metadanych, ale jest przyciskiem -
 // klik wysyła powiadomienie na sparowany telefon zalogowanego użytkownika.
 const HeroMetaCallBtn = styled.button`
     display: inline-flex;
@@ -452,7 +452,7 @@ export const CustomerDetailView = () => {
     const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
     const [isAddVehicleOpen,  setIsAddVehicleOpen]  = useState(false);
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
-    // Karta klienta jest długa — na telefonie dzielimy ją na trzy sekcje
+    // Karta klienta jest długa - na telefonie dzielimy ją na trzy sekcje
     // przełączane paskiem przy dolnej krawędzi, tak jak kartę wizyty.
     const [mobileTab, setMobileTab] = useState<CustomerMobileTab>('visits');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1275,12 +1275,12 @@ export const CustomerDetailView = () => {
             />
 
             {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,
-                a co zostaje — „nie można cofnąć" bez tej informacji brzmiałoby
+                a co zostaje - „nie można cofnąć" bez tej informacji brzmiałoby
                 jak skasowanie całej historii współpracy. */}
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
                 title={`Usunąć klienta ${fullName}?`}
-                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane — wymaga tego prawo."
+                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane - wymaga tego prawo."
                 variant="danger"
                 confirmText="Usuń dane klienta"
                 cancelText="Anuluj"

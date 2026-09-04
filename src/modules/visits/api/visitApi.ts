@@ -565,7 +565,7 @@ export const visitApi = {
      *
      * Idzie na `/cancel`, a nie na `DELETE /visits/{id}`: to drugie jest twardym
      * usunięciem wizyty w dowolnym stanie i wymaga uprawnienia VISITS_DELETE (właściciel
-     * lub menedżer). Pracownik, który właśnie przyjmował auto, dostawał na nim 403 —
+     * lub menedżer). Pracownik, który właśnie przyjmował auto, dostawał na nim 403 -
      * czyli jedyne wyjście z okna dokumentów, jakim mógł zamknąć sprawę, po prostu nie
      * działało. `/cancel` sprawdza status DRAFT, kasuje protokoły, dokumenty i pliki i
      * zostawia rezerwację gotową do ponownego przyjęcia.
@@ -579,15 +579,15 @@ export const visitApi = {
     },
 
     /**
-     * Trwałe usunięcie wizyty w DOWOLNYM statusie — razem ze zdjęciami, protokołami,
+     * Trwałe usunięcie wizyty w DOWOLNYM statusie - razem ze zdjęciami, protokołami,
      * dokumentami i komentarzami. Wymaga uprawnienia VISITS_DELETE (właściciel/menedżer).
      *
      * To jest usunięcie, o które chodzi w „Usuń wizytę". [cancelDraftVisit] powyżej
-     * obsługuje zupełnie inny przypadek — przerwane przyjęcie pojazdu (DRAFT) — i na
+     * obsługuje zupełnie inny przypadek - przerwane przyjęcie pojazdu (DRAFT) - i na
      * wizycie IN_PROGRESS kończy się błędem „Anulować można tylko wizyty o statusie DRAFT".
      *
      * `skipErrorToast`: komunikat pokazuje wywołujący, żeby użytkownik nie dostał
-     * dwóch dymków naraz — surowego z interceptora i własnego z widoku.
+     * dwóch dymków naraz - surowego z interceptora i własnego z widoku.
      */
     deleteVisit: async (visitId: string): Promise<void> => {
         if (USE_MOCKS) {
@@ -614,7 +614,7 @@ export const visitApi = {
     },
 
     /**
-     * Uzupełnia brakujący adres e-mail klienta wizyty — punktowo, bez ruszania
+     * Uzupełnia brakujący adres e-mail klienta wizyty - punktowo, bez ruszania
      * reszty profilu. Używane przez modal "Dokumentacja i Podpisy", żeby nie
      * odsyłać użytkownika z powrotem do formularza przyjęcia.
      */

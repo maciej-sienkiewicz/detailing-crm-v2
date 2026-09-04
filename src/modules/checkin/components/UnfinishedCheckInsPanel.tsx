@@ -12,11 +12,11 @@ import { ResumeCheckInModal } from './ResumeCheckInModal';
 /*
  * Kolejka nieukończonych przyjęć.
  *
- * Wizyta w statusie DRAFT nie jest wizytą — jest przyjęciem w toku, więc nie ma jej ani
+ * Wizyta w statusie DRAFT nie jest wizytą - jest przyjęciem w toku, więc nie ma jej ani
  * na liście wizyt, ani w Aktywności, ani pod własnym adresem. Póki jedyną drogą do niej
  * było okno kreatora, „nie ma jej nigdzie" znaczyło w praktyce „przepadła": auto stało
  * w warsztacie, a system nie umiał o nim przypomnieć. To miejsce jest tą drogą:
- * krótka lista tego, co ktoś zaczął i nie skończył, z jedną akcją — dokończ.
+ * krótka lista tego, co ktoś zaczął i nie skończył, z jedną akcją - dokończ.
  */
 
 const Banner = styled.section<{ $alert: boolean }>`
@@ -133,7 +133,7 @@ const ChevronIcon = ({ $open }: { $open: boolean }) => (
     </svg>
 );
 
-/** „12 min" / „3 h 20 min" — wiek przyjęcia czyta się szybciej niż godzina zapisu. */
+/** „12 min" / „3 h 20 min" - wiek przyjęcia czyta się szybciej niż godzina zapisu. */
 const formatAge = (minutes: number): string => {
     if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
@@ -162,7 +162,7 @@ export const UnfinishedCheckInsPanel = () => {
     const { data } = useQuery({
         queryKey: ['open-draft-visits'],
         queryFn: visitApi.getOpenDrafts,
-        // Przyjęcia domykają się także z innych stanowisk — lista ma być świeża,
+        // Przyjęcia domykają się także z innych stanowisk - lista ma być świeża,
         // ale nie kosztem odpytywania serwera przy każdym renderze listy wizyt.
         staleTime: 30_000,
         enabled: can('VISITS_CREATE'),

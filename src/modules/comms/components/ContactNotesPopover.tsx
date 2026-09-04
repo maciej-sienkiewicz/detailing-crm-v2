@@ -1,11 +1,11 @@
 // src/modules/comms/components/ContactNotesPopover.tsx
-// Notatki o kontakcie — chmurka pod plakietką w nagłówku rozmowy.
+// Notatki o kontakcie - chmurka pod plakietką w nagłówku rozmowy.
 //
 // Notatka to rzecz, którą trzeba mieć przed oczami PISZĄC odpowiedź, a nie po
 // przejściu do innego widoku. Dlatego popover przy nagłówku, a nie osobny ekran:
 // otwiera się nad korespondencją, zamyka kliknięciem obok i nie gubi kontekstu.
 //
-// Notatek może być wiele — jedno pole „notatka o kliencie" zmuszałoby do dopisywania
+// Notatek może być wiele - jedno pole „notatka o kliencie" zmuszałoby do dopisywania
 // do cudzego zdania i kasowania cudzych ustaleń. Każda ma autora i datę, a wszystkie
 // zmiany idą do dziennika: „kto to skreślił i kiedy" jest pytaniem, na które ta
 // funkcja ma odpowiadać.
@@ -193,7 +193,7 @@ const ACTION_LABELS: Record<ContactNoteAction, string> = {
 
 interface ContactNotesPopoverProps {
     email: string;
-    /** Element, pod którym chmurka ma się zaczepić — zwykle plakietka w nagłówku. */
+    /** Element, pod którym chmurka ma się zaczepić - zwykle plakietka w nagłówku. */
     anchor: HTMLElement | null;
     onClose: () => void;
 }

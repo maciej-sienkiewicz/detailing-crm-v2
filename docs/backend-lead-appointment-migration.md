@@ -12,9 +12,9 @@ The `POST /v1/leads/{id}/appointment` backend endpoint must be updated to accept
 
 ## Required Backend Changes
 
-### 1. `LeadAppointmentServiceRequest` — replace flat fields with nested `Adjustment` object
+### 1. `LeadAppointmentServiceRequest` - replace flat fields with nested `Adjustment` object
 
-**Current (flat — REMOVE):**
+**Current (flat - REMOVE):**
 ```kotlin
 data class LeadAppointmentServiceRequest(
     val serviceId: String?,
@@ -27,7 +27,7 @@ data class LeadAppointmentServiceRequest(
 )
 ```
 
-**Required (nested — matches `ServiceLineItemRequest`):**
+**Required (nested - matches `ServiceLineItemRequest`):**
 ```kotlin
 data class LeadAppointmentServiceRequest(
     val id: String,
@@ -49,7 +49,7 @@ data class AdjustmentRequest(
 
 ---
 
-### 2. `LeadAppointmentRequest` — verify top-level structure matches
+### 2. `LeadAppointmentRequest` - verify top-level structure matches
 
 The frontend sends the following JSON. Confirm each field is present in `LeadAppointmentRequest`:
 
@@ -103,13 +103,13 @@ The existing behaviour must be preserved:
 
 ### 4. New `LeadStatus` values
 
-The frontend now uses these statuses — ensure the `LeadStatus` enum/column accepts all of them:
+The frontend now uses these statuses - ensure the `LeadStatus` enum/column accepts all of them:
 
 | Value | Description |
 |-------|-------------|
 | `NEW` | Lead created, no action taken |
 | `IN_PROGRESS` | Lead being processed |
-| `CONFIRMED` | Appointment booked — set automatically when appointment created |
+| `CONFIRMED` | Appointment booked - set automatically when appointment created |
 | `COMPLETED` | Visit completed |
 | `LOST` | Lead lost (replaced old `ABANDONED`) |
 | `NO_SHOW` | Customer did not show up |

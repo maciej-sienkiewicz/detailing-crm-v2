@@ -16,12 +16,12 @@ export const STATUS_LABELS: Record<CampaignStatus, string> = {
 };
 
 /**
- * Kolor etapu kampanii — kropka, nie wypełniona plakietka.
+ * Kolor etapu kampanii - kropka, nie wypełniona plakietka.
  *
  * Ten sam język, którym etap leada oznaczony jest w tabeli leadów i w wybieraku
  * statusu: siedmiopikselowa kropka niesie barwę, a nazwa pisana normalnie czyta
  * się szybciej niż KAPITALIKAMI. Wypełniona plakietka w każdym wierszu nie
- * wyróżnia niczego — jeśli świeci cała kolumna, nie świeci nic.
+ * wyróżnia niczego - jeśli świeci cała kolumna, nie świeci nic.
  *
  * Barwy niosą znaczenie i nic poza tym: zielony = idzie zgodnie z planem,
  * bursztyn = czeka albo stoi, czerwony = coś nie wyszło, szary = nic się nie
@@ -82,11 +82,11 @@ export const PLACEHOLDERS: { token: string; label: string }[] = [
   { token: '{{dni_od_wizyty}}', label: 'Dni od wizyty' },
 ];
 
-/** Poniżej tego progu doładowanie przestaje być formalnością — mówimy o tym wprost. */
+/** Poniżej tego progu doładowanie przestaje być formalnością - mówimy o tym wprost. */
 export const LOW_CREDITS_THRESHOLD = 200;
 
 /**
- * Dlaczego ktoś z listy nie dostanie wiadomości. Jedno zdanie na powód — bo to
+ * Dlaczego ktoś z listy nie dostanie wiadomości. Jedno zdanie na powód - bo to
  * jedyna odpowiedź na pytanie „czemu wyszło mniej, niż się spodziewałem".
  */
 export const ELIGIBILITY_LABELS: Record<AudienceEligibility, string> = {

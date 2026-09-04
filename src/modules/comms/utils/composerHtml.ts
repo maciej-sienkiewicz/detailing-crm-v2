@@ -1,20 +1,20 @@
 // src/modules/comms/utils/composerHtml.ts
 // HTML, który wychodzi z kompozytora wiadomości.
 //
-// Edytor jest zwykłym contentEditable — przeglądarka wystawia z niego to, co uzna za
+// Edytor jest zwykłym contentEditable - przeglądarka wystawia z niego to, co uzna za
 // stosowne: <span style="font-weight:700"> zamiast <b>, <div> zagnieżdżone w <div>,
 // wklejone z Worda klasy i style. Do serwera (i do skrzynki klienta) ma trafić jeden
 // ustalony, ubogi dialekt: pogrubienie, kursywa, podkreślenie, przekreślenie, listy,
-// odnośniki i podziały wierszy — nic więcej. Backend sanityzuje jeszcze raz, ale to on
+// odnośniki i podziały wierszy - nic więcej. Backend sanityzuje jeszcze raz, ale to on
 // ma dostać coś już czystego, a nie zgadywać, co edytor miał na myśli.
 
 /** Znaczniki, które przechodzą dalej tak, jak stoją. Reszta jest rozpakowywana. */
 const KEEP_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del', 'ul', 'ol', 'li', 'a', 'br', 'div', 'p', 'blockquote']);
 
-/** Znaczniki, których treść wyrzucamy w całości — nigdy nie są tym, co użytkownik chciał wysłać. */
+/** Znaczniki, których treść wyrzucamy w całości - nigdy nie są tym, co użytkownik chciał wysłać. */
 const DROP_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'meta', 'link', 'head', 'title', 'svg', 'img', 'video', 'audio']);
 
-/** Style, którymi przeglądarka wyraża formatowanie zamiast znacznikiem — tłumaczymy je z powrotem. */
+/** Style, którymi przeglądarka wyraża formatowanie zamiast znacznikiem - tłumaczymy je z powrotem. */
 const STYLE_TO_TAG: { test: (style: CSSStyleDeclaration) => boolean; tag: string }[] = [
     { test: (style) => /^(bold|[6-9]00)$/.test(style.fontWeight), tag: 'b' },
     { test: (style) => style.fontStyle === 'italic', tag: 'i' },
@@ -27,7 +27,7 @@ const parse = (html: string): Document =>
 
 const isSafeHref = (href: string): boolean => /^(https?:|mailto:|tel:)/i.test(href.trim());
 
-/** Zamienia element na jego dzieci — zostaje treść, znika opakowanie. */
+/** Zamienia element na jego dzieci - zostaje treść, znika opakowanie. */
 const unwrap = (element: Element) => {
     const parent = element.parentNode;
     if (!parent) return;
@@ -80,7 +80,7 @@ function cleanNode(node: Node, document: Document): void {
             continue;
         }
 
-        // Nagłówki, tabele, spany, fonty… — treść zostaje, znacznik odpada.
+        // Nagłówki, tabele, spany, fonty… - treść zostaje, znacznik odpada.
         // Bloki dostają własny wiersz, żeby wklejone akapity nie zlewały się w jeden.
         if (/^(h[1-6]|tr|table|section|article|header|footer|pre)$/.test(tag)) {
             const block = document.createElement('div');
@@ -126,7 +126,7 @@ export function normalizeComposerHtml(html: string): string {
     return isComposerHtmlEmpty(body.innerHTML) ? '' : body.innerHTML;
 }
 
-/** Czy w treści jest cokolwiek do wysłania — tekst; puste znaczniki się nie liczą. */
+/** Czy w treści jest cokolwiek do wysłania - tekst; puste znaczniki się nie liczą. */
 export function isComposerHtmlEmpty(html: string): boolean {
     if (!html) return true;
     if (typeof DOMParser === 'undefined') return html.trim().length === 0;
@@ -135,7 +135,7 @@ export function isComposerHtmlEmpty(html: string): boolean {
 }
 
 /**
- * Tekst wiadomości bez znaczników, z zachowanymi podziałami wierszy — do porównania
+ * Tekst wiadomości bez znaczników, z zachowanymi podziałami wierszy - do porównania
  * „czy korekta coś zmieniła" i do podglądów.
  */
 export function composerHtmlToText(html: string): string {

@@ -1,5 +1,5 @@
 // src/modules/comms/types.ts
-// Typy modułu komunikacji i leadów — lustrzane odbicie DTO backendu
+// Typy modułu komunikacji i leadów - lustrzane odbicie DTO backendu
 // (CommsController /api/v1/comms, LeadsController /api/v1/leads, MailboxController /api/v1/mailbox).
 
 // ── Skrzynki ─────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ export interface MailAccountState {
     lastError: string | null;
     lastSyncAt: string | null;
     /**
-     * Skrzynka nie domknęła jeszcze pierwszego pełnego przebiegu synchronizacji —
+     * Skrzynka nie domknęła jeszcze pierwszego pełnego przebiegu synchronizacji -
      * pierwszy import trwa albo zaraz wystartuje. Widoki poczty i leadów pokazują
      * wtedy stan „trwa synchronizacja" zamiast list rosnących z sekundy na sekundę.
      */
@@ -59,7 +59,7 @@ export interface CommThread {
     lastSnippet: string | null;
     messageCount: number;
     unreadCount: number;
-    /** Kierunki w wątku — wynika z nich, w których folderach (Odebrane/Wysłane) go widać. */
+    /** Kierunki w wątku - wynika z nich, w których folderach (Odebrane/Wysłane) go widać. */
     inboundCount: number;
     outboundCount: number;
     hasAttachments: boolean;
@@ -146,13 +146,13 @@ export interface SendMailRequest {
     cc?: string[];
     subject?: string;
     bodyHtml: string;
-    /** Stopkę dokleja serwer — zapisana treść jest jedynym źródłem prawdy. */
+    /** Stopkę dokleja serwer - zapisana treść jest jedynym źródłem prawdy. */
     appendSignature?: boolean;
     /** Pliki z kompozytora; z nimi żądanie idzie jako multipart, bez nich jako JSON. */
     attachments?: File[];
 }
 
-/** Limity załączników wychodzących — lustro OutgoingAttachmentPolicy na backendzie. */
+/** Limity załączników wychodzących - lustro OutgoingAttachmentPolicy na backendzie. */
 export const OUTGOING_ATTACHMENT_LIMITS = {
     maxFiles: 10,
     maxFileBytes: 15 * 1024 * 1024,
@@ -163,7 +163,7 @@ export const OUTGOING_ATTACHMENT_LIMITS = {
     ]),
 } as const;
 
-/** Stopka nadawcy — należy do zalogowanego użytkownika, nie do studia. */
+/** Stopka nadawcy - należy do zalogowanego użytkownika, nie do studia. */
 export interface MailSignature {
     bodyHtml: string | null;
     /** Czy przełącznik „Dodaj stopkę" startuje włączony. */
@@ -211,7 +211,7 @@ export interface LeadServiceItem {
     serviceId: string | null;
     name: string;
     priceGross: number;
-    /** Netto i VAT — null dla pozycji wycenionych, zanim edytor je zapamiętywał. */
+    /** Netto i VAT - null dla pozycji wycenionych, zanim edytor je zapamiętywał. */
     priceNet: number | null;
     vatRate: number | null;
     note: string | null;
@@ -221,7 +221,7 @@ export interface LeadServiceItem {
 
 /**
  * Czyj jest ruch w rozmowie. Wyliczane przez backend z korespondencji, nie ustawiane
- * ręcznie — to fakt (kto napisał ostatni), a nie decyzja (na jakim etapie jest lead).
+ * ręcznie - to fakt (kto napisał ostatni), a nie decyzja (na jakim etapie jest lead).
  */
 export type LeadReplyState = 'AWAITING_OUR_REPLY' | 'AWAITING_CLIENT_REPLY' | 'NO_CONVERSATION';
 
@@ -240,7 +240,7 @@ export interface Lead {
     assignedUserId: string | null;
     assignedUserName: string | null;
     threadId: string | null;
-    /** Kody tagów — oś „o co pytają" w analityce; lead może mieć ich kilka. */
+    /** Kody tagów - oś „o co pytają" w analityce; lead może mieć ich kilka. */
     tags: string[];
     tagLabels: string[];
     /** Wartości z katalogu pojazdów; null, gdy nie rozpoznano. */
@@ -370,12 +370,12 @@ export interface TimelinePoint {
     won: number;
     lost: number;
     winRate: number | null;
-    /** Wartość zapytań okresu w rozbiciu na wynik — grosze. */
+    /** Wartość zapytań okresu w rozbiciu na wynik - grosze. */
     wonValue: number;
     lostValue: number;
     /** Rozmowy wciąż żywe: otwarte i młodsze niż okno decyzji. */
     openValue: number;
-    /** Otwarte, ale starsze niż okno decyzji — formalnie żywe, w praktyce ucichłe. */
+    /** Otwarte, ale starsze niż okno decyzji - formalnie żywe, w praktyce ucichłe. */
     silentValue: number;
 }
 
@@ -394,7 +394,7 @@ export interface SegmentStat {
 }
 
 /**
- * Jeden lead jako surowy fakt do przekrojowego filtrowania w interfejsie —
+ * Jeden lead jako surowy fakt do przekrojowego filtrowania w interfejsie -
  * karta „Usługi" pyta też „w czym wygrywamy w segmencie premium", a to jest
  * przecięcie osi, którego backend nie wylicza z góry.
  */
@@ -423,7 +423,7 @@ export interface WeekdayMatrixRow {
 }
 
 /**
- * Pieniądze czekające na odpowiedź — stan BIEŻĄCY, nie okno raportu.
+ * Pieniądze czekające na odpowiedź - stan BIEŻĄCY, nie okno raportu.
  * Zaległa rozmowa nie przestaje być zaległa dlatego, że ktoś przełączył widok
  * na „ostatnie 30 dni".
  */
@@ -456,7 +456,7 @@ export interface LeadAnalytics {
     wonValue: number;
     lostValue: number;
     pipelineValue: number;
-    /** Otwarte, ale starsze niż okno decyzji — osobno, bo to już nie jest pipeline. */
+    /** Otwarte, ale starsze niż okno decyzji - osobno, bo to już nie jest pipeline. */
     silentValue: number;
     categories: LeadCategoryStat[];
     lostReasons: {
@@ -496,7 +496,7 @@ export interface DashboardSocketEvent<T = unknown> {
 export interface CommThreadUpdatedPayload {
     threadId: string;
     /**
-     * Wątek dostał wiadomość PRZYCHODZĄCĄ — tylko wtedy warto zaczepić użytkownika
+     * Wątek dostał wiadomość PRZYCHODZĄCĄ - tylko wtedy warto zaczepić użytkownika
      * powiadomieniem. Własna wysyłka (z CRM-a albo z telefonu, zassana z folderu
      * Wysłane) też zmienia wątek, ale przychodzi z tą flagą wyłączoną: lista się
      * odświeża, powiadomienie nie leci.
@@ -512,7 +512,7 @@ export interface CommMessageReadPayload {
 
 // ── Notatki na leadzie ───────────────────────────────────────────────────────
 
-/** „Oddzwoniłem, prosił o kontakt po 15" — ślad pracy, którego nie niesie korespondencja. */
+/** „Oddzwoniłem, prosił o kontakt po 15" - ślad pracy, którego nie niesie korespondencja. */
 export interface LeadNote {
     id: string;
     content: string;
@@ -526,7 +526,7 @@ export interface LeadNote {
 
 /**
  * Nadawca oznaczony jako formularz ze strony. Każdy mail z tego adresu przechodzi
- * przez odczyt LLM-em i automatycznie staje się leadem — klient jest w TREŚCI
+ * przez odczyt LLM-em i automatycznie staje się leadem - klient jest w TREŚCI
  * maila, nie w polu nadawcy.
  */
 export interface FormMailSource {
@@ -607,7 +607,7 @@ export interface ContactCardVisit {
 
 /**
  * Surowe liczby, nie ocena. Próg, od którego dwa odwołania są problemem, zależy
- * od tego, jak studio pracuje — a liczbę da się pokazać i wyjaśnić. „Podwyższone
+ * od tego, jak studio pracuje - a liczbę da się pokazać i wyjaśnić. „Podwyższone
  * ryzyko" bez podania czego dotyczy to zarzut, którego nie sposób sprawdzić.
  */
 export interface ContactCardRisk {

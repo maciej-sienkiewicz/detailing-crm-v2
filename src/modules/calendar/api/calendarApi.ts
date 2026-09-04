@@ -145,7 +145,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
      * Kafelek miesiąca na telefonie ma jakieś 55 px szerokości i mieści ~12 znaków.
      * „VIS-2026-00080 | Marek Sabo" zużywało je w całości na numer, którego nikt nie
      * rozpoznaje wzrokiem, i ucinało nazwisko. Auto to jedyna rzecz, po której obsługa
-     * poznaje wizytę z drugiego końca warsztatu — numer i tak jest w podglądzie
+     * poznaje wizytę z drugiego końca warsztatu - numer i tak jest w podglądzie
      * wydarzenia i w szczegółach.
      */
     const visitTitle = visit.title ||

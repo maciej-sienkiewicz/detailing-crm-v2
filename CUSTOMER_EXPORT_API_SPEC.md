@@ -1,4 +1,4 @@
-# Specyfikacja endpointu — eksport klientów CSV
+# Specyfikacja endpointu - eksport klientów CSV
 
 ## `GET /v1/customers/export`
 
@@ -56,7 +56,7 @@ ID,Imię,Nazwisko,Email,Telefon,Typ,NIP,Firma,Liczba wizyt,Ostatnia wizyta,Przyc
 | `401`  | Brak sesji                                                     |
 
 ```json
-{ "message": "Zawęź filtry — wynik zawiera 15 432 rekordy (limit: 10 000)" }
+{ "message": "Zawęź filtry - wynik zawiera 15 432 rekordy (limit: 10 000)" }
 ```
 
 ---
@@ -155,7 +155,7 @@ Jeśli aplikacja ma read replica, eksport powinien trafiać tam:
 const db = getReadReplicaConnection(); // nie primary!
 ```
 
-Eksport to ciężkie, sekwencyjne czytanie — idealny kandydat na read replica.
+Eksport to ciężkie, sekwencyjne czytanie - idealny kandydat na read replica.
 
 #### 6. Jedna efektywna kwerenda zamiast N+1
 
@@ -166,7 +166,7 @@ Jeden JOIN zamiast N osobnych zapytań po `SELECT * FROM visits WHERE customer_i
 LEFT JOIN visits v ON v.customer_id = c.id AND v.status = 'COMPLETED'
 GROUP BY c.id
 
--- ❌ Źle: N+1 — pętla po klientach z osobnym zapytaniem o wizyty
+-- ❌ Źle: N+1 - pętla po klientach z osobnym zapytaniem o wizyty
 ```
 
 ---
@@ -195,7 +195,7 @@ Klient HTTP
 └─────────────────────────────────┘
     │
     ▼
-[res.end()] — połączenie zamknięte
+[res.end()] - połączenie zamknięte
 ```
 
 ---

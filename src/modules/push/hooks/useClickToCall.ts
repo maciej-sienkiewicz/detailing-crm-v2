@@ -16,14 +16,14 @@ export const useClickToCall = () => {
             pushApi.requestCall(params),
         onSuccess: result => {
             if (result.deliveredDevices > 0) {
-                showSuccess('Połączenie wysłane na telefon — odbierz powiadomienie i zadzwoń.');
+                showSuccess('Połączenie wysłane na telefon - odbierz powiadomienie i zadzwoń.');
             } else {
                 // Push service accepted nothing (all sends failed server-side).
                 showError('Nie udało się dostarczyć powiadomienia na telefon. Spróbuj ponownie.');
             }
         },
         onError: error => {
-            // 422 = valid click, no paired phone — an onboarding nudge, not an error.
+            // 422 = valid click, no paired phone - an onboarding nudge, not an error.
             if (isAxiosError(error) && error.response?.status === 422) {
                 showInfo(
                     'Brak sparowanego telefonu. Otwórz „Skróty mobilne" i włącz powiadomienia o połączeniach na swoim telefonie.',

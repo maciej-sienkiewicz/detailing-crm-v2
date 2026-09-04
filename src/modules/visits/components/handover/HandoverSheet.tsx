@@ -36,7 +36,7 @@ const Body = styled.div`
  * Krok nieaktywny jest CHOWANY, nie odmontowywany.
  *
  * Podpis chodzi po tablecie albo po telefonie klienta i jego stan dojeżdża
- * dopiero po chwili — odmontowanie kroku podpisu przy przejściu do płatności
+ * dopiero po chwili - odmontowanie kroku podpisu przy przejściu do płatności
  * ucinałoby nasłuch i wizyta zapisałaby się jako niepodpisana, mimo że klient
  * właśnie złożył podpis. Chowanie kosztuje jeden węzeł w DOM i nic więcej.
  */
@@ -107,12 +107,12 @@ interface HandoverSheetProps {
  * Kolejność odwzorowuje to, co dzieje się przy ladzie: klient ogląda pojazd i
  * podpisuje protokół wydania, a dopiero potem płaci i dostaje dokument. Gdy
  * jedno okno niosło i opłatę, i protokół na dole, płatność była pierwsza na
- * ekranie i pierwsza w kolejności klikania, a podpis — tym, o czym się
+ * ekranie i pierwsza w kolejności klikania, a podpis - tym, o czym się
  * przypominało po fakcie.
  *
  * Oba kroki żyją w jednym oknie i jednym stanie [useHandover]: „Wstecz" wraca do
  * podpisu bez gubienia wybranej formy zapłaty i pozycji faktury. Po zapisie okno
- * nie znika — pokazuje potwierdzenie z numerem dokumentu i akcjami naprawczymi,
+ * nie znika - pokazuje potwierdzenie z numerem dokumentu i akcjami naprawczymi,
  * gdy KSeF odrzucił fakturę.
  */
 export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) => {
@@ -122,7 +122,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
 
     // Każde wydanie zaczyna się od podpisu. Resetu przy zamknięciu nie ma i nie
     // trzeba: VisitDetailView zdejmuje to okno z drzewa (transitionType → null),
-    // więc krok znika razem z nim — na tym samym założeniu stoi useHandover,
+    // więc krok znika razem z nim - na tym samym założeniu stoi useHandover,
     // który odtwarza draft w inicjalizatorze stanu.
     const [step, setStep] = useState<Step>('signature');
     const [signatureStatus, setSignatureStatus] = useState<ProtocolSignatureStatus>({ total: 0, signed: 0 });
@@ -271,7 +271,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                 onClick={() => handover.submit()}
                             >
                                 {/* Jedna etykieta dla każdej ścieżki: co stanie się z dokumentem
-                                    (faktura, paragon, brak) mówi sekcja rozliczenia nad przyciskiem —
+                                    (faktura, paragon, brak) mówi sekcja rozliczenia nad przyciskiem -
                                     etykieta, która to powtarzała, zmieniała się w trakcie klikania
                                     i wydłużała przycisk. */}
                                 {handover.isSubmitting ? 'Wydawanie...' : 'Wydaj pojazd'}

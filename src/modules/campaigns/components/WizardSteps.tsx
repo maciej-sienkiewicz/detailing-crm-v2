@@ -1,16 +1,16 @@
 // src/modules/campaigns/components/WizardSteps.tsx
-// Wskaźnik kroków kreatora — listwa, nie panel.
+// Wskaźnik kroków kreatora - listwa, nie panel.
 //
 // Wspólny [Stepper] aplikacji rysuje czterdziestoośmiopikselowe kółka z gradientem,
 // powiększone o dziesięć procent na kroku bieżącym, w białej karcie z cieniem
 // i trzydziestodwupikselowym marginesem. Przy czterech krokach zabierało to pas
-// wysokości porównywalny z pierwszą sekcją formularza — a to jest wskazówka
+// wysokości porównywalny z pierwszą sekcją formularza - a to jest wskazówka
 // „gdzie jestem", nie treść. Wskazówka nie ma prawa ważyć tyle, co praca.
 //
 // Kreator kampanii ma więc własną, płaską listwę: siedmiopikselowa kropka, nazwa
 // kroku obok niej, kreska między krokami. Zajmuje jedną linijkę, czyta się jednym
 // spojrzeniem i nie konkuruje z niczym. Wspólny Stepper zostaje nietknięty, bo
-// używają go przyjęcie auta, protokoły i wizyty — jego zmiana byłaby zmianą
+// używają go przyjęcie auta, protokoły i wizyty - jego zmiana byłaby zmianą
 // czterech innych modułów przy okazji.
 import styled from 'styled-components';
 import { Check } from 'lucide-react';
@@ -50,8 +50,8 @@ const Item = styled.button<{ $state: 'done' | 'current' | 'todo' }>`
 `;
 
 /**
- * Znacznik kroku. Krok zrobiony dostaje ptaszka, bieżący — wypełnioną kropkę,
- * przyszły — pustą obwódkę. Numer porządkowy jest zbędny: nazwy kroków są krótkie
+ * Znacznik kroku. Krok zrobiony dostaje ptaszka, bieżący - wypełnioną kropkę,
+ * przyszły - pustą obwódkę. Numer porządkowy jest zbędny: nazwy kroków są krótkie
  * i same układają się w kolejność, a cyfra w kółku to jeszcze jeden znak do
  * odczytania.
  */
@@ -72,7 +72,7 @@ const Mark = styled.span<{ $state: 'done' | 'current' | 'todo' }>`
 
     svg { width: 10px; height: 10px; color: #ffffff; stroke-width: 3; }
 
-    /* Bieżący krok: pełne kółko bez ptaszka — „tu jesteś", a nie „gotowe". */
+    /* Bieżący krok: pełne kółko bez ptaszka - „tu jesteś", a nie „gotowe". */
     &::after {
         content: '';
         display: ${p => (p.$state === 'current' ? 'block' : 'none')};

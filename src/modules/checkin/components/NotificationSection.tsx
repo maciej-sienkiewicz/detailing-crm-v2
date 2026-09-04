@@ -84,7 +84,7 @@ export const defaultNotificationOptions = (
 
 export const toConfirmVisitOptions = (opts: NotificationOptions): ConfirmVisitOptions => ({
     sendEmail: opts.sendEmail || undefined,
-    // Kartę wysyła backend w tym samym żądaniu — i tylko on. Osobne wywołanie
+    // Kartę wysyła backend w tym samym żądaniu - i tylko on. Osobne wywołanie
     // /card-link/send po potwierdzeniu dublowało SMS do klienta.
     sendVisitCard: opts.sendVisitCard || undefined,
     emailOptions: opts.sendEmail
@@ -160,7 +160,7 @@ interface MissingCustomerEmailProps {
 }
 
 /**
- * Wysyłka e-maila wymaga adresu klienta, a ten bywa pusty — zamiast odsyłać
+ * Wysyłka e-maila wymaga adresu klienta, a ten bywa pusty - zamiast odsyłać
  * użytkownika do formularza przyjęcia (i tracić otwarty modal), pozwalamy
  * uzupełnić adres w miejscu.
  */
@@ -198,7 +198,7 @@ const MissingCustomerEmail = ({ visitId, onSaved }: MissingCustomerEmailProps) =
             <MissingEmailNotice>
                 <MissingEmailIcon><WarningIcon /></MissingEmailIcon>
                 <MissingEmailText>
-                    Wysyłka e-maila jest niedostępna — klient nie ma zapisanego adresu e-mail.
+                    Wysyłka e-maila jest niedostępna - klient nie ma zapisanego adresu e-mail.
                     Możesz uzupełnić go tutaj, bez wracania do formularza.
                 </MissingEmailText>
             </MissingEmailNotice>
@@ -371,7 +371,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const { visitCardActive } = useVisitCardSettings();
     // Reguła SMS-a z linkiem do Karty Wizyty ma własny szablon i przełącznik w
-    // Ustawieniach → Szablony SMS, domyślnie wyłączony i z pustym szablonem — tak jak
+    // Ustawieniach → Szablony SMS, domyślnie wyłączony i z pustym szablonem - tak jak
     // świeże/wyczyszczone konto. Bez tego pola przełącznik wyglądał na aktywny, mimo
     // że backend i tak nic by nie wysłał (brak skonfigurowanej treści wiadomości).
     const { data: automationConfig } = useQuery({
@@ -411,7 +411,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     }, [sendVisitCard, visitCardActive, visitCardLinkSmsEnabled]);
 
     // Jeden link dla rezerwacji i wizyty: jeśli poszedł już przy rezerwacji, mówimy o tym
-    // i raz — przy pierwszym wczytaniu — zdejmujemy domyślne „wyślij". Operator może
+    // i raz - przy pierwszym wczytaniu - zdejmujemy domyślne „wyślij". Operator może
     // włączyć je z powrotem; nie blokujemy, tylko informujemy.
     const { data: cardLink } = useQuery({
         queryKey: ['visit-card-link', visitId],
@@ -461,14 +461,14 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
                 disabled={emailDisabled}
                 disabledHint={!visitWelcomeEnabled
                     ? 'Wyłączone globalnie w konfiguracji e-mail'
-                    : 'Niedostępne — brak adresu e-mail klienta'}
+                    : 'Niedostępne - brak adresu e-mail klienta'}
                 onToggle={() => onChange({ ...options, sendEmail: !sendEmail })}
             >
                 {visitWelcomeEnabled && !hasCustomerEmail && (
                     <MissingCustomerEmail
                         visitId={visitId}
                         onSaved={email => {
-                            // Adres uzupełniony w locie — włączamy wysyłkę, po którą
+                            // Adres uzupełniony w locie - włączamy wysyłkę, po którą
                             // użytkownik tu przyszedł, zamiast kazać klikać przełącznik.
                             onChange({ ...options, sendEmail: true });
                             onCustomerEmailSaved?.(email);
@@ -538,7 +538,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
             {visitCardActive && alreadySent && (
                 <AlreadySentNotice role="note">
                     {alreadySent.text}
-                    {sendVisitCard && ' Włączyłeś wysyłkę mimo to — klient dostanie link drugi raz.'}
+                    {sendVisitCard && ' Włączyłeś wysyłkę mimo to - klient dostanie link drugi raz.'}
                 </AlreadySentNotice>
             )}
             </LockedSection>

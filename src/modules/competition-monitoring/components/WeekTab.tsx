@@ -121,7 +121,7 @@ const Headline = styled.h3`
     line-height: 1.4;
 `;
 
-/** Zdanie o realizacjach — to jest treść, dla której ten ekran istnieje. */
+/** Zdanie o realizacjach - to jest treść, dla której ten ekran istnieje. */
 const Achievements = styled.p`
     margin: 0;
     font-size: ${st.fontMd};

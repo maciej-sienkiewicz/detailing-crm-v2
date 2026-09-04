@@ -17,8 +17,8 @@ declare module 'axios' {
          *
          * For BACKGROUND calls the user never made: silent polls, background refetches.
          * Without it, a request the user did not trigger decides to throw them out of a
-         * half-filled form. Logging out has to be a consequence of what the user did —
-         * their own action hitting a dead session, or the idle lock — not of a timer
+         * half-filled form. Logging out has to be a consequence of what the user did -
+         * their own action hitting a dead session, or the idle lock - not of a timer
          * ticking somewhere in the background.
          *
          * Never set it on a call whose result the user is waiting for: there the redirect

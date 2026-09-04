@@ -172,7 +172,7 @@ const ContentWrap = styled.div`
 `;
 
 // ─── Sticky footer ────────────────────────────────────────────────────────────
-// Sama stopka i przyciski akcji żyją w @/common/components/StickyFormFooter —
+// Sama stopka i przyciski akcji żyją w @/common/components/StickyFormFooter -
 // ten sam komponent obsługuje stopkę edycji rezerwacji, żeby te same akcje
 // wyglądały identycznie na obu ekranach.
 
@@ -278,11 +278,11 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
     // Licznik nieudanych prób, nie flaga: użytkownik może poprawić jedno pole i
-    // kliknąć dalej ponownie — wtedy trzeba przewinąć do kolejnego błędu.
+    // kliknąć dalej ponownie - wtedy trzeba przewinąć do kolejnego błędu.
     const [validationAttempt, setValidationAttempt] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
 
-    // Lista w stopce mówi CO poprawić, ale nie GDZIE — przy dłuższym formularzu
+    // Lista w stopce mówi CO poprawić, ale nie GDZIE - przy dłuższym formularzu
     // błędne pole bywa poza ekranem. Przewijamy do pierwszej kotwicy błędu w
     // kolejności DOM, czyli w kolejności pól na formularzu, nie komunikatów.
     useEffect(() => {
@@ -309,7 +309,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     }, [validationAttempt]);
 
     // „Czy wysłać Kartę Wizyty do klienta?" mieszka w oknie „Dokumentacja i Podpisy".
-    // Kartę wysyła backend w żądaniu potwierdzenia wizyty (flaga sendVisitCard) — tu nic
+    // Kartę wysyła backend w żądaniu potwierdzenia wizyty (flaga sendVisitCard) - tu nic
     // nie dosyłamy, bo drugie wywołanie /card-link/send dublowało SMS do klienta.
     const [signingModalState, setSigningModalState] = useState<{
         isOpen: boolean;
@@ -329,7 +329,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         hasDamageMap: false,
     });
 
-    /** Wznawiane przyjęcie z bramki 409 — patrz [handleSubmit]. */
+    /** Wznawiane przyjęcie z bramki 409 - patrz [handleSubmit]. */
     const [resumeDraft, setResumeDraft] = useState<OpenDraftVisit | null>(null);
 
     const handleNext = () => {
@@ -366,7 +366,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
 
             /*
-             * 409: dla tej rezerwacji trwa już nieukończone przyjęcie — najczęściej to
+             * 409: dla tej rezerwacji trwa już nieukończone przyjęcie - najczęściej to
              * samo, przerwane wcześniej przy dokumentach. Nie zakładamy drugiej wizyty:
              * wracamy do tamtej, dokładnie w miejscu, w którym została porzucona.
              */
@@ -392,7 +392,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     };
 
     /**
-     * Wizyta anulowana — szkicu nie ma, rezerwacja wróciła na kalendarz.
+     * Wizyta anulowana - szkicu nie ma, rezerwacja wróciła na kalendarz.
      *
      * Odsyłamy właśnie tam, a nie z powrotem do formularza. Anulowanie znaczy „to
      * przyjęcie się nie odbyło": jedyne, co po nim zostaje, to wolny termin

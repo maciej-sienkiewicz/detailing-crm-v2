@@ -9,7 +9,7 @@ interface CreateBookingArgs {
     data: QuickEventFormData;
     /**
      * Lead, z którego zakładamy rezerwację. Podany kieruje zapis na endpoint
-     * wiążący — rezerwacja zostaje przypięta do leada, a lead przechodzi
+     * wiążący - rezerwacja zostaje przypięta do leada, a lead przechodzi
      * w „Rezerwacja" w tej samej transakcji co zapis.
      */
     leadId?: string;

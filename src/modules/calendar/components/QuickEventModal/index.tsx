@@ -35,7 +35,7 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
 
-/** Podpis nad polem koloru — ten sam język co etykiety w arkuszu przyjęcia. */
+/** Podpis nad polem koloru - ten sam język co etykiety w arkuszu przyjęcia. */
 const MobileColorLabel = styled.div`
     margin-bottom: 6px;
     font-size: 11px;
@@ -276,11 +276,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     /**
      * Telefon: dotknięcie pola klienta otwiera arkusz wyszukiwania w tym samym
      * geście, z pominięciem fokusu w polu pod spodem. Bez tego iOS najpierw
-     * ustawiał fokus w polu formularza — modal przewijał się do niego, wjeżdżała
+     * ustawiał fokus w polu formularza - modal przewijał się do niego, wjeżdżała
      * klawiatura, a ułamek sekundy później arkusz przykrywał to wszystko. Ten
      * pośredni stan czytało się właśnie jako przeskok listy podpowiedzi.
      *
-     * preventDefault zabiera fokus, więc klawiaturę musimy otworzyć sami — iOS
+     * preventDefault zabiera fokus, więc klawiaturę musimy otworzyć sami - iOS
      * robi to tylko z focus() wywołanego wewnątrz gestu, stąd chwilowe pole
      * poza ekranem, do którego wchodzimy, zanim arkusz się zamontuje.
      */
@@ -289,7 +289,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         if (!isMobile) return;
         e.preventDefault();
 
-        // Jedno dotknięcie daje i pointerdown, i touchstart — arkusz otwieramy raz.
+        // Jedno dotknięcie daje i pointerdown, i touchstart - arkusz otwieramy raz.
         const now = performance.now();
         if (now - customerTapGuardRef.current < 700) return;
         customerTapGuardRef.current = now;
@@ -311,7 +311,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }, [isMobile, form]);
 
     /**
-     * Trzy powiadomienia SMS jako niezależne przełączniki — każda kombinacja jest
+     * Trzy powiadomienia SMS jako niezależne przełączniki - każda kombinacja jest
      * poprawna, także „sama karta wizyty". Globalne wyłączenie w konfiguracji
      * studia blokuje pojedynczy przełącznik, nie całą trójkę.
      */
@@ -348,7 +348,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const customerPhone = form.selectedCustomer?.phone?.trim() || null;
 
-    /** Jedno zdanie o tym, co poleci — stan widoczny w chwili zapisu, nie po. */
+    /** Jedno zdanie o tym, co poleci - stan widoczny w chwili zapisu, nie po. */
     const smsSummary = (() => {
         if (!smsFeature.enabled) return 'SMS niedostępny w abonamencie';
         if (!customerPhone) return 'SMS: brak numeru telefonu klienta';
@@ -1785,7 +1785,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
                             {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
                                 w kółko o średnicy 18 px i nie mówił, co znaczy który
-                                kolor. Na telefonie to zwykłe pole formularza — takie
+                                kolor. Na telefonie to zwykłe pole formularza - takie
                                 samo jak w arkuszu przyjęcia pojazdu. */}
                             {isMobile && (
                                 <>

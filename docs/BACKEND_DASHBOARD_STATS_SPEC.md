@@ -1,4 +1,4 @@
-# Specyfikacja zmian API — Dashboard Stats
+# Specyfikacja zmian API - Dashboard Stats
 
 ## Endpoint
 
@@ -10,7 +10,7 @@ GET /api/v1/dashboard/stats
 
 ## Wymagane rozszerzenia odpowiedzi
 
-### 1. `stats.abandonedLast30Days` — Porzucone rezerwacje (ostatnie 30 dni)
+### 1. `stats.abandonedLast30Days` - Porzucone rezerwacje (ostatnie 30 dni)
 
 Pole dodane do obiektu `stats` w odpowiedzi endpointu.
 
@@ -51,14 +51,14 @@ WHERE status IN ('abandoned', 'cancelled_by_customer')
   AND updated_at >= NOW() - INTERVAL '30 days';
 ```
 
-Alternatywnie, jeżeli statusy są inne — zliczaj wizyty spełniające warunek:
+Alternatywnie, jeżeli statusy są inne - zliczaj wizyty spełniające warunek:
 - klient potwierdził rezerwację (lub był w kolejce do potwierdzenia)  
 - wizyta **nie doszła do skutku** bez reschedulingu w ciągu 30 dni
 - brak faktury / brak statusu `completed` / `in_progress`
 
 ---
 
-### 2. `instagramPhotos` — Aktywność na Instagramie (tydzień do tygodnia)
+### 2. `instagramPhotos` - Aktywność na Instagramie (tydzień do tygodnia)
 
 Nowy klucz na poziomie głównym odpowiedzi (obok `revenue`, `callActivity`).
 
@@ -90,7 +90,7 @@ interface BusinessMetric {
 - Poprzedni tydzień: poniedziałek 00:00 – niedziela 23:59 UTC tygodnia -1
 
 Jeśli integracja z Instagramem nie jest dostępna, endpoint może zwrócić `null`
-lub pominąć klucz — frontend obsłuży brakujące dane.
+lub pominąć klucz - frontend obsłuży brakujące dane.
 
 ---
 
@@ -108,7 +108,7 @@ lub pominąć klucz — frontend obsłuży brakujące dane.
 
 ---
 
-## Frontend — status integracji
+## Frontend - status integracji
 
 Frontend jest gotowy i oczekuje tych pól w odpowiedzi API:
 

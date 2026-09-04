@@ -18,7 +18,7 @@ Wszystkie kwoty pieniężne przesyłane w JSON (request i response) są **całko
   0,23 PLN  →     23
 ```
 
-Wyjątek: `adjustment.value` dla typu `PERCENT` — patrz §2.
+Wyjątek: `adjustment.value` dla typu `PERCENT` - patrz §2.
 
 **Niedopuszczalne:** przesyłanie kwot jako liczb zmiennoprzecinkowych (float) lub jako stringów. Serwer zwraca błąd `400` jeśli kwota nie jest integer.
 
@@ -181,7 +181,7 @@ Przykład: `v=12000`, `r=23` → `F_gross=12000`, `F_net=9756`, `F_vat=2244`
 | `previousPriceNet` | integer\|null | grosze | **serwer** (przed zmianą oczekującą) |
 | `previousPriceGross` | integer\|null | grosze | **serwer** (przed zmianą oczekującą) |
 
-\* Dla `PERCENT` — procent (może być float, np. `10.5`). Dla pozostałych typów — integer (grosze).
+\* Dla `PERCENT` - procent (może być float, np. `10.5`). Dla pozostałych typów - integer (grosze).
 
 ### 3.2 `MoneyBreakdown` (pole `totalCost` na wizycie)
 
@@ -338,7 +338,7 @@ DELETE /visits/{visitId}/services/{serviceLineItemId}
 { "notifyCustomer": false }
 ```
 
-**Response 204** — brak body.
+**Response 204** - brak body.
 
 ---
 
@@ -382,7 +382,7 @@ Używane do zapisania wszystkich zmian naraz po sesji edycji (bez powiadamiania 
 **Response 200:**
 ```json
 {
-  "services": [ /* ServiceLineItem[] — pełna, zaktualizowana lista usług wizyty */ ],
+  "services": [ /* ServiceLineItem[] - pełna, zaktualizowana lista usług wizyty */ ],
   "totalCost": { "netAmount": 52000, "grossAmount": 63960, "currency": "PLN" }
 }
 ```
@@ -419,7 +419,7 @@ Przy `pendingOperation = ADD`: usługa jest usuwana → `204 No Content`.
 
 ---
 
-### 5.8 Check-in — tworzenie wizyty z rezerwacji
+### 5.8 Check-in - tworzenie wizyty z rezerwacji
 
 ```
 POST /checkin/reservation-to-visit
@@ -477,7 +477,7 @@ Ciało błędu:
 
 ---
 
-## 8. Przykład kompletny — wizyta z rabatem proporcjonalnym
+## 8. Przykład kompletny - wizyta z rabatem proporcjonalnym
 
 Scenariusz: 2 usługi, rabat brutto 50 PLN rozdzielony proporcjonalnie.
 

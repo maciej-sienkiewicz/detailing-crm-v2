@@ -16,15 +16,15 @@ import { SharedButton } from '@/common/styles';
 import { Pill, PillRow } from './HandoverKit';
 
 /**
- * Zgodność stanu wizualnego — pytanie zadawane pracownikowi tuż przed wysłaniem
+ * Zgodność stanu wizualnego - pytanie zadawane pracownikowi tuż przed wysłaniem
  * protokołu wydania do podpisu.
  *
  * Kolejność ma znaczenie: odpowiedź trafia na dokument ZANIM klient go zobaczy na
  * tablecie czy telefonie. Inaczej podpisywałby pusty formularz, a zaznaczenie
- * dopisywałoby się do już podpisanego dokumentu — czyli do niczego.
+ * dopisywałoby się do już podpisanego dokumentu - czyli do niczego.
  *
  * Wybór to te same pigułki, którymi arkusz wydania obsługuje każdy inny wybór
- * (choćby formę zapłaty) — jedno pytanie nie zasługuje na własny język wizualny.
+ * (choćby formę zapłaty) - jedno pytanie nie zasługuje na własny język wizualny.
  */
 
 const Body = styled.div`
@@ -57,7 +57,7 @@ export const VisualConditionModal = ({
     const [match, setMatch] = useState<boolean | null>(null);
     const [remarks, setRemarks] = useState('');
 
-    // Przy niezgodności uwagi są treścią oświadczenia — sam znacznik „Nie" nie mówi,
+    // Przy niezgodności uwagi są treścią oświadczenia - sam znacznik „Nie" nie mówi,
     // czego dotyczy. Przy zgodności pole zostaje opcjonalne.
     const remarksRequired = match === false;
     const canConfirm = match !== null && (!remarksRequired || remarks.trim().length > 0);

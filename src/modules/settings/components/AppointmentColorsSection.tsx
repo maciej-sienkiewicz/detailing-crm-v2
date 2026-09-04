@@ -3,7 +3,7 @@
 // Ustawienia → Oznaczenia → Kolory wizyt.
 //
 // Widok istniał wcześniej pod osobnym adresem /appointment-colors, do którego nic
-// nie prowadziło — trzeba było znać URL. Kolory są ustawieniem studia, tak samo
+// nie prowadziło - trzeba było znać URL. Kolory są ustawieniem studia, tak samo
 // jak numeracja wizyt, więc mieszkają teraz obok niej.
 //
 // Dwie rzeczy, których poprzedni widok nie miał:
@@ -228,7 +228,7 @@ export function AppointmentColorsSection() {
     const [deleting, setDeleting] = useState<AppointmentColor | null>(null);
     const [showArchived, setShowArchived] = useState(false);
 
-    // Jedno zapytanie po wszystkie kolory (także archiwalne) — rozdzielamy je w
+    // Jedno zapytanie po wszystkie kolory (także archiwalne) - rozdzielamy je w
     // pamięci, żeby przełącznik „Pokaż archiwalne" nie kosztował rundy do API.
     const { colors, isLoading, isError, refetch } = useAppointmentColors(
         useMemo(() => ({ page: 1, limit: 200, showInactive: true }), [])

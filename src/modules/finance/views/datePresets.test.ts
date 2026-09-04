@@ -1,6 +1,6 @@
 // src/modules/finance/views/datePresets.test.ts
 // Zakresy filtra dat w Finansach. Testujemy granice, bo to one psują raporty:
-// pierwszy i ostatni dzień miesiąca, luty przestępny i przełom roku — a do tego
+// pierwszy i ostatni dzień miesiąca, luty przestępny i przełom roku - a do tego
 // strefa czasowa, przez którą data liczona w UTC potrafi cofnąć się o dobę.
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -13,7 +13,7 @@ const at = (iso: string) => {
 
 afterEach(() => vi.useRealTimers());
 
-describe('getPresetRange — bieżący miesiąc', () => {
+describe('getPresetRange - bieżący miesiąc', () => {
     it('obejmuje cały miesiąc kalendarzowy, nie ostatnie 30 dni', () => {
         at('2026-08-19T12:00:00');
         expect(getPresetRange('currentMonth')).toEqual({
@@ -56,7 +56,7 @@ describe('getPresetRange — bieżący miesiąc', () => {
     });
 });
 
-describe('getPresetRange — pozostałe presety', () => {
+describe('getPresetRange - pozostałe presety', () => {
     it('„cały czas" i zakres własny nie narzucają dat', () => {
         at('2026-08-19T12:00:00');
         expect(getPresetRange('all')).toEqual({});

@@ -1,11 +1,11 @@
 // src/modules/comms/components/ThreadHistoryPanel.tsx
 // Panel boczny: pozostałe rozmowy z tym samym adresem.
 //
-// Wysuwa się ZAWSZE po kliknięciu plakietki — także wtedy, gdy innych rozmów nie ma.
+// Wysuwa się ZAWSZE po kliknięciu plakietki - także wtedy, gdy innych rozmów nie ma.
 // Plakietka, która raz reaguje na kliknięcie, a raz nie, uczy, że bywa zepsuta; pusty
 // panel z jednym zdaniem jest odpowiedzią, brak reakcji nie jest żadną.
 //
-// Zamykanie: krzyżyk, Escape i kliknięcie w tło — trzy drogi, bo panel przykrywa
+// Zamykanie: krzyżyk, Escape i kliknięcie w tło - trzy drogi, bo panel przykrywa
 // treść, którą się właśnie czyta.
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';

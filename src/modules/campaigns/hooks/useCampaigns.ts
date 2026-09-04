@@ -90,11 +90,11 @@ export const useDuplicateCampaign = () => useInvalidatingMutation(api.duplicateC
  *
  * Zwracane `appliedKey` to podpis parametrów, na których policzono aktualny wynik.
  * Kreator poznaje po nim moment, w którym lista naprawdę się odświeżyła, i dopiero
- * wtedy pyta, co zrobić z ręcznymi odznaczeniami — bez tego pytanie wyskakiwałoby
+ * wtedy pyta, co zrobić z ręcznymi odznaczeniami - bez tego pytanie wyskakiwałoby
  * po każdym naciśnięciu klawisza w polu filtra.
  *
  * Stronicowanie i wyszukiwarka celowo NIE są opóźniane tutaj: przewracanie strony
- * to gest, nie pisanie, a frazę z wyszukiwarki opóźnia już samo pole nad tabelą —
+ * to gest, nie pisanie, a frazę z wyszukiwarki opóźnia już samo pole nad tabelą -
  * dwa opóźnienia jedno na drugim dałyby prawie sekundę zwłoki na literę.
  */
 export function useAudienceEstimate(params: AudienceEstimateParams) {

@@ -213,7 +213,7 @@ const HistoryCount = styled.span`
  * Zakresu dat NIE wybiera się tutaj, tylko tym samym przełącznikiem w nagłówku
  * „Finansów", który steruje pozostałymi zakładkami. Drugi, własny wybór okresu
  * na tym samym ekranie znaczyłby, że dwa widoczne naraz zakresy mogą pokazywać
- * co innego — a pytanie „za jaki okres to jest?" ma mieć jedną odpowiedź.
+ * co innego - a pytanie „za jaki okres to jest?" ma mieć jedną odpowiedź.
  */
 const FilterBar = styled.div`
   display: flex;
@@ -260,7 +260,7 @@ const RangeNote = styled.span`
 `;
 
 /*
- * Sumy liczy backend po całym okresie, nie po wczytanej stronie — inaczej
+ * Sumy liczy backend po całym okresie, nie po wczytanej stronie - inaczej
  * „łącznie wpłat" znaczyłoby „łącznie wpłat wśród trzydziestu wierszy, które
  * akurat widzisz", a to liczba bez zastosowania.
  */
@@ -436,7 +436,7 @@ const EmptyHistory = styled.div`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const PAGE_STEP = 30;
-/** Twardy limit `size` po stronie API — wyżej i tak nie wejdzie. */
+/** Twardy limit `size` po stronie API - wyżej i tak nie wejdzie. */
 const MAX_PAGE_SIZE = 100;
 
 interface CashRegisterPanelProps {
@@ -445,7 +445,7 @@ interface CashRegisterPanelProps {
   dateTo?: string;
 }
 
-/** „1.08.2026 - 31.08.2026", „od 1.08.2026", „cały czas" — podpis pod sumami. */
+/** „1.08.2026 - 31.08.2026", „od 1.08.2026", „cały czas" - podpis pod sumami. */
 const describeRange = (from?: string, to?: string): string => {
   const fmt = (iso: string) => new Date(iso).toLocaleDateString('pl-PL');
   if (from && to) return `${fmt(from)} - ${fmt(to)}`;
@@ -599,7 +599,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
               : <SummaryValue $tone="out">{formatMoney(totalOut)}</SummaryValue>}
           </SummaryItem>
           <SummaryItem>
-            {/* Różnica wpłat i wypłat — o ile kasa urosła albo stopniała w tym
+            {/* Różnica wpłat i wypłat - o ile kasa urosła albo stopniała w tym
                 okresie. To nie jest saldo kasy: tamto widać w kaflu obok i liczy
                 się od zawsze, niezależnie od wybranego zakresu. */}
             <SummaryLabel>Zmiana w okresie</SummaryLabel>

@@ -231,7 +231,7 @@ const HeroBtnGhost = styled.button`
 // ─── Hero stats toggle (mobile) ───────────────────────────────────────────────
 //
 // Na telefonie kafelek KPI zajmował pół ekranu powitalnego, zanim użytkownik
-// zobaczył cokolwiek do zrobienia. Chowamy go za wąskim przyciskiem — liczby
+// zobaczył cokolwiek do zrobienia. Chowamy go za wąskim przyciskiem - liczby
 // są o jedno dotknięcie, a nagłówek wraca do rozmiaru nagłówka.
 const StatsToggle = styled.button<{ $open: boolean }>`
   display: flex; /* Zmieniono z inline-flex na flex */
@@ -373,7 +373,7 @@ export const DashboardView = () => {
   const [heroStatsOpen, setHeroStatsOpen] = useState(false);
   // Bez dostępu do danych osobowych cała Tablica jest pusta w treści: kafelki
   // stanu, nadchodzące wizyty i zadania mówią o klientach. Zostaje powitanie
-  // i jedyna czynność, jaką taki użytkownik tu wykonuje — raport dnia pracy.
+  // i jedyna czynność, jaką taki użytkownik tu wykonuje - raport dnia pracy.
   const hasPiiAccess = usePiiAccess();
 
   const {
@@ -447,7 +447,7 @@ export const DashboardView = () => {
         </HeroRow>
       </HeroCard>
 
-      {/* Podpowiedzi między powitaniem a kafelkami — komponent sam chowa się
+      {/* Podpowiedzi między powitaniem a kafelkami - komponent sam chowa się
           na telefonie i znika całkiem, gdy nie ma nic do powiedzenia. */}
       {isDesktop && <DashboardHintsBar />}
 

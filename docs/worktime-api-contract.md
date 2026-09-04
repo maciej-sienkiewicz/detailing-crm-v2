@@ -1,4 +1,4 @@
-# Ewidencja czasu pracy — kontrakt API
+# Ewidencja czasu pracy - kontrakt API
 
 **Adresaci:** zespół backendowy  
 **Status:** do implementacji  
@@ -11,7 +11,7 @@
 Zakładka **„Czas pracy"** w widoku szczegółów pracownika pozwala na:
 
 1. Przegląd listy miesięcy (od daty zatrudnienia do bieżącego miesiąca) z sumą godzin i statusem każdego okresu.
-2. Rozwinięcie dowolnego miesiąca — siatka dzienna (wiersze: godziny regularne + wiersz na każdy typ świadczenia).
+2. Rozwinięcie dowolnego miesiąca - siatka dzienna (wiersze: godziny regularne + wiersz na każdy typ świadczenia).
 3. Edycję wpisów i zapisanie całego miesiąca jako jedną atomową operację.
 4. Usunięcie konkretnego wpisu świadczenia ze statusem `PENDING`.
 
@@ -41,7 +41,7 @@ type WorkTimeEntryType =
     | 'NIGHT_WORK'    // praca nocna (21:00–7:00)
     | 'HOLIDAY_WORK'; // praca w święto ×2,0
 
-// Typ świadczenia (podzbiór WorkTimeEntryType — bez REGULAR)
+// Typ świadczenia (podzbiór WorkTimeEntryType - bez REGULAR)
 // Używany w payloadzie zapisu; zawiera dodatkowo ON_CALL
 type BenefitType =
     | 'OVERTIME_150'
@@ -60,7 +60,7 @@ type WorkTimeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 ### `GET /v1/employees/{employeeId}/worktime/periods`
 
-Zwraca zagregowane podsumowanie dla każdego miesiąca, w którym pracownik ma co najmniej jeden wpis. Miesiące bez wpisów nie muszą być zwracane — frontend domyślnie wyświetla dla nich `0,00 h` i status `DRAFT`.
+Zwraca zagregowane podsumowanie dla każdego miesiąca, w którym pracownik ma co najmniej jeden wpis. Miesiące bez wpisów nie muszą być zwracane - frontend domyślnie wyświetla dla nich `0,00 h` i status `DRAFT`.
 
 #### Parametry ścieżki
 
@@ -186,12 +186,12 @@ interface SavePeriodPayload {
 }
 
 interface SavePeriodRegularEntry {
-    date: string;   // YYYY-MM-DD — musi należeć do podanego period
+    date: string;   // YYYY-MM-DD - musi należeć do podanego period
     hours: number;  // > 0; wpisy z hours = 0 nie są wysyłane przez frontend
 }
 
 interface SavePeriodBenefitEntry {
-    date: string;       // YYYY-MM-DD — musi należeć do podanego period
+    date: string;       // YYYY-MM-DD - musi należeć do podanego period
     benefitType: BenefitType;
     hours: number;      // > 0
 }
@@ -235,7 +235,7 @@ Backend powinien wykonać następujące kroki w ramach **jednej transakcji**:
 #### Uwagi
 
 - Frontend wysyła **tylko wpisy z `hours > 0`**. Brak daty w payloadzie = usunięcie istniejącego PENDING wpisu dla tej daty.
-- Pole `notes` nie jest aktualnie obsługiwane przez frontend (możliwa przyszła rozbudowa) — przy tworzeniu wpisów ustaw `null`.
+- Pole `notes` nie jest aktualnie obsługiwane przez frontend (możliwa przyszła rozbudowa) - przy tworzeniu wpisów ustaw `null`.
 - `effectiveHours` przechowywane jest bezpośrednio jako dostarczone `hours` (bez obliczeń ze strony backendu na tym etapie).
 
 ---
@@ -277,14 +277,14 @@ Aktualnie w kodzie frontendowym zachodzi następująca niezgodność:
 | Miejsce | Zawiera `ON_CALL`? |
 |---|---|
 | `BenefitType` (wysyłany w payloadzie PUT) | **tak** |
-| Modal „Dodaj świadczenie" (`AddBenefitModal`) | **tak** — widoczny dla użytkownika |
+| Modal „Dodaj świadczenie" (`AddBenefitModal`) | **tak** - widoczny dla użytkownika |
 | Filtr pobieranych wpisów (`BENEFIT_ENTRY_TYPES` w `MonthDetail`) | **nie** |
 | `WorkTimeEntryType` (używany w odpowiedzi GET) | **nie** |
 
 **Skutek:** użytkownik może dodać wiersz `ON_CALL` w siatce i wysłać go przez PUT, ale przy kolejnym wczytaniu miesiąca wpis **nie pojawi się** w siatce (jest filtrowany po stronie klienta).
 
 **Prośba:** ustalenie wspólnie z zespołem frontendowym, czy `ON_CALL` ma być:
-- a) **pełnoprawnym typem wpisu** — wówczas dodać `ON_CALL` do `WorkTimeEntryType` i filtra,
+- a) **pełnoprawnym typem wpisu** - wówczas dodać `ON_CALL` do `WorkTimeEntryType` i filtra,
 - b) **osobną encją** (np. harmonogramem dyżurów) obsługiwaną innym endpointem,
 - c) **usuniętym** z opcji modalu do czasu wyjaśnienia.
 

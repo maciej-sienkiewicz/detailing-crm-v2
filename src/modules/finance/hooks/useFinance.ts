@@ -121,7 +121,7 @@ export const useCashHistory = (
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: [...FINANCE_CASH_KEY, 'history', page, pageSize, filters.dateFrom ?? null, filters.dateTo ?? null, filters.direction ?? null],
     queryFn:  () => financeApi.getCashHistory(page, pageSize, filters),
-    // Zmiana filtra nie ma migać pustą tabelą — poprzedni wynik zostaje na ekranie,
+    // Zmiana filtra nie ma migać pustą tabelą - poprzedni wynik zostaje na ekranie,
     // dopóki nie przyjdzie nowy.
     placeholderData: (previous) => previous,
   });

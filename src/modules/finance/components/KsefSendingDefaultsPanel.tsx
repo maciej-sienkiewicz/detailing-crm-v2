@@ -69,7 +69,7 @@ const OptionHint = styled.div`
  * Ustawienia → Faktury → domyślna odpowiedź na pytanie o wysyłkę do KSeF.
  *
  * Wysyłka faktury z wydania pojazdu jest decyzją podejmowaną przy każdym
- * dokumencie, a nie stałą regułą — dlatego to ustawienie steruje wyłącznie
+ * dokumencie, a nie stałą regułą - dlatego to ustawienie steruje wyłącznie
  * początkową pozycją przełącznika w modalu wydania. Trzymamy je tutaj, obok
  * poświadczeń KSeF, bo obie rzeczy odpowiadają na to samo pytanie: co się dzieje
  * z fakturą po wystawieniu.
@@ -79,7 +79,7 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
   const { mutate, isPending } = useUpdateKsefAutoSendDefault();
   const { showError } = useToast();
 
-  // Przed wczytaniem ustawień pokazujemy wysyłkę włączoną — tak działał system,
+  // Przed wczytaniem ustawień pokazujemy wysyłkę włączoną - tak działał system,
   // zanim przełącznik powstał, więc migotnięcie nie sugeruje zmiany zachowania.
   const autoSendDefault = ksef.autoSendDefault ?? true;
 

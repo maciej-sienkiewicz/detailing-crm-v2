@@ -1,11 +1,11 @@
 // src/modules/settings/components/ContactsSyncSection.tsx
 //
-// „Kontakty na telefonie" — automatyczna konfiguracja CardDAV na iPhonie.
+// „Kontakty na telefonie" - automatyczna konfiguracja CardDAV na iPhonie.
 //
 // Strona WWW nie może założyć konta systemowego, więc maksimum automatyzacji
 // na iOS to podpisany profil konfiguracyjny (.mobileconfig) z kompletem danych:
 // adresem serwera, loginem i hasłem aplikacyjnym. Użytkownik niczego nie
-// przepisuje — od dotknięcia przycisku do działających kontaktów zostają dwa
+// przepisuje - od dotknięcia przycisku do działających kontaktów zostają dwa
 // dotknięcia w Ustawieniach (Zainstaluj → Zainstaluj), których Apple nie
 // pozwala pominąć.
 //
@@ -31,7 +31,7 @@ import type { CarddavProvisioningDto } from '@/modules/carddav';
 
 type InstallPath = 'ios-safari' | 'ios-other' | 'desktop';
 
-/** Gdzie stoi użytkownik — od tego zależy, jak podać mu profil. */
+/** Gdzie stoi użytkownik - od tego zależy, jak podać mu profil. */
 function detectInstallPath(): InstallPath {
     const ua = navigator.userAgent;
     const isIos = /iphone|ipad|ipod/i.test(ua);
@@ -40,7 +40,7 @@ function detectInstallPath(): InstallPath {
         window.matchMedia('(display-mode: standalone)').matches ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (navigator as any).standalone === true;
-    // Chrome/Firefox/Edge na iOS nie uruchamiają instalacji profilu — robi to
+    // Chrome/Firefox/Edge na iOS nie uruchamiają instalacji profilu - robi to
     // wyłącznie Safari. PWA (standalone) też nie: pobranie utknęłoby w aplikacji.
     const isSafari = !isStandalone && !/crios|fxios|edgios/i.test(ua);
     return isSafari ? 'ios-safari' : 'ios-other';
@@ -75,7 +75,7 @@ export function ContactsSyncSection() {
         if (!provisioning) return;
         const id = setInterval(() => {
             setNow(Date.now());
-            // Po wygaśnięciu chowamy kartę — martwy QR na ekranie tylko myli.
+            // Po wygaśnięciu chowamy kartę - martwy QR na ekranie tylko myli.
             if (Date.now() >= new Date(provisioning.expiresAt).getTime()) {
                 setProvisioning(null);
             }
@@ -91,7 +91,7 @@ export function ContactsSyncSection() {
         createProvisioning.mutate(undefined, {
             onSuccess: result => {
                 if (installPath === 'ios-safari') {
-                    // Safari na iPhonie: wchodzimy wprost na link — iOS
+                    // Safari na iPhonie: wchodzimy wprost na link - iOS
                     // przechwytuje application/x-apple-aspen-config i pokazuje
                     // „Pobrano profil". Kartę z dalszymi krokami zostawiamy pod
                     // spodem, bo użytkownik wróci do niej z Ustawień.
@@ -130,7 +130,7 @@ export function ContactsSyncSection() {
                 <div>
                     <SectionTitle>Kontakty na telefonie</SectionTitle>
                     <SectionDesc>
-                        Klienci studia w kontaktach iPhone'a — przy połączeniu od razu widać, kto dzwoni.
+                        Klienci studia w kontaktach iPhone'a - przy połączeniu od razu widać, kto dzwoni.
                         Konfiguracja jest automatyczna: profil sam wpisuje serwer i dane logowania.
                     </SectionDesc>
                 </div>
@@ -154,7 +154,7 @@ export function ContactsSyncSection() {
                     )}
                     <InstallSteps>
                         {installPath === 'desktop' && (
-                            <Step><StepNo>1</StepNo>Zeskanuj kod aparatem iPhone'a — otworzy się Safari i pobierze profil.</Step>
+                            <Step><StepNo>1</StepNo>Zeskanuj kod aparatem iPhone'a - otworzy się Safari i pobierze profil.</Step>
                         )}
                         {installPath === 'ios-other' && (
                             <Step>
@@ -167,14 +167,14 @@ export function ContactsSyncSection() {
                             </Step>
                         )}
                         {installPath === 'ios-safari' && (
-                            <Step><StepNo>1</StepNo>Safari zapyta o zgodę na pobranie profilu — dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</Step>
+                            <Step><StepNo>1</StepNo>Safari zapyta o zgodę na pobranie profilu - dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</Step>
                         )}
-                        <Step><StepNo>2</StepNo>Otwórz aplikację <strong>Ustawienia</strong> — na samej górze zobaczysz <strong>„Profil pobrany"</strong>. Dotknij tej pozycji.</Step>
-                        <Step><StepNo>3</StepNo>Dotknij <strong>Zainstaluj</strong>, podaj kod telefonu i potwierdź. Ostrzeżenie „Niezweryfikowany" jest w porządku — kontynuuj.</Step>
-                        <Step><StepNo>4</StepNo>Gotowe — klienci pojawią się w Kontaktach w ciągu kilku minut, a lista sama będzie się odświeżać.</Step>
+                        <Step><StepNo>2</StepNo>Otwórz aplikację <strong>Ustawienia</strong> - na samej górze zobaczysz <strong>„Profil pobrany"</strong>. Dotknij tej pozycji.</Step>
+                        <Step><StepNo>3</StepNo>Dotknij <strong>Zainstaluj</strong>, podaj kod telefonu i potwierdź. Ostrzeżenie „Niezweryfikowany" jest w porządku - kontynuuj.</Step>
+                        <Step><StepNo>4</StepNo>Gotowe - klienci pojawią się w Kontaktach w ciągu kilku minut, a lista sama będzie się odświeżać.</Step>
                         {secondsLeft !== null && (
                             <Expiry $urgent={secondsLeft < 60}>
-                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')} — potem wygeneruj nowy.
+                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')} - potem wygeneruj nowy.
                             </Expiry>
                         )}
                     </InstallSteps>
@@ -202,7 +202,7 @@ export function ContactsSyncSection() {
                     <EmptyWrap>
                         <EmptyTitle>Żaden telefon nie synchronizuje jeszcze kontaktów</EmptyTitle>
                         <EmptyDesc>
-                            Skonfiguruj iPhone'a powyżej — zajmie to mniej niż minutę.
+                            Skonfiguruj iPhone'a powyżej - zajmie to mniej niż minutę.
                         </EmptyDesc>
                     </EmptyWrap>
                 ) : (

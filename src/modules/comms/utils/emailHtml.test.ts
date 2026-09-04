@@ -1,5 +1,5 @@
 // src/modules/comms/utils/emailHtml.test.ts
-// Przypadki pochodzą z prawdziwej skrzynki CRM — każdy z nich potrafił wcześniej
+// Przypadki pochodzą z prawdziwej skrzynki CRM - każdy z nich potrafił wcześniej
 // zepsuć widok wątku (ucięta treść, powtórzona historia, tekst ukryty pod
 // przyciskiem „wiadomość graficzna").
 // @vitest-environment jsdom

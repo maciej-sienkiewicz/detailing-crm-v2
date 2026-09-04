@@ -9,7 +9,7 @@ const Container = styled.div`
 
 /*
  * Numer telefonu wygląda inaczej niż sąsiednie pola, bo pod spodem jest inny
- * komponent — i to widać: grubsza ramka, większy padding, białe tło zamiast
+ * komponent - i to widać: grubsza ramka, większy padding, białe tło zamiast
  * szarego. Wariant „legacy" nie kopiuje tokenów starych pól, tylko rozszerza
  * dokładnie te same styled-components (`Input`, `Select` z Form), więc pole
  * telefonu nie może już rozjechać się z resztą formularza przy kolejnej zmianie.
@@ -199,7 +199,7 @@ interface PhoneInputProps {
     name?: string;
     /**
      * Skóra pola. `shell` (domyślnie) pasuje do formularzy na InputShell/BareInput,
-     * `legacy` do tych, które nadal używają `Input`/`Select` z Form — m.in. przyjęcia
+     * `legacy` do tych, które nadal używają `Input`/`Select` z Form - m.in. przyjęcia
      * pojazdu, gdzie telefon stał obok pól o zupełnie innej wysokości i tle.
      */
     variant?: 'shell' | 'legacy';

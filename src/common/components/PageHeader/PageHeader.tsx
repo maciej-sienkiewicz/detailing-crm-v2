@@ -6,7 +6,7 @@ import styled from 'styled-components';
 export interface PageHeaderProps {
   /**
    * Zwykle tekst. Węzeł przyjmujemy dlatego, że w kreatorach tytułem strony jest
-   * nazwa tworzonego obiektu — i wtedy najlepszym miejscem na jej wpisanie jest
+   * nazwa tworzonego obiektu - i wtedy najlepszym miejscem na jej wpisanie jest
    * właśnie ten nagłówek, a nie osobne pole gdzieś niżej.
    */
   title: React.ReactNode;

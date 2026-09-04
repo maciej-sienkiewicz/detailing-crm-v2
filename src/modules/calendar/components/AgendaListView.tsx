@@ -112,7 +112,7 @@ const DaySection = styled.div``;
  * Nagłówek dnia jest jednocześnie najkrótszą drogą do nowej rezerwacji: na telefonie
  * to jedyny duży, zawsze widoczny element przypisany do konkretnej daty, a „dodaj
  * na ten dzień" jest tym, po co najczęściej się tu wraca. Bez uprawnienia do
- * tworzenia wizyt zostaje zwykłym nagłówkiem — stąd renderowanie raz jako <button>,
+ * tworzenia wizyt zostaje zwykłym nagłówkiem - stąd renderowanie raz jako <button>,
  * raz jako <div>, i reset stylów guzika w środku.
  */
 const DayHeader = styled.div<{ $isToday: boolean; $isEmpty: boolean; $clickable: boolean }>`
@@ -141,7 +141,7 @@ const DayHeader = styled.div<{ $isToday: boolean; $isEmpty: boolean; $clickable:
 `;
 
 /*
- * Plusik nie jest ozdobą — bez niego nagłówek nie wygląda na klikalny i cała skrótowa
+ * Plusik nie jest ozdobą - bez niego nagłówek nie wygląda na klikalny i cała skrótowa
  * ścieżka pozostaje niewidoczna. Jest przygaszony, żeby nie konkurował z kartami wizyt.
  */
 const DayAddHint = styled.span`
@@ -308,7 +308,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 /* Wydarzenie studia na liście: bursztynowa karta z dzwoneczkiem, na górze dnia.
-   Bez niej telefon nie pokazywał wydarzeń w ogóle — lista jest tu widokiem
+   Bez niej telefon nie pokazywał wydarzeń w ogóle - lista jest tu widokiem
    domyślnym, a znaczniki dnia żyją tylko w siatce miesiąca. */
 
 const StudioCard = styled.button`
@@ -377,7 +377,7 @@ export interface AgendaListViewProps {
     studioEventsByDay?: Map<string, StudioCalendarEvent[]>;
     onStudioEventClick?: (event: StudioCalendarEvent) => void;
     /**
-     * Kliknięcie w nagłówek dnia — otwarcie tworzenia rezerwacji z ustawioną datą.
+     * Kliknięcie w nagłówek dnia - otwarcie tworzenia rezerwacji z ustawioną datą.
      * Pominięte, gdy użytkownik nie może tworzyć wizyt: nagłówek jest wtedy zwykłym
      * nagłówkiem, bez guzika i bez plusika obiecującego akcję, której nie ma.
      */
@@ -432,7 +432,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                 type={onDayAddClick ? 'button' : undefined}
                                 onClick={onDayAddClick ? () => onDayAddClick(day) : undefined}
                                 aria-label={onDayAddClick
-                                    ? `Dodaj rezerwację — ${day.getDate()} ${MONTH_NAMES[day.getMonth()]}, ${DAY_NAMES[day.getDay()]}`
+                                    ? `Dodaj rezerwację - ${day.getDate()} ${MONTH_NAMES[day.getMonth()]}, ${DAY_NAMES[day.getDay()]}`
                                     : undefined}
                                 $isToday={isToday}
                                 $isEmpty={isEmpty}

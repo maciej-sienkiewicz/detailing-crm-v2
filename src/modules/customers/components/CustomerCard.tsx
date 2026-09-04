@@ -8,7 +8,7 @@ import { t } from '@/common/i18n';
 
 /* Kafelka mówi tym samym językiem co lista wizyt: biała karta, cienki obrys,
    delikatne uniesienie. Klient nie ma statusu, którego kolor musiałby pilnować,
-   więc karta nie potrzebuje kolorowego paska — akcent zostaje dla rzeczy,
+   więc karta nie potrzebuje kolorowego paska - akcent zostaje dla rzeczy,
    które faktycznie coś znaczą (numer telefonu jako akcja). */
 const Card = styled.article`
   background: ${st.bgCard};
@@ -47,7 +47,7 @@ const CompanyName = styled.span`
   margin-top: 2px;
 `;
 
-/* Liczba pojazdów to metadana, nie ostrzeżenie — stonowana pigułka jak
+/* Liczba pojazdów to metadana, nie ostrzeżenie - stonowana pigułka jak
    pozostałe znaczniki w aplikacji, zamiast pełnego wypełnienia marką. */
 const VehicleBadge = styled.span`
   display: inline-flex;
@@ -161,7 +161,7 @@ export const CustomerCard = ({ customer }: CustomerCardProps) => {
 
             <ContactInfo>
                 {customer.contact.email && <span>{customer.contact.email}</span>}
-                {/* Bez numeru nie zostawiamy myślnika — pusty wiersz zabierał
+                {/* Bez numeru nie zostawiamy myślnika - pusty wiersz zabierał
                     miejsce, nie niosąc żadnej informacji. */}
                 {customer.contact.phone && (
                     <PhoneBtn
@@ -177,7 +177,7 @@ export const CustomerCard = ({ customer }: CustomerCardProps) => {
             </ContactInfo>
 
             {/* Na telefonie liczy się ostatnia wizyta i kwota do zapłaty przez
-                klienta — liczba wizyt i kwota netto zostają w widoku desktopowym. */}
+                klienta - liczba wizyt i kwota netto zostają w widoku desktopowym. */}
             <StatsGrid>
                 <StatItem>
                     <StatLabel>{t.customers.card.lastVisit}</StatLabel>

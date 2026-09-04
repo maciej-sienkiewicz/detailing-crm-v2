@@ -2,7 +2,7 @@
 //
 // Zakładki sekcji wewnątrz jednego widoku, na telefonie. Długa karta (wizyty,
 // klienta) nie mieści się na ekranie, a przewijanie jej w całości gubi
-// użytkownika — dlatego dzielimy ją na kilka sekcji i przełączamy paskiem przy
+// użytkownika - dlatego dzielimy ją na kilka sekcji i przełączamy paskiem przy
 // dolnej krawędzi, w zasięgu kciuka.
 //
 // Pasek siedzi NAD globalną nawigacją, nie na niej: to nawigacja wewnątrz
@@ -18,14 +18,14 @@ const BRAND = '#0ea5e9';
 
 /**
  * Sekcja widoku: na telefonie widoczna tylko dla swojej zakładki, na desktopie
- * zawsze. `$desktopContents` znika z układu na desktopie (display: contents) —
+ * zawsze. `$desktopContents` znika z układu na desktopie (display: contents) -
  * potrzebne tam, gdzie sekcje przecinają kolumny siatki i owijający div
  * zepsułby odstępy albo rozkład kolumn.
  */
 export const MobileSectionPanel = styled.div<{ $visible: boolean; $desktopContents?: boolean }>`
     @media (max-width: 767px) {
         display: ${p => p.$visible ? 'block' : 'none'};
-        /* Wewnątrz owijki znika gap kolumny — odstęp dokładamy marginesem. */
+        /* Wewnątrz owijki znika gap kolumny - odstęp dokładamy marginesem. */
         > * + * { margin-top: 14px; }
     }
 
@@ -57,7 +57,7 @@ const Bar = styled.nav<{ $hidden?: boolean }>`
     transition: transform 180ms ease, opacity 180ms ease;
 
     /* Przy wysuniętej klawiaturze iOS trzyma ten pasek przy layout viewporcie
-       (czyli już za klawiaturą) — zamiast odklejać się od dolnej krawędzi,
+       (czyli już za klawiaturą) - zamiast odklejać się od dolnej krawędzi,
        pasek zjeżdża i wraca po zamknięciu klawiatury. To samo dotyczy edycji
        z własnym paskiem akcji i otwartych okien modalnych. */
     ${p => p.$hidden && `
@@ -124,7 +124,7 @@ const Label = styled.span`
 export interface MobileSectionNavItem<K extends string> {
     key: K;
     label: string;
-    /** Zawartość <svg> — sam kształt, atrybuty dokłada pasek. */
+    /** Zawartość <svg> - sam kształt, atrybuty dokłada pasek. */
     icon: React.ReactNode;
     /** Pełny opis dla czytnika ekranu, gdy etykieta jest skrótem. */
     ariaLabel?: string;

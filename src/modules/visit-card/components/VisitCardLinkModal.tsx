@@ -266,7 +266,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
         setIsSending(true);
         setSendResult(null);
         try {
-            // Modal pokazuje „Wyślij kartę ponownie", gdy karta już poszła — kliknięcie jest
+            // Modal pokazuje „Wyślij kartę ponownie", gdy karta już poszła - kliknięcie jest
             // wtedy świadomą decyzją, więc mówimy to backendowi wprost (resend).
             const resend = Boolean(lastEmailSentAt || lastSmsSentAt);
             const res = target.kind === 'visit'

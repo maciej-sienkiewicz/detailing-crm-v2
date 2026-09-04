@@ -7,7 +7,7 @@ import crypto from 'crypto';
 export default defineConfig({
     plugins: [react()],
     define: {
-        // sockjs-client references Node.js `global` — shim it for the browser
+        // sockjs-client references Node.js `global` - shim it for the browser
         global: 'globalThis',
     },
     resolve: {

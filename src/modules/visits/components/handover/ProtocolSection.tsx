@@ -47,7 +47,7 @@ interface ProtocolSectionProps {
     /**
      * Podnosi w górę stan podpisów. Nie sam „podpisano / nie podpisano": ekran
      * wydania musi odróżnić dokument czekający na podpis od studia, które
-     * dokumentu wydania w ogóle nie skonfigurowało — w drugim przypadku nie ma
+     * dokumentu wydania w ogóle nie skonfigurowało - w drugim przypadku nie ma
      * czego pomijać i krok podpisu nie może stać się ślepą uliczką.
      */
     onStatusChange: (status: ProtocolSignatureStatus) => void;
@@ -183,7 +183,7 @@ export const ProtocolSection = ({
         try {
             await visualCondition.mutateAsync({ protocolId: send.protocolId, conditionMatch, remarks });
         } catch {
-            // Nieudany zapis nie może skończyć się wysłaniem dokumentu bez zaznaczenia —
+            // Nieudany zapis nie może skończyć się wysłaniem dokumentu bez zaznaczenia -
             // okno zostaje otwarte, żeby dało się spróbować ponownie.
             return;
         }

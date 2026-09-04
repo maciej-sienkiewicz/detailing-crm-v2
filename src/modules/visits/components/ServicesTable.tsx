@@ -2157,7 +2157,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         };
     };
 
-    /** Nazwy usług i cena końcowa dla treści SMS-a — wszystko już jest w komponencie. */
+    /** Nazwy usług i cena końcowa dla treści SMS-a - wszystko już jest w komponencie. */
     const buildSmsSummary = (): ServiceChangeSummary => {
         const nameById = new Map(services.map(s => [s.id, s.serviceName]));
         return {
@@ -2183,7 +2183,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
 
     /**
-     * Gdy klient ma dostać SMS-a, najpierw pokazujemy jego treść do akceptacji —
+     * Gdy klient ma dostać SMS-a, najpierw pokazujemy jego treść do akceptacji -
      * zapis leci dopiero po zatwierdzeniu wiadomości w modalu.
      */
     const acceptDraft = () => {
@@ -2292,7 +2292,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     // „Odrzuć / Zaakceptuj", który na telefonie jest przypięty do dołu ekranu.
     useHideMobileChrome('visit-services-edit', isInEditMode);
 
-    // Na telefonie okno nie zabiera focusu samo z siebie — klawiatura zasłoniłaby
+    // Na telefonie okno nie zabiera focusu samo z siebie - klawiatura zasłoniłaby
     // je, zanim użytkownik zdąży je zobaczyć.
     const autoFocusFields = shouldAutoFocusInput();
 

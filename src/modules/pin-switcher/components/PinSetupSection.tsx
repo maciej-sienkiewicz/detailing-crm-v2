@@ -21,7 +21,7 @@ const Header = styled.div`
     gap: 14px;
 
     /* Na telefonie ikona, opis i status w jednym rzędzie zostawiały opisowi
-       ~190px — plakietka statusu schodzi wtedy pod tekst. */
+       ~190px - plakietka statusu schodzi wtedy pod tekst. */
     @media (max-width: 640px) {
         flex-wrap: wrap;
         align-items: flex-start;

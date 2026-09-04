@@ -9,13 +9,13 @@ export const oneYearAgo = () => {
     return d.toISOString().slice(0, 10);
 };
 
-/** Pierwszy dzień bieżącego miesiąca — domyślny zakres obu widoków statystyk. */
+/** Pierwszy dzień bieżącego miesiąca - domyślny zakres obu widoków statystyk. */
 export const currentMonthStart = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 };
 
-/** „sierpień" — podpowiedź przy presecie „Bieżący miesiąc". */
+/** „sierpień" - podpowiedź przy presecie „Bieżący miesiąc". */
 export const currentMonthName = () =>
     new Date().toLocaleDateString('pl-PL', { month: 'long' });
 

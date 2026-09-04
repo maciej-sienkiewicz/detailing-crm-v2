@@ -33,16 +33,16 @@ export const modalScaleIn = keyframes`
 /**
  * Warstwy okien, w kolejności od spodu:
  *
- *   1000  MODAL_Z_INDEX     — zwykłe okno otwierane z widoku
- *   1300  —                 — kreator rezerwacji i QuickEventModal (wychodzą Z okna,
+ *   1000  MODAL_Z_INDEX     - zwykłe okno otwierane z widoku
+ *   1300  -                 - kreator rezerwacji i QuickEventModal (wychodzą Z okna,
  *                             więc muszą leżeć nad warstwą 1000)
- *   1400  SUBMODAL_Z_INDEX  — okno otwierane Z INNEGO OKNA: „Wprowadź cenę",
+ *   1400  SUBMODAL_Z_INDEX  - okno otwierane Z INNEGO OKNA: „Wprowadź cenę",
  *                             „Nowa usługa", „Nowy klient", „Nowy kolor"
  *
  * Wartości nie są dowolne i nie wolno ich podnosić w pojedynkę: okno podrzędne
  * musi leżeć nad KAŻDYM oknem, z którego da się je otworzyć. Podniesienie samego
- * QuickEventModala do 1300 zostawiło jego okna podrzędne na 1000/1100 — czyli pod
- * nim — i „Wprowadź cenę" otwierało się niewidoczne, a usługa nigdy nie trafiała
+ * QuickEventModala do 1300 zostawiło jego okna podrzędne na 1000/1100 - czyli pod
+ * nim - i „Wprowadź cenę" otwierało się niewidoczne, a usługa nigdy nie trafiała
  * do tabeli, bo nikt nie miał jak potwierdzić ceny.
  */
 export const MODAL_Z_INDEX = 1000;

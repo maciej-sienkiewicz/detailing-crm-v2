@@ -6,18 +6,18 @@
 // Właściciel studia myśli w złotówkach. Procent wymaga tłumaczenia na pieniądze,
 // zanim cokolwiek znaczy, i nie ma skali odniesienia: „skuteczność 41%" to ocena
 // szkolna bez kryteriów. Przy rozrzucie wartości zleceń od czterystu złotych do
-// dwunastu tysięcy procent dodatkowo kłamie — miesiąc z dziesięcioma przegranymi
+// dwunastu tysięcy procent dodatkowo kłamie - miesiąc z dziesięcioma przegranymi
 // praniami tapicerki i jedną wygraną powłoką ceramiczną to dziewięć procent
 // konwersji i bardzo dobry miesiąc.
 //
 // ── Cztery pasma i koniec ──────────────────────────────────────────────────
 //
 // 1. Zdanie-bohater: ile pieniędzy czeka na Twoją odpowiedź. Pierwsza fiksacja
-//    wzroku ustawia ramę dla reszty ekranu — liczba PRZESZŁA robi z tego raport,
+//    wzroku ustawia ramę dla reszty ekranu - liczba PRZESZŁA robi z tego raport,
 //    liczba OTWARTA robi z tego warsztat. Tylko drugie ma powód, żeby wracać.
 // 2. Rachunek zapytań: jedna belka pieniędzy, które przeszły przez drzwi.
 // 3. Gdzie wyciekły: powody straty w złotówkach, każdy klikalny.
-// 4. Czytanie tygodniowe: rytm, odstępstwa, usługi, kanały — cicho, poniżej zgięcia.
+// 4. Czytanie tygodniowe: rytm, odstępstwa, usługi, kanały - cicho, poniżej zgięcia.
 //
 // Ekran się KOŃCZY. Żadnego nieskończonego strumienia kart: taki, który ma koniec,
 // zostaje przeczytany, a taki bez końca zostaje przewinięty.
@@ -25,26 +25,26 @@
 // ── Reguły dołożone przy przeprojektowaniu ─────────────────────────────────
 //
 //  8. Jedna karta = jedno pytanie = jedna odpowiedź zdaniem. Karta bez zdania
-//     jest surowcem, nie produktem — analizę zostawia czytelnikowi.
+//     jest surowcem, nie produktem - analizę zostawia czytelnikowi.
 //  9. Prawo Millera: najwyżej 3–4 obiekty do porównania naraz. Sześć wykresów
-//     obok siebie to nie wybór, tylko paraliż — dlatego materiał pogłębiony
+//     obok siebie to nie wybór, tylko paraliż - dlatego materiał pogłębiony
 //     idzie zakładkami, po jednym pytaniu na ekran.
 // 10. Prawo bliskości rządzi kartami: odstęp MIĘDZY grupami wyraźnie większy
 //     niż wewnątrz grupy, inaczej wszystko czyta się jako jedna ściana.
 // 11. Karta niesie głębię. Biel z ramką = powierzchnia robocza, tło strony =
 //     kontekst. Treść położona wprost na teksturze tła nie ma ani jednego,
-//     ani drugiego — i męczy przy pierwszym akapicie.
+//     ani drugiego - i męczy przy pierwszym akapicie.
 // 12. Okres jest właściwością widoku, nie sekcją w nim. Miejsce ma w nagłówku,
 //     obok tytułu, a nie jako pasek, który zabiera pierwszy ruch wzroku kwocie.
 // 13. Zakresy nazywają się tak, jak nazywa je użytkownik. „Ostatnie 90 dni" nie
 //     odpowiada żadnemu wydarzeniu w roku właściciela firmy; miesiąc odpowiada
-//     każdemu — księgowa, podatek, pensje i ZUS chodzą w tym rytmie.
+//     każdemu - księgowa, podatek, pensje i ZUS chodzą w tym rytmie.
 // 14. Ruch tylko jako informacja: wejście karty tak, tańczący wykres nie.
 //
 // ── Czego tu świadomie nie ma ──────────────────────────────────────────────
 //
 // • Rzędu sześciu kafli o równej wadze. Jeśli wszystko jest wyróżnione, nic nie
-//   jest — a ikonka w kolorowym kółku pod pastelowym gradientem to dekoracja
+//   jest - a ikonka w kolorowym kółku pod pastelowym gradientem to dekoracja
 //   niosąca zero informacji.
 // • Liczby zapytań jako metryki. To wejście, nie wyjście, i wejście, na które
 //   z tego ekranu nie ma wpływu. Rośnie niezależnie od pieniędzy, a studio jest
@@ -107,7 +107,7 @@ const ViewContainer = styled.main`
 `;
 
 /**
- * Pasmo pogłębione — nagłówek sekcji, który mówi, że tu kończy się „dziś",
+ * Pasmo pogłębione - nagłówek sekcji, który mówi, że tu kończy się „dziś",
  * a zaczyna „przy okazji". Odstęp nad nim jest wyraźnie większy niż odstępy
  * między kartami wyżej: prawo bliskości robi z tego osobną grupę bez rysowania
  * ani jednej kreski więcej.
@@ -116,7 +116,7 @@ const ViewContainer = styled.main`
  * Pusta analityka nie kończy się na „wróć tu potem".
  *
  * Studio, które dopiero zaczyna, widzi tu same komunikaty o braku danych i nie ma
- * jak się dowiedzieć, po co w ogóle ma zbierać leady — a to jest dokładnie ten
+ * jak się dowiedzieć, po co w ogóle ma zbierać leady - a to jest dokładnie ten
  * moment, w którym warto mu to pokazać. Pusty ekran uczy, że tu nic nie ma;
  * wypełniony przykładem uczy, co tu będzie, gdy zapytania zaczną spływać.
  */
@@ -237,7 +237,7 @@ const DeepHeading = styled.div`
  *
  * Sześć wykresów obok siebie nie jest wyborem, tylko paraliżem: wzrok nie ma
  * gdzie usiąść, bo nic nie jest ważniejsze od reszty. Jedno pytanie na ekran
- * przywraca zasadę „jeden dominujący element", a nic nie ginie — wszystko jest
+ * przywraca zasadę „jeden dominujący element", a nic nie ginie - wszystko jest
  * o jedno kliknięcie dalej i podpisane pytaniem, którego dotyczy.
  */
 const Tabs = styled.div`
@@ -269,7 +269,7 @@ const WideCard = styled(AnalyticsCard)``;
 
 // ── Filtr segmentu auta na zakładce „Usługi" ────────────────────────────────
 //
-// Wygrywamy w premium — ale czy w SUV-ach, czy w sportowych? Bez filtra to
+// Wygrywamy w premium - ale czy w SUV-ach, czy w sportowych? Bez filtra to
 // pytanie nie ma gdzie paść: kafle segmentów pokazują sumę wszystkich aut
 // naraz, a sama suma tego rozróżnienia nie widzi. Domyślnie wszystko, filtr
 // dokłada precyzję temu, kto już wie, czego szuka.
@@ -365,7 +365,7 @@ function SegmentFilterBarRow({
     );
 }
 
-/** Fakty spełniające aktywne filtry segmentu — jeden filtr wspólny dla całej zakładki. */
+/** Fakty spełniające aktywne filtry segmentu - jeden filtr wspólny dla całej zakładki. */
 function factsMatching(facts: LeadAnalytics['leadFacts'], filters: SegmentFilters) {
     return facts.filter((fact) =>
         (filters.size === null || fact.sizeSegment === filters.size) &&
@@ -490,12 +490,12 @@ export default function LeadAnalyticsView() {
     // pytanie, które właściciel zadaje sobie najczęściej: jak mi idzie TERAZ.
     const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
     // Tryb pokazowy trzymany na widoku, nie w adresie: to jest sposób oglądania,
-    // a nie miejsce w aplikacji — nikt nie powinien wysłać komuś odnośnika, który
+    // a nie miejsce w aplikacji - nikt nie powinien wysłać komuś odnośnika, który
     // otwiera się na zmyślonych liczbach.
     const [demo, setDemo] = useState(false);
     const { data, isLoading } = useLeadAnalytics(period.from, period.to);
 
-    // Trend rysujemy miesiącami dopiero przy zakresie dłuższym niż kwartał —
+    // Trend rysujemy miesiącami dopiero przy zakresie dłuższym niż kwartał -
     // rok w tygodniach to 52 słupki, w których ginie kształt.
     const monthly = period.to.getTime() - period.from.getTime() > 120 * 24 * 3600 * 1000;
 
@@ -550,7 +550,7 @@ export default function LeadAnalyticsView() {
                     <h2>Jeszcze nic tu nie ma</h2>
                     <p>
                         W wybranym okresie nie wpłynęło ani jedno zapytanie, więc nie ma czego
-                        liczyć. Ten widok wypełni się sam, gdy zaczną spływać — a do tego czasu
+                        liczyć. Ten widok wypełni się sam, gdy zaczną spływać - a do tego czasu
                         możesz zobaczyć, co będzie tu pokazywał.
                     </p>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
@@ -560,7 +560,7 @@ export default function LeadAnalyticsView() {
             )}
 
             {/* Zapytania są, ale za mało, żeby większość kart cokolwiek znaczyła.
-                Prawdziwe liczby zostają na ekranie — ukrycie ich byłoby gorsze niż
+                Prawdziwe liczby zostają na ekranie - ukrycie ich byłoby gorsze niż
                 pokazanie szczupłych. Przykład jest propozycją, nie podmianą. */}
             {!demo && thin && data && data.totalCreated > 0 && (
                 <ThinDataBar>
@@ -592,7 +592,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
         <>
             {/* ── Pasmo 1 ─────────────────────────────────────────────────────
                 Zaległość, a nie „zarobiłeś". Sprawy niedokończone zostają w głowie
-                i wytwarzają ciśnienie powrotu — a ta kwota zmienia się wyłącznie
+                i wytwarzają ciśnienie powrotu - a ta kwota zmienia się wyłącznie
                 dlatego, że użytkownik coś zrobił. Nazwisko i auto w zdaniu obok
                 sprawiają, że to jest JEGO klient, a nie abstrakcja, którą wygenerowałby
                 dowolny szablon. */}
@@ -608,7 +608,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                             {awaiting.oldest && (
                                 <>
                                     {' '}Najdłużej czeka <strong>{awaiting.oldest.name}</strong>
-                                    {awaiting.oldest.vehicle && <> — {awaiting.oldest.vehicle}</>}
+                                    {awaiting.oldest.vehicle && <> - {awaiting.oldest.vehicle}</>}
                                     {awaiting.oldest.value > 0 && <>, {formatMoney(awaiting.oldest.value)}</>}
                                     {', '}
                                     {dayWord(awaiting.oldest.waitingDays)}.
@@ -621,7 +621,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                             Odpisz im <ArrowRight size={14} />
                         </PrimaryButton>
                     }
-                    // Domknięcie pętli — nagroda za to, co użytkownik zrobił po ostatniej
+                    // Domknięcie pętli - nagroda za to, co użytkownik zrobił po ostatniej
                     // wizycie. Osobno od zastrzeżenia o zakresie, bo tamto jest przypisem,
                     // a to jest kwitem.
                     reward={
@@ -637,7 +637,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                     amount={formatMoney(data.pipelineValue)}
                     body={
                         <>
-                            Rzadka rzecz — w każdej rozmowie ostatnie słowo należy do klienta.
+                            Rzadka rzecz - w każdej rozmowie ostatnie słowo należy do klienta.
                             Tyle masz wciąż <strong>w grze</strong>.
                         </>
                     }
@@ -703,7 +703,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
 
             {/* ── Pasmo 4 ─────────────────────────────────────────────────────
                 Jedno pytanie na ekran. Wszystko jest o jedno kliknięcie dalej
-                i podpisane pytaniem, którego dotyczy — nic nie ginie, a wzrok
+                i podpisane pytaniem, którego dotyczy - nic nie ginie, a wzrok
                 ma gdzie usiąść. */}
             <DeepHeading>
                 <h2>Skąd się te pieniądze biorą</h2>
@@ -714,7 +714,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     );
 }
 
-/** Pytania pogłębione — po jednym na ekran, w kolejności od najczęściej zadawanego. */
+/** Pytania pogłębione - po jednym na ekran, w kolejności od najczęściej zadawanego. */
 const DEEP_TABS = [
     { key: 'trend', label: 'Pieniądze w czasie' },
     { key: 'rhythm', label: 'Kiedy co przychodzi' },
@@ -730,7 +730,7 @@ type DeepTab = (typeof DEEP_TABS)[number]['key'];
 
 /**
  * Materiał, który nie zmienia pieniędzy w ciągu tygodnia, więc nie ma prawa
- * konkurować z tym, co zmienia. Prawdziwy i czasem cenny — ale czytany raz na
+ * konkurować z tym, co zmienia. Prawdziwy i czasem cenny - ale czytany raz na
  * jakiś czas, po jednym pytaniu, a nie sześcioma wykresami naraz.
  */
 function DeepRead({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
@@ -779,7 +779,7 @@ function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }
                         : (
                             <>
                                 W ostatnim {monthly ? 'miesiącu' : 'tygodniu'} zatrzymałeś{' '}
-                                <strong>{formatMoney(last.wonValue)}</strong> — o {formatMoney(Math.abs(delta))}{' '}
+                                <strong>{formatMoney(last.wonValue)}</strong> - o {formatMoney(Math.abs(delta))}{' '}
                                 {delta > 0 ? 'więcej' : 'mniej'} niż {monthly ? 'miesiąc' : 'tydzień'} wcześniej.
                             </>
                         )
@@ -787,7 +787,7 @@ function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }
         >
             {data.timeline.length >= 2 && (
                 <TrendStack>
-                    {/* Ten sam podział kolorów co w rachunku wyżej — zatrzymane,
+                    {/* Ten sam podział kolorów co w rachunku wyżej - zatrzymane,
                         w grze, stracone. Nie trzeba się go uczyć drugi raz. */}
                     <MoneyColumns
                         columns={data.timeline.map((point) => ({
@@ -825,11 +825,11 @@ function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }
 }
 
 /**
- * Liczba zapytań — świadomie ostatnia i osobna.
+ * Liczba zapytań - świadomie ostatnia i osobna.
  *
  * To jest miara ruchu, nie wyniku: rośnie niezależnie od pieniędzy, a studio jest
  * ograniczone mocą przerobową, nie popytem. Bywa przydatna („czy reklama w ogóle
- * dowozi"), więc zostaje — ale nie w miejscu, w którym przykrywałaby liczby
+ * dowozi"), więc zostaje - ale nie w miejscu, w którym przykrywałaby liczby
  * mówiące o przychodzie.
  */
 function VolumePanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
@@ -842,7 +842,7 @@ function VolumePanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean 
                     ? 'Okres jest za krótki, żeby mówić o trendzie.'
                     : (
                         <>
-                            <strong>{total}</strong> zapytań w tym okresie. Sama liczba nie mówi o pieniądzach —
+                            <strong>{total}</strong> zapytań w tym okresie. Sama liczba nie mówi o pieniądzach -
                             czternaście pytań o mycie i trzy o folię to ta sama liczba i zupełnie inny miesiąc.
                         </>
                     )
@@ -867,7 +867,7 @@ function VolumePanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean 
 /**
  * Macierz „która usługa, w który dzień".
  *
- * Zwykły słupek „ile zapytań w poniedziałek" mówił tylko, kiedy jest ruch — a ruch
+ * Zwykły słupek „ile zapytań w poniedziałek" mówił tylko, kiedy jest ruch - a ruch
  * sam w sobie nie jest ani przychodem, ani problemem. Wiersze ustawione od
  * najdroższej usługi zamieniają ten sam materiał w pytanie, które ma konsekwencje
  * w grafiku: czy drogie zapytania przychodzą w innych dniach niż tanie.
@@ -914,7 +914,7 @@ function RhythmPanel({ data }: { data: LeadAnalytics }) {
                                 <strong>{WEEKDAY_FULL[cheapDay]}</strong>.
                             </>
                         )
-                        : 'Drogie i tanie zapytania rozkładają się na tydzień podobnie — nie ma dnia, który wymagałby innej obsady.'
+                        : 'Drogie i tanie zapytania rozkładają się na tydzień podobnie - nie ma dnia, który wymagałby innej obsady.'
             }
             footnote={
                 enough && decisionDay !== null
@@ -960,7 +960,7 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
     const sizeLabels = new Map(data.bySizeSegment.map((row) => [row.code, row.label]));
     const tierLabels = new Map(data.byMarketTier.map((row) => [row.code, row.label]));
 
-    // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy —
+    // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy -
     // to jedno zdarzenie. Bez filtra kolejność przychodzi z backendu; pod
     // filtrem liczy się z surowych faktów tym samym sposobem.
     const categorySource = filters.size === null && filters.tier === null
@@ -993,7 +993,7 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
             {categories.length === 0 ? (
                 <EmptyChart>
                     {filterActive
-                        ? 'Za mało rozstrzygniętych rozmów w tym segmencie — spróbuj szerszego filtra.'
+                        ? 'Za mało rozstrzygniętych rozmów w tym segmencie - spróbuj szerszego filtra.'
                         : 'Wróć tu, gdy zamkniesz więcej rozmów.'}
                 </EmptyChart>
             ) : (
@@ -1015,7 +1015,7 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
 
         {/* Dwie osie pojazdu, bo odpowiadają na dwa różne pytania. Wielkość mówi
             o pracy: ile lakieru, ile wykrojów folii, czy auto zmieści się na
-            stanowisku. Klasa rynkowa mówi o rozmowie o cenie — właściciel Dacii
+            stanowisku. Klasa rynkowa mówi o rozmowie o cenie - właściciel Dacii
             i właściciel Porsche mogą przyjechać tym samym kompaktem i zupełnie
             inaczej zareagować na wycenę. Każda karta przyjmuje filtr TYLKO z
             drugiej osi: filtrowanie karty wielkości po wielkości pokazałoby
@@ -1042,7 +1042,7 @@ function ServicesPanel({ data }: { data: LeadAnalytics }) {
  * Wygrane i przegrane w jednym podziale aut.
  *
  * Segment z jednym rozstrzygniętym zapytaniem to nie jest wiedza o tym, w czym
- * wygrywamy — to jedno zdarzenie, a pokazane obok segmentów z dwudziestoma
+ * wygrywamy - to jedno zdarzenie, a pokazane obok segmentów z dwudziestoma
  * wygląda na równorzędny wniosek. Próg trzech odsiewa je, nie ukrywając niczego
  * istotnego.
  */
@@ -1056,9 +1056,9 @@ function SegmentCard({
     question: string;
     hint: string;
     rows: LeadAnalytics['bySizeSegment'];
-    /** Definicja segmentu z przykładowymi markami — tooltip po najechaniu na wiersz. */
+    /** Definicja segmentu z przykładowymi markami - tooltip po najechaniu na wiersz. */
     hints: Record<string, string>;
-    /** Etykieta drugiej osi, jeśli filtr jest aktywny — dopisek do pytania karty. */
+    /** Etykieta drugiej osi, jeśli filtr jest aktywny - dopisek do pytania karty. */
     crossFilterNote: string | null;
 }) {
     const solid = rows.filter((row) => row.won + row.lost >= 3);
@@ -1066,13 +1066,13 @@ function SegmentCard({
 
     return (
         <WideCard
-            question={crossFilterNote ? `${question} — ${crossFilterNote}` : question}
+            question={crossFilterNote ? `${question} - ${crossFilterNote}` : question}
             answer={
                 solid.length === 0
-                    ? 'Za mało rozstrzygniętych rozmów, żeby porównać segmenty. Auta rozpoznają się same z korespondencji — wróć tu, gdy uzbiera się ich więcej.'
+                    ? 'Za mało rozstrzygniętych rozmów, żeby porównać segmenty. Auta rozpoznają się same z korespondencji - wróć tu, gdy uzbiera się ich więcej.'
                     : (
                         <>
-                            Najlepiej idzie w segmencie <strong>{best?.label ?? '—'}</strong>{' '}
+                            Najlepiej idzie w segmencie <strong>{best?.label ?? '-'}</strong>{' '}
                             ({percent(best?.winRate)}).
                         </>
                     )
@@ -1112,7 +1112,7 @@ function SpeedPanel({ data }: { data: LeadAnalytics }) {
             const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
             return (
                 <>
-                    <strong>Tak — szybka odpowiedź się opłaca.</strong> Odpisując w ciągu doby wygrywasz{' '}
+                    <strong>Tak - szybka odpowiedź się opłaca.</strong> Odpisując w ciągu doby wygrywasz{' '}
                     {percent(impact.fastWinRate)} rozmów, później {percent(impact.slowWinRate)}. Różnica{' '}
                     {points(gap)}.
                 </>
@@ -1121,7 +1121,7 @@ function SpeedPanel({ data }: { data: LeadAnalytics }) {
         return (
             <>
                 <strong>Nie wykryto zależności.</strong> Skuteczność przy odpowiedzi w dobę
-                ({percent(impact.fastWinRate)}) i później ({percent(impact.slowWinRate)}) jest zbliżona —
+                ({percent(impact.fastWinRate)}) i później ({percent(impact.slowWinRate)}) jest zbliżona -
                 o wyniku decyduje coś innego niż tempo.
             </>
         );
@@ -1140,7 +1140,7 @@ function SpeedPanel({ data }: { data: LeadAnalytics }) {
                     }))}
             />
             <EmptyChart>
-                Słupek to skuteczność w danym przedziale, liczba obok — na ilu rozstrzygniętych
+                Słupek to skuteczność w danym przedziale, liczba obok - na ilu rozstrzygniętych
                 rozmowach się opiera.
             </EmptyChart>
         </WideCard>
@@ -1158,7 +1158,7 @@ function WhoPanel({ data }: { data: LeadAnalytics }) {
                 question="Czy coś odstaje"
                 answer={
                     data.vehicleOutliers.length === 0
-                        ? 'Nie wykryto odstępstw — żadna marka nie odbiega wyraźnie od Twojej średniej.'
+                        ? 'Nie wykryto odstępstw - żadna marka nie odbiega wyraźnie od Twojej średniej.'
                         : 'Marki, przy których wynik wyraźnie różni się od średniej.'
                 }
             >
@@ -1173,7 +1173,7 @@ function WhoPanel({ data }: { data: LeadAnalytics }) {
                                     <span className="name">{outlier.label}</span>
                                     <span>
                                         {above ? 'wygrywamy częściej' : 'przegrywamy częściej'}
-                                        {' — '}{outlier.won} z {outlier.closed}
+                                        {' - '}{outlier.won} z {outlier.closed}
                                     </span>
                                     <span className="spacer" />
                                     <span className="rate">{percent(outlier.winRate)}</span>
@@ -1211,12 +1211,12 @@ function WhoPanel({ data }: { data: LeadAnalytics }) {
     );
 }
 
-/** „1 rozmowie", „3 rozmowach" — miejscownik, bo zdanie brzmi „w 11 rozmowach". */
+/** „1 rozmowie", „3 rozmowach" - miejscownik, bo zdanie brzmi „w 11 rozmowach". */
 function conversationWord(count: number): string {
     return count === 1 ? 'rozmowie' : 'rozmowach';
 }
 
-/** „1 rozmowa", „3 rozmowy", „11 rozmów" — mianownik, gdy liczba stoi sama. */
+/** „1 rozmowa", „3 rozmowy", „11 rozmów" - mianownik, gdy liczba stoi sama. */
 function conversationCount(count: number): string {
     if (count === 1) return 'rozmowa';
     const rest = count % 10;

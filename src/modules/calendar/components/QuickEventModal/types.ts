@@ -14,7 +14,7 @@ export interface ServiceAdjustment {
 /**
  * Pre-fill data for opening the modal from an external context (e.g. lead booking).
  *
- * Klucze map usługowych to identyfikatory POZYCJI (`serviceIds`), nie usług z katalogu —
+ * Klucze map usługowych to identyfikatory POZYCJI (`serviceIds`), nie usług z katalogu -
  * ta sama usługa może wystąpić w wycenie dwa razy, każda ze swoją ceną i notatką.
  * `serviceRefs` odsyła pozycję do jej usługi w katalogu (albo do wpisu w `tempServices`).
  */
@@ -24,7 +24,7 @@ export interface QuickEventInitialData {
   customerEditing?: boolean;
   vehicle?: SelectedVehicle;
   title?: string;
-  /** Identyfikatory pozycji wyceny — kolejność decyduje o kolejności wierszy. */
+  /** Identyfikatory pozycji wyceny - kolejność decyduje o kolejności wierszy. */
   serviceIds?: string[];
   /** lineId → id usługi w katalogu lub w [tempServices]. */
   serviceRefs?: { [lineId: string]: string };

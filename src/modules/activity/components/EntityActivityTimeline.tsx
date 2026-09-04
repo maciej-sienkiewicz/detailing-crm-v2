@@ -1,15 +1,15 @@
 // src/modules/activity/components/EntityActivityTimeline.tsx
 // Sekcja „Historia zmian" na kartach wizyty, klienta i pojazdu.
 //
-// Te same zdarzenia i te same wiersze co zakładka Aktywność — jeden dziennik,
+// Te same zdarzenia i te same wiersze co zakładka Aktywność - jeden dziennik,
 // jeden język wizualny. Wcześniej karty miały własny, starszy moduł z własnym
 // słownikiem etykiet po stronie przeglądarki; dwa moduły tłumaczące te same
 // zdarzenia dwiema listami słów rozjeżdżały się przy każdej nowej akcji.
 // Feed z backendu przychodzi już przetłumaczony, więc tutaj zostaje sam układ.
 //
 // Różnice wobec zakładki są celowe i wynikają z miejsca:
-//  • bez hero, filtrów i wyszukiwarki — kontekst obiektu JEST filtrem;
-//  • starsze zdarzenia pod przyciskiem, nie na scrollu — sekcja siedzi w środku
+//  • bez hero, filtrów i wyszukiwarki - kontekst obiektu JEST filtrem;
+//  • starsze zdarzenia pod przyciskiem, nie na scrollu - sekcja siedzi w środku
 //    strony, która sama się przewija, i sentinel dociągałby historię za każdym
 //    przejściem obok, rozpychając sekcję na całą stronę.
 import styled, { keyframes } from 'styled-components';
@@ -29,7 +29,7 @@ const shimmer = keyframes`
     100% { opacity: 0.55; }
 `;
 
-/* Ten sam kontener co Timeline zakładki Aktywność — biel, ramka, 14 px. */
+/* Ten sam kontener co Timeline zakładki Aktywność - biel, ramka, 14 px. */
 const Shell = styled.div`
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};

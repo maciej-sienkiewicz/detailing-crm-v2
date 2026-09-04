@@ -24,7 +24,7 @@ import type { HandoverItem } from '../types/handover';
 import type { PaymentMethod } from '../types/stateTransitions';
 import type { Visit } from '../types';
 
-// Wystawienie faktury do wizyty JUŻ zakończonej — nie zmienia stanu wizyty,
+// Wystawienie faktury do wizyty JUŻ zakończonej - nie zmienia stanu wizyty,
 // dokłada tylko brakujący dokument. Z tego poziomu wychodzi wyłącznie faktura
 // konsumencka: nie ma wyboru typu dokumentu ani pola NIP, a dane firmowe
 // klienta są świadomie pomijane (patrz CompanyWarning niżej).
@@ -108,7 +108,7 @@ const FieldGrid = styled.div`
 
 /**
  * Klient ma w kartotece firmę i NIP, a mimo to wystawiamy fakturę na osobę
- * fizyczną — to musi być powiedziane wprost, zanim dokument pójdzie do KSeF.
+ * fizyczną - to musi być powiedziane wprost, zanim dokument pójdzie do KSeF.
  * Faktura firmowa wymaga innej ścieżki, bo wpływa na odliczenie VAT nabywcy.
  */
 const CompanyWarning = styled.div`
@@ -183,7 +183,7 @@ const BtnGhost = styled.button`
     &:hover { background: #f8fafc; }
 `;
 
-/** Maska PII nigdy nie może trafić na dokument — lepiej puste pole do uzupełnienia. */
+/** Maska PII nigdy nie może trafić na dokument - lepiej puste pole do uzupełnienia. */
 const invoiceSafe = (value: string | null | undefined): string =>
     value && !isPiiMasked(value) ? value : '';
 
@@ -197,7 +197,7 @@ interface ConsumerInvoiceModalProps {
     visit: Visit;
     isOpen: boolean;
     onClose: () => void;
-    /** Wywoływane po udanym wystawieniu — odświeża detal wizyty. */
+    /** Wywoływane po udanym wystawieniu - odświeża detal wizyty. */
     onIssued: () => void;
 }
 
@@ -319,7 +319,7 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
                         <AlertTriangle />
                         <span>
                             Klient ma w kartotece dane firmowe
-                            {visit.customer.companyNip ? ` (NIP ${visit.customer.companyNip})` : ''} — z tego
+                            {visit.customer.companyNip ? ` (NIP ${visit.customer.companyNip})` : ''} - z tego
                             miejsca wystawiasz wyłącznie fakturę dla osoby fizycznej, więc nie zostaną one
                             użyte. Fakturę firmową wystaw w module finansów.
                         </span>

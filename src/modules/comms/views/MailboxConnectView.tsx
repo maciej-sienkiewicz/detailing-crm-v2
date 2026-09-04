@@ -155,7 +155,7 @@ export default function MailboxConnectView() {
                     sync.mutate(account.id);
                     showSuccess(
                         'Skrzynka połączona',
-                        'Pobieramy wiadomości z ostatnich 90 dni — możesz już pracować'
+                        'Pobieramy wiadomości z ostatnich 90 dni - możesz już pracować'
                     );
                 },
                 onError: (err) => {
@@ -173,7 +173,7 @@ export default function MailboxConnectView() {
         <Screen>
             <PageHeader
                 title="Skrzynki pocztowe"
-                subtitle="Podłącz pocztę firmową — wykrywamy serwer automatycznie"
+                subtitle="Podłącz pocztę firmową - wykrywamy serwer automatycznie"
                 actions={
                     <Link to="/communication">
                         <PageHeaderGhostButton as="span">
@@ -186,7 +186,7 @@ export default function MailboxConnectView() {
             <Card>
                 <Helper>
                     Podaj adres i hasło do swojej skrzynki. Serwer pocztowy wykryjemy automatycznie,
-                    a wiadomości będą synchronizować się w tle — także statusy przeczytania.
+                    a wiadomości będą synchronizować się w tle - także statusy przeczytania.
                 </Helper>
 
                 <Field>
@@ -203,7 +203,7 @@ export default function MailboxConnectView() {
                 {oauthProvider && (
                     <ErrorText style={{ background: '#eff6ff', color: '#1e40af' }}>
                         Ta skrzynka ({detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'})
-                        wymaga logowania u dostawcy. Ta metoda będzie dostępna wkrótce — na razie
+                        wymaga logowania u dostawcy. Ta metoda będzie dostępna wkrótce - na razie
                         możesz podłączyć skrzynkę z klasycznego hostingu.
                     </ErrorText>
                 )}
@@ -221,7 +221,7 @@ export default function MailboxConnectView() {
                         </Field>
                         {detection?.requiresAppPassword && (
                             <Helper>
-                                Ten dostawca wymaga „hasła aplikacji" — wygeneruj je w panelu poczty
+                                Ten dostawca wymaga „hasła aplikacji" - wygeneruj je w panelu poczty
                                 {detection.guideUrl && (
                                     <> (<a href={detection.guideUrl} target="_blank" rel="noreferrer">instrukcja</a>)</>
                                 )}{' '}
@@ -308,7 +308,7 @@ export default function MailboxConnectView() {
                                 </div>
                                 {account.status === 'AUTH_FAILED' && (
                                     <div className="err">
-                                        {account.lastError ?? 'Hasło przestało działać — połącz skrzynkę ponownie'}
+                                        {account.lastError ?? 'Hasło przestało działać - połącz skrzynkę ponownie'}
                                     </div>
                                 )}
                             </div>

@@ -2,15 +2,15 @@
  * Application Service Worker
  *
  * Registered at scope '/' from src/main.tsx (replaces the former logo-sw.js
- * and sw.js registrations — a scope can hold exactly ONE registration, so the
+ * and sw.js registrations - a scope can hold exactly ONE registration, so the
  * logo cache and Web Push live in the same worker).
  *
  * Responsibilities:
  *   1. Car-logo CacheFirst cache (unchanged behaviour of the old logo-sw.js).
  *   2. Web Push notifications, of two shapes:
  *
- *      a) CLICK_TO_CALL — the desktop asked this phone to ring a number.
- *      b) Informational (VISIT_COMPLETED, NEW_LEAD) — the backend supplies the
+ *      a) CLICK_TO_CALL - the desktop asked this phone to ring a number.
+ *      b) Informational (VISIT_COMPLETED, NEW_LEAD) - the backend supplies the
  *         finished title, body and target path; this worker only renders them
  *         and maps the icon key to a file. Copy stays server-side because a
  *         worker reaches phones slowly, while wording changes often.
@@ -20,7 +20,7 @@
  *                              (pl.detailing.crm.push.call.ClickToCallPayload)
  *                              → system notification with a "Zadzwoń" action.
  *      - 'notificationclick' → opens /call.html?number=... (a static page,
- *                              not an SPA route — it must paint and fire the
+ *                              not an SPA route - it must paint and fire the
  *                              dialer instantly, with no bundle in the way).
  *                              A Service Worker CANNOT open the dialer itself:
  *                              Clients.openWindow() and WindowClient.navigate()
@@ -103,7 +103,7 @@ self.addEventListener('push', event => {
     }
     if (!payload) return;
 
-    // waitUntil keeps the worker alive until the notification is on screen —
+    // waitUntil keeps the worker alive until the notification is on screen -
     // without it the browser may kill the worker mid-flight. On Chrome a push
     // that shows NO notification gets penalised (future pushes throttled), so
     // every branch below must end in showNotification().
@@ -127,13 +127,13 @@ function showCallNotification(payload) {
         body: `${payload.phoneNumber} · zlecono z komputera`,
         icon: ICONS.CALL.icon,
         // Status-bar badge. Android keeps ONLY the alpha channel and paints the
-        // shape white, so these files are solid glyphs on transparency — a
+        // shape white, so these files are solid glyphs on transparency - a
         // coloured or boxed image would come out as a grey blob. Ignored on
         // desktop and on iOS, which uses the home-screen icon.
         badge: ICONS.CALL.badge,
         tag: 'click-to-call',       // a newer call replaces a stale one instead of stacking
         renotify: true,
-        requireInteraction: true,    // stays on screen until acted upon — it's a call to action
+        requireInteraction: true,    // stays on screen until acted upon - it's a call to action
         vibrate: [200, 100, 200],
         actions: [
             { action: 'call', title: '📞 Zadzwoń' },
@@ -157,7 +157,7 @@ function showInfoNotification(payload) {
         // A notification that has to be dismissed by hand is a chore, and money
         // stated once does not need to be acknowledged.
         requireInteraction: false,
-        // A short, single pulse — noticeable in a pocket, not an alarm.
+        // A short, single pulse - noticeable in a pocket, not an alarm.
         vibrate: [120],
         data: { url: payload.url },
     });
@@ -169,7 +169,7 @@ self.addEventListener('notificationclick', event => {
 
     const data = event.notification.data || {};
 
-    // Click-to-Call: a tel: URL cannot be opened from here at all — the spec
+    // Click-to-Call: a tel: URL cannot be opened from here at all - the spec
     // restricts openWindow() and WindowClient.navigate() to HTTP(S) schemes, so
     // openWindow('tel:...') rejects silently and the tap looks dead. The handoff
     // page carries the number into an ordinary document, which may reach the dialer.
@@ -236,6 +236,6 @@ self.addEventListener('pushsubscriptionchange', event => {
                     }),
                 });
             })
-            .catch(() => {/* best effort — the user can re-pair from the UI */})
+            .catch(() => {/* best effort - the user can re-pair from the UI */})
     );
 });

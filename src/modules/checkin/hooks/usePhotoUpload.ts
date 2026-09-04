@@ -4,7 +4,7 @@ import { checkinApi } from '../api/checkinApi';
 import type { PhotoSlot } from '../types';
 
 // appointmentId jest opcjonalne: check-in „z marszu" (/checkin/new) robi zdjęcia,
-// zanim istnieje rezerwacja — sesja powstaje wtedy bez powiązania z terminem.
+// zanim istnieje rezerwacja - sesja powstaje wtedy bez powiązania z terminem.
 export const usePhotoUpload = (appointmentId?: string) => {
     const queryClient = useQueryClient();
 

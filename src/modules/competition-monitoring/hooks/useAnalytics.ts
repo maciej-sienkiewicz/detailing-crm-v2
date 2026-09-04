@@ -36,7 +36,7 @@ export const useOverview = (weeks: WeeksOption) =>
 /**
  * `placeholderData` trzyma poprzednie dane przy zmianie okresu, więc zakładka nie
  * odmontowuje się na czas pobierania. Bez tego komponent montował się od nowa i
- * resetował wybór profili na wykresach — a że backend sortuje profile wg aktywności
+ * resetował wybór profili na wykresach - a że backend sortuje profile wg aktywności
  * *w danym oknie*, po zmianie okresu na wykresie potrafiła wylądować inna czwórka
  * i wspólne okno porównania zmieniało się bez wyraźnego powodu.
  */

@@ -830,8 +830,8 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     const canToggle = reminderSms.editable && preVisitEnabled;
     // Wyjaśnienie pokazywane pod kursorem, gdy przełącznik jest zablokowany (poza
     // przypadkiem "już wysłany", który dostaje własną plakietkę zamiast przełącznika).
-    // reminderSms.editable jest tu praktycznie zawsze true — staje się false tylko,
-    // gdy status to SENT, a to gałąź `alreadySent` obsługuje osobno — ale zostawiamy
+    // reminderSms.editable jest tu praktycznie zawsze true - staje się false tylko,
+    // gdy status to SENT, a to gałąź `alreadySent` obsługuje osobno - ale zostawiamy
     // ten wariant na wszelki wypadek, gdyby backend kiedyś dodał inny powód niedostępności.
     const disabledReason = !preVisitEnabled
         ? 'Przypomnienia SMS przed wizytą są wyłączone w konfiguracji studia. Włącz je w Ustawieniach → Szablony SMS.'
@@ -864,7 +864,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
 
     const effectiveChecked = canToggle && checked;
 
-    // Natywny `disabled` blokuje hover i klik razem z toggle'owaniem — kiedy powód jest
+    // Natywny `disabled` blokuje hover i klik razem z toggle'owaniem - kiedy powód jest
     // konfiguracyjny (nie chwilowy zapis), zostawiamy element klikalnym (handleToggle i
     // tak nic nie zrobi) i owijamy go w HoverInfo, żeby po najechaniu było wiadomo,
     // dlaczego się nie da, zamiast samej wyszarzonej ikonki bez wyjaśnienia.
@@ -1302,7 +1302,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 {isCancelled ? (
                                     <>
                                         {/* Przywrócenie zmienia stan rezerwacji, więc wymaga prawa
-                                            do tworzenia wizyt — sam podgląd kalendarza nie wystarcza. */}
+                                            do tworzenia wizyt - sam podgląd kalendarza nie wystarcza. */}
                                         {can('VISITS_CREATE') && (
                                             <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
                                         )}
@@ -1342,8 +1342,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </svg>
                                 Przejdź do wizyty
                             </ManageButton>
-                            {/* Zmiana terminu zakończenia edytuje wizytę, więc — jak PORZUĆ
-                                i PRZYWRÓĆ — wymaga prawa do tworzenia wizyt. */}
+                            {/* Zmiana terminu zakończenia edytuje wizytę, więc - jak PORZUĆ
+                                i PRZYWRÓĆ - wymaga prawa do tworzenia wizyt. */}
                             {onEditEndDateClick && can('VISITS_CREATE') && (
                                 <SecondaryButton onClick={onEditEndDateClick} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

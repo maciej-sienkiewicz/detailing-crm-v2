@@ -4,7 +4,7 @@
 //
 // Two things routinely break a "dodaj z galerii" pick that a camera capture never
 // hits, because the gallery hands over the ORIGINAL file:
-//   • HEIC/HEIF — the default iPhone format, which the backend rejects,
+//   • HEIC/HEIF - the default iPhone format, which the backend rejects,
 //   • originals above the 10 MB upload limit (12 Mpx phone photos regularly are).
 // Both are re-encoded here to a JPEG that the backend accepts, instead of being
 // refused with an error the operator cannot act on.
@@ -15,7 +15,7 @@ export const ACCEPTED_UPLOAD_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'i
 /** Backend hard limit for a single check-in photo. */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-/** Long edge the re-encoded photo is scaled down to — plenty for damage documentation. */
+/** Long edge the re-encoded photo is scaled down to - plenty for damage documentation. */
 const MAX_EDGE_PX = 2560;
 
 /** Tried in order until the encoded photo fits under MAX_UPLOAD_BYTES. */
@@ -48,7 +48,7 @@ export const resolveFileType = (file: File): string => {
     return (ext && EXTENSION_TYPES[ext]) || '';
 };
 
-/** True when the file can go to the backend untouched — no re-encoding needed. */
+/** True when the file can go to the backend untouched - no re-encoding needed. */
 export const isUploadReady = (file: File): boolean =>
     ACCEPTED_UPLOAD_TYPES.includes(resolveFileType(file)) && file.size <= MAX_UPLOAD_BYTES;
 
@@ -80,7 +80,7 @@ const decode = async (file: File): Promise<DecodedImage> => {
                 };
             } catch {
                 // Older Safari rejects the options argument; no engine decodes HEIC this
-                // way — both cases fall through to the <img> path below.
+                // way - both cases fall through to the <img> path below.
             }
         }
     }

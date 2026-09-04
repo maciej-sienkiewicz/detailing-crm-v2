@@ -6,7 +6,7 @@ import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
 /**
  * Zachowanie okna modalnego, którego nie da się opisać samym CSS-em. Wyjęte
  * z ModalShell, żeby okna zbudowane na własnych nakładkach (wykaz usług,
- * rabaty) zachowywały się dokładnie tak samo — to one były źródłem zgłoszeń
+ * rabaty) zachowywały się dokładnie tak samo - to one były źródłem zgłoszeń
  * „tło się przewija", „okno ucięte", „nie da się zamknąć".
  *
  * Robi trzy rzeczy:
@@ -17,17 +17,17 @@ import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
  *     nie dawało. `overscroll-behavior` odcina jeszcze łańcuch przewijania
  *     z wnętrza okna na dokument.
  *  3. Chowa na telefonie oba dolne paski nawigacji. Leżą przy tej samej
- *     krawędzi co stopka okna i potrafiły ją zasłonić — a nawigacja pod
+ *     krawędzi co stopka okna i potrafiły ją zasłonić - a nawigacja pod
  *     otwartym oknem i tak jest nieklikalna.
  *  4. Wciska okno w widoczny obszar, gdy wyjedzie klawiatura ekranowa, i pilnuje,
- *     żeby aktualnie edytowane pole zostało widoczne — po zmianie geometrii
+ *     żeby aktualnie edytowane pole zostało widoczne - po zmianie geometrii
  *     ekranu pole potrafiło wylądować pod klawiaturą i trzeba było doscrollować
  *     do miejsca, w którym się właśnie pisze.
  *     `position: fixed` rozlicza się względem layout viewportu, którego iOS
  *     nie skraca dla klawiatury (skraca visual viewport), więc wyśrodkowane
  *     pionowo okno chowa się za klawiaturą razem ze swoją stopką.
  *
- *     Nakładka NIE zmienia przy tym rozmiaru — skracanie jej do `vv.height`
+ *     Nakładka NIE zmienia przy tym rozmiaru - skracanie jej do `vv.height`
  *     zostawiało pod spodem pas nierozmytej aplikacji. Zamiast tego trzyma
  *     cały layout viewport, a okno dociskamy paddingami:
  *       góra = vv.offsetTop  → pierwszy widoczny piksel
@@ -81,7 +81,7 @@ export const useModalViewport = (
          * przewijania między nagłówkiem a stopką i pole potrafi wylądować pod
          * przyciskami, formalnie mieszcząc się w pasmie widocznym mimo klawiatury.
          * Liczymy więc część wspólną obszaru przewijania okna z tym pasmem, a
-         * przewijamy dopiero, gdy pole naprawdę z niej wypadło — inaczej
+         * przewijamy dopiero, gdy pole naprawdę z niej wypadło - inaczej
          * wyrywalibyśmy widok komuś, kto przewija okno w trakcie pisania.
          */
         const revealFocusedField = () => {
@@ -133,7 +133,7 @@ export const useModalViewport = (
 
         schedule();
         // Klawiatura wjeżdża ~250ms, a iOS raportuje po drodze pośrednie
-        // wymiary — domierz po jej ustaniu.
+        // wymiary - domierz po jej ustaniu.
         const settle = [setTimeout(schedule, 150), setTimeout(schedule, 400)];
 
         // Przejście między polami nie zmienia geometrii ekranu (klawiatura już

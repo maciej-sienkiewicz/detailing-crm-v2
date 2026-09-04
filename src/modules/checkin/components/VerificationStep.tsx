@@ -601,7 +601,7 @@ const CheckRow = styled.label`
 /**
  * Komunikat błędu pod polem, oznaczony kotwicą `data-error-anchor`.
  * Kreator po nieudanej walidacji przewija do pierwszej takiej kotwiki w
- * kolejności DOM — czyli w kolejności pól na formularzu, a nie w kolejności
+ * kolejności DOM - czyli w kolejności pól na formularzu, a nie w kolejności
  * komunikatów na liście w stopce.
  */
 const FieldError = ({ children }: { children: ReactNode }) => (
@@ -711,7 +711,7 @@ export const VerificationStep = ({
 
     /*
      * Numer trzymamy w formie „+48 123 456 789", a w bazie ten sam klient może być
-     * zapisany i z prefiksem, i bez. Szukamy więc po samych cyfrach części krajowej —
+     * zapisany i z prefiksem, i bez. Szukamy więc po samych cyfrach części krajowej -
      * to jedyny fragment wspólny dla obu zapisów (backend przed porównaniem i tak
      * usuwa spacje).
      */
@@ -846,7 +846,7 @@ export const VerificationStep = ({
     const vehicleWasPreSelected = useRef(!!formData.vehicleData?.id && !formData.isNewVehicle);
 
     // "Aktualizujesz dane" is only true while the record is the one we started from. Once a
-    // different customer or car is picked, saying that is plainly wrong — the operator swapped
+    // different customer or car is picked, saying that is plainly wrong - the operator swapped
     // the record, they did not edit the old one.
     const customerReplaced = customerSwappedInSession || (!!initialCustomerData?.id
         && (formData.isNewCustomer || formData.customerData.id !== initialCustomerData.id));
@@ -1247,14 +1247,14 @@ export const VerificationStep = ({
         setCustomerSwapDecisionPending(false);
     };
 
-    /** "Podmieniamy pojazd" — send the operator straight to the new customer's cars. */
+    /** "Podmieniamy pojazd" - send the operator straight to the new customer's cars. */
     const chooseDifferentVehicle = () => {
         onChange({ vehicleOwnershipAction: null });
         setShowCustomerSwapDecision(false);
         setIsVehicleModalOpen(true);
     };
 
-    /** "Zostawiamy pojazd" — the new customer is written onto the car as an extra owner. */
+    /** "Zostawiamy pojazd" - the new customer is written onto the car as an extra owner. */
     const keepVehicleAndAddOwner = () => {
         onChange({ vehicleOwnershipAction: 'ADD_CO_OWNER' });
         setShowCustomerSwapDecision(false);
@@ -1706,7 +1706,7 @@ export const VerificationStep = ({
 
                     {customerSwapDecisionPending && (
                         <DecisionBanner>
-                            Zmieniono klienta wizyty — zdecyduj, co dzieje się z pojazdem.
+                            Zmieniono klienta wizyty - zdecyduj, co dzieje się z pojazdem.
                             <DecisionBannerBtn type="button" onClick={() => setShowCustomerSwapDecision(true)}>
                                 Wybierz
                             </DecisionBannerBtn>
@@ -2075,7 +2075,7 @@ export const VerificationStep = ({
 
             {/*
               * Raised right after the visit's customer is swapped while a car is still attached.
-              * Both answers are real operations, so neither is styled as the confirm button —
+              * Both answers are real operations, so neither is styled as the confirm button -
               * they are two equal choices, and closing the window leaves the question open
               * (a banner in the vehicle section brings it back).
               */}
@@ -2086,7 +2086,7 @@ export const VerificationStep = ({
             >
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Zmieniono klienta — co z pojazdem?</ModalTitle>
+                        <ModalTitle>Zmieniono klienta - co z pojazdem?</ModalTitle>
                         <ModalSubtitle>
                             Do wizyty przypisany jest{' '}
                             {[formData.vehicleData?.brand, formData.vehicleData?.model].filter(Boolean).join(' ') || 'pojazd'}

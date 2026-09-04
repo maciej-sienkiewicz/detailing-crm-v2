@@ -1,15 +1,15 @@
 // src/modules/comms/utils/leadServiceLines.ts
 // Tłumaczenie między wyceną leada a edytorem usług używanym przy przyjęciu pojazdu.
 //
-// Wycena leada to ta sama czynność co wycena wizyty — te same usługi, ten sam cennik,
+// Wycena leada to ta sama czynność co wycena wizyty - te same usługi, ten sam cennik,
 // ta sama potrzeba dopisania „bez zderzaka" przy pozycji. Dlatego lead korzysta
 // z gotowego EditableServicesTable, a nie z własnej, uboższej listy.
 //
 // Jedna różnica modeli wymaga tłumaczenia: pozycja leada ma ILOŚĆ, a wiersz edytora
-// nie ma — ma za to rabat liczony od konkretnej ceny. Rozwijamy więc ilość na wiersze
+// nie ma - ma za to rabat liczony od konkretnej ceny. Rozwijamy więc ilość na wiersze
 // (3 sztuki → trzy wiersze) i zwijamy z powrotem do ilości 1. Suma pozostaje ta sama
 // co do grosza, a użytkownik dostaje w zamian rabat i notatkę na każdej pozycji
-// z osobna — czego ilość nigdy nie potrafiła.
+// z osobna - czego ilość nigdy nie potrafiła.
 import { applyAdjustment, grossToNet } from '@/common/utils/priceAdjustment';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import type { LeadServiceItem, LeadServiceItemInput } from '../types';
@@ -17,7 +17,7 @@ import type { LeadServiceItem, LeadServiceItemInput } from '../types';
 /** Domyślna stawka dla pozycji sprzed V75, które znały wyłącznie brutto. */
 const DEFAULT_VAT_RATE = 23;
 
-/** Ile najwyżej wierszy rozwiniemy z jednej pozycji — zapora przed ilością z literówki. */
+/** Ile najwyżej wierszy rozwiniemy z jednej pozycji - zapora przed ilością z literówki. */
 const MAX_EXPANDED_ROWS = 50;
 
 export function toServiceLines(items: LeadServiceItem[]): ServiceLineItem[] {
@@ -32,7 +32,7 @@ export function toServiceLines(items: LeadServiceItem[]): ServiceLineItem[] {
             basePriceNet,
             basePriceGross: item.priceGross,
             vatRate,
-            // Cena jest już zamrożona w chwili wyceny — wracamy do niej bez rabatu,
+            // Cena jest już zamrożona w chwili wyceny - wracamy do niej bez rabatu,
             // żeby ponowne otwarcie edytora niczego nie przeliczyło samo z siebie.
             adjustment: { type: 'PERCENT' as const, value: 0 },
             note: item.note ?? '',
@@ -62,7 +62,7 @@ export function toLeadInputs(lines: ServiceLineItem[]): LeadServiceItemInput[] {
     });
 }
 
-/** Pozycja wyceny rozpisana na netto / VAT / brutto — kształt tabeli podglądu. */
+/** Pozycja wyceny rozpisana na netto / VAT / brutto - kształt tabeli podglądu. */
 export interface LeadQuoteRow {
     id: string;
     name: string;
@@ -75,7 +75,7 @@ export interface LeadQuoteRow {
 
 /**
  * Wycena leada w rozbiciu na kwoty. Brutto jest źródłem prawdy (to ono trafia do
- * sumy leada), netto bierzemy z zapisanego pola, a gdy go nie ma — z przeliczenia
+ * sumy leada), netto bierzemy z zapisanego pola, a gdy go nie ma - z przeliczenia
  * po stawce. VAT liczymy jako różnicę, nie osobnym mnożeniem: inaczej suma trzech
  * kolumn potrafi rozminąć się o grosz z kwotą, którą klient widzi na ofercie.
  */
@@ -98,7 +98,7 @@ export function toQuoteRows(items: LeadServiceItem[]): LeadQuoteRow[] {
     });
 }
 
-/** Suma brutto po rabatach — ta sama liczba, którą zapisze backend. */
+/** Suma brutto po rabatach - ta sama liczba, którą zapisze backend. */
 export function totalGrossOf(lines: ServiceLineItem[]): number {
     return lines.reduce((sum, line) => {
         const { finalGrossCents } = applyAdjustment(

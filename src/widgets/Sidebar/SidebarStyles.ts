@@ -115,7 +115,7 @@ export const LogoIcon = styled.div`
  * Kafelek z logo studia w miejscu inicjałów.
  *
  * Jasne tło pod logo jest konieczne, a nie kosmetyczne: pasek boczny jest ciemny
- * (#0f172a), a logotypy bywają czarne albo granatowe — na ciemnym tle znikałyby.
+ * (#0f172a), a logotypy bywają czarne albo granatowe - na ciemnym tle znikałyby.
  * `contain` zamiast `cover`, bo logo przycięte do kwadratu przestaje być logiem.
  */
 export const LogoImage = styled.img`

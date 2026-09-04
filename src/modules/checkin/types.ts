@@ -120,8 +120,8 @@ export interface CheckInFormData {
     /**
      * Co zrobić z właścicielami wybranego (istniejącego) pojazdu, gdy operator podmienił
      * klienta wizyty, a pojazd zostawił bez zmian. `null`/brak = nie ruszamy właścicieli.
-     * ADD_CO_OWNER     — nowy klient zostaje dopisany jako współwłaściciel,
-     * TRANSFER_PRIMARY — pojazd zostaje przepisany na nowego klienta (poprzedni odpięci).
+     * ADD_CO_OWNER     - nowy klient zostaje dopisany jako współwłaściciel,
+     * TRANSFER_PRIMARY - pojazd zostaje przepisany na nowego klienta (poprzedni odpięci).
      */
     vehicleOwnershipAction?: VehicleOwnershipAction | null;
     vehicleHandoff: {

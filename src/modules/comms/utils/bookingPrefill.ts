@@ -4,21 +4,21 @@
 // Sens przycisku „Stwórz rezerwację" polega na tym, że nikt nie przepisuje ręcznie
 // danych, które system ma pod ręką: klienta z kartoteki, auta z jego historii,
 // wyceny uzgodnionej w korespondencji. Tłumaczenie modeli siedzi w jednym miejscu,
-// bo robią to dwa różne widoki — panel leada i podgląd konwersacji.
+// bo robią to dwa różne widoki - panel leada i podgląd konwersacji.
 import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { QuickEventInitialData } from '@/modules/calendar';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import type { ContactCard, Lead, LeadServiceItem } from '../types';
 
-/** Stawka dla pozycji sprzed V75, które znały wyłącznie brutto — jak w leadServiceLines. */
+/** Stawka dla pozycji sprzed V75, które znały wyłącznie brutto - jak w leadServiceLines. */
 const DEFAULT_VAT_RATE = 23;
 
-/** Ile najwyżej wierszy rozwiniemy z jednej pozycji — zapora przed ilością z literówki. */
+/** Ile najwyżej wierszy rozwiniemy z jednej pozycji - zapora przed ilością z literówki. */
 const MAX_EXPANDED_ROWS = 50;
 
 /**
  * „Jan Kowalski" → { firstName: 'Jan', lastName: 'Kowalski' }.
- * Kartoteka trzyma imię i nazwisko osobno, a lead i wątek — jednym ciągiem.
+ * Kartoteka trzyma imię i nazwisko osobno, a lead i wątek - jednym ciągiem.
  * Ostatni człon traktujemy jako nazwisko: „Anna Maria Nowak" to Anna Maria + Nowak.
  */
 function splitName(fullName: string | null | undefined): { firstName: string; lastName: string } {
@@ -41,7 +41,7 @@ interface ServicePrefill {
 /**
  * Wycena leada → pozycje formularza rezerwacji.
  *
- * Cena pozycji leada jest już PO rabatach — rabat został „wypalony" w kwocie w chwili
+ * Cena pozycji leada jest już PO rabatach - rabat został „wypalony" w kwocie w chwili
  * wyceny. Dlatego wchodzi tu jako cena bazowa z zerowym rabatem: przeniesienie samej
  * wartości procentowej przeliczyłoby ją drugi raz i klient dostałby rabat podwójnie.
  *
@@ -67,7 +67,7 @@ function servicesToPrefill(items: LeadServiceItem[]): ServicePrefill {
         for (let index = 0; index < copies; index += 1) {
             const lineId = `lead-${item.id}-${index}`;
             // Pozycja bez usługi z katalogu (wpisana ręcznie przy wycenie) musi wejść
-            // jako usługa tymczasowa — inaczej formularz nie ma skąd wziąć jej nazwy.
+            // jako usługa tymczasowa - inaczej formularz nie ma skąd wziąć jej nazwy.
             const catalogId = item.serviceId ?? `temp-${lineId}`;
             if (!item.serviceId) {
                 prefill.tempServices[catalogId] = {
@@ -89,7 +89,7 @@ function servicesToPrefill(items: LeadServiceItem[]): ServicePrefill {
 }
 
 /**
- * Klient do formularza. Rozpoznany w kartotece wchodzi jako istniejący — rezerwacja
+ * Klient do formularza. Rozpoznany w kartotece wchodzi jako istniejący - rezerwacja
  * dopina się do jego historii zamiast zakładać duplikat. Nierozpoznany wchodzi jako
  * nowy i w trybie edycji: dane z maila to nasze przypuszczenie, więc niech człowiek
  * je potwierdzi, zamiast zakładać kartotekę na literówkę w stopce.
@@ -158,7 +158,7 @@ export function leadToBookingPrefill(lead: Lead, contactCard?: ContactCard | nul
     };
 }
 
-/** Podgląd konwersacji → wypełniony formularz rezerwacji (bez wyceny — tej jeszcze nie ma). */
+/** Podgląd konwersacji → wypełniony formularz rezerwacji (bez wyceny - tej jeszcze nie ma). */
 export function contactToBookingPrefill(params: {
     email: string;
     participantName: string | null;

@@ -151,7 +151,7 @@ describe('ClearAccountModal', () => {
         await userEvent.click(dangerButton());
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Nieprawidłowe hasło');
-        // Formularz zostaje — użytkownik poprawia hasło, nie zaczyna od zera.
+        // Formularz zostaje - użytkownik poprawia hasło, nie zaczyna od zera.
         expect(nameInput()).toHaveValue(COMPANY_NAME);
     });
 
@@ -166,7 +166,7 @@ describe('ClearAccountModal', () => {
         expect(await screen.findByText(/trwa czyszczenie konta/i)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /zamknij/i })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /anuluj/i })).not.toBeInTheDocument();
-        // Pokazujemy krok z nazwą — użytkownik widzi, że coś naprawdę się dzieje.
+        // Pokazujemy krok z nazwą - użytkownik widzi, że coś naprawdę się dzieje.
         expect(await screen.findByText(/Klienci/)).toBeInTheDocument();
     });
 
@@ -188,7 +188,7 @@ describe('ClearAccountModal', () => {
         expect(await screen.findByText(/nie powiodło się/i)).toBeInTheDocument();
         expect(screen.getByText(/Krok Instagram eksplodował/)).toBeInTheDocument();
         expect(screen.getByText(/job-1/)).toBeInTheDocument();
-        // Krzyżyk w nagłówku i „Zamknij" w stopce — obie drogi wyjścia wracają po porażce.
+        // Krzyżyk w nagłówku i „Zamknij" w stopce - obie drogi wyjścia wracają po porażce.
         expect(screen.getAllByRole('button', { name: /zamknij/i }).length).toBeGreaterThan(0);
     });
 });

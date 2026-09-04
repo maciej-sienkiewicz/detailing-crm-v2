@@ -1,11 +1,11 @@
 // src/modules/comms/components/MailboxSyncPanel.tsx
-// Stan „trwa pierwsza synchronizacja skrzynki" — wspólny dla poczty i leadów.
+// Stan „trwa pierwsza synchronizacja skrzynki" - wspólny dla poczty i leadów.
 //
 // Pierwszy import potrafi trwać minuty i przez ten czas obie listy rosną
 // z sekundy na sekundę. Pokazywanie ich w tym stanie uczyło użytkownika, że
 // aplikacja jest chaotyczna: wiersze skakały, liczniki się zmieniały, a każda
 // wiadomość strzelała powiadomieniem. Jeden spokojny ekran z paskiem postępu
-// mówi prawdę — „pracujemy, wróć za parę minut" — i niczego nie udaje.
+// mówi prawdę - „pracujemy, wróć za parę minut" - i niczego nie udaje.
 import styled, { keyframes } from 'styled-components';
 import { RefreshCw } from 'lucide-react';
 import { useMailboxSyncState } from '../hooks/useComms';
@@ -73,7 +73,7 @@ const ProgressLabel = styled.span`
 `;
 
 /**
- * Sama treść stanu — bez własnej karty, żeby każdy widok mógł ją osadzić we
+ * Sama treść stanu - bez własnej karty, żeby każdy widok mógł ją osadzić we
  * własnej powierzchni (AppCard w poczcie, SurfaceCard w leadach).
  */
 export function MailboxSyncPanel() {
@@ -85,7 +85,7 @@ export function MailboxSyncPanel() {
             <h3>Trwa synchronizacja Twojej skrzynki pocztowej</h3>
             <p>
                 Pobieramy Twoją dotychczasową korespondencję i układamy z niej rozmowy.
-                Poczekaj kilka minut i wróć ponownie — wszystko zrobi się samo.
+                Poczekaj kilka minut i wróć ponownie - wszystko zrobi się samo.
             </p>
             {/* Pasek dopiero, gdy backend zgłosił liczbę wiadomości. Zmyślony procent,
                 który doskakuje do 100% i stoi, jest gorszy niż sam spinner. */}

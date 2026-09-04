@@ -1,7 +1,7 @@
 // src/modules/customers/components/SendSmsModal.tsx
 //
 // SMS napisany ręcznie do klienta. Treść pisze użytkownik, więc obok pola
-// stoi ten sam korektor co przy tworzeniu maila — literówka w SMS-ie wychodzi
+// stoi ten sam korektor co przy tworzeniu maila - literówka w SMS-ie wychodzi
 // do klienta i nie da się jej cofnąć.
 
 import { useMemo, useState } from 'react';
@@ -79,7 +79,7 @@ interface SendSmsModalProps {
 
 export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendSmsModalProps) => {
     const [message, setMessage] = useState('');
-    // Treść sprzed korekty — dopóki użytkownik jej nie tknął, można wrócić jednym kliknięciem.
+    // Treść sprzed korekty - dopóki użytkownik jej nie tknął, można wrócić jednym kliknięciem.
     const [beforeProofread, setBeforeProofread] = useState<string | null>(null);
     const { showSuccess, showError } = useToast();
     const proofread = useProofread();
@@ -174,7 +174,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
                         $variant="secondary"
                         onClick={runProofread}
                         disabled={proofread.isPending || !message.trim()}
-                        title="Popraw literówki, interpunkcję i odmianę — bez zmiany treści"
+                        title="Popraw literówki, interpunkcję i odmianę - bez zmiany treści"
                     >
                         {proofread.isPending
                             ? <><Loader2 size={14} className="spin" /> Poprawiam…</>

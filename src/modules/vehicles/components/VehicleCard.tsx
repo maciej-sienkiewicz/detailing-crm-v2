@@ -31,7 +31,7 @@ const CardHeader = styled.header`
     margin-bottom: ${props => props.theme.spacing.sm};
 `;
 
-/* Tablica rejestracyjna wygląda tak samo jak na liście wizyt — ciemna,
+/* Tablica rejestracyjna wygląda tak samo jak na liście wizyt - ciemna,
    monospace'owa plakietka, nie kolorowy baner. */
 const LicensePlate = styled.div`
     display: inline-flex;
@@ -77,7 +77,7 @@ const OwnersSection = styled.div`
     margin-bottom: ${props => props.theme.spacing.sm};
 `;
 
-/* Rola właściciela to niuans, nie status do podświetlania — jeden stonowany
+/* Rola właściciela to niuans, nie status do podświetlania - jeden stonowany
    znacznik dla wszystkich, główny właściciel wyróżniony samą grubością. */
 const OwnerTag = styled.span<{ $role: string }>`
     padding: 3px 10px;

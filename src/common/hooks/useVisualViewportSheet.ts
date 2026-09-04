@@ -7,14 +7,14 @@ type SheetRef = RefObject<HTMLElement | null>;
 /**
  * Sposób, w jaki arkusz reaguje na klawiaturę:
  *
- * `'pad'` (domyślny) — arkusz NIE zmienia rozmiaru. Zostaje rozpięty na całym
+ * `'pad'` (domyślny) - arkusz NIE zmienia rozmiaru. Zostaje rozpięty na całym
  * ekranie, a wysokość klawiatury ląduje w zmiennej `--kb-inset`, którą lista
  * podpowiedzi dokłada sobie jako `padding-bottom`. Nic się nie przesuwa: to,
  * co znika pod klawiaturą, i tak nie było widoczne, a użytkownik może
  * doscrollować do ostatniej pozycji. Tak działają arkusze, które mają tylko
  * nagłówek, pole wyszukiwania i listę.
  *
- * `'resize'` — dolna krawędź arkusza dojeżdża nad klawiaturę. Potrzebne tylko
+ * `'resize'` - dolna krawędź arkusza dojeżdża nad klawiaturę. Potrzebne tylko
  * tam, gdzie na dole arkusza siedzi pasek akcji („Zatwierdź"), który musi
  * zostać w zasięgu kciuka.
  */
@@ -32,13 +32,13 @@ interface VisualViewportSheetOptions {
  * resizes the layout viewport when the keyboard opens; it shrinks the
  * **visual** viewport and scrolls it down inside the layout viewport. So a
  * sheet pinned to `top: 0` can end up parked `vv.offsetTop` pixels *above* the
- * first visible pixel — its header and search field disappear off the top edge.
+ * first visible pixel - its header and search field disappear off the top edge.
  * Korekta górnej krawędzi jest więc konieczna zawsze; przykładamy ją bez
  * animacji, bo w typowym przypadku `offsetTop` wynosi 0 i nic się nie rusza.
  *
  * Dolna krawędź to inna historia. W PWA (i na Androidzie, gdzie
  * `interactive-widget=resizes-content` kurczy layout viewport) CSS-owe
- * `bottom: 0` samo trafia nad klawiaturę i nie ma czego poprawiać — dlatego
+ * `bottom: 0` samo trafia nad klawiaturę i nie ma czego poprawiać - dlatego
  * tam wszystko wyglądało dobrze. W Safari w przeglądarce layout viewport
  * zostaje pełnoekranowy, więc każda korekta dolnej krawędzi to ruch, który
  * użytkownik widzi jako wysuwanie się arkusza pół sekundy po otwarciu.
@@ -52,7 +52,7 @@ export const useVisualViewportSheet = (
     options?: VisualViewportSheetOptions,
 ): void => {
     // Refy są stabilne, ale tablica dostaje nową tożsamość przy każdym
-    // renderze — trzymamy ją poza zależnościami efektu, żeby nasłuch podpiąć
+    // renderze - trzymamy ją poza zależnościami efektu, żeby nasłuch podpiąć
     // raz. Aktualizacja idzie przez efekt (zapis w trakcie renderu jest
     // niedozwolony), zadeklarowany przed właściwym: efekty biegną w kolejności
     // deklaracji, więc lista jest świeża, zanim ktokolwiek ją przeczyta.
@@ -86,7 +86,7 @@ export const useVisualViewportSheet = (
                     el.style.height = '';
                     el.style.maxHeight = 'none';
                 } else {
-                    // Wysokość klawiatury nie rusza arkusza — schodzi do listy
+                    // Wysokość klawiatury nie rusza arkusza - schodzi do listy
                     // jako zapas do przewinięcia pod ostatnią pozycją.
                     el.style.setProperty('--kb-inset', `${keyboardInset}px`);
                 }

@@ -293,7 +293,7 @@ export const CheckInWizardWrapper = () => {
     const originalEndRaw = (reservationData as any)?.schedule?.endDateTime || (reservationData as any)?.endDateTime || '';
 
     /*
-     * Data rozpoczęcia ZAWSZE startuje z bieżącej chwili — wizyta zaczyna się,
+     * Data rozpoczęcia ZAWSZE startuje z bieżącej chwili - wizyta zaczyna się,
      * kiedy klient stoi w drzwiach, nie kiedy była zaplanowana. Wcześniej
      * rezerwacja z dzisiejszą datą trzymała zaplanowaną godzinę (przyjęcie
      * o 11:30 rezerwacji z 9:00 wpisywało 9:00), a bieżący czas dostawały

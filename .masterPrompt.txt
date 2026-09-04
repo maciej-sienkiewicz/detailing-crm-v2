@@ -329,7 +329,7 @@ export const formatCurrency = (amount: number, currency = 'PLN'): string =>
 
 // Date formatting
 export const formatDate = (date: string | null): string =>
-    date ? new Intl.DateTimeFormat('pl-PL').format(new Date(date)) : '—';
+    date ? new Intl.DateTimeFormat('pl-PL').format(new Date(date)) : '-';
 
 // Phone formatting
 export const formatPhoneNumber = (phone: string): string =>

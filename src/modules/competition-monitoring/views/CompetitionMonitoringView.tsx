@@ -27,7 +27,7 @@ import { WEEKS_OPTIONS, type WeeksOption } from '../types';
  *   Treści:     najskuteczniejsze posty, pory publikacji, hasztagi.
  *
  * Było ich cztery: „Przegląd" i „Raport" pokazywały te same insighty, te same
- * trzy metryki i tę samą pozycję w rankingu, tylko w innym układzie graficznym —
+ * trzy metryki i tę samą pozycję w rankingu, tylko w innym układzie graficznym -
  * a raport dodatkowo dotyczył zamkniętego tygodnia, więc przez siedem dni
  * wyświetlał dane sprzed tygodnia i wymagał akapitu tłumaczącego dlaczego.
  *
@@ -123,7 +123,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 /**
  * Stare linki („Przegląd" i „Raport" zniknęły) lądują na Tygodniu zamiast
- * na pustym ekranie — obie zakładki i tak mówiły to, co on.
+ * na pustym ekranie - obie zakładki i tak mówiły to, co on.
  */
 const resolveTab = (raw: string | null): TabKey =>
     TABS.some(t => t.key === raw) ? (raw as TabKey) : 'tydzien';

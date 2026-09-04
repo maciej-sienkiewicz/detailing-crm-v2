@@ -24,7 +24,7 @@ export interface StartAccountResetRequest {
 
 export const accountResetApi = {
     // Błędy startu (złe hasło, zła nazwa, reset w toku) pokazuje modal przy polu,
-    // nie globalny toast — stąd skipErrorToast.
+    // nie globalny toast - stąd skipErrorToast.
     startReset: async (data: StartAccountResetRequest): Promise<AccountResetJob> => {
         const response = await apiClient.post<AccountResetJob>(BASE_PATH, data, {
             skipErrorToast: true,
@@ -42,7 +42,7 @@ export const accountResetApi = {
         return response.data;
     },
 
-    /** Ostatni job studia — pozwala podjąć trwający reset po odświeżeniu strony. */
+    /** Ostatni job studia - pozwala podjąć trwający reset po odświeżeniu strony. */
     getLatest: async (): Promise<AccountResetJob | null> => {
         const response = await apiClient.get<AccountResetJob | null>(`${BASE_PATH}/latest`, {
             skipErrorToast: true,

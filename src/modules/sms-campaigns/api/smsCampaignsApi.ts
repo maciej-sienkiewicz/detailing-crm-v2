@@ -338,7 +338,7 @@ export async function updateSenderName(senderName: string): Promise<SmsSenderNam
 }
 
 /**
- * Podpis narysowany na ekranie — serwer składa z niego gotowe upoważnienie
+ * Podpis narysowany na ekranie - serwer składa z niego gotowe upoważnienie
  * (dane firmy z ustawień, pole nadawcy z konfiguracji SMS, data bieżąca).
  */
 export async function signSenderNameAuthDoc(signatureImageBase64: string): Promise<SmsSenderNameConfig> {

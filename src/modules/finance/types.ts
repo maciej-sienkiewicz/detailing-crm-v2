@@ -155,7 +155,7 @@ export type CashDirection = 'IN' | 'OUT';
 export interface CashHistoryFilters {
   /** Dzień włączający, 'RRRR-MM-DD'. */
   dateFrom?: string;
-  /** Dzień włączający, 'RRRR-MM-DD' — backend sam rozciąga go na całą dobę. */
+  /** Dzień włączający, 'RRRR-MM-DD' - backend sam rozciąga go na całą dobę. */
   dateTo?: string;
   /** Brak = obie strony. */
   direction?: CashDirection;
@@ -167,7 +167,7 @@ export interface CashHistoryResponse {
   page:       number;
   pageSize:   number;
   /**
-   * Sumy w groszach za cały wybrany okres — obie dodatnie i obie niezależne od
+   * Sumy w groszach za cały wybrany okres - obie dodatnie i obie niezależne od
    * `direction`. Filtr kierunku zawęża listę, nie podsumowanie.
    */
   totalIn:    number;
@@ -259,7 +259,7 @@ export interface KsefCredentials {
 /**
  * Gotowość studia do fakturowania w KSeF, w zakresie potrzebnym ekranowi wydania
  * pojazdu. W odróżnieniu od [KsefCredentials] nie wymaga uprawnień właściciela
- * i nie zawiera danych poświadczeń — wydania pojazdu dokonuje zwykły pracownik.
+ * i nie zawiera danych poświadczeń - wydania pojazdu dokonuje zwykły pracownik.
  */
 export interface KsefInvoicingStatus {
   /** Token KSeF jest zapisany, więc faktura może pojechać automatycznie. */
@@ -475,7 +475,7 @@ export interface IncomeDocument {
   duplicateStatus:  DuplicateStatus;
   visitId:          string | null;
   createdAt:        string;
-  /** Ukryty ze statystyk — pozycja widoczna dopiero po włączeniu „Pokaż ukryte". */
+  /** Ukryty ze statystyk - pozycja widoczna dopiero po włączeniu „Pokaż ukryte". */
   excluded:         boolean;
 }
 
@@ -524,7 +524,7 @@ export interface RevenueParty {
   addressLine1: string | null;
   addressLine2: string | null;
   countryCode:  string | null;
-  /** Rachunek do przelewu — wypełniany wyłącznie po stronie sprzedawcy. */
+  /** Rachunek do przelewu - wypełniany wyłącznie po stronie sprzedawcy. */
   bankAccount?: string | null;
 }
 
@@ -583,7 +583,7 @@ export interface RevenueInvoice {
    */
   detailsSynced:      boolean;
   /**
-   * Adres weryfikacyjny KSeF („KOD I") — to on trafia do kodu QR na wizualizacji
+   * Adres weryfikacyjny KSeF („KOD I") - to on trafia do kodu QR na wizualizacji
    * faktury. null, gdy faktura nie ma jeszcze skrótu dokumentu (np. przed wysyłką).
    */
   ksefVerificationUrl: string | null;
@@ -611,7 +611,7 @@ export interface RevenueInvoiceListFilters {
 
 /**
  * Pozycja faktury: dokładnie jedno z pól ceny. Kwota wpisana przez użytkownika
- * jest źródłem prawdy — backend liczy drugą stronę tym samym wzorem, więc
+ * jest źródłem prawdy - backend liczy drugą stronę tym samym wzorem, więc
  * wpisane brutto nie „przeskakuje" po zaokrągleniu.
  */
 export interface IssueInvoiceItemRequest {

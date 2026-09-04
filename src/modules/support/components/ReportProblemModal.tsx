@@ -190,7 +190,7 @@ export const ReportProblemModal = ({ onClose }: ReportProblemModalProps) => {
         setError(null);
         try {
             await reportProblemApi.submit(trimmed, files);
-            showSuccess('Zgłoszenie wysłane', 'Dziękujemy — zespół wsparcia otrzymał zgłoszenie.');
+            showSuccess('Zgłoszenie wysłane', 'Dziękujemy - zespół wsparcia otrzymał zgłoszenie.');
             onClose();
         } catch {
             setError('Nie udało się wysłać zgłoszenia. Spróbuj ponownie.');
@@ -204,7 +204,7 @@ export const ReportProblemModal = ({ onClose }: ReportProblemModalProps) => {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Zgłoś problem</ModalTitle>
-                    <ModalSubtitle>Opisz sytuację — możesz dołączyć zrzut ekranu</ModalSubtitle>
+                    <ModalSubtitle>Opisz sytuację - możesz dołączyć zrzut ekranu</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -241,7 +241,7 @@ export const ReportProblemModal = ({ onClose }: ReportProblemModalProps) => {
                                     <ImagePlus size={16} />
                                     Kliknij, przeciągnij lub wklej zrzut ekranu
                                 </DropText>
-                                <DropHint>PNG, JPG, WEBP, PDF — maks. 10 MB, do {MAX_FILES} plików</DropHint>
+                                <DropHint>PNG, JPG, WEBP, PDF - maks. 10 MB, do {MAX_FILES} plików</DropHint>
                             </DropZone>
                             <HiddenFileInput
                                 ref={fileInputRef}

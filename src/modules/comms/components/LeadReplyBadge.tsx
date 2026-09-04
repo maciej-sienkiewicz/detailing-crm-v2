@@ -1,8 +1,8 @@
 // src/modules/comms/components/LeadReplyBadge.tsx
-// „Czyj ruch" — znacznik obok statusu leada.
+// „Czyj ruch" - znacznik obok statusu leada.
 //
 // Status mówi, na jakim etapie jest sprzedaż. Nie mówi, czy w tej chwili to my
-// zalegamy z odpowiedzią, czy klient milczy — a to dwie zupełnie różne sytuacje,
+// zalegamy z odpowiedzią, czy klient milczy - a to dwie zupełnie różne sytuacje,
 // wymagające dwóch różnych reakcji. „W kontakcie" opisywało obie naraz, więc
 // wiadomość otwarta w biegu i zapomniana wyglądała dokładnie tak samo jak lead,
 // w którym piłka jest po stronie klienta.
@@ -14,7 +14,7 @@
 // Forma: ikona i tekst, bez ramki i bez tła. W tabeli, gdzie każdy wiersz ma
 // status, druga wypełniona plakietka nad drugą zamienia kolumnę w kolaż kolorów
 // i przestaje cokolwiek wyróżniać. Kolor niesie tylko pilność i tylko wtedy,
-// gdy jest o czym mówić — normalny rytm rozmowy zostaje szary.
+// gdy jest o czym mówić - normalny rytm rozmowy zostaje szary.
 import styled from 'styled-components';
 import { Clock, MailQuestion, Reply } from 'lucide-react';
 import type { LeadReplyState } from '../types';
@@ -30,9 +30,9 @@ const Marker = styled.span<{ $tone: ReplyTone }>`
     font-weight: ${p => (p.$tone === 'neutral' ? p.theme.fontWeights.normal : p.theme.fontWeights.semibold)};
     color: ${({ $tone, theme }) => {
         switch ($tone) {
-            // Nasza zaległość — jedyny stan, który jest zarzutem wobec nas.
+            // Nasza zaległość - jedyny stan, który jest zarzutem wobec nas.
             case 'due':   return theme.colors.error;
-            // Cisza klienta — ostrzeżenie, nie zarzut: to sygnał do przypomnienia.
+            // Cisza klienta - ostrzeżenie, nie zarzut: to sygnał do przypomnienia.
             case 'stale': return theme.colors.warning;
             default:      return theme.colors.textMuted;
         }
@@ -50,7 +50,7 @@ const ICONS = {
 interface LeadReplyBadgeProps {
     replyState: LeadReplyState;
     waitingSince: string | null;
-    /** Lead zamknięty (zrealizowany, przegrany, nie pojawił się) — nie ma już czyjego ruchu. */
+    /** Lead zamknięty (zrealizowany, przegrany, nie pojawił się) - nie ma już czyjego ruchu. */
     muted?: boolean;
 }
 

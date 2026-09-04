@@ -3,7 +3,7 @@
 // Nagłówek menu (nazwa + logo studia) czeka na `GET /v1/company`, więc po każdym
 // odświeżeniu strony przez ułamek sekundy widać inicjały, a dopiero potem logo.
 // Ten „przeskok" widać przy każdym wejściu do aplikacji, choć dane praktycznie się
-// nie zmieniają — trzymamy je więc lokalnie i rysujemy nagłówek od pierwszej klatki.
+// nie zmieniają - trzymamy je więc lokalnie i rysujemy nagłówek od pierwszej klatki.
 //
 // Zapis jest per studio: na jednym urządzeniu pracuje kilka kont (przełącznik PIN),
 // a nagłówek nie może pokazać cudzej firmy.
@@ -28,7 +28,7 @@ interface StoredSnapshot extends CompanyHeaderSnapshot {
     savedAt: number;
 }
 
-/** Pamięć przeglądarki bywa wyłączona (tryb prywatny, polityka firmowa) — nigdy nie rzucamy. */
+/** Pamięć przeglądarki bywa wyłączona (tryb prywatny, polityka firmowa) - nigdy nie rzucamy. */
 function readRaw(): StoredSnapshot | null {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -54,6 +54,6 @@ export function writeCompanyHeader(studioId: string | undefined, snapshot: Compa
         const payload: StoredSnapshot = { ...snapshot, studioId, savedAt: Date.now() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
-        // Brak miejsca albo zablokowany storage — nagłówek po prostu mignie, jak wcześniej.
+        // Brak miejsca albo zablokowany storage - nagłówek po prostu mignie, jak wcześniej.
     }
 }

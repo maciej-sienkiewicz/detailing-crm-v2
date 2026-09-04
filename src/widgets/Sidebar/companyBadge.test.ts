@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { companyInitials } from './companyBadge';
 
 describe('companyInitials', () => {
-    it('pomija formę prawną — inicjały biorą się z nazwy właściwej', () => {
+    it('pomija formę prawną - inicjały biorą się z nazwy właściwej', () => {
         expect(companyInitials('CARSLAB SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ')).toBe('CA');
         expect(companyInitials('Auto Detailing Sp. z o.o.')).toBe('AD');
     });

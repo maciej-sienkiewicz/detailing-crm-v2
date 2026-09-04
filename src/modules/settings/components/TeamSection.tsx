@@ -68,7 +68,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
     const totalPages = pagination?.totalPages ?? 1;
 
     /**
-     * Moduł Czasu pracy jest cechą ROLI (`trackWorkTime`), nie pracownika — lista
+     * Moduł Czasu pracy jest cechą ROLI (`trackWorkTime`), nie pracownika - lista
      * pracowników niesie tylko nazwę roli, więc flagę bierzemy z listy ról, którą ten
      * widok i tak już ma wczytaną.
      */
@@ -88,7 +88,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
         });
     };
 
-    // „Zaznacz wszystkich" obejmuje tylko widoczną stronę — zaznaczenie w tle ludzi,
+    // „Zaznacz wszystkich" obejmuje tylko widoczną stronę - zaznaczenie w tle ludzi,
     // których użytkownik nie widzi, byłoby zaznaczeniem w ciemno.
     const allOnPageSelected = items.length > 0 && items.every(emp => selected.has(emp.id));
     const toggleSelectAllOnPage = () => {
@@ -103,7 +103,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
 
     /**
      * Przycisk zostaje klikalny mimo braku zaznaczenia: `disabled` nie wysyła zdarzeń,
-     * więc kliknięcie w wyszarzony przycisk nie mogłoby powiedzieć, czego brakuje —
+     * więc kliknięcie w wyszarzony przycisk nie mogłoby powiedzieć, czego brakuje -
      * a to jest jedyny moment, w którym użytkownik o to pyta.
      */
     const handleAttendanceClick = () => {
@@ -307,7 +307,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                                             ? <Badge $variant="amber">Brak roli</Badge>
                                             : <Muted>-</Muted>}
                                     {/* Bez tego oznaczenia nie widać, kogo wolno zaznaczyć
-                                        do listy obecności — moduł jest cechą roli. */}
+                                        do listy obecności - moduł jest cechą roli. */}
                                     {tracksWorkTime && <Badge $variant="blue">Czas pracy</Badge>}
                                 </RoleCell>
                                 <div>
@@ -375,7 +375,7 @@ const ListHeader = styled.div`
     border-bottom: 1px solid #f1f5f9;
     background: #fafbfc;
 
-    /* Wiersze są na telefonie kafelkami — nagłówek kolumn nie ma czego opisywać. */
+    /* Wiersze są na telefonie kafelkami - nagłówek kolumn nie ma czego opisywać. */
     @media (max-width: 900px) { display: none; }
 `;
 
@@ -407,7 +407,7 @@ const Row = styled.div`
     &:hover { background: #fafbfc; }
 
     /* Cztery kolumny nie mieszczą się na telefonie: pracownik czyta się wtedy
-       jako kafelka — nazwisko z rolą, pod nimi kontakt i status konta. */
+       jako kafelka - nazwisko z rolą, pod nimi kontakt i status konta. */
     @media (max-width: 900px) {
         grid-template-columns: 24px minmax(0, 1fr) auto;
         gap: 8px 10px;
@@ -461,7 +461,7 @@ const AttendanceButton = styled.button<{ $enabled: boolean }>`
     border-radius: 8px;
     white-space: nowrap;
     /* Nieaktywny wizualnie, ale wciąż klikalny: dopiero kliknięcie może powiedzieć,
-       czego brakuje — atrybut disabled połknąłby to zdarzenie. */
+       czego brakuje - atrybut disabled połknąłby to zdarzenie. */
     cursor: ${p => (p.$enabled ? 'pointer' : 'default')};
     color: ${p => (p.$enabled ? '#0f172a' : '#94a3b8')};
     background: ${p => (p.$enabled ? '#fff' : '#f8fafc')};

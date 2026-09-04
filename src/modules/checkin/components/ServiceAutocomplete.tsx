@@ -26,14 +26,14 @@ import {
 
 /**
  * Ile najwyżej miejsca zajmie lista podpowiedzi. 240 px mieściło pięć pozycji
- * i kończyło się mniej więcej na krawędzi okna, w którym stoi pole — przez co
+ * i kończyło się mniej więcej na krawędzi okna, w którym stoi pole - przez co
  * wyglądało to na listę uciętą przez modal, a nie na listę, która się skończyła.
  * Lista jest w portalu i leży nad każdą warstwą aplikacji, więc nic nie stoi na
  * przeszkodzie, żeby wychodziła poza okno; ogranicza ją tylko brzeg ekranu.
  */
 const MAX_DROPDOWN_HEIGHT = 420;
 
-/** Poniżej tej wysokości lista nie ma sensu — wtedy otwieramy ją w drugą stronę. */
+/** Poniżej tej wysokości lista nie ma sensu - wtedy otwieramy ją w drugą stronę. */
 const MIN_DROPDOWN_HEIGHT = 180;
 
 const AutocompleteContainer = styled.div`
@@ -183,7 +183,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         const spaceBelow = vvHeight - rect.bottom - 12;
         const spaceAbove = rect.top - 12;
         // Open in the roomier direction and take the space that is actually there.
-        // The only limit is the edge of the screen — the list is portalled above
+        // The only limit is the edge of the screen - the list is portalled above
         // every layer, so the modal it was opened from must not shorten it.
         const openUp = spaceBelow < MIN_DROPDOWN_HEIGHT && spaceAbove > spaceBelow;
         const available = openUp ? spaceAbove : spaceBelow;
@@ -199,7 +199,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         if (!isOpen || isMobile) return;
         // Modals/popovers animate in with a transform, track the anchor for the
         // first moments so the list doesn't stay glued to a mid-animation position.
-        // The first frame of this loop is also what positions the list initially —
+        // The first frame of this loop is also what positions the list initially -
         // measuring straight in the effect body would set state during the effect.
         let raf = 0;
         const start = performance.now();
@@ -488,7 +488,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
             {isOpen && createPortal(
                 <DropdownContainer
                     ref={dropdownRef}
-                    // Do pierwszego pomiaru lista nie ma jeszcze miejsca na ekranie —
+                    // Do pierwszego pomiaru lista nie ma jeszcze miejsca na ekranie -
                     // pokazana bez niego mignęłaby w lewym górnym rogu okna.
                     style={{ ...dropdownStyle, visibility: dropdownStyle.width ? 'visible' : 'hidden' }}
                 >

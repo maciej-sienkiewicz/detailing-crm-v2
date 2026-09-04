@@ -154,7 +154,7 @@ export const OperationListView = () => {
             />
 
             {/*
-              * Nad listą, nie w niej: to nie są wizyty, tylko przyjęcia w toku — auta,
+              * Nad listą, nie w niej: to nie są wizyty, tylko przyjęcia w toku - auta,
               * które fizycznie stoją w warsztacie, choć ich wizyty jeszcze się nie
               * zaczęły. Panel sam się nie pokazuje, gdy nie ma czego dokańczać.
               */}

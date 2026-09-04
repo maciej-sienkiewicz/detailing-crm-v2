@@ -2,13 +2,13 @@
 // „Oznacz mail jako lead z formularza".
 //
 // Formularz na stronie studia wysyła powiadomienia zawsze z tego samego adresu
-// (wordpress@, no-reply@) — klient jest dopiero w TREŚCI maila. To okno tłumaczy,
+// (wordpress@, no-reply@) - klient jest dopiero w TREŚCI maila. To okno tłumaczy,
 // co stanie się po oznaczeniu, bo skutek wykracza poza jedno kliknięcie: każdy
 // KOLEJNY mail z tego adresu też zostanie automatycznie zamieniony na leada.
 // Akcja z niewidocznym ogonem bez wyjaśnienia to pułapka, nie funkcja.
 //
 // To samo okno obsługuje nadawcę już oznaczonego: pokazuje, że automat działa,
-// ile leadów już utworzył, i daje przycisk wyłączenia. Jedna funkcja — jedno
+// ile leadów już utworzył, i daje przycisk wyłączenia. Jedna funkcja - jedno
 // miejsce w interfejsie, niezależnie od stanu.
 import styled from 'styled-components';
 import { FileInput, Power } from 'lucide-react';
@@ -68,7 +68,7 @@ const ActiveNote = styled.div`
 
 interface MarkAsFormLeadModalProps {
     senderEmail: string;
-    /** Ostatnia wiadomość przychodząca wątku — ona idzie do odczytu. */
+    /** Ostatnia wiadomość przychodząca wątku - ona idzie do odczytu. */
     messageId: string | null;
     onClose: () => void;
 }
@@ -98,12 +98,12 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                     case 'ALREADY_PROCESSED':
                         showSuccess(
                             'Ta wiadomość była już przetworzona',
-                            'Nadawca pozostaje oznaczony — kolejne maile obsłuży automat.'
+                            'Nadawca pozostaje oznaczony - kolejne maile obsłuży automat.'
                         );
                         onClose();
                         break;
                     default:
-                        // Nadawca został oznaczony, ale z TEJ wiadomości lead nie powstał —
+                        // Nadawca został oznaczony, ale z TEJ wiadomości lead nie powstał -
                         // to dwie osobne prawdy i obie muszą paść.
                         showError(
                             'Nadawca oznaczony, ale lead nie powstał',
@@ -152,13 +152,13 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                     {isActive ? (
                         <>
                             <ActiveNote>
-                                Ten nadawca jest oznaczony jako formularz — automat działa
+                                Ten nadawca jest oznaczony jako formularz - automat działa
                                 {source && source.leadCount > 0
                                     ? ` i utworzył już ${source.leadCount} ${leadsLabel(source.leadCount)}.`
                                     : '.'}
                             </ActiveNote>
                             <p>
-                                Możesz mimo to utworzyć leada z tej konkretnej wiadomości — na przykład
+                                Możesz mimo to utworzyć leada z tej konkretnej wiadomości - na przykład
                                 starszej niż oznaczenie, której automat nie obejmuje.
                             </p>
                         </>
@@ -166,7 +166,7 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                         <p>
                             Dane klienta zostaną odczytane z <strong>treści</strong> tej wiadomości
                             i powstanie z nich lead. Od tej chwili <strong>każdy kolejny mail z tego
-                            adresu</strong> będzie zamieniany na leada automatycznie — dokładnie tak
+                            adresu</strong> będzie zamieniany na leada automatycznie - dokładnie tak
                             traktuje się powiadomienia formularza ze strony.
                         </p>
                     )}
@@ -200,7 +200,7 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
     );
 }
 
-/** Odmiana „lead/leady/leadów" — komunikat ma brzmieć po polsku. */
+/** Odmiana „lead/leady/leadów" - komunikat ma brzmieć po polsku. */
 function leadsLabel(count: number): string {
     if (count === 1) return 'leada';
     const lastDigit = count % 10;

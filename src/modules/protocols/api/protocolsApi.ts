@@ -131,7 +131,7 @@ class ProtocolsApi {
 
   /**
    * Zgodność stanu wizualnego przy wydaniu: odpowiedź pracownika trafia na
-   * protokół, zanim dokument pojedzie do podpisu — klient ma zobaczyć na ekranie
+   * protokół, zanim dokument pojedzie do podpisu - klient ma zobaczyć na ekranie
    * dokładnie to, co zostało zaznaczone.
    */
   async setVisualCondition(

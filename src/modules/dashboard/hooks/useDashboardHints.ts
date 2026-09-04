@@ -29,7 +29,7 @@ const HINTS_KEY = ['dashboard', 'hints'] as const;
 
 /**
  * Podpowiedzi paska na Tablicy. Serwer zwraca listę posortowaną po ważności
- * i już przefiltrowaną z zamkniętych — frontend pokazuje pierwszą.
+ * i już przefiltrowaną z zamkniętych - frontend pokazuje pierwszą.
  */
 export const useDashboardHints = () => {
     const { data } = useQuery({

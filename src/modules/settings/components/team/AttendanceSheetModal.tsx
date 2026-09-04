@@ -175,7 +175,7 @@ export function AttendanceSheetModal({ employeeIds, employeeCount, onClose }: Pr
                                 </ChoiceIcon>
                                 <ChoiceText>
                                     <ChoiceLabel>Podpisz na tym urządzeniu</ChoiceLabel>
-                                    <ChoiceDesc>Podpis myszą, rysikiem albo palcem — wtopi się w PDF.</ChoiceDesc>
+                                    <ChoiceDesc>Podpis myszą, rysikiem albo palcem - wtopi się w PDF.</ChoiceDesc>
                                 </ChoiceText>
                             </ChoiceCard>
 

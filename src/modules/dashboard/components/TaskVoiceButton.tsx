@@ -4,8 +4,8 @@ import { Loader2, Mic, Square } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 
 // Dyktowanie zadania: nagranie leci na serwer, tam Whisper zamienia je w treść
-// i tworzy zadanie. Przycisk ma trzy stany — gotowy, nagrywa (z licznikiem),
-// wysyła — i nigdy nie zostawia otwartego strumienia z mikrofonu.
+// i tworzy zadanie. Przycisk ma trzy stany - gotowy, nagrywa (z licznikiem),
+// wysyła - i nigdy nie zostawia otwartego strumienia z mikrofonu.
 
 const MAX_SECONDS = 120;
 
@@ -53,7 +53,7 @@ const Button = styled.button<{ $recording: boolean }>`
 
   svg { width: 13px; height: 13px; stroke-width: 2; flex-shrink: 0; }
 
-  /* Trwa nagranie albo wysyłka — wtedy licznik/status musi być widoczny,
+  /* Trwa nagranie albo wysyłka - wtedy licznik/status musi być widoczny,
      więc etykietę chowamy tylko w stanie spoczynku. */
   @media (max-width: 639px) {
     padding: 7px 9px;
@@ -163,7 +163,7 @@ export const TaskVoiceButton = ({ onRecorded, isSending }: TaskVoiceButtonProps)
 
       if (abandonedRef.current) return;
       if (blob.size === 0) {
-        showError('Puste nagranie', 'Nic nie zostało nagrane — spróbuj jeszcze raz.');
+        showError('Puste nagranie', 'Nic nie zostało nagrane - spróbuj jeszcze raz.');
         return;
       }
 

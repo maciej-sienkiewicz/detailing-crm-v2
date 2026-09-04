@@ -9,7 +9,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
-// Import wprost z modułu ze stałymi, nie z barrela @/widgets/BottomNav —
+// Import wprost z modułu ze stałymi, nie z barrela @/widgets/BottomNav -
 // barrel reeksportuje też sam komponent BottomNav (a z nim @/modules/comms,
 // uprawnienia itd.), co wciąga ten podgraf do zwykłego komponentu UI i potrafi
 // zamknąć cykl importów ("Cannot access 'BOTTOM_NAV_SPACE' before initialization").
@@ -141,7 +141,7 @@ export const FooterPrimaryButton = styled.button<{ $disabled?: boolean }>`
 
 interface StickyFormFooterProps {
     /**
-     * Lewa strona stopki — podpowiedź kroku, komunikat walidacji, błąd zapisu.
+     * Lewa strona stopki - podpowiedź kroku, komunikat walidacji, błąd zapisu.
      * Bez niej przyciski i tak lądują po prawej (FooterActions ma margin-left:auto).
      */
     children?: React.ReactNode;

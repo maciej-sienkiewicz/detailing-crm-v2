@@ -226,7 +226,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;
     // Reguła SMS-a z linkiem do Karty Wizyty dla REZERWACJI (nie mylić z tą dla wizyty)
     // ma własny szablon i własny przełącznik w Ustawieniach → Szablony SMS, domyślnie
-    // wyłączony i z pustym szablonem — dokładnie jak świeże/wyczyszczone konto. Bez tego
+    // wyłączony i z pustym szablonem - dokładnie jak świeże/wyczyszczone konto. Bez tego
     // pola checkbox wyglądał na aktywny, mimo że backend i tak nic by nie wysłał.
     const reservationCardLinkSmsEnabled = automationConfig?.reservationCardLink?.enabled ?? true;
 
@@ -683,7 +683,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         skipContactValidation?: boolean;
         /**
          * Dane wprost od wywołującego. Arkusz „Nowy klient" na telefonie ustawia
-         * pola formularza i od razu zapisuje klienta — stan Reacta nie zdążyłby
+         * pola formularza i od razu zapisuje klienta - stan Reacta nie zdążyłby
          * się jeszcze przerysować, więc pracujemy na przekazanych wartościach.
          */
         values?: { firstName: string; lastName: string; phone: string; email: string };

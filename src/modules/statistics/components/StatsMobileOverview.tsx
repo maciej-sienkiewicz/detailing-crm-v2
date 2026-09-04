@@ -3,8 +3,8 @@
 // Statystyki na telefonie odpowiadają na inne pytania niż na komputerze.
 // Właściciel wyciąga telefon między jednym a drugim autem i chce wiedzieć:
 // ile wpłynęło, czy idzie lepiej niż poprzednio i co się najlepiej sprzedaje.
-// Praca administracyjna — przypisywanie usług do kategorii, przeciąganie,
-// wyszukiwanie — zostaje na komputerze; tutaj byłaby tylko szumem.
+// Praca administracyjna - przypisywanie usług do kategorii, przeciąganie,
+// wyszukiwanie - zostaje na komputerze; tutaj byłaby tylko szumem.
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { st } from './StatisticsTheme';
@@ -40,7 +40,7 @@ const formatPeriodLabel = (period: string, granularity: Granularity): string => 
 
 /**
  * Czy okres jeszcze trwa. Porównywanie trwającego miesiąca z zamkniętym
- * zawsze wypada źle i kłamie — trend liczymy tylko na zamkniętych okresach,
+ * zawsze wypada źle i kłamie - trend liczymy tylko na zamkniętych okresach,
  * a bieżący pokazujemy osobno, wprost oznaczony.
  */
 const isPeriodInProgress = (period: string, granularity: Granularity): boolean => {
@@ -59,7 +59,7 @@ const isPeriodInProgress = (period: string, granularity: Granularity): boolean =
 // ─── Komponent ────────────────────────────────────────────────────────────────
 
 interface Props {
-    /** Wykres trendu wstrzykiwany z widoku — tuż po kwocie, przed rankingami. */
+    /** Wykres trendu wstrzykiwany z widoku - tuż po kwocie, przed rankingami. */
     chart?: React.ReactNode;
     points: StatsDataPoint[];
     totals: StatsTotals;
@@ -72,7 +72,7 @@ interface Props {
 
 const TOP_SERVICES = 6;
 
-/** „1 zlecenie", „3 zlecenia", „96 zleceń" — skrót „zl." mylił się z „zł". */
+/** „1 zlecenie", „3 zlecenia", „96 zleceń" - skrót „zl." mylił się z „zł". */
 const orders = (n: number) => `${n.toLocaleString('pl-PL')} ${pluralPl(n, 'zlecenie', 'zlecenia', 'zleceń')}`;
 
 export const StatsMobileOverview = ({
@@ -82,7 +82,7 @@ export const StatsMobileOverview = ({
 
     const avgOrder = totals.orderCount > 0 ? Math.round(totals.totalRevenueGross / totals.orderCount) : 0;
 
-    /** Ostatni zamknięty okres i poprzedni — na nich liczymy zmianę. */
+    /** Ostatni zamknięty okres i poprzedni - na nich liczymy zmianę. */
     const trend = useMemo(() => {
         const inProgress = points.length > 0 && isPeriodInProgress(points[points.length - 1].period, granularity)
             ? points[points.length - 1]

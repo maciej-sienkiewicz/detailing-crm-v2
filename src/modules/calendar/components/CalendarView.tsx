@@ -162,7 +162,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     /* Other month days.
 
        FullCalendar samo przygasza te kafelki regułą
-       .fc .fc-day-other .fc-daygrid-day-top { opacity: .3 } — nałożone na
+       .fc .fc-day-other .fc-daygrid-day-top { opacity: .3 } - nałożone na
        jasnoszarą cyfrę dawało to kolor praktycznie biały. Dzień z końcówki
        poprzedniego miesiąca wyglądał jak kafelek BEZ daty, więc nie dało się
        powiedzieć, którego dnia dotyczy wydarzenie stojące tuż pod spodem.
@@ -224,7 +224,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     /* ===================== STUDIO EVENT INDICATOR (dzwoneczek) =====================
-       Wydarzenie studia nie zajmuje wiersza w komórce — jest znacznikiem dnia,
+       Wydarzenie studia nie zajmuje wiersza w komórce - jest znacznikiem dnia,
        tak samo jak urlop i Door to Door. Lewy górny róg, żeby nie wchodzić
        w drogę tamtym dwóm. */
     .fc-studio-event-badge {
@@ -291,7 +291,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     /* Sama ikonka ginęła w gąszczu kafelków wizyt. Dzień z wydarzeniem dostaje
-       więc bursztynową listwę i delikatne tło — widać go z drugiego końca
+       więc bursztynową listwę i delikatne tło - widać go z drugiego końca
        siatki, zanim jeszcze wzrok trafi na dzwoneczek. */
     .fc-daygrid-day-frame.fc-has-studio-event {
         background: rgba(245, 158, 11, 0.07);
@@ -704,7 +704,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
             height: 36px;
         }
 
-        /* Na wąskim telefonie dopisek zostaje czytelny — kurczy się padding,
+        /* Na wąskim telefonie dopisek zostaje czytelny - kurczy się padding,
            nie tekst. Przy 9 px liczba przestawała być liczbą. */
         .fc-daygrid-more-link {
             font-size: 10px;
@@ -726,7 +726,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
  *
  * W widoku pełnoekranowym wiersze miesiąca dzielą wysokość strony i mieszczą po
  * kilka wydarzeń. W oknie modalnym ta sama siatka dostaje ułamek tej wysokości,
- * więc FullCalendar chował praktycznie wszystko pod „jeszcze N" — a wybiera się
+ * więc FullCalendar chował praktycznie wszystko pod „jeszcze N" - a wybiera się
  * termin właśnie po tym, co już w danym dniu stoi. Kafelki rosną tu więc do swojej
  * zawartości (patrz dayMaxEvents/height/expandRows niżej), a chipy są zwężone,
  * żeby dzień z sześcioma wizytami nie urósł na pół ekranu.
@@ -1112,7 +1112,7 @@ const NewEventBtn = styled.button`
 
 /**
  * Przycisk trybu dodawania wydarzenia. Aktywny wygląda inaczej niż pozostałe
- * akcje w nagłówku, bo przestawia cały kalendarz w inny stan — użytkownik musi
+ * akcje w nagłówku, bo przestawia cały kalendarz w inny stan - użytkownik musi
  * widzieć, że kliknięcie w dzień zrobi teraz coś innego niż zwykle.
  */
 const EventModeBtn = styled.button<{ $active: boolean }>`
@@ -1136,7 +1136,7 @@ const EventModeBtn = styled.button<{ $active: boolean }>`
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
-/** Pasek podpowiedzi w trybie dodawania — mówi, co zrobić i jak wyjść. */
+/** Pasek podpowiedzi w trybie dodawania - mówi, co zrobić i jak wyjść. */
 const EventModeHint = styled.div`
     display: flex;
     align-items: center;
@@ -1165,7 +1165,7 @@ const EventModeHintBtn = styled.button`
  * Tryb dodawania wydarzenia: wizyty i rezerwacje przygasają i przestają
  * przyjmować kliknięcia, żeby kalendarz czytał się jak pusta siatka dni.
  * Dzwoneczki wydarzeń są znacznikami dnia, nie kafelkami, więc zostają
- * w pełni widoczne — to je się właśnie planuje.
+ * w pełni widoczne - to je się właśnie planuje.
  */
 const EventModeLayer = styled.div<{ $active: boolean }>`
     height: 100%;
@@ -1183,7 +1183,7 @@ const EventModeLayer = styled.div<{ $active: boolean }>`
     `}
 `;
 
-/** Krótka data wydarzenia w liście dnia — „12 sierpnia". */
+/** Krótka data wydarzenia w liście dnia - „12 sierpnia". */
 const formatStudioEventDate = (iso: string): string =>
     new Date(`${iso}T00:00:00`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
 
@@ -1410,7 +1410,7 @@ interface CalendarViewProps {
     /**
      * Tryb wskazywania terminu: kalendarz służy wyłącznie do wybrania dnia albo
      * zakresu dni i oddania go wołającemu. Znikają przyciski zakładania rezerwacji
-     * i wizyty — w tym trybie kalendarz jest polem formularza, a nie widokiem,
+     * i wizyty - w tym trybie kalendarz jest polem formularza, a nie widokiem,
      * z którego zakłada się cokolwiek obok trwającego już procesu.
      */
     selectionMode?: boolean;
@@ -1441,7 +1441,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const calendarRef = useRef<FullCalendar>(null);
 
     /**
-     * Telefon rozpoznawany zapytaniem medialnym, nie pomiarem przy montowaniu —
+     * Telefon rozpoznawany zapytaniem medialnym, nie pomiarem przy montowaniu -
      * skrót „+6" ma się zmienić także po obróceniu ekranu.
      */
     const isNarrowViewport = useMediaQuery('(max-width: 639px)');
@@ -1454,7 +1454,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     /**
      * Jedyne wejscie do QuickEventModal. Bez prawa do tworzenia wizyt okno w
-     * ogole sie nie otwiera — wczesniej klikniecie w wolny slot kalendarza
+     * ogole sie nie otwiera - wczesniej klikniecie w wolny slot kalendarza
      * otwieralo formularz, ktorego i tak nie dalo sie zapisac.
      */
     const canCreateVisits = can('VISITS_CREATE');
@@ -1608,10 +1608,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
      * Okno „jeszcze N" trzymane w granicach ekranu.
      *
      * FullCalendar pozycjonuje je raz, przy montowaniu, i sprawdza tylko górną i
-     * prawą krawędź — dolnej nie, więc w ostatnim wierszu miesiąca okno schodziło
+     * prawą krawędź - dolnej nie, więc w ostatnim wierszu miesiąca okno schodziło
      * poniżej ekranu. Poprawka mierzyła okno jeden raz w requestAnimationFrame, a
      * to jest wyścig z Reactem: kafelki wizyt (eventContent) dolewa @fullcalendar/
-     * react raz synchronicznie, raz nie — zależnie od tego, czy od poprzedniego
+     * react raz synchronicznie, raz nie - zależnie od tego, czy od poprzedniego
      * renderu minęło 100 ms. Trafienie w pusty jeszcze środek dawało wysokość
      * samego nagłówka, żaden warunek na dół się nie zapalał i okno wychodziło
      * ucięte. Stąd „raz działa, raz nie" bez powtarzalności.
@@ -1642,7 +1642,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         : node.querySelector<HTMLElement>('.fc-more-popover');
                     if (popover) attach(popover);
                 }
-                // Okno zamknięte — ResizeObserver i listener resize idą za nim.
+                // Okno zamknięte - ResizeObserver i listener resize idą za nim.
                 for (const node of Array.from(mutation.removedNodes)) {
                     if (!(node instanceof HTMLElement)) continue;
                     if (node.classList.contains('fc-more-popover')) detach(node);
@@ -1687,7 +1687,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const { create: createStudioEvent, update: updateStudioEvent, remove: removeStudioEvent, isBusy: studioEventBusy } =
         useStudioCalendarEventMutations();
 
-    /** Wydarzenie nie zajmuje wiersza w siatce — jest znacznikiem dnia, jak
+    /** Wydarzenie nie zajmuje wiersza w siatce - jest znacznikiem dnia, jak
        urlop i Door to Door. Rozwijamy zakres startDate..endDate na dni. */
     const studioEventDayMap = useMemo(() => {
         const map = new Map<string, StudioCalendarEvent[]>();
@@ -1940,7 +1940,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // żeby trzy znaczniki nie walczyły o ten sam róg. Kliknięcie w dzwoneczek
     // otwiera pierwsze wydarzenie dnia do edycji; hover pokazuje listę.
     const studioEventDayMapRef = useRef(studioEventDayMap);
-    /** Otwarta lista wydarzeń jednego dnia — wspólna dla dotyku i myszy. */
+    /** Otwarta lista wydarzeń jednego dnia - wspólna dla dotyku i myszy. */
     const [studioEventDay, setStudioEventDay] = useState<{ date: string; entries: StudioCalendarEvent[] } | null>(null);
     const [studioEventTooltip, setStudioEventTooltip] = useState<{
         x: number;
@@ -1990,13 +1990,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 setStudioEventTooltip(prev => (prev?.date === iso ? null : prev));
             });
             // FullCalendar łapie dotknięcie dnia na poziomie dokumentu, więc samo
-            // stopPropagation na kliknięciu nie wystarczy — bez wyciszenia
+            // stopPropagation na kliknięciu nie wystarczy - bez wyciszenia
             // pointerdown/touchstart dotknięcie dzwoneczka na telefonie otwierało
             // od razu formularz nowej rezerwacji zamiast pokazać wydarzenie.
             // Samo stopPropagation, bez preventDefault: FullCalendar nasłuchuje
             // dotknięcia na dokumencie, więc wystarczy nie wypuścić zdarzenia
             // wyżej. preventDefault dodatkowo zabiłoby kliknięcie syntezowane
-            // po dotknięciu — i dzwoneczek przestawał reagować na telefonie.
+            // po dotknięciu - i dzwoneczek przestawał reagować na telefonie.
             ['pointerdown', 'touchstart', 'mousedown'].forEach(type => {
                 badge!.addEventListener(type, (e) => { e.stopPropagation(); });
             });
@@ -2097,7 +2097,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }
 
         if (eventMode) {
-            // Zaznaczenie kończy się na początku kolejnego dnia — użytkownik
+            // Zaznaczenie kończy się na początku kolejnego dnia - użytkownik
             // wskazał ostatni dzień, nie pierwszy wolny po nim.
             const lastDay = new Date(range.end.getTime() - 1);
             setEventDraftRange({ startDate: toIsoDate(range.start), endDate: toIsoDate(lastDay) });
@@ -2307,7 +2307,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setIsConfirmDeleting(true);
         try {
             if (pendingDelete.type === 'VISIT') {
-                // Usunięcie wizyty w dowolnym statusie — tak samo jak w tabeli operacji
+                // Usunięcie wizyty w dowolnym statusie - tak samo jak w tabeli operacji
                 // i na szczegółach wizyty. Wcześniej szło to na /cancel, czyli endpoint
                 // przerwanego przyjęcia (tylko DRAFT), więc każda inna wizyta wracała
                 // z błędem statusu.
@@ -2430,7 +2430,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 $active={eventMode}
                                 onClick={() => {
                                     // Dni zaznacza się w siatce miesiąca, a telefon startuje
-                                    // na liście — włączenie trybu samo przełącza widok,
+                                    // na liście - włączenie trybu samo przełącza widok,
                                     // inaczej przycisk nic by nie robił.
                                     if (!eventMode && agendaListActive) handleMobileViewChange('dayGridMonth');
                                     setEventMode(v => !v);
@@ -2825,22 +2825,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                     /*
                      * Kafelek miesiąca. Trzy rozstrzygnięcia, każde wymuszone szerokością
-                     * komórki — na telefonie ma ona jakieś 55 px:
+                     * komórki - na telefonie ma ona jakieś 55 px:
                      *
                      * 1. BEZ GODZINY. Zjadała nawet połowę kafelka, przez co tytuły
                      *    kończyły się wielokropkiem po dwóch sylabach („Merc…", „Subar…").
-                     *    W widoku miesiąca i tak się jej nie czyta — od godzin jest widok
+                     *    W widoku miesiąca i tak się jej nie czyta - od godzin jest widok
                      *    dnia i podgląd wydarzenia. Wypadła też na desktopie: ten sam
                      *    kafelek, ta sama zasada.
                      *
                      * 2. PEŁNY KOLOR dla wszystkiego, co żywe. Wcześniej solidne tło
-                     *    dostawały wyłącznie rezerwacje, a wizyty — czyli większość
-                     *    siatki — tło o kryciu 8%: szary tekst na prawie białym tle,
+                     *    dostawały wyłącznie rezerwacje, a wizyty - czyli większość
+                     *    siatki - tło o kryciu 8%: szary tekst na prawie białym tle,
                      *    nieczytelny na telefonie w słońcu. Wyciszenie zostaje wyłącznie
                      *    tam, gdzie coś znaczy: dla spraw zamkniętych i anulowanych.
                      *
                      * 3. Kolor tekstu z `textColor` policzonego przy transformacji
-                     *    zdarzenia (luminancja WCAG, patrz calendarApi) — na bursztynie
+                     *    zdarzenia (luminancja WCAG, patrz calendarApi) - na bursztynie
                      *    wychodzi czarny, na granacie biały. Sztywna biel na #F59E0B
                      *    dawała kontrast poniżej 2:1.
                      */
@@ -2939,7 +2939,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 />
             )}
 
-            {/* Bez prawa do tworzenia wizyt formularz nie trafia nawet do drzewa —
+            {/* Bez prawa do tworzenia wizyt formularz nie trafia nawet do drzewa -
                 nakładka modala renderuje się zawsze i sterowana jest tylko stylem,
                 więc sam `isOpen={false}` zostawiłby go w DOM. */}
             {canCreateVisits && (

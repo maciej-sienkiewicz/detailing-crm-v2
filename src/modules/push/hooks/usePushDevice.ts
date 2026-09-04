@@ -13,7 +13,7 @@ export const pushQueryKeys = {
 
 /**
  * Pairing the CURRENT device (the phone) as a receiver of the studio's push
- * notifications — click-to-call requests, closed visits, new leads.
+ * notifications - click-to-call requests, closed visits, new leads.
  *
  * The whole flow rides on a user gesture: `enable()` must be called from a
  * click handler, because Notification.requestPermission() without a gesture
@@ -36,7 +36,7 @@ export const usePushDevice = () => {
         staleTime: 30_000,
     });
 
-    // Does THIS browser hold a live subscription? (Server list alone can't say —
+    // Does THIS browser hold a live subscription? (Server list alone can't say -
     // it covers all of the user's devices.)
     useEffect(() => {
         let cancelled = false;
@@ -70,7 +70,7 @@ export const usePushDevice = () => {
                 (await registration.pushManager.getSubscription()) ??
                 (await registration.pushManager.subscribe({
                     // Browsers only accept subscriptions that promise a visible
-                    // notification per push — exactly what click-to-call does.
+                    // notification per push - exactly what click-to-call does.
                     userVisibleOnly: true,
                     applicationServerKey: applicationServerKey as BufferSource,
                 }));

@@ -151,7 +151,7 @@ GET /checkin/{appointmentId}/mobile-damage-points
 
 **Kiedy wysyłać:** każdorazowo po zapisaniu punktów przez `PUT /mobile/checkin/damage-points`, push do wszystkich subskrybentów tematu check-inu.
 
-**Cel:** desktopowy kreator check-inu subskrybuje ten temat. Po odebraniu zdarzenia sekcja uszkodzeń jest automatycznie odświeżana bez potrzeby przeładowania strony — pracownik przy komputerze widzi zmiany naniesione przez kolegę przy pojeździe w czasie rzeczywistym.
+**Cel:** desktopowy kreator check-inu subskrybuje ten temat. Po odebraniu zdarzenia sekcja uszkodzeń jest automatycznie odświeżana bez potrzeby przeładowania strony - pracownik przy komputerze widzi zmiany naniesione przez kolegę przy pojeździe w czasie rzeczywistym.
 
 ---
 

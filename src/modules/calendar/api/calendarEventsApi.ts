@@ -1,6 +1,6 @@
 // src/modules/calendar/api/calendarEventsApi.ts
 //
-// Wydarzenia studia w kalendarzu: urlop, szkolenie, dostawa, remont — wpisy,
+// Wydarzenia studia w kalendarzu: urlop, szkolenie, dostawa, remont - wpisy,
 // które zajmują dni w grafiku, ale nie są ani wizytą, ani rezerwacją.
 
 import { apiClient } from '@/core';
@@ -9,7 +9,7 @@ import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 const BASE_PATH = '/v1/calendar/events-custom';
 
 export const calendarEventsApi = {
-    /** Wydarzenia zahaczające o zakres — także te zaczęte przed jego początkiem. */
+    /** Wydarzenia zahaczające o zakres - także te zaczęte przed jego początkiem. */
     list: async (from: string, to: string): Promise<StudioCalendarEvent[]> => {
         const { data } = await apiClient.get<StudioCalendarEvent[]>(BASE_PATH, { params: { from, to } });
         return data;

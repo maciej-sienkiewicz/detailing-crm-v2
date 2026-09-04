@@ -4,7 +4,7 @@
 // dostawał trzy dymki o BŁĘDZIE („Visit not found…") i ani jednego o powodzeniu.
 //
 // Powód: klucze zapytań wizyty są prefiksowane (`['visit', id, ...]`), a react-query
-// dopasowuje je po prefiksie — `removeQueries` wywołane, gdy widok jeszcze stoi na
+// dopasowuje je po prefiksie - `removeQueries` wywołane, gdy widok jeszcze stoi na
 // ekranie, kasowało naraz szczegół, dokumenty, zdjęcia, komentarze, komunikację
 // i przypomnienia SMS, a każdy żywy obserwator natychmiast pobierał swoje zapytanie
 // od nowa, po rekord, którego już nie ma.
@@ -85,7 +85,7 @@ describe('useDeleteVisit', () => {
 
         await waitFor(() => expect(removeQueries).toHaveBeenCalled());
         // Gdyby cache znikał przy żywych obserwatorach, każdy z nich pobrałby swoje
-        // zapytanie od nowa — i stąd brały się dymki o błędzie po udanym usunięciu.
+        // zapytanie od nowa - i stąd brały się dymki o błędzie po udanym usunięciu.
         expect(activeIdWhenCacheCleared, 'zapytania muszą być wygaszone przed czyszczeniem cache').toBe('');
         expect(removeQueries).toHaveBeenCalledWith({ queryKey: ['visit', VISIT_ID] });
     });

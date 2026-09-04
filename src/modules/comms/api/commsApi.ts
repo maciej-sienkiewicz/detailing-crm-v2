@@ -104,7 +104,7 @@ export const commsApi = {
     // ── Wysyłka ──────────────────────────────────────────────────────────────
 
     /**
-     * Bez plików — JSON. Z plikami — multipart: część `request` (JSON) + `attachments`.
+     * Bez plików - JSON. Z plikami - multipart: część `request` (JSON) + `attachments`.
      * [onUploadProgress] dostaje ułamek 0–1; przy kilkunastu megabajtach na łączu
      * komórkowym przycisk „Wyślij" bez postępu wygląda jak zawieszony.
      */
@@ -154,7 +154,7 @@ export const commsApi = {
 
     /**
      * Oznacza mail jako lead z formularza: rejestruje nadawcę i od razu przepuszcza
-     * tę wiadomość przez odczyt LLM-em. Odpowiedź potrafi zająć parę sekund —
+     * tę wiadomość przez odczyt LLM-em. Odpowiedź potrafi zająć parę sekund -
      * wraca gotowy lead, nie obietnica.
      */
     markMessageAsFormLead: async (messageId: string): Promise<MarkFormLeadResult> => {
@@ -176,13 +176,13 @@ export const commsApi = {
         await apiClient.delete(`/v1/comms/form-sources/${sourceId}`);
     },
 
-    /** Pozostałe rozmowy z tym adresem — panel historii korespondencji. */
+    /** Pozostałe rozmowy z tym adresem - panel historii korespondencji. */
     getRelatedThreads: async (threadId: string): Promise<CommThread[]> => {
         const { data } = await apiClient.get(`/v1/comms/threads/${threadId}/related`);
         return data;
     },
 
-    /** Wizytówka kontaktu spod avatara — kto to jest, kiedy był, czym jeździ. */
+    /** Wizytówka kontaktu spod avatara - kto to jest, kiedy był, czym jeździ. */
     getContactCard: async (email: string): Promise<ContactCard> => {
         const { data } = await apiClient.get(
             `/v1/comms/contact-card?email=${encodeURIComponent(email)}`

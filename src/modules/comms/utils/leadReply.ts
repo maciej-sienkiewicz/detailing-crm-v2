@@ -1,5 +1,5 @@
 // src/modules/comms/utils/leadReply.ts
-// „Czyj ruch" — cała arytmetyka czasu dla znacznika odpowiedzi w jednym miejscu.
+// „Czyj ruch" - cała arytmetyka czasu dla znacznika odpowiedzi w jednym miejscu.
 //
 // Mieszka poza komponentem, bo korzystają z tego dwa różne widoki tej samej
 // informacji: znacznik tekstowy w kolumnie „Status" i pasek pilności przy
@@ -16,7 +16,7 @@ const OUR_REPLY_OVERDUE_HOURS = 24;
 
 /**
  * Pięć dni ciszy klienta to moment na przypomnienie albo na zamknięcie leada.
- * Krócej — normalny rytm decyzji; dłużej — lead, o którym już nikt nie pamięta.
+ * Krócej - normalny rytm decyzji; dłużej - lead, o którym już nikt nie pamięta.
  */
 const CLIENT_SILENCE_DAYS = 5;
 
@@ -32,7 +32,7 @@ export interface ReplyMarker {
     title: string;
 }
 
-/** „2 dni", „5 godz.", „przed chwilą" — bez sekund i minut, bo nikt nie działa w tej skali. */
+/** „2 dni", „5 godz.", „przed chwilą" - bez sekund i minut, bo nikt nie działa w tej skali. */
 function formatAge(elapsedMs: number): string {
     if (elapsedMs < HOUR_MS) return 'przed chwilą';
     if (elapsedMs < DAY_MS) return `${Math.floor(elapsedMs / HOUR_MS)} godz.`;
@@ -46,7 +46,7 @@ function formatAge(elapsedMs: number): string {
  *
  * Etykiety są krótkie z wyliczenia: znacznik stoi w wąskiej kolumnie tabeli,
  * a pełne zdanie i tak jest w podpowiedzi. Czas pojawia się w etykiecie tylko
- * tam, gdzie sam w sobie jest zarzutem — przy normalnym rytmie rozmowy „ile"
+ * tam, gdzie sam w sobie jest zarzutem - przy normalnym rytmie rozmowy „ile"
  * nie zmienia tego, co trzeba zrobić.
  */
 export function describeReplyState(replyState: LeadReplyState, waitingSince: string): ReplyMarker {
@@ -61,7 +61,7 @@ export function describeReplyState(replyState: LeadReplyState, waitingSince: str
             label: overdue ? `Czeka ${age}` : 'Nasz ruch',
             title: overdue
                 ? `Klient czeka na odpowiedź od ${age}`
-                : 'Ostatnie słowo należy do klienta — piłka po naszej stronie',
+                : 'Ostatnie słowo należy do klienta - piłka po naszej stronie',
         };
     }
 
@@ -71,13 +71,13 @@ export function describeReplyState(replyState: LeadReplyState, waitingSince: str
         icon: stale ? 'clock' : 'question',
         label: stale ? `Cisza ${age}` : 'U klienta',
         title: stale
-            ? `Klient milczy od ${age} — czas na przypomnienie albo zamknięcie leada`
-            : 'Odpisaliśmy — czekamy na decyzję klienta',
+            ? `Klient milczy od ${age} - czas na przypomnienie albo zamknięcie leada`
+            : 'Odpisaliśmy - czekamy na decyzję klienta',
     };
 }
 
 /**
- * Ton „czyjego ruchu" bez renderowania znacznika — dla wiersza tabeli, który
+ * Ton „czyjego ruchu" bez renderowania znacznika - dla wiersza tabeli, który
  * zaznacza pilne leady paskiem przy krawędzi. Pasek nie zajmuje szerokości,
  * więc znajduje zaległość szybciej niż jakakolwiek plakietka w środku wiersza.
  */

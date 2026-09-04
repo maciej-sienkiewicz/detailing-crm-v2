@@ -1,22 +1,22 @@
 // src/modules/campaigns/views/CampaignWizardView.tsx
-// Kreator kampanii — cztery kroki, w każdym jedno pytanie i jedna akcja główna.
+// Kreator kampanii - cztery kroki, w każdym jedno pytanie i jedna akcja główna.
 //
 // Układ kroku „Odbiorcy" odpowiada kolejności, w jakiej człowiek o tym myśli:
 // najpierw kogo szukam (filtry), potem ilu ich jest (jedna wielka liczba i rachunek
-// wykluczeń), a na końcu kto konkretnie — imiennie, w tabeli, w której da się kogoś
+// wykluczeń), a na końcu kto konkretnie - imiennie, w tabeli, w której da się kogoś
 // wypisać. Wcześniej ostatniego piętra nie było wcale: lista odbiorców była
 // nieklikalną „próbką" w wąskiej kolumnie, a jedynym gestem był krzyżyk, po którym
 // klient znikał bezpowrotnie.
 //
 // Prawa, które ten ekran ma respektować:
-// · jedna dominanta na widok — liczba odbiorców, rozmiarem, nie barwą;
-// · prawo Hicka — jedna akcja główna w stopce kroku, cofnięcie po lewej, zapis
+// · jedna dominanta na widok - liczba odbiorców, rozmiarem, nie barwą;
+// · prawo Hicka - jedna akcja główna w stopce kroku, cofnięcie po lewej, zapis
 //   szkicu jako odnośnik, bo to wyjście awaryjne, nie równorzędna droga;
-// · kolor = znaczenie — barwę niesie akcja główna, ostrzeżenie o kredytach i pole,
+// · kolor = znaczenie - barwę niesie akcja główna, ostrzeżenie o kredytach i pole,
 //   którego brakuje; nic poza tym;
-// · widoczność stanu systemu — „Dalej" bez nazwy kampanii nie jest martwe: mówi,
+// · widoczność stanu systemu - „Dalej" bez nazwy kampanii nie jest martwe: mówi,
 //   czego brakuje, i przewija do tego pola;
-// · podgląd przed wysłaniem — treść widać tak, jak zobaczy ją klient, w trakcie
+// · podgląd przed wysłaniem - treść widać tak, jak zobaczy ją klient, w trakcie
 //   pisania, a nie dopiero po zapisaniu kampanii.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -86,7 +86,7 @@ const TwoCols = styled.div<{ $aside?: string }>`
   @media (max-width: 1099px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
-/** Podgląd treści jedzie z ekranem — pisze się w lewej kolumnie, patrzy w prawą. */
+/** Podgląd treści jedzie z ekranem - pisze się w lewej kolumnie, patrzy w prawą. */
 const StickyAside = styled.div`
   position: sticky;
   top: 24px;
@@ -95,7 +95,7 @@ const StickyAside = styled.div`
 `;
 
 /**
- * Wybór rodzaju kampanii — dwie karty, żadna nie jest domyślna.
+ * Wybór rodzaju kampanii - dwie karty, żadna nie jest domyślna.
  *
  * To jedyny krok bez akcji głównej w stopce, bo akcją jest sam wybór. Ikona jest
  * przygaszona: gdyby świeciła kolorem akcji, obie karty wyglądałyby jak dwa
@@ -183,7 +183,7 @@ const ScheduleNote = styled.p`
  * Nazwa kampanii wpisywana wprost w tytule strony.
  *
  * Wcześniej stała w osobnej sekcji „Kampania" rozciągniętej na całą szerokość
- * ekranu wokół jednego pola na jedną trzecią tej szerokości — panel bez treści
+ * ekranu wokół jednego pola na jedną trzecią tej szerokości - panel bez treści
  * i pole bez kontekstu. Nazwa jest tożsamością tworzonego obiektu, więc jej
  * miejsce jest tam, gdzie tożsamość zwykle stoi: w tytule. Nagłówek przestaje
  * być ozdobą, a lista sekcji poniżej zaczyna się od rzeczy, która naprawdę
@@ -215,7 +215,7 @@ const NameInput = styled.input<{ $invalid?: boolean }>`
 `;
 
 /**
- * Komunikat o brakującej nazwie — pod polem, na ciemnym tle nagłówka.
+ * Komunikat o brakującej nazwie - pod polem, na ciemnym tle nagłówka.
  * Element wierszowy, bo mieszka wewnątrz nagłówka strony (h1), gdzie akapit
  * jest niepoprawny.
  */
@@ -232,7 +232,7 @@ const NameError = styled.span`
  * Fakty w nagłówku: na którym kroku jesteśmy i co już wiadomo o kampanii.
  *
  * Podtytuł „Do kogo ma trafić?" powtarzał nazwę kroku, którą widać w Stepperze
- * dwadzieścia pikseli niżej — czyli nie niósł nic. Postęp i decyzje podjęte do
+ * dwadzieścia pikseli niżej - czyli nie niósł nic. Postęp i decyzje podjęte do
  * tej pory niosą: „Krok 2 z 4 · Jednorazowa · 412 odbiorców" mówi, ile zostało
  * i co się właśnie buduje.
  */
@@ -254,7 +254,7 @@ const HeaderFacts = styled.span`
 
 /**
  * Krok „Odbiorcy": po lewej praca (filtry, a pod nimi imienna lista), po prawej
- * jej wynik — jedna liczba, która jedzie z ekranem. Tabela jest w kolumnie, więc
+ * jej wynik - jedna liczba, która jedzie z ekranem. Tabela jest w kolumnie, więc
  * nie rozpycha się na całą szerokość monitora dla czterech kolumn danych.
  */
 const AudienceLayout = styled.div`
@@ -273,7 +273,7 @@ const AudienceMain = styled.div`
   min-width: 0;
 `;
 
-/** Podsumowanie: pary „pytanie — odpowiedź", odpowiedzi cięższe od pytań. */
+/** Podsumowanie: pary „pytanie - odpowiedź", odpowiedzi cięższe od pytań. */
 const RecapList = styled.dl`
   margin: 0;
   display: grid;
@@ -310,7 +310,7 @@ const STEPS: { id: StepId; label: string }[] = [
 type ScheduleMode = 'NOW' | 'AT' | 'ACTIVATE';
 
 /**
- * Podpis samych kryteriów wyszukiwania — bez list zaznaczeń.
+ * Podpis samych kryteriów wyszukiwania - bez list zaznaczeń.
  *
  * Służy do rozróżnienia dwóch rzeczy, które wyglądają tak samo („zmieniły się
  * kryteria odbiorców"), a znaczą co innego: zmiana filtra przelicza listę od nowa
@@ -368,16 +368,16 @@ export function CampaignWizardView() {
   const [audiencePage, setAudiencePage] = useState(0);
   const [audienceSearch, setAudienceSearch] = useState('');
   /*
-   * Stała tożsamość, bo tabela odmierza po niej opóźnienie wpisywania — funkcja
+   * Stała tożsamość, bo tabela odmierza po niej opóźnienie wpisywania - funkcja
    * tworzona na nowo przy każdym renderze kasowałaby ten odmierzany czas w kółko.
    */
   const changeAudienceSearch = useCallback((next: string) => {
     setAudienceSearch(next);
     setAudiencePage(0);
   }, []);
-  /** Zmieniono filtr, a na liście wiszą ręczne odznaczenia — trzeba o nie zapytać. */
+  /** Zmieniono filtr, a na liście wiszą ręczne odznaczenia - trzeba o nie zapytać. */
   const [exclusionQuestionPending, setExclusionQuestionPending] = useState(false);
-  /** Użytkownik już powiedział „zachowaj" — nie pytamy przy każdej kolejnej zmianie. */
+  /** Użytkownik już powiedział „zachowaj" - nie pytamy przy każdej kolejnej zmianie. */
   const [exclusionsAcknowledged, setExclusionsAcknowledged] = useState(false);
 
   // Brakujące pola: zapalane dopiero po próbie przejścia dalej, gaszone pierwszym znakiem.
@@ -416,7 +416,7 @@ export function CampaignWizardView() {
    *
    * Kampania automatyczna nie wychodzi od kryteriów odbiorców, tylko od zdarzenia:
    * „180 dni po powłoce ceramicznej". Dopóki prognoza o tym nie wiedziała, liczba
-   * pod filtrami pokazywała całą bazę klientów i nie drgała przy zmianie warunku —
+   * pod filtrami pokazywała całą bazę klientów i nie drgała przy zmianie warunku -
    * czyli kłamała dokładnie w tym miejscu, w którym ktoś jej najbardziej potrzebuje.
    */
   const triggerProjection: AudienceTriggerProjection | null =
@@ -444,7 +444,7 @@ export function CampaignWizardView() {
    * Pytanie o odznaczenia zadajemy dopiero wtedy, gdy tabela naprawdę się odświeżyła:
    * parametry, na których stoi wynik, dogoniły to, co ustawił użytkownik, i nic już
    * się nie dolicza. Gdyby okno wyskakiwało w chwili zmiany filtra, pojawiałoby się
-   * po pierwszym naciśniętym klawiszu — w środku wpisywania liczby dni.
+   * po pierwszym naciśniętym klawiszu - w środku wpisywania liczby dni.
    */
   const currentSignature = filterSignature(audience, triggerProjection, estimateChannel);
   const listCaughtUp = appliedFilterSignature(appliedKey) === currentSignature && !isEstimating;
@@ -479,7 +479,7 @@ export function CampaignWizardView() {
     setTrigger(next);
   };
 
-  /** Odznaczenie w tabeli to nowa decyzja — o nią zapytamy przy następnej zmianie filtra. */
+  /** Odznaczenie w tabeli to nowa decyzja - o nią zapytamy przy następnej zmianie filtra. */
   const changeExcluded = (next: string[]) => {
     setExclusionsAcknowledged(false);
     setAudience({ ...audience, excludeCustomerIds: next });
@@ -503,13 +503,13 @@ export function CampaignWizardView() {
    * „Dalej" bez nazwy kampanii nie jest martwym przyciskiem.
    *
    * Wyłączony `disabled` nie przyjmuje kliknięcia, nie łapie tabulatora i nie mówi
-   * nic czytnikowi ekranu — ktoś, kto nie zauważył pustego pola dwa ekrany wyżej,
+   * nic czytnikowi ekranu - ktoś, kto nie zauważył pustego pola dwa ekrany wyżej,
    * zostaje z przyciskiem, który po prostu nie działa. Przycisk zostaje więc żywy,
    * a wygląda i ogłasza się jako niedostępny (`aria-disabled`): kliknięcie przewija
    * do brakującego pola, ustawia w nim kursor i zapala przy nim komunikat.
    */
   const revealMissing = (target: { current: HTMLElement | null }, focus: boolean) => {
-    // Krótka zwłoka, bo do tego samego pola trafiamy też ze Steppera — wtedy krok
+    // Krótka zwłoka, bo do tego samego pola trafiamy też ze Steppera - wtedy krok
     // dopiero się montuje i sekundę wcześniej referencji jeszcze nie ma.
     window.setTimeout(() => {
       target.current?.scrollIntoView({ behavior: 'smooth', block: focus ? 'center' : 'start' });
@@ -622,7 +622,7 @@ export function CampaignWizardView() {
             />
             {nameMissing && (
               <NameError id="campaign-name-error">
-                Nadaj kampanii nazwę — po niej odnajdziesz ją na liście. Klient jej nie zobaczy.
+                Nadaj kampanii nazwę - po niej odnajdziesz ją na liście. Klient jej nie zobaczy.
               </NameError>
             )}
           </>
@@ -750,7 +750,7 @@ export function CampaignWizardView() {
               </FilterGrid>
               {trigger.serviceIds.length > 1 && (
                 <HintText>
-                  Wystarczy, że klient miał wykonaną dowolną z wybranych usług — nie wszystkie.
+                  Wystarczy, że klient miał wykonaną dowolną z wybranych usług - nie wszystkie.
                 </HintText>
               )}
             </Panel>
@@ -760,7 +760,7 @@ export function CampaignWizardView() {
             <AudienceMain>
               {/*
                 Biała powierzchnia, nie ciche tło. Wariant [$quiet] siada na
-                surfaceAlt (#f1f5f9), a tło strony to #eef2f7 — różnica jest tak
+                surfaceAlt (#f1f5f9), a tło strony to #eef2f7 - różnica jest tak
                 mała, że panel przestawał mieć krawędź i sąsiadujący z nim panel
                 prognozy wyglądał, jakby stał w innej linii. Sekcje filtrów są
                 w środku wierszami, nie kartami, więc bieli na bieli tu nie ma.
@@ -820,7 +820,7 @@ export function CampaignWizardView() {
               />
             </Panel>
             {/* Podgląd obok edytora, nie po zapisaniu: kampanię pisze się raz, a czyta
-                ją tysiąc osób — zobaczyć ich widok trzeba w trakcie, nie po fakcie. */}
+                ją tysiąc osób - zobaczyć ich widok trzeba w trakcie, nie po fakcie. */}
             <StickyAside>
               <Panel>
                 <ContentPreview
@@ -879,7 +879,7 @@ export function CampaignWizardView() {
               <dt>Kanał</dt>
               <dd>{content.channel === 'BOTH' ? 'SMS i e-mail' : content.channel === 'SMS' ? 'SMS' : 'E-mail'}</dd>
               <dt>{kind === 'AUTOMATIC' ? `Odbiorcy (${TRIGGER_HORIZON_DAYS} dni)` : 'Odbiorcy'}</dt>
-              <dd>{estimate ? `${estimate.eligible} (stan na dziś)` : '—'}</dd>
+              <dd>{estimate ? `${estimate.eligible} (stan na dziś)` : '-'}</dd>
               {audience.excludeCustomerIds.length > 0 && (
                 <>
                   <dt>Odznaczeni ręcznie</dt>
@@ -891,7 +891,7 @@ export function CampaignWizardView() {
                 <>
                   <dt>Warunek</dt>
                   <dd>
-                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '—'}
+                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '-'}
                   </dd>
                 </>
               )}
@@ -942,7 +942,7 @@ export function CampaignWizardView() {
               <ArrowLeft /> Wstecz
             </IconButton>
             <NavRight>
-              {/* Zapis szkicu to wyjście awaryjne, nie druga droga do celu —
+              {/* Zapis szkicu to wyjście awaryjne, nie druga droga do celu -
                   jako równy przycisk kazałby wybierać między dwoma „zapisz". */}
               <QuietLink type="button" disabled={isSaving} onClick={saveDraft}>
                 Zapisz jako szkic
@@ -968,8 +968,8 @@ export function CampaignWizardView() {
         Zmieniły się filtry, a na liście wiszą ręczne odznaczenia.
         Nie zgadujemy za użytkownika: „odznaczyłem Kowalskiego, bo był u mnie wczoraj"
         i „odznaczyłem trzy osoby, zanim zmieniłem grupę na zupełnie inną" to dwie
-        różne intencje, a interfejs nie ma jak ich rozróżnić. Pytamy raz — po zmianie
-        filtra, nie po każdym klawiszu — i zapamiętujemy odpowiedź do następnego
+        różne intencje, a interfejs nie ma jak ich rozróżnić. Pytamy raz - po zmianie
+        filtra, nie po każdym klawiszu - i zapamiętujemy odpowiedź do następnego
         odznaczenia.
       */}
       <ConfirmationModal
@@ -985,7 +985,7 @@ export function CampaignWizardView() {
         cancelText="Zachowaj"
         /*
          * Pytamy o czynność, nie o stan, bo ConfirmationModal po potwierdzeniu woła
-         * także [onCancel] — gdyby to „zachowaj" siedziało pod przyciskiem
+         * także [onCancel] - gdyby to „zachowaj" siedziało pod przyciskiem
          * potwierdzenia, kliknięcie natychmiast czyściłoby to, co miało zachować.
          * Przy takim ustawieniu obie drogi są bezpieczne, a wyjście Escape'em
          * i kliknięciem w tło znaczy „zachowaj", czyli nie niszczy niczyjej pracy.

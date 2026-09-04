@@ -4,13 +4,13 @@ import { apiClient } from '@/core/apiClient';
 import type { CarddavAccountDto, CarddavProvisioningDto } from '../types';
 
 // /v1/carddav/** to bezstanowy serwer CardDAV z Basic auth (tam loguje się
-// telefon) — zarządzanie z sesji CRM żyje obok, pod /v1/carddav-setup.
+// telefon) - zarządzanie z sesji CRM żyje obok, pod /v1/carddav-setup.
 const BASE_PATH = '/v1/carddav-setup';
 
 /**
  * Kontakty studia na telefonie (CardDAV). Model bezpieczeństwa jak przy
  * urządzeniach push: każdy telefon dostaje WŁASNE hasło aplikacyjne, nigdy
- * hasło użytkownika. Odwołanie konta unieważnia te dane — telefon przestaje
+ * hasło użytkownika. Odwołanie konta unieważnia te dane - telefon przestaje
  * się synchronizować, bez dotykania sesji użytkownika.
  */
 export const carddavApi = {

@@ -7,7 +7,7 @@ import './index.css';
 // Click-to-Call (push / notificationclick handlers live in service-worker.js).
 //
 // A scope holds exactly one registration, so registering this script replaces
-// whatever was registered before — first /logo-sw.js, then /sw.js.
+// whatever was registered before - first /logo-sw.js, then /sw.js.
 //
 // The filename is deliberately NOT sw.js any more. That name was once served
 // under nginx's "expires 1y, immutable" rule for *.js (written for bundles with

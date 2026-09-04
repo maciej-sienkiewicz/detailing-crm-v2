@@ -143,7 +143,7 @@ describe('RedirectCard', () => {
 
   it('the backend refusal to run without a redirect is shown verbatim', async () => {
     settings = on;
-    runMutate.mockRejectedValue({ response: { data: { message: 'Włącz najpierw przekierowanie wiadomości na swoje dane — bez niego wysyłka testowa nie ruszy' } } });
+    runMutate.mockRejectedValue({ response: { data: { message: 'Włącz najpierw przekierowanie wiadomości na swoje dane - bez niego wysyłka testowa nie ruszy' } } });
     renderCard();
     await userEvent.click(screen.getByRole('button', { name: /Wyślij wszystkie testowo/ }));
     expect(await screen.findByText(/Włącz najpierw przekierowanie/)).toBeInTheDocument();

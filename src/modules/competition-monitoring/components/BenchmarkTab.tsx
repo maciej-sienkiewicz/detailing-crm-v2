@@ -353,7 +353,7 @@ const profileWord = (count: number): string => {
 const daysBetween = (from: string, to: string) =>
     Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 
-/** Mediana — używana i do linii odniesienia, i do odpornego punktu bazowego. */
+/** Mediana - używana i do linii odniesienia, i do odpornego punktu bazowego. */
 const median = (values: number[]): number => {
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
@@ -392,7 +392,7 @@ type PulseTone = 'good' | 'warn' | 'bad' | 'neutral';
 
 /**
  * Podgląd sekcji dla studiów, u których nic się jeszcze nie wydarzyło albo norma
- * profili dopiero się zbiera. Pokazuje, jakiego rodzaju informacje tu trafiają —
+ * profili dopiero się zbiera. Pokazuje, jakiego rodzaju informacje tu trafiają -
  * dane są zmyślone i wyraźnie oznaczone jako przykład.
  */
 const DEMO_EVENTS: PulseEvent[] = [
@@ -401,7 +401,7 @@ const DEMO_EVENTS: PulseEvent[] = [
         isSelf: true,
         username: 'ty',
         headline: 'Twój post ze środy',
-        detail: '142 reakcje — powyżej twojej zwykłej średniej (58).',
+        detail: '142 reakcje - powyżej twojej zwykłej średniej (58).',
         permalink: null,
         occurredAt: '20.08',
     },
@@ -428,7 +428,7 @@ const DEMO_EVENTS: PulseEvent[] = [
         isSelf: false,
         username: 'car_studio',
         headline: '@car_studio ma post powyżej swojej normy',
-        detail: '312 reakcji przy zwykłych 74 — 4,2× więcej.',
+        detail: '312 reakcji przy zwykłych 74 - 4,2× więcej.',
         permalink: null,
         occurredAt: '21.08',
     },
@@ -517,11 +517,11 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     // Liczymy PRZYROST BEZWZGLĘDNY, nie procentowy: przy dwóch profilach o różnej
     // wielkości ten sam procent oznacza zupełnie inną liczbę realnych ludzi, a to
     // o ludzi toczy się gra na lokalnym rynku. Procent zostaje jako drugi tryb,
-    // bo odpowiada na inne pytanie — czy moja robota jest skuteczna.
+    // bo odpowiada na inne pytanie - czy moja robota jest skuteczna.
     //
     // Punkt zerowy jest WSPÓLNY dla wszystkich zaznaczonych profili: to najpóźniejszy
     // start danych w tej grupie. Dzięki temu każda linia startuje z zera tego samego
-    // dnia i porównanie jest uczciwe. Profil dodany później skraca okno — mówimy
+    // dnia i porównanie jest uczciwe. Profil dodany później skraca okno - mówimy
     // o tym wprost i podpowiadamy, że można go odznaczyć w tabeli.
     const [growthMode, setGrowthMode] = useState<GrowthMode>('absolute');
 
@@ -547,7 +547,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
               }
             : null;
 
-        // Punkt bazowy z mediany pierwszych trzech pomiarów — pojedynczy błędny
+        // Punkt bazowy z mediany pierwszych trzech pomiarów - pojedynczy błędny
         // odczyt na starcie przesunąłby inaczej całą linię przez cały okres.
         const baselines = new Map<string, number>();
         series.forEach(s => {
@@ -578,7 +578,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             return row;
         });
 
-        // Stan na ostatni dzień, w którym profil miał pomiar — podstawa nagłówka.
+        // Stan na ostatni dzień, w którym profil miał pomiar - podstawa nagłówka.
         const totals: GrowthTotal[] = series.map(s => {
             const base = baselines.get(s.profileId);
             const last = s.measured.filter(p => p.date >= baselineDate).slice(-1)[0];
@@ -590,7 +590,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     }, [benchmark.followers, selected, growthMode]);
 
     /**
-     * Nagłówek wykresu. Świadomie NIE liczymy tu "udziału w puli nowych obserwujących" —
+     * Nagłówek wykresu. Świadomie NIE liczymy tu "udziału w puli nowych obserwujących" -
      * suma przyrostów wszystkich profili nie jest liczbą unikalnych osób, bo ten sam
      * człowiek może obserwować kilka profili naraz. Pozycja w rankingu, krotność
      * względem lidera i różnica w sztukach są odporne na to nakładanie się widowni.
@@ -617,14 +617,14 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     }, [growth.totals]);
 
     // ── Puls konkurencji ──────────────────────────────────────────────────────
-    // Liczony w całości po stronie backendu, bez modelu AI — więc ładuje się razem
+    // Liczony w całości po stronie backendu, bez modelu AI - więc ładuje się razem
     // z zakładką, bez przycisku i bez czekania.
     const pulseQuery = usePulse();
     const [showPulseDemo, setShowPulseDemo] = useState(false);
     const pulseEvents = showPulseDemo ? DEMO_EVENTS : pulseQuery.data?.events ?? [];
 
     // ── Ponowienie pobrania dla profili z błędem ─────────────────────────────
-    // Przycisk pojawia się WYŁĄCZNIE gdy jakiś profil ma flagę błędu — poza tym
+    // Przycisk pojawia się WYŁĄCZNIE gdy jakiś profil ma flagę błędu - poza tym
     // przypadkiem nie ma czego ponawiać, więc nie ma też jak wydać quoty.
     const failedProfiles = useMemo(() => benchmark.rows.filter(row => row.apiError), [benchmark.rows]);
     const resync = useResyncFailedProfiles();
@@ -636,9 +636,9 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             onSuccess: result => {
                 setResyncMessage(
                     result.attempted === 0
-                        ? 'Nie ma już czego ponawiać — dane są aktualne.'
+                        ? 'Nie ma już czego ponawiać - dane są aktualne.'
                         : result.stillFailing === 0
-                            ? `Udało się — odświeżono ${profileWord(result.recovered)}.`
+                            ? `Udało się - odświeżono ${profileWord(result.recovered)}.`
                             : `Odświeżono ${profileWord(result.recovered)}, ${result.stillFailing} nadal bez odpowiedzi. ` +
                               'Sprawdź, czy profil nie zmienił nazwy albo nie jest prywatny.'
                 );
@@ -737,7 +737,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 <>
                                     Nie udało się pobrać danych dla{' '}
                                     <strong>{failedProfiles.map(row => `@${row.username}`).join(', ')}</strong>.
-                                    {' '}Kolejna automatyczna próba jutro rano — możesz też ponowić teraz.
+                                    {' '}Kolejna automatyczna próba jutro rano - możesz też ponowić teraz.
                                 </>
                             ) : (
                                 resyncMessage
@@ -855,14 +855,14 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 <Pill
                                     $active={growthMode === 'absolute'}
                                     onClick={() => setGrowthMode('absolute')}
-                                    title="Ile osób przybyło — tak wygląda walka o lokalną uwagę"
+                                    title="Ile osób przybyło - tak wygląda walka o lokalną uwagę"
                                 >
                                     Zasięg (osoby)
                                 </Pill>
                                 <Pill
                                     $active={growthMode === 'relative'}
                                     onClick={() => setGrowthMode('relative')}
-                                    title="Przyrost w % bazy — tak wygląda skuteczność niezależnie od wielkości konta"
+                                    title="Przyrost w % bazy - tak wygląda skuteczność niezależnie od wielkości konta"
                                 >
                                     Tempo (%)
                                 </Pill>
@@ -872,7 +872,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
 
                     {growth.rows.length === 0 ? (
                         <HintNote>
-                            Historia obserwujących buduje się od dnia dodania profilu — pierwsze punkty
+                            Historia obserwujących buduje się od dnia dodania profilu - pierwsze punkty
                             pojawią się po 2 dniach zbierania danych.
                         </HintNote>
                     ) : (
@@ -973,7 +973,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
 
                     {growth.baselineDate && (
                         <WindowNote>
-                            Porównanie od {formatDayShort(growth.baselineDate)} — od tego dnia masz dane
+                            Porównanie od {formatDayShort(growth.baselineDate)} - od tego dnia masz dane
                             dla wszystkich {growth.totals.length}{' '}
                             {growth.totals.length === 1 ? 'wybranego profilu' : 'wybranych profili'}.
                         </WindowNote>
@@ -983,7 +983,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                             <strong>Zakres skrócony o {growth.limiter.gainedDays}{' '}
                             {growth.limiter.gainedDays === 1 ? 'dzień' : 'dni'} przez @{growth.limiter.username}.</strong>{' '}
                             Historia tego profilu zaczyna się {formatDayShort(growth.baselineDate ?? '')}, a pozostałe
-                            wybrane profile mają dane już od {formatDayShort(growth.limiter.othersStart)} — porównanie
+                            wybrane profile mają dane już od {formatDayShort(growth.limiter.othersStart)} - porównanie
                             musi startować od najpóźniejszej wspólnej daty, inaczej nie byłoby uczciwe.
                             Odznacz ten profil w tabeli powyżej, aby zobaczyć pełną historię pozostałych.
                         </WindowWarning>
@@ -1024,7 +1024,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         <CardHint style={{ margin: 0 }}>
                             Co wydarzyło się u obserwowanych profili. Każdą liczbę zestawiamy z normą
                             danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni.
-                            Ta sekcja zawsze pokazuje ostatnie 7 dni — <strong>nie zależy od przełącznika
+                            Ta sekcja zawsze pokazuje ostatnie 7 dni - <strong>nie zależy od przełącznika
                             okresu</strong> nad zakładką, bo zdarzenia sprzed miesięcy nie są już
                             wiadomością.
                         </CardHint>
@@ -1043,7 +1043,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         <Eye size={15} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>
                             <strong>To jest przykład, nie Twoje dane.</strong> Tak wygląda ta sekcja, gdy
-                            zbierze się komplet historii — wpisy dotyczące prawdziwych postów mają dodatkowo
+                            zbierze się komplet historii - wpisy dotyczące prawdziwych postów mają dodatkowo
                             link, który otwiera post na Instagramie.
                         </span>
                     </DemoBanner>
@@ -1065,7 +1065,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     <HintNote style={{ marginTop: 14 }}>
                         {pulseQuery.data.profilesWatched === 0
                             ? 'Dodaj profile do obserwacji, aby zobaczyć, co się u nich dzieje.'
-                            : 'W ostatnich 7 dniach nic się nie wydarzyło — ani u ciebie, ani u konkurencji. ' +
+                            : 'W ostatnich 7 dniach nic się nie wydarzyło - ani u ciebie, ani u konkurencji. ' +
                               'Zobacz przykład powyżej, żeby sprawdzić, jakie zdarzenia tu trafiają.'}
                     </HintNote>
                 )}
@@ -1102,7 +1102,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         {!showPulseDemo && (
                             <PulseFootnote>
                                 Nie widzimy zasięgów, zapisów, udostępnień ani tego, czy post był promowany
-                                płatnie — Instagram nie udostępnia tych danych dla obserwowanych profili.
+                                płatnie - Instagram nie udostępnia tych danych dla obserwowanych profili.
                             </PulseFootnote>
                         )}
                     </>

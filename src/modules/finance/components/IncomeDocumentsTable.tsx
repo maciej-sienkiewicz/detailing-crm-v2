@@ -146,7 +146,7 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' }>`
 
 /* ─── Karta na telefonie ──────────────────────────────────────────────────────
    Dziewięć kolumn nie mieści się na 390 px, a przewijana w bok tabela pokazuje
-   datę i typ — czyli to, czego się nie szuka. Na telefonie zostaje to, po co
+   datę i typ - czyli to, czego się nie szuka. Na telefonie zostaje to, po co
    otwiera się listę przychodów: kto, ile, czy zapłacone i który to dokument.
    Źródło, numer KSeF i status „wszystko w porządku" zostają na desktopie. */
 
@@ -312,7 +312,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   const busy = excludeMutation.isPending || restoreMutation.isPending;
   const isMobile = useMediaQuery('(max-width: 639px)');
 
-  /** Ukrycie to akcja wiersza, nie wejście w szczegóły — klik nie może otwierać modala. */
+  /** Ukrycie to akcja wiersza, nie wejście w szczegóły - klik nie może otwierać modala. */
   const toggleExcluded = (event: React.MouseEvent, doc: IncomeDocument) => {
     event.stopPropagation();
     const mutation = doc.excluded ? restoreMutation : excludeMutation;
@@ -340,7 +340,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
               const type = DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
               const payment = PAYMENT_STATUS[doc.paymentStatus] ?? PAYMENT_STATUS.PENDING;
               const ksef = doc.ksefStatus ? KSEF_STATUS[doc.ksefStatus] : null;
-              // KSeF pokazujemy tylko wtedy, gdy coś jest nie tak — „W KSeF" to
+              // KSeF pokazujemy tylko wtedy, gdy coś jest nie tak - „W KSeF" to
               // stan oczekiwany i na telefonie byłby wyłącznie szumem.
               const ksefAlert = doc.ksefStatus === 'REJECTED' || doc.ksefStatus === 'QUEUED_RETRY' ? ksef : null;
 

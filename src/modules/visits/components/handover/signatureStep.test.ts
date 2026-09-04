@@ -11,7 +11,7 @@ describe('allProtocolsSigned', () => {
 
     it('brak dokumentu to nie to samo co zebrany podpis', () => {
         // Ta wartość jedzie do backendu jako signatureObtained. Studio, które nie
-        // skonfigurowało dokumentu wydania, nie zebrało podpisu — nie ma pod czym.
+        // skonfigurowało dokumentu wydania, nie zebrało podpisu - nie ma pod czym.
         expect(allProtocolsSigned({ total: 0, signed: 0 })).toBe(false);
     });
 });

@@ -2,7 +2,7 @@ import { apiClient } from '@/core';
 import type { CommunicationRedirectSettings, RehearsalReport } from '../types';
 
 /**
- * „Przekieruj każdą wiadomość mailową i SMS na moje dane" — jedno ustawienie na studio.
+ * „Przekieruj każdą wiadomość mailową i SMS na moje dane" - jedno ustawienie na studio.
  * Gdy włączone, backend podmienia odbiorcę każdej wiadomości do klienta na te dane,
  * w bramce wysyłkowej, tuż przed dostawcą. Klienci nie dostają nic.
  */
@@ -24,7 +24,7 @@ export async function planRehearsal(): Promise<RehearsalReport> {
   return data;
 }
 
-/** Wysyła wszystkie szablony na dane z przekierowania — tylko gdy plan jest bez błędów. */
+/** Wysyła wszystkie szablony na dane z przekierowania - tylko gdy plan jest bez błędów. */
 export async function runRehearsal(): Promise<RehearsalReport> {
   const { data } = await apiClient.post<RehearsalReport>('/v1/communication/rehearsal/run');
   return data;

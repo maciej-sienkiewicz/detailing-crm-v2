@@ -3,7 +3,7 @@ import type { CostExpenseItem } from './costTypes';
 /**
  * Kwoty pozycji kosztowej z KSeF: domknięcie brakującej strony netto ⇄ brutto.
  *
- * Faktury kosztowe bywają wypełnione tylko po jednej stronie — część sprzedawców
+ * Faktury kosztowe bywają wypełnione tylko po jednej stronie - część sprzedawców
  * podaje samo brutto (P_11A), część samo netto (P_11). Dopóki suma brutto liczyła
  * takie pozycje, a suma netto je pomijała, różnica brutto−netto w KPI rosła daleko
  * ponad realny VAT.
@@ -13,9 +13,9 @@ import type { CostExpenseItem } from './costTypes';
  * Stawka VAT w procentach z pola P_12.
  *
  * KSeF podaje stawkę jako gołą liczbę ("23", "8"), nie "23%". Kody bez VAT
- * ("zw" — zwolniony, "np" — nie podlega, "oo" — odwrotne obciążenie,
+ * ("zw" - zwolniony, "np" - nie podlega, "oo" - odwrotne obciążenie,
  * "0"/"0 KR"/"0 WDT"/"0 EXP") dają 0%: netto == brutto. Nierozpoznany kod zwraca
- * null — wtedy nic nie doliczamy, zamiast zgadywać.
+ * null - wtedy nic nie doliczamy, zamiast zgadywać.
  */
 export function parseVatRate(vatRate: string | null): number | null {
     if (!vatRate) return null;
@@ -26,7 +26,7 @@ export function parseVatRate(vatRate: string | null): number | null {
     return m ? parseFloat(m[1].replace(',', '.')) : null;
 }
 
-/** Brutto pozycji — z faktury, a gdy go brak, doliczone do netto wg stawki VAT. */
+/** Brutto pozycji - z faktury, a gdy go brak, doliczone do netto wg stawki VAT. */
 export function effectiveGross(item: CostExpenseItem): number {
     if (item.grossValue != null) return item.grossValue;
     if (item.netValue != null) {
@@ -38,7 +38,7 @@ export function effectiveGross(item: CostExpenseItem): number {
 }
 
 /**
- * Netto pozycji — z faktury, a gdy sprzedawca go nie wypełnił, wyliczone „w stu"
+ * Netto pozycji - z faktury, a gdy sprzedawca go nie wypełnił, wyliczone „w stu"
  * z brutto. Backend uzupełnia netto już w /expense-items; tutaj zostaje
  * zabezpieczenie na starsze odpowiedzi API i pozycje, których nie dało się domknąć.
  */

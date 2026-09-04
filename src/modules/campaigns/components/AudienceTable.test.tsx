@@ -2,7 +2,7 @@
 // @vitest-environment jsdom
 //
 // Tabela odbiorców jest jedynym miejscem w module, w którym jedno kliknięcie
-// wypisuje człowieka z wysyłki — i jedynym, w którym da się to cofnąć. Te dwie
+// wypisuje człowieka z wysyłki - i jedynym, w którym da się to cofnąć. Te dwie
 // rzeczy muszą działać w obie strony, także dla kogoś, kto jest już odznaczony.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';

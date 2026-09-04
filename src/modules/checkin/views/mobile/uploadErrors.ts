@@ -16,7 +16,7 @@ const serverMessage = (err: unknown): string | undefined =>
     (err as HttpErrorShape | null)?.response?.data?.message;
 
 /**
- * True when the upload token is no longer valid — the QR session was replaced,
+ * True when the upload token is no longer valid - the QR session was replaced,
  * revoked (visit created on desktop) or simply expired. The page must stop retrying
  * and ask for a fresh QR code.
  */
@@ -31,18 +31,18 @@ export const isSessionGoneError = (err: unknown): boolean => {
 /** A short, actionable Polish message for a failed photo upload. */
 export const describeUploadError = (err: unknown): string => {
     if (isSessionGoneError(err)) {
-        return 'Sesja wygasła — poproś o nowy kod QR na stanowisku obsługi.';
+        return 'Sesja wygasła - poproś o nowy kod QR na stanowisku obsługi.';
     }
 
     const status = httpStatus(err);
-    if (status === 413) return 'Zdjęcie jest zbyt duże — zrób je ponownie w niższej rozdzielczości.';
-    if (status !== undefined && status >= 500) return 'Błąd serwera — spróbujemy ponownie za chwilę.';
+    if (status === 413) return 'Zdjęcie jest zbyt duże - zrób je ponownie w niższej rozdzielczości.';
+    if (status !== undefined && status >= 500) return 'Błąd serwera - spróbujemy ponownie za chwilę.';
 
     const fromServer = serverMessage(err);
     if (fromServer) return fromServer;
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        return 'Brak połączenia — zdjęcie wyślemy automatycznie po jego odzyskaniu.';
+        return 'Brak połączenia - zdjęcie wyślemy automatycznie po jego odzyskaniu.';
     }
-    return 'Nie udało się wysłać zdjęcia — naciśnij "Ponów".';
+    return 'Nie udało się wysłać zdjęcia - naciśnij "Ponów".';
 };

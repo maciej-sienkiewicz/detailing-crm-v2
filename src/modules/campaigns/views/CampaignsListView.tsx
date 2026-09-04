@@ -1,14 +1,14 @@
 // src/modules/campaigns/views/CampaignsListView.tsx
 // Lista kampanii w języku wizualnym reszty aplikacji: wspólny PageHeader,
 // karta-powierzchnia, pasek pilności przy krawędzi wiersza, tokeny motywu.
-// Szczegóły w oknie CampaignDetailModal — tak samo jak lead otwiera się z listy
+// Szczegóły w oknie CampaignDetailModal - tak samo jak lead otwiera się z listy
 // leadów, a nie na osobnym adresie.
 //
 // Co zniknęło i dlaczego:
 //
 // Cztery kolorowe kafle KPI nad tabelą (zielony, bursztynowy, błękitny, szary).
 // Cztery równe prostokąty w czterech barwach to nie cztery akcenty, tylko zero
-// akcentów — efekt izolacji działa wyłącznie wtedy, gdy wyróżnia się jedna rzecz.
+// akcentów - efekt izolacji działa wyłącznie wtedy, gdy wyróżnia się jedna rzecz.
 // Te same liczby stoją teraz jednym cichym zdaniem w nagłówku strony: „3 działają
 // · 2 zaplanowane · 1 240 kredytów SMS". Hierarchia buduje się rozmiarem i wagą,
 // nie barwą.
@@ -41,7 +41,7 @@ import {
     SurfaceCard,
     ViewContainer,
 } from '../components/shared';
-// „2 dni temu", „wczoraj, 14:20" — dokładnie ten sam zapis, co w tabeli leadów.
+// „2 dni temu", „wczoraj, 14:20" - dokładnie ten sam zapis, co w tabeli leadów.
 import { formatRelativeTime } from '@/modules/comms/components/shared';
 import type { Campaign, CampaignStatus } from '../types';
 
@@ -58,12 +58,12 @@ const FILTERS: { id: ListFilter; label: string; statuses: CampaignStatus[] | nul
 ];
 
 /**
- * Pasek kłopotu nad listą — bliźniak paska zaległości w widoku leadów.
+ * Pasek kłopotu nad listą - bliźniak paska zaległości w widoku leadów.
  *
  * Pojawia się wyłącznie wtedy, gdy jest o czym mówić: cisza nie zajmuje miejsca.
  * Wielka liczba po lewej jest dominantą widoku dokładnie tak długo, jak długo
  * jest problem; gdy wszystko idzie zgodnie z planem, dominantą staje się sama
- * tabela — i tak ma być.
+ * tabela - i tak ma być.
  */
 const AlertStrip = styled.button<{ $tone: 'due' | 'stale' }>`
     display: flex;
@@ -212,7 +212,7 @@ const Row = styled.div<{ $active?: boolean; $tone: CampaignTone }>`
     &:last-child { border-bottom: none; }
 
     /*
-     * Pasek pilności przy lewej krawędzi — ten sam znak, co w tabeli leadów.
+     * Pasek pilności przy lewej krawędzi - ten sam znak, co w tabeli leadów.
      * Kłopot jest cechą całej kampanii, a nie zawartością którejś komórki, więc
      * mieszka na wierszu i nie zabiera ani piksela szerokości tabeli. Sam kolor
      * niczego nie niesie: to samo mówi znacznik tekstowy w kolumnie „Status".
@@ -260,7 +260,7 @@ const StatusStack = styled.span`
 `;
 
 /**
- * „Co dalej" pod etapem — ikona-kropka i zdanie, bez ramki i bez tła. W kolumnie,
+ * „Co dalej" pod etapem - ikona-kropka i zdanie, bez ramki i bez tła. W kolumnie,
  * gdzie każdy wiersz ma już etap, druga wypełniona plakietka zamienia kolumnę
  * w kolaż. Kolor niesie tylko pilność i tylko wtedy, gdy jest o czym mówić.
  */
@@ -276,7 +276,7 @@ const StateMarker = styled.span<{ $tone: CampaignTone }>`
 `;
 
 /**
- * Zaproszenie do pierwszej kampanii — na tle strony, bez ramki i bez gradientu.
+ * Zaproszenie do pierwszej kampanii - na tle strony, bez ramki i bez gradientu.
  * Pusty moduł nie jest okazją do popisu graficznego, tylko brakiem treści; jedna
  * akcja główna stoi już w nagłówku strony, więc tutaj powtarzamy ją raz i cicho.
  */
@@ -311,7 +311,7 @@ function recipientsLabel(c: Campaign): string {
     if (c.status === 'SENDING') return `${c.recipientsSent} / ${c.recipientsTotal}`;
     if (c.recipientsSent > 0) return String(c.recipientsSent);
     if (c.recipientsTotal > 0) return String(c.recipientsTotal);
-    return '—';
+    return '-';
 }
 
 /** Kolumna „Termin": data, która w tym stanie kampanii cokolwiek znaczy. */
@@ -332,7 +332,7 @@ export function CampaignsListView() {
 
     const [filter, setFilter] = useState<ListFilter>('ALL');
     // „Z błędami" to nie kolejny etap, tylko zawężenie listy do kampanii, które
-    // czegoś od nas chcą — druga oś filtrowania, jak „Do odpisania" przy leadach.
+    // czegoś od nas chcą - druga oś filtrowania, jak „Do odpisania" przy leadach.
     const [onlyProblems, setOnlyProblems] = useState(false);
     const [query, setQuery] = useState('');
 
@@ -411,7 +411,7 @@ export function CampaignsListView() {
                     <span className="text">
                         {messageWord(failedTotal)} nie dotarło do odbiorców
                         {worstCampaign && worstCampaign.recipientsFailed > 0 && (
-                            <> — najwięcej w <strong>{worstCampaign.name}</strong></>
+                            <> - najwięcej w <strong>{worstCampaign.name}</strong></>
                         )}
                     </span>
                     <ArrowRight />
@@ -425,7 +425,7 @@ export function CampaignsListView() {
                 >
                     <span className="amount">{credits}</span>
                     <span className="text">
-                        kredytów SMS zostało na koncie — <strong>doładuj</strong>, zanim ruszy
+                        kredytów SMS zostało na koncie - <strong>doładuj</strong>, zanim ruszy
                         kolejna wysyłka
                     </span>
                     <Coins />
@@ -509,7 +509,7 @@ export function CampaignsListView() {
                                         <span className="num">{recipientsLabel(c)}</span>
 
                                         <span className="num">
-                                            {c.creditsSpent > 0 ? `${c.creditsSpent} kr.` : '—'}
+                                            {c.creditsSpent > 0 ? `${c.creditsSpent} kr.` : '-'}
                                         </span>
 
                                         {/* Etap i „co dalej" jedno pod drugim: to dwie odpowiedzi

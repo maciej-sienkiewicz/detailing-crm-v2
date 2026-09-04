@@ -61,7 +61,7 @@ const Bar = styled.nav`
     gap: 6px;
     border-bottom: 1px solid ${st.border};
     /* Na wąskim ekranie zakładki nie mieszczą się w jednym rzędzie: przewijamy je
-       w bok zamiast obcinać — trzecia i kolejne muszą być osiągalne kciukiem. */
+       w bok zamiast obcinać - trzecia i kolejne muszą być osiągalne kciukiem. */
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;

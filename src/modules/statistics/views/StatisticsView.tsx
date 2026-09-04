@@ -430,7 +430,7 @@ export const StatisticsView = () => {
 
                 {isMobile && manageOpen && (
                     <ManageHint>
-                        Przypisywanie usług przeciąganiem działa na komputerze — tutaj użyj menu ⋮ w wierszu usługi.
+                        Przypisywanie usług przeciąganiem działa na komputerze - tutaj użyj menu ⋮ w wierszu usługi.
                     </ManageHint>
                 )}
 
@@ -543,7 +543,7 @@ export const StatisticsView = () => {
                         {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
                                 {isMobile
-                                    ? `⚠ ${unassignedCount} usług bez kategorii — przypisz je menu ⋮ w wierszu.`
+                                    ? `⚠ ${unassignedCount} usług bez kategorii - przypisz je menu ⋮ w wierszu.`
                                     : `⚠ ${unassignedCount} usług bez kategorii, przeciągnij na wybraną kategorię po lewej lub użyj menu ⋮ w wierszu.`}
                             </DragHint>
                         )}

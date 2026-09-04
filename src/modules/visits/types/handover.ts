@@ -49,7 +49,7 @@ export interface HandoverState {
     /**
      * Czy fakturę wysłać do KSeF. `null` = użytkownik nie ruszył przełącznika, więc
      * obowiązuje domyślna odpowiedź studia z ustawień. Trzymamy `null` zamiast
-     * kopiować domyślną wartość, bo stan powstaje zanim ustawienia się wczytają —
+     * kopiować domyślną wartość, bo stan powstaje zanim ustawienia się wczytają -
      * skopiowana wartość byłaby zgadywaniem, które potem trudno odróżnić od wyboru.
      */
     sendToKsef: boolean | null;
@@ -83,8 +83,8 @@ export const servicesFingerprint = (
  * Inaczej pozycje sprzed zmiany wracałyby jako obraz wizyty, której już nie ma:
  * dopisanie usługi za 1200 zł kończyło się komunikatem „wizyta ma jedną pozycję
  * za 0 zł", bo odtwarzaliśmy nieaktualne pozycje zamiast przeliczyć je od nowa.
- * Zachowujemy z draftu tylko to, czego usługi nie dotyczą — nabywcę i wybory
- * dotyczące zapłaty — żeby ręcznie wpisane dane nie przepadały.
+ * Zachowujemy z draftu tylko to, czego usługi nie dotyczą - nabywcę i wybory
+ * dotyczące zapłaty - żeby ręcznie wpisane dane nie przepadały.
  */
 export const restoreDraft = (
     fresh: HandoverState,

@@ -70,7 +70,7 @@ describe('buildServiceChangeSmsMessage', () => {
     });
 });
 
-describe('ServiceChangeSmsModal — polskie znaki', () => {
+describe('ServiceChangeSmsModal - polskie znaki', () => {
     it('domyślnie są wyłączone, a treść jest transliterowana', () => {
         const { textarea, toggle } = renderModal();
 
@@ -131,14 +131,14 @@ describe('ServiceChangeSmsModal — polskie znaki', () => {
     });
 });
 
-describe('ServiceChangeSmsModal — fraza o potwierdzeniu', () => {
+describe('ServiceChangeSmsModal - fraza o potwierdzeniu', () => {
     it('jest widoczna, gdy klient ma potwierdzić zmiany', () => {
         renderModal({ requireConfirmation: true });
 
         expect(screen.getByText(toAscii('Odpisz TAK aby zaakceptować.'))).toBeInTheDocument();
     });
 
-    it('znika, gdy nie wymagamy potwierdzenia — SMS jest tylko informacyjny', () => {
+    it('znika, gdy nie wymagamy potwierdzenia - SMS jest tylko informacyjny', () => {
         renderModal({ requireConfirmation: false });
 
         expect(screen.queryByText(/Odpisz TAK/)).not.toBeInTheDocument();

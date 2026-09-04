@@ -25,7 +25,7 @@ export const useIncomeDocuments = (filters: IncomeDocumentFilters) => {
 };
 
 /**
- * Ukrycie dokumentu przestawia listę, kafle podsumowania i statystyki KSeF —
+ * Ukrycie dokumentu przestawia listę, kafle podsumowania i statystyki KSeF -
  * wszystkie liczą z tych samych rekordów, więc muszą lecieć razem.
  */
 const useInvalidateIncomeDocuments = () => {

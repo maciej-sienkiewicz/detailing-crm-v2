@@ -1,4 +1,4 @@
-# Specyfikacja API — Dashboard Reservation Summary
+# Specyfikacja API - Dashboard Reservation Summary
 
 ## Endpoint
 
@@ -18,8 +18,8 @@ GET /api/v1/dashboard/reservation-summary?weeks=13
 
 Endpoint pozwala śledzić, jak w danym tygodniu lub dniu radzimy sobie z pozyskiwaniem nowych rezerwacji. Dane te umożliwiają wyciąganie wniosków, takich jak:
 
-- „W 10. dniu miesiąca często jest wzmożony ruch — może warto wtedy puścić kampanię adsową lub zadbać o Instagram?"
-- „W tym tygodniu salon nie przyjął żadnych rezerwacji — gdzie popełniliśmy błąd?"
+- „W 10. dniu miesiąca często jest wzmożony ruch - może warto wtedy puścić kampanię adsową lub zadbać o Instagram?"
+- „W tym tygodniu salon nie przyjął żadnych rezerwacji - gdzie popełniliśmy błąd?"
 
 ---
 
@@ -97,11 +97,11 @@ delta = ((currentWeek.count - previousWeek.count) / previousWeek.count) * 100
 ```
 
 Jeśli `previousWeek.count == 0`:
-- zwróć `deltaPercentage: 0` (lub `100` jeśli `currentWeek.count > 0` — do uzgodnienia)
+- zwróć `deltaPercentage: 0` (lub `100` jeśli `currentWeek.count > 0` - do uzgodnienia)
 
 ### `currentWeek` i `previousWeek`
 
-- `currentWeek` = bieżący tydzień ISO (poniedziałek 00:00 UTC — niedziela 23:59 UTC)
+- `currentWeek` = bieżący tydzień ISO (poniedziałek 00:00 UTC - niedziela 23:59 UTC)
 - `previousWeek` = poprzedni tydzień ISO
 
 Są to wartości identyczne z dwoma ostatnimi bucketami, ale zwracane osobno dla wygody frontendu.
@@ -112,22 +112,22 @@ Jeśli w danym tygodniu nie było żadnych rezerwacji, bucket powinien i tak poj
 
 ---
 
-## Handler — struktura kodu (sugestia)
+## Handler - struktura kodu (sugestia)
 
 ```
 dashboard/reservationsummary/
-├── GetDashboardReservationSummaryCommand.ts   — { studioId, weeks }
-├── GetDashboardReservationSummaryResult.ts    — { currentWeek, previousWeek, deltaPercentage, buckets }
-└── GetDashboardReservationSummaryHandler.ts   — logika grupowania per tydzień
+├── GetDashboardReservationSummaryCommand.ts   - { studioId, weeks }
+├── GetDashboardReservationSummaryResult.ts    - { currentWeek, previousWeek, deltaPercentage, buckets }
+└── GetDashboardReservationSummaryHandler.ts   - logika grupowania per tydzień
 ```
 
 ---
 
-## Frontend — status integracji
+## Frontend - status integracji
 
 Frontend jest gotowy i oczekuje danych z tego endpointu:
 
-- **`ReservationsKpiCard`** (`src/modules/dashboard/components/ReservationsKpiCard.tsx`) — wyświetla liczbę rezerwacji w bieżącym tygodniu, deltę procentową i wykres słupkowy (hover popover) za ostatnie 13 tygodni
+- **`ReservationsKpiCard`** (`src/modules/dashboard/components/ReservationsKpiCard.tsx`) - wyświetla liczbę rezerwacji w bieżącym tygodniu, deltę procentową i wykres słupkowy (hover popover) za ostatnie 13 tygodni
 - Karta jest umieszczona w nagłówku dashboardu **pod kartą przychodu** (`RevenueKpiCard`), w tej samej kolumnie po prawej stronie hero bana
 - Hook: `useDashboardReservations(weeks = 13)` w `src/modules/dashboard/hooks/useDashboardReservations.ts`
 

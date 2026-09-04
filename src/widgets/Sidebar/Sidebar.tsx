@@ -90,8 +90,8 @@ const buildMenuSections = (
                 { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
                 { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
                 // Bez czerwonego alertu: leada tworzy świadome kliknięcie użytkownika,
-                // więc nie ma czego zgłaszać jako nowość. Licznik zostaje — mówi, ile
-                // zapytań czeka na ruch — ale nie krzyczy jak nieprzeczytana poczta.
+                // więc nie ma czego zgłaszać jako nowość. Licznik zostaje - mówi, ile
+                // zapytań czeka na ruch - ale nie krzyczy jak nieprzeczytana poczta.
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, requires: 'LEADS_MANAGE' },
             ],
         },
@@ -221,11 +221,11 @@ export const Sidebar = () => {
     /**
      * Nagłówek rysuje się od pierwszej klatki z zapisu lokalnego, a `GET /v1/company`
      * tylko go potwierdza. Wcześniej przy każdym odświeżeniu strony przez moment
-     * widać było inicjały, zanim doszło logo — dane nagłówka zmieniają się raz na
+     * widać było inicjały, zanim doszło logo - dane nagłówka zmieniają się raz na
      * ruski rok, więc czekanie na sieć nic nie wnosiło poza tym przeskokiem.
      *
      * Odpowiedź serwera ma pierwszeństwo: gdy studio usunęło logo, `company.logoUrl`
-     * jest nullem i zapis lokalny NIE może go wskrzesić — stąd rozróżnienie „mamy już
+     * jest nullem i zapis lokalny NIE może go wskrzesić - stąd rozróżnienie „mamy już
      * odpowiedź" od „jeszcze jej nie ma", a nie zwykłe `??`.
      */
     const cachedHeader = useMemo(() => readCompanyHeader(user?.studioId), [user?.studioId]);
@@ -237,17 +237,17 @@ export const Sidebar = () => {
     }, [company, user?.studioId]);
 
     // Dopóki nie ma ani odpowiedzi, ani zapisu lokalnego, w nagłówku zostaje nazwa
-    // produktu — pusty pasek albo szkielet migałby przy każdym wejściu do aplikacji.
+    // produktu - pusty pasek albo szkielet migałby przy każdym wejściu do aplikacji.
     const companyName = (company?.name ?? cachedHeader?.name)?.trim() || 'AutoCRM';
 
     /**
-     * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów — to jego
+     * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów - to jego
      * znak firmowy, a litery były tylko namiastką na czas, gdy loga nie ma.
      *
      * Adres logo to podpisany link do S3, więc potrafi wygasnąć albo nie odpowiedzieć.
      * Ikona zepsutego obrazka w nagłówku wygląda jak awaria aplikacji, dlatego przy
      * błędzie wczytania wracamy do inicjałów. Zapamiętujemy ADRES, który zawiódł, a nie
-     * samą flagę — świeży link (po wgraniu nowego logo albo po odświeżeniu podpisu)
+     * samą flagę - świeży link (po wgraniu nowego logo albo po odświeżeniu podpisu)
      * jest wtedy próbowany od nowa, bez efektu czyszczącego stan.
      */
     const logoUrl = (company ? company.logoUrl : cachedHeader?.logoUrl)?.trim() || null;
