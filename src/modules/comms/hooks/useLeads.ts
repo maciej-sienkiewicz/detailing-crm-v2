@@ -195,7 +195,7 @@ const useLeadInvalidation = () => {
 };
 
 /**
- * „Oddzwoniłem": telefon do klienta zapisany jako kontakt.
+ * „Kontakt poza pocztą": rozmowa, SMS albo spotkanie zapisane na leadzie.
  *
  * Unieważniamy oś czasu ORAZ samego leada z listą: backend przy pierwszym telefonie
  * stempluje czas reakcji i przesuwa „Nowy" na „W kontakcie", więc odświeżenie samej
@@ -209,12 +209,12 @@ export const useRecordLeadCallback = () => {
             leadsApi.recordCallback(leadId, note),
         onSuccess: (_callback, { leadId }) => {
             invalidate(leadId);
-            showSuccess('Telefon odnotowany', 'Lead zszedł z kolejki oczekujących na odpowiedź');
+            showSuccess('Kontakt odnotowany', 'Lead zszedł z kolejki oczekujących na odpowiedź');
         },
         onError: (error) => {
             const message =
                 (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            showError('Nie udało się zapisać telefonu', message ?? 'Spróbuj ponownie');
+            showError('Nie udało się zapisać kontaktu', message ?? 'Spróbuj ponownie');
         },
     });
 };

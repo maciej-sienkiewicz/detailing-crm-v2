@@ -722,7 +722,8 @@ export function LeadDetailModal({
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
     const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    // „Oddzwoniłem": telefon jest kontaktem, nie notatką — pyta o nią osobne okno.
+    // „Kontakt poza pocztą": rozmowa czy SMS to kontakt, nie notatka — pyta o niego
+    // osobne okno, bo notatka przy nim jest opcjonalna.
     const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
     // Drugie pytanie przy leadzie z rezerwacją: czy termin w kalendarzu idzie razem z nim.
     const [deleteAppointmentDialogOpen, setDeleteAppointmentDialogOpen] = useState(false);
@@ -902,19 +903,6 @@ export function LeadDetailModal({
                                     <Phone /> Zadzwoń
                                 </QuietLink>
                             )}
-                            {/* Odnotowanie rozmowy stoi tuż przy „Zadzwoń", bo to
-                                druga połowa tej samej czynności. W stopce konkurowałoby
-                                wagą z jedyną akcją, która ma tam stać, a rozmowa
-                                telefoniczna zdarza się przy leadzie bez numeru
-                                w kartotece równie często — stąd przycisk bez warunku
-                                na telefon. */}
-                            <QuietLink
-                                as="button"
-                                type="button"
-                                onClick={() => setCallbackDialogOpen(true)}
-                            >
-                                <PhoneCall /> Oddzwoniłem
-                            </QuietLink>
                             {lead.customerId && (
                                 <Link to={`/customers/${lead.customerId}`}>
                                     <QuietLink as="span"><UserRound /> Kartoteka klienta</QuietLink>
@@ -1331,12 +1319,21 @@ export function LeadDetailModal({
                            odezwać się do klienta zawsze wolno.
                         4. w pozostałych → „Stwórz rezerwację", czyli po co ten moduł jest.
 
-                        Poza akcją główną stopka niesie najwyżej jeden przycisk, i tylko
-                        wtedy, gdy umówienie terminu nie jest tym głównym. Zwykłe przejście
-                        do korespondencji zeszło do ikony koperty w nagłówku: jako pełny
-                        przycisk konkurowało wagą z jedyną akcją, która ma tu stać, a na
-                        telefonie zabierało całą linijkę.
+                        Obok akcji głównej stopka niesie najwyżej dwa przyciski drugorzędne:
+                        stały „Kontakt poza pocztą" i — gdy umówienie terminu nie jest akcją
+                        główną — „Stwórz rezerwację". Zwykłe przejście do korespondencji zeszło
+                        do ikony koperty w nagłówku: jako pełny przycisk konkurowało wagą
+                        z akcją, która ma tu stać, a na telefonie zabierało całą linijkę.
                     */}
+                    {/* Odnotowanie kontaktu poza pocztą stoi PRZED akcją główną i jest
+                        przyciskiem drugorzędnym: to zapis tego, co już się wydarzyło,
+                        a nie następny krok w sprawie. Bez warunku na numer telefonu —
+                        klient podaje go w treści zapytania równie często, jak ma go
+                        w kartotece, a bywa i tak, że kontakt był SMS-em albo osobisty. */}
+                    <IconButton type="button" onClick={() => setCallbackDialogOpen(true)}>
+                        <PhoneCall size={14} /> Kontakt poza pocztą
+                    </IconButton>
+
                     {(() => {
                         if (lead.appointmentId) {
                             return (
