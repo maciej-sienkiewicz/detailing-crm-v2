@@ -320,7 +320,6 @@ export interface SimilarVisit {
     services: string[];
     totalGross: number;
     date: string;
-    status: string;
     /** Zlecenie w toku dobiera usługi do wydania auta — kwota jeszcze się zmieni. */
     priceProvisional: boolean;
     /** Ranga z kraty auto×usługa — kolejność wartości jest kolejnością jakości dopasowania. */
