@@ -67,3 +67,83 @@ describe('textToComposerHtml', () => {
         expect(textToComposerHtml('a <b>\r\n\nc')).toBe('<div>a &lt;b&gt;</div><div><br></div><div>c</div>');
     });
 });
+
+describe('wygląd: rozmiar pisma i kolory', () => {
+    // Trzy cechy wyglądu przechodzą przez normalizację, reszta nie. Gdyby przechodziło
+    // wszystko, `style` stałby się kanałem na `url()` i `expression()`; gdyby nie
+    // przechodziło nic, przyciski w pasku formatowania byłyby atrapą — kolor widać
+    // w edytorze, a wysłany mail wychodzi czarno-biały.
+
+    it('zachowuje rozmiar pisma, kolor tekstu i kolor tła', () => {
+        const out = normalizeComposerHtml(
+            '<div><span style="font-size: 18px; color: #dc2626; background-color: #fef08a">Uwaga</span></div>'
+        );
+        expect(out).toContain('font-size: 18px');
+        expect(out).toContain('color: #dc2626');
+        expect(out).toContain('background-color: #fef08a');
+    });
+
+    it('sprowadza kolor z rgb() do zapisu szesnastkowego', () => {
+        // Przeglądarki wystawiają rgb(), a starsze programy pocztowe rozumieją hex.
+        const out = normalizeComposerHtml('<div><span style="color: rgb(220, 38, 38)">x</span></div>');
+        expect(out).toContain('color: #dc2626');
+    });
+
+    it('skraca zapis trzyznakowy do pełnego', () => {
+        const out = normalizeComposerHtml('<div><span style="color: #f00">x</span></div>');
+        expect(out).toContain('color: #ff0000');
+    });
+
+    it('przycina rozmiar spoza dopuszczalnego zakresu zamiast go gubić', () => {
+        // Intencja („to ma być duże") jest czytelna; 96 px w mailu już nie.
+        expect(normalizeComposerHtml('<div><span style="font-size: 96px">x</span></div>'))
+            .toContain('font-size: 40px');
+        expect(normalizeComposerHtml('<div><span style="font-size: 4px">x</span></div>'))
+            .toContain('font-size: 10px');
+    });
+
+    it('odrzuca wszystko, co nie jest tą trójką', () => {
+        const out = normalizeComposerHtml(
+            '<div><span style="color: #dc2626; position: fixed; width: 900px; font-family: Comic Sans">x</span></div>'
+        );
+        expect(out).toContain('color: #dc2626');
+        expect(out).not.toContain('position');
+        expect(out).not.toContain('width');
+        expect(out).not.toContain('font-family');
+    });
+
+    it('odrzuca wartości koloru, które nie są kolorem', () => {
+        // `style` przyjmuje url() i var() — filtr nazw właściwości sam by ich nie zatrzymał.
+        const out = normalizeComposerHtml(
+            '<div><span style="color: var(--x); background-color: url(javascript:alert(1))">x</span></div>'
+        );
+        expect(out).not.toContain('var(');
+        expect(out).not.toContain('url(');
+        expect(out).toBe('<div>x</div>');
+    });
+
+    it('pogrubienie zapisane stylem nadal wraca jako znacznik, nawet z kolorem obok', () => {
+        // Regresja: dopuszczenie <span> do znaczników przepuszczanych bez zmian
+        // sprawiło, że <span style="font-weight:bold"> przestawał być pogrubieniem.
+        const out = normalizeComposerHtml(
+            '<div><span style="font-weight: bold; color: #dc2626">Ważne</span></div>'
+        );
+        expect(out).toBe('<div><span style="color: #dc2626"><b>Ważne</b></span></div>');
+    });
+
+    it('span bez dozwolonego wyglądu znika razem z opakowaniem', () => {
+        expect(normalizeComposerHtml('<div><span class="x">tekst</span></div>')).toBe('<div>tekst</div>');
+    });
+
+    it('przejmuje wygląd ze starego <font> z wklejonej korespondencji', () => {
+        const out = normalizeComposerHtml('<div><font color="#16a34a" size="5">z maila</font></div>');
+        expect(out).toContain('color: #16a34a');
+        expect(out).toContain('font-size: 24px');
+    });
+
+    it('zdejmowanie tła jest zapisywane wprost, nie bielą', () => {
+        // Biel zostawia plamę na ciemnym motywie klienta pocztowego.
+        const out = normalizeComposerHtml('<div><span style="background-color: transparent">x</span></div>');
+        expect(out).toContain('background-color: transparent');
+    });
+});

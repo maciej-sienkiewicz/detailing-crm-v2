@@ -5,8 +5,17 @@
 // stosowne: <span style="font-weight:700"> zamiast <b>, <div> zagnieżdżone w <div>,
 // wklejone z Worda klasy i style. Do serwera (i do skrzynki klienta) ma trafić jeden
 // ustalony, ubogi dialekt: pogrubienie, kursywa, podkreślenie, przekreślenie, listy,
-// odnośniki i podziały wierszy - nic więcej. Backend sanityzuje jeszcze raz, ale to on
-// ma dostać coś już czystego, a nie zgadywać, co edytor miał na myśli.
+// odnośniki, podziały wierszy oraz TRZY cechy wyglądu - rozmiar pisma, kolor tekstu
+// i kolor tła. Backend sanityzuje jeszcze raz, ale to on ma dostać coś już czystego,
+// a nie zgadywać, co edytor miał na myśli.
+//
+// Kolory i rozmiary przechodzą PRZEZ FILTR WARTOŚCI, nie tylko przez filtr nazw
+// właściwości. Powód jest podwójny. Bezpieczeństwo: `style` przyjmuje `url()`,
+// `expression()` i `var()`, więc przepuszczanie dowolnego ciągu byłoby otwarciem
+// kanału, którego reszta tego pliku pilnuje. I zwyczajna czytelność maila: wklejone
+// z Worda `font-size: 7.5pt` czy jasnoszary tekst na białym tle wychodzą u odbiorcy
+// jako coś nie do przeczytania. Zostaje piksel w rozsądnym zakresie i kolor
+// sprowadzony do zapisu, który rozumie każdy program pocztowy.
 
 /** Znaczniki, które przechodzą dalej tak, jak stoją. Reszta jest rozpakowywana. */
 const KEEP_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del', 'ul', 'ol', 'li', 'a', 'br', 'div', 'p', 'blockquote']);
@@ -21,6 +30,95 @@ const STYLE_TO_TAG: { test: (style: CSSStyleDeclaration) => boolean; tag: string
     { test: (style) => style.textDecorationLine.includes('underline') || style.textDecoration.includes('underline'), tag: 'u' },
     { test: (style) => style.textDecorationLine.includes('line-through') || style.textDecoration.includes('line-through'), tag: 's' },
 ];
+
+/**
+ * Zakres rozmiaru pisma, jaki wolno wysłać. Dolna granica to próg czytelności na
+ * telefonie, górna - moment, w którym akapit przestaje być akapitem. Wklejone spoza
+ * zakresu przycinamy do najbliższej granicy zamiast odrzucać: intencja („to ma być
+ * duże") jest czytelna i szkoda ją gubić.
+ */
+const MIN_FONT_SIZE_PX = 10;
+const MAX_FONT_SIZE_PX = 40;
+
+/** `<font size="1..7">` z wklejonego maila na piksele - skala z HTML 3.2. */
+const LEGACY_FONT_SIZES: Record<string, number> = {
+    '1': 10, '2': 13, '3': 14, '4': 18, '5': 24, '6': 32, '7': 40,
+};
+
+const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const RGB_COLOR = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/i;
+
+/**
+ * Kolor sprowadzony do `#rrggbb` albo null, gdy wartość nie jest kolorem, który
+ * chcemy wysłać. Przeglądarki wystawiają `rgb(...)`, wklejenia niosą `#abc`, nazwy
+ * CSS i `var(--cokolwiek)` - do maila ma iść jeden zapis, bo tylko na nim można
+ * polegać w starszych programach pocztowych.
+ */
+const toHexColor = (raw: string): string | null => {
+    const value = raw.trim().toLowerCase();
+    if (!value) return null;
+
+    if (HEX_COLOR.test(value)) {
+        if (value.length === 4) {
+            return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+        }
+        return value;
+    }
+
+    const rgb = RGB_COLOR.exec(value);
+    if (!rgb) return null;
+    const channels = [rgb[1], rgb[2], rgb[3]].map((part) => Number(part));
+    if (channels.some((channel) => channel > 255)) return null;
+    return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+};
+
+/**
+ * Dozwolony fragment `style` danego elementu - pusty ciąg, gdy nie ma czego zachować.
+ *
+ * Białą listą są NAZWY właściwości i osobno ich WARTOŚCI; nic spoza tej trójki nie
+ * przechodzi, także wtedy, gdy stoi w tym samym atrybucie co coś dozwolonego.
+ */
+const allowedStyle = (element: HTMLElement): string => {
+    const declarations: string[] = [];
+
+    const fontSize = element.style.fontSize;
+    if (fontSize.endsWith('px')) {
+        const pixels = Number.parseFloat(fontSize);
+        if (Number.isFinite(pixels)) {
+            const clamped = Math.round(Math.min(MAX_FONT_SIZE_PX, Math.max(MIN_FONT_SIZE_PX, pixels)));
+            declarations.push(`font-size: ${clamped}px`);
+        }
+    }
+
+    const color = toHexColor(element.style.color);
+    if (color) declarations.push(`color: ${color}`);
+
+    // `transparent` to jedyne słowo kluczowe, jakiego potrzebujemy: tak zdejmuje się
+    // wcześniej nałożone tło. Bez niego „bez tła" musiałoby wpisywać biel, która na
+    // ciemnym motywie klienta pocztowego wygląda jak zamalowany fragment.
+    const rawBackground = element.style.backgroundColor.trim().toLowerCase();
+    if (rawBackground === 'transparent' || rawBackground === 'rgba(0, 0, 0, 0)') {
+        declarations.push('background-color: transparent');
+    } else {
+        const background = toHexColor(rawBackground);
+        if (background) declarations.push(`background-color: ${background}`);
+    }
+
+    return declarations.join('; ');
+};
+
+/**
+ * `<font color size>` z wklejonej korespondencji na style, które rozumie [allowedStyle].
+ * Sam znacznik i tak zaraz zniknie - chodzi o to, żeby nie zabrał ze sobą wyglądu.
+ */
+const adoptLegacyFontAttributes = (element: HTMLElement): void => {
+    if (element.tagName.toLowerCase() !== 'font') return;
+    const color = element.getAttribute('color');
+    if (color && !element.style.color) element.style.color = color;
+    const size = element.getAttribute('size');
+    const pixels = size ? LEGACY_FONT_SIZES[size.trim()] : undefined;
+    if (pixels && !element.style.fontSize) element.style.fontSize = `${pixels}px`;
+};
 
 const parse = (html: string): Document =>
     new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
@@ -53,10 +151,15 @@ function cleanNode(node: Node, document: Document): void {
         }
 
         cleanNode(element, document);
+        adoptLegacyFontAttributes(element);
+
+        // Liczone PRZED zdjęciem atrybutów - potem nie ma już czego czytać.
+        const style = allowedStyle(element);
 
         if (KEEP_TAGS.has(tag)) {
             const href = tag === 'a' ? element.getAttribute('href') ?? '' : null;
             for (const attribute of Array.from(element.attributes)) element.removeAttribute(attribute.name);
+            if (style) element.setAttribute('style', style);
             if (tag === 'a') {
                 if (href && isSafeHref(href)) element.setAttribute('href', href.trim());
                 else unwrap(element);
@@ -65,9 +168,17 @@ function cleanNode(node: Node, document: Document): void {
         }
 
         // <span style="font-weight:bold"> → <b>; kilka cech naraz → zagnieżdżone znaczniki.
+        //
+        // Wygląd (rozmiar, kolory) nie ma swojego znacznika, więc wraca jako <span> na
+        // samym wierzchu - jeden element opisuje wtedy jedną rzecz. Dlatego <span> NIE
+        // stoi wśród znaczników przepuszczanych bez zmian: przechodziłby obok tego
+        // tłumaczenia i pogrubienie zapisane stylem gubiłoby swoje znaczenie.
+        // Span bez niczego dozwolonego wypada niżej, przy `unwrap`.
         const tags = STYLE_TO_TAG.filter(({ test }) => test(element.style)).map(({ tag: name }) => name);
+        if (style) tags.unshift('span');
         if (tags.length > 0) {
-            let wrapper: Element = document.createElement(tags[0]);
+            const wrapper: Element = document.createElement(tags[0]);
+            if (style) wrapper.setAttribute('style', style);
             let innermost = wrapper;
             for (const name of tags.slice(1)) {
                 const inner = document.createElement(name);
@@ -76,7 +187,6 @@ function cleanNode(node: Node, document: Document): void {
             }
             while (element.firstChild) innermost.appendChild(element.firstChild);
             element.parentNode?.replaceChild(wrapper, element);
-            wrapper = innermost;
             continue;
         }
 
