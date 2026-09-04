@@ -306,6 +306,34 @@ export interface LeadTimelineEntry {
     note: string | null;
 }
 
+/**
+ * Zlecenie z historii studia dobrane do zapytania klienta.
+ *
+ * Wszystkie pola pochodzą z bazy — model językowy uczestniczy wyłącznie w doborze
+ * i kolejności, nigdy w treści. Dzięki temu najgorsze, co może zrobić, to pokazać
+ * zlecenie nie na temat; nie może podać ceny, której nie było.
+ */
+export interface SimilarVisit {
+    visitId: string;
+    visitNumber: string;
+    vehicle: string;
+    services: string[];
+    totalGross: number;
+    date: string;
+    status: string;
+    /** Zlecenie w toku dobiera usługi do wydania auta — kwota jeszcze się zmieni. */
+    priceProvisional: boolean;
+    /** SAME_MODEL | SAME_BRAND | SAME_CLASS | ANY — jak blisko trafiliśmy w pojazd. */
+    matchTier: 'SAME_MODEL' | 'SAME_BRAND' | 'SAME_CLASS' | 'ANY';
+    feedback: 'RELEVANT' | 'IRRELEVANT' | null;
+}
+
+export interface SimilarVisits {
+    items: SimilarVisit[];
+    /** Ile zleceń jest w indeksie — odróżnia „nic nie pasuje" od „nie ma czego szukać". */
+    indexedVisits: number;
+}
+
 export interface LeadCallback {
     id: string;
     note: string | null;

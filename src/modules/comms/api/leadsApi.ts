@@ -11,6 +11,7 @@ import type {
     LeadStatus,
     LeadTimelineEntry,
     LeadCallback,
+    SimilarVisits,
     MarkThreadAsLeadRequest,
 } from '../types';
 
@@ -41,6 +42,30 @@ export const leadsApi = {
     getTimeline: async (leadId: string): Promise<LeadTimelineEntry[]> => {
         const { data } = await apiClient.get(`/v1/leads/${leadId}/timeline`);
         return data;
+    },
+
+    /**
+     * Podobne zlecenia z historii studia. Liczone na serwerze dopiero na to żądanie
+     * (osadzenie + przesiew), więc odpowiedź potrafi zająć sekundy — stąd przycisk,
+     * a nie ładowanie razem z leadem.
+     */
+    getSimilarVisits: async (leadId: string): Promise<SimilarVisits> => {
+        const { data } = await apiClient.get(`/v1/leads/${leadId}/similar-visits`, {
+            skipErrorToast: true,
+        });
+        return data;
+    },
+
+    rateSimilarVisit: async (
+        leadId: string,
+        visitId: string,
+        verdict: 'RELEVANT' | 'IRRELEVANT'
+    ): Promise<void> => {
+        await apiClient.put(
+            `/v1/leads/${leadId}/similar-visits/${visitId}`,
+            { verdict },
+            { skipErrorToast: true }
+        );
     },
 
     /** „Oddzwoniłem" — notatka opcjonalna, sam fakt telefonu bywa całą informacją. */
