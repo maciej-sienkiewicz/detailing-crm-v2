@@ -191,15 +191,17 @@ const Dismiss = styled.button`
 `;
 
 /**
- * Jak blisko trafiliśmy w pojazd. Podpis jest krótki, bo to przypis do wiersza,
- * a nie jego treść — ale bez niego „podobne” nic nie znaczy: co innego zlecenie
- * na dokładnie tym modelu, co innego na czymkolwiek z tej samej półki.
+ * Ranga dopasowania: auto × usługa. Podpis jest krótki, bo to przypis do wiersza —
+ * ale bez niego „podobne” nic nie znaczy: co innego ta sama robota na dokładnie
+ * tym modelu, co innego inna robota, którą łączy tylko auto.
  */
 const TIER_LABELS: Record<SimilarVisit['matchTier'], string> = {
-    SAME_MODEL: 'ten sam model',
-    SAME_BRAND: 'ta sama marka',
-    SAME_CLASS: 'ta sama klasa auta',
-    ANY: 'zbliżona robota',
+    SAME_MODEL_SAME_SERVICE: 'ten sam model, ta sama usługa',
+    SAME_SEGMENT_SAME_SERVICE: 'ta sama klasa auta, ta sama usługa',
+    SAME_MODEL_SIMILAR_SERVICE: 'ten sam model, podobna usługa',
+    SAME_SEGMENT_SIMILAR_SERVICE: 'ta sama klasa auta, podobna usługa',
+    SAME_MODEL_OTHER_SERVICE: 'ten sam model, inna robota',
+    MODEL_HISTORY: 'historia tego modelu',
 };
 
 const formatDate = (iso: string): string => {
@@ -233,8 +235,25 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
     const items = data?.items ?? [];
 
     if (items.length === 0) {
-        // Dwie różne prawdy, dwa różne komunikaty: „nie mamy czego szukać” znaczy co
-        // innego dla kogoś, kto właśnie zaczął używać CRM-a, niż „szukaliśmy i nie ma”.
+        // Każda pustka mówi co innego — i każda musi powiedzieć to wprost. Zwłaszcza
+        // robota spoza cennika: tu pustka jest DECYZJĄ (nie podpowiadamy cen innych
+        // usług), a bez wyjaśnienia wyglądałaby jak niedziałająca funkcja.
+        if (data?.emptyReason === 'SERVICE_NOT_IN_CATALOG') {
+            return (
+                <Hint>
+                    Klient pyta o usługę spoza Waszego cennika — nie podpowiadamy cen
+                    na podstawie innych zleceń.
+                </Hint>
+            );
+        }
+        if (data?.emptyReason === 'VEHICLE_UNKNOWN') {
+            return (
+                <Hint>
+                    Nie znamy auta z tego leada — uzupełnij markę i model, a dobierzemy
+                    zlecenia z historii.
+                </Hint>
+            );
+        }
         return (
             <Hint>
                 {(data?.indexedVisits ?? 0) === 0

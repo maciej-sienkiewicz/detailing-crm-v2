@@ -323,14 +323,25 @@ export interface SimilarVisit {
     status: string;
     /** Zlecenie w toku dobiera usługi do wydania auta — kwota jeszcze się zmieni. */
     priceProvisional: boolean;
-    /** SAME_MODEL | SAME_BRAND | SAME_CLASS | ANY — jak blisko trafiliśmy w pojazd. */
-    matchTier: 'SAME_MODEL' | 'SAME_BRAND' | 'SAME_CLASS' | 'ANY';
+    /** Ranga z kraty auto×usługa — kolejność wartości jest kolejnością jakości dopasowania. */
+    matchTier:
+        | 'SAME_MODEL_SAME_SERVICE'
+        | 'SAME_SEGMENT_SAME_SERVICE'
+        | 'SAME_MODEL_SIMILAR_SERVICE'
+        | 'SAME_SEGMENT_SIMILAR_SERVICE'
+        | 'SAME_MODEL_OTHER_SERVICE'
+        | 'MODEL_HISTORY';
 }
 
 export interface SimilarVisits {
     items: SimilarVisit[];
     /** Ile zleceń jest w indeksie — odróżnia „nic nie pasuje" od „nie ma czego szukać". */
     indexedVisits: number;
+    /**
+     * Powód pustki, gdy nie wynika z ubóstwa historii: robota spoza cennika
+     * (nie podpowiadamy wtedy żadnych cen — decyzja produktowa) albo nierozpoznane auto.
+     */
+    emptyReason?: 'SERVICE_NOT_IN_CATALOG' | 'VEHICLE_UNKNOWN' | null;
 }
 
 export interface LeadCallback {
