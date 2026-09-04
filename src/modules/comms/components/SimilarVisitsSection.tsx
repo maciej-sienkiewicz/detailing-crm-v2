@@ -1,8 +1,8 @@
 // src/modules/comms/components/SimilarVisitsSection.tsx
 //
-// „Podobne zlecenia" w oknie leada: co już robiliśmy dla takiego auta i takiej roboty.
+// „Podobne zlecenia” w oknie leada: co już robiliśmy dla takiego auta i takiej roboty.
 //
-// Odpowiedź na „ile za oklejenie Panamery?" leży w bazie od lat, tylko dotąd nie dało
+// Odpowiedź na „ile za oklejenie Panamery?” leży w bazie od lat, tylko dotąd nie dało
 // się do niej dojść z poziomu leada — trzeba było pytać kogoś z pamięcią albo
 // przeklikiwać historię wizyt ręcznie.
 //
@@ -12,6 +12,7 @@
 
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import type { DefaultTheme } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { ExternalLink, History, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useRateSimilarVisit, useSimilarVisits } from '../hooks/useLeads';
@@ -46,21 +47,29 @@ const List = styled.ul`
 `;
 
 /**
- * Wiersz zlecenia jako SIATKA ze stałą kolumną akcji — ta sama zasada co na osi czasu
- * leada: akcje doklejane do tekstu lądują w każdym wierszu gdzie indziej.
+ * Wiersz zlecenia: treść po lewej, kwota po prawej. DWIE kolumny, nie trzy.
+ *
+ * Oceny nie dostają własnej kolumny ani własnego wiersza — jedno i drugie rezerwuje
+ * pas pustki widoczny przez cały czas, a kciuki pokazują się na ułamek sekundy przy
+ * najechaniu. Siedzą więc poza siatką, w prawym dolnym rogu, czyli w miejscu, które
+ * i tak jest puste: kolumna kwoty ma dwie linie, kolumna treści trzy.
  */
 const Row = styled.li`
+    position: relative;
     display: grid;
-    /* Treść | kwota | oceny. Oceny mają WŁASNĄ kolumnę, nie własny wiersz: pełny
-       wiersz siatki rezerwowałby pas pustki pod każdą pozycją także wtedy, gdy
-       kciuki są niewidoczne — a lista trzech zleceń urosłaby o trzy takie pasy. */
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
-    gap: 8px;
+    gap: 4px 12px;
+    /* Trzy linie treści plus oddech — gwarantuje, że kciuki mają gdzie wylądować
+       także przy zleceniu bez wykazanych usług. */
+    min-height: 66px;
     padding: 9px 10px;
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.md};
     background: ${p => p.theme.colors.surface};
+    transition: border-color ${p => p.theme.transitions.fast};
+
+    &:hover { border-color: ${p => p.theme.colors.textMuted}; }
 `;
 
 const Vehicle = styled.div`
@@ -87,14 +96,39 @@ const Services = styled.div`
     overflow-wrap: anywhere;
 `;
 
+/**
+ * Data plus etykiety. Etykiety są plakietkami, a nie dopiskiem po separatorze:
+ * „ta sama marka” to klasyfikacja wiersza, nie ciąg dalszy zdania o dacie.
+ */
 const Meta = styled.div`
-    margin-top: 3px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 5px;
     font-size: 11.5px;
     color: ${p => p.theme.colors.textMuted};
     font-variant-numeric: tabular-nums;
 `;
 
-const Amount = styled.div<{ $provisional: boolean }>`
+const CHIP_TONES = {
+    neutral: (t: DefaultTheme) => ({ bg: t.colors.surfaceAlt, fg: t.colors.textSecondary }),
+    warning: (t: DefaultTheme) => ({ bg: t.colors.warningLight, fg: t.colors.warning }),
+    success: (t: DefaultTheme) => ({ bg: t.colors.successLight, fg: t.colors.success }),
+} as const;
+
+const Chip = styled.span<{ $tone?: keyof typeof CHIP_TONES }>`
+    padding: 1px 7px;
+    border-radius: ${p => p.theme.radii.full};
+    font-size: 10.5px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    line-height: 1.6;
+    white-space: nowrap;
+    background: ${p => CHIP_TONES[p.$tone ?? 'neutral'](p.theme).bg};
+    color: ${p => CHIP_TONES[p.$tone ?? 'neutral'](p.theme).fg};
+`;
+
+const Amount = styled.div`
     text-align: right;
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.semibold};
@@ -102,21 +136,31 @@ const Amount = styled.div<{ $provisional: boolean }>`
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 
-    /* Kwota zlecenia w toku jest wciąż ruchoma — bez tego znaku liczba udawałaby fakt. */
-    span {
+    /* „brutto” szeptem: handlowiec czyta liczbę, a przypis ma tylko rozstrzygać
+       wątpliwość, gdyby ją miał — nie konkurować z kwotą o uwagę. */
+    small {
         display: block;
         margin-top: 1px;
-        font-size: 10.5px;
-        font-weight: ${p => p.theme.fontWeights.medium};
-        color: ${p => (p.$provisional ? p.theme.colors.warning : 'transparent')};
+        font-size: 10px;
+        font-weight: ${p => p.theme.fontWeights.normal};
+        letter-spacing: 0.02em;
+        color: ${p => p.theme.colors.textMuted};
     }
 `;
 
+/**
+ * Poza siatką, w rogu, który i tak jest pusty — dzięki temu ukryte kciuki nie
+ * zostawiają po sobie białej dziury obok kwoty, a pokazanie ich nie przesuwa
+ * ani jednego piksela treści.
+ */
 const Rate = styled.div`
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
     display: flex;
     gap: 2px;
     opacity: 0;
-    transition: opacity 120ms ease;
+    transition: opacity ${p => p.theme.transitions.fast};
 
     li:hover &,
     &:focus-within { opacity: 1; }
@@ -138,13 +182,13 @@ const RateButton = styled.button<{ $active: boolean }>`
     color: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textMuted)};
     cursor: pointer;
 
-    &:hover { color: ${p => p.theme.colors.primary}; }
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.primary}; }
     svg { width: 13px; height: 13px; }
 `;
 
 /**
  * Jak blisko trafiliśmy w pojazd. Podpis jest krótki, bo to przypis do wiersza,
- * a nie jego treść — ale bez niego „podobne" nic nie znaczy: co innego zlecenie
+ * a nie jego treść — ale bez niego „podobne” nic nie znaczy: co innego zlecenie
  * na dokładnie tym modelu, co innego na czymkolwiek z tej samej półki.
  */
 const TIER_LABELS: Record<SimilarVisit['matchTier'], string> = {
@@ -185,8 +229,8 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
     const items = data?.items ?? [];
 
     if (items.length === 0) {
-        // Dwie różne prawdy, dwa różne komunikaty: „nie mamy czego szukać" znaczy co
-        // innego dla kogoś, kto właśnie zaczął używać CRM-a, niż „szukaliśmy i nie ma".
+        // Dwie różne prawdy, dwa różne komunikaty: „nie mamy czego szukać” znaczy co
+        // innego dla kogoś, kto właśnie zaczął używać CRM-a, niż „szukaliśmy i nie ma”.
         return (
             <Hint>
                 {(data?.indexedVisits ?? 0) === 0
@@ -211,18 +255,28 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                                 <ExternalLink />
                             </Link>
                         </Vehicle>
-                        <Services>{item.services.join(' · ') || 'Bez wykazanych usług'}</Services>
-                        <Meta>{formatDate(item.date)} · {TIER_LABELS[item.matchTier]}</Meta>
+                        <Services>{item.services.join(', ') || 'Bez wykazanych usług'}</Services>
+                        <Meta>
+                            {formatDate(item.date)}
+                            <Chip>{TIER_LABELS[item.matchTier]}</Chip>
+                            {/* Zlecenie w toku wciąż dobiera usługi do wydania auta —
+                                bez tego znaku kwota obok udawałaby fakt. */}
+                            {item.priceProvisional && <Chip $tone="warning">w trakcie</Chip>}
+                            {/* Kciuk chowa się razem z resztą akcji, więc bez tej plakietki
+                                potwierdzenie znikałoby z oczu i nie tłumaczyło, dlaczego
+                                to zlecenie stoi na górze listy. */}
+                            {item.feedback === 'RELEVANT' && <Chip $tone="success">potwierdzone</Chip>}
+                        </Meta>
                     </div>
-                    <Amount $provisional={item.priceProvisional}>
+                    <Amount>
                         {formatGrosze(item.totalGross)}
-                        <span>w trakcie</span>
+                        <small>brutto</small>
                     </Amount>
                     <Rate>
                         <RateButton
                             type="button"
                             $active={item.feedback === 'RELEVANT'}
-                            title="Trafne dopasowanie"
+                            title="Trafne — trzymaj to zlecenie na górze listy"
                             aria-label="Trafne dopasowanie"
                             disabled={rate.isPending}
                             onClick={() => rate.mutate({ visitId: item.visitId, verdict: 'RELEVANT' })}
