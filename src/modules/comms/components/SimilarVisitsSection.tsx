@@ -14,8 +14,8 @@ import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import type { DefaultTheme } from 'styled-components';
 import { Link } from 'react-router-dom';
-import { ExternalLink, History, ThumbsDown, ThumbsUp } from 'lucide-react';
-import { useRateSimilarVisit, useSimilarVisits } from '../hooks/useLeads';
+import { ExternalLink, History, X } from 'lucide-react';
+import { useDismissSimilarVisit, useSimilarVisits } from '../hooks/useLeads';
 import type { SimilarVisit } from '../types';
 import { IconButton, formatGrosze } from './shared';
 
@@ -114,7 +114,6 @@ const Meta = styled.div`
 const CHIP_TONES = {
     neutral: (t: DefaultTheme) => ({ bg: t.colors.surfaceAlt, fg: t.colors.textSecondary }),
     warning: (t: DefaultTheme) => ({ bg: t.colors.warningLight, fg: t.colors.warning }),
-    success: (t: DefaultTheme) => ({ bg: t.colors.successLight, fg: t.colors.success }),
 } as const;
 
 const Chip = styled.span<{ $tone?: keyof typeof CHIP_TONES }>`
@@ -149,27 +148,18 @@ const Amount = styled.div`
 `;
 
 /**
- * Poza siatką, w rogu, który i tak jest pusty — dzięki temu ukryte kciuki nie
- * zostawiają po sobie białej dziury obok kwoty, a pokazanie ich nie przesuwa
- * ani jednego piksela treści.
+ * „X" w rogu, który i tak jest pusty — kolumna kwoty ma dwie linie, kolumna treści
+ * trzy. Poza siatką, więc ukryty przycisk nie zostawia po sobie białej dziury obok
+ * kwoty, a pokazanie go nie przesuwa ani jednego piksela treści.
+ *
+ * Prawy GÓRNY róg byłby wygodniejszy do trafienia, ale tam stoi kwota — czyli
+ * dokładnie to, po co handlowiec tu przyszedł. Przycisk usuwania nie ma prawa
+ * zasłaniać liczby, na której ktoś oprze wycenę.
  */
-const Rate = styled.div`
+const Dismiss = styled.button`
     position: absolute;
-    right: 8px;
-    bottom: 6px;
-    display: flex;
-    gap: 2px;
-    opacity: 0;
-    transition: opacity ${p => p.theme.transitions.fast};
-
-    li:hover &,
-    &:focus-within { opacity: 1; }
-
-    /* Bez kursora nie ma najechania — na dotyku ocena musi być dostępna od razu. */
-    @media (hover: none) { opacity: 1; }
-`;
-
-const RateButton = styled.button<{ $active: boolean }>`
+    right: 6px;
+    bottom: 5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -178,12 +168,26 @@ const RateButton = styled.button<{ $active: boolean }>`
     padding: 0;
     border: none;
     border-radius: ${p => p.theme.radii.sm};
-    background: ${({ $active }) => ($active ? 'rgba(14, 165, 233, 0.1)' : 'transparent')};
-    color: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textMuted)};
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
     cursor: pointer;
+    opacity: 0;
+    transition: opacity ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
 
-    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.primary}; }
-    svg { width: 13px; height: 13px; }
+    li:hover &,
+    &:focus-visible { opacity: 1; }
+
+    &:hover {
+        background: ${p => p.theme.colors.errorLight};
+        color: ${p => p.theme.colors.error};
+    }
+
+    &:disabled { cursor: default; }
+
+    /* Bez kursora nie ma najechania — na dotyku przycisk musi być dostępny od razu. */
+    @media (hover: none) { opacity: 1; }
+
+    svg { width: 14px; height: 14px; }
 `;
 
 /**
@@ -210,7 +214,7 @@ interface SimilarVisitsSectionProps {
 export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
     const [requested, setRequested] = useState(false);
     const { data, isFetching, isError } = useSimilarVisits(leadId, { enabled: requested });
-    const rate = useRateSimilarVisit(leadId);
+    const dismiss = useDismissSimilarVisit(leadId);
 
     if (!requested) {
         return (
@@ -262,38 +266,21 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                             {/* Zlecenie w toku wciąż dobiera usługi do wydania auta —
                                 bez tego znaku kwota obok udawałaby fakt. */}
                             {item.priceProvisional && <Chip $tone="warning">w trakcie</Chip>}
-                            {/* Kciuk chowa się razem z resztą akcji, więc bez tej plakietki
-                                potwierdzenie znikałoby z oczu i nie tłumaczyło, dlaczego
-                                to zlecenie stoi na górze listy. */}
-                            {item.feedback === 'RELEVANT' && <Chip $tone="success">potwierdzone</Chip>}
                         </Meta>
                     </div>
                     <Amount>
                         {formatGrosze(item.totalGross)}
                         <small>brutto</small>
                     </Amount>
-                    <Rate>
-                        <RateButton
-                            type="button"
-                            $active={item.feedback === 'RELEVANT'}
-                            title="Trafne — trzymaj to zlecenie na górze listy"
-                            aria-label="Trafne dopasowanie"
-                            disabled={rate.isPending}
-                            onClick={() => rate.mutate({ visitId: item.visitId, verdict: 'RELEVANT' })}
-                        >
-                            <ThumbsUp />
-                        </RateButton>
-                        <RateButton
-                            type="button"
-                            $active={false}
-                            title="Nietrafne — nie pokazuj tego zlecenia przy tym leadzie"
-                            aria-label="Nietrafne dopasowanie"
-                            disabled={rate.isPending}
-                            onClick={() => rate.mutate({ visitId: item.visitId, verdict: 'IRRELEVANT' })}
-                        >
-                            <ThumbsDown />
-                        </RateButton>
-                    </Rate>
+                    <Dismiss
+                        type="button"
+                        title="Usuń tę podpowiedź z tego leada"
+                        aria-label={`Usuń podpowiedź: ${item.vehicle}`}
+                        disabled={dismiss.isPending}
+                        onClick={() => dismiss.mutate(item.visitId)}
+                    >
+                        <X />
+                    </Dismiss>
                 </Row>
             ))}
         </List>

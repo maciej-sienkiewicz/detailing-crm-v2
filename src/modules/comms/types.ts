@@ -325,7 +325,6 @@ export interface SimilarVisit {
     priceProvisional: boolean;
     /** SAME_MODEL | SAME_BRAND | SAME_CLASS | ANY — jak blisko trafiliśmy w pojazd. */
     matchTier: 'SAME_MODEL' | 'SAME_BRAND' | 'SAME_CLASS' | 'ANY';
-    feedback: 'RELEVANT' | 'IRRELEVANT' | null;
 }
 
 export interface SimilarVisits {
