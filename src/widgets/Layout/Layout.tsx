@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
@@ -70,9 +70,6 @@ export const Layout = ({ children }: LayoutProps) => {
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [pathname]);
-    const keyRef = useRef(0);
-    keyRef.current += 1;
-    const flashKey = keyRef.current;
 
     return (
         <IdleTimeoutProvider>
@@ -82,7 +79,17 @@ export const Layout = ({ children }: LayoutProps) => {
                         <Sidebar />
                         <ContentWrapper $isCollapsed={isCollapsed}>
                             {children}
-                            <RouteFlash key={`${pathname}-${flashKey}`} />
+                            {/*
+                              * Przebitka gra przy WEJŚCIU NA INNY WIDOK i tylko wtedy —
+                              * stąd klucz z samej ścieżki. Wcześniej stał w nim licznik
+                              * podbijany w trakcie renderu, więc nakładka dostawała nowy
+                              * klucz przy KAŻDYM renderze Layoutu i odgrywała się od nowa:
+                              * otwarcie leada (zmiana parametru `?lead=` w adresie) gasiło
+                              * na 240 ms całą treść i wyglądało jak przeładowanie widoku.
+                              * Podbijanie refa w renderze było przy okazji efektem ubocznym
+                              * w miejscu, w którym React go nie dopuszcza.
+                              */}
+                            <RouteFlash key={pathname} />
                         </ContentWrapper>
                     </LayoutContainer>
                     <BottomNav />

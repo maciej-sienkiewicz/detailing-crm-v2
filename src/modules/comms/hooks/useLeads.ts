@@ -1,6 +1,7 @@
 // src/modules/comms/hooks/useLeads.ts
 import { useCallback, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
@@ -149,6 +150,33 @@ export const useDeleteLeadNote = () => {
     });
 };
 
+/**
+ * Podmiana zapamiętanych STRON listy leadów — z pominięciem tego, co stroną nie jest.
+ *
+ * Pod prefiksem ['leads', 'list'] nie mieszkają wyłącznie strony listy: siedzi tam
+ * także licznik plakietki z [useNewLeadsCount], świadomie, żeby jedno unieważnienie
+ * listy odświeżało i jego. Cena jest taka, że `setQueriesData` po tym prefiksie
+ * dostaje do ręki również zwykłą LICZBĘ — a `liczba.items` to TypeError.
+ *
+ * Wyjątek rzucony w `onSuccess` mutacji wywraca CAŁĄ mutację: React Query przełącza
+ * ją wtedy na ścieżkę błędu. Tak właśnie usuwanie leada kończyło się komunikatem
+ * „Nie udało się usunąć leada" mimo odpowiedzi 204 z serwera, a wiersz zostawał
+ * w tabeli do czasu odświeżenia strony — bo reszta `onSuccess`, razem z usunięciem
+ * wiersza z cache, nigdy się nie wykonywała.
+ *
+ * Strażnik stoi tutaj, a nie w każdym wywołaniu z osobna: pułapka jest w kształcie
+ * kluczy, więc jej rozbrojenie ma być jedno i wspólne dla wszystkich, którzy po
+ * tym prefiksie sięgają.
+ */
+const updateLeadPages = (
+    queryClient: QueryClient,
+    update: (page: LeadPage) => LeadPage
+): void => {
+    queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (cached) =>
+        cached && Array.isArray((cached as LeadPage).items) ? update(cached) : cached
+    );
+};
+
 const useLeadInvalidation = () => {
     const queryClient = useQueryClient();
     return (leadId?: string) => {
@@ -179,8 +207,7 @@ export const useDeleteLead = () => {
         mutationFn: ({ leadId, deleteAppointment }: { leadId: string; deleteAppointment?: boolean }) =>
             leadsApi.deleteLead(leadId, deleteAppointment ?? false),
         onSuccess: (_result, { leadId, deleteAppointment }) => {
-            queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (page) => {
-                if (!page) return page;
+            updateLeadPages(queryClient, (page) => {
                 if (!page.items.some((item) => item.id === leadId)) return page;
                 return {
                     ...page,
@@ -277,8 +304,7 @@ export function useLeadsSocket(): void {
             const lead = event.payload as Lead;
             if (!lead?.id) return;
 
-            queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (page) => {
-                if (!page) return page;
+            updateLeadPages(queryClient, (page) => {
                 const index = page.items.findIndex((item) => item.id === lead.id);
                 if (index === -1) return page;
                 const items = [...page.items];
