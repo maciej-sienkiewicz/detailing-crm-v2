@@ -96,3 +96,13 @@ export interface PurchaseCreditsResponse {
     availableCredits: number;
     message: string;
 }
+
+/**
+ * Automatyczne tworzenie leadów — klasyfikacja przychodzącej poczty przez model.
+ * `enabledAt` to moment włączenia: od niego liczy się próg „klasyfikujemy tylko
+ * nowe wiadomości", więc jest null dokładnie wtedy, gdy funkcja jest wyłączona.
+ */
+export interface AutoLeadConfig {
+    enabled: boolean;
+    enabledAt: string | null;
+}
