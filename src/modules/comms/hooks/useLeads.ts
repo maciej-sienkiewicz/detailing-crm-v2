@@ -16,6 +16,7 @@ import type {
     LeadServiceItemInput,
     LeadStatus,
     MarkThreadAsLeadRequest,
+    SimilarVisits,
 } from '../types';
 
 export const LEADS_KEY = ['leads'];
@@ -192,6 +193,59 @@ const useLeadInvalidation = () => {
             queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'history', leadId] });
         }
     };
+};
+
+/**
+ * Podobne zlecenia z historii studia.
+ *
+ * Świadomie LENIWE (`enabled`): policzenie tego kosztuje osadzenie zapytania
+ * i przesiew kandydatów przez model, a większości leadów nikt nigdy nie otworzy
+ * w tej sekcji. Zapytanie rusza dopiero po kliknięciu.
+ *
+ * Wynik nie starzeje się w tle: `staleTime` jest długi, bo historia zleceń zmienia
+ * się w skali dni, a nie sekund — kolejne otwarcie tego samego leada w tej samej
+ * sesji ma nie płacić drugi raz.
+ */
+export const useSimilarVisits = (leadId: string | null, options?: { enabled?: boolean }) =>
+    useQuery({
+        queryKey: [...LEADS_KEY, 'similar-visits', leadId],
+        queryFn: () => leadsApi.getSimilarVisits(leadId!),
+        enabled: leadId !== null && (options?.enabled ?? false),
+        staleTime: 10 * 60_000,
+        // Dobór potrafi nie znaleźć niczego i to jest poprawna odpowiedź, nie błąd
+        // do ponowienia — a każde ponowienie to kolejne wywołanie modelu.
+        retry: false,
+    });
+
+/**
+ * Ocena trafności dopasowania. Odpowiedź serwera jest pusta, więc wynik w pamięci
+ * podręcznej poprawiamy na miejscu — odrzucone zlecenie ma zniknąć od razu, a nie
+ * po ponownym policzeniu całej sekcji.
+ */
+export const useRateSimilarVisit = (leadId: string) => {
+    const queryClient = useQueryClient();
+    const { showError } = useToast();
+    return useMutation({
+        mutationFn: ({ visitId, verdict }: { visitId: string; verdict: 'RELEVANT' | 'IRRELEVANT' }) =>
+            leadsApi.rateSimilarVisit(leadId, visitId, verdict),
+        onSuccess: (_result, { visitId, verdict }) => {
+            queryClient.setQueryData<SimilarVisits>(
+                [...LEADS_KEY, 'similar-visits', leadId],
+                (current) => {
+                    if (!current) return current;
+                    return {
+                        ...current,
+                        items: verdict === 'IRRELEVANT'
+                            ? current.items.filter((item) => item.visitId !== visitId)
+                            : current.items.map((item) =>
+                                item.visitId === visitId ? { ...item, feedback: verdict } : item
+                            ),
+                    };
+                }
+            );
+        },
+        onError: () => showError('Nie udało się zapisać oceny', 'Spróbuj ponownie'),
+    });
 };
 
 /**

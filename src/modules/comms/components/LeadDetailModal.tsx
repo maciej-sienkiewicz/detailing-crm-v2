@@ -47,6 +47,7 @@ import {
     Loader2,
     Mail,
     MessageSquare,
+    History,
     Phone,
     PhoneCall,
     Send,
@@ -95,6 +96,7 @@ import type { LeadServiceItemInput } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
 import { LeadStatusPicker } from './LeadStatusPicker';
 import { LeadTimeline } from './LeadTimeline';
+import { SimilarVisitsSection } from './SimilarVisitsSection';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
@@ -1199,6 +1201,15 @@ export function LeadDetailModal({
                                             </div>
                                         </>
                                     )}
+                                </Panel>
+
+                                {/* Podobne zlecenia stoją tuż pod wyceną, bo to przy niej
+                                    są potrzebne: „ile wzięliśmy za taką robotę" jest
+                                    pytaniem, które pada w chwili wpisywania kwoty, a nie
+                                    przy czytaniu historii kontaktu. */}
+                                <Panel $quiet>
+                                    <h4><History /> Podobne zlecenia</h4>
+                                    <SimilarVisitsSection leadId={leadId} />
                                 </Panel>
 
                                 <Panel $quiet>
