@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
-import { Mail, MailOpen, PhoneCall, Reply } from 'lucide-react';
+import { Eye, Mail, PhoneCall, Reply } from 'lucide-react';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadTimelineEntry } from '../types';
 import { formatDateTime } from './shared';
 
@@ -52,9 +52,25 @@ const Timeline = styled.ol`
     }
 `;
 
+/**
+ * Wiersz zdarzenia: SIATKA, nie ciąg tekstu.
+ *
+ * Wcześniej przycisk podglądu był elementem liniowym doklejonym za datą i autorem,
+ * więc jego miejsce zależało od tego, jak długie było nazwisko obok: raz lądował
+ * w linii daty, raz spadał niżej, a poziomo stawał w innym punkcie w każdym wierszu.
+ * Wyglądało to na przypadek, bo nim było.
+ *
+ * Stała kolumna po prawej ustawia akcję zawsze w tym samym miejscu, niezależnie od
+ * długości tekstu — a druga linia siatki daje rozwiniętej treści pełną szerokość,
+ * bez wciskania jej pod ikonę.
+ */
 const Item = styled.li<{ $entry: LeadTimelineEntry }>`
     position: relative;
-    padding-bottom: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 28px;
+    align-items: start;
+    column-gap: 8px;
+    padding-bottom: 12px;
     font-size: 11.5px;
     color: ${p => p.theme.colors.textMuted};
     font-variant-numeric: tabular-nums;
@@ -65,7 +81,7 @@ const Item = styled.li<{ $entry: LeadTimelineEntry }>`
         content: '';
         position: absolute;
         left: -16px;
-        top: 4px;
+        top: 5px;
         width: 7px;
         height: 7px;
         border-radius: 50%;
@@ -73,6 +89,23 @@ const Item = styled.li<{ $entry: LeadTimelineEntry }>`
         /* Obwódka w kolorze tła panelu wycina nitkę pod kropką. */
         box-shadow: 0 0 0 2px ${p => p.theme.colors.surfaceAlt};
     }
+`;
+
+/** Treść zdarzenia. Osobny element, bo w siatce zajmuje pierwszą kolumnę. */
+const Content = styled.div`
+    min-width: 0;
+    /* Wysokość pola akcji - wiersz z podglądem i bez niego mają ten sam rytm. */
+    min-height: 28px;
+`;
+
+/**
+ * Data i autor jako JEDEN blok, nie luźne węzły tekstowe.
+ *
+ * To one wcześniej niosły przycisk w linii i decydowały o tym, gdzie wyląduje.
+ */
+const Meta = styled.div`
+    margin-top: 1px;
+    overflow-wrap: anywhere;
 `;
 
 const Headline = styled.strong`
@@ -92,40 +125,63 @@ const Headline = styled.strong`
 `;
 
 /**
- * Podgląd wiadomości jako PRZYCISK, nie jako podkreślone zdanie.
+ * Podgląd wiadomości: sama ikona, wywoływana najechaniem na wiersz.
  *
- * Wcześniej stał tu goły tekst w kolorze akcentu, który zlewał się z datą i autorem
- * tuż obok — wiersz osi czasu to i tak same drobne napisy, więc kolejny drobny napis
- * nie mówi „kliknij mnie". Obwódka i tło wycinają go z tego ciągu, a koperta nazywa
- * rzecz, która się otworzy, zanim ktokolwiek przeczyta etykietę.
+ * Pastylka z obwódką i etykietą, która stała tu wcześniej, ważyła w wierszu więcej
+ * niż nazwa samego zdarzenia — a przy trzech wiadomościach pod rząd to ona
+ * przyciągała wzrok zamiast przebiegu sprawy. Oś czasu ma się czytać, nie klikać;
+ * podgląd jest czynnością drugiego planu i tak ma wyglądać.
+ *
+ * Miejsce zajmuje ZAWSZE, także niewidoczna: gdyby pojawiała się dopiero na hover,
+ * tekst obok przeskakiwałby pod kursorem przy każdym wejściu na wiersz.
+ *
+ * Oko, nie koperta: kopertą oznaczona jest już wiadomość przychodząca w tym samym
+ * wierszu, a dwa razy ten sam znak o dwóch różnych znaczeniach czyta się gorzej niż
+ * znak neutralny. Oko mówi „zobacz" niezależnie od rodzaju zdarzenia.
  */
 const Toggle = styled.button<{ $open: boolean }>`
+    grid-column: 2;
+    grid-row: 1;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    margin-top: 5px;
-    padding: 3px 8px;
-    border: 1px solid ${({ $open, theme }) => ($open ? theme.colors.primary : theme.colors.border)};
-    border-radius: 999px;
-    background: ${({ $open, theme }) => ($open ? 'rgba(14, 165, 233, 0.08)' : theme.colors.surface)};
-    cursor: pointer;
-    font: inherit;
-    font-size: 11.5px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    line-height: 1.4;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: ${p => p.theme.radii.sm};
+    /* Tło także w spoczynku: ikona bez niego jest samym konturem i na hover czyta się
+       jak ozdobnik, a nie jak przycisk. Kontrast tekstu drugorzędnego, nie wygaszonego —
+       to jedyny sygnał, że wiersz da się otworzyć, więc musi być widoczny od razu. */
+    background: ${({ $open, theme }) => ($open ? 'rgba(14, 165, 233, 0.1)' : theme.colors.surface)};
     color: ${({ $open, theme }) => ($open ? theme.colors.primary : theme.colors.textSecondary)};
-    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    box-shadow: ${({ $open }) => ($open ? 'none' : '0 0 0 1px rgba(15, 23, 42, 0.06)')};
+    cursor: pointer;
+    opacity: ${p => (p.$open ? 1 : 0)};
+    transition: opacity 120ms ease, background 120ms ease, color 120ms ease;
+
+    li:hover &,
+    &:focus-visible {
+        opacity: 1;
+    }
 
     &:hover {
-        border-color: ${p => p.theme.colors.primary};
+        background: rgba(14, 165, 233, 0.1);
         color: ${p => p.theme.colors.primary};
     }
 
-    svg {
-        width: 12px;
-        height: 12px;
-        flex-shrink: 0;
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: -2px;
     }
+
+    /* Bez kursora nie ma najechania: na dotyku ikona musi być widoczna od razu,
+       inaczej podgląd wiadomości przestaje istnieć dla połowy użytkowników. */
+    @media (hover: none) {
+        opacity: 1;
+    }
+
+    svg { width: 15px; height: 15px; }
 `;
 
 /**
@@ -134,6 +190,7 @@ const Toggle = styled.button<{ $open: boolean }>`
  * listy — a chodzi o zerknięcie na trzy zdania.
  */
 const Body = styled.blockquote`
+    grid-column: 1 / -1;
     margin: 6px 0 0;
     padding: 8px 10px;
     max-height: 200px;
@@ -217,31 +274,31 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                 const hasBody = Boolean(entry.body);
                 return (
                     <Item key={entry.id} $entry={entry}>
-                        <Headline>
-                            {iconOf(entry.kind)}
-                            {headlineOf(entry, entry.id === firstInboundId)}
-                            {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
-                        </Headline>
-                        {formatDateTime(entry.at)}
-                        {entry.actorName && <>, {entry.actorName}</>}
-                        {entry.note && <Note>{entry.note}</Note>}
+                        <Content>
+                            <Headline>
+                                {iconOf(entry.kind)}
+                                {headlineOf(entry, entry.id === firstInboundId)}
+                                {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
+                            </Headline>
+                            <Meta>
+                                {formatDateTime(entry.at)}
+                                {entry.actorName && <>, {entry.actorName}</>}
+                            </Meta>
+                            {entry.note && <Note>{entry.note}</Note>}
+                        </Content>
                         {hasBody && (
-                            <>
-                                <Toggle
-                                    type="button"
-                                    $open={open}
-                                    onClick={() => toggle(entry.id)}
-                                    aria-expanded={open}
-                                >
-                                    {/* Koperta otwarta w obu stanach: ikona nazywa RZECZ
-                                        (wiadomość), a o stanie mówi etykieta obok - dwa
-                                        znaki na tę samą informację tylko szumią. */}
-                                    <MailOpen />
-                                    {open ? 'Ukryj wiadomość' : 'Pokaż wiadomość'}
-                                </Toggle>
-                                {open && <Body>{entry.body}</Body>}
-                            </>
+                            <Toggle
+                                type="button"
+                                $open={open}
+                                onClick={() => toggle(entry.id)}
+                                aria-expanded={open}
+                                aria-label={open ? 'Ukryj wiadomość' : 'Pokaż wiadomość'}
+                                title={open ? 'Ukryj wiadomość' : 'Pokaż wiadomość'}
+                            >
+                                <Eye />
+                            </Toggle>
                         )}
+                        {hasBody && open && <Body>{entry.body}</Body>}
                     </Item>
                 );
             })}
