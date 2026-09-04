@@ -86,13 +86,27 @@ describe('LeadTimeline', () => {
     });
 
     it('podgląd wiadomości jest przyciskiem, nie zdaniem do przeczytania', () => {
-        // Wiersz osi czasu to same drobne napisy — kolejny drobny napis nie mówi
-        // „kliknij mnie". Rola przycisku i nazwa dostępnościowa są tu minimum.
+        // Sama ikona bez widocznej etykiety — nazwa dostępnościowa jest wtedy jedynym,
+        // co ma czytnik ekranu, więc nie może zniknąć razem z tekstem.
         renderTimeline(conversation);
 
         const toggles = screen.getAllByRole('button', { name: /Pokaż wiadomość/ });
         expect(toggles).toHaveLength(3);
         expect(toggles[0].getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('przycisk podglądu jest dzieckiem wiersza, nie jego treści', () => {
+        // Na tym stoi spójność, o którą poszło zgłoszenie: przycisk wpięty w treść
+        // płynął za tekstem i lądował w innym miejscu w każdym wierszu — raz w linii
+        // daty, raz pod nią. Jako bezpośrednie dziecko wiersza trafia w stałą kolumnę
+        // siatki i stoi wszędzie tak samo. Układu nie zmierzy jsdom, ale strukturę,
+        // od której on zależy, owszem.
+        const { container } = renderTimeline(conversation);
+
+        container.querySelectorAll('li').forEach((row) => {
+            const button = row.querySelector('button');
+            if (button) expect(button.parentElement).toBe(row);
+        });
     });
 
     it('rozwinięcie jednej wiadomości nie rozwija pozostałych', async () => {
