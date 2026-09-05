@@ -198,24 +198,34 @@ const useLeadInvalidation = () => {
 /**
  * Podobne zlecenia z historii studia.
  *
- * Świadomie LENIWE (`enabled`): policzenie tego kosztuje osadzenie zapytania
- * i przesiew kandydatów przez model, a większości leadów nikt nigdy nie otworzy
- * w tej sekcji. Zapytanie rusza dopiero po kliknięciu.
- *
- * Wynik nie starzeje się w tle: `staleTime` jest długi, bo historia zleceń zmienia
- * się w skali dni, a nie sekund — kolejne otwarcie tego samego leada w tej samej
- * sesji ma nie płacić drugi raz.
+ * Ładowane RAZEM z otwarciem leada: dobór jest policzony w tle przy jego
+ * utworzeniu i zapisany na serwerze, więc ten odczyt to hydratacja kwotami
+ * z bazy, nie liczenie. `staleTime` długi — zapisany wynik zmienia się tylko
+ * przez „Sprawdź ponownie", a to i tak nadpisuje pamięć podręczną wprost.
  */
-export const useSimilarVisits = (leadId: string | null, options?: { enabled?: boolean }) =>
+export const useSimilarVisits = (leadId: string | null) =>
     useQuery({
         queryKey: [...LEADS_KEY, 'similar-visits', leadId],
         queryFn: () => leadsApi.getSimilarVisits(leadId!),
-        enabled: leadId !== null && (options?.enabled ?? false),
+        enabled: leadId !== null,
         staleTime: 10 * 60_000,
         // Dobór potrafi nie znaleźć niczego i to jest poprawna odpowiedź, nie błąd
-        // do ponowienia — a każde ponowienie to kolejne wywołanie modelu.
+        // do ponowienia.
         retry: false,
     });
+
+/** „Sprawdź ponownie": przelicza dobór na serwerze i podmienia wynik w miejscu. */
+export const useRefreshSimilarVisits = (leadId: string) => {
+    const queryClient = useQueryClient();
+    const { showError } = useToast();
+    return useMutation({
+        mutationFn: () => leadsApi.refreshSimilarVisits(leadId),
+        onSuccess: (fresh) => {
+            queryClient.setQueryData<SimilarVisits>([...LEADS_KEY, 'similar-visits', leadId], fresh);
+        },
+        onError: () => showError('Nie udało się przeliczyć podpowiedzi', 'Spróbuj ponownie za chwilę'),
+    });
+};
 
 /**
  * Zdjęcie jednej podpowiedzi. Odpowiedź serwera jest pusta, więc wiersz usuwamy

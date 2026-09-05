@@ -45,14 +45,27 @@ export const leadsApi = {
     },
 
     /**
-     * Podobne zlecenia z historii studia. Liczone na serwerze dopiero na to żądanie
-     * (osadzenie + przesiew), więc odpowiedź potrafi zająć sekundy — stąd przycisk,
-     * a nie ładowanie razem z leadem.
+     * Podobne zlecenia z historii studia. Dobór jest policzony w tle przy tworzeniu
+     * leada i ZAPISANY — ten odczyt zwykle tylko go hydratuje kwotami z bazy,
+     * więc może iść od razu przy otwarciu leada.
      */
     getSimilarVisits: async (leadId: string): Promise<SimilarVisits> => {
         const { data } = await apiClient.get(`/v1/leads/${leadId}/similar-visits`, {
             skipErrorToast: true,
         });
+        return data;
+    },
+
+    /**
+     * „Sprawdź ponownie": przeliczenie doboru na wyraźne życzenie — np. gdy historia
+     * urosła albo do cennika doszła brakująca usługa. Zwraca świeży wynik.
+     */
+    refreshSimilarVisits: async (leadId: string): Promise<SimilarVisits> => {
+        const { data } = await apiClient.post(
+            `/v1/leads/${leadId}/similar-visits/refresh`,
+            undefined,
+            { skipErrorToast: true }
+        );
         return data;
     },
 
