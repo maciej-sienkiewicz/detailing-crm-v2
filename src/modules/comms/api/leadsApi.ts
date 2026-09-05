@@ -151,6 +151,33 @@ export const leadsApi = {
         return data;
     },
 
+    /** [Akceptuj] sugestię. Kwota wymagana dla usługi z wyceną niestandardową bez ceny. */
+    acceptSuggestion: async (leadId: string, itemId: string, priceGross?: number): Promise<Lead> => {
+        const { data } = await apiClient.post(
+            `/v1/leads/${leadId}/services/suggestions/${itemId}/accept`,
+            priceGross != null ? { priceGross } : {}
+        );
+        return data;
+    },
+
+    /** [Odrzuć] — kasuje sugestię twardo. */
+    rejectSuggestion: async (leadId: string, itemId: string): Promise<Lead> => {
+        const { data } = await apiClient.delete(`/v1/leads/${leadId}/services/suggestions/${itemId}`);
+        return data;
+    },
+
+    /** „Stwórz rezerwację": przenieś wszystkie nieodrzucone sugestie do wyceny (409 gdy któraś bez ceny). */
+    acceptAllSuggestions: async (leadId: string): Promise<Lead> => {
+        const { data } = await apiClient.post(`/v1/leads/${leadId}/services/suggestions/accept-all`, {});
+        return data;
+    },
+
+    /** „Sprawdź ponownie" dla sugestii — przepytuje model od nowa. */
+    refreshSuggestions: async (leadId: string): Promise<Lead> => {
+        const { data } = await apiClient.post(`/v1/leads/${leadId}/services/suggestions/refresh`, {});
+        return data;
+    },
+
     updateServices: async (leadId: string, services: LeadServiceItemInput[]): Promise<Lead> => {
         const { data } = await apiClient.put(`/v1/leads/${leadId}/services`, { services });
         return data;

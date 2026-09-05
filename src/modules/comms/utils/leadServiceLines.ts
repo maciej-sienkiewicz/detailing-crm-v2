@@ -21,16 +21,18 @@ const DEFAULT_VAT_RATE = 23;
 const MAX_EXPANDED_ROWS = 50;
 
 export function toServiceLines(items: LeadServiceItem[]): ServiceLineItem[] {
-    return items.flatMap((item) => {
+    // Edytor to lista ludzka — sugestie AI mają własną sekcję i cykl życia.
+    return items.filter((it) => it.status === 'ACCEPTED').flatMap((item) => {
         const vatRate = item.vatRate ?? DEFAULT_VAT_RATE;
-        const basePriceNet = item.priceNet ?? grossToNet(item.priceGross, vatRate);
+        const priceGross = item.priceGross ?? 0;
+        const basePriceNet = item.priceNet ?? grossToNet(priceGross, vatRate);
         const copies = Math.min(Math.max(1, item.quantity), MAX_EXPANDED_ROWS);
         return Array.from({ length: copies }, (_, index) => ({
             id: `${item.id}_${index}`,
             serviceId: item.serviceId,
             serviceName: item.name,
             basePriceNet,
-            basePriceGross: item.priceGross,
+            basePriceGross: priceGross,
             vatRate,
             // Cena jest już zamrożona w chwili wyceny - wracamy do niej bez rabatu,
             // żeby ponowne otwarcie edytora niczego nie przeliczyło samo z siebie.
@@ -80,9 +82,10 @@ export interface LeadQuoteRow {
  * kolumn potrafi rozminąć się o grosz z kwotą, którą klient widzi na ofercie.
  */
 export function toQuoteRows(items: LeadServiceItem[]): LeadQuoteRow[] {
-    return items.map((item) => {
+    // Podgląd wyceny to pozycje przyjęte — sugestie AI liczą się osobno.
+    return items.filter((it) => it.status === 'ACCEPTED').map((item) => {
         const vatRate = item.vatRate ?? DEFAULT_VAT_RATE;
-        const unitNet = item.priceNet ?? grossToNet(item.priceGross, vatRate);
+        const unitNet = item.priceNet ?? grossToNet(item.priceGross ?? 0, vatRate);
         const quantity = Math.max(1, item.quantity);
         const grossCents = item.totalGross;
         const netCents = unitNet * quantity;
