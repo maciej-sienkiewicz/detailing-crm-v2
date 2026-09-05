@@ -6,16 +6,15 @@
 // się do niej dojść z poziomu leada — trzeba było pytać kogoś z pamięcią albo
 // przeklikiwać historię wizyt ręcznie.
 //
-// Sekcja jest ZWINIĘTA, dopóki ktoś jej nie otworzy. Policzenie dopasowania kosztuje
-// osadzenie zapytania i przesiew kandydatów przez model, a większość leadów nikt nigdy
-// pod tym kątem nie otworzy. Stąd przycisk, a nie ładowanie razem z leadem.
+// Dobór jest policzony w tle przy tworzeniu leada i ZAPISANY, więc sekcja ładuje
+// się razem z leadem — otwarcie zastaje wynik gotowy. „Sprawdź ponownie" przelicza
+// na wyraźne życzenie: gdy historia urosła albo do cennika doszła brakująca usługa.
 
-import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import type { DefaultTheme } from 'styled-components';
 import { Link } from 'react-router-dom';
-import { ExternalLink, History, X } from 'lucide-react';
-import { useDismissSimilarVisit, useSimilarVisits } from '../hooks/useLeads';
+import { ExternalLink, RefreshCw, X } from 'lucide-react';
+import { useDismissSimilarVisit, useRefreshSimilarVisits, useSimilarVisits } from '../hooks/useLeads';
 import type { SimilarVisit } from '../types';
 import { IconButton, formatGrosze } from './shared';
 
@@ -37,7 +36,17 @@ const Hint = styled.div`
     color: ${p => p.theme.colors.textMuted};
 `;
 
+const Stack = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    .spin { animation: ${spin} 900ms linear infinite; }
+`;
+
 const List = styled.ul`
+    align-self: stretch;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -214,56 +223,55 @@ interface SimilarVisitsSectionProps {
 }
 
 export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
-    const [requested, setRequested] = useState(false);
-    const { data, isFetching, isError } = useSimilarVisits(leadId, { enabled: requested });
+    const { data, isLoading, isError } = useSimilarVisits(leadId);
     const dismiss = useDismissSimilarVisit(leadId);
+    const refresh = useRefreshSimilarVisits(leadId);
 
-    if (!requested) {
-        return (
-            <IconButton type="button" style={{ alignSelf: 'flex-start' }} onClick={() => setRequested(true)}>
-                <History size={14} /> Pokaż podobne zlecenia
-            </IconButton>
-        );
-    }
-
-    if (isFetching) return <Spinner />;
+    if (isLoading) return <Spinner />;
 
     if (isError) {
-        return <Hint>Nie udało się dobrać podobnych zleceń. Spróbuj ponownie za chwilę.</Hint>;
+        return <Hint>Nie udało się wczytać podobnych zleceń. Spróbuj ponownie za chwilę.</Hint>;
     }
 
     const items = data?.items ?? [];
+
+    // „Sprawdź ponownie" stoi POD wynikiem i przy komunikatach pustki: to wyjście
+    // awaryjne na świat, który się zmienił (nowe zlecenia, poprawiony cennik,
+    // uzupełnione auto), a nie główna akcja sekcji.
+    const refreshAction = (
+        <IconButton
+            type="button"
+            style={{ alignSelf: 'flex-start' }}
+            disabled={refresh.isPending}
+            onClick={() => refresh.mutate()}
+        >
+            <RefreshCw size={13} className={refresh.isPending ? 'spin' : undefined} />
+            {refresh.isPending ? 'Przeliczam…' : 'Sprawdź ponownie'}
+        </IconButton>
+    );
 
     if (items.length === 0) {
         // Każda pustka mówi co innego — i każda musi powiedzieć to wprost. Zwłaszcza
         // robota spoza cennika: tu pustka jest DECYZJĄ (nie podpowiadamy cen innych
         // usług), a bez wyjaśnienia wyglądałaby jak niedziałająca funkcja.
-        if (data?.emptyReason === 'SERVICE_NOT_IN_CATALOG') {
-            return (
-                <Hint>
-                    Klient pyta o usługę spoza Waszego cennika — nie podpowiadamy cen
-                    na podstawie innych zleceń.
-                </Hint>
-            );
-        }
-        if (data?.emptyReason === 'VEHICLE_UNKNOWN') {
-            return (
-                <Hint>
-                    Nie znamy auta z tego leada — uzupełnij markę i model, a dobierzemy
-                    zlecenia z historii.
-                </Hint>
-            );
-        }
+        const hint =
+            data?.emptyReason === 'SERVICE_NOT_IN_CATALOG'
+                ? 'Klient pyta o usługę spoza Waszego cennika — nie podpowiadamy cen na podstawie innych zleceń.'
+                : data?.emptyReason === 'VEHICLE_UNKNOWN'
+                    ? 'Nie znamy auta z tego leada — uzupełnij markę i model, a dobierzemy zlecenia z historii.'
+                    : (data?.indexedVisits ?? 0) === 0
+                        ? 'Historia zleceń jest jeszcze pusta — nie ma czego porównać.'
+                        : 'Nie znaleźliśmy w historii zlecenia porównywalnego z tym zapytaniem.';
         return (
-            <Hint>
-                {(data?.indexedVisits ?? 0) === 0
-                    ? 'Historia zleceń jest jeszcze pusta — nie ma czego porównać.'
-                    : 'Nie znaleźliśmy w historii zlecenia porównywalnego z tym zapytaniem.'}
-            </Hint>
+            <Stack>
+                <Hint>{hint}</Hint>
+                {refreshAction}
+            </Stack>
         );
     }
 
     return (
+        <Stack>
         <List>
             {items.map((item) => (
                 <Row key={item.visitId}>
@@ -303,5 +311,7 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                 </Row>
             ))}
         </List>
+        {refreshAction}
+        </Stack>
     );
 }
