@@ -83,6 +83,7 @@ import {
     useLeadTimeline,
     useLeadNotes,
     useUpdateLeadServices,
+    useAcceptAllSuggestions,
     useUpdateLeadVehicle,
 } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
@@ -97,6 +98,7 @@ import { LeadSourceIcon } from './LeadSourceIcon';
 import { LeadStatusPicker } from './LeadStatusPicker';
 import { LeadTimeline } from './LeadTimeline';
 import { SimilarVisitsSection } from './SimilarVisitsSection';
+import { SuggestedServicesSection } from './SuggestedServicesSection';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
 
@@ -749,8 +751,37 @@ export function LeadDetailModal({
     const status = useLeadStatusChange();
     const updateVehicle = useUpdateLeadVehicle();
     const updateServices = useUpdateLeadServices();
-    const deleteLead = useDeleteLead();
+    const acceptAllSuggestions = useAcceptAllSuggestions(leadId);
     const { showSuccess, showError } = useToast();
+
+    /** Sugestie AI czekające na decyzję — pokazywane pod wyceną, poza edytorem. */
+    const suggestedServices = (lead?.services ?? []).filter((s) => s.status === 'SUGGESTED');
+
+    /**
+     * „Stwórz rezerwację" traktuje nieodrzucone sugestie jak zaakceptowane: przenosi
+     * je serwerowo PRZED otwarciem formularza. Gdy któraś czeka na kwotę, serwer
+     * odmawia (409) i wtedy wymuszamy uzupełnienie zamiast wpuścić pozycję bez ceny.
+     */
+    const openBooking = () => {
+        if (suggestedServices.length === 0) {
+            setBooking(true);
+            return;
+        }
+        acceptAllSuggestions.mutate(undefined, {
+            onSuccess: () => setBooking(true),
+            onError: (err: unknown) => {
+                const names = (err as { response?: { data?: { serviceNames?: string[] } } })
+                    ?.response?.data?.serviceNames;
+                showError(
+                    'Uzupełnij kwoty sugestii',
+                    names?.length
+                        ? `Podaj kwotę dla: ${names.join(', ')}`
+                        : 'Któraś sugestia czeka na kwotę — podaj ją albo odrzuć sugestię.'
+                );
+            },
+        });
+    };
+    const deleteLead = useDeleteLead();
 
     // Notatki: „oddzwoniłem, prosił o kontakt po 15". Ślad pracy, którego nie
     // niesie korespondencja (telefon nie zostawia maila) ani historia statusów.
@@ -1201,6 +1232,9 @@ export function LeadDetailModal({
                                             </div>
                                         </>
                                     )}
+                                    {/* Sugestie AI stoją pod wyceną, ale poza edytorem: to osobny
+                                        cykl życia (przyjmij / odrzuć), a nie ręczna edycja listy. */}
+                                    <SuggestedServicesSection leadId={leadId} suggestions={suggestedServices} />
                                 </Panel>
 
                                 {/* Podobne zlecenia stoją tuż pod wyceną, bo to przy niej
@@ -1363,7 +1397,7 @@ export function LeadDetailModal({
                         if (replyTone === 'due' && canWrite) {
                             return (
                                 <>
-                                    <IconButton type="button" onClick={() => setBooking(true)}>
+                                    <IconButton type="button" onClick={openBooking}>
                                         <CalendarPlus size={14} /> Stwórz rezerwację
                                     </IconButton>
                                     <PrimaryButton type="button" onClick={openThread}>
@@ -1373,7 +1407,7 @@ export function LeadDetailModal({
                             );
                         }
                         return (
-                            <PrimaryButton type="button" onClick={() => setBooking(true)}>
+                            <PrimaryButton type="button" onClick={openBooking}>
                                 <CalendarPlus size={14} /> Stwórz rezerwację
                             </PrimaryButton>
                         );

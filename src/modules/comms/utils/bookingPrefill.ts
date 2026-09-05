@@ -59,9 +59,12 @@ function servicesToPrefill(items: LeadServiceItem[]): ServicePrefill {
         tempServices: {},
     };
 
-    items.forEach((item) => {
+    // Do rezerwacji wchodzą tylko pozycje przyjęte. Nieodrzucone sugestie są
+    // promowane do ACCEPTED serwerowo (accept-all) PRZED otwarciem tego formularza.
+    items.filter((it) => it.status === 'ACCEPTED').forEach((item) => {
         const vatRate = item.vatRate ?? DEFAULT_VAT_RATE;
-        const priceNet = item.priceNet ?? grossToNet(item.priceGross, vatRate);
+        const priceGross = item.priceGross ?? 0;
+        const priceNet = item.priceNet ?? grossToNet(priceGross, vatRate);
         const copies = Math.min(Math.max(1, item.quantity), MAX_EXPANDED_ROWS);
 
         for (let index = 0; index < copies; index += 1) {
@@ -78,7 +81,7 @@ function servicesToPrefill(items: LeadServiceItem[]): ServicePrefill {
             }
             prefill.serviceIds.push(lineId);
             prefill.serviceRefs[lineId] = catalogId;
-            prefill.servicePrices[lineId] = item.priceGross / 100;
+            prefill.servicePrices[lineId] = priceGross / 100;
             prefill.serviceBasePrices[lineId] = priceNet;
             prefill.serviceVatRates[lineId] = vatRate;
             if (item.note) prefill.serviceNotes[lineId] = item.note;

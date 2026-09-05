@@ -472,6 +472,54 @@ export const useUpdateLeadServices = () => {
     });
 };
 
+/**
+ * Akcje na sugestiach AI: [Akceptuj] / [Odrzuć] / „Sprawdź ponownie" / przeniesienie
+ * przy rezerwacji. Każdy endpoint zwraca świeżego leada, więc podmieniamy szczegół
+ * w miejscu i unieważniamy listę, analitykę oraz kalendarz (wycena = lista rezerwacji).
+ */
+export const useSuggestionActions = (leadId: string) => {
+    const queryClient = useQueryClient();
+    const invalidate = useLeadInvalidation();
+    const settle = (lead: Lead) => {
+        queryClient.setQueryData<Lead>([...LEADS_KEY, 'detail', leadId], lead);
+        invalidate(leadId);
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    };
+
+    const accept = useMutation({
+        mutationFn: ({ itemId, priceGross }: { itemId: string; priceGross?: number }) =>
+            leadsApi.acceptSuggestion(leadId, itemId, priceGross),
+        onSuccess: settle,
+    });
+    const reject = useMutation({
+        mutationFn: (itemId: string) => leadsApi.rejectSuggestion(leadId, itemId),
+        onSuccess: settle,
+    });
+    const refresh = useMutation({
+        mutationFn: () => leadsApi.refreshSuggestions(leadId),
+        onSuccess: settle,
+    });
+    return { accept, reject, refresh };
+};
+
+/**
+ * „Stwórz rezerwację" musi najpierw przenieść nieodrzucone sugestie do wyceny.
+ * Serwer zwraca 409 z nazwami, gdy któraś czeka na kwotę — wołający wtedy wymusza
+ * kwoty i nie otwiera modalu rezerwacji.
+ */
+export const useAcceptAllSuggestions = (leadId: string) => {
+    const queryClient = useQueryClient();
+    const invalidate = useLeadInvalidation();
+    return useMutation({
+        mutationFn: () => leadsApi.acceptAllSuggestions(leadId),
+        onSuccess: (lead) => {
+            queryClient.setQueryData<Lead>([...LEADS_KEY, 'detail', leadId], lead);
+            invalidate(leadId);
+        },
+    });
+};
+
 export const useUpdateLead = () => {
     const invalidate = useLeadInvalidation();
     return useMutation({

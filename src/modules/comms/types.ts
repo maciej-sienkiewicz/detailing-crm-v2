@@ -206,17 +206,26 @@ export interface InsightsAppointment {
 export type LeadStatus = 'NEW' | 'IN_PROGRESS' | 'CONFIRMED' | 'COMPLETED' | 'LOST' | 'NO_SHOW';
 export type LeadSource = 'PHONE' | 'EMAIL' | 'FORM' | 'MANUAL';
 
+export type LeadServiceItemStatus = 'SUGGESTED' | 'ACCEPTED';
+export type LeadServiceItemSource = 'MANUAL' | 'AI';
+/** CATALOG (stała) | HISTORY (z podobnego zlecenia) | MANUAL | PENDING (czeka na kwotę). */
+export type LeadServicePriceSource = 'CATALOG' | 'HISTORY' | 'MANUAL' | 'PENDING';
+
 export interface LeadServiceItem {
     id: string;
     serviceId: string | null;
     name: string;
-    priceGross: number;
+    /** NULL dla sugestii z wyceną niestandardową, która czeka na kwotę. */
+    priceGross: number | null;
     /** Netto i VAT - null dla pozycji wycenionych, zanim edytor je zapamiętywał. */
     priceNet: number | null;
     vatRate: number | null;
     note: string | null;
     quantity: number;
     totalGross: number;
+    status: LeadServiceItemStatus;
+    source: LeadServiceItemSource;
+    priceSource: LeadServicePriceSource;
 }
 
 /**
