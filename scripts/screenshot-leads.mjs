@@ -176,7 +176,8 @@ const DETAIL = {
 const json = (route, body) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 
-async function stub(context) {
+/** Eksportowany, żeby dało się podpiąć te same dane pod doraźną sondę w przeglądarce. */
+export async function stub(context) {
     // Predykat, nie wzorzec glob: „**/api/**" łapało też pliki ŹRÓDŁOWE serwowane
     // przez Vite (/src/modules/comms/api/leadsApi.ts) i podawało je jako JSON,
     // przez co aplikacja w ogóle się nie ładowała.
@@ -267,8 +268,16 @@ async function stub(context) {
             }]);
         }
         if (path.startsWith('/v1/comms/contact-card')) {
-            return json(route, { email: '', customer: null, vehicles: [], recentVisits: [],
-                risk: { abandonedBookings: 0, abandonedLeads: 0 } });
+            return json(route, {
+                email: 'm.kowalczyk@wp.pl',
+                customer: {
+                    id: 'cust-1', fullName: 'Marek Kowalczyk', phone: '601 448 210',
+                    completedVisitCount: 4, totalSpentGross: 1840000,
+                    lastVisitAt: new Date('2026-03-14T10:00:00Z').toISOString(),
+                },
+                vehicles: [], recentVisits: [],
+                risk: { abandonedBookings: 0, abandonedLeads: 0 },
+            });
         }
         // Wszystko, czego widok nie potrzebuje - pusto, byle nie 404 z toastem.
         return json(route, {});
@@ -290,7 +299,9 @@ const SHOTS = [
     { name: '07-tablet-twoj-ruch', viewport: { width: 1024, height: 768 }, path: '/leads' },
 ];
 
-(async () => {
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop());
+
+if (isMain) await (async () => {
     mkdirSync(OUT, { recursive: true });
     // Chromium jest w obrazie, ale w innej wersji niż oczekuje pakiet playwright -
     // wskazujemy binarkę wprost, zamiast dociągać drugą kopię przeglądarki.

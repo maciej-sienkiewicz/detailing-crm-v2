@@ -8,11 +8,11 @@
 // najważniejsze: o co klient pytał, kiedy odpisaliśmy i co odpowiedział. Fakty
 // istniały, tylko w wątku poczty, czyli wszędzie, byle nie tam, gdzie się ich szuka.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
 import { Eye, Mail, PhoneCall, Reply } from 'lucide-react';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadTimelineEntry } from '../types';
-import { formatDateTime } from './shared';
+import { formatAge } from '../utils/leadUrgency';
 
 /**
  * Kolor kropki. Statusy zachowują kolor swojego etapu — ten sam, którym etap
@@ -99,13 +99,24 @@ const Content = styled.div`
 `;
 
 /**
- * Data i autor jako JEDEN blok, nie luźne węzły tekstowe.
+ * Wiek, data i autor jako JEDEN blok, nie luźne węzły tekstowe.
  *
  * To one wcześniej niosły przycisk w linii i decydowały o tym, gdzie wyląduje.
+ *
+ * Kolejność „6 dni temu · 31 sierpnia, 08:14" nie jest ozdobna: przy leadzie pyta
+ * się najpierw „jak dawno", a dopiero potem „kiedy dokładnie". Sam znacznik
+ * („31.08.2026, 08:14") kazał tę odległość liczyć w głowie, i to przy każdym
+ * wierszu z osobna.
  */
 const Meta = styled.div`
     margin-top: 1px;
     overflow-wrap: anywhere;
+`;
+
+/** Wiek zdarzenia - jedyna część wiersza meta, którą czyta się zawsze. */
+const Age = styled.span`
+    color: ${p => p.theme.colors.textSecondary};
+    font-weight: ${p => p.theme.fontWeights.medium};
 `;
 
 const Headline = styled.strong`
@@ -240,6 +251,37 @@ const headlineOf = (entry: LeadTimelineEntry, isFirstInbound: boolean): string =
     }
 };
 
+/**
+ * Wiek zdarzenia tą samą miarą, którą kolejka mierzy oczekiwanie („6 dni") - żeby
+ * „Czeka 6 dni" na karcie i wiersz osi czasu mówiły o tym samym tymi samymi słowami.
+ *
+ * „temu" doklejamy warunkowo: `formatAge` zwraca dla świeżych zdarzeń gotowy zwrot
+ * „przed chwilą", a „przed chwilą temu" nie jest zdaniem.
+ */
+const agoOf = (iso: string): string => {
+    const age = formatAge(Math.max(0, Date.now() - new Date(iso).getTime()));
+    return age === 'przed chwilą' ? age : `${age} temu`;
+};
+
+/**
+ * Znacznik czasu bez roku: „31 sierpnia, 08:14".
+ *
+ * Rok dopisujemy tylko wtedy, gdy zdarzenie nie jest z bieżącego - w osi czasu
+ * leada, która rzadko sięga dalej niż kilka tygodni, „2026" w każdym wierszu jest
+ * czterema znakami szumu.
+ */
+const stampOf = (iso: string): string => {
+    const date = new Date(iso);
+    const sameYear = date.getFullYear() === new Date().getFullYear();
+    return date.toLocaleString('pl-PL', {
+        day: 'numeric',
+        month: 'long',
+        ...(sameYear ? {} : { year: 'numeric' }),
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
 const iconOf = (kind: LeadTimelineEntry['kind']) => {
     switch (kind) {
         case 'INBOUND_MESSAGE': return <Mail />;
@@ -254,26 +296,46 @@ interface LeadTimelineProps {
 }
 
 export function LeadTimeline({ entries }: LeadTimelineProps) {
-    const [expanded, setExpanded] = useState<Set<string>>(new Set());
+    /*
+     * Treści są rozwinięte od razu, a przycisk służy do ZWIJANIA.
+     *
+     * Odwrotnie niż dotąd. Oś czasu jest teraz główną treścią panelu szczegółów,
+     * a nie przypisem pod wyceną: samo „Klient odpisał · 6 dni temu" nie mówi,
+     * o co klient pytał, więc każdą sprawę trzeba było rozklikać, żeby dowiedzieć
+     * się czegokolwiek. Wiadomości przychodzą już bez cytatów i stopek (backend
+     * przycina je do 4000 znaków), więc rozwinięta oś to zwykle kilka zdań.
+     */
+    const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
     const toggle = (id: string) =>
-        setExpanded((open) => {
+        setCollapsed((open) => {
             const next = new Set(open);
             if (next.has(id)) next.delete(id);
             else next.add(id);
             return next;
         });
 
+    /*
+     * Backend oddaje oś rosnąco (`compareBy({ it.at })`), a czyta się ją od końca:
+     * pytanie brzmi „co się wydarzyło ostatnio", nie „od czego się zaczęło".
+     * Przy dziesięciu wpisach oś rosnąca kazała przewinąć całą sprawę, żeby
+     * zobaczyć jej stan - czyli dokładnie to, po co się tu wchodzi.
+     *
+     * Nazwa „Pierwszy kontakt klienta" liczy się nadal z porządku
+     * CHRONOLOGICZNEGO: po odwróceniu pierwsza wiadomość klienta w tablicy jest
+     * jego ostatnią wiadomością i etykieta trafiłaby w zły wiersz.
+     */
+    const firstInboundId = entries.find((entry) => entry.kind === 'INBOUND_MESSAGE')?.id;
+    const newestFirst = useMemo(() => [...entries].reverse(), [entries]);
+
     if (entries.length === 0) {
         return <Empty>Nic się jeszcze nie wydarzyło.</Empty>;
     }
 
-    const firstInboundId = entries.find((entry) => entry.kind === 'INBOUND_MESSAGE')?.id;
-
     return (
         <Timeline>
-            {entries.map((entry) => {
-                const open = expanded.has(entry.id);
+            {newestFirst.map((entry) => {
+                const open = !collapsed.has(entry.id);
                 const hasBody = Boolean(entry.body);
                 return (
                     <Item key={entry.id} $entry={entry}>
@@ -284,7 +346,9 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                                 {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
                             </Headline>
                             <Meta>
-                                {formatDateTime(entry.at)}
+                                <Age>{agoOf(entry.at)}</Age>
+                                {' · '}
+                                {stampOf(entry.at)}
                                 {entry.actorName && <>, {entry.actorName}</>}
                             </Meta>
                             {entry.note && <Note>{entry.note}</Note>}
