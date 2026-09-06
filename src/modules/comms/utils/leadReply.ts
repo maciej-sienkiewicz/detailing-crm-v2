@@ -8,9 +8,9 @@
 import type { LeadReplyState } from '../types';
 
 /**
- * Po dobie bez naszej odpowiedzi to już zaległość, a nie „jeszcze zdążę".
- * Próg dobowy, nie godzinowy: zapytanie z piątkowego popołudnia nie ma świecić
- * na czerwono w sobotę rano.
+ * Po dobie bez naszej odpowiedzi etykieta przestaje nazywać zadanie i zaczyna
+ * nazywać zwłokę: „Wymagany kontakt" ustępuje miejsca „Czeka 2 dni". Kolor jest
+ * czerwony w obu przypadkach - próg zmienia ton wypowiedzi, nie jej wagę.
  */
 const OUR_REPLY_OVERDUE_HOURS = 24;
 
@@ -55,13 +55,18 @@ export function describeReplyState(replyState: LeadReplyState, waitingSince: str
 
     if (replyState === 'AWAITING_OUR_REPLY') {
         const overdue = elapsed >= OUR_REPLY_OVERDUE_HOURS * HOUR_MS;
+        // Czerwień od pierwszej minuty, nie dopiero po dobie. „Klient napisał
+        // ostatni" to zawsze zadanie po naszej stronie, a nie stan neutralny -
+        // szara etykieta kazała czytelnikowi samemu ocenić, czy to już zaległość.
+        // Doba nadal coś zmienia, ale w treści, nie w kolorze: etykieta przestaje
+        // mówić, co trzeba zrobić, i zaczyna mówić, jak długo tego nie robimy.
         return {
-            tone: overdue ? 'due' : 'neutral',
+            tone: 'due',
             icon: 'reply',
-            label: overdue ? `Czeka ${age}` : 'Nasz ruch',
+            label: overdue ? `Czeka ${age}` : 'Wymagany kontakt',
             title: overdue
                 ? `Klient czeka na odpowiedź od ${age}`
-                : 'Ostatnie słowo należy do klienta - piłka po naszej stronie',
+                : 'Klient czeka na naszą odpowiedź',
         };
     }
 

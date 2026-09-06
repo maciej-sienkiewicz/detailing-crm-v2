@@ -9,14 +9,15 @@
 // Dobór jest policzony w tle przy tworzeniu leada i ZAPISANY, więc sekcja ładuje
 // się razem z leadem — otwarcie zastaje wynik gotowy. „Sprawdź ponownie" przelicza
 // na wyraźne życzenie: gdy historia urosła albo do cennika doszła brakująca usługa.
+// Stoi jako ikona w nagłówku sekcji (SimilarVisitsRefresh), a nie jako przycisk pod
+// listą: to wyjście awaryjne na świat, który się zmienił, więc ma być dostępne
+// zawsze i nie zabierać uwagi nigdy — także wtedy, gdy lista jest pusta.
 
 import styled, { keyframes } from 'styled-components';
-import type { DefaultTheme } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { ExternalLink, RefreshCw, X } from 'lucide-react';
 import { useDismissSimilarVisit, useRefreshSimilarVisits, useSimilarVisits } from '../hooks/useLeads';
-import type { SimilarVisit } from '../types';
-import { IconButton, formatGrosze } from './shared';
+import { formatGrosze } from './shared';
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
@@ -34,15 +35,6 @@ const Hint = styled.div`
     font-size: 12px;
     line-height: 1.5;
     color: ${p => p.theme.colors.textMuted};
-`;
-
-const Stack = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-
-    .spin { animation: ${spin} 900ms linear infinite; }
 `;
 
 const List = styled.ul`
@@ -106,8 +98,9 @@ const Services = styled.div`
 `;
 
 /**
- * Data plus etykiety. Etykiety są plakietkami, a nie dopiskiem po separatorze:
- * „ta sama marka” to klasyfikacja wiersza, nie ciąg dalszy zdania o dacie.
+ * Data, a przy zleceniu w toku - plakietka ostrzegająca o kwocie. Plakietka, nie
+ * dopisek po separatorze: „w trakcie” to zastrzeżenie do liczby obok, a nie ciąg
+ * dalszy zdania o dacie.
  */
 const Meta = styled.div`
     display: flex;
@@ -120,20 +113,16 @@ const Meta = styled.div`
     font-variant-numeric: tabular-nums;
 `;
 
-const CHIP_TONES = {
-    neutral: (t: DefaultTheme) => ({ bg: t.colors.surfaceAlt, fg: t.colors.textSecondary }),
-    warning: (t: DefaultTheme) => ({ bg: t.colors.warningLight, fg: t.colors.warning }),
-} as const;
-
-const Chip = styled.span<{ $tone?: keyof typeof CHIP_TONES }>`
+/** Zastrzeżenie do kwoty - jedyna plakietka, jaka w tym wierszu została. */
+const Chip = styled.span`
     padding: 1px 7px;
     border-radius: ${p => p.theme.radii.full};
     font-size: 10.5px;
     font-weight: ${p => p.theme.fontWeights.medium};
     line-height: 1.6;
     white-space: nowrap;
-    background: ${p => CHIP_TONES[p.$tone ?? 'neutral'](p.theme).bg};
-    color: ${p => CHIP_TONES[p.$tone ?? 'neutral'](p.theme).fg};
+    background: ${p => p.theme.colors.warningLight};
+    color: ${p => p.theme.colors.warning};
 `;
 
 const Amount = styled.div`
@@ -199,20 +188,6 @@ const Dismiss = styled.button`
     svg { width: 14px; height: 14px; }
 `;
 
-/**
- * Ranga dopasowania: auto × usługa. Podpis jest krótki, bo to przypis do wiersza —
- * ale bez niego „podobne” nic nie znaczy: co innego ta sama robota na dokładnie
- * tym modelu, co innego inna robota, którą łączy tylko auto.
- */
-const TIER_LABELS: Record<SimilarVisit['matchTier'], string> = {
-    SAME_MODEL_SAME_SERVICE: 'ten sam model, ta sama usługa',
-    SAME_SEGMENT_SAME_SERVICE: 'ta sama klasa auta, ta sama usługa',
-    SAME_MODEL_SIMILAR_SERVICE: 'ten sam model, podobna usługa',
-    SAME_SEGMENT_SIMILAR_SERVICE: 'ta sama klasa auta, podobna usługa',
-    SAME_MODEL_OTHER_SERVICE: 'ten sam model, inna robota',
-    MODEL_HISTORY: 'historia tego modelu',
-};
-
 const formatDate = (iso: string): string => {
     const date = new Date(iso);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('pl-PL');
@@ -222,10 +197,36 @@ interface SimilarVisitsSectionProps {
     leadId: string;
 }
 
+interface SimilarVisitsRefreshProps {
+    leadId: string;
+    /** Styl nadaje nagłówek, w którym przycisk stoi. */
+    className?: string;
+}
+
+/**
+ * Ikona przeliczenia do nagłówka sekcji. Osobny komponent, bo mieszka w cudzym
+ * nagłówku, a mutację ma trzymać ten moduł - okno leada nie musi wiedzieć, że
+ * podpowiedzi da się przeliczyć na żądanie.
+ */
+export function SimilarVisitsRefresh({ leadId, className }: SimilarVisitsRefreshProps) {
+    const refresh = useRefreshSimilarVisits(leadId);
+    return (
+        <button
+            type="button"
+            className={className}
+            disabled={refresh.isPending}
+            title="Przelicz podobne zlecenia na nowo"
+            aria-label="Przelicz podobne zlecenia na nowo"
+            onClick={() => refresh.mutate()}
+        >
+            <RefreshCw className={refresh.isPending ? 'spin' : undefined} />
+        </button>
+    );
+}
+
 export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
     const { data, isLoading, isError } = useSimilarVisits(leadId);
     const dismiss = useDismissSimilarVisit(leadId);
-    const refresh = useRefreshSimilarVisits(leadId);
 
     if (isLoading) return <Spinner />;
 
@@ -234,21 +235,6 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
     }
 
     const items = data?.items ?? [];
-
-    // „Sprawdź ponownie" stoi POD wynikiem i przy komunikatach pustki: to wyjście
-    // awaryjne na świat, który się zmienił (nowe zlecenia, poprawiony cennik,
-    // uzupełnione auto), a nie główna akcja sekcji.
-    const refreshAction = (
-        <IconButton
-            type="button"
-            style={{ alignSelf: 'flex-start' }}
-            disabled={refresh.isPending}
-            onClick={() => refresh.mutate()}
-        >
-            <RefreshCw size={13} className={refresh.isPending ? 'spin' : undefined} />
-            {refresh.isPending ? 'Przeliczam…' : 'Sprawdź ponownie'}
-        </IconButton>
-    );
 
     if (items.length === 0) {
         // Każda pustka mówi co innego — i każda musi powiedzieć to wprost. Zwłaszcza
@@ -262,16 +248,10 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                     : (data?.indexedVisits ?? 0) === 0
                         ? 'Historia zleceń jest jeszcze pusta — nie ma czego porównać.'
                         : 'Nie znaleźliśmy w historii zlecenia porównywalnego z tym zapytaniem.';
-        return (
-            <Stack>
-                <Hint>{hint}</Hint>
-                {refreshAction}
-            </Stack>
-        );
+        return <Hint>{hint}</Hint>;
     }
 
     return (
-        <Stack>
         <List>
             {items.map((item) => (
                 <Row key={item.visitId}>
@@ -287,12 +267,17 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                             </Link>
                         </Vehicle>
                         <Services>{item.services.join(', ') || 'Bez wykazanych usług'}</Services>
+                        {/* Sama data i - gdy trzeba - ostrzeżenie o kwocie. Plakietka
+                            rangi dopasowania („ten sam model, ta sama usługa") stąd
+                            wypadła: sekcja jest posortowana od najlepszego dopasowania,
+                            więc nazywanie go przy każdym wierszu opisywało kolejność,
+                            którą widać, i zabierało linijkę pod treść, której nie widać.
+                            Wiersz sam pokazuje auto i usługi - podobieństwo jest w nich. */}
                         <Meta>
                             {formatDate(item.date)}
-                            <Chip>{TIER_LABELS[item.matchTier]}</Chip>
                             {/* Zlecenie w toku wciąż dobiera usługi do wydania auta —
                                 bez tego znaku kwota obok udawałaby fakt. */}
-                            {item.priceProvisional && <Chip $tone="warning">w trakcie</Chip>}
+                            {item.priceProvisional && <Chip>w trakcie</Chip>}
                         </Meta>
                     </div>
                     <Amount>
@@ -311,7 +296,5 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                 </Row>
             ))}
         </List>
-        {refreshAction}
-        </Stack>
     );
 }
