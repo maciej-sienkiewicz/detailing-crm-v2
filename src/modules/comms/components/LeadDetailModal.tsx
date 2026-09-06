@@ -37,7 +37,7 @@
 // podkreślenie, tylko szum.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import {
     AlertTriangle,
     CalendarCheck,
@@ -50,6 +50,7 @@ import {
     History,
     Phone,
     PhoneCall,
+    RefreshCw,
     Send,
     StickyNote,
     Trash2,
@@ -84,6 +85,7 @@ import {
     useLeadNotes,
     useUpdateLeadServices,
     useAcceptAllSuggestions,
+    useSuggestionActions,
     useUpdateLeadVehicle,
 } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
@@ -97,10 +99,10 @@ import type { LeadServiceItemInput } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
 import { LeadStatusPicker } from './LeadStatusPicker';
 import { LeadTimeline } from './LeadTimeline';
-import { SimilarVisitsSection } from './SimilarVisitsSection';
-import { SuggestedServicesSection } from './SuggestedServicesSection';
+import { SimilarVisitsRefresh, SimilarVisitsSection } from './SimilarVisitsSection';
+import { SuggestedServiceRows } from './SuggestedServiceRows';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
-import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatRelativeTime } from './shared';
+import { IconButton, PrimaryButton, formatDateTime, formatGrosze } from './shared';
 
 /**
  * Dwie kolumny o różnej roli, nie dwie równe połówki. Po lewej to, co się w leadzie
@@ -169,12 +171,56 @@ const Panel = styled.section<{ $quiet?: boolean }>`
     h4 svg { width: 13px; height: 13px; }
 `;
 
+const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
+
+/**
+ * Poboczna akcja sekcji - ikona w prawym górnym rogu nagłówka, wyjaśniona
+ * podpowiedzią pod kursorem.
+ *
+ * Wcześniej „Sprawdź ponownie" stało pod treścią jako przycisk z etykietą, przez
+ * co wyglądało na akcję sekcji. Nią nie jest: wynik jest policzony i zapisany, a
+ * przeliczenie to wyjście awaryjne na świat, który się zmienił. Nagłówek trzyma
+ * je w zasięgu ręki, nie każąc mu konkurować o uwagę z tym, po co ktoś tu przyszedł.
+ * Sama ikona bez podpisu, bo nagłówek jest wersalikowy i 11-punktowy - drugi
+ * napis obok niego przestaje być nagłówkiem, a staje się paskiem narzędzi.
+ */
+const panelAction = css`
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: ${p => p.theme.radii.sm};
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    transition: color ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast};
+
+    &:hover:not(:disabled) {
+        background: ${p => p.theme.colors.surfaceAlt};
+        color: ${p => p.theme.colors.text};
+    }
+    &:disabled { cursor: default; }
+
+    svg { width: 14px; height: 14px; }
+    .spin { animation: ${spin} 900ms linear infinite; }
+`;
+
+const PanelAction = styled.button`${panelAction}`;
+
+/** Ta sama ikona w nagłówku „Podobnych zleceń" - mutację trzyma tamten moduł. */
+const SimilarVisitsAction = styled(SimilarVisitsRefresh)`${panelAction}`;
+
 /**
  * Pasek podsumowania - jedyny element, który ma się rzucić w oczy pierwszy.
  *
- * Cztery fakty, po które ludzie tu przychodzą, w kolejności ważności od lewej:
- * ile to jest warte, czego dotyczy, czy piłka jest po naszej stronie i jak stare
- * jest zapytanie. Kolorowy pasek przy krawędzi to ten sam język, którym pilność
+ * Fakty, po które ludzie tu przychodzą, w kolejności ważności od lewej: ile to
+ * jest warte, czego dotyczy i czy piłka jest po naszej stronie. Data zapytania
+ * stąd wypadła - to jedyny z nich, który niczego nie rozstrzygał, a zabierał
+ * ćwiartkę paska. Kolorowy pasek przy krawędzi to ten sam język, którym pilność
  * oznaczona jest w tabeli leadów - kto nauczył się go tam, rozumie go tutaj.
  */
 const Summary = styled.section<{ $tone: ReplyTone }>`
@@ -208,9 +254,9 @@ const Summary = styled.section<{ $tone: ReplyTone }>`
 `;
 
 /**
- * Kolumna paska podsumowania. Kreska rozdzielająca zamiast odstępu: cztery liczby
- * w rzędzie bez podziału czytają się jak jedno zdanie, a to są cztery odpowiedzi
- * na cztery różne pytania.
+ * Kolumna paska podsumowania. Kreska rozdzielająca zamiast odstępu: fakty
+ * postawione w rzędzie bez podziału czytają się jak jedno zdanie, a to są
+ * odpowiedzi na różne pytania.
  */
 const SummaryCell = styled.div<{ $order?: number; $hideOnPhone?: boolean }>`
     display: flex;
@@ -307,18 +353,29 @@ const Dot = styled.span<{ $tone: ReplyTone }>`
         : theme.colors.textMuted};
 `;
 
-/** Odnośnik „Zmień" w komórce podsumowania - tekst, nie przycisk z ramką. */
-const CellLink = styled.button`
+/**
+ * Odnośnik w komórce podsumowania - tekst, nie przycisk z ramką.
+ *
+ * `$quiet` wycisza go do szarości: „Zmień" przy rozpoznanym aucie jest poprawką,
+ * po którą sięga się raz na kilkadziesiąt leadów, a w kolorze marki konkurowało
+ * uwagą z samą nazwą auta, nad którą stoi. Kolor wraca pod kursorem, więc nadal
+ * widać, że to jest klikalne.
+ */
+const CellLink = styled.button<{ $quiet?: boolean }>`
     align-self: flex-start;
     border: none;
     background: none;
     padding: 0;
     font: inherit;
     font-size: 12px;
-    color: ${p => p.theme.colors.primary};
+    color: ${p => (p.$quiet ? p.theme.colors.textMuted : p.theme.colors.primary)};
     cursor: pointer;
+    transition: color ${p => p.theme.transitions.fast};
 
-    &:hover { text-decoration: underline; }
+    &:hover {
+        color: ${p => p.theme.colors.primary};
+        text-decoration: underline;
+    }
 `;
 
 /** Wybierak etapu w nagłówku - trzymany z dala od tytułu, tuż przed przyciskiem zamknięcia. */
@@ -754,8 +811,13 @@ export function LeadDetailModal({
     const acceptAllSuggestions = useAcceptAllSuggestions(leadId);
     const { showSuccess, showError } = useToast();
 
-    /** Sugestie AI czekające na decyzję — pokazywane pod wyceną, poza edytorem. */
+    /** Sugestie AI czekające na decyzję — wiersze w tabeli wyceny, pod pozycjami przyjętymi. */
     const suggestedServices = (lead?.services ?? []).filter((s) => s.status === 'SUGGESTED');
+    // Jedna instancja mutacji na okno: przycisk odświeżania stoi w nagłówku sekcji,
+    // a przyciski „Akceptuj"/„Odrzuć" w jej wierszach. Dwie osobne instancje nie
+    // wiedziałyby o sobie i dałoby się przyjąć pozycję w trakcie przeliczania,
+    // czyli dopisać do wyceny sugestię, którą serwer właśnie podmienia.
+    const suggestionActions = useSuggestionActions(leadId);
 
     /**
      * „Stwórz rezerwację" traktuje nieodrzucone sugestie jak zaakceptowane: przenosi
@@ -1047,7 +1109,7 @@ export function LeadDetailModal({
                             </BookedNote>
                         )}
 
-                        {/* Pasek podsumowania: cztery odpowiedzi, po które ktoś tu wchodzi,
+                        {/* Pasek podsumowania: odpowiedzi, po które ktoś tu wchodzi,
                             zanim zacznie cokolwiek czytać. */}
                         <Summary $tone={replyTone}>
                             {/* Kwota znika na telefonie: tabela usług kilka centymetrów
@@ -1061,10 +1123,10 @@ export function LeadDetailModal({
                                         <CellNote>netto {formatGrosze(netTotal)}</CellNote>
                                     </>
                                 ) : (
-                                    <>
-                                        <CellMoney $empty>-</CellMoney>
-                                        <CellNote>brak wyceny</CellNote>
-                                    </>
+                                    /* Sam myślnik, bez dopisku „brak wyceny": myślnik w
+                                       kolumnie kwoty JEST komunikatem o braku kwoty, a
+                                       zdanie pod nim tylko powtarza go słowami. */
+                                    <CellMoney $empty>-</CellMoney>
                                 )}
                             </SummaryCell>
 
@@ -1085,8 +1147,13 @@ export function LeadDetailModal({
                                         <span>{formatVehicle(lead) ?? 'Nie rozpoznano'}</span>
                                     </CellValue>
                                 )}
+                                {/* „Zmień" jest wyciszone, „Uzupełnij" nie: pierwsze to
+                                    rzadka poprawka rozpoznanego auta, drugie - realna
+                                    dziura w danych, którą ktoś ma załatać. Ta sama
+                                    kontrolka, dwie różne wagi, bo to dwie różne sprawy. */}
                                 <CellLink
                                     type="button"
+                                    $quiet={Boolean(lead.vehicleBrand)}
                                     onClick={() => setEditingVehicle({
                                         brand: lead.vehicleBrand ?? '',
                                         model: lead.vehicleModel ?? '',
@@ -1110,14 +1177,15 @@ export function LeadDetailModal({
                                         <span>{closed ? 'Zamknięty' : 'Brak rozmowy'}</span>
                                     </CellValue>
                                 )}
-                                {reply && <CellNote>{reply.title}</CellNote>}
+                                {/* Bez zdania pod spodem: „Wymagany kontakt" mówi całą
+                                    rzecz, a rozwinięcie zostaje w podpowiedzi pod kursorem. */}
                             </SummaryCell>
 
-                            <SummaryCell $order={3}>
-                                <CellLabel>Zapytanie</CellLabel>
-                                <CellValue><span>{formatRelativeTime(lead.createdAt)}</span></CellValue>
-                                <CellNote>{formatDateTime(lead.createdAt)}</CellNote>
-                            </SummaryCell>
+                            {/* Wiek zapytania zszedł stąd na oś czasu w prawej kolumnie,
+                                gdzie i tak stoi z resztą chronologii. W pasku zajmował
+                                czwartą część szerokości na datę, która niczego nie
+                                rozstrzyga: nikt nie podejmuje decyzji o leadzie dlatego,
+                                że przyszedł we wtorek. */}
                         </Summary>
 
                         {/* Wybieraki marki i modelu rozwijają się pod paskiem, a nie w nim:
@@ -1162,15 +1230,29 @@ export function LeadDetailModal({
                         <BodyGrid>
                             <Column>
                                 <Panel>
-                                    <h4>Usługi i wycena</h4>
+                                    <h4>
+                                        Usługi i wycena
+                                        <PanelAction
+                                            type="button"
+                                            title="Sprawdź ponownie, co da się wyczytać z treści zapytania"
+                                            aria-label="Sprawdź ponownie sugestie usług"
+                                            disabled={suggestionActions.refresh.isPending}
+                                            onClick={() => suggestionActions.refresh.mutate()}
+                                        >
+                                            <RefreshCw
+                                                className={suggestionActions.refresh.isPending ? 'spin' : undefined}
+                                            />
+                                        </PanelAction>
+                                    </h4>
                                     {editingServices === null && (
                                         <>
-                                            {quoteRows.length === 0 && (
-                                                <HistoryLine>
-                                                    Nie przypisano jeszcze usług - wycena leada jest pusta.
-                                                </HistoryLine>
-                                            )}
-                                            {quoteRows.length > 0 && (
+                                            {/* Bez zdania „nie przypisano jeszcze usług": pusta
+                                                tabela jest widoczna sama przez się, a przy leadzie
+                                                z samą sugestią to zdanie przeczyło wierszowi, który
+                                                stał tuż pod nim. Gdy nie ma ani wyceny, ani sugestii,
+                                                zostaje sam przycisk „Dodaj usługi" - on mówi to samo,
+                                                tylko daje się kliknąć. */}
+                                            {(quoteRows.length > 0 || suggestedServices.length > 0) && (
                                                 <QuoteTable>
                                                     <thead>
                                                         <tr>
@@ -1192,15 +1274,28 @@ export function LeadDetailModal({
                                                                 <td>{formatGrosze(row.grossCents)}</td>
                                                             </tr>
                                                         ))}
+                                                        {/* Sugestie AI w tym samym spisie co wycena,
+                                                            zawsze pod pozycjami przyjętymi: to ten sam
+                                                            rodzaj rzeczy - usługa na tym aucie - różniący
+                                                            się wyłącznie tym, czy ktoś ją już zatwierdził. */}
+                                                        <SuggestedServiceRows
+                                                            suggestions={suggestedServices}
+                                                            actions={suggestionActions}
+                                                        />
                                                     </tbody>
-                                                    <tfoot>
-                                                        <tr>
-                                                            <td>Razem</td>
-                                                            <td>{formatGrosze(netTotal)}</td>
-                                                            <td>{formatGrosze(quoteTotal((row) => row.vatCents))}</td>
-                                                            <td>{formatGrosze(quoteTotal((row) => row.grossCents))}</td>
-                                                        </tr>
-                                                    </tfoot>
+                                                    {/* Suma tylko z pozycji przyjętych - i tylko wtedy,
+                                                        gdy jakaś jest. „Razem 0,00" pod samą sugestią
+                                                        wyglądałoby jak wycena na zero złotych. */}
+                                                    {quoteRows.length > 0 && (
+                                                        <tfoot>
+                                                            <tr>
+                                                                <td>Razem</td>
+                                                                <td>{formatGrosze(netTotal)}</td>
+                                                                <td>{formatGrosze(quoteTotal((row) => row.vatCents))}</td>
+                                                                <td>{formatGrosze(quoteTotal((row) => row.grossCents))}</td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    )}
                                                 </QuoteTable>
                                             )}
                                             <IconButton
@@ -1232,9 +1327,6 @@ export function LeadDetailModal({
                                             </div>
                                         </>
                                     )}
-                                    {/* Sugestie AI stoją pod wyceną, ale poza edytorem: to osobny
-                                        cykl życia (przyjmij / odrzuć), a nie ręczna edycja listy. */}
-                                    <SuggestedServicesSection leadId={leadId} suggestions={suggestedServices} />
                                 </Panel>
 
                                 {/* Podobne zlecenia stoją tuż pod wyceną, bo to przy niej
@@ -1242,7 +1334,10 @@ export function LeadDetailModal({
                                     pytaniem, które pada w chwili wpisywania kwoty, a nie
                                     przy czytaniu historii kontaktu. */}
                                 <Panel $quiet>
-                                    <h4><History /> Podobne zlecenia</h4>
+                                    <h4>
+                                        <History /> Podobne zlecenia
+                                        <SimilarVisitsAction leadId={leadId} />
+                                    </h4>
                                     <SimilarVisitsSection leadId={leadId} />
                                 </Panel>
 

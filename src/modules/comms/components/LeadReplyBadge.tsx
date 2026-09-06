@@ -30,7 +30,7 @@ const Marker = styled.span<{ $tone: ReplyTone }>`
     font-weight: ${p => (p.$tone === 'neutral' ? p.theme.fontWeights.normal : p.theme.fontWeights.semibold)};
     color: ${({ $tone, theme }) => {
         switch ($tone) {
-            // Nasza zaległość - jedyny stan, który jest zarzutem wobec nas.
+            // Ruch po naszej stronie - jedyny stan, który jest zadaniem dla nas.
             case 'due':   return theme.colors.error;
             // Cisza klienta - ostrzeżenie, nie zarzut: to sygnał do przypomnienia.
             case 'stale': return theme.colors.warning;
