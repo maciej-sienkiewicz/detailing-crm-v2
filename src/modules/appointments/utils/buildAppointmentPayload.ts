@@ -12,6 +12,15 @@ export interface ServiceLineItemPayload {
   serviceId: string | null;
   serviceName: string;
   basePriceNet: number;
+  /**
+   * Exact gross (cents) the user actually typed, when known. Net→gross re-derivation
+   * rounds some values wrong (gross 1900.00 → net 1544.72 → re-derived 1900.01 at 23 %
+   * VAT) - carrying the exact gross alongside net is what lets the backend skip that
+   * round-trip for a temp/custom service (no serviceId, so no catalog row to read the
+   * true gross back from). See CreateAppointmentRequest.ServiceLineItemRequest on the
+   * backend, which already accepts this field; only this builder wasn't sending it.
+   */
+  basePriceGross?: number;
   vatRate: number;
   adjustment: { type: AdjustmentType; value: number };
   note: string;
@@ -109,11 +118,21 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
     const adjustment: ServiceLineItemPayload['adjustment'] =
       data.serviceAdjustments?.[lineId] ?? { type: 'PERCENT', value: 0 };
 
+    // `servicePrices` is the base gross the form actually shows the user, in PLN,
+    // kept exact through every edit (see PriceInput / QuickServiceModal) - unlike
+    // `basePriceNet`, which for a temp service is derived from it and already
+    // carries whatever rounding that derivation introduced.
+    const baseGrossPln = data.servicePrices?.[lineId];
+    const basePriceGross = baseGrossPln != null && Number.isFinite(baseGrossPln)
+      ? Math.round(baseGrossPln * 100)
+      : undefined;
+
     return {
       id: `${Date.now()}-${index}`,
       serviceId: isTempService ? null : catalogId,
       serviceName: temp?.name ?? catalogId,
       basePriceNet: catalogBasePriceNet,
+      basePriceGross,
       vatRate: overriddenVatRate,
       adjustment,
       note: data.serviceNotes?.[lineId] || '',
