@@ -81,11 +81,14 @@ import {
     useDeleteLeadNote,
     useLead,
     useLeadAppointment,
+    useLeadDictionaries,
     useLeadTimeline,
     useLeadNotes,
     useUpdateLeadServices,
     useAcceptAllSuggestions,
     useSuggestionActions,
+    useStagnationThresholds,
+    useUpdateLeadTags,
     useUpdateLeadVehicle,
 } from '../hooks/useLeads';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
@@ -94,9 +97,11 @@ import { ContactCardPopover } from './ContactCardPopover';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
 import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
-import { describeReplyState, leadReplyTone, type ReplyTone } from '../utils/leadReply';
+import { describeLeadUrgency, type ReplyTone } from '../utils/leadUrgency';
 import type { LeadServiceItemInput } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
+import { TagMultiSelect } from './TagMultiSelect';
+import { useTagCatalogActions } from '../hooks/useTagCatalogActions';
 import { LeadStatusPicker } from './LeadStatusPicker';
 import { LeadTimeline } from './LeadTimeline';
 import { SimilarVisitsRefresh, SimilarVisitsSection } from './SimilarVisitsSection';
@@ -764,6 +769,7 @@ export function LeadDetailModal({
     const navigate = useNavigate();
     const { data: lead } = useLead(leadId);
     const { data: timeline } = useLeadTimeline(leadId);
+    const stagnation = useStagnationThresholds();
     /*
      * Ostatnia wiadomość w wątku - z osi czasu, nie z osobnego zapytania. Oś już
      * niesie całą korespondencję, więc drugie żądanie po tę samą treść byłoby
@@ -807,6 +813,20 @@ export function LeadDetailModal({
     });
     const status = useLeadStatusChange();
     const updateVehicle = useUpdateLeadVehicle();
+    const updateTags = useUpdateLeadTags();
+    const { data: dictionaries } = useLeadDictionaries();
+    /*
+     * Tagi - „o co pytają" - dały się dotąd zmieniać wyłącznie z chmurki nad
+     * tabelą leadów. Odkąd kolejka nie ma edytowalnych komórek, to jedyne
+     * miejsce, w którym da się je poprawić; bez tego przeniesienie edycji do
+     * okna szczegółów oznaczałoby po prostu utratę funkcji.
+     */
+    const [editingTags, setEditingTags] = useState<string[] | null>(null);
+    const tagActions = useTagCatalogActions((code) =>
+        setEditingTags((current) =>
+            current === null || current.includes(code) ? current : [...current, code]
+        )
+    );
     const updateServices = useUpdateLeadServices();
     const acceptAllSuggestions = useAcceptAllSuggestions(leadId);
     const { showSuccess, showError } = useToast();
@@ -860,6 +880,20 @@ export function LeadDetailModal({
             {
                 onSuccess: () => setNoteDraft(''),
                 onError: () => showError('Nie udało się zapisać notatki', 'Spróbuj ponownie'),
+            }
+        );
+    };
+
+    const saveTags = () => {
+        if (!editingTags) return;
+        updateTags.mutate(
+            { leadId, tags: editingTags },
+            {
+                onSuccess: () => {
+                    setEditingTags(null);
+                    showSuccess('Tagi zapisane');
+                },
+                onError: () => showError('Nie udało się zapisać tagów', 'Spróbuj ponownie'),
             }
         );
     };
@@ -930,12 +964,14 @@ export function LeadDetailModal({
     if (!lead) return null;
 
     const closed = CLOSED_STATUSES.has(lead.status);
-    const replyTone = leadReplyTone(lead.replyState, lead.waitingSince, closed);
-    // Znacznik „czyj ruch" tylko wtedy, gdy jest jeszcze o czym mówić: w leadzie
-    // zamkniętym albo bez rozmowy nikt na nic nie czeka.
-    const reply = closed || lead.replyState === 'NO_CONVERSATION' || !lead.waitingSince
-        ? null
-        : describeReplyState(lead.replyState, lead.waitingSince);
+    // Jedna reguła dla całego modułu, z progami studia. Obejmuje też leady bez
+    // wątku - telefon, formularz, wpis ręczny - które wcześniej nie miały tu nic
+    // do pokazania, mimo że klient czekał tak samo.
+    const urgency = describeLeadUrgency(lead, stagnation);
+    const replyTone = urgency.tone;
+    // Znacznik tylko wtedy, gdy jest jeszcze o czym mówić: w sprawie zamkniętej
+    // nikt na nic nie czeka.
+    const reply = urgency.turn === 'SETTLED' ? null : urgency;
     const appointmentAt = appointment?.schedule?.startDateTime ?? null;
     /** Wątek istnieje i nie stoimy właśnie w nim. */
     const canWrite = showThreadLink && Boolean(lead.threadId);
@@ -1163,6 +1199,27 @@ export function LeadDetailModal({
                                 </CellLink>
                             </SummaryCell>
 
+                            {/* Oś „o co pytają". W kolejce ta sama informacja jest
+                                drugą linijką karty; tutaj jest edytowalna, bo to
+                                jedyne miejsce w module, gdzie cokolwiek się poprawia. */}
+                            <SummaryCell $order={3}>
+                                <CellLabel>Usługi</CellLabel>
+                                <CellValue $empty={lead.tagLabels.length === 0}>
+                                    <span>
+                                        {lead.tagLabels.length > 0
+                                            ? lead.tagLabels.join(', ')
+                                            : 'Bez opisu'}
+                                    </span>
+                                </CellValue>
+                                <CellLink
+                                    type="button"
+                                    $quiet={lead.tagLabels.length > 0}
+                                    onClick={() => setEditingTags(lead.tags)}
+                                >
+                                    {lead.tagLabels.length > 0 ? 'Zmień' : 'Uzupełnij'}
+                                </CellLink>
+                            </SummaryCell>
+
                             {/* Na telefonie pierwsze: to jedyna komórka, która mówi,
                                 czy trzeba coś zrobić teraz. */}
                             <SummaryCell $order={1}>
@@ -1223,6 +1280,26 @@ export function LeadDetailModal({
                                         {updateVehicle.isPending ? 'Zapisywanie…' : 'Zapisz'}
                                     </PrimaryButton>
                                     <IconButton onClick={() => setEditingVehicle(null)}>Anuluj</IconButton>
+                                </div>
+                            </Panel>
+                        )}
+
+                        {editingTags !== null && (
+                            <Panel>
+                                <h4>Usługi, o które pyta klient</h4>
+                                <TagMultiSelect
+                                    options={dictionaries?.tags ?? []}
+                                    value={editingTags}
+                                    onChange={setEditingTags}
+                                    onCreate={tagActions.onCreate}
+                                    onDelete={tagActions.onDelete}
+                                    isCreating={tagActions.isCreating}
+                                />
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <PrimaryButton onClick={saveTags} disabled={updateTags.isPending}>
+                                        {updateTags.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                                    </PrimaryButton>
+                                    <IconButton onClick={() => setEditingTags(null)}>Anuluj</IconButton>
                                 </div>
                             </Panel>
                         )}

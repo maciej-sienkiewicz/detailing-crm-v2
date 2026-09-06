@@ -279,6 +279,26 @@ export interface LeadPage {
     pageSize: number;
 }
 
+/**
+ * Progi „stygnięcia" - własność studia, nie kodu.
+ *
+ * Backend trzymał je od dawna (studio_settings, zakres 1-720 h) i wystawiał pod
+ * /v1/company/lead-alert-config, ale nikt ich nie czytał: interfejs miał własne
+ * liczby zaszyte w pliku. Odkąd kolejka układa się według tych progów, muszą
+ * mieć jedno źródło - i jest nim odpowiedź serwera.
+ */
+export interface LeadAlertConfig {
+    leadStagnantOurThresholdHours: number;
+    leadStagnantClientThresholdHours: number;
+}
+
+/**
+ * Kierunek sortowania listy. Kolejka chce najstarszych na górze (kolejka, nie
+ * stos), archiwum - najnowszych. To ta sama lista i ten sam endpoint, więc
+ * kierunek jest parametrem, a nie stałą.
+ */
+export type LeadSortDirection = 'ASC' | 'DESC';
+
 export interface DictionaryEntry {
     code: string;
     label: string;
