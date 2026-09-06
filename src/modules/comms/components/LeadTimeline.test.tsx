@@ -7,7 +7,12 @@
 //
 // Te testy pilnują tego, co z tej zmiany widać na ekranie: że zdarzenia kontaktu są
 // nazwane po ludzku, że pierwsze pytanie klienta odróżnia się od kolejnych i że
-// treść wiadomości daje się rozwinąć bez wychodzenia do skrzynki.
+// treść wiadomości jest czytelna bez wychodzenia do skrzynki.
+//
+// Zmiana domyślnego stanu (wrzesień 2026): oś czasu przestała być przypisem pod
+// wyceną i stała się główną treścią panelu szczegółów, więc wiadomości stoją na niej
+// rozwinięte, a przycisk służy do CHOWANIA. Wcześniejsze testy opisywały stan
+// odwrotny — zostały tu przepisane celowo, nie dopasowane do kodu po fakcie.
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -47,6 +52,13 @@ const conversation: LeadTimelineEntry[] = [
     entry({ id: '4', kind: 'STATUS', toStatus: 'CONFIRMED', actorName: 'Maciej Sienkiewicz' }),
 ];
 
+/**
+ * Nazwa przycisku podglądu zależy od stanu wiersza („Ukryj" / „Pokaż"), więc tam,
+ * gdzie test sprawdza BRAK przycisku, musi łapać obie — inaczej przechodziłby dlatego,
+ * że szuka nieistniejącej etykiety, a nie dlatego, że przycisku nie ma.
+ */
+const MESSAGE_TOGGLE = /(Pokaż|Ukryj) wiadomość/;
+
 const renderTimeline = (entries: LeadTimelineEntry[]) =>
     render(
         <ThemeProvider theme={theme}>
@@ -75,24 +87,27 @@ describe('LeadTimeline', () => {
         expect(screen.getAllByText('Pierwszy kontakt klienta')).toHaveLength(1);
     });
 
-    it('treść wiadomości jest ukryta, dopóki nikt o nią nie poprosi', async () => {
+    it('treść wiadomości stoi na osi od razu, bez proszenia o nią', async () => {
+        // Sedno zmiany: „Klient odpisał · 6 dni temu" nie mówi, o co klient pytał,
+        // więc żeby dowiedzieć się czegokolwiek, trzeba było rozkliknąć każdy wiersz.
         renderTimeline(conversation);
 
-        expect(screen.queryByText('1200 dla Ciebie')).toBeNull();
-
-        await userEvent.click(screen.getAllByRole('button', { name: /Pokaż wiadomość/ })[1]);
-
         expect(screen.getByText('1200 dla Ciebie')).toBeTruthy();
+
+        await userEvent.click(screen.getAllByRole('button', { name: /Ukryj wiadomość/ })[1]);
+
+        expect(screen.queryByText('1200 dla Ciebie')).toBeNull();
     });
 
     it('podgląd wiadomości jest przyciskiem, nie zdaniem do przeczytania', () => {
         // Sama ikona bez widocznej etykiety — nazwa dostępnościowa jest wtedy jedynym,
-        // co ma czytnik ekranu, więc nie może zniknąć razem z tekstem.
+        // co ma czytnik ekranu, więc nie może zniknąć razem z tekstem. Nazwa mówi, co
+        // przycisk ZROBI, więc przy treści na wierzchu brzmi „Ukryj".
         renderTimeline(conversation);
 
-        const toggles = screen.getAllByRole('button', { name: /Pokaż wiadomość/ });
+        const toggles = screen.getAllByRole('button', { name: /Ukryj wiadomość/ });
         expect(toggles).toHaveLength(3);
-        expect(toggles[0].getAttribute('aria-expanded')).toBe('false');
+        expect(toggles[0].getAttribute('aria-expanded')).toBe('true');
     });
 
     it('przycisk podglądu jest dzieckiem wiersza, nie jego treści', () => {
@@ -109,20 +124,50 @@ describe('LeadTimeline', () => {
         });
     });
 
-    it('rozwinięcie jednej wiadomości nie rozwija pozostałych', async () => {
-        // Trzy wiadomości otwarte naraz zamieniają oś czasu w drugi przebieg wątku.
+    it('zwinięcie jednej wiadomości nie zwija pozostałych', async () => {
+        // Schowanie długiego maila nie może kasować kontekstu, dla którego się go chowa.
         renderTimeline(conversation);
 
-        await userEvent.click(screen.getAllByRole('button', { name: /Pokaż wiadomość/ })[0]);
+        // [0] to wiersz najnowszy, czyli kontroferta klienta - patrz test kolejności.
+        await userEvent.click(screen.getAllByRole('button', { name: /Ukryj wiadomość/ })[0]);
 
-        expect(screen.getByText('ile za oklejenie full body porsze panamera?')).toBeTruthy();
         expect(screen.queryByText('za drogo. 800 dam')).toBeNull();
+        expect(screen.getByText('ile za oklejenie full body porsze panamera?')).toBeTruthy();
+    });
+
+    it('najnowsze zdarzenie stoi na górze osi', () => {
+        // Backend oddaje oś rosnąco, a pytanie brzmi „co się wydarzyło ostatnio".
+        // Przy dłuższej sprawie porządek rosnący kazał przewinąć całą korespondencję,
+        // żeby zobaczyć stan, po który się tu przyszło.
+        const { container } = renderTimeline(conversation);
+
+        const headlines = [...container.querySelectorAll('li')].map(
+            (row) => row.querySelector('strong')?.textContent
+        );
+
+        expect(headlines).toEqual([
+            'Rezerwacja',
+            'Klient odpisał',
+            'Odpisaliśmy',
+            'Pierwszy kontakt klienta',
+        ]);
+    });
+
+    it('nazwa „Pierwszy kontakt klienta" trzyma się chronologii, nie kolejności na ekranie', () => {
+        // Po odwróceniu osi pierwsza wiadomość klienta W TABLICY jest jego ostatnią
+        // wiadomością — etykieta liczona z porządku wyświetlania trafiłaby w zły wiersz.
+        const { container } = renderTimeline(conversation);
+
+        const rows = [...container.querySelectorAll('li')];
+        const first = rows.find((row) => row.textContent?.includes('Pierwszy kontakt klienta'));
+
+        expect(first?.textContent).toContain('ile za oklejenie full body porsze panamera?');
     });
 
     it('zmiana statusu nie oferuje podglądu wiadomości, bo nie ma czego pokazać', () => {
         renderTimeline([entry({ id: '1', kind: 'STATUS', toStatus: 'NEW' })]);
 
-        expect(screen.queryByRole('button', { name: /Pokaż wiadomość/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: MESSAGE_TOGGLE })).toBeNull();
     });
 
     it('kontakt poza pocztą pokazuje notatkę od razu, bez rozwijania', () => {
@@ -139,7 +184,7 @@ describe('LeadTimeline', () => {
 
         expect(screen.getByText('Kontakt poza pocztą')).toBeTruthy();
         expect(screen.getByText('prosił o kontakt po 15')).toBeTruthy();
-        expect(screen.queryByRole('button', { name: /Pokaż wiadomość/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: MESSAGE_TOGGLE })).toBeNull();
     });
 
     it('kontakt bez notatki nadal jest zdarzeniem', () => {
