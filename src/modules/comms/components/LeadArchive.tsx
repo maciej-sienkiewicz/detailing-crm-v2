@@ -17,7 +17,7 @@ import { Search } from 'lucide-react';
 import { formatVehicle } from '../utils/leadFormat';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type Lead, type LeadStatus } from '../types';
 import type { LeadBundle } from '../hooks/useLeads';
-import { EmptyHint, FilterChip, formatGrosze } from './shared';
+import { EmptyHint, FilterChip, formatMoney } from './shared';
 
 const Toolbar = styled.div`
     display: flex;
@@ -273,7 +273,7 @@ export function LeadArchive({
                     </FilterChip>
                 ))}
                 <Totals>
-                    wygrane <strong>{formatGrosze(won)}</strong> · przegrane <strong>{formatGrosze(lost)}</strong>
+                    wygrane <strong>{formatMoney(won)}</strong> · przegrane <strong>{formatMoney(lost)}</strong>
                 </Totals>
             </Chips>
 
@@ -302,7 +302,7 @@ export function LeadArchive({
                         </WhoCell>
                         <Cell>{lead.tagLabels.length > 0 ? lead.tagLabels.join(', ') : '-'}</Cell>
                         <MoneyCell>
-                            {lead.estimatedValue > 0 ? formatGrosze(lead.estimatedValue) : '-'}
+                            {lead.estimatedValue > 0 ? formatMoney(lead.estimatedValue) : '-'}
                         </MoneyCell>
                         <OutcomeCell>
                             <Dot $color={LEAD_STATUS_COLORS[lead.status].fg} />

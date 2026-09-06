@@ -107,7 +107,7 @@ import { LeadTimeline } from './LeadTimeline';
 import { SimilarVisitsRefresh, SimilarVisitsSection } from './SimilarVisitsSection';
 import { SuggestedServiceRows } from './SuggestedServiceRows';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
-import { IconButton, PrimaryButton, formatDateTime, formatGrosze } from './shared';
+import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatMoney } from './shared';
 
 /**
  * Dwie kolumny o różnej roli, nie dwie równe połówki. Po lewej to, co się w leadzie
@@ -606,6 +606,20 @@ const DangerButton = styled.button`
     justify-content: center;
     gap: 6px;
     align-self: flex-start;
+    /* Odsunięte od reszty: to jedyna akcja nieodwracalna w tej stopce. */
+    margin-right: auto;
+
+    /*
+     * Na telefonie stopka się zawija i „Usuń lead" - jako pierwsza w kolejności
+     * dokumentu - lądowało w pierwszym rzędzie, nad akcją główną. Najbardziej
+     * wyeksponowanym przyciskiem okna była kasacja sprawy. Na wąskim ekranie
+     * schodzi więc na koniec i przestaje zabierać całą szerokość.
+     */
+    @media (max-width: 640px) {
+        order: 99;
+        margin-right: 0;
+        flex: 0 0 auto;
+    }
     border: 1px solid rgba(220, 38, 38, 0.28);
     background: ${p => p.theme.colors.surface};
     color: ${p => p.theme.colors.error};
@@ -1022,13 +1036,25 @@ export function LeadDetailModal({
             <ModalShell isOpen onClose={onClose} maxWidth="1040px">
                 <LeadHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>{lead.customerName ?? lead.contactIdentifier}</ModalTitle>
+                        {/*
+                            Nagłówkiem jest AUTO, tak samo jak na karcie w kolejce.
+                            Tapnięcie karty „Porsche Cayenne", po którym otwiera się
+                            okno zatytułowane nazwiskiem, każe użytkownikowi za każdym
+                            razem sprawdzać, czy trafił w tę sprawę, o którą mu szło.
+                            Gdy auta nie rozpoznano, nazwisko awansuje - dokładnie ta
+                            sama reguła co w LeadQueueCard.
+                        */}
+                        <ModalTitle>
+                            {formatVehicle(lead) ?? lead.customerName ?? lead.contactIdentifier}
+                        </ModalTitle>
                         {/* Drogi do innych rekordów stoją przy tożsamości klienta,
                             bo dotyczą klienta, a nie leada - w stopce konkurowałyby
                             wagą z jedyną akcją, która ma tam stać. */}
                         <LeadIdentity>
                             <LeadSourceIcon source={lead.source} />
-                            {lead.contactIdentifier}
+                            {formatVehicle(lead) && lead.customerName
+                                ? `${lead.customerName} · ${lead.contactIdentifier}`
+                                : lead.contactIdentifier}
                             {phone && (
                                 <QuietLink as="a" href={`tel:${phone.replace(/\s/g, '')}`}>
                                     <Phone /> Zadzwoń
@@ -1155,8 +1181,8 @@ export function LeadDetailModal({
                                 <CellLabel>Wartość wyceny</CellLabel>
                                 {quoteRows.length > 0 ? (
                                     <>
-                                        <CellMoney>{formatGrosze(lead.estimatedValue)}</CellMoney>
-                                        <CellNote>netto {formatGrosze(netTotal)}</CellNote>
+                                        <CellMoney>{formatMoney(lead.estimatedValue)}</CellMoney>
+                                        <CellNote>netto {formatMoney(netTotal)}</CellNote>
                                     </>
                                 ) : (
                                     /* Sam myślnik, bez dopisku „brak wyceny": myślnik w
@@ -1516,7 +1542,6 @@ export function LeadDetailModal({
                         kursorem. */}
                     <DangerButton
                         type="button"
-                        style={{ marginRight: 'auto' }}
                         onClick={() => setDeleteDialogOpen(true)}
                         disabled={deleteLead.isPending}
                     >

@@ -40,7 +40,7 @@ import { LeadSegments, type LeadSegment } from '../components/LeadSegments';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import type { LeadPrimaryAction } from '../utils/leadPrimaryAction';
 import type { Lead, LeadStatus } from '../types';
-import { EmptyHint, SurfaceCard, formatGrosze } from '../components/shared';
+import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -82,13 +82,27 @@ const OwedStrip = styled.div`
     }
 `;
 
-/** Lupa w nagłówku - na telefonie jedyne wejście do archiwum. */
-const SearchAction = styled.button`
+/**
+ * Segmenty plus akcje w jednym rzędzie - układ telefonu.
+ *
+ * Na wąskim ekranie akcje w [PageHeader] zawijają się do własnego wiersza, przez
+ * co ciemny nagłówek urósł do 161 px i pierwsza sprawa zaczynała się dopiero na
+ * 322. pikselu - 38% ekranu zajęte, zanim widać cokolwiek do zrobienia. Ikony
+ * przeniesione do rzędu segmentów odzyskują ten wiersz bez dokładania własnego.
+ */
+const SegmentRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const RowAction = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 48px;
     height: 48px;
+    flex-shrink: 0;
     border-radius: ${p => p.theme.radii.lg};
     border: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surface};
@@ -238,23 +252,13 @@ export default function LeadsView() {
                         : `${open.total} ${open.total === 1 ? 'otwarta sprawa' : 'otwartych spraw'}`
                 }
                 actions={
-                    <>
-                        {!isWide && segment !== 'ARCHIVE' && (
-                            <SearchAction
-                                type="button"
-                                onClick={openArchive}
-                                title="Szukaj w zamkniętych sprawach"
-                                aria-label="Szukaj w zamkniętych sprawach"
-                            >
-                                <Search />
-                            </SearchAction>
-                        )}
+                    isWide ? (
                         <Link to="/leads/analytics">
                             <PageHeaderGhostButton as="span">
                                 <BarChart3 /> Analityka
                             </PageHeaderGhostButton>
                         </Link>
-                    </>
+                    ) : undefined
                 }
             />
 
@@ -266,19 +270,38 @@ export default function LeadsView() {
                     Wróć do kolejki
                 </BackToQueue>
             ) : (
-                <LeadSegments
-                    value={segment}
-                    ours={queue.ours.length}
-                    client={queue.client.length}
-                    showArchive={isWide}
-                    onChange={setSegment}
-                />
+                <SegmentRow>
+                    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <LeadSegments
+                            value={segment}
+                            ours={queue.ours.length}
+                            client={queue.client.length}
+                            showArchive={isWide}
+                            onChange={setSegment}
+                        />
+                    </div>
+                    {!isWide && (
+                        <>
+                            <RowAction
+                                type="button"
+                                onClick={openArchive}
+                                title="Szukaj w zamkniętych sprawach"
+                                aria-label="Szukaj w zamkniętych sprawach"
+                            >
+                                <Search />
+                            </RowAction>
+                            <Link to="/leads/analytics" aria-label="Analityka">
+                                <RowAction as="span" title="Analityka"><BarChart3 /></RowAction>
+                            </Link>
+                        </>
+                    )}
+                </SegmentRow>
             )}
 
             {segment === 'OURS' && queue.ours.length > 0 && (
                 <OwedStrip>
                     {/* Bez groszy: to jest kwota-hasło, nie pozycja na fakturze. */}
-                    <span className="amount">{formatGrosze(owedValue)}</span>
+                    <span className="amount">{formatMoney(owedValue)}</span>
                     <span className="text">
                         czeka na Twoją odpowiedź w {queue.ours.length}{' '}
                         {queue.ours.length === 1 ? 'sprawie' : 'sprawach'}
