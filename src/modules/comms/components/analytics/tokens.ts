@@ -152,9 +152,4 @@ export const formatPeriodTick = (iso: string, monthly: boolean): string => {
  * 52 px i na telefonie musi mieć prawo złamać się między grupami cyfr zamiast
  * wyjechać poza ekran.
  */
-export const formatMoney = (grosze: number): string => {
-    const zloty = Math.round(grosze / 100);
-    const digits = String(Math.abs(zloty));
-    const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    return `${zloty < 0 ? '−' : ''}${grouped} zł`;
-};
+export { formatMoney } from '../shared';

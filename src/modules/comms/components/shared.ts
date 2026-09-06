@@ -7,6 +7,20 @@ import { formatCurrency } from '@/common/utils';
 /** Ceny w module są w groszach (spójnie z backendem). */
 export const formatGrosze = (grosze: number): string => formatCurrency(grosze / 100);
 
+/**
+ * Kwota-hasło: pełne złote, bez groszy, z odstępem co trzy cyfry.
+ *
+ * Do kolejki, kart i podsumowań, gdzie liczba ma zostać przeczytana jednym
+ * spojrzeniem. `formatGrosze` zostaje tam, gdzie kwota jest pozycją rozliczenia
+ * (tabela wyceny) - w kolejce „9840,00 zł" niosło o dwie cyfry za dużo i, przy
+ * czterocyfrowych kwotach, gubiło grupowanie: „9840,00 zł" obok „11 400,00 zł".
+ */
+export const formatMoney = (grosze: number): string => {
+    const zloty = Math.round(grosze / 100);
+    const grouped = String(Math.abs(zloty)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return `${zloty < 0 ? '−' : ''}${grouped} zł`;
+};
+
 export const formatRelativeTime = (iso: string): string => {
     const date = new Date(iso);
     const now = new Date();

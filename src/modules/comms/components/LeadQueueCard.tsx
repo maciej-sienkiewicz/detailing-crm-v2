@@ -11,14 +11,14 @@
 // - najczęściej - sam, jako skutek odpowiedzi. Kolejka pokazuje pracę do
 // zrobienia, a nie stan bazy do wyklikania.
 import styled from 'styled-components';
-import { CalendarCheck, CalendarPlus, Phone, Reply } from 'lucide-react';
+import { CalendarCheck, CalendarPlus, Phone, Send } from 'lucide-react';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { formatVehicle } from '../utils/leadFormat';
 import { leadPrimaryAction, type LeadPrimaryAction } from '../utils/leadPrimaryAction';
 import type { LeadUrgency, ReplyTone } from '../utils/leadUrgency';
 import type { Lead } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
-import { formatGrosze } from './shared';
+import { formatMoney } from './shared';
 
 const Card = styled.div<{ $tone: ReplyTone; $active: boolean }>`
     position: relative;
@@ -180,7 +180,7 @@ const ActionButton = styled.a<{ $emphasis: 'primary' | 'quiet' }>`
 `;
 
 const ACTION_ICONS = {
-    REPLY: <Reply />,
+    REPLY: <Send />,
     CALL: <Phone />,
     BOOK: <CalendarPlus />,
     APPOINTMENT: <CalendarCheck />,
@@ -223,7 +223,7 @@ export function LeadQueueCard({ lead, urgency, active, onOpen, onAction }: LeadQ
                         {lead.tagLabels.length > 0 ? lead.tagLabels.join(', ') : 'Bez opisu usługi'}
                     </Services>
                     {lead.estimatedValue > 0 ? (
-                        <Money>{formatGrosze(lead.estimatedValue)}</Money>
+                        <Money>{formatMoney(lead.estimatedValue)}</Money>
                     ) : (
                         <Money $empty>bez wyceny</Money>
                     )}
