@@ -62,10 +62,24 @@ export interface TransitionToReadyPayload {
     email: boolean;
 }
 
+/**
+ * Decyzja z pola „Wyślij SMS-a z podziękowaniem".
+ *
+ * Pominięcie całego obiektu znaczy „nie było takiego wyboru" (studio ma wyłączony
+ * szablon podziękowania), a nie „nie wysyłaj": o wysyłce decyduje wtedy wyłącznie
+ * automatyka z ustawień. `send: false` to już świadoma odmowa i ona automat wycisza.
+ */
+export interface ThankYouSmsPayload {
+    send: boolean;
+    /** ISO 8601 (UTC). Backend dociąga termin do dozwolonych godzin wysyłki. */
+    scheduledAt?: string;
+}
+
 export interface TransitionToCompletedPayload {
     signatureObtained: boolean;
     payment: PaymentDetails;
     invoice?: CompleteInvoicePayload;
+    thankYouSms?: ThankYouSmsPayload;
 }
 
 export interface CompleteVisitResponse {
