@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #0ea5e9; }
+    a:hover { color: #0284c7; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #ffffff; display: flex; flex-direction: column; overflow: hidden; color: #0f172a;">
+
+  <!-- Uchwyt arkusza -->
+  <div style="flex-shrink: 0; display: flex; justify-content: center; padding: 8px 0 4px 0; background: #f1f5f9;">
+    <div style="width: 36px; height: 4px; border-radius: 9999px; background: #cbd5e1;"></div>
+  </div>
+
+  <!-- Nagłówek kontaktu -->
+  <div style="flex-shrink: 0; padding: 10px 16px 14px 16px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+      <div style="min-width: 0;">
+        <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Porsche Cayenne</div>
+        <div style="font-size: 13px; color: #475569; margin-top: 2px;">Marek Kowalczyk · 601 448 210</div>
+      </div>
+      <div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; display: flex; align-items: center; justify-content: center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+      </div>
+    </div>
+
+    <!-- Fakty jako chipy: „o co pyta" -->
+    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;">
+      <span style="padding: 5px 10px; border-radius: 9999px; background: #ffffff; border: 1px solid #e2e8f0; font-size: 12px; color: #475569;">Powłoka ceramiczna</span>
+      <span style="padding: 5px 10px; border-radius: 9999px; background: #ffffff; border: 1px solid #e2e8f0; font-size: 12px; color: #475569;">Korekta lakieru</span>
+      <span style="padding: 5px 10px; border-radius: 9999px; background: #ffffff; border: 1px dashed #94a3b8; font-size: 12px; color: #475569;">2021</span>
+    </div>
+  </div>
+
+  <!-- Etap: JEDYNE miejsce ręcznej zmiany statusu -->
+  <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #94a3b8;">Etap</span>
+      <div style="display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px; border-radius: 9999px; border: 1px solid #e2e8f0; background: #ffffff;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #a16207; flex-shrink: 0;"></span>
+        <span style="font-size: 13.5px; font-weight: 500;">W kontakcie</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: #fef2f2;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h5"></path><path d="m9 3 6 6-6 6"></path><path d="M15 9h5a1 1 0 0 1 1 1v7"></path></svg>
+      <span style="font-size: 12.5px; font-weight: 600; color: #dc2626; white-space: nowrap;">Czeka 6 dni</span>
+    </div>
+  </div>
+
+  <!-- Wycena -->
+  <div style="flex-shrink: 0; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #94a3b8;">Wycena</span>
+      <span style="font-size: 12.5px; color: #0ea5e9; font-weight: 500;">Edytuj</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <span style="font-size: 13.5px; color: #475569;">Powłoka ceramiczna 5Y</span>
+        <span style="font-size: 13.5px; font-variant-numeric: tabular-nums;">6 800 zł</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <span style="font-size: 13.5px; color: #475569;">Korekta lakieru 2-etapowa</span>
+        <span style="font-size: 13.5px; font-variant-numeric: tabular-nums;">3 040 zł</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
+        <span style="font-size: 13.5px; font-weight: 600;">Razem</span>
+        <span style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;">9 840 zł</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Przebieg sprawy -->
+  <div style="flex: 1 1 auto; min-height: 0; padding: 12px 16px; overflow: hidden;">
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px;">Przebieg sprawy</div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+
+      <div style="display: flex; gap: 10px;">
+        <div style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #d97706; margin-top: 4px;"></span>
+          <span style="flex: 1 1 auto; width: 1px; background: #e2e8f0; margin-top: 4px;"></span>
+        </div>
+        <div style="min-width: 0; padding-bottom: 2px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 13.5px; font-weight: 600;">Klient odpisał</span>
+            <span style="font-size: 12px; color: #94a3b8;">6 dni temu</span>
+          </div>
+          <div style="font-size: 13px; color: #475569; margin-top: 3px; line-height: 1.45;">Dzień dobry, czy cena obejmuje też felgi? I czy da się to zrobić w ciągu tygodnia?</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <div style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #16a34a; margin-top: 4px;"></span>
+          <span style="flex: 1 1 auto; width: 1px; background: #e2e8f0; margin-top: 4px;"></span>
+        </div>
+        <div style="min-width: 0; padding-bottom: 2px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 13.5px; font-weight: 600;">Odpisaliśmy</span>
+            <span style="font-size: 12px; color: #94a3b8;">8 dni temu</span>
+          </div>
+          <div style="font-size: 13px; color: #475569; margin-top: 3px; line-height: 1.45;">W załączeniu wycena na powłokę i korektę…</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <div style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #16a34a; margin-top: 4px;"></span>
+          <span style="flex: 1 1 auto; width: 1px; background: #e2e8f0; margin-top: 4px;"></span>
+        </div>
+        <div style="min-width: 0; padding-bottom: 2px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 13.5px; font-weight: 600;">Kontakt poza pocztą</span>
+            <span style="font-size: 12px; color: #94a3b8;">9 dni temu</span>
+          </div>
+          <div style="font-size: 13px; color: #475569; margin-top: 3px; line-height: 1.45;">Dzwonił, prosił o wycenę mailem</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <div style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #d97706; margin-top: 4px;"></span>
+        </div>
+        <div style="min-width: 0;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 13.5px; font-weight: 600;">Pierwszy kontakt klienta</span>
+            <span style="font-size: 12px; color: #94a3b8;">10 dni temu</span>
+          </div>
+          <div style="font-size: 13px; color: #475569; margin-top: 3px; line-height: 1.45;">Dzień dobry, interesuje mnie powłoka ceramiczna na Cayenne'a…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Stopka: akcja główna w zasięgu kciuka -->
+  <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) 16px; border-top: 1px solid #e2e8f0; background: #ffffff;">
+    <div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; display: flex; align-items: center; justify-content: center;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+    </div>
+    <div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; display: flex; align-items: center; justify-content: center;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"></path></svg>
+    </div>
+    <div style="flex: 1 1 auto; height: 48px; border-radius: 12px; background: #0ea5e9; display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h5"></path><path d="m9 3 6 6-6 6"></path><path d="M15 9h5a1 1 0 0 1 1 1v7"></path></svg>
+      <span style="font-size: 15px; font-weight: 600; color: #ffffff;">Odpisz klientowi</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

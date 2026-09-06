@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #0ea5e9; }
+    a:hover { color: #0284c7; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #eef2f7; display: flex; flex-direction: column; overflow: hidden; color: #0f172a;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 20px 16px 12px 16px;">
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;">Zapytania</div>
+      <div style="font-size: 13px; color: #475569;">23 otwarte sprawy</div>
+    </div>
+    <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="13" y="8" width="3" height="10"></rect></svg>
+    </div>
+  </div>
+
+  <div style="padding: 0 16px 10px 16px;">
+    <div style="display: flex; gap: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 4px;">
+      <div style="flex: 1 1 0; height: 48px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 9px;">
+        <span style="font-size: 14px; font-weight: 500; color: #475569;">Twój ruch</span>
+        <span style="min-width: 22px; height: 20px; padding: 0 6px; border-radius: 9999px; background: #dc2626; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">9</span>
+      </div>
+      <div style="flex: 1 1 0; height: 48px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 9px; background: #0f172a;">
+        <span style="font-size: 14px; font-weight: 600; color: #ffffff;">U klienta</span>
+        <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">14</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brak paska długu: w tym segmencie nie zalegamy. Cisza nie zajmuje miejsca. -->
+
+  <div style="flex: 1 1 auto; background: #ffffff; border-top: 1px solid #e2e8f0; overflow: hidden;">
+
+    <!-- Ucichłe na górze: to one wymagają decyzji „przypomnieć czy zamknąć" -->
+    <div style="display: flex; align-items: stretch; border-bottom: 1px solid #f1f5f9; min-height: 88px;">
+      <div style="width: 4px; background: #d97706; flex-shrink: 0;"></div>
+      <div style="flex: 1 1 auto; min-width: 0; padding: 14px 0 14px 13px; display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Toyota RAV4</span>
+          <span style="font-size: 12.5px; font-weight: 600; color: #d97706; white-space: nowrap;">Cisza 11 dni</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Powłoka ceramiczna</span>
+          <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;">6 400 zł</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+          <span style="font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Jacek Ostrowski</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; padding: 0 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: stretch; border-bottom: 1px solid #f1f5f9; min-height: 88px;">
+      <div style="width: 4px; background: #d97706; flex-shrink: 0;"></div>
+      <div style="flex: 1 1 auto; min-width: 0; padding: 14px 0 14px 13px; display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Škoda Superb</span>
+          <span style="font-size: 12.5px; font-weight: 600; color: #d97706; white-space: nowrap;">Cisza 6 dni</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Detailing wnętrza</span>
+          <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;">1 850 zł</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+          <span style="font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Magdalena Lis</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; padding: 0 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Neutralne: normalny rytm decyzji, żadnego paska -->
+    <div style="display: flex; align-items: stretch; border-bottom: 1px solid #f1f5f9; min-height: 88px;">
+      <div style="width: 4px; flex-shrink: 0;"></div>
+      <div style="flex: 1 1 auto; min-width: 0; padding: 14px 0 14px 13px; display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Audi A6 Avant</span>
+          <span style="font-size: 12.5px; color: #94a3b8; white-space: nowrap;">U klienta 2 dni</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Folia ochronna PPF</span>
+          <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;">8 700 zł</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+          <span style="font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Robert Mazur</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; padding: 0 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rezerwacja już jest: akcja się zmienia -->
+    <div style="display: flex; align-items: stretch; border-bottom: 1px solid #f1f5f9; min-height: 88px;">
+      <div style="width: 4px; flex-shrink: 0;"></div>
+      <div style="flex: 1 1 auto; min-width: 0; padding: 14px 0 14px 13px; display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Ford Mustang</span>
+          <span style="font-size: 12.5px; font-weight: 600; color: #15803d; white-space: nowrap;">Wt, 9 wrz · 09:00</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Korekta lakieru, powłoka</span>
+          <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;">5 400 zł</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <span style="font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Sebastian Król</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; padding: 0 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path><path d="m9 16 2 2 4-4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: stretch; border-bottom: 1px solid #f1f5f9; min-height: 88px;">
+      <div style="width: 4px; flex-shrink: 0;"></div>
+      <div style="flex: 1 1 auto; min-width: 0; padding: 14px 0 14px 13px; display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Volvo XC60</span>
+          <span style="font-size: 12.5px; color: #94a3b8; white-space: nowrap;">U klienta 4 godz.</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Mycie i pielęgnacja</span>
+          <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;">450 zł</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+          <span style="font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Ewa Kaczmarek</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; padding: 0 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: stretch; min-height: 88px;">
+      <div style="width: 4px; flex-shrink: 0;"></div>
+      <div style="flex: 1 1 auto; min-width: 0; padding: 14px 0 14px 13px; display: flex; flex-direction: column; gap: 3px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Mazda CX-5</span>
+          <span style="font-size: 12.5px; color: #94a3b8;">U klienta 1 dzień</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; color: #475569;">Korekta lakieru</span>
+          <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;">2 200 zł</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; padding: 0 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: stretch; background: rgba(255,255,255,0.94); border-top: 1px solid #e2e8f0;">
+    <div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      <span style="font-size: 10.5px; color: #94a3b8;">Kalendarz</span>
+    </div>
+    <div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; position: relative;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4z"></path></svg>
+      <span style="font-size: 10.5px; color: #0ea5e9; font-weight: 600;">Zapytania</span>
+      <span style="position: absolute; top: 6px; left: 50%; margin-left: 4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9999px; background: #dc2626; color: #ffffff; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center;">9</span>
+    </div>
+    <div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+      <span style="font-size: 10.5px; color: #94a3b8;">Poczta</span>
+    </div>
+    <div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      <span style="font-size: 10.5px; color: #94a3b8;">Menu</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
