@@ -126,19 +126,38 @@ export const useLeadAlertConfig = () =>
         retry: false,
     });
 
+/**
+ * Para, którą backend zwraca, gdy studio NICZEGO nie ustawiło.
+ *
+ * TYMCZASOWE. Kolumny lead_stagnant_* nie mają migracji Flyway i powstają tylko
+ * z ddl-auto, a kontroler podstawia `?: 48` / `?: 72`. Żaden ekran nie pozwala
+ * ich zmienić, a endpoint jest owner-only i nieudokumentowany - więc 48/72
+ * w praktyce znaczy „nieskonfigurowane", a nie „tak wybrał właściciel".
+ *
+ * Gdyby to potraktować jako wybór, wdrożenie samego frontendu przestawiłoby
+ * każdą plakietkę u wszystkich klientów naraz: próg naszej zwłoki z 24 h na 48,
+ * cisza klienta z 5 dni na 3 - bez żadnej decyzji produktowej.
+ *
+ * DO USUNIĘCIA razem z migracją V115, która ustawi domyślne na 24/120
+ * (docs/leads-queue-backend-spec.md, punkt B3). Po niej ta para przestanie być
+ * wyróżniona i będzie znaczyć dokładnie to, co mówi.
+ */
+const UNCONFIGURED_BACKEND_DEFAULTS = { our: 48, client: 72 } as const;
+
 /** Progi w kształcie, którego oczekuje reguła pilności; domyślne, gdy serwer milczy. */
 export const useStagnationThresholds = (): StagnationThresholds => {
     const { data } = useLeadAlertConfig();
-    return useMemo(
-        () =>
-            data
-                ? {
-                      ourReplyHours: data.leadStagnantOurThresholdHours,
-                      clientSilenceHours: data.leadStagnantClientThresholdHours,
-                  }
-                : DEFAULT_STAGNATION,
-        [data]
-    );
+    return useMemo(() => {
+        if (!data) return DEFAULT_STAGNATION;
+        const unconfigured =
+            data.leadStagnantOurThresholdHours === UNCONFIGURED_BACKEND_DEFAULTS.our &&
+            data.leadStagnantClientThresholdHours === UNCONFIGURED_BACKEND_DEFAULTS.client;
+        if (unconfigured) return DEFAULT_STAGNATION;
+        return {
+            ourReplyHours: data.leadStagnantOurThresholdHours,
+            clientSilenceHours: data.leadStagnantClientThresholdHours,
+        };
+    }, [data]);
 };
 
 export const useLead = (leadId: string | null) =>
