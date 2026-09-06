@@ -1,4 +1,6 @@
 import type { RehearsalItem, RehearsalReport } from '../types';
+import { describeFinding } from './findingMessages';
+import { describeMessageKind } from './messageKindLabel';
 
 export type ReportTone = 'ok' | 'warn' | 'error';
 
@@ -14,8 +16,11 @@ export interface ReportSummary {
   problems: ReportProblem[];
 }
 
+const CHANNEL_DISPLAY: Record<RehearsalItem['channel'], string> = { SMS: 'SMS', EMAIL: 'E-mail' };
+
 const itemKey = (i: RehearsalItem) => `${i.channel}-${i.kind}`;
-const itemLabel = (i: RehearsalItem) => `${i.channel} · ${i.kind}`;
+/** Human label: channel + the same message name shown on the templates screen. */
+const itemLabel = (i: RehearsalItem) => `${CHANNEL_DISPLAY[i.channel]} · ${describeMessageKind(i.kind)}`;
 
 /** A message the runner would actually send: it rendered, so it has a segment count (SMS) or subject+body (e-mail). */
 export const hasContent = (i: RehearsalItem) =>
@@ -48,8 +53,8 @@ export function summarizeReport(report: RehearsalReport): ReportSummary {
           label: itemLabel(i),
           detail: i.findings
             .filter(f => f.severity === 'ERROR')
-            .map(f => (f.detail ? `${f.rule} (${f.detail})` : f.rule))
-            .join(', '),
+            .map(describeFinding)
+            .join(' '),
         })),
     };
   }

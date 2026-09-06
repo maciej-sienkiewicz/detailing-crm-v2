@@ -137,8 +137,10 @@ describe('RedirectCard', () => {
     renderCard();
     await userEvent.click(screen.getByRole('button', { name: /Sprawdź szablony/ }));
     expect(await screen.findByText(/Nic nie wysłano: 1 błąd/)).toBeInTheDocument();
-    expect(screen.getByText('SMS · SMS_PRE_VISIT')).toBeInTheDocument();
-    expect(screen.getByText(/orphan-braces \(\{\{imie\)/)).toBeInTheDocument();
+    // Nazwa wiadomości i wyjaśnienie problemu po ludzku, nie techniczny kod reguły -
+    // to właśnie to biznes czytał jako "SMS_PRE_VISIT orphan-braces ({{imie)".
+    expect(screen.getByText('SMS · Przypomnienie przed wizytą:')).toBeInTheDocument();
+    expect(screen.getByText(/niesparowane nawiasy klamrowe/)).toBeInTheDocument();
   });
 
   it('the backend refusal to run without a redirect is shown verbatim', async () => {
