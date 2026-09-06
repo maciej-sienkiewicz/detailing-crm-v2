@@ -1,7 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { installChunkErrorHandler } from './core/errors';
 import './index.css';
+
+// Musi stać PRZED renderem: łapie nieudane pobrania chunków, które nigdy nie
+// docierają do żadnego ErrorBoundary (modulepreload Vite, `import()` poza
+// renderem). Bez tego taki błąd kończył się wpisem w konsoli i martwą zakładką.
+installChunkErrorHandler();
 
 // Register the application Service Worker: car-logo CacheFirst cache + Web Push
 // Click-to-Call (push / notificationclick handlers live in service-worker.js).
