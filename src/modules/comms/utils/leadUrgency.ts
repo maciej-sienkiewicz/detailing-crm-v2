@@ -88,10 +88,45 @@ export function formatAge(elapsedMs: number): string {
  * backendu, o ile ją zna. Dopiero na końcu leady bez rozmowy, dla których
  * backend nie ma czego policzyć.
  */
+/**
+ * Czy nasza reakcja jest późniejsza niż początek oczekiwania.
+ *
+ * Porównanie przez `Date`, nie przez tekst: oba znaczniki są w ISO 8601 i zwykle
+ * porównałyby się poprawnie także leksykograficznie, ale wystarczy jeden bez
+ * milisekund albo z przesunięciem strefy zamiast „Z", żeby to przestało być prawdą.
+ */
+function respondedAfter(respondedAt: string | null, waitingSince: string): boolean {
+    if (!respondedAt) return false;
+    return new Date(respondedAt).getTime() > new Date(waitingSince).getTime();
+}
+
 function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null } {
     if (CLOSED_STATUSES.has(lead.status)) return { turn: 'SETTLED', since: null };
 
     if (lead.replyState === 'AWAITING_OUR_REPLY' && lead.waitingSince) {
+        /*
+         * Kontakt poza pocztą JEST odpowiedzią - tyle że `replyState` jej nie widzi.
+         *
+         * Backend liczy „czyj ruch" wyłącznie z `comm_messages`, a odnotowany telefon
+         * ląduje w `lead_callbacks` (RecordLeadCallbackHandler). Lead, do którego
+         * zadzwoniliśmy po ostatnim mailu klienta, zostawał więc w „Twój ruch" na
+         * zawsze - a użytkownik dostawał komunikat, że zszedł z kolejki. Za dobre
+         * zachowanie dostawał kłamstwo.
+         *
+         * Jedyny ślad takiego kontaktu w DTO listy to `firstResponseAt`: backend
+         * stempluje nim pierwszą reakcję niezależnie od kanału. Jeśli jest nowszy niż
+         * początek oczekiwania, odezwaliśmy się PO ostatniej wiadomości klienta i ruch
+         * jest u niego.
+         *
+         * ⚠️ To łapie pierwszy kontakt, nie każdy: `firstResponseAt` z definicji nie
+         * przesuwa się przy kolejnych telefonach. Lead, w którym odpisaliśmy mailem,
+         * klient napisał znowu, a my oddzwoniliśmy, nadal zostanie w „Twój ruch".
+         * Pełne domknięcie wymaga kolumny „ostatni kontakt dowolnym kanałem" -
+         * zmiana O4 w docs/leads-queue-backend-spec.md.
+         */
+        if (respondedAfter(lead.firstResponseAt, lead.waitingSince)) {
+            return { turn: 'CLIENT', since: lead.firstResponseAt! };
+        }
         return { turn: 'OURS', since: lead.waitingSince };
     }
     if (lead.replyState === 'AWAITING_CLIENT_REPLY' && lead.waitingSince) {

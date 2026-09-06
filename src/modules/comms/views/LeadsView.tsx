@@ -376,10 +376,29 @@ export default function LeadsView() {
         selectLead(lead.id);
     };
 
-    const openArchive = () => {
-        setSegment('ARCHIVE');
-        setArchiveStatus(undefined);
-    };
+    /**
+     * Zmiana segmentu ZDEJMUJE zaznaczenie.
+     *
+     * Bez tego wejście w „Zamknięte" przy otwartym panelu podmieniało go na okno
+     * modalne z tą samą sprawą: panel stoi pod warunkiem `isSplit && !inArchive`,
+     * okno pod `(!isSplit || inArchive) && selectedLeadId`, więc archiwum gasiło
+     * pierwszy warunek i zapalało drugi. Wyglądało to na przypadkowe otwarcie
+     * cudzego leada, bo nim było.
+     *
+     * Reguła jest szersza niż sama naprawa i celowo: zaznaczenie należy do LISTY,
+     * na którą się patrzy. Sprawa z „Twój ruch" wyświetlana obok kolejki „U klienta"
+     * to szczegóły rekordu, którego nie ma w widocznym spisie.
+     */
+    const changeSegment = useCallback(
+        (next: LeadSegment) => {
+            setSegment(next);
+            if (next !== 'ARCHIVE') setArchiveStatus(undefined);
+            selectLead(null);
+        },
+        [selectLead]
+    );
+
+    const openArchive = () => changeSegment('ARCHIVE');
 
     // Pierwsza synchronizacja skrzynki w toku: leady dopiero powstają z nadciągającej
     // poczty, więc lista rosnąca z sekundy na sekundę wyglądałaby jak zepsuta.
@@ -428,7 +447,7 @@ export default function LeadsView() {
                     z niego jest jawne, a nie ukryte w przełączniku, którego tam nie ma. */}
                 {!isWide && inArchive ? (
                     <Toolbar>
-                        <BackToQueue type="button" onClick={() => setSegment('OURS')}>
+                        <BackToQueue type="button" onClick={() => changeSegment('OURS')}>
                             <ArrowLeft /> Wróć do kolejki
                         </BackToQueue>
                     </Toolbar>
@@ -440,7 +459,7 @@ export default function LeadsView() {
                                 ours={queue.ours.length}
                                 client={queue.client.length}
                                 showArchive={isWide}
-                                onChange={setSegment}
+                                onChange={changeSegment}
                             />
                         </div>
                         {!isWide && (
