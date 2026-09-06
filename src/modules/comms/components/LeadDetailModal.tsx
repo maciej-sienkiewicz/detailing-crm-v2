@@ -116,15 +116,85 @@ import { IconButton, PrimaryButton, formatDateTime, formatGrosze, formatMoney } 
  * wizualnie cichsza. Wcześniej wszystko szło jedną kolumną w dół, więc zapytanie,
  * od którego cała sprawa się zaczęła, leżało poza pierwszym ekranem.
  */
-const BodyGrid = styled.div`
+const BodyGrid = styled.div<{ $pane?: boolean }>`
     display: grid;
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
 
+    /*
+     * W panelu obok kolejki kolumny zamieniają się rolami: przebieg sprawy idzie
+     * na lewo (to jest treść, po którą się tu wchodzi), a wycena, kartoteka
+     * i podobne zlecenia schodzą do wąskiej szyny po prawej. W oknie modalnym
+     * - otwieranym z widoku poczty, gdzie korespondencję ma się już przed sobą -
+     * pierwsza jest wycena. Zamiana robi się porządkiem CSS, więc obie wersje
+     * renderują dokładnie ten sam JSX.
+     */
+    ${p => p.$pane && `
+        grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+        & > *:nth-child(1) { order: 2; }
+        & > *:nth-child(2) { order: 1; }
+    `}
+
     @media (max-width: ${p => p.theme.breakpoints.md}) {
         grid-template-columns: minmax(0, 1fr);
     }
+`;
+
+/**
+ * Powłoka panelu wstawionego obok kolejki - odpowiednik ModalShell bez okna.
+ * Własne przewijanie, żeby lista po lewej i szczegóły po prawej scrollowały się
+ * niezależnie; wysokość bierze z rodzica, a nie z okna przeglądarki.
+ */
+const PaneShell = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    background: ${p => p.theme.colors.surface};
+    overflow: hidden;
+`;
+
+/** „Czeka 6 dni" w prawym górnym rogu panelu - stan, po który sięga się pierwszy. */
+const HeaderUrgency = styled.span<{ $tone: ReplyTone }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    border-radius: ${p => p.theme.radii.md};
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    white-space: nowrap;
+
+    background: ${({ $tone, theme }) =>
+        $tone === 'due' ? theme.colors.errorLight
+        : $tone === 'stale' ? theme.colors.warningLight
+        : theme.colors.surfaceAlt};
+    color: ${({ $tone, theme }) =>
+        $tone === 'due' ? theme.colors.error
+        : $tone === 'stale' ? theme.colors.warning
+        : theme.colors.textMuted};
+
+    svg { width: 14px; height: 14px; }
+`;
+
+/** Podpowiedź klawiszowa w stopce panelu - w oknie modalnym nie ma czego przeskakiwać. */
+const KeyHint = styled.span`
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+    white-space: nowrap;
+    text-align: right;
+    /*
+     * Baza 0 i swoboda rośnięcia: podpowiedź wypełnia to, co zostało, ale przy
+     * liczeniu zawijania liczy się jak nic. Z automatycznym marginesem i naturalną
+     * szerokością spychała akcję główną do drugiego wiersza stopki.
+     */
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (max-width: ${p => p.theme.breakpoints.md}) { display: none; }
 `;
 
 /**
@@ -771,6 +841,14 @@ export interface LeadDetailModalProps {
     showThreadLink?: boolean;
     /** Wywoływane po usunięciu leada - okno jest wtedy już zamknięte. */
     onDeleted?: () => void;
+    /**
+     * Obudowa: okno modalne (widok poczty, gdzie szczegóły przykrywają rozmowę)
+     * albo panel wstawiony obok kolejki (widok zapytań). Treść jest ta sama -
+     * dwie implementacje tego samego okna rozjechałyby się przy pierwszej zmianie.
+     */
+    chrome?: 'modal' | 'pane';
+    /** Podpowiedź klawiszowa w stopce; sam skok obsługuje właściciel listy. */
+    keyHint?: string;
 }
 
 export function LeadDetailModal({
@@ -779,6 +857,8 @@ export function LeadDetailModal({
     openServicesEditor = false,
     showThreadLink = true,
     onDeleted,
+    chrome = 'modal',
+    keyHint,
 }: LeadDetailModalProps) {
     const navigate = useNavigate();
     const { data: lead } = useLead(leadId);
@@ -1031,10 +1111,14 @@ export function LeadDetailModal({
         );
     }
 
-    return (
+    const isPane = chrome === 'pane';
+
+    // Treść jest jedna; różni się wyłącznie obudowa. Dynamiczny komponent powłoki
+    // nie przechodzi typowania (ModalShell i PaneShell mają rozłączne propsy),
+    // więc rozgałęzienie stoi w JSX, a nie w typie.
+    const body = (
         <>
-            <ModalShell isOpen onClose={onClose} maxWidth="1040px">
-                <LeadHeader>
+            <LeadHeader>
                     <ModalTitleGroup>
                         {/*
                             Nagłówkiem jest AUTO, tak samo jak na karcie w kolejce.
@@ -1090,8 +1174,17 @@ export function LeadDetailModal({
                             disabled={status.isPending}
                             onChange={(next) => status.requestStatus(lead.id, next)}
                         />
+                        {/* W panelu „czyj ruch" wraca do nagłówka: obok kolejki to
+                            jest pierwsza rzecz, po którą sięga wzrok po kliknięciu
+                            karty, a pasek podsumowania jest niżej niż zgięcie. */}
+                        {isPane && reply && (
+                            <HeaderUrgency $tone={reply.tone} title={reply.title}>
+                                {reply.label}
+                            </HeaderUrgency>
+                        )}
                     </HeaderStatus>
-                    <CloseBtn onClick={onClose} />
+                    {/* Panel nie ma czego zamykać - następna karta go podmienia. */}
+                    {!isPane && <CloseBtn onClick={onClose} />}
                 </LeadHeader>
 
                 <ModalContent>
@@ -1246,9 +1339,17 @@ export function LeadDetailModal({
                                 </CellLink>
                             </SummaryCell>
 
-                            {/* Na telefonie pierwsze: to jedyna komórka, która mówi,
-                                czy trzeba coś zrobić teraz. */}
-                            <SummaryCell $order={1}>
+                            {/*
+                                Na telefonie pierwsze: to jedyna komórka, która mówi,
+                                czy trzeba coś zrobić teraz.
+
+                                W panelu obok kolejki komórka znika: ten sam stan stoi
+                                już plakietką w nagłówku, a powtórzony dwa razy na jednym
+                                ekranie przestaje być sygnałem i zaczyna być szumem -
+                                do tego rozpychał czterokomórkowy pasek na węższej
+                                szerokości panelu i łamał go na dwa wiersze.
+                            */}
+                            <SummaryCell $order={1} style={isPane ? { display: 'none' } : undefined}>
                                 <CellLabel>Czyj ruch</CellLabel>
                                 {reply ? (
                                     <ToneValue $tone={reply.tone} title={reply.title}>
@@ -1330,7 +1431,7 @@ export function LeadDetailModal({
                             </Panel>
                         )}
 
-                        <BodyGrid>
+                        <BodyGrid $pane={isPane}>
                             <Column>
                                 <Panel>
                                     <h4>
@@ -1576,6 +1677,8 @@ export function LeadDetailModal({
                         <PhoneCall size={14} /> Kontakt poza pocztą
                     </IconButton>
 
+                    {isPane && keyHint && <KeyHint>{keyHint}</KeyHint>}
+
                     {(() => {
                         if (lead.appointmentId) {
                             return (
@@ -1610,9 +1713,18 @@ export function LeadDetailModal({
                         );
                     })()}
 
-                    <IconButton onClick={onClose}>Zamknij</IconButton>
+                    {!isPane && <IconButton onClick={onClose}>Zamknij</IconButton>}
                 </ModalFooter>
-            </ModalShell>
+        </>
+    );
+
+    return (
+        <>
+            {isPane ? (
+                <PaneShell>{body}</PaneShell>
+            ) : (
+                <ModalShell isOpen onClose={onClose} maxWidth="1040px">{body}</ModalShell>
+            )}
 
             {callbackDialogOpen && (
                 <RecordCallbackDialog
@@ -1662,4 +1774,13 @@ export function LeadDetailModal({
             {status.lostDialog}
         </>
     );
+}
+
+/**
+ * Ten sam komponent w obudowie panelu - szczegóły wstawione obok kolejki.
+ * Alias, a nie kopia: dwie implementacje tego samego okna rozjechałyby się przy
+ * pierwszej zmianie, a to okno niesie całą pracę na leadzie.
+ */
+export function LeadDetailPane(props: Omit<LeadDetailModalProps, 'chrome'>) {
+    return <LeadDetailModal {...props} chrome="pane" />;
 }
