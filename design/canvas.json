@@ -1,0 +1,40 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Telefon — Twój ruch", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "UKlienta.dc.html", "title": "Telefon — U klienta", "x": 480, "y": 0, "w": 390, "h": 844 },
+    { "file": "Szczegoly.dc.html", "title": "Telefon — arkusz leada", "x": 960, "y": 0, "w": 390, "h": 844 },
+    { "file": "Porownanie.dc.html", "title": "Dziś vs po zmianie", "x": 0, "y": 1060, "w": 880, "h": 780 },
+    { "file": "Tablet.dc.html", "title": "Tablet w hali", "x": 970, "y": 1060, "w": 1024, "h": 768 }
+  ],
+  "annotations": [
+    {
+      "id": "decyzja",
+      "x": 0,
+      "y": -200,
+      "w": 560,
+      "text": "DECYZJA: jedna pionowa kolejka zamiast tabeli.\n\nDwa segmenty to dwie prostopadłe osie, które kod już rozdziela: „Twój ruch\" = zalegamy z odpowiedzią, „U klienta\" = piłka po ich stronie. Kolejność w kolejce to WIEK oczekiwania, nie data wpływu — najdłużej czekający na górze.\n\nZero gestów. Zero przeciągania. Jeden przycisk 48×48 przy prawej krawędzi."
+    },
+    {
+      "id": "dziura-telefon",
+      "x": 960,
+      "y": -200,
+      "w": 390,
+      "text": "Anna Nowak (3. karta w kolejce) to lead TELEFONICZNY.\n\nDziś taki lead nie ma wątku, więc nie ma replyState — nie wchodzi do filtra „Do odpisania\", nie dostaje paska pilności i znika z plakietki, gdy tylko odnotujesz kontakt.\n\nW szkicu stoi w kolejce, bo reguła pilności dostaje drugą gałąź: brak wątku + brak first_response_at = nasz ruch, liczony od created_at."
+    },
+    {
+      "id": "status-znika",
+      "x": 0,
+      "y": 900,
+      "w": 880,
+      "text": "STATUS ZNIKA Z LISTY — to jest odpowiedź na „ręczna zmiana statusu przez klikanie w badge jest nieintuicyjna\".\n\nNa karcie nie ma etapu i nie da się go z listy zmienić. Awans dzieje się sam, jako skutek pracy: pierwsza odpowiedź (mailem albo odnotowanym telefonem) przestawia NOWY → W KONTAKCIE, i tak już działa na backendzie. Ręczna zmiana zostaje wyłącznie w arkuszu szczegółów — dla decyzji, których korespondencja nie widzi: rezerwacja, przegrana z powodem, nie pojawił się. „Przegrany\" nadal pyta o powód."
+    },
+    {
+      "id": "tablet-uwaga",
+      "x": 970,
+      "y": 1880,
+      "w": 500,
+      "text": "UWAGA — to wychodzi poza specyfikację z Fazy 3.\n\nFaza 3 mówiła „tablet to ten sam układ szerzej\". Tu narysowałem podział kolejka + szczegóły obok siebie, bo tak wygląda realna praca przy tablecie na ścianie. Jeśli wolisz trzymać się jednego układu na wszystkich szerokościach — powiedz, wrócę do jednej kolumny."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
