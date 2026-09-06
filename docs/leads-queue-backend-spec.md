@@ -169,14 +169,33 @@ Migracja prosta: kolumna nullable, `NULL` = brak odłożenia, **zero backfillu**
 
 ## O4 — znacznik ostatniego kontaktu poza pocztą
 
-Frontendowa reguła przyjmuje świadome przybliżenie: dla leada bez wątku po
-odnotowanym kontakcie liczy czekanie od `first_response_at`, czyli od
-**pierwszej** odpowiedzi. Drugi i kolejny telefon nie przesuwają tej daty, więc
-lead, do którego dzwoniono trzy razy, wygląda na milczący od pierwszego razu.
+**Podniesione z „opcjonalne" na „wysokie" po zgłoszeniu z użytkowania.** To nie
+jest już kosmetyka wieku etykiety: bez tego pola segment „Twój ruch" pokazuje
+sprawy, które są załatwione.
 
-Naprawa: wystawić w DTO leada znacznik ostatniego wpisu z `lead_callbacks`
-(tabela istnieje, `V110`). Migracja niepotrzebna, jeśli liczone przy odczycie —
-jak `replyState`.
+**Objaw.** Użytkownik klika „Kontakt poza pocztą", dostaje potwierdzenie —
+i lead zostaje w „Twój ruch".
+
+**Przyczyna, potwierdzona kodem.** `RecordLeadCallbackHandler.handle`
+(`leads/callback/LeadCallbacks.kt:91-127`) robi trzy rzeczy: zapisuje wiersz
+w `lead_callbacks`, stempluje `first_response_at` **tylko gdy jest `null`**
+(komentarz w kodzie mówi wprost: kolejne telefony go nie przesuwają, żeby
+statystyka mierzyła czas pierwszej reakcji) i przesuwa `NEW → IN_PROGRESS`.
+Nie rusza natomiast `replyState` — bo ten nie jest kolumną, tylko wynikiem
+zapytania po `comm_messages` (`LeadConversationStateService`). Telefon nie jest
+wiadomością, więc „czyj ruch" go nie widzi.
+
+**Co front robi dzisiaj.** `resolveTurn` traktuje `first_response_at` nowszy niż
+`waiting_since` jako dowód, że odezwaliśmy się po ostatniej wiadomości klienta,
+i oddaje ruch klientowi. To domyka **pierwszy** kontakt w sprawie i tylko jego.
+Sekwencja: klient pisze → odpisujemy mailem → klient pisze znowu → dzwonimy —
+nadal zostawia leada w „Twój ruch", bo `first_response_at` stoi na pierwszym
+mailu i jest starszy od ostatniej wiadomości klienta.
+
+**Naprawa.** Wystawić w DTO leada znacznik ostatniego wpisu z `lead_callbacks`
+(tabela istnieje, `V110`), np. `lastContactAt`. Migracja niepotrzebna, jeśli
+liczone przy odczycie — jak `replyState`. Front zamieni wtedy `first_response_at`
+w tej gałęzi na nowy znacznik i przybliżenie zniknie.
 
 ---
 

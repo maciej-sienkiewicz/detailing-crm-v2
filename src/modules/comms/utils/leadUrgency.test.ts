@@ -75,6 +75,42 @@ describe('lead mailowy - ruch po stronie klienta', () => {
     });
 });
 
+/*
+ * Zgłoszenie: „klikam »Kontakt poza pocztą«, dostaję komunikat, że lead zszedł
+ * z kolejki, a on dalej wisi w »Twój ruch«".
+ *
+ * Przyczyna jest po stronie danych, nie widoku: backend liczy `replyState`
+ * wyłącznie z `comm_messages` (LeadConversationStateService), a odnotowany telefon
+ * ląduje w `lead_callbacks` i tej wartości nie rusza. Jedynym śladem w DTO listy
+ * jest `firstResponseAt` - stempel pierwszej reakcji, niezależny od kanału.
+ */
+describe('kontakt poza pocztą przesuwa ruch do klienta', () => {
+    it('telefon PO ostatniej wiadomości klienta oddaje ruch klientowi', () => {
+        const urgency = describeLeadUrgency(mailLead({
+            waitingSince: ago(3 * DAY),
+            firstResponseAt: ago(HOUR),
+        }));
+
+        expect(urgency.turn).toBe('CLIENT');
+        expect(urgency.waitingSince).toBe(ago(HOUR));
+    });
+
+    it('odpowiedź SPRZED ostatniej wiadomości klienta zostawia ruch u nas', () => {
+        // Odpisaliśmy tydzień temu, klient napisał wczoraj - piłka wróciła.
+        const urgency = describeLeadUrgency(mailLead({
+            waitingSince: ago(DAY),
+            firstResponseAt: ago(7 * DAY),
+        }));
+
+        expect(urgency.turn).toBe('OURS');
+        expect(urgency.waitingSince).toBe(ago(DAY));
+    });
+
+    it('lead bez żadnej naszej reakcji zostaje w „Twój ruch"', () => {
+        expect(leadSegmentOf(mailLead({ firstResponseAt: null }))).toBe('OURS');
+    });
+});
+
 describe('lead bez wątku - dziura, dla której powstała ta reguła', () => {
     it('telefon, na który nikt nie oddzwonił, stoi w kolejce jako NASZ ruch', () => {
         const urgency = describeLeadUrgency(phoneLead({ createdAt: ago(2 * HOUR) }));

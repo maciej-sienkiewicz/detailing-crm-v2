@@ -393,7 +393,18 @@ export const useRecordLeadCallback = () => {
             leadsApi.recordCallback(leadId, note),
         onSuccess: (_callback, { leadId }) => {
             invalidate(leadId);
-            showSuccess('Kontakt odnotowany', 'Lead zszedł z kolejki oczekujących na odpowiedź');
+            /*
+             * Komunikat mówi o tym, co ZASZŁO, a nie o tym, co powinno z tego wyniknąć.
+             *
+             * Stało tu „Lead zszedł z kolejki oczekujących na odpowiedź" - zdanie
+             * nieprawdziwe za każdym razem, gdy backend nie miał czym przesunąć
+             * „czyjego ruchu": telefon trafia do `lead_callbacks`, a `replyState`
+             * liczy się z `comm_messages` i przy drugim kontakcie w tej samej sprawie
+             * nie drgnie. Kolejka bywa więc dokładnie tam, gdzie była - a użytkownik
+             * przeczytał, że jest inaczej. Fałszywy komunikat kosztuje zaufanie do
+             * wszystkich następnych.
+             */
+            showSuccess('Kontakt odnotowany', 'Zapisany w przebiegu sprawy');
         },
         onError: (error) => {
             const message =
