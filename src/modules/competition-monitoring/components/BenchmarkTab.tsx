@@ -5,7 +5,7 @@ import {
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import {
-    ArrowDownRight, ArrowUpRight, Eye, ExternalLink, FileText, Flame, Pause,
+    ArrowDownRight, ArrowUpRight, Eye, ExternalLink, FileText, Flame, Megaphone, Pause,
     RefreshCw, Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -228,14 +228,37 @@ const PulseList = styled.div`
     margin-top: 14px;
 `;
 
-const PulseRow = styled.div<{ $self: boolean }>`
+/**
+ * Wiersz płatny ma własny kolor ramki: kanał reklamowy jest jedyną rzeczą na tym
+ * ekranie, która kosztuje konkurenta pieniądze, i nie może wyglądać jak kolejny post.
+ */
+const PAID_COLOR = '#7c3aed';
+const PAID_DIM = 'rgba(139, 92, 246, 0.12)';
+
+const PulseRow = styled.div<{ $self: boolean; $paid?: boolean }>`
     display: flex;
     align-items: flex-start;
     gap: 11px;
     padding: 11px 13px;
-    border: 1px solid ${p => (p.$self ? st.accentBlue : st.border)};
+    border: 1px solid ${p => {
+        if (p.$paid) return 'rgba(139, 92, 246, 0.35)';
+        return p.$self ? st.accentBlue : st.border;
+    }};
     border-radius: ${st.radiusSm};
-    background: ${p => (p.$self ? st.bgAccentBlue : st.bgCard)};
+    background: ${p => {
+        if (p.$paid) return 'rgba(139, 92, 246, 0.05)';
+        return p.$self ? st.bgAccentBlue : st.bgCard;
+    }};
+`;
+
+const PaidBadge = styled.span`
+    padding: 1px 7px;
+    border-radius: ${st.radiusFull};
+    background: ${PAID_DIM};
+    color: #6d28d9;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
 `;
 
 const TONE_COLOR = {
@@ -243,6 +266,7 @@ const TONE_COLOR = {
     warn: st.accentAmber,
     bad: st.accentRed,
     neutral: st.accentBlue,
+    paid: PAID_COLOR,
 } as const;
 
 const TONE_BG = {
@@ -250,6 +274,7 @@ const TONE_BG = {
     warn: st.accentAmberDim,
     bad: st.accentRedDim,
     neutral: st.accentBlueDim,
+    paid: PAID_DIM,
 } as const;
 
 const PulseIcon = styled.span<{ $tone: keyof typeof TONE_COLOR }>`
@@ -270,6 +295,10 @@ const PulseBody = styled.div`
 `;
 
 const PulseHeadline = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
     font-size: ${st.fontSm};
     font-weight: 700;
     color: ${st.text};
@@ -388,7 +417,7 @@ interface GrowthHeadline {
     gap: number;
 }
 
-type PulseTone = 'good' | 'warn' | 'bad' | 'neutral';
+type PulseTone = 'good' | 'warn' | 'bad' | 'neutral' | 'paid';
 
 /**
  * Podgląd sekcji dla studiów, u których nic się jeszcze nie wydarzyło albo norma
@@ -465,6 +494,8 @@ const PULSE_STYLE: Record<PulseEventKind, { icon: LucideIcon; tone: PulseTone }>
     STANDOUT_POST: { icon: Flame, tone: 'warn' },
     NEW_TOPIC: { icon: Sparkles, tone: 'warn' },
     SLOWDOWN: { icon: TrendingDown, tone: 'neutral' },
+    AD_STARTED: { icon: Megaphone, tone: 'paid' },
+    AD_ENDED: { icon: Megaphone, tone: 'paid' },
 };
 
 export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) => {
@@ -1076,13 +1107,17 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                             {pulseEvents.map((event, index) => {
                                 const style = PULSE_STYLE[event.kind];
                                 const Icon = style.icon;
+                                const isAd = event.kind === 'AD_STARTED' || event.kind === 'AD_ENDED';
                                 return (
-                                    <PulseRow key={`${event.kind}-${index}`} $self={event.isSelf}>
+                                    <PulseRow key={`${event.kind}-${index}`} $self={event.isSelf} $paid={isAd}>
                                         <PulseIcon $tone={style.tone}>
                                             <Icon size={14} />
                                         </PulseIcon>
                                         <PulseBody>
-                                            <PulseHeadline>{event.headline}</PulseHeadline>
+                                            <PulseHeadline>
+                                                {event.headline}
+                                                {isAd && <PaidBadge>REKLAMA</PaidBadge>}
+                                            </PulseHeadline>
                                             <PulseDetail>{event.detail}</PulseDetail>
                                             {event.permalink && (
                                                 <PulseLink
@@ -1090,7 +1125,8 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                                     target="_blank"
                                                     rel="noreferrer noopener"
                                                 >
-                                                    Zobacz post <ExternalLink size={11} />
+                                                    {isAd ? 'Podgląd reklamy' : 'Zobacz post'}{' '}
+                                                    <ExternalLink size={11} />
                                                 </PulseLink>
                                             )}
                                         </PulseBody>

@@ -1,5 +1,7 @@
 import { apiClient } from '@/core/apiClient';
 import type {
+    AdCalendar,
+    AdDetail,
     Benchmark,
     ProfileSuggestion,
     WeeklyDigest,
@@ -22,6 +24,7 @@ import type {
 const PROFILES_PATH = '/v1/instagram/profiles';
 const ANALYTICS_PATH = '/v1/instagram';
 const AI_PATH = '/v1/instagram/ai';
+const ADS_PATH = '/v1/instagram/ads';
 
 export interface ContentFilters {
     weeks: WeeksOption;
@@ -129,6 +132,25 @@ export const instagramApi = {
     getDigest: async (): Promise<WeeklyDigest | null> => {
         const response = await apiClient.get<{ digest: WeeklyDigest | null }>(`${ANALYTICS_PATH}/digest`);
         return response.data.digest;
+    },
+
+    // ── Reklamy konkurencji (Biblioteka reklam Meta) ─────────────────────────
+
+    getAdCalendar: async (year?: number): Promise<AdCalendar> => {
+        const response = await apiClient.get<AdCalendar>(`${ADS_PATH}/calendar`, {
+            params: year ? { year } : undefined,
+        });
+        return response.data;
+    },
+
+    getAdDetail: async (adId: string): Promise<AdDetail> => {
+        const response = await apiClient.get<AdDetail>(`${ADS_PATH}/${encodeURIComponent(adId)}`);
+        return response.data;
+    },
+
+    /** Powiązanie obserwowanego profilu ze stroną na Facebooku - bez niego nie ma czego szukać. */
+    linkFacebookPage: async (profileId: string, pageId: string, pageName?: string): Promise<void> => {
+        await apiClient.put(`${ADS_PATH}/profiles/${profileId}/page`, { pageId, pageName: pageName ?? null });
     },
 
     // ── Reakcje i generator AI ───────────────────────────────────────────────

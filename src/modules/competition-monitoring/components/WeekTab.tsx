@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
-import { ExternalLink, Lightbulb, Trophy, TrendingUp, Flame, Moon, Minus, Sparkles } from 'lucide-react';
+import { ExternalLink, Lightbulb, Megaphone, Trophy, TrendingUp, Flame, Moon, Minus, Sparkles } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { DigestVerdict, ProfileDigest, WeeklyDigest } from '../types';
+import type { DigestAd, DigestVerdict, ProfileDigest, WeeklyDigest } from '../types';
 import { FORMAT_LABELS } from '../types';
-import { Card, CardTitle, CardHint, CenterState, SelfTag, formatNumber } from './MetricBits';
+import { Card, CardTitle, CardHint, CenterState, SelfTag, formatExact, formatNumber } from './MetricBits';
 import { SuggestionsSection } from './SuggestionsSection';
 
 /**
@@ -137,6 +137,29 @@ const Evidence = styled.p`
     line-height: 1.5;
 `;
 
+/**
+ * Kampania reklamowa obok linków do postów. Fioletowa, bo to jedyna rzecz w tym
+ * wierszu, za którą konkurent zapłacił - i nie ma wyglądać jak kolejny post.
+ */
+const AdChip = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    background: rgba(139, 92, 246, 0.1);
+    color: #6d28d9;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background ${st.transition};
+
+    &:hover { background: rgba(139, 92, 246, 0.18); }
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
 const PostLinks = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -200,9 +223,27 @@ const RecoReason = styled.p`
 const formatDay = (iso: string) =>
     new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
 
-const DigestRow: React.FC<{ profile: ProfileDigest }> = ({ profile }) => {
+/** „Uruchomił: Powłoka ceramiczna · od 2 wrz" - stan, nazwa, liczba. Bez zdania. */
+const adChipLabel = (ad: DigestAd): string => {
+    const name = ad.title?.trim() || 'kampania';
+    const reach = ad.reach !== null ? ` · ${formatExact(ad.reach)}` : '';
+    if (ad.state === 'STARTED') {
+        return `Uruchomił: ${name} · od ${formatDay(ad.startedOn)}`;
+    }
+    if (ad.state === 'RUNNING') {
+        return `Reklamuje: ${name} · ${ad.days}. dzień${reach}`;
+    }
+    return `Zakończył: ${name} · ${ad.days} dni${reach}`;
+};
+
+const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) => void }> = ({
+    profile,
+    onOpenAd,
+}) => {
     const { Icon } = VERDICT_STYLE[profile.verdict];
     const links = profile.highlight ? [profile.highlight, ...profile.posts] : profile.posts;
+    // Pole `ads` doszło później - w trakcie wdrożenia odpowiedź może go jeszcze nie mieć.
+    const ads = profile.ads ?? [];
 
     return (
         <ProfileRow $self={profile.isSelf}>
@@ -219,7 +260,7 @@ const DigestRow: React.FC<{ profile: ProfileDigest }> = ({ profile }) => {
 
                 <Evidence>{profile.evidence}</Evidence>
 
-                {links.length > 0 && (
+                {(links.length > 0 || ads.length > 0) && (
                     <PostLinks>
                         {links.map(post => (
                             <PostLink
@@ -233,6 +274,16 @@ const DigestRow: React.FC<{ profile: ProfileDigest }> = ({ profile }) => {
                                 {formatNumber(post.engagement)} <ExternalLink />
                             </PostLink>
                         ))}
+                        {ads.map(ad => (
+                            <AdChip
+                                key={ad.adId}
+                                type="button"
+                                onClick={() => onOpenAd?.(ad.adId)}
+                                title="Szczegóły kampanii"
+                            >
+                                <Megaphone /> {adChipLabel(ad)}
+                            </AdChip>
+                        ))}
                     </PostLinks>
                 )}
             </RowBody>
@@ -240,7 +291,10 @@ const DigestRow: React.FC<{ profile: ProfileDigest }> = ({ profile }) => {
     );
 };
 
-export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) => {
+export const WeekTab: React.FC<{
+    digest: WeeklyDigest | null;
+    onOpenAd?: (adId: string) => void;
+}> = ({ digest, onOpenAd }) => {
     if (!digest || digest.profilesWatched === 0) {
         return (
             <Card>
@@ -297,7 +351,7 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
                     </CardHint>
                 ) : (
                     digest.profiles.map(profile => (
-                        <DigestRow key={profile.profileId} profile={profile} />
+                        <DigestRow key={profile.profileId} profile={profile} onOpenAd={onOpenAd} />
                     ))
                 )}
             </Card>
