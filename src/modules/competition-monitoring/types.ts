@@ -67,6 +67,18 @@ export interface ProfileDigest {
     engagementTotal: number;
     highlight: DigestPost | null;
     posts: DigestPost[];
+    /** Kampanie reklamowe tego profilu w tym tygodniu. Puste, gdy się nie reklamował. */
+    ads: DigestAd[];
+}
+
+/** Pigułka kampanii w tygodniowym podsumowaniu. */
+export interface DigestAd {
+    adId: string;
+    state: 'STARTED' | 'RUNNING' | 'ENDED';
+    title: string | null;
+    days: number;
+    reach: number | null;
+    startedOn: string;
 }
 
 export interface WeeklyDigest {
@@ -181,6 +193,10 @@ export interface ResyncResult {
 export type PulseEventKind =
     | 'YOUR_POST'
     | 'YOUR_SILENCE'
+    /** Konkurent uruchomił sponsorowaną kampanię (Biblioteka reklam Meta). */
+    | 'AD_STARTED'
+    /** Nasz odczyt wykrył, że kampania przestała się emitować. */
+    | 'AD_ENDED'
     | 'ACCELERATION'
     | 'SLOWDOWN'
     | 'STANDOUT_POST'
@@ -378,6 +394,101 @@ export interface GeneratedInstagramPost {
 // ─── Stałe UI ─────────────────────────────────────────────────────────────────
 
 /** Paleta kolorów przypisywanych profilom na wykresach (self zawsze pierwszy kolor). */
+
+// ─── Reklamy konkurencji (Biblioteka reklam Meta) ─────────────────────────────
+
+/** Jeden pasek w kalendarzu — jedna kampania. */
+export interface AdBar {
+    adId: string;
+    title: string | null;
+    /** ISO. Data rozpoczęcia emisji, także gdy wypada przed oknem kalendarza. */
+    start: string;
+    /** ISO albo null, gdy emisja trwa. */
+    stop: string | null;
+    days: number;
+    reach: number | null;
+    platforms: AdPlatform[];
+    /** Tor rysowania: kampanie równoległe leżą jedna pod drugą. */
+    lane: number;
+}
+
+export type AdPlatform = 'FACEBOOK' | 'INSTAGRAM' | 'MESSENGER' | 'AUDIENCE_NETWORK' | 'THREADS';
+
+export interface AdCalendarRow {
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    campaigns: number;
+    activeNow: number;
+    /** Dni każdej kampanii osobno: 4 kampanie po 3 dni = 12. */
+    sponsoredDays: number;
+    reachTotal: number | null;
+    lanes: number;
+    ads: AdBar[];
+}
+
+export interface UnlinkedProfile {
+    profileId: string;
+    username: string;
+}
+
+export interface AdCalendar {
+    year: number;
+    /** ISO. Prawa krawędź kalendarza w roku bieżącym. */
+    today: string;
+    activeToday: number;
+    rows: AdCalendarRow[];
+    unlinked: UnlinkedProfile[];
+    /** false = brak tokena Biblioteki reklam; widok pokazuje „brak danych", nie pusty rok. */
+    configured: boolean;
+}
+
+export interface AdLocation {
+    name: string;
+    type: string;
+    excluded: boolean;
+}
+
+export interface AdReachBucket {
+    ageRange: string;
+    male: number;
+    female: number;
+    /** Czy przedział mieści się w wieku ustawionym przez reklamodawcę. */
+    inTargetAge: boolean;
+}
+
+export interface AdDetail {
+    adId: string;
+    profileId: string;
+    username: string;
+    title: string | null;
+    start: string;
+    stop: string | null;
+    days: number;
+    active: boolean;
+    /** Zasięg w Polsce. */
+    reach: number | null;
+    platforms: AdPlatform[];
+    targetAges: string | null;
+    targetGender: string | null;
+    locations: AdLocation[];
+    payer: string | null;
+    beneficiary: string | null;
+    breakdown: AdReachBucket[];
+    /** Ilu ludzi spoza ustawionego przedziału wieku reklama i tak dosięgła. */
+    outOfTargetAgeReach: number;
+    snapshotUrl: string | null;
+}
+
+/** Nazwy miejsc wyświetlania — skróty FB/IG/MSG/AN nikomu nic nie mówią. */
+export const AD_PLATFORM_LABELS: Record<AdPlatform, string> = {
+    FACEBOOK: 'Facebook',
+    INSTAGRAM: 'Instagram',
+    MESSENGER: 'Messenger',
+    AUDIENCE_NETWORK: 'Audience Network',
+    THREADS: 'Threads',
+};
+
 export const PROFILE_COLORS = [
     '#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981',
     '#ef4444', '#06b6d4', '#f97316', '#64748b',

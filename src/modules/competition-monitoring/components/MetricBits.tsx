@@ -19,6 +19,15 @@ export const formatNumber = (value: number | null | undefined, decimals = 0): st
     return value.toFixed(decimals);
 };
 
+/**
+ * Liczba bez zaokrąglania, z grupowaniem tysięcy: „41 200".
+ *
+ * [formatNumber] skraca do „41 tys.", co przy zasięgu reklamy gubi różnicę między
+ * 41 200 a 41 900 - a to jedyna liczba, po której właściciel porównuje kampanie.
+ */
+export const formatExact = (value: number | null | undefined): string =>
+    value === null || value === undefined ? '-' : value.toLocaleString('pl-PL');
+
 export const formatDate = (iso: string): string =>
     new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 

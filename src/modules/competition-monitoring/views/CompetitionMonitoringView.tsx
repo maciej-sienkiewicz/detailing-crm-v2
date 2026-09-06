@@ -10,10 +10,13 @@ import {
 } from '@/common/components/PageHeader/PageHeader';
 import { useOverview, useBenchmark, useDigest } from '../hooks/useAnalytics';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
+import { useAdCalendar } from '../hooks/useAds';
 import { WeekTab } from '../components/WeekTab';
 import { BenchmarkTab } from '../components/BenchmarkTab';
 import { SyncStatusBar } from '../components/SyncStatusBar';
 import { ContentTab } from '../components/ContentTab';
+import { AdsTab } from '../components/AdsTab';
+import { AdDetailModal } from '../components/AdDetailModal';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { GeneratePostModal } from '../components/GeneratePostModal';
@@ -113,13 +116,21 @@ const PendingBadge = styled.span`
     padding: 1px 7px;
 `;
 
-type TabKey = 'tydzien' | 'porownanie' | 'tresci';
+type TabKey = 'tydzien' | 'porownanie' | 'tresci' | 'reklamy';
 
 const TABS: { key: TabKey; label: string }[] = [
     { key: 'tydzien', label: 'Tydzień' },
     { key: 'porownanie', label: 'Porównanie' },
     { key: 'tresci', label: 'Treści' },
+    { key: 'reklamy', label: 'Reklamy' },
 ];
+
+/**
+ * Reklamy mierzy się latami, a nie tygodniami: kampania trwa miesiącami, a
+ * Biblioteka reklam Meta trzyma dokładnie rok historii. Dlatego ta jedna zakładka
+ * ma nad sobą wybór roku zamiast wyboru okresu.
+ */
+const AD_YEARS = 2;
 
 /**
  * Stare linki („Przegląd" i „Raport" zniknęły) lądują na Tygodniu zamiast
@@ -138,17 +149,25 @@ export const CompetitionMonitoringView = () => {
         : 12;
 
     const setUrlState = useCallback(
-        (next: { tab?: TabKey; weeks?: WeeksOption }) => {
+        (next: { tab?: TabKey; weeks?: WeeksOption; year?: number }) => {
             setSearchParams(prev => {
                 const params = new URLSearchParams(prev);
                 if (next.tab) params.set('widok', next.tab);
                 if (next.weeks) params.set('okres', String(next.weeks));
+                if (next.year) params.set('rok', String(next.year));
                 return params;
             }, { replace: true });
         },
         [setSearchParams]
     );
 
+    const currentYear = new Date().getFullYear();
+    const yearParam = Number(searchParams.get('rok'));
+    const year = Number.isInteger(yearParam) && yearParam > currentYear - AD_YEARS && yearParam <= currentYear
+        ? yearParam
+        : currentYear;
+
+    const [openAdId, setOpenAdId] = useState<string | null>(null);
     const [isDrawerOpen, setDrawerOpen] = useState(false);
     const [isAddOpen, setAddOpen] = useState(false);
     const [isGenerateOpen, setGenerateOpen] = useState(false);
@@ -157,6 +176,7 @@ export const CompetitionMonitoringView = () => {
     const overviewQuery = useOverview(weeks);
     const digestQuery = useDigest(tab === 'tydzien');
     const benchmarkQuery = useBenchmark(weeks, tab === 'porownanie');
+    const adsQuery = useAdCalendar(year, tab === 'reklamy');
     const { profiles } = useInstagramProfiles();
     const pendingCount = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
 
@@ -168,15 +188,26 @@ export const CompetitionMonitoringView = () => {
                 actions={
                     <>
                         <WeeksBar>
-                            {WEEKS_OPTIONS.map(option => (
-                                <WeeksBtn
-                                    key={option.value}
-                                    $active={weeks === option.value}
-                                    onClick={() => setUrlState({ weeks: option.value })}
-                                >
-                                    {option.label}
-                                </WeeksBtn>
-                            ))}
+                            {tab === 'reklamy'
+                                ? Array.from({ length: AD_YEARS }, (_, index) => currentYear - AD_YEARS + 1 + index)
+                                    .map(option => (
+                                        <WeeksBtn
+                                            key={option}
+                                            $active={year === option}
+                                            onClick={() => setUrlState({ year: option })}
+                                        >
+                                            {option}
+                                        </WeeksBtn>
+                                    ))
+                                : WEEKS_OPTIONS.map(option => (
+                                    <WeeksBtn
+                                        key={option.value}
+                                        $active={weeks === option.value}
+                                        onClick={() => setUrlState({ weeks: option.value })}
+                                    >
+                                        {option.label}
+                                    </WeeksBtn>
+                                ))}
                         </WeeksBar>
                         <PageHeaderGhostButton onClick={() => setGenerateOpen(true)}>
                             <Sparkles /> Generuj post
@@ -221,7 +252,7 @@ export const CompetitionMonitoringView = () => {
                         <span>Spróbuj odświeżyć stronę, jeśli problem wraca, daj nam znać.</span>
                     </CenterState>
                 ) : (
-                    <WeekTab digest={digestQuery.data ?? null} />
+                    <WeekTab digest={digestQuery.data ?? null} onOpenAd={setOpenAdId} />
                 )
             )}
 
@@ -244,6 +275,21 @@ export const CompetitionMonitoringView = () => {
             )}
 
             {tab === 'tresci' && <ContentTab weeks={weeks} />}
+
+            {tab === 'reklamy' && (
+                adsQuery.isLoading ? (
+                    <CenterState><Spinner /></CenterState>
+                ) : adsQuery.isError ? (
+                    <CenterState>
+                        <strong>Nie udało się pobrać danych o reklamach</strong>
+                        <span>Spróbuj odświeżyć stronę.</span>
+                    </CenterState>
+                ) : adsQuery.data ? (
+                    <AdsTab calendar={adsQuery.data} onOpenAd={setOpenAdId} />
+                ) : null
+            )}
+
+            {openAdId && <AdDetailModal adId={openAdId} onClose={() => setOpenAdId(null)} />}
 
             <ProfilesDrawer
                 open={isDrawerOpen}
