@@ -929,9 +929,13 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
         initPriceInputs(serviceId, grossPrice, service.vatRate);
         if (!service.id) {
+            // Stawka wybrana w oknie tworzenia usługi - nie zawsze 23%. Ta wartość zasila
+            // `servicesAsLineItems`/`buildAppointmentPayload` jako domyślna, gdy nikt
+            // później ręcznie nie zmieni VAT-u dla tej pozycji (serviceVatRates[id] wtedy
+            // pozostaje puste), więc twardy „23" cichcem podmieniał realną stawkę.
             setTempServices(prev => ({
                 ...prev,
-                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: 23 },
+                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: service.vatRate },
             }));
         }
         setServiceSearch('');
