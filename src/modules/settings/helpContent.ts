@@ -252,7 +252,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'timing',
             label: 'Czas wysyłki',
-            description: 'Trzy wiadomości mają konfigurowalne opóźnienie. Przypomnienie przed wizytą liczymy od godziny rozpoczęcia rezerwacji. Podziękowanie po wizycie i przypomnienie po przerwie liczymy od momentu odbioru pojazdu, dlatego rezerwacja, na którą klient się nie stawił, nigdy nie dostanie tych wiadomości.',
+            description: 'Trzy wiadomości mają konfigurowalne opóźnienie. Przypomnienie przed wizytą liczymy od godziny rozpoczęcia rezerwacji. Podziękowanie po wizycie i przypomnienie po przerwie liczymy od momentu odbioru pojazdu, dlatego rezerwacja, na którą klient się nie stawił, nigdy nie dostanie tych wiadomości. Godzinę podziękowania można wskazać wprost przy wydaniu pojazdu - wtedy opóźnienie z tego ekranu nie ma zastosowania.',
             usedIn: [
                 'Kolumna „Kiedy wychodzi"',
                 'Sekcja „Czas wysyłki" w panelu edycji',

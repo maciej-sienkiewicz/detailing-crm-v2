@@ -159,7 +159,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'after',
     name: 'Podziękowanie po wizycie',
     description:
-      'Wysyłane tylko po wizytach faktycznie zakończonych, a czas liczymy od momentu odbioru pojazdu. Rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
+      'Wysyłane tylko po wizytach faktycznie zakończonych. Godzinę wybiera pracownik przy wydaniu pojazdu (12:00-18:00), a poniższe opóźnienie obowiązuje tylko wtedy, gdy przy wydaniu nikt jej nie ustawił. Rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
     trigger: 'Po odbiorze pojazdu',
     timing: 'afterPickup',
     sms: { ruleKey: 'postVisit', placeholders: [...CUSTOMER, ...SCHEDULE] },

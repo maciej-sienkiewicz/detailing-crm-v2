@@ -20,6 +20,7 @@ import { CustomerNotesSection } from './CustomerNotesSection';
 import { SettlementSection } from './SettlementSection';
 import { FinanceUpsellPanel } from './FinanceUpsellPanel';
 import { ProtocolSection } from './ProtocolSection';
+import { ThankYouSmsSection } from './ThankYouSmsSection';
 import { advanceLabel, allProtocolsSigned, type ProtocolSignatureStatus } from './signatureStep';
 import { HandoverResultView } from './HandoverResultView';
 import type { Visit } from '../../types';
@@ -208,34 +209,48 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         </StepPane>
 
                         <StepPane $active={!isSignatureStep}>
-                            {handover.canIssueDocuments ? (
-                                <SettlementSection
-                                    state={handover.state}
-                                    patch={handover.patch}
-                                    totals={handover.totals}
-                                    currency={handover.currency}
-                                    isFreeVisit={handover.isFreeVisit}
-                                    invoiceGross={handover.invoiceGross}
-                                    remainder={handover.remainder}
-                                    sellerComplete={handover.sellerComplete}
-                                    company={handover.company}
-                                    problemsIn={handover.problemsIn}
-                                    ksef={handover.ksef}
-                                    sendToKsef={handover.sendToKsef}
-                                    canChooseSendToKsef={handover.canChooseSendToKsef}
-                                    onSendToKsefChange={handover.setSendToKsef}
-                                />
-                            ) : (
-                                // Moment wysokiej intencji: zamiast sekcji rozliczenia,
-                                // propozycja modułu finansowego, z zachowaną ścieżką
-                                // „wydaj pojazd bez faktury" (operacja rdzeniowa BASIC).
-                                !handover.isFreeVisit && (
-                                    <FinanceUpsellPanel
-                                        grossAmount={handover.totals.gross}
+                            <Body>
+                                {handover.canIssueDocuments ? (
+                                    <SettlementSection
+                                        state={handover.state}
+                                        patch={handover.patch}
+                                        totals={handover.totals}
                                         currency={handover.currency}
+                                        isFreeVisit={handover.isFreeVisit}
+                                        invoiceGross={handover.invoiceGross}
+                                        remainder={handover.remainder}
+                                        sellerComplete={handover.sellerComplete}
+                                        company={handover.company}
+                                        problemsIn={handover.problemsIn}
+                                        ksef={handover.ksef}
+                                        sendToKsef={handover.sendToKsef}
+                                        canChooseSendToKsef={handover.canChooseSendToKsef}
+                                        onSendToKsefChange={handover.setSendToKsef}
                                     />
-                                )
-                            )}
+                                ) : (
+                                    // Moment wysokiej intencji: zamiast sekcji rozliczenia,
+                                    // propozycja modułu finansowego, z zachowaną ścieżką
+                                    // „wydaj pojazd bez faktury" (operacja rdzeniowa BASIC).
+                                    !handover.isFreeVisit && (
+                                        <FinanceUpsellPanel
+                                            grossAmount={handover.totals.gross}
+                                            currency={handover.currency}
+                                        />
+                                    )
+                                )}
+
+                                {/* Studio z wyłączonym szablonem „Podziękowanie po wizycie"
+                                    nie zobaczy tu nic: nie ma czego zaplanować, a pytanie
+                                    o godzinę byłoby obietnicą bez pokrycia. */}
+                                {handover.thankYouSms.available && (
+                                    <ThankYouSmsSection
+                                        enabled={handover.state.thankYouSms}
+                                        onEnabledChange={value => handover.patch({ thankYouSms: value })}
+                                        sendAt={handover.state.thankYouSmsAt}
+                                        onSendAtChange={value => handover.patch({ thankYouSmsAt: value })}
+                                    />
+                                )}
+                            </Body>
                         </StepPane>
                     </Body>
                 )}
