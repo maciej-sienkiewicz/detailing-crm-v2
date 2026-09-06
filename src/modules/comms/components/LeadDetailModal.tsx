@@ -36,6 +36,7 @@
 // z tą samą sumą, a ta sama liczba dwa razy na jednym ekranie to nie jest
 // podkreślenie, tylko szum.
 import { useState } from 'react';
+import { useBreakpoint } from '@/common/hooks/useBreakpoint';
 import { Link, useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import {
@@ -45,15 +46,12 @@ import {
     Car,
     ExternalLink,
     Loader2,
-    Mail,
-    Phone,
     PhoneCall,
-    RefreshCw,
+    Reply,
     Send,
     Trash2,
     X,
     UserPlus,
-    UserRound,
 } from 'lucide-react';
 import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
@@ -96,15 +94,16 @@ import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceL
 import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
 import { describeLeadUrgency, type ReplyTone } from '../utils/leadUrgency';
 import type { LeadServiceItemInput } from '../types';
-import { LeadSourceIcon } from './LeadSourceIcon';
 import { TagMultiSelect } from './TagMultiSelect';
 import { useTagCatalogActions } from '../hooks/useTagCatalogActions';
 import { LeadStatusPicker } from './LeadStatusPicker';
 import { LeadTimeline } from './LeadTimeline';
-import { SimilarVisitsRefresh, SimilarVisitsSection } from './SimilarVisitsSection';
+import { SimilarVisitsSection } from './SimilarVisitsSection';
 import { SuggestedServiceRows } from './SuggestedServiceRows';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatMoney } from './shared';
+
+const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
 /**
  * Dwie kolumny o różnej roli, nie dwie równe połówki. Po lewej to, co się w leadzie
@@ -128,7 +127,7 @@ const BodyGrid = styled.div<{ $pane?: boolean }>`
      * renderują dokładnie ten sam JSX.
      */
     ${p => p.$pane && `
-        grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 288px);
         & > *:nth-child(1) { order: 2; }
         & > *:nth-child(2) { order: 1; }
     `}
@@ -233,6 +232,11 @@ const FactChip = styled.button<{ $soft?: boolean }>`
     }
 
     svg { width: 13px; height: 13px; }
+
+    /* Chip „Rozpoznajemy auto…" - jedyne miejsce w tym oknie, gdzie coś się kręci.
+       Reguła stała wcześniej przy ikonach odświeżania w szynie i zniknęła razem
+       z nimi, zostawiając zamrożonego Loader2. */
+    .spin { animation: ${spin} 900ms linear infinite; }
 `;
 
 /** Sekcja szyny: etykieta wersalikami i treść, bez szarej ramki panelu. */
@@ -248,7 +252,7 @@ const RailSection = styled.section`
 
 const RailLabel = styled.h4`
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
     gap: 8px;
     margin: 0;
@@ -257,6 +261,30 @@ const RailLabel = styled.h4`
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: ${p => p.theme.colors.textMuted};
+`;
+
+/**
+ * Akcja sekcji szyny - słowo, nie ikona i nie przycisk z ramką.
+ *
+ * Sekcja ma najwyżej jedną taką akcję i zawsze jest nią zmiana tego, co sekcja
+ * pokazuje. Słowo mówi to wprost i mieści się w wierszu etykiety, którego wysokość
+ * i tak jest zajęta; ikona w tym samym miejscu wymagała podpowiedzi, żeby dało się
+ * ją odczytać.
+ */
+const RailAction = styled.button`
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    letter-spacing: normal;
+    text-transform: none;
+    color: ${p => p.theme.colors.primary};
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+    &:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
 `;
 
 /** Wycena jako spis „nazwa - brutto", nie tabela netto/VAT/brutto. */
@@ -363,10 +391,49 @@ const KeyHint = styled.span`
  * linii, wybierak etapu z kopertą pod nimi. Wciśnięte w jedną linijkę zostawiały
  * nazwisku kilkanaście pikseli i wielokropek zamiast nazwiska.
  */
+/**
+ * Pasek nagłówka: tożsamość sprawy i rząd faktów, na wspólnym tle.
+ *
+ * Chipy stały wcześniej w treści, na bieli, i czytały się jak pierwsza sekcja
+ * panelu - a są dopowiedzeniem tytułu („czyj to samochód, o co pyta, na jakim
+ * etapie"). Wspólne tło wiąże je z nazwą sprawy i oddziela całość od przebiegu.
+ */
 const LeadHeader = styled(ModalHeader)`
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        flex-wrap: wrap;
-    }
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    background: ${p => p.theme.colors.surfaceAlt};
+`;
+
+/** Wiersz tożsamości: nazwa sprawy z lewej, stan i zamknięcie z prawej. */
+const HeaderTop = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+`;
+
+/**
+ * Przyciski stopki: 48 px wysokości i promień 12 px.
+ *
+ * Pastylki 32 px, które stały tu wcześniej, były wzorem z pasków narzędzi obsługiwanych
+ * myszą. To jest ostatni rząd okna i jedyne miejsce, w którym coś się w leadzie
+ * ROBI - a specyfikacja tego widoku ma jedną twardą liczbę: cel dotykowy nie mniejszy
+ * niż 48 px, bo ekran obsługuje się w rękawicy.
+ */
+const footerControl = css`
+    height: 48px;
+    padding: 0 18px;
+    border-radius: ${p => p.theme.radii.lg};
+    font-size: 14.5px;
+
+    svg { width: 17px; height: 17px; }
+`;
+
+const FooterButton = styled(IconButton)`${footerControl}`;
+const FooterPrimary = styled(PrimaryButton)`
+    ${footerControl}
+    padding: 0 26px;
 `;
 
 const Column = styled.div`
@@ -407,65 +474,6 @@ const Panel = styled.section<{ $quiet?: boolean }>`
     h4 svg { width: 13px; height: 13px; }
 `;
 
-const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
-
-/**
- * Poboczna akcja sekcji - ikona w prawym górnym rogu nagłówka, wyjaśniona
- * podpowiedzią pod kursorem.
- *
- * Wcześniej „Sprawdź ponownie" stało pod treścią jako przycisk z etykietą, przez
- * co wyglądało na akcję sekcji. Nią nie jest: wynik jest policzony i zapisany, a
- * przeliczenie to wyjście awaryjne na świat, który się zmienił. Nagłówek trzyma
- * je w zasięgu ręki, nie każąc mu konkurować o uwagę z tym, po co ktoś tu przyszedł.
- * Sama ikona bez podpisu, bo nagłówek jest wersalikowy i 11-punktowy - drugi
- * napis obok niego przestaje być nagłówkiem, a staje się paskiem narzędzi.
- */
-const panelAction = css`
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: none;
-    border-radius: ${p => p.theme.radii.sm};
-    background: transparent;
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
-    transition: color ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast};
-
-    &:hover:not(:disabled) {
-        background: ${p => p.theme.colors.surfaceAlt};
-        color: ${p => p.theme.colors.text};
-    }
-    &:disabled { cursor: default; }
-
-    svg { width: 14px; height: 14px; }
-    .spin { animation: ${spin} 900ms linear infinite; }
-`;
-
-const PanelAction = styled.button`${panelAction}`;
-
-/** Ta sama ikona w nagłówku „Podobnych zleceń" - mutację trzyma tamten moduł. */
-const SimilarVisitsAction = styled(SimilarVisitsRefresh)`${panelAction}`;
-
-/** Wybierak etapu w nagłówku - trzymany z dala od tytułu, tuż przed przyciskiem zamknięcia. */
-/*
- * Kiedyś stał tu wybierak etapu i na telefonie musiał schodzić pod nazwę klienta,
- * na całą szerokość - obok tytułu zostawało mu kilkanaście pikseli i wielokropek
- * zamiast nazwiska. Etap przeniósł się do rzędu chipów, więc zostaje sama ikona
- * koperty (plakietka „czyj ruch" jest tylko w panelu, a panel nie schodzi poniżej
- * xl). Jeden przycisk 40 px nie potrzebuje własnego wiersza: pełna szerokość dla
- * niego kosztowała na telefonie linijkę nagłówka, czyli tyle, ile zajmuje
- * pierwsza wiadomość.
- */
-const HeaderStatus = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-`;
 
 /** Wyjaśnienie stanu „przegrany" - jedna linia nad treścią, nie pole formularza. */
 const LostNote = styled.div`
@@ -555,35 +563,6 @@ const ClientNote = styled.div<{ $warn?: boolean }>`
     .spacer { flex: 1; }
 `;
 
-/**
- * Kontrolka ikonowa w nagłówku - droga do korespondencji.
- *
- * Etykieta tekstowa robiła z tego najszerszy element nagłówka, choć to nie jest
- * akcja główna; na telefonie zabierała całą linijkę. Ikona koperty jest tu
- * jednoznaczna (kontakt przyszedł mailem), a nazwa siedzi w podpowiedzi
- * i w [aria-label], więc czytnik ekranu nic nie traci.
- */
-const IconAction = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.full};
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-
-    svg { width: 16px; height: 16px; }
-    &:hover {
-        border-color: ${p => p.theme.colors.primary};
-        color: ${p => p.theme.colors.primary};
-    }
-`;
-
 const ModalBody = styled.div`
     display: flex;
     flex-direction: column;
@@ -591,35 +570,63 @@ const ModalBody = styled.div`
 `;
 
 /** Podtytuł okna: skąd przyszedł lead i jak się z nim skontaktować. */
+/**
+ * Tożsamość jako ZDANIE, nie rząd elementów flex.
+ *
+ * Flex robił z niej pasek: każdy człon był osobnym pudełkiem, więc łamała się
+ * w całych członach i zostawiała dziury na końcu wiersza. Zwykły blok tekstu łamie
+ * się tam, gdzie kończy się miejsce.
+ */
 const LeadIdentity = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    font-size: 13px;
+    margin-top: 4px;
+    font-size: 14px;
+    line-height: 1.45;
     color: ${p => p.theme.colors.textSecondary};
 `;
 
 /**
- * Ikona źródła i tożsamość klienta jako JEDEN element liniowy, nie dwa elementy flex.
+ * Człon tożsamości (nazwisko, telefon, adres) - element liniowy, nie flexowy.
  *
- * Osobno rozjeżdżały się na telefonie: kontener zawija (bo muszą się zawijać „Zadzwoń"
- * i „Kartoteka klienta"), a flex przenosi do następnej linii CAŁY element, zanim
- * spróbuje go zwęzić - więc przy nagłówku węższym o kilka pikseli nazwisko schodziło
- * niżej i zostawiało samotną kopertę nad sobą. Ikona wpuszczona w tekst zawija się
- * razem z nim, jak każde inne słowo.
+ * Elementy flex zawijają się w całości: przy nagłówku węższym o kilka pikseli cały
+ * człon zjeżdżał do następnej linii i zostawiał nad sobą pustkę. Człony liniowe
+ * łamią się jak zdanie, bo zdaniem są.
  */
-const IdentityText = styled.span`
-    min-width: 0;
+const IdentityPart = styled.span`
     overflow-wrap: anywhere;
+`;
 
-    /* display: inline jest tu obowiązkowe: ikony w tym oknie są blokowe (reguła
-       z nagłówka modala), a element blokowy w środku i tak zajmie własną linię -
-       czyli dokładnie to, co ta zmiana miała usunąć. */
-    svg {
-        display: inline;
-        vertical-align: -2px;
-        margin-right: 6px;
+/**
+ * Kropka rozdzielająca, przyklejona do członu, który KOŃCZY.
+ *
+ * Spacja nierozdzielająca przed kropką (`white-space: nowrap` na całości) sprawia,
+ * że „601 448 210 ·" łamie się jako jedno; miejsce na złamanie zostaje dopiero za
+ * kropką. Bez tego wąski nagłówek zaczynał wiersz od „· m.kowalczyk@wp.pl", co
+ * czyta się jak urwane zdanie.
+ */
+const Separator = styled.span`
+    color: ${p => p.theme.colors.textMuted};
+    white-space: nowrap;
+`;
+
+/**
+ * Numer telefonu jako odnośnik `tel:`, ale bez wyglądu odnośnika.
+ *
+ * Na telefonie ma być tapnięty, na biurku przeczytany - a podkreślony, niebieski
+ * numer w wierszu tożsamości wyglądał na akcję ważniejszą niż ta w stopce.
+ */
+const IdentityLink = styled.a`
+    color: inherit;
+    text-decoration: none;
+    /* Wariant [as="button"] - reset, żeby przycisk czytał się jak reszta zdania. */
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+        color: ${p => p.theme.colors.primary};
+        text-decoration: underline;
     }
 `;
 
@@ -883,6 +890,9 @@ export function LeadDetailModal({
         enabled: Boolean(lead?.contactIdentifier),
     });
     const status = useLeadStatusChange();
+    /* Powyżej sm nagłówek mieści nazwę sprawy i plakietkę „czyj ruch" w jednym
+       wierszu; poniżej plakietka schodzi do rzędu chipów. */
+    const isWide = useBreakpoint('sm');
     const updateVehicle = useUpdateLeadVehicle();
     const updateTags = useUpdateLeadTags();
     const { data: dictionaries } = useLeadDictionaries();
@@ -1047,6 +1057,17 @@ export function LeadDetailModal({
     /** Wątek istnieje i nie stoimy właśnie w nim. */
     const canWrite = showThreadLink && Boolean(lead.threadId);
     const phone = lead.source === 'PHONE' ? lead.contactIdentifier : contactCard?.customer?.phone ?? null;
+    /*
+     * Adres do wiersza tożsamości. `contactIdentifier` jest adresem tylko wtedy, gdy
+     * lead NIE przyszedł telefonem - przy leadzie telefonicznym niesie numer, który
+     * stoi już w `phone` i nie ma się powtarzać jako „adres". Kartoteka klienta nie
+     * przechowuje adresu, więc dla takiego leada po prostu go nie ma.
+     */
+    const email = lead.source === 'PHONE' ? null : lead.contactIdentifier;
+    /** Tożsamość jako zdanie: „Marek Kowalczyk · 601 448 210 · m.kowalczyk@wp.pl". */
+    const identityParts = [lead.customerName, phone, email].filter(
+        (part): part is string => Boolean(part)
+    );
     const openThread = () => navigate(`/communication?thread=${lead.threadId}`);
     /**
      * Kalendarz nie ma trasy per rezerwacja: skacze się do niego z datą, żeby
@@ -1098,67 +1119,136 @@ export function LeadDetailModal({
     const body = (
         <>
             <LeadHeader>
-                    <ModalTitleGroup>
-                        {/*
-                            Nagłówkiem jest AUTO, tak samo jak na karcie w kolejce.
-                            Tapnięcie karty „Porsche Cayenne", po którym otwiera się
-                            okno zatytułowane nazwiskiem, każe użytkownikowi za każdym
-                            razem sprawdzać, czy trafił w tę sprawę, o którą mu szło.
-                            Gdy auta nie rozpoznano, nazwisko awansuje - dokładnie ta
-                            sama reguła co w LeadQueueCard.
-                        */}
-                        <ModalTitle>
-                            {formatVehicle(lead) ?? lead.customerName ?? lead.contactIdentifier}
-                        </ModalTitle>
-                        {/* Drogi do innych rekordów stoją przy tożsamości klienta,
-                            bo dotyczą klienta, a nie leada - w stopce konkurowałyby
-                            wagą z jedyną akcją, która ma tam stać. */}
-                        <LeadIdentity>
-                            <IdentityText>
-                                <LeadSourceIcon source={lead.source} />
-                                {formatVehicle(lead) && lead.customerName
-                                    ? `${lead.customerName} · ${lead.contactIdentifier}`
-                                    : lead.contactIdentifier}
-                            </IdentityText>
-                            {phone && (
-                                <QuietLink as="a" href={`tel:${phone.replace(/\s/g, '')}`}>
-                                    <Phone /> Zadzwoń
-                                </QuietLink>
-                            )}
-                            {lead.customerId && (
-                                <Link to={`/customers/${lead.customerId}`}>
-                                    <QuietLink as="span"><UserRound /> Kartoteka klienta</QuietLink>
-                                </Link>
-                            )}
-                        </LeadIdentity>
-                    </ModalTitleGroup>
-                    {/* W nagłówku zostaje to, co nie jest polem do zmiany: droga do
-                        korespondencji i „czyj ruch". Etap zszedł do rzędu faktów pod
-                        spodem, między pojazd i usługi - stojąc w nagłówku wyglądał na
-                        właściwość okna, a jest jedną z trzech rzeczy, które się tu
-                        poprawia. */}
-                    <HeaderStatus>
-                        {canWrite && (
-                            <IconAction
-                                type="button"
-                                onClick={openThread}
-                                title="Przejdź do korespondencji"
-                                aria-label="Przejdź do korespondencji"
-                            >
-                                <Mail />
-                            </IconAction>
-                        )}
-                        {/* W panelu „czyj ruch" wraca do nagłówka: obok kolejki to
-                            jest pierwsza rzecz, po którą sięga wzrok po kliknięciu
-                            karty, a pasek podsumowania jest niżej niż zgięcie. */}
-                        {isPane && reply && (
+                    <HeaderTop>
+                        <ModalTitleGroup>
+                            {/*
+                                Nagłówkiem jest AUTO, tak samo jak na karcie w kolejce.
+                                Tapnięcie karty „Porsche Cayenne", po którym otwiera się
+                                okno zatytułowane nazwiskiem, każe użytkownikowi za każdym
+                                razem sprawdzać, czy trafił w tę sprawę, o którą mu szło.
+                                Gdy auta nie rozpoznano, nazwisko awansuje - dokładnie ta
+                                sama reguła co w LeadQueueCard.
+                            */}
+                            <ModalTitle>
+                                {formatVehicle(lead) ?? lead.customerName ?? lead.contactIdentifier}
+                            </ModalTitle>
+                            {/*
+                                Tożsamość jednym zdaniem: „Marek Kowalczyk · 601 448 210 ·
+                                m.kowalczyk@wp.pl". Wcześniej stały tu ikona źródła i dwa
+                                przyciski-linki („Zadzwoń", „Kartoteka klienta"), przez co
+                                wiersz czytał się jak pasek narzędzi, a numeru telefonu
+                                w ogóle w nim nie było - był schowany pod słowem „Zadzwoń".
+                                Numer jest faktem, którego szuka się wzrokiem, i sam w sobie
+                                jest odnośnikiem: na telefonie da się go tapnąć, na biurku
+                                przepisać.
+                            */}
+                            <LeadIdentity>
+                                {identityParts.map((part, index) => (
+                                        <IdentityPart key={part}>
+                                            {part === phone && (
+                                                <IdentityLink
+                                                    href={`tel:${part.replace(/\s/g, '')}`}
+                                                    title="Zadzwoń"
+                                                >
+                                                    {part}
+                                                </IdentityLink>
+                                            )}
+                                            {/* Adres prowadzi do wątku: to droga do wiadomości
+                                                OD TEGO KONTAKTU, więc stoi przy adresie, a nie
+                                                jako osobna ikona koperty w rogu nagłówka. */}
+                                            {part === email && canWrite && (
+                                                <IdentityLink
+                                                    as="button"
+                                                    type="button"
+                                                    onClick={openThread}
+                                                    title="Przejdź do korespondencji"
+                                                >
+                                                    {part}
+                                                </IdentityLink>
+                                            )}
+                                            {part !== phone && !(part === email && canWrite) && part}
+                                            {/* Kropka NA KOŃCU członu, nie na początku
+                                                następnego: inaczej wąski nagłówek zaczyna
+                                                wiersz od „· ", co wygląda na urwane zdanie. */}
+                                            {index < identityParts.length - 1 && (
+                                                <>
+                                                    <Separator>{' ·'}</Separator>{' '}
+                                                </>
+                                            )}
+                                        </IdentityPart>
+                                    ))}
+                            </LeadIdentity>
+                        </ModalTitleGroup>
+                        {/* „Czyj ruch" w nagłówku także w oknie modalnym: to pierwsza
+                            rzecz, po którą sięga wzrok po otwarciu sprawy, niezależnie
+                            od tego, czy przyszło się z kolejki, czy z poczty.
+
+                            Na telefonie plakietka schodzi do rzędu chipów, obok etapu -
+                            w wierszu tytułu zostawiała nazwie sprawy tyle miejsca, że
+                            „Porsche Cayenne" łamało się na dwie linijki. */}
+                        {reply && isWide && (
                             <HeaderUrgency $tone={reply.tone} title={reply.title}>
-                                {reply.label}
+                                <Reply /> {reply.label}
                             </HeaderUrgency>
                         )}
-                    </HeaderStatus>
-                    {/* Panel nie ma czego zamykać - następna karta go podmienia. */}
-                    {!isPane && <CloseBtn onClick={onClose} />}
+                        {/* Panel nie ma czego zamykać - następna karta go podmienia. */}
+                        {!isPane && <CloseBtn onClick={onClose} />}
+                    </HeaderTop>
+
+                    <FactChips>
+                        {reply && !isWide && (
+                            <HeaderUrgency $tone={reply.tone} title={reply.title}>
+                                <Reply /> {reply.label}
+                            </HeaderUrgency>
+                        )}
+                        <LeadStatusPicker
+                            status={lead.status}
+                            disabled={status.isPending}
+                            onChange={(next) => status.requestStatus(lead.id, next)}
+                        />
+
+                        {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
+                            <FactChip as="span" $soft>
+                                <Loader2 className="spin" /> Rozpoznajemy auto…
+                            </FactChip>
+                        ) : (
+                            <FactChip
+                                type="button"
+                                $soft={!formatVehicle(lead)}
+                                title="Kliknij, żeby poprawić pojazd"
+                                onClick={() => setEditingVehicle({
+                                    brand: lead.vehicleBrand ?? '',
+                                    model: lead.vehicleModel ?? '',
+                                })}
+                            >
+                                {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}
+                                {formatVehicle(lead) ?? 'Dodaj pojazd'}
+                            </FactChip>
+                        )}
+
+                        {/* Każdy tag osobnym chipem, nie listą po przecinku: tak wygląda
+                            zbiór, w którym da się coś dołożyć i coś wyjąć. */}
+                        {lead.tagLabels.map((label) => (
+                            <FactChip
+                                key={label}
+                                type="button"
+                                title="Kliknij, żeby zmienić usługi"
+                                onClick={() => setEditingTags(lead.tags)}
+                            >
+                                {label}
+                            </FactChip>
+                        ))}
+                        {lead.tagLabels.length === 0 && (
+                            <FactChip
+                                type="button"
+                                $soft
+                                title="Kliknij, żeby dodać usługi"
+                                onClick={() => setEditingTags(lead.tags)}
+                            >
+                                Dodaj usługi
+                            </FactChip>
+                        )}
+                    </FactChips>
                 </LeadHeader>
 
                 <ModalContent>
@@ -1238,59 +1328,6 @@ export function LeadDetailModal({
                             </BookedNote>
                         )}
 
-                        {/* Rząd faktów: etap, pojazd i usługi - w tej kolejności, bo tak
-                            czyta się sprawę. Każdy chip jest przyciskiem do poprawki, więc
-                            droga „zobacz i popraw" nie prowadzi przez żaden panel. */}
-                        <FactChips>
-                            <LeadStatusPicker
-                                status={lead.status}
-                                disabled={status.isPending}
-                                onChange={(next) => status.requestStatus(lead.id, next)}
-                            />
-
-                            {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
-                                <FactChip as="span" $soft>
-                                    <Loader2 className="spin" /> Rozpoznajemy auto…
-                                </FactChip>
-                            ) : (
-                                <FactChip
-                                    type="button"
-                                    $soft={!formatVehicle(lead)}
-                                    title="Kliknij, żeby poprawić pojazd"
-                                    onClick={() => setEditingVehicle({
-                                        brand: lead.vehicleBrand ?? '',
-                                        model: lead.vehicleModel ?? '',
-                                    })}
-                                >
-                                    {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}
-                                    {formatVehicle(lead) ?? 'Dodaj pojazd'}
-                                </FactChip>
-                            )}
-
-                            {/* Każdy tag osobnym chipem, nie listą po przecinku: tak wygląda
-                                zbiór, w którym da się coś dołożyć i coś wyjąć. */}
-                            {lead.tagLabels.map((label) => (
-                                <FactChip
-                                    key={label}
-                                    type="button"
-                                    title="Kliknij, żeby zmienić usługi"
-                                    onClick={() => setEditingTags(lead.tags)}
-                                >
-                                    {label}
-                                </FactChip>
-                            ))}
-                            {lead.tagLabels.length === 0 && (
-                                <FactChip
-                                    type="button"
-                                    $soft
-                                    title="Kliknij, żeby dodać usługi"
-                                    onClick={() => setEditingTags(lead.tags)}
-                                >
-                                    Dodaj usługi
-                                </FactChip>
-                            )}
-                        </FactChips>
-
                         {/* Wybieraki marki i modelu rozwijają się pod paskiem, a nie w nim:
                             dwa pola formularza wciśnięte w komórkę podsumowania rozepchnęłyby
                             pasek i zepchnęły kwotę na drugą linię. */}
@@ -1353,19 +1390,24 @@ export function LeadDetailModal({
                         <BodyGrid $pane={isPane}>
                             <Column>
                                 <RailSection>
+                                    {/*
+                                        „Edytuj" w wierszu etykiety, a nie przyciskiem pod
+                                        sumą: to jest akcja SEKCJI, więc stoi przy jej
+                                        nazwie. Pod kwotą łamała czytanie w najgorszym
+                                        możliwym miejscu - wzrok schodził po pozycjach do
+                                        sumy i zamiast na niej się zatrzymać, trafiał
+                                        w przycisk.
+                                    */}
                                     <RailLabel>
                                         Wycena
-                                        <PanelAction
-                                            type="button"
-                                            title="Sprawdź ponownie, co da się wyczytać z treści zapytania"
-                                            aria-label="Sprawdź ponownie sugestie usług"
-                                            disabled={suggestionActions.refresh.isPending}
-                                            onClick={() => suggestionActions.refresh.mutate()}
-                                        >
-                                            <RefreshCw
-                                                className={suggestionActions.refresh.isPending ? 'spin' : undefined}
-                                            />
-                                        </PanelAction>
+                                        {editingServices === null && (
+                                            <RailAction
+                                                type="button"
+                                                onClick={() => setEditingServices(toServiceLines(lead.services))}
+                                            >
+                                                {quoteRows.length === 0 ? 'Dodaj' : 'Edytuj'}
+                                            </RailAction>
+                                        )}
                                     </RailLabel>
                                     {editingServices === null && (
                                         <>
@@ -1414,12 +1456,6 @@ export function LeadDetailModal({
                                                     </tbody>
                                                 </QuoteTable>
                                             )}
-                                            <IconButton
-                                                style={{ alignSelf: 'flex-start' }}
-                                                onClick={() => setEditingServices(toServiceLines(lead.services))}
-                                            >
-                                                {quoteRows.length === 0 ? 'Dodaj usługi' : 'Edytuj usługi'}
-                                            </IconButton>
                                         </>
                                     )}
                                     {editingServices !== null && (
@@ -1478,11 +1514,14 @@ export function LeadDetailModal({
                                     są potrzebne: „ile wzięliśmy za taką robotę" jest
                                     pytaniem, które pada w chwili wpisywania kwoty, a nie
                                     przy czytaniu historii kontaktu. */}
+                                {/* Bez przycisku odświeżania przy nazwie sekcji. Podobne
+                                    zlecenia indeksuje zadanie cykliczne co pięć minut,
+                                    więc ręczne przeładowanie niczego nie przyspieszało -
+                                    a ikona strzałek przy każdej etykiecie szyny robiła
+                                    z niej pasek narzędzi i konkurowała z jedyną akcją,
+                                    która ma tu być widoczna: „Edytuj" przy wycenie. */}
                                 <RailSection>
-                                    <RailLabel>
-                                        Podobne zlecenia
-                                        <SimilarVisitsAction leadId={leadId} />
-                                    </RailLabel>
+                                    <RailLabel>Podobne zlecenia</RailLabel>
                                     <SimilarVisitsSection leadId={leadId} />
                                 </RailSection>
 
@@ -1592,56 +1631,59 @@ export function LeadDetailModal({
 
                         Obok akcji głównej stopka niesie najwyżej dwa przyciski drugorzędne:
                         stały „Kontakt poza pocztą" i — gdy umówienie terminu nie jest akcją
-                        główną — „Stwórz rezerwację". Zwykłe przejście do korespondencji zeszło
-                        do ikony koperty w nagłówku: jako pełny przycisk konkurowało wagą
-                        z akcją, która ma tu stać, a na telefonie zabierało całą linijkę.
+                        główną — „Stwórz rezerwację". Zwykłe przejście do korespondencji nie
+                        ma tu własnego przycisku ani ikony w nagłówku: prowadzi do niego
+                        adres w wierszu tożsamości, bo to droga do WIADOMOŚCI OD TEGO
+                        KONTAKTU, a nie osobna czynność.
                     */}
                     {/* Odnotowanie kontaktu poza pocztą stoi PRZED akcją główną i jest
                         przyciskiem drugorzędnym: to zapis tego, co już się wydarzyło,
                         a nie następny krok w sprawie. Bez warunku na numer telefonu —
                         klient podaje go w treści zapytania równie często, jak ma go
                         w kartotece, a bywa i tak, że kontakt był SMS-em albo osobisty. */}
-                    <IconButton type="button" onClick={() => setCallbackDialogOpen(true)}>
-                        <PhoneCall size={14} /> Kontakt poza pocztą
-                    </IconButton>
+                    <FooterButton type="button" onClick={() => setCallbackDialogOpen(true)}>
+                        <PhoneCall size={17} /> Kontakt poza pocztą
+                    </FooterButton>
 
                     {isPane && keyHint && <KeyHint>{keyHint}</KeyHint>}
 
                     {(() => {
                         if (lead.appointmentId) {
                             return (
-                                <PrimaryButton type="button" onClick={openAppointment}>
-                                    <CalendarCheck size={14} /> Zobacz rezerwację
-                                </PrimaryButton>
+                                <FooterPrimary type="button" onClick={openAppointment}>
+                                    <CalendarCheck size={17} /> Zobacz rezerwację
+                                </FooterPrimary>
                             );
                         }
                         if (closed) {
                             return canWrite ? (
-                                <PrimaryButton type="button" onClick={openThread}>
-                                    <Send size={14} /> Napisz wiadomość
-                                </PrimaryButton>
+                                <FooterPrimary type="button" onClick={openThread}>
+                                    <Send size={17} /> Napisz wiadomość
+                                </FooterPrimary>
                             ) : null;
                         }
                         if (replyTone === 'due' && canWrite) {
                             return (
                                 <>
-                                    <IconButton type="button" onClick={openBooking}>
-                                        <CalendarPlus size={14} /> Stwórz rezerwację
-                                    </IconButton>
-                                    <PrimaryButton type="button" onClick={openThread}>
-                                        <Send size={14} /> Odpisz klientowi
-                                    </PrimaryButton>
+                                    <FooterButton type="button" onClick={openBooking}>
+                                        <CalendarPlus size={17} /> Stwórz rezerwację
+                                    </FooterButton>
+                                    <FooterPrimary type="button" onClick={openThread}>
+                                        <Send size={17} /> Odpisz klientowi
+                                    </FooterPrimary>
                                 </>
                             );
                         }
                         return (
-                            <PrimaryButton type="button" onClick={openBooking}>
-                                <CalendarPlus size={14} /> Stwórz rezerwację
-                            </PrimaryButton>
+                            <FooterPrimary type="button" onClick={openBooking}>
+                                <CalendarPlus size={17} /> Stwórz rezerwację
+                            </FooterPrimary>
                         );
                     })()}
 
-                    {!isPane && <IconButton onClick={onClose}>Zamknij</IconButton>}
+                    {/* Bez „Zamknij" w stopce: okno zamyka krzyżyk w nagłówku, a drugi
+                        przycisk o tym samym znaczeniu stawał na telefonie tuż obok akcji
+                        głównej i był od niej równie widoczny. */}
                 </ModalFooter>
         </>
     );
