@@ -39,10 +39,16 @@ const GENDER_LABELS: Record<string, string> = {
     Women: 'Kobiety',
 };
 
+/**
+ * Typy lokalizacji przychodzą z Meta w kilku postaciach naraz („countries", „CITY");
+ * backend sprowadza je do jednej i to ją tu tłumaczymy. Nieznany typ zostaje sobą -
+ * surowa nazwa jest uczciwsza niż zgadnięta.
+ */
 const LOCATION_TYPE_LABELS: Record<string, string> = {
     country: 'kraj',
     region: 'region',
     city: 'miasto',
+    place: 'miejsce',
     zip: 'kod pocztowy',
     neighborhood: 'dzielnica',
     location: 'lokalizacja',
