@@ -151,15 +151,19 @@ export const instagramApi = {
 
     /**
      * Powiązanie obserwowanego profilu ze stroną na Facebooku - bez niego nie ma czego szukać.
-     * Serwer pobiera reklamy od razu i oddaje ich liczbę, więc da się powiedzieć,
-     * czy wskazana strona w ogóle się reklamuje.
+     * Serwer pobiera reklamy od razu i oddaje ich liczbę ORAZ nazwę strony, jaką zwróciła
+     * Meta: sam numer nic nie mówi, a wpisany z pomyłką wciąga do kalendarza obcą firmę.
      */
-    linkFacebookPage: async (profileId: string, pageId: string, pageName?: string): Promise<number> => {
-        const response = await apiClient.put<{ linked: boolean; adsFound: number }>(
+    linkFacebookPage: async (
+        profileId: string,
+        pageId: string,
+        pageName?: string
+    ): Promise<{ adsFound: number; pageName: string }> => {
+        const response = await apiClient.put<{ linked: boolean; adsFound: number; pageName: string }>(
             `${ADS_PATH}/profiles/${profileId}/page`,
             { pageId, pageName: pageName ?? null }
         );
-        return response.data.adsFound ?? 0;
+        return { adsFound: response.data.adsFound ?? 0, pageName: response.data.pageName ?? '' };
     },
 
     /**

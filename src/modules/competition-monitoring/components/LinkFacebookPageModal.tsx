@@ -13,6 +13,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useToast } from '@/common/components/Toast';
 import { useLinkFacebookPage, useSearchAdPages, useUnlinkFacebookPage } from '../hooks/useAds';
 
 /**
@@ -139,6 +140,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
     const link = useLinkFacebookPage();
     const unlink = useUnlinkFacebookPage();
     const search = useSearchAdPages();
+    const { showSuccess, showError } = useToast();
 
     const digitsOnly = pageId.trim().replace(/\D/g, '');
     const busy = link.isPending || unlink.isPending;
@@ -146,9 +148,29 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
     const canSearch = query.trim().length >= 3 && !search.isPending;
     const canSubmit = digitsOnly.length >= 5 && digitsOnly !== currentPageId && !busy;
 
+    /**
+     * Po zapisaniu mówimy, CZYJĄ stronę powiązaliśmy - nazwą, którą zwróciła Meta.
+     * Sam numer nic nie mówi, a wpisany z pomyłką wciąga do kalendarza reklamy
+     * obcej firmy pod nazwą konkurenta i nie ma jak tego zauważyć.
+     */
     const submit = () => {
         if (!canSubmit) return;
-        link.mutate({ profileId, pageId: digitsOnly }, { onSuccess: onClose });
+        link.mutate(
+            { profileId, pageId: digitsOnly },
+            {
+                onSuccess: ({ adsFound, pageName }) => {
+                    if (pageName) {
+                        showSuccess(`Powiązano z: ${pageName}`, `Pobrano reklam: ${adsFound}`);
+                    } else {
+                        showError(
+                            'Powiązano, ale bez reklam',
+                            'Ta strona nie reklamowała się w ostatnim roku albo numer należy do innej firmy.'
+                        );
+                    }
+                    onClose();
+                },
+            }
+        );
     };
 
     return (
