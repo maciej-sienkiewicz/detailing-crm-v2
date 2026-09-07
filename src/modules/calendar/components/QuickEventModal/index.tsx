@@ -380,11 +380,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             services: form.services,
             tempServices: form.tempServices,
             servicePrices: form.servicePrices,
+            serviceBasePrices: form.serviceBasePrices,
             serviceAdjustments: form.serviceAdjustments,
             serviceNotes: form.serviceNotes,
             serviceVatRates: form.serviceVatRates,
         }),
-        [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]
+        [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.servicePrices, form.serviceBasePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]
     );
 
     const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {
@@ -426,11 +427,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setServicePrices(prev => {
             const next = { ...prev };
             Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
-            // When an item carries an explicit basePriceGross, update the stored gross price.
-            // This happens when the "Edytuj pozycję" price editor is confirmed.
             newItems.forEach(item => {
                 if (item.basePriceGross != null) {
+                    // "Edytuj pozycję" (albo zwykłe przejście przez servicesAsLineItems)
+                    // przyniosło dokładne brutto - zapisz je wprost.
                     next[item.id] = item.basePriceGross / 100;
+                } else {
+                    // basePriceGross == null to sygnał ze zbiorczej zmiany stawki VAT
+                    // (patrz ServicesTable): stare brutto liczyło się przy starej stawce,
+                    // więc trzyma się teraz TYLKO netto - brutto trzeba przeliczyć raz,
+                    // przy nowej stawce, żeby nie zostało z poprzedniego procentu.
+                    next[item.id] = netToGross(item.basePriceNet, item.vatRate) / 100;
                 }
             });
             return next;
@@ -440,9 +447,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
             newItems.forEach(item => {
                 if (item.basePriceGross != null) {
-                    const gross = item.basePriceGross / 100;
-                    const net = Math.round(gross / (1 + item.vatRate / 100) * 100) / 100;
-                    next[item.id] = { gross: gross.toFixed(2), net: net.toFixed(2) };
+                    // Oba pola wprost z pozycji, nie odtwarzane jedno z drugiego: netto
+                    // przeżywa niezależnie od tego, że brutto też jest tu ustalone.
+                    next[item.id] = {
+                        gross: (item.basePriceGross / 100).toFixed(2),
+                        net: (item.basePriceNet / 100).toFixed(2),
+                    };
                 }
             });
             return next;
