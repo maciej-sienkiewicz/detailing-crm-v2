@@ -418,6 +418,8 @@ export interface AdCalendarRow {
     profileId: string;
     username: string;
     isSelf: boolean;
+    /** Strona na Facebooku, po której pytamy o reklamy. Null = profilu nie da się sprawdzić. */
+    facebookPageId: string | null;
     campaigns: number;
     activeNow: number;
     /** Dni każdej kampanii osobno: 4 kampanie po 3 dni = 12. */

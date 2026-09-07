@@ -42,10 +42,21 @@ export const useLinkFacebookPage = () => {
     return useMutation({
         mutationFn: ({ profileId, pageId, pageName }: { profileId: string; pageId: string; pageName?: string }) =>
             instagramApi.linkFacebookPage(profileId, pageId, pageName),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [ADS_KEYS.calendar] });
-            queryClient.invalidateQueries({ queryKey: [INSTAGRAM_PROFILES_KEY] });
-            queryClient.invalidateQueries({ queryKey: [ANALYTICS_KEYS.digest] });
-        },
+        onSuccess: () => invalidateAds(queryClient),
     });
+};
+
+/** Odpięcie strony kasuje też pobrane reklamy, więc unieważniamy to samo co przy powiązaniu. */
+export const useUnlinkFacebookPage = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (profileId: string) => instagramApi.unlinkFacebookPage(profileId),
+        onSuccess: () => invalidateAds(queryClient),
+    });
+};
+
+const invalidateAds = (queryClient: ReturnType<typeof useQueryClient>) => {
+    queryClient.invalidateQueries({ queryKey: [ADS_KEYS.calendar] });
+    queryClient.invalidateQueries({ queryKey: [INSTAGRAM_PROFILES_KEY] });
+    queryClient.invalidateQueries({ queryKey: [ANALYTICS_KEYS.digest] });
 };

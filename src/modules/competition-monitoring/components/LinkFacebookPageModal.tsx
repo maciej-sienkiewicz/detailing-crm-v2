@@ -13,7 +13,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useLinkFacebookPage } from '../hooks/useAds';
+import { useLinkFacebookPage, useUnlinkFacebookPage } from '../hooks/useAds';
 
 /**
  * Wskazanie strony na Facebooku dla obserwowanego profilu.
@@ -65,6 +65,13 @@ const Input = styled.input`
     }
 `;
 
+const Hint = styled.p`
+    margin: 10px 0 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+    line-height: 1.5;
+`;
+
 const ErrorText = styled.p`
     margin: 10px 0 0;
     font-size: ${st.fontSm};
@@ -74,15 +81,19 @@ const ErrorText = styled.p`
 interface Props {
     profileId: string;
     username: string;
+    /** Obecnie wskazana strona - okno służy wtedy do zmiany albo odpięcia. */
+    currentPageId?: string | null;
     onClose: () => void;
 }
 
-export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, onClose }) => {
-    const [pageId, setPageId] = useState('');
+export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, currentPageId, onClose }) => {
+    const [pageId, setPageId] = useState(currentPageId ?? '');
     const link = useLinkFacebookPage();
+    const unlink = useUnlinkFacebookPage();
 
     const digitsOnly = pageId.trim().replace(/\D/g, '');
-    const canSubmit = digitsOnly.length >= 5 && !link.isPending;
+    const busy = link.isPending || unlink.isPending;
+    const canSubmit = digitsOnly.length >= 5 && digitsOnly !== currentPageId && !busy;
 
     const submit = () => {
         if (!canSubmit) return;
@@ -93,7 +104,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, on
         <ModalShell isOpen onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Wskaż stronę na Facebooku</ModalTitle>
+                    <ModalTitle>{currentPageId ? 'Zmień stronę na Facebooku' : 'Wskaż stronę na Facebooku'}</ModalTitle>
                     <ModalSubtitle>@{username}</ModalSubtitle>
                 </ModalTitleGroup>
                 <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
@@ -136,14 +147,33 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, on
                         Nie udało się powiązać strony. Sprawdź, czy identyfikator to sama liczba z adresu.
                     </ErrorText>
                 )}
+                {unlink.isError && <ErrorText>Nie udało się odpiąć strony. Spróbuj ponownie.</ErrorText>}
+                {currentPageId && (
+                    <Hint>
+                        Zmiana strony kasuje reklamy pobrane dla poprzedniej - to reklamy innej firmy.
+                    </Hint>
+                )}
             </ModalContent>
 
             <ModalFooter>
+                {/* Odpięcie stoi z lewej, odsunięte od akcji głównej: kasuje pobrane
+                    reklamy, więc nie ma prawa sąsiadować z „Zapisz" na odległość omyłki. */}
+                {currentPageId && (
+                    <SharedButton
+                        type="button"
+                        $variant="danger"
+                        style={{ marginRight: 'auto' }}
+                        disabled={busy}
+                        onClick={() => unlink.mutate(profileId, { onSuccess: onClose })}
+                    >
+                        {unlink.isPending ? 'Odpinam…' : 'Odepnij stronę'}
+                    </SharedButton>
+                )}
                 <SharedButton type="button" $variant="secondary" onClick={onClose}>
                     Anuluj
                 </SharedButton>
                 <SharedButton type="button" disabled={!canSubmit} onClick={submit}>
-                    {link.isPending ? 'Zapisuję…' : 'Powiąż'}
+                    {link.isPending ? 'Sprawdzam reklamy…' : currentPageId ? 'Zapisz' : 'Powiąż'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>
