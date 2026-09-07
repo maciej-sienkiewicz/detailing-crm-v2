@@ -13,7 +13,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useLinkFacebookPage, useUnlinkFacebookPage } from '../hooks/useAds';
+import { useLinkFacebookPage, useSearchAdPages, useUnlinkFacebookPage } from '../hooks/useAds';
 
 /**
  * Wskazanie strony na Facebooku dla obserwowanego profilu.
@@ -23,21 +23,6 @@ import { useLinkFacebookPage, useUnlinkFacebookPage } from '../hooks/useAds';
  * i pomyłka podpięłaby właścicielowi cudze kampanie jako kampanie konkurenta.
  */
 
-const Steps = styled.ol`
-    margin: 0 0 16px;
-    padding-left: 18px;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.7;
-
-    code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 12px;
-        background: ${st.bgCardAlt};
-        padding: 1px 5px;
-        border-radius: 4px;
-    }
-`;
 
 const Field = styled.label`
     display: flex;
@@ -65,11 +50,70 @@ const Input = styled.input`
     }
 `;
 
+const SearchRow = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-bottom: 14px;
+`;
+
+const Candidates = styled.ul`
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+`;
+
+/** Kandydat: nazwa, liczba reklam i data - tyle, żeby odróżnić firmę od zbieżnej nazwy. */
+const Candidate = styled.button<{ $chosen: boolean }>`
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid ${p => (p.$chosen ? st.accentBlue : st.border)};
+    border-radius: ${st.radiusSm};
+    background: ${p => (p.$chosen ? st.accentBlueDim : st.bgCard)};
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color ${st.transition};
+
+    &:hover { border-color: ${st.borderHover}; }
+
+    strong {
+        font-size: ${st.fontSm};
+        font-weight: 700;
+        color: ${st.text};
+        overflow-wrap: anywhere;
+    }
+    span {
+        flex-shrink: 0;
+        font-size: ${st.fontXs};
+        color: ${st.textMuted};
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+`;
+
 const Hint = styled.p`
     margin: 10px 0 0;
     font-size: ${st.fontSm};
     color: ${st.textMuted};
     line-height: 1.5;
+
+    code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        background: ${st.bgCardAlt};
+        padding: 1px 5px;
+        border-radius: 4px;
+    }
 `;
 
 const ErrorText = styled.p`
@@ -77,6 +121,9 @@ const ErrorText = styled.p`
     font-size: ${st.fontSm};
     color: ${st.accentRed};
 `;
+
+const formatDay = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 
 interface Props {
     profileId: string;
@@ -88,11 +135,15 @@ interface Props {
 
 export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, currentPageId, onClose }) => {
     const [pageId, setPageId] = useState(currentPageId ?? '');
+    const [query, setQuery] = useState('');
     const link = useLinkFacebookPage();
     const unlink = useUnlinkFacebookPage();
+    const search = useSearchAdPages();
 
     const digitsOnly = pageId.trim().replace(/\D/g, '');
     const busy = link.isPending || unlink.isPending;
+    const candidates = search.data ?? [];
+    const canSearch = query.trim().length >= 3 && !search.isPending;
     const canSubmit = digitsOnly.length >= 5 && digitsOnly !== currentPageId && !busy;
 
     const submit = () => {
@@ -113,22 +164,56 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
             </ModalHeader>
 
             <ModalContent>
-                <Steps>
-                    <li>
-                        Otwórz Bibliotekę reklam Meta i wyszukaj nazwę studia:{' '}
-                        <a
-                            href="https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=PL"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                {/* Szukanie po nazwie stoi PRZED polem na numer, bo Biblioteka reklam
+                    pokazuje w panelu reklamodawcy albo numer strony, albo jej nazwę
+                    użytkownika - przy tej drugiej postaci numeru nie ma skąd przepisać. */}
+                <Field as="div">
+                    Nazwa studia
+                    <SearchRow>
+                        <Input
+                            value={query}
+                            onChange={event => setQuery(event.target.value)}
+                            onKeyDown={event => event.key === 'Enter' && canSearch && search.mutate(query.trim())}
+                            placeholder="np. Car Art Detailing"
+                            autoFocus
+                        />
+                        <SharedButton
+                            type="button"
+                            $variant="secondary"
+                            disabled={!canSearch}
+                            onClick={() => search.mutate(query.trim())}
                         >
-                            facebook.com/ads/library
-                        </a>
-                    </li>
-                    <li>Wejdź na stronę tego studia.</li>
-                    <li>
-                        Z adresu przepisz liczbę po <code>view_all_page_id=</code>.
-                    </li>
-                </Steps>
+                            {search.isPending ? 'Szukam…' : 'Szukaj'}
+                        </SharedButton>
+                    </SearchRow>
+                </Field>
+
+                {search.isSuccess && candidates.length === 0 && (
+                    <Hint>
+                        Żadna strona o tej nazwie nie reklamowała się w ostatnim roku. Wpisz identyfikator
+                        ręcznie albo sprawdź inną pisownię.
+                    </Hint>
+                )}
+
+                {candidates.length > 0 && (
+                    <Candidates>
+                        {candidates.map(candidate => (
+                            <li key={candidate.pageId}>
+                                <Candidate
+                                    type="button"
+                                    $chosen={candidate.pageId === digitsOnly}
+                                    onClick={() => setPageId(candidate.pageId)}
+                                >
+                                    <strong>{candidate.pageName}</strong>
+                                    <span>
+                                        {candidate.ads} rekl.
+                                        {candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}
+                                    </span>
+                                </Candidate>
+                            </li>
+                        ))}
+                    </Candidates>
+                )}
 
                 <Field>
                     Identyfikator strony
@@ -138,9 +223,12 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                         onKeyDown={event => event.key === 'Enter' && submit()}
                         placeholder="np. 100064123456789"
                         inputMode="numeric"
-                        autoFocus
                     />
                 </Field>
+                <Hint>
+                    Masz już numer? Wpisz go wprost. Znajdziesz go w adresie Biblioteki reklam po{' '}
+                    <code>view_all_page_id=</code> albo w sekcji „Przejrzystość strony" na Facebooku.
+                </Hint>
 
                 {link.isError && (
                     <ErrorText>

@@ -429,6 +429,15 @@ export interface AdCalendarRow {
     ads: AdBar[];
 }
 
+/** Kandydat na stronę reklamodawcy - wynik szukania po nazwie. */
+export interface PageCandidate {
+    pageId: string;
+    pageName: string;
+    /** Ile reklam tej strony trafiło w zapytanie - odróżnia firmę od zbieżnej nazwy. */
+    ads: number;
+    lastStart: string | null;
+}
+
 export interface UnlinkedProfile {
     profileId: string;
     username: string;
