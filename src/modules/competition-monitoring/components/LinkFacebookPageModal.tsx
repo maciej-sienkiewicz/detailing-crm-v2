@@ -146,6 +146,19 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
     const busy = link.isPending || unlink.isPending;
     const candidates = search.data ?? [];
     const canSearch = query.trim().length >= 3 && !search.isPending;
+
+    /**
+     * Jeden wynik wypełnia pole sam: przy wklejonym adresie strony nie ma z czego
+     * wybierać, a kazanie klikać jedyną pozycję to klik bez decyzji.
+     */
+    const runSearch = () => {
+        if (!canSearch) return;
+        search.mutate(query.trim(), {
+            onSuccess: found => {
+                if (found.length === 1) setPageId(found[0].pageId);
+            },
+        });
+    };
     const canSubmit = digitsOnly.length >= 5 && digitsOnly !== currentPageId && !busy;
 
     /**
@@ -186,24 +199,25 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
             </ModalHeader>
 
             <ModalContent>
-                {/* Szukanie po nazwie stoi PRZED polem na numer, bo Biblioteka reklam
-                    pokazuje w panelu reklamodawcy albo numer strony, albo jej nazwę
-                    użytkownika - przy tej drugiej postaci numeru nie ma skąd przepisać. */}
+                {/* Jedno pole na wszystko, co człowiek ma pod ręką: wklejony adres strony
+                    (z numerem albo z aliasem), sam numer albo nazwę firmy. Facebook pokazuje
+                    tę samą stronę raz jako profile.php?id=…, raz jako /CarArtDetailing -
+                    rozpoznanie postaci jest robotą aplikacji, nie użytkownika. */}
                 <Field as="div">
-                    Nazwa studia
+                    Adres strony, nazwa albo numer
                     <SearchRow>
                         <Input
                             value={query}
                             onChange={event => setQuery(event.target.value)}
-                            onKeyDown={event => event.key === 'Enter' && canSearch && search.mutate(query.trim())}
-                            placeholder="np. Car Art Detailing"
+                            onKeyDown={event => event.key === 'Enter' && canSearch && runSearch()}
+                            placeholder="np. facebook.com/CarArtDetailing"
                             autoFocus
                         />
                         <SharedButton
                             type="button"
                             $variant="secondary"
                             disabled={!canSearch}
-                            onClick={() => search.mutate(query.trim())}
+                            onClick={runSearch}
                         >
                             {search.isPending ? 'Szukam…' : 'Szukaj'}
                         </SharedButton>
@@ -212,8 +226,8 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
 
                 {search.isSuccess && candidates.length === 0 && (
                     <Hint>
-                        Żadna strona o tej nazwie nie reklamowała się w ostatnim roku. Wpisz identyfikator
-                        ręcznie albo sprawdź inną pisownię.
+                        Nic nie znaleziono. Wklej adres strony na Facebooku albo wpisz numer ręcznie -
+                        po nazwie znajdziemy tylko firmy, które reklamowały się w ostatnim roku.
                     </Hint>
                 )}
 
@@ -226,10 +240,11 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                                     $chosen={candidate.pageId === digitsOnly}
                                     onClick={() => setPageId(candidate.pageId)}
                                 >
-                                    <strong>{candidate.pageName}</strong>
+                                    <strong>{candidate.pageName || 'Nazwa nieznana'}</strong>
                                     <span>
-                                        {candidate.ads} rekl.
-                                        {candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}
+                                        {candidate.ads > 0
+                                            ? `${candidate.ads} rekl.${candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}`
+                                            : 'bez reklam'}
                                     </span>
                                 </Candidate>
                             </li>
@@ -248,8 +263,8 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                     />
                 </Field>
                 <Hint>
-                    Masz już numer? Wpisz go wprost. Znajdziesz go w adresie Biblioteki reklam po{' '}
-                    <code>view_all_page_id=</code> albo w sekcji „Przejrzystość strony" na Facebooku.
+                    Wypełnia się samo po wybraniu firmy wyżej. Numer znajdziesz też w adresie Biblioteki
+                    reklam po <code>view_all_page_id=</code>.
                 </Hint>
 
                 {link.isError && (
