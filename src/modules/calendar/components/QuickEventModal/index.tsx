@@ -20,6 +20,7 @@ import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
+import { buildServicesAsLineItems } from './servicesAsLineItems';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { VatRate, Service as CatalogService } from '@/modules/services/types';
@@ -372,30 +373,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const { isRecurring, setIsRecurring, recurrenceRule, setRecurrenceRule } = form;
 
-    const servicesAsLineItems = useMemo((): ServiceLineItem[] => {
-        return form.selectedServiceIds.map(id => {
-            const catalogId = form.serviceRefs[id] ?? id;
-            let svc = form.services.find((s: Service) => s.id === catalogId);
-            if (!svc && form.tempServices[catalogId]) {
-                svc = { id: catalogId, ...form.tempServices[catalogId] } as Service;
-            }
-            if (!svc) return null;
-            const baseGross = form.servicePrices[id] ?? 0;
-            const vatRate = form.serviceVatRates[id] ?? svc.vatRate ?? 23;
-            const basePriceNet = Math.round((baseGross / (1 + vatRate / 100)) * 100);
-            return {
-                id,
-                serviceId: svc.id || catalogId,
-                serviceName: svc.name,
-                basePriceNet,
-                vatRate,
-                adjustment: (form.serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 }) as ServiceAdjustment,
-                note: form.serviceNotes[id] ?? '',
-                isPackage: svc.isPackage ?? false,
-                packageItems: svc.packageItems ?? null,
-            } as ServiceLineItem;
-        }).filter((x): x is ServiceLineItem => x !== null);
-    }, [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]);
+    const servicesAsLineItems = useMemo(
+        () => buildServicesAsLineItems({
+            selectedServiceIds: form.selectedServiceIds,
+            serviceRefs: form.serviceRefs,
+            services: form.services,
+            tempServices: form.tempServices,
+            servicePrices: form.servicePrices,
+            serviceAdjustments: form.serviceAdjustments,
+            serviceNotes: form.serviceNotes,
+            serviceVatRates: form.serviceVatRates,
+        }),
+        [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]
+    );
 
     const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {
         const newIds = new Set(newItems.map(i => i.id));
