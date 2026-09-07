@@ -7,6 +7,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
+import { pluralPl } from '@/common/utils';
 import { useFinanceSummary } from '../hooks/useFinance';
 import { formatMoney } from '../utils/formatters';
 
@@ -71,6 +72,14 @@ interface Props {
   dateTo?: string;
 }
 
+/**
+ * `overdueReceivables` z API to LICZBA przeterminowanych dokumentów, nie kwota.
+ * Kafel przepuszczał ją przez formatMoney, więc trzy zaległe faktury pokazywały
+ * się jako „0,03 zł przeterminowane".
+ */
+const overdueLabel = (count: number): string =>
+  `${count} ${pluralPl(count, 'dokument', 'dokumenty', 'dokumentów')} po terminie`;
+
 export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
   const { summary, isLoading } = useFinanceSummary(dateFrom, dateTo);
 
@@ -94,7 +103,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
         compact
         value={formatMoney(summary.totalRevenue)}
         label="Przychody"
-        subContent={<SubText>opłacone faktury / paragony</SubText>}
+        subContent={<SubText>netto, opłacone faktury / paragony</SubText>}
       />
 
       <StatTile
@@ -102,7 +111,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
         compact
         value={formatMoney(summary.totalCosts)}
         label="Koszty"
-        subContent={<SubText>opłacone faktury kosztowe</SubText>}
+        subContent={<SubText>netto, opłacone faktury kosztowe</SubText>}
       />
 
       <StatTile
@@ -110,7 +119,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
         compact
         value={formatMoney(summary.profit)}
         label="Zysk"
-        subContent={<SubText>przychody − koszty</SubText>}
+        subContent={<SubText>netto, przychody − koszty</SubText>}
       />
 
       <StatTile
@@ -121,8 +130,8 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
         subContent={
           <SubText>
             {summary.overdueReceivables > 0
-              ? `${formatMoney(summary.overdueReceivables)} przeterminowane`
-              : 'oczekujące płatności'}
+              ? `netto, w tym ${overdueLabel(summary.overdueReceivables)}`
+              : 'netto, oczekujące płatności'}
           </SubText>
         }
       />

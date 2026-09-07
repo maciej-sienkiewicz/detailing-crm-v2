@@ -181,15 +181,31 @@ export interface CashAdjustRequest {
 
 // ─── Finance: Raporty ─────────────────────────────────────────────────────────
 
+/**
+ * GET /api/v1/finance/summary.
+ *
+ * Kwoty w groszach i **netto** — VAT przechodzi przez konto studia do urzędu
+ * skarbowego, więc nie jest ani przychodem, ani kosztem.
+ *
+ * `overdueReceivables` / `overduePayables` to LICZNIKI dokumentów po terminie,
+ * a nie kwoty: nie wolno ich formatować jako pieniędzy.
+ */
 export interface FinanceSummary {
   dateFrom:            string | null;
   dateTo:              string | null;
+  /** netto, w groszach */
   totalRevenue:        number;
+  /** netto, w groszach */
   totalCosts:          number;
+  /** netto, w groszach */
   profit:              number;
+  /** netto, w groszach */
   pendingReceivables:  number;
+  /** netto, w groszach */
   pendingPayables:     number;
+  /** liczba dokumentów przychodowych po terminie */
   overdueReceivables:  number;
+  /** liczba dokumentów kosztowych po terminie */
   overduePayables:     number;
 }
 
