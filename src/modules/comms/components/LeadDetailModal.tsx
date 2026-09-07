@@ -640,62 +640,6 @@ const VehiclePickers = styled.div`
     }
 `;
 
-/**
- * Wycena w trybie podglądu. Jedna kwota brutto na pozycję nie wystarczała: lead
- * jest podstawą oferty, a rozmowa o cenie toczy się raz w netto (firma), raz
- * w brutto (klient prywatny) - przeliczanie w głowie przy każdym otwarciu panelu
- * to praca, którą tabela wykonuje raz. Kolumny i kolejność jak w edytorze wyceny,
- * żeby przejście w tryb edycji nie było przeskokiem na inny układ.
- */
-const QuoteTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-
-    th {
-        text-align: right;
-        font-size: 10.5px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: ${p => p.theme.colors.textMuted};
-        padding: 0 0 6px;
-        white-space: nowrap;
-    }
-    th:first-child { text-align: left; }
-
-    td {
-        padding: 6px 0;
-        border-top: 1px solid ${p => p.theme.colors.border};
-        color: ${p => p.theme.colors.textSecondary};
-        text-align: right;
-        white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-    }
-    td:first-child {
-        text-align: left;
-        white-space: normal;
-        color: ${p => p.theme.colors.text};
-        width: 100%;
-    }
-    th + th, td + td { padding-left: 14px; }
-
-    tfoot td {
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        border-top: 1px solid ${p => p.theme.colors.text};
-        padding-top: 8px;
-    }
-    /* Brutto to liczba, o której rozmawia się z klientem - w wierszu sumy
-       ma być wyraźnie cięższa od netto i VAT-u stojących obok. */
-    tfoot td:last-child { font-size: 15px; }
-
-    .note {
-        display: block;
-        font-size: 11.5px;
-        color: ${p => p.theme.colors.textMuted};
-    }
-`;
 
 /** Jedyna akcja nieodwracalna w tym oknie - i jedyna, która wygląda groźnie. */
 const DangerButton = styled.button`
@@ -1443,18 +1387,14 @@ export function LeadDetailModal({
 
                                             {/* Sugestie pod kreską sumy: „Razem" liczy pozycje
                                                 przyjęte, a to są propozycje czekające na decyzję.
-                                                Zostają wierszami tabeli, bo niosą własne przyciski
-                                                i pole kwoty - w spisie dwukolumnowym nie miałyby
-                                                się gdzie zmieścić. */}
+                                                Czytają się w tym samym rytmie co pozycje wyceny -
+                                                nazwa i kwota brutto - a przyciski i pole kwoty
+                                                schodzą pod spód, żeby zmieściły się w szynie. */}
                                             {suggestedServices.length > 0 && (
-                                                <QuoteTable>
-                                                    <tbody>
-                                                        <SuggestedServiceRows
-                                                            suggestions={suggestedServices}
-                                                            actions={suggestionActions}
-                                                        />
-                                                    </tbody>
-                                                </QuoteTable>
+                                                <SuggestedServiceRows
+                                                    suggestions={suggestedServices}
+                                                    actions={suggestionActions}
+                                                />
                                             )}
                                         </>
                                     )}

@@ -3,19 +3,20 @@
 // „Sugerowane usługi": AI na podstawie treści maila podsuwa pozycje z cennika,
 // człowiek je jednym kliknięciem przyjmuje albo odrzuca.
 //
-// Sugestie są WIERSZAMI TEJ SAMEJ TABELI co wycena, a nie osobną listą pod nią.
-// Osobna lista kazała czytać dwa spisy usług pod sobą i - przy pustej wycenie -
-// stawiała nad sugestią zdanie „nie przypisano jeszcze usług", czyli komunikat
-// wprost sprzeczny z tym, co widać niżej. Jeden spis, jedna kolejność kolumn,
-// a stan pozycji niesie jej wygląd: sugestia jest przygaszona, ma plakietkę
-// „Sugerowane" i dwa przyciski, których wiersz wyceny nie ma.
+// Sugestia czyta się w tym samym rytmie co pozycja wyceny: nazwa po lewej, kwota
+// brutto po prawej. Wcześniej były to wiersze czterokolumnowej tabeli (netto, VAT,
+// brutto) i w szynie obok kolejki - 288 px - trzy kolumny liczb obok nazwy, plakietki
+// i dwóch przycisków po prostu się nie mieściły: kwota brutto wychodziła poza panel,
+// a pod oknem pojawiał się poziomy pasek przewijania. Netto i VAT i tak nie stoją
+// przy pozycjach przyjętych, więc przy sugestii były liczbami bez pary.
 //
-// Suma „Razem" ich NIE liczy i liczyć nie może: sugestia nie jest wyceną, dopóki
-// ktoś jej nie przyjmie. Dlatego kwoty w tych wierszach są szare - liczba w kolorze
-// tekstu obiecywałaby, że wchodzi do sumy dwa wiersze niżej.
+// Stan pozycji niesie jej wygląd: sugestia jest przygaszona, ma plakietkę
+// „Sugerowane" i dwa przyciski, których wiersz wyceny nie ma. Kwota jest szara,
+// bo do sumy „Razem" nie wchodzi - liczba w kolorze tekstu obiecywałaby, że już się
+// liczy.
 //
 // Cena nigdy nie pochodzi od modelu. Stała bierze się z cennika, „wycena
-// niestandardowa" — z podobnego zlecenia; a gdy historii brak, wiersz jest BEZ ceny
+// niestandardowa" — z podobnego zlecenia; a gdy historii brak, pozycja jest BEZ ceny
 // i przyjęcie wymusza podanie kwoty inline. To jest cała obrona przed halucynacją
 // ceny widoczna dla użytkownika.
 
@@ -27,21 +28,31 @@ import { toQuoteRow } from '../utils/leadServiceLines';
 import type { LeadServiceItem } from '../types';
 import { formatGrosze } from './shared';
 
+const List = styled.ul`
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
 /**
- * Wiersz sugestii w tabeli wyceny. Przygaszony, dopóki nie zostanie przyjęty -
- * i rozjaśniany pod kursorem, żeby dało się go przeczytać bez przyjmowania.
+ * Dwie kolumny, tak jak w spisie pozycji przyjętych: treść i kwota. Przyciski
+ * schodzą do własnego wiersza siatki, więc przy wąskim panelu odbierają miejsce
+ * kolumnie nazwy, a nie kwocie - kwota zostaje na swoim miejscu i nigdy nie
+ * wypada poza panel.
  */
-const Row = styled.tr`
+const Row = styled.li`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 4px 12px;
+    font-size: 13.5px;
     opacity: 0.75;
     transition: opacity ${p => p.theme.transitions.fast};
 
-    &:hover { opacity: 1; }
-
-    /* Kwoty sugestii są szare: do sumy „Razem" nie wchodzą, więc nie mają prawa
-       wyglądać jak liczby, które już się liczą. Podwojony selektor, bo tabela
-       wyceny farbuje swoje komórki własną regułą o tej samej wadze - o zwycięzcy
-       decydowałaby kolejność wstrzyknięcia stylów, czyli przypadek. */
-    && td { color: ${p => p.theme.colors.textMuted}; }
+    &:hover, &:focus-within { opacity: 1; }
 `;
 
 const Name = styled.div`
@@ -49,7 +60,8 @@ const Name = styled.div`
     align-items: center;
     flex-wrap: wrap;
     gap: 6px;
-    color: ${p => p.theme.colors.text};
+    min-width: 0;
+    color: ${p => p.theme.colors.textSecondary};
     overflow-wrap: anywhere;
 `;
 
@@ -65,6 +77,14 @@ const Badge = styled.span`
     color: ${p => p.theme.colors.primary};
 `;
 
+/** Kwota sugestii: szara, bo nie wchodzi do sumy, dopóki ktoś jej nie przyjmie. */
+const Amount = styled.div`
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
 /** Powód, dla którego cena jest taka, a nie inna - albo dlaczego jej nie ma. */
 const PriceTag = styled.span<{ $tone: 'history' | 'pending' }>`
     display: block;
@@ -74,11 +94,23 @@ const PriceTag = styled.span<{ $tone: 'history' | 'pending' }>`
     color: ${p => (p.$tone === 'pending' ? p.theme.colors.warning : p.theme.colors.textMuted)};
 `;
 
+const Note = styled.span`
+    grid-column: 1 / -1;
+    font-size: 11.5px;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
+/**
+ * Przyciski zajmują całą szerokość wiersza i wolno im się złamać: przy 288 px
+ * „Akceptuj" i „Odrzuć" obok nazwy wymuszały szerokość, której panel nie ma.
+ */
 const Actions = styled.div`
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
-    margin-top: 5px;
+    margin-top: 2px;
 `;
 
 const ActBtn = styled.button<{ $variant: 'accept' | 'reject' }>`
@@ -90,6 +122,7 @@ const ActBtn = styled.button<{ $variant: 'accept' | 'reject' }>`
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.sm};
     background: ${p => p.theme.colors.surface};
+    font-family: inherit;
     font-size: 11.5px;
     font-weight: ${p => p.theme.fontWeights.medium};
     color: ${p => (p.$variant === 'accept' ? p.theme.colors.success : p.theme.colors.textSecondary)};
@@ -103,12 +136,17 @@ const ActBtn = styled.button<{ $variant: 'accept' | 'reject' }>`
     svg { width: 12px; height: 12px; }
 `;
 
+/**
+ * Pole kwoty stoi tam, gdzie stałaby liczba - i kurczy się razem z panelem,
+ * żeby przy wąskiej szynie nie rozpychać wiersza.
+ */
 const AmountInput = styled.input`
-    width: 92px;
+    width: min(92px, 30vw);
     height: 24px;
     padding: 0 8px;
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.sm};
+    font-family: inherit;
     font-size: 12px;
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -123,11 +161,6 @@ interface Props {
     actions: SuggestionActions;
 }
 
-/**
- * Wiersze `<tr>` do wstawienia w `<tbody>` tabeli wyceny. Komponent świadomie
- * nie renderuje własnej tabeli ani nagłówka sekcji: wchodzi w cudzą siatkę
- * kolumn, bo o to właśnie chodzi - to ma być ten sam spis usług.
- */
 export function SuggestedServiceRows({ suggestions, actions }: Props) {
     const { accept, reject, refresh } = actions;
     // Kwoty wpisywane inline dla pozycji „czeka na kwotę" (wycena niestandardowa bez historii).
@@ -148,7 +181,7 @@ export function SuggestedServiceRows({ suggestions, actions }: Props) {
     };
 
     return (
-        <>
+        <List>
             {suggestions.map((item) => {
                 const pending = item.priceGross == null;
                 const row = toQuoteRow(item);
@@ -156,40 +189,14 @@ export function SuggestedServiceRows({ suggestions, actions }: Props) {
                 const canAccept = !busy && (!pending || Number(amount.replace(',', '.')) > 0);
                 return (
                     <Row key={item.id}>
-                        <td>
-                            <Name>
-                                {row.name}{row.quantity > 1 ? ` ×${row.quantity}` : ''}
-                                <Badge>Sugerowane</Badge>
-                            </Name>
-                            {item.note && <span className="note">{item.note}</span>}
-                            <Actions>
-                                <ActBtn
-                                    type="button"
-                                    $variant="accept"
-                                    disabled={!canAccept}
-                                    onClick={() => onAccept(item)}
-                                >
-                                    <Check /> Akceptuj
-                                </ActBtn>
-                                <ActBtn
-                                    type="button"
-                                    $variant="reject"
-                                    disabled={busy}
-                                    onClick={() => reject.mutate(item.id)}
-                                >
-                                    <X /> Odrzuć
-                                </ActBtn>
-                            </Actions>
-                        </td>
-                        {/* Ta sama arytmetyka co w wierszu przyjętym: pozycja pokazuje
-                            już teraz liczby, które zostaną po kliknięciu „Akceptuj".
-                            Dopóki kwoty nie znamy, kolumny są puste - zero udawałoby
-                            darmową usługę. */}
-                        <td>{pending ? '—' : formatGrosze(row.netCents)}</td>
-                        <td>{pending ? '—' : formatGrosze(row.vatCents)}</td>
-                        <td>
-                            {/* Pole na kwotę stoi w kolumnie brutto, czyli dokładnie tam,
-                                gdzie brakującej liczby szuka wzrok. */}
+                        <Name>
+                            {row.name}{row.quantity > 1 ? ` ×${row.quantity}` : ''}
+                            <Badge>Sugerowane</Badge>
+                        </Name>
+                        <Amount>
+                            {/* Pole na kwotę stoi w miejscu liczby, czyli dokładnie tam,
+                                gdzie brakującej kwoty szuka wzrok. Zero udawałoby usługę
+                                za darmo, więc dopóki kwoty nie znamy, nie ma tu liczby. */}
                             {pending ? (
                                 <AmountInput
                                     type="number"
@@ -207,10 +214,29 @@ export function SuggestedServiceRows({ suggestions, actions }: Props) {
                             )}
                             {item.priceSource === 'HISTORY' && <PriceTag $tone="history">z historii</PriceTag>}
                             {pending && <PriceTag $tone="pending">podaj kwotę</PriceTag>}
-                        </td>
+                        </Amount>
+                        {item.note && <Note>{item.note}</Note>}
+                        <Actions>
+                            <ActBtn
+                                type="button"
+                                $variant="accept"
+                                disabled={!canAccept}
+                                onClick={() => onAccept(item)}
+                            >
+                                <Check /> Akceptuj
+                            </ActBtn>
+                            <ActBtn
+                                type="button"
+                                $variant="reject"
+                                disabled={busy}
+                                onClick={() => reject.mutate(item.id)}
+                            >
+                                <X /> Odrzuć
+                            </ActBtn>
+                        </Actions>
                     </Row>
                 );
             })}
-        </>
+        </List>
     );
 }
