@@ -336,6 +336,27 @@ const ActiveTag = styled.span`
     white-space: nowrap;
 `;
 
+/**
+ * Cicha akcja przy nazwie konkurenta: podejrzenie i zmiana wskazanej strony.
+ * Stoi w tabeli podsumowania, a nie w kalendarzu, bo tam kolumna nazwy ma 186 px
+ * i każdy dodatkowy element odbierałby miejsce nazwie.
+ */
+const PageAction = styled.button`
+    margin-left: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.textMuted};
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover { color: ${st.accentBlue}; }
+`;
+
 const FootNote = styled.div`
     padding: 12px 12px 0;
     margin-top: 4px;
@@ -355,7 +376,9 @@ interface Props {
 }
 
 export const AdsTab: React.FC<Props> = ({ calendar, onOpenAd }) => {
-    const [linking, setLinking] = useState<{ profileId: string; username: string } | null>(null);
+    const [linking, setLinking] = useState<
+        { profileId: string; username: string; pageId?: string | null } | null
+    >(null);
 
     const { year, today, rows } = calendar;
     const length = yearLength(year);
@@ -529,6 +552,13 @@ export const AdsTab: React.FC<Props> = ({ calendar, onOpenAd }) => {
                                     row={row}
                                     color={colors.get(row.profileId) ?? st.textMuted}
                                     maxDays={maxDays}
+                                    onEditPage={() =>
+                                        setLinking({
+                                            profileId: row.profileId,
+                                            username: row.username,
+                                            pageId: row.facebookPageId,
+                                        })
+                                    }
                                 />
                             ))}
                         </tbody>
@@ -546,6 +576,7 @@ export const AdsTab: React.FC<Props> = ({ calendar, onOpenAd }) => {
                 <LinkFacebookPageModal
                     profileId={linking.profileId}
                     username={linking.username}
+                    currentPageId={linking.pageId}
                     onClose={() => setLinking(null)}
                 />
             )}
@@ -553,17 +584,23 @@ export const AdsTab: React.FC<Props> = ({ calendar, onOpenAd }) => {
     );
 };
 
-const SummaryRow: React.FC<{ row: AdCalendarRow; color: string; maxDays: number }> = ({
-    row,
-    color,
-    maxDays,
-}) => (
+const SummaryRow: React.FC<{
+    row: AdCalendarRow;
+    color: string;
+    maxDays: number;
+    onEditPage: () => void;
+}> = ({ row, color, maxDays, onEditPage }) => (
     <tr style={row.ads.length === 0 ? { opacity: 0.6 } : undefined}>
         <td>
             <Name>
                 <Dot $color={color} />
                 {row.username}
                 {row.activeNow > 0 && <ActiveTag>TRWA {row.activeNow}</ActiveTag>}
+                {/* Przy profilu bez reklam to jest pierwsze pytanie, jakie się nasuwa:
+                    czy na pewno wskazano właściwą stronę. */}
+                <PageAction type="button" onClick={onEditPage}>
+                    {row.ads.length === 0 ? 'sprawdź stronę FB' : 'strona FB'}
+                </PageAction>
             </Name>
         </td>
         <td className="num">{row.campaigns > 0 ? row.campaigns : '—'}</td>

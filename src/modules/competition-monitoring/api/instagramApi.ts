@@ -148,9 +148,22 @@ export const instagramApi = {
         return response.data;
     },
 
-    /** Powiązanie obserwowanego profilu ze stroną na Facebooku - bez niego nie ma czego szukać. */
-    linkFacebookPage: async (profileId: string, pageId: string, pageName?: string): Promise<void> => {
-        await apiClient.put(`${ADS_PATH}/profiles/${profileId}/page`, { pageId, pageName: pageName ?? null });
+    /**
+     * Powiązanie obserwowanego profilu ze stroną na Facebooku - bez niego nie ma czego szukać.
+     * Serwer pobiera reklamy od razu i oddaje ich liczbę, więc da się powiedzieć,
+     * czy wskazana strona w ogóle się reklamuje.
+     */
+    linkFacebookPage: async (profileId: string, pageId: string, pageName?: string): Promise<number> => {
+        const response = await apiClient.put<{ linked: boolean; adsFound: number }>(
+            `${ADS_PATH}/profiles/${profileId}/page`,
+            { pageId, pageName: pageName ?? null }
+        );
+        return response.data.adsFound ?? 0;
+    },
+
+    /** Odpięcie strony - razem z pobranymi reklamami, bo opisują już cudzą firmę. */
+    unlinkFacebookPage: async (profileId: string): Promise<void> => {
+        await apiClient.delete(`${ADS_PATH}/profiles/${profileId}/page`);
     },
 
     // ── Reakcje i generator AI ───────────────────────────────────────────────
