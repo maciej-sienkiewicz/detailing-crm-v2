@@ -13,6 +13,8 @@ export interface ServicesAsLineItemsInput {
     tempServices: { [catalogId: string]: { name: string; basePriceNet: number; vatRate: number } };
     /** lineId → base gross price in ZŁOTYCH, exact as typed/stored (see PriceInput / QuickServiceModal). */
     servicePrices: { [lineId: string]: number };
+    /** lineId → base net price in GROSZACH, exact as typed/stored - the counterpart to `servicePrices`. */
+    serviceBasePrices: { [lineId: string]: number };
     serviceAdjustments: { [lineId: string]: ServiceAdjustment };
     serviceNotes: { [lineId: string]: string };
     serviceVatRates: { [lineId: string]: number };
@@ -21,12 +23,20 @@ export interface ServicesAsLineItemsInput {
 /**
  * lineId → the catalog (or temp) service it refers to, then → the on-screen line item.
  *
- * `basePriceGross` is carried through exactly as stored in `servicePrices`, not re-derived
- * from `basePriceNet` - ServicesTable's own price engine (`applyAdjustment`) prefers it for
- * exactly this reason: net→gross rounding is not a round trip (1900,00 zł → 1544,72 zł
- * netto → re-derived 1900,01 zł at 23% VAT). Omitting it here was the bug: the table showed
- * the re-derived, off-by-a-grosz value even though the exact price was sitting right there
- * in `servicePrices`.
+ * Business rule: whichever field the user typed - netto or brutto - must never drift on
+ * redisplay or resave. `servicePrices` (brutto) and `serviceBasePrices` (netto) are each
+ * written ONCE, atomically as a pair, at the moment a price is established (adding a
+ * catalog service, creating a one-off service, confirming a manual price, editing a line's
+ * price) - see addService / handleQuickServiceCreate / handlePriceConfirm in
+ * useQuickEventForm.ts and ServicesTable's own "Edytuj pozycję" editor. Both are read here
+ * VERBATIM, never re-derived from one another: net→gross→net is not a round trip on the
+ * grosz grid (1900,00 zł brutto → 1544,72 zł netto → re-derived 1900,01 zł at 23% VAT, and
+ * the same gap exists starting from netto). Recomputing either from the other was the bug -
+ * twice: once for the value saved to the backend, once for the value shown in this table.
+ *
+ * The VAT-formula fallback below only fires when `serviceBasePrices` genuinely has no entry
+ * for a line (a draft saved before this fix, or `initialData` that never set it) - a safety
+ * net for stale state, not the normal path.
  */
 export function buildServicesAsLineItems(input: ServicesAsLineItemsInput): ServiceLineItem[] {
     return input.selectedServiceIds
@@ -40,7 +50,8 @@ export function buildServicesAsLineItems(input: ServicesAsLineItemsInput): Servi
 
             const baseGross = input.servicePrices[id] ?? 0;
             const vatRate = input.serviceVatRates[id] ?? svc.vatRate ?? 23;
-            const basePriceNet = Math.round((baseGross / (1 + vatRate / 100)) * 100);
+            const exactNet = input.serviceBasePrices[id];
+            const basePriceNet = exactNet ?? Math.round((baseGross / (1 + vatRate / 100)) * 100);
 
             return {
                 id,
