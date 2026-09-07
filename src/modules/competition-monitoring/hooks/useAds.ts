@@ -46,6 +46,15 @@ export const useLinkFacebookPage = () => {
     });
 };
 
+/**
+ * Szukanie strony po nazwie. Odpalane dopiero na żądanie (przycisk „Szukaj"),
+ * bo każde wywołanie to zapytanie do Meta i wchodzi w limit 200/godz.
+ */
+export const useSearchAdPages = () =>
+    useMutation({
+        mutationFn: (query: string) => instagramApi.searchAdPages(query),
+    });
+
 /** Odpięcie strony kasuje też pobrane reklamy, więc unieważniamy to samo co przy powiązaniu. */
 export const useUnlinkFacebookPage = () => {
     const queryClient = useQueryClient();

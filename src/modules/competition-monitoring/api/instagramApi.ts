@@ -2,6 +2,7 @@ import { apiClient } from '@/core/apiClient';
 import type {
     AdCalendar,
     AdDetail,
+    PageCandidate,
     Benchmark,
     ProfileSuggestion,
     WeeklyDigest,
@@ -159,6 +160,18 @@ export const instagramApi = {
             { pageId, pageName: pageName ?? null }
         );
         return response.data.adsFound ?? 0;
+    },
+
+    /**
+     * Strony reklamodawców pasujące do frazy. Biblioteka reklam pokazuje w panelu
+     * albo numer strony, albo jej nazwę użytkownika - to jest sposób na numer,
+     * gdy widać tylko nazwę.
+     */
+    searchAdPages: async (query: string): Promise<PageCandidate[]> => {
+        const response = await apiClient.get<{ candidates: PageCandidate[] }>(`${ADS_PATH}/page-search`, {
+            params: { q: query },
+        });
+        return response.data.candidates ?? [];
     },
 
     /** Odpięcie strony - razem z pobranymi reklamami, bo opisują już cudzą firmę. */

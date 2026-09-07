@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/modules/competition-monitoring/**/*",
+    "src/common/theme/ThemeProvider.tsx",
+    "src/vite-env.d.ts"
+  ],
+  "references": []
+}
