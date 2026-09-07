@@ -7,17 +7,21 @@
 // opisany był dwiema linijkami — „Nowy", „W kontakcie" — i milczał o tym, co w nim
 // najważniejsze: o co klient pytał, kiedy odpisaliśmy i co odpowiedział. Fakty
 // istniały, tylko w wątku poczty, czyli wszędzie, byle nie tam, gdzie się ich szuka.
+//
+// Układ jest wprost z makiety i różni się od poprzedniego w trzech miejscach:
+// nitka jest JEDNA (rysowana w rynience wiersza, nie osobno pod tekstem), znacznik
+// czasu stoi W LINII nazwy zdarzenia, a treść wiadomości jest zwykłym akapitem -
+// bez przycisku, bez cytatu, bez ramki.
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
-import { Eye, Mail, PhoneCall, Reply } from 'lucide-react';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadTimelineEntry } from '../types';
-import { formatDateTime } from './shared';
+import { formatAge } from '../utils/leadUrgency';
 
 /**
  * Kolor kropki. Statusy zachowują kolor swojego etapu — ten sam, którym etap
- * oznaczony jest w tabeli i w wybieraku, więc oś czasu czyta się bez legendy.
- * Zdarzenia kontaktu dostają kolory kierunku: klient i my.
+ * oznaczony jest w wybieraku, więc oś czasu czyta się bez legendy. Zdarzenia
+ * kontaktu dostają kolory kierunku: klient i my.
  */
 const colorOf = (entry: LeadTimelineEntry, theme: DefaultTheme): string => {
     switch (entry.kind) {
@@ -30,191 +34,104 @@ const colorOf = (entry: LeadTimelineEntry, theme: DefaultTheme): string => {
     }
 };
 
-/**
- * Oś czasu, nie lista linijek. Zdarzenia są ciągiem („klient napisał, odpisaliśmy,
- * klient się targował"), a płaskie zdania z datą na początku każą ten ciąg złożyć
- * w głowie, bo wszystkie ważą tyle samo. Pionowa nitka z kropkami pokazuje go wprost.
- */
 const Timeline = styled.ol`
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     list-style: none;
     margin: 0;
-    padding: 2px 0 0 16px;
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: 3px;
-        top: 8px;
-        bottom: 8px;
-        width: 1px;
-        background: ${p => p.theme.colors.border};
-    }
+    padding: 0;
 `;
 
-/**
- * Wiersz zdarzenia: SIATKA, nie ciąg tekstu.
- *
- * Wcześniej przycisk podglądu był elementem liniowym doklejonym za datą i autorem,
- * więc jego miejsce zależało od tego, jak długie było nazwisko obok: raz lądował
- * w linii daty, raz spadał niżej, a poziomo stawał w innym punkcie w każdym wierszu.
- * Wyglądało to na przypadek, bo nim było.
- *
- * Stała kolumna po prawej ustawia akcję zawsze w tym samym miejscu, niezależnie od
- * długości tekstu — a druga linia siatki daje rozwiniętej treści pełną szerokość,
- * bez wciskania jej pod ikonę.
- */
-const Item = styled.li<{ $entry: LeadTimelineEntry }>`
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 28px;
-    align-items: start;
-    column-gap: 8px;
-    padding-bottom: 12px;
-    font-size: 11.5px;
-    color: ${p => p.theme.colors.textMuted};
-    font-variant-numeric: tabular-nums;
-
-    &:last-child { padding-bottom: 0; }
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: -16px;
-        top: 5px;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: ${p => colorOf(p.$entry, p.theme)};
-        /* Obwódka w kolorze tła panelu wycina nitkę pod kropką. */
-        box-shadow: 0 0 0 2px ${p => p.theme.colors.surfaceAlt};
-    }
-`;
-
-/** Treść zdarzenia. Osobny element, bo w siatce zajmuje pierwszą kolumnę. */
-const Content = styled.div`
-    min-width: 0;
-    /* Wysokość pola akcji - wiersz z podglądem i bez niego mają ten sam rytm. */
-    min-height: 28px;
-`;
-
-/**
- * Data i autor jako JEDEN blok, nie luźne węzły tekstowe.
- *
- * To one wcześniej niosły przycisk w linii i decydowały o tym, gdzie wyląduje.
- */
-const Meta = styled.div`
-    margin-top: 1px;
-    overflow-wrap: anywhere;
-`;
-
-const Headline = styled.strong`
+const Entry = styled.li`
     display: flex;
+    gap: 12px;
+`;
+
+/**
+ * Rynienka wiersza: kropka i odcinek nitki pod nią.
+ *
+ * Nitka należy do WIERSZA, a nie do całej listy. Wcześniej rysowała ją jedna linia
+ * absolutna na kontenerze, a treść wiadomości miała własną kreskę cytatu tuż obok -
+ * dwie pionowe linie kilka pikseli od siebie, z których żadna nie znaczyła tego, co
+ * wyglądała, że znaczy. Odcinek w rynience rośnie razem z wierszem i kończy się
+ * naturalnie na ostatnim zdarzeniu.
+ */
+const Gutter = styled.div`
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
+    flex-shrink: 0;
+`;
+
+const Dot = styled.span<{ $entry: LeadTimelineEntry }>`
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: ${p => colorOf(p.$entry, p.theme)};
+    margin-top: 5px;
+`;
+
+const Line = styled.span`
+    flex: 1 1 auto;
+    width: 1px;
+    background: ${p => p.theme.colors.border};
+    margin-top: 5px;
+
+    /* Ostatnie zdarzenie nitki nie ciągnie - nie ma do czego. */
+    ${Entry}:last-child & {
+        display: none;
+    }
+`;
+
+const EntryBody = styled.div`
+    min-width: 0;
+`;
+
+/**
+ * Nazwa zdarzenia i znacznik czasu w JEDNEJ linii, na wspólnej linii bazowej.
+ *
+ * Data pod nazwą zabierała wierszowi drugą linijkę i przy czterech zdarzeniach
+ * robiła z osi czasu listę akapitów. Obok nazwy czyta się ją jednym ruchem oka,
+ * a przy wąskim panelu zawija się sama.
+ */
+const HeadRow = styled.div`
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 9px;
+`;
+
+const Name = styled.strong`
+    font-size: 14px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     color: ${p => p.theme.colors.text};
-
-    svg {
-        width: 12px;
-        height: 12px;
-        flex-shrink: 0;
-        color: ${p => p.theme.colors.textMuted};
-    }
 `;
 
-/**
- * Podgląd wiadomości: sama ikona, wywoływana najechaniem na wiersz.
- *
- * Pastylka z obwódką i etykietą, która stała tu wcześniej, ważyła w wierszu więcej
- * niż nazwa samego zdarzenia — a przy trzech wiadomościach pod rząd to ona
- * przyciągała wzrok zamiast przebiegu sprawy. Oś czasu ma się czytać, nie klikać;
- * podgląd jest czynnością drugiego planu i tak ma wyglądać.
- *
- * Miejsce zajmuje ZAWSZE, także niewidoczna: gdyby pojawiała się dopiero na hover,
- * tekst obok przeskakiwałby pod kursorem przy każdym wejściu na wiersz.
- *
- * Oko, nie koperta: kopertą oznaczona jest już wiadomość przychodząca w tym samym
- * wierszu, a dwa razy ten sam znak o dwóch różnych znaczeniach czyta się gorzej niż
- * znak neutralny. Oko mówi „zobacz" niezależnie od rodzaju zdarzenia.
- */
-const Toggle = styled.button<{ $open: boolean }>`
-    grid-column: 2;
-    grid-row: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: none;
-    border-radius: ${p => p.theme.radii.sm};
-    /* Tło także w spoczynku: ikona bez niego jest samym konturem i na hover czyta się
-       jak ozdobnik, a nie jak przycisk. Kontrast tekstu drugorzędnego, nie wygaszonego —
-       to jedyny sygnał, że wiersz da się otworzyć, więc musi być widoczny od razu. */
-    background: ${({ $open, theme }) => ($open ? 'rgba(14, 165, 233, 0.1)' : theme.colors.surface)};
-    color: ${({ $open, theme }) => ($open ? theme.colors.primary : theme.colors.textSecondary)};
-    box-shadow: ${({ $open }) => ($open ? 'none' : '0 0 0 1px rgba(15, 23, 42, 0.06)')};
-    cursor: pointer;
-    opacity: ${p => (p.$open ? 1 : 0)};
-    transition: opacity 120ms ease, background 120ms ease, color 120ms ease;
-
-    li:hover &,
-    &:focus-visible {
-        opacity: 1;
-    }
-
-    &:hover {
-        background: rgba(14, 165, 233, 0.1);
-        color: ${p => p.theme.colors.primary};
-    }
-
-    &:focus-visible {
-        outline: 2px solid ${p => p.theme.colors.primary};
-        outline-offset: -2px;
-    }
-
-    /* Bez kursora nie ma najechania: na dotyku ikona musi być widoczna od razu,
-       inaczej podgląd wiadomości przestaje istnieć dla połowy użytkowników. */
-    @media (hover: none) {
-        opacity: 1;
-    }
-
-    svg { width: 15px; height: 15px; }
-`;
-
-/**
- * Treść wiadomości rozwinięta w miejscu, a nie w kolejnym oknie. Podgląd leada sam
- * jest oknem, więc modal nad modalem kazałby zamknąć dwie rzeczy, żeby wrócić do
- * listy — a chodzi o zerknięcie na trzy zdania.
- */
-const Body = styled.blockquote`
-    grid-column: 1 / -1;
-    margin: 6px 0 0;
-    padding: 8px 10px;
-    max-height: 200px;
-    overflow-y: auto;
-    border-left: 2px solid ${p => p.theme.colors.border};
-    border-radius: 0 6px 6px 0;
-    background: ${p => p.theme.colors.surface};
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    line-height: 1.55;
+const When = styled.span`
     font-size: 12.5px;
-    color: ${p => p.theme.colors.text};
+    color: ${p => p.theme.colors.textMuted};
+    font-variant-numeric: tabular-nums;
 `;
 
-const Note = styled.div`
-    margin-top: 3px;
-    font-size: 12px;
-    font-style: italic;
+/**
+ * Treść zdarzenia: zwykły akapit, bez cytatu i bez chowania za przyciskiem.
+ *
+ * [max-width] jest miarą czytelności, nie ozdobą - wiersz dłuższy niż mniej więcej
+ * 90 znaków gubi się przy powrocie do początku następnego.
+ */
+const Text = styled.div`
+    margin-top: 5px;
+    max-width: 620px;
+    font-size: 14px;
+    line-height: 1.55;
     color: ${p => p.theme.colors.textSecondary};
+    white-space: pre-wrap;
     overflow-wrap: anywhere;
 `;
 
 const Empty = styled.div`
-    font-size: 12px;
+    font-size: 13px;
     color: ${p => p.theme.colors.textMuted};
 `;
 
@@ -240,13 +157,38 @@ const headlineOf = (entry: LeadTimelineEntry, isFirstInbound: boolean): string =
     }
 };
 
-const iconOf = (kind: LeadTimelineEntry['kind']) => {
-    switch (kind) {
-        case 'INBOUND_MESSAGE': return <Mail />;
-        case 'OUTBOUND_MESSAGE': return <Reply />;
-        case 'CALLBACK': return <PhoneCall />;
-        default: return null;
-    }
+/**
+ * Wiek zdarzenia tą samą miarą, którą kolejka mierzy oczekiwanie („6 dni") - żeby
+ * „Czeka 6 dni" na karcie i wiersz osi czasu mówiły o tym samym tymi samymi słowami.
+ *
+ * „temu" doklejamy warunkowo: `formatAge` zwraca dla świeżych zdarzeń gotowy zwrot
+ * „przed chwilą", a „przed chwilą temu" nie jest zdaniem.
+ */
+const showsActor = (kind: LeadTimelineEntry['kind']): boolean =>
+    kind === 'CALLBACK' || kind === 'STATUS';
+
+const agoOf = (iso: string): string => {
+    const age = formatAge(Math.max(0, Date.now() - new Date(iso).getTime()));
+    return age === 'przed chwilą' ? age : `${age} temu`;
+};
+
+/**
+ * Znacznik czasu bez roku: „31 sierpnia, 08:14".
+ *
+ * Rok dopisujemy tylko wtedy, gdy zdarzenie nie jest z bieżącego - w osi czasu
+ * leada, która rzadko sięga dalej niż kilka tygodni, „2026" w każdym wierszu jest
+ * czterema znakami szumu.
+ */
+const stampOf = (iso: string): string => {
+    const date = new Date(iso);
+    const sameYear = date.getFullYear() === new Date().getFullYear();
+    return date.toLocaleString('pl-PL', {
+        day: 'numeric',
+        month: 'long',
+        ...(sameYear ? {} : { year: 'numeric' }),
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 };
 
 interface LeadTimelineProps {
@@ -254,55 +196,56 @@ interface LeadTimelineProps {
 }
 
 export function LeadTimeline({ entries }: LeadTimelineProps) {
-    const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-    const toggle = (id: string) =>
-        setExpanded((open) => {
-            const next = new Set(open);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
+    /*
+     * Backend oddaje oś rosnąco (`compareBy({ it.at })`), a czyta się ją od końca:
+     * pytanie brzmi „co się wydarzyło ostatnio", nie „od czego się zaczęło".
+     *
+     * Nazwa „Pierwszy kontakt klienta" liczy się nadal z porządku CHRONOLOGICZNEGO:
+     * po odwróceniu pierwsza wiadomość klienta w tablicy jest jego ostatnią
+     * wiadomością i etykieta trafiłaby w zły wiersz.
+     */
+    const firstInboundId = entries.find((entry) => entry.kind === 'INBOUND_MESSAGE')?.id;
+    const newestFirst = useMemo(() => [...entries].reverse(), [entries]);
 
     if (entries.length === 0) {
         return <Empty>Nic się jeszcze nie wydarzyło.</Empty>;
     }
 
-    const firstInboundId = entries.find((entry) => entry.kind === 'INBOUND_MESSAGE')?.id;
-
     return (
         <Timeline>
-            {entries.map((entry) => {
-                const open = expanded.has(entry.id);
-                const hasBody = Boolean(entry.body);
+            {newestFirst.map((entry) => {
+                const text = entry.body ?? entry.note;
                 return (
-                    <Item key={entry.id} $entry={entry}>
-                        <Content>
-                            <Headline>
-                                {iconOf(entry.kind)}
-                                {headlineOf(entry, entry.id === firstInboundId)}
-                                {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
-                            </Headline>
-                            <Meta>
-                                {formatDateTime(entry.at)}
-                                {entry.actorName && <>, {entry.actorName}</>}
-                            </Meta>
-                            {entry.note && <Note>{entry.note}</Note>}
-                        </Content>
-                        {hasBody && (
-                            <Toggle
-                                type="button"
-                                $open={open}
-                                onClick={() => toggle(entry.id)}
-                                aria-expanded={open}
-                                aria-label={open ? 'Ukryj wiadomość' : 'Pokaż wiadomość'}
-                                title={open ? 'Ukryj wiadomość' : 'Pokaż wiadomość'}
-                            >
-                                <Eye />
-                            </Toggle>
-                        )}
-                        {hasBody && open && <Body>{entry.body}</Body>}
-                    </Item>
+                    <Entry key={entry.id}>
+                        <Gutter>
+                            <Dot $entry={entry} />
+                            <Line />
+                        </Gutter>
+                        <EntryBody>
+                            <HeadRow>
+                                <Name>
+                                    {headlineOf(entry, entry.id === firstInboundId)}
+                                    {entry.lostReasonLabel && <> ({entry.lostReasonLabel})</>}
+                                </Name>
+                                {/*
+                                    Autor tylko przy zdarzeniach, które ktoś ZROBIŁ:
+                                    odnotowanym kontakcie i zmianie statusu. Przy
+                                    wiadomości nazwisko powtarza nadawcę, którego niesie
+                                    już nazwa zdarzenia („Klient odpisał"), a przy tym
+                                    wydłuża wiersz na tyle, że znacznik czasu zawija się
+                                    pod nazwę - czyli wraca dokładnie ten układ, od
+                                    którego ta zmiana odchodzi.
+                                */}
+                                <When>
+                                    {agoOf(entry.at)} · {stampOf(entry.at)}
+                                    {entry.actorName && showsActor(entry.kind) && (
+                                        <>, {entry.actorName}</>
+                                    )}
+                                </When>
+                            </HeadRow>
+                            {text && <Text>{text}</Text>}
+                        </EntryBody>
+                    </Entry>
                 );
             })}
         </Timeline>

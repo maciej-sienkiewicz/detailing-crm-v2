@@ -76,29 +76,35 @@ export interface LeadQuoteRow {
 }
 
 /**
- * Wycena leada w rozbiciu na kwoty. Brutto jest źródłem prawdy (to ono trafia do
+ * Jedna pozycja rozpisana na kwoty. Brutto jest źródłem prawdy (to ono trafia do
  * sumy leada), netto bierzemy z zapisanego pola, a gdy go nie ma - z przeliczenia
  * po stawce. VAT liczymy jako różnicę, nie osobnym mnożeniem: inaczej suma trzech
  * kolumn potrafi rozminąć się o grosz z kwotą, którą klient widzi na ofercie.
+ *
+ * Osobno, bo tej samej arytmetyki używa wiersz sugestii w tabeli wyceny: pozycja
+ * ma wyglądać po przyjęciu dokładnie tak, jak wyglądała przed - liczby policzone
+ * drugim wzorem drgnęłyby o grosz w chwili kliknięcia „Akceptuj".
  */
+export function toQuoteRow(item: LeadServiceItem): LeadQuoteRow {
+    const vatRate = item.vatRate ?? DEFAULT_VAT_RATE;
+    const unitNet = item.priceNet ?? grossToNet(item.priceGross ?? 0, vatRate);
+    const quantity = Math.max(1, item.quantity);
+    const grossCents = item.totalGross;
+    const netCents = unitNet * quantity;
+    return {
+        id: item.id,
+        name: item.name,
+        note: item.note,
+        quantity,
+        netCents,
+        vatCents: grossCents - netCents,
+        grossCents,
+    };
+}
+
+/** Wycena leada w rozbiciu na kwoty - pozycje przyjęte, bo tylko one są wyceną. */
 export function toQuoteRows(items: LeadServiceItem[]): LeadQuoteRow[] {
-    // Podgląd wyceny to pozycje przyjęte — sugestie AI liczą się osobno.
-    return items.filter((it) => it.status === 'ACCEPTED').map((item) => {
-        const vatRate = item.vatRate ?? DEFAULT_VAT_RATE;
-        const unitNet = item.priceNet ?? grossToNet(item.priceGross ?? 0, vatRate);
-        const quantity = Math.max(1, item.quantity);
-        const grossCents = item.totalGross;
-        const netCents = unitNet * quantity;
-        return {
-            id: item.id,
-            name: item.name,
-            note: item.note,
-            quantity,
-            netCents,
-            vatCents: grossCents - netCents,
-            grossCents,
-        };
-    });
+    return items.filter((it) => it.status === 'ACCEPTED').map(toQuoteRow);
 }
 
 /** Suma brutto po rabatach - ta sama liczba, którą zapisze backend. */

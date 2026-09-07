@@ -895,6 +895,12 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             ? roundTo2(service.basePriceGross / 100)
             : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [lineId]: grossPrice }));
+        // Netto zapisujemy TERAZ, wprost z katalogu - nie po pierwszej interakcji z tabelą.
+        // servicesAsLineItems czyta tę wartość bez przeliczania: odtwarzanie netta ze
+        // wzoru VAT z grossPrice nie jest odwrotnością tego, jak katalog policzył
+        // grossPrice z netta (1900,00 zł brutto -> 1544,72 zł netto -> z powrotem
+        // odtworzone 1900,01 zł), więc cena wpisana jako netto zaczęłaby "pływać".
+        setServiceBasePrices(prev => ({ ...prev, [lineId]: service.basePriceNet }));
         initPriceInputs(lineId, grossPrice, service.vatRate);
         setServiceSearch('');
         setShowServiceDropdown(false);
@@ -908,6 +914,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setSelectedServiceIds(prev => [...prev, lineId]);
         setServiceRefs(prev => ({ ...prev, [lineId]: pendingService.id }));
         setServicePrices(prev => ({ ...prev, [lineId]: gross }));
+        // Tu netto JEST tym, co wpisał użytkownik (usługa wymaga ręcznej ceny za
+        // każdym razem) - zachowujemy je dokładnie, brutto jest tym, co pochodne.
+        setServiceBasePrices(prev => ({ ...prev, [lineId]: priceNet }));
         initPriceInputs(lineId, gross, vatRate);
         setPendingService(null);
     };
@@ -927,11 +936,20 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             ? roundTo2(service.basePriceGross / 100)
             : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
+        // Ta sama zasada co w addService: netto ustalone TERAZ, w chwili utworzenia
+        // usługi (w QuickServiceModal, gdzie PriceInput wiąże netto i brutto atomowo),
+        // przeżywa bez przeliczania - niezależnie od tego, czy w oknie wpisano netto
+        // czy brutto.
+        setServiceBasePrices(prev => ({ ...prev, [serviceId]: service.basePriceNet }));
         initPriceInputs(serviceId, grossPrice, service.vatRate);
         if (!service.id) {
+            // Stawka wybrana w oknie tworzenia usługi - nie zawsze 23%. Ta wartość zasila
+            // `servicesAsLineItems`/`buildAppointmentPayload` jako domyślna, gdy nikt
+            // później ręcznie nie zmieni VAT-u dla tej pozycji (serviceVatRates[id] wtedy
+            // pozostaje puste), więc twardy „23" cichcem podmieniał realną stawkę.
             setTempServices(prev => ({
                 ...prev,
-                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: 23 },
+                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: service.vatRate },
             }));
         }
         setServiceSearch('');

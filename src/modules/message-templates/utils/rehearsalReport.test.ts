@@ -43,9 +43,19 @@ describe('summarizeReport', () => {
     const s = summarizeReport(r);
     expect(s.tone).toBe('error');
     expect(s.headline).toBe('Nic nie wysłano: 2 błędy w szablonach. Popraw je i spróbuj ponownie.');
+    // Nazwa wiadomości znana z ekranu szablonów i pełne zdanie z instrukcją naprawy -
+    // nie surowy kod reguły backendu, którego biznes nie potrafi rozszyfrować.
     expect(s.problems).toEqual([
-      { key: 'SMS-SMS_PRE_VISIT', label: 'SMS · SMS_PRE_VISIT', detail: 'orphan-braces ({{imie)' },
-      { key: 'EMAIL-EMAIL_VISIT_WELCOME', label: 'EMAIL · EMAIL_VISIT_WELCOME', detail: 'html-in-plaintext-email (<b>)' },
+      {
+        key: 'SMS-SMS_PRE_VISIT',
+        label: 'SMS · Przypomnienie przed wizytą',
+        detail: 'W treści są niesparowane nawiasy klamrowe („{{imie”) - sprawdź, czy każda zmienna wygląda dokładnie tak: {{nazwa}}.',
+      },
+      {
+        key: 'EMAIL-EMAIL_VISIT_WELCOME',
+        label: 'E-mail · Potwierdzenie przyjęcia pojazdu',
+        detail: 'W treści jest fragment kodu HTML („<b>”), który klient zobaczyłby dosłownie - usuń go z szablonu.',
+      },
     ]);
   });
 
@@ -98,7 +108,7 @@ describe('summarizeReport', () => {
     expect(s.tone).toBe('warn');
     expect(s.headline).toContain('Wysłano 1 z 2 wiadomości');
     expect(s.problems).toEqual([
-      { key: 'SMS-SMS_UPSELL_CONSENT', label: 'SMS · SMS_UPSELL_CONSENT', detail: 'Brak kredytów SMS' },
+      { key: 'SMS-SMS_UPSELL_CONSENT', label: 'SMS · Zgoda na dodanie usług', detail: 'Brak kredytów SMS' },
     ]);
   });
 

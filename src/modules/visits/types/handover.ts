@@ -1,4 +1,5 @@
 import type { PaymentMethod, InvoiceType, CompleteInvoicePayload } from './stateTransitions';
+import { isUsableThankYouDraft } from '../components/handover/thankYouSms';
 
 export type VatRateCode = '23' | '8' | '5' | '0' | 'zw';
 export type PriceMode = 'NET' | 'GROSS';
@@ -53,6 +54,14 @@ export interface HandoverState {
      * skopiowana wartość byłaby zgadywaniem, które potem trudno odróżnić od wyboru.
      */
     sendToKsef: boolean | null;
+    /**
+     * Czy przy wydaniu wysłać klientowi podziękowanie. Domyślnie tak - studio, które
+     * takich SMS-ów nie wysyła, w ogóle nie zobaczy tego wyboru (patrz
+     * useThankYouSmsAvailability), więc „true" nie oznacza tu wysyłki na siłę.
+     */
+    thankYouSms: boolean;
+    /** Termin wysyłki podziękowania: „YYYY-MM-DDTHH:mm" w czasie lokalnym. */
+    thankYouSmsAt: string;
 }
 
 // ─── Draft ekranu wydania ─────────────────────────────────────────────────────
@@ -109,10 +118,29 @@ export const restoreDraft = (
             paymentMethod: draft.state.paymentMethod ?? fresh.paymentMethod,
             documentType: draft.state.documentType ?? fresh.documentType,
             sendToKsef: draft.state.sendToKsef ?? fresh.sendToKsef,
+            ...restoredThankYou(fresh, draft.state),
         };
     }
-    return { ...fresh, ...draft.state };
+    return { ...fresh, ...draft.state, ...restoredThankYou(fresh, draft.state) };
 };
+
+/**
+ * Termin podziękowania z draftu wraca tylko wtedy, gdy nadal ma sens.
+ *
+ * Draft przeżywa zamknięcie okna, a więc i noc: „dziś o 16:30" odtworzone nazajutrz
+ * opisuje godzinę, która dawno minęła. Sam wybór „wysyłać / nie wysyłać" jest decyzją
+ * człowieka i przeżywa bez zastrzeżeń - termin liczy się od „teraz" i musi być liczony
+ * na nowo.
+ */
+const restoredThankYou = (
+    fresh: HandoverState,
+    drafted: Partial<HandoverState>
+): Pick<HandoverState, 'thankYouSms' | 'thankYouSmsAt'> => ({
+    thankYouSms: drafted.thankYouSms ?? fresh.thankYouSms,
+    thankYouSmsAt: isUsableThankYouDraft(drafted.thankYouSmsAt)
+        ? (drafted.thankYouSmsAt as string)
+        : fresh.thankYouSmsAt,
+});
 
 // ─── Arytmetyka kwot (grosze) ─────────────────────────────────────────────────
 

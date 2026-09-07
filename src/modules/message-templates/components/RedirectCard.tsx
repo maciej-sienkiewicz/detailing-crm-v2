@@ -135,13 +135,15 @@ const Report = styled.div`
 
   ul { margin: 0; padding-left: 18px; }
   li { margin: 2px 0; }
-  code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 11.5px;
-    background: rgba(148, 163, 184, 0.15);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
+`;
+
+/**
+ * Nazwa wiadomości, do której odnosi się problem ("SMS · Podziękowanie po wizycie").
+ * To jest zwykła nazwa z ekranu szablonów, nie kod - stąd zwykły pogrubiony tekst
+ * zamiast czcionki maszynowej, którą tu miał kiedyś surowy identyfikator backendu.
+ */
+const ProblemLabel = styled.strong`
+  font-weight: ${p => p.theme.fontWeights.semibold};
 `;
 
 const ReportLine = styled.div<{ $tone: 'ok' | 'warn' | 'error' }>`
@@ -160,7 +162,7 @@ function describeReport(report: RehearsalReport): React.ReactNode {
         <ul>
           {summary.problems.map(p => (
             <li key={p.key}>
-              <code>{p.label}</code> {p.detail}
+              <ProblemLabel>{p.label}:</ProblemLabel> {p.detail}
             </li>
           ))}
         </ul>

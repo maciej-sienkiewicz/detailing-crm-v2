@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@/common/theme';
 import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { router } from '@/core';
+import { AppErrorBoundary } from '@/core/errors';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
 import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
@@ -32,20 +33,24 @@ queryClient.prefetchQuery({
 
 const App = () => {
     return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-                <ToastProvider>
-                    <AuthProvider>
-                        <SidebarProvider>
-                            <RouterProvider router={router} />
-                            {/* Global 402/MODULE_REQUIRED → upsell dialog (safety net for ungated actions) */}
-                            <PaywallListener />
-                        </SidebarProvider>
-                    </AuthProvider>
-                </ToastProvider>
-            </ThemeProvider>
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+        // Ostatnia linia obrony nad providerami i samym RouterProvider -
+        // `errorElement` routera obsługuje tylko błędy WEWNĄTRZ drzewa route'ów.
+        <AppErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+                <ThemeProvider>
+                    <ToastProvider>
+                        <AuthProvider>
+                            <SidebarProvider>
+                                <RouterProvider router={router} />
+                                {/* Global 402/MODULE_REQUIRED → upsell dialog (safety net for ungated actions) */}
+                                <PaywallListener />
+                            </SidebarProvider>
+                        </AuthProvider>
+                    </ToastProvider>
+                </ThemeProvider>
+                <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
+        </AppErrorBoundary>
     );
 };
 

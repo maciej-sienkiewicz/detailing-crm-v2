@@ -1,0 +1,49 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Telefon — Twój ruch", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "UKlienta.dc.html", "title": "Telefon — U klienta", "x": 480, "y": 0, "w": 390, "h": 844 },
+    { "file": "Szczegoly.dc.html", "title": "Telefon — arkusz leada", "x": 960, "y": 0, "w": 390, "h": 844 },
+    { "file": "Tablet.dc.html", "title": "Tablet w hali", "x": 0, "y": 1060, "w": 1024, "h": 768 },
+    { "file": "Porownanie.dc.html", "title": "Dziś vs po zmianie", "x": 1120, "y": 1060, "w": 880, "h": 780 },
+    { "file": "Desktop.dc.html", "title": "Desktop — kolejka", "x": 0, "y": 2080, "w": 1440, "h": 900 },
+    { "file": "Zamkniete.dc.html", "title": "Desktop — archiwum", "x": 1540, "y": 2080, "w": 1440, "h": 900 }
+  ],
+  "annotations": [
+    {
+      "id": "decyzja",
+      "x": 0,
+      "y": -230,
+      "w": 560,
+      "text": "DECYZJA: jedna pionowa kolejka zamiast tabeli.\n\nTrzy segmenty. Dwa pierwsze dzielą sprawy OTWARTE po tym, czyj jest ruch — kod już rozdziela te osie. Trzeci to archiwum: sprawy rozstrzygnięte nie mają „czyjego ruchu\", więc nie mieszczą się w żadnym z pozostałych.\n\nKolejność w kolejce to WIEK oczekiwania, nie data wpływu. Zero gestów, jeden przycisk 48×48 przy prawej krawędzi."
+    },
+    {
+      "id": "dziura-telefon",
+      "x": 960,
+      "y": -230,
+      "w": 390,
+      "text": "Anna Nowak (3. karta) to lead TELEFONICZNY.\n\nDziś taki lead nie ma wątku, więc nie ma replyState — nie wchodzi do filtra „Do odpisania\", nie dostaje paska pilności i znika z plakietki, gdy odnotujesz kontakt.\n\nW szkicu stoi w kolejce, bo reguła pilności dostaje drugą gałąź: brak wątku + brak first_response_at = nasz ruch, liczony od created_at."
+    },
+    {
+      "id": "status-znika",
+      "x": 0,
+      "y": 900,
+      "w": 1000,
+      "text": "STATUS ZNIKA Z LISTY — to jest odpowiedź na „ręczna zmiana statusu przez klikanie w badge jest nieintuicyjna\".\n\nNa karcie nie ma etapu i nie da się go z kolejki zmienić. Awans dzieje się sam, jako skutek pracy: pierwsza odpowiedź (mailem albo odnotowanym telefonem) przestawia NOWY → W KONTAKCIE, i tak już działa na backendzie. Ręczna zmiana zostaje wyłącznie w arkuszu szczegółów — dla decyzji, których korespondencja nie widzi: rezerwacja, przegrana z powodem, nie pojawił się. „Przegrany\" nadal pyta o powód.\n\nWyjątek: w archiwum status WRACA jako kolumna „Wynik\" — tam jest treścią, nie zadaniem."
+    },
+    {
+      "id": "tablet-uwaga",
+      "x": 2100,
+      "y": 1060,
+      "w": 420,
+      "text": "UWAGA — to wychodzi poza specyfikację z Fazy 3.\n\nFaza 3 mówiła „tablet to ten sam układ szerzej\". Tu narysowałem podział kolejka + szczegóły obok siebie, bo tak wygląda praca przy tablecie na ścianie i przy biurku.\n\nJedna reguła responsywna zamiast dwóch układów: poniżej 768 px sama kolejka (szczegóły jako arkusz), powyżej — kolejka i szczegóły obok siebie. Jeśli wolisz jedną kolumnę wszędzie, powiedz."
+    },
+    {
+      "id": "archiwum",
+      "x": 0,
+      "y": 1900,
+      "w": 1200,
+      "text": "ARCHIWUM — to była dziura w specyfikacji, nie tylko w szkicu. Faza 3 opisała dwa segmenty i nie powiedziała, gdzie trafiają sprawy zamknięte. W danych demo to 78 ze 108 rekordów: 41 zrealizowanych, 31 przegranych, 6 bez pojawienia się.\n\nArchiwum jest osobnym trybem, bo zadanie jest inne: nie wykonuje się na nim pracy, tylko szuka konkretnej sprawy albo porównuje wyniki. Dlatego wraca TABELA (gęsta, sortowalna, ze statusem i powodem przegranej), wyszukiwarka staje się pierwszorzędna, a karty z przyciskiem akcji znikają — nie ma czego zrobić z leadem sprzed miesiąca.\n\nI rzecz najważniejsza technicznie: archiwum jako JEDYNE miejsce w module chce dokładnie tej kolejności, którą backend ma dziś zaszytą na sztywno — created_at DESC, najnowsze na górze. Kolejka potrzebuje odwrotnej. Czyli zmiana kierunku sortowania musi być parametrem, a nie podmianą stałej."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

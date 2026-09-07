@@ -11,6 +11,8 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
     exemptionBasis: '',
     protocolSigned: false,
     sendToKsef: null,
+    thankYouSms: true,
+    thankYouSmsAt: '2026-09-15T15:15',
     ...overrides,
 });
 

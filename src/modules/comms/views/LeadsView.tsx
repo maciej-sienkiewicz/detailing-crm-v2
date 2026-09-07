@@ -1,679 +1,567 @@
 // src/modules/comms/views/LeadsView.tsx
-// Pipeline leadów w języku wizualnym reszty aplikacji: wspólny PageHeader,
-// karty-powierzchnie, Badge, tokeny motywu. Szczegóły w oknie LeadDetailModal -
-// tym samym, które otwiera plakietka „Lead" w podglądzie rozmowy.
-import { useState, type MouseEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
-import { ArrowRight, BarChart3, Loader2, Search } from 'lucide-react';
-import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
-import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
-import { formatMoney } from '../components/analytics/tokens';
-import { buildPeriod } from '../components/analytics/period';
-import { useLeadAnalytics, useLeads, useLeadsSocket } from '../hooks/useLeads';
+// Skrzynka zapytań: kolejka spraw do zrobienia zamiast tabeli wszystkiego.
+//
+// Poprzednia wersja była siatką o sześciu kolumnach ze sztywną szerokością
+// 880 px w kontenerze z przewijaniem poziomym. Na telefonie - a tam ten ekran
+// jest naprawdę używany, w hali, jedną ręką - kolumna „Status" zaczynała się
+// dopiero na sześćsetnym pikselu. Do tego lista przychodziła posortowana
+// „najnowsze na górze", więc sprawa czekająca najdłużej leżała najgłębiej:
+// stos, nie kolejka.
+//
+// Cztery decyzje, które ten widok realizuje:
+//
+//  1. KOLEJNOŚĆ TO WIEK OCZEKIWANIA. Nie data wpływu i nie kwota - wiek rośnie
+//     sam i nigdy nie przeskakuje, więc lista oglądana trzydzieści razy dziennie
+//     zostaje przewidywalna.
+//  2. STATUSU NIE MA NA LIŚCIE. Awans dzieje się jako skutek pracy (pierwsza
+//     odpowiedź stempluje NOWY → W KONTAKCIE po stronie backendu), a ręczna
+//     zmiana mieszka w panelu szczegółów.
+//  3. SEGMENTY ZAMIAST FILTRÓW. „Twój ruch" i „U klienta" to jedna oś - czyj
+//     jest ruch - prostopadła do statusu. „Zamknięte" to osobny tryb pracy.
+//  4. SZCZEGÓŁY OBOK, NIE ZAMIAST. Na szerokim ekranie panel stoi przy kolejce,
+//     więc przeskakiwanie między sprawami nie zamyka i nie otwiera okna. Na
+//     telefonie miejsca na to nie ma i szczegóły wracają jako okno pełnoekranowe.
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import styled from 'styled-components';
+import { ArrowLeft, BarChart3, Inbox, Search } from 'lucide-react';
+import { useBreakpoint } from '@/common/hooks';
+import {
+    CLOSED_LEAD_STATUSES,
+    OPEN_LEAD_STATUSES,
+    useLeadsByStatuses,
+    useLeadsSocket,
+    useStagnationThresholds,
+} from '../hooks/useLeads';
 import { useMailboxSyncState } from '../hooks/useComms';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
-import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
-import { LeadCellEditor, type LeadCellField } from '../components/LeadCellEditor';
-import { LeadDetailModal } from '../components/LeadDetailModal';
-import { LeadReplyBadge } from '../components/LeadReplyBadge';
-import { LeadSourceIcon } from '../components/LeadSourceIcon';
-import { CLOSED_STATUSES, formatVehicle } from '../utils/leadFormat';
-import { leadReplyTone, type ReplyTone } from '../utils/leadReply';
-import {
-    LEAD_STATUS_COLORS,
-    LEAD_STATUS_FLOW,
-    LEAD_STATUS_LABELS,
-    type Lead,
-    type LeadStatus,
-} from '../types';
-import {
-    EmptyHint,
-    FilterChip,
-    SurfaceCard,
-    formatGrosze,
-    formatRelativeTime,
-} from '../components/shared';
-
+import { LeadArchive } from '../components/LeadArchive';
+import { LeadDetailModal, LeadDetailPane } from '../components/LeadDetailModal';
+import { LeadQueueCard } from '../components/LeadQueueCard';
+import { LeadSegments, type LeadSegment } from '../components/LeadSegments';
+import { describeLeadUrgency } from '../utils/leadUrgency';
+import type { LeadPrimaryAction } from '../utils/leadPrimaryAction';
+import type { Lead, LeadStatus } from '../types';
+import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
 
 /**
- * Pasek zaległości nad listą - to samo zdanie, co bohater analityki.
+ * Widok wypełnia okno i dzieli się na dwie niezależnie przewijane kolumny.
  *
- * Właściciel wchodzi codziennie tutaj, a nie do analityki. Kwota czekająca na
- * odpowiedź musi stać tam, gdzie on faktycznie bywa; ekran analityki jest lekturą
- * tygodniową. Bez tej duplikacji zbudowalibyśmy ładny widok, na który nikt nie
- * ma powodu wchodzić.
- *
- * Pasek pojawia się wyłącznie wtedy, gdy jest zaległość. Cisza nie zajmuje miejsca.
+ * Świadomie bez wspólnego PageHeadera aplikacji: ciemny baner z akcjami zawijał
+ * się na telefonie do 161 px i pierwsza sprawa zaczynała się na 322. pikselu -
+ * 38% ekranu zajęte, zanim widać cokolwiek do zrobienia. Tu nagłówek jest
+ * częścią kolumny kolejki i mieści się w jednym wierszu.
  */
-const OwedStrip = styled.button`
+const ViewShell = styled.main`
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    height: 100dvh;
+    background: ${p => p.theme.colors.surface};
+
+    /*
+     * Próg podziału to xl, nie lg. Przy 1024 px sidebar aplikacji zabiera 248,
+     * więc na kolejkę i panel zostaje 776 - po 440 i 336 px. Panel w 336 px nie
+     * mieści dwóch kolumn treści, a kolejka przestaje mieć miejsce na kwotę
+     * obok wieku. Poniżej xl wraca jedna kolumna i okno pełnoekranowe.
+     */
+    @media (max-width: ${p => p.theme.breakpoints.xl}) {
+        flex-direction: column;
+        height: auto;
+        min-height: 100dvh;
+        background: transparent;
+    }
+`;
+
+const QueueColumn = styled.div<{ $split: boolean }>`
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: ${p => (p.$split ? '0 0 440px' : '1 1 auto')};
+    width: ${p => (p.$split ? '440px' : '100%')};
+    border-right: ${p => (p.$split ? `1px solid ${p.theme.colors.border}` : 'none')};
+    background: ${p => p.theme.colors.surface};
+
+    @media (max-width: ${p => p.theme.breakpoints.xl}) {
+        width: 100%;
+        flex: 1 1 auto;
+        border-right: none;
+        background: transparent;
+    }
+`;
+
+const DetailColumn = styled.div`
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    background: ${p => p.theme.colors.surface};
+`;
+
+/** Nagłówek kolumny kolejki: tytuł, licznik i jedno wyjście do analityki. */
+const QueueHeader = styled.header`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 16px 12px 16px;
+    flex-shrink: 0;
+
+    h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        color: ${p => p.theme.colors.text};
+    }
+    p {
+        margin: 3px 0 0 0;
+        font-size: 13px;
+        color: ${p => p.theme.colors.textSecondary};
+    }
+`;
+
+const GhostAction = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
+    font-size: 13.5px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+
+    svg { width: 16px; height: 16px; }
+`;
+
+/** Wariant kwadratowy - cel dotykowy 48x48 tam, gdzie nie ma miejsca na etykietę. */
+const IconAction = styled(GhostAction)`
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: ${p => p.theme.radii.lg};
+
+    svg { width: 20px; height: 20px; }
+`;
+
+const Toolbar = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    width: 100%;
-    text-align: left;
-    font-family: inherit;
-    cursor: pointer;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-left: 3px solid ${p => p.theme.colors.error};
-    border-radius: ${p => p.theme.radii.lg};
-    background: ${p => p.theme.colors.surface};
-    padding: 12px 16px;
-    transition: background ${p => p.theme.transitions.fast};
+    gap: 8px;
+    padding: 0 16px;
+    flex-shrink: 0;
+`;
 
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+/**
+ * Pasek zaległości nad kolejką. Liczony z tego SAMEGO zbioru co segment „Twój
+ * ruch", więc kwota i licznik nie mają jak się rozjechać - wcześniej pasek brał
+ * dane z analityki, która liczyła zaległość inną regułą niż lista pod nim.
+ *
+ * Pojawia się wyłącznie wtedy, gdy jest zaległość. Cisza nie zajmuje miejsca.
+ */
+const OwedStrip = styled.div`
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 20px 4px 20px;
+    flex-shrink: 0;
 
     .amount {
         font-size: 20px;
         font-weight: ${p => p.theme.fontWeights.bold};
         color: ${p => p.theme.colors.text};
         font-variant-numeric: tabular-nums;
-        white-space: nowrap;
+        letter-spacing: -0.01em;
     }
     .text {
-        flex: 1;
-        min-width: 0;
         font-size: 13px;
         color: ${p => p.theme.colors.textSecondary};
     }
-    .text strong {
-        color: ${p => p.theme.colors.text};
-        font-weight: ${p => p.theme.fontWeights.semibold};
-    }
-    svg { width: 16px; height: 16px; flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        flex-wrap: wrap;
-        .text { flex-basis: 100%; }
-    }
 `;
 
-// ── Layout strony (jak ViewContainer w statystykach) ─────────────────────────
+/** Lista przewija się sama, żeby nagłówek i segmenty zostały na miejscu. */
+const QueueScroll = styled.div`
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 10px;
+    border-top: 1px solid ${p => p.theme.colors.border};
 
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: ${p => p.theme.spacing.md};
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
-`;
-
-/** Cienka kreska rozdzielająca dwie osie filtrowania: etap i „czyj ruch". */
-const FilterSeparator = styled.span`
-    width: 1px;
-    align-self: stretch;
-    margin: 2px 2px;
-    background: ${p => p.theme.colors.border};
-`;
-
-const FiltersRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-`;
-
-const SearchBox = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 7px 14px;
-    color: ${p => p.theme.colors.textMuted};
-    background: ${p => p.theme.colors.surface};
-    flex: 1 1 220px;
-    max-width: 340px;
-    transition: border-color ${p => p.theme.transitions.fast};
-
-    &:focus-within { border-color: ${p => p.theme.colors.primary}; }
-
-    input {
-        border: none;
-        outline: none;
-        flex: 1;
-        font-size: 13px;
-        min-width: 0;
-        background: transparent;
-        color: ${p => p.theme.colors.text};
-        font-family: inherit;
-    }
-`;
-
-// ── Tabela / lista ───────────────────────────────────────────────────────────
-
-const TableScroll = styled.div`
-    overflow-x: auto;
-`;
-
-const HeadRow = styled.div`
-    display: grid;
-    grid-template-columns: 1.7fr 1.1fr 1.6fr 0.8fr 1.3fr 0.8fr;
-    gap: 10px;
-    padding: 12px 20px 12px 23px;
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    min-width: 880px;
-`;
-
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
-
-/**
- * Rozpoznawanie auta chodzi w tle, więc komórka ma trzy stany: pracuje (spinner),
- * zna odpowiedź (marka i model) albo nie znalazła nic („-"). Pusta komórka bez
- * spinnera i pusta komórka w trakcie pracy wyglądałyby tak samo, a to dwie różne
- * informacje dla kogoś, kto właśnie oznaczył leada.
- */
-const VehicleSpinner = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
-
-    svg {
-        width: 13px;
-        height: 13px;
-        animation: ${spin} 900ms linear infinite;
-    }
-`;
-
-/**
- * Plakietka tagu - wszystkie i w całości, bez wielokropka. Ucinanie odbierało
- * kolumnie sens: „Powłoka cer…" i „Powłoka cer…" to dwa różne tagi, których nie da
- * się odróżnić. Nazwy bywają długie, więc plakietki zawijają się do drugiej linii
- * wewnątrz komórki, a wiersz rośnie - czytelność wygrywa z równą wysokością wierszy.
- */
-const TagPill = styled.span`
-    display: inline-block;
-    white-space: nowrap;
-    padding: 2px 8px;
-    border-radius: ${p => p.theme.radii.full};
-    background: ${p => p.theme.colors.surfaceAlt};
-    border: 1px solid ${p => p.theme.colors.border};
-    font-size: 11.5px;
-    color: ${p => p.theme.colors.textSecondary};
-`;
-
-/**
- * Wiersz jest kontenerem, nie przyciskiem: komórki, które da się edytować, muszą
- * być w środku własnymi przyciskami, a przycisk w przycisku to nieprawidłowy HTML
- * (i przeglądarka rozstrzyga go po swojemu). Klik na wiersz otwiera panel, klik na
- * edytowalną komórkę zatrzymuje się na niej.
- */
-const Row = styled.div<{ $active?: boolean; $tone: ReplyTone }>`
-    position: relative;
-    display: grid;
-    grid-template-columns: 1.7fr 1.1fr 1.6fr 0.8fr 1.3fr 0.8fr;
-    gap: 10px;
-    align-items: center;
-    width: 100%;
-    min-width: 880px;
-    text-align: left;
-    padding: 12px 20px 12px 23px;
-    border: none;
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
-    background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
-    cursor: pointer;
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-    font-family: inherit;
-    transition: background ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
-    &:last-child { border-bottom: none; }
-
-    /*
-     * Pasek pilności przy lewej krawędzi. Zaległość jest cechą całego leada,
-     * a nie zawartością którejś komórki, więc mieszka na wierszu - i, co
-     * ważniejsze, nie zabiera ani piksela szerokości tabeli. Skanuje się go
-     * jednym spojrzeniem w dół listy, czego żadna plakietka w środku wiersza
-     * nie potrafi. Sam kolor niczego nie niesie: to samo mówi znacznik
-     * tekstowy w kolumnie „Status".
-     */
-    &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: ${({ $tone, theme }) =>
-            $tone === 'due' ? theme.colors.error
-            : $tone === 'stale' ? theme.colors.warning
-            : 'transparent'};
-    }
-
-    .who {
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-    }
-    .who > span { min-width: 0; }
-    .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sub {
-        font-size: 12px;
-        color: ${p => p.theme.colors.textMuted};
-        font-weight: ${p => p.theme.fontWeights.normal};
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .vehicle {
-        color: ${p => p.theme.colors.textSecondary};
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .value {
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        font-variant-numeric: tabular-nums;
-    }
-`;
-
-/**
- * Komórka, którą da się poprawić na miejscu. Nie krzyczy - obramowanie pojawia się
- * dopiero pod kursorem, żeby tabela pozostała tabelą, a nie formularzem. Sygnał
- * „to jest klikalne" ma być dostępny, gdy ktoś go szuka, a nie narzucać się reszcie.
- */
-const EditableCell = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    /* Zawijanie jest dla tagów, które bywają liczne. */
-    flex-wrap: wrap;
-    min-width: 0;
-    width: 100%;
-    text-align: left;
-    border: 1px dashed transparent;
-    border-radius: ${p => p.theme.radii.sm};
-    background: transparent;
-    padding: 3px 5px;
-    margin: -3px -5px;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-
-    &:hover, &:focus-visible {
-        border-color: ${p => p.theme.colors.border};
+    @media (max-width: ${p => p.theme.breakpoints.xl}) {
+        overflow-y: visible;
+        margin: 10px 12px 16px 12px;
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.xl};
         background: ${p => p.theme.colors.surface};
-        outline: none;
-    }
-
-    .none { color: ${p => p.theme.colors.textMuted}; }
-    .value {
-        /* Bazowy rozmiar 0, więc przy logo marki obok tekst kurczy się w tej
-           samej linii zamiast spaść pod nie - zawijanie zostaje dla tagów. */
-        flex: 1 1 0;
-        min-width: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 `;
 
-/** Etap i „czyj ruch" w jednej komórce tabeli, jedno pod drugim. */
-const StatusStack = styled.span`
-    display: inline-flex;
+const ArchivePane = styled.div`
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    min-width: 0;
+    gap: 12px;
+    padding: 16px;
+    overflow-y: auto;
+    min-height: 0;
 `;
 
-/**
- * Etap leada: kropka i etykieta zdaniem, dokładnie tak jak w LeadStatusPicker,
- * który tę samą wartość pokazuje w oknie szczegółów.
- *
- * Wypełniona plakietka w każdym wierszu nie wyróżnia niczego - jeśli świeci
- * cała kolumna, nie świeci nic - a wersalikami i odstępem między literami
- * zjada szerokość, przez którą treść wchodziła na sąsiednią kolumnę. Kropka
- * niesie ten sam kolor na kilkunastu pikselach, a nazwa pisana normalnie
- * czyta się szybciej niż KAPITALIKAMI.
- */
-const StatusLine = styled.span`
+const Truncated = styled.div`
+    padding: 12px 20px;
+    font-size: 12.5px;
+    color: ${p => p.theme.colors.warning};
+    background: ${p => p.theme.colors.warningLight};
+    border-top: 1px solid ${p => p.theme.colors.border};
+`;
+
+const BackToQueue = styled.button`
+    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-width: 0;
-    font-size: 12.5px;
+    height: 44px;
+    padding: 0 16px;
+    border: none;
+    background: transparent;
+    color: ${p => p.theme.colors.primary};
+    font-family: inherit;
+    font-size: 13.5px;
     font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${p => p.theme.colors.text};
-    white-space: nowrap;
+    cursor: pointer;
+
+    svg { width: 16px; height: 16px; }
 `;
 
-const StatusDot = styled.span<{ $color: string }>`
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: ${p => p.$color};
+/** Panel bez wybranej sprawy - zaproszenie, nie pustka. */
+const PaneEmpty = styled.div`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 14px;
+
+    svg { width: 34px; height: 34px; opacity: 0.5; }
 `;
+
+/** Statusy zamknięte - do rozpoznania deep-linku z analityki. */
+const CLOSED_SET = new Set<LeadStatus>(CLOSED_LEAD_STATUSES);
+
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     /*
-     * Filtry startowe czytane z adresu, jeden raz, przy pierwszym renderze.
-     *
-     * Analityka prowadzi tu z konkretnym pytaniem: „pokaż mi te zaległe rozmowy",
-     * „pokaż przegrane". Bez tego kliknięcie kwoty wysyłałoby na nieprzefiltrowaną
-     * listę i użytkownik musiałby odtworzyć filtr ręcznie - czyli kwota na
-     * poprzednim ekranie byłaby twierdzeniem, a nie dowodem.
-     *
-     * Tylko wartość początkowa: dalej filtrami rządzą przyciski, więc kliknięcie
-     * „Wszystkie" nie ma prawa zostać cofnięte przez parametr, który wciąż wisi
-     * w adresie.
+     * Podział na dwie kolumny od 1280 px w górę - to pierwsza szerokość, przy
+     * której po odjęciu sidebara (248 px) zostaje dość miejsca na kolejkę i panel
+     * naraz. Niżej szczegóły wracają jako okno pełnoekranowe: ten sam komponent,
+     * inna obudowa. Próg musi się zgadzać z zapytaniem medialnym w ViewShell,
+     * inaczej JavaScript rysuje panel, którego CSS nie ma gdzie postawić.
      */
-    const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(() => {
-        const requested = searchParams.get('status');
-        return LEAD_STATUS_FLOW.includes(requested as LeadStatus) ? (requested as LeadStatus) : undefined;
+    const isSplit = useBreakpoint('xl');
+    const isWide = useBreakpoint('md');
+
+    /*
+     * Stan startowy z adresu, czytany raz. Analityka prowadzi tu z konkretnym
+     * pytaniem („pokaż zaległe", „pokaż przegrane"), więc kwota na poprzednim
+     * ekranie ma być dowodem, a nie twierdzeniem.
+     */
+    const [segment, setSegment] = useState<LeadSegment>(() => {
+        const status = searchParams.get('status') as LeadStatus | null;
+        return status && CLOSED_SET.has(status) ? 'ARCHIVE' : 'OURS';
     });
-    // „Do odpisania" to nie kolejny status, tylko zawężenie listy do leadów,
-    // w których ostatnie słowo należy do klienta - czyli do naszej kolejki zaległości.
-    const [awaitingReply, setAwaitingReply] = useState(() => searchParams.get('awaiting') === '1');
-    const [query, setQuery] = useState('');
-    const [page, setPage] = useState(0);
-    // Okno szczegółów ma otworzyć się od razu na edytorze wyceny, gdy weszliśmy
-    // do niego przez kliknięcie wartości leada w tabeli.
-    const [openServicesEditor, setOpenServicesEditor] = useState(false);
-    // Edycja komórki: który lead, które pole i pod czym zaczepić chmurkę.
-    const [cellEditor, setCellEditor] = useState<
-        { lead: Lead; field: LeadCellField; anchor: HTMLElement } | null
-    >(null);
+    const [archiveStatus, setArchiveStatus] = useState<LeadStatus | undefined>(() => {
+        const status = searchParams.get('status') as LeadStatus | null;
+        return status && CLOSED_SET.has(status) ? status : undefined;
+    });
+    const [archiveQuery, setArchiveQuery] = useState('');
 
     const selectedLeadId = searchParams.get('lead');
-    const selectLead = (leadId: string | null) => {
-        setOpenServicesEditor(false);
-        // Parametry filtrów zostały już przeczytane do stanu; w adresie zostaje
-        // wyłącznie otwarty lead, żeby odświeżenie strony nie przywracało filtru,
-        // który użytkownik w międzyczasie zdjął.
-        setSearchParams(leadId ? { lead: leadId } : {}, { replace: true });
-    };
+    const selectLead = useCallback(
+        (leadId: string | null) => {
+            setSearchParams(leadId ? { lead: leadId } : {}, { replace: true });
+        },
+        [setSearchParams]
+    );
 
-    const { data: leadPage } = useLeads({
-        status: statusFilter,
-        query: query || undefined,
-        awaitingReply: awaitingReply || undefined,
-        page,
-    });
-    // Zmiana statusu prosto z tabeli - razem z pytaniem o powód przegranej.
-    const status = useLeadStatusChange();
-    // Zmiany leadów przychodzą WebSocketem - spinner przy rozpoznawaniu auta
-    // zamienia się w wynik bez odświeżania strony.
+    const thresholds = useStagnationThresholds();
+    const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
+    // Archiwum pobiera się dopiero, gdy ktoś w nie wejdzie: pusta lista statusów
+    // to zero zapytań, więc kolejka nie płaci za dane, których nie pokazuje.
+    const archive = useLeadsByStatuses(
+        segment === 'ARCHIVE' ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
+        { query: archiveQuery, sortDirection: 'DESC' }
+    );
+
+    // Zmiany leadów przychodzą WebSocketem - karta aktualizuje się bez odświeżania.
     useLeadsSocket();
     const mailboxSync = useMailboxSyncState();
-    /*
-     * Zaległości do paska nad listą. Okres bieżącego miesiąca, ten sam co domyślny
-     * w analityce - dzięki temu przejście między widokami trafia w tę samą pamięć
-     * podręczną i nie kosztuje drugiego zapytania. Same zaległości i tak liczą się
-     * poza oknem, więc wybór okresu na nie nie wpływa.
+
+    /**
+     * Kolejka: podział po tym, czyj jest ruch, i kolejność po wieku oczekiwania.
+     *
+     * Sortowanie jest tutaj, a nie na serwerze, bo „wszystkie otwarte" to trzy
+     * osobne odpowiedzi (filtr statusu jest jednowartościowy) - żadne sortowanie
+     * serwerowe nie ułoży trzech list w jedną. Zbiór jest ograniczony i widok
+     * ostrzega, gdy przestaje być kompletny.
      */
-    const [statsPeriod] = useState(() => buildPeriod('current', new Date()));
-    const { data: analytics } = useLeadAnalytics(statsPeriod.from, statsPeriod.to);
-    const owed = analytics?.awaiting;
+    const queue = useMemo(() => {
+        const entries = open.items.map((lead) => ({
+            lead,
+            urgency: describeLeadUrgency(lead, thresholds),
+        }));
+        const byAge = (a: typeof entries[number], b: typeof entries[number]) =>
+            b.urgency.waitingMs - a.urgency.waitingMs;
+        return {
+            ours: entries.filter((entry) => entry.urgency.turn === 'OURS').sort(byAge),
+            client: entries.filter((entry) => entry.urgency.turn === 'CLIENT').sort(byAge),
+        };
+    }, [open.items, thresholds]);
 
-    const openCellEditor = (
-        event: MouseEvent<HTMLButtonElement>,
-        item: Lead,
-        field: LeadCellField
-    ) => {
-        // Bez tego kliknięcie doszłoby do wiersza i otworzyło panel pod chmurką.
-        event.stopPropagation();
-        setCellEditor({ lead: item, field, anchor: event.currentTarget });
+    const owedValue = queue.ours.reduce((sum, entry) => sum + entry.lead.estimatedValue, 0);
+    const visible = segment === 'CLIENT' ? queue.client : queue.ours;
+    const inArchive = segment === 'ARCHIVE';
+
+    /**
+     * `j` / `k` - następna i poprzednia sprawa bez odrywania ręki od klawiatury.
+     *
+     * Ma sens wyłącznie przy panelu obok kolejki: skok, który za każdym razem
+     * zamyka i otwiera okno modalne, jest wolniejszy od kliknięcia. Skróty milczą,
+     * gdy fokus stoi w polu tekstowym - inaczej „j" w wyszukiwarce przewijałoby
+     * listę zamiast się wpisać.
+     */
+    useEffect(() => {
+        if (!isSplit || inArchive) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== 'j' && event.key !== 'k') return;
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            const target = event.target as HTMLElement | null;
+            if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+            if (target?.isContentEditable) return;
+            if (visible.length === 0) return;
+
+            event.preventDefault();
+            const current = visible.findIndex((entry) => entry.lead.id === selectedLeadId);
+            if (current === -1) {
+                selectLead(visible[0].lead.id);
+                return;
+            }
+            const next = event.key === 'j'
+                ? Math.min(current + 1, visible.length - 1)
+                : Math.max(current - 1, 0);
+            selectLead(visible[next].lead.id);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isSplit, inArchive, visible, selectedLeadId, selectLead]);
+
+    const runAction = (lead: Lead, action: LeadPrimaryAction) => {
+        // Jedyny skrót omijający szczegóły: odpowiedź na maila. Reszta akcji
+        // potrzebuje kontekstu (wyceny, terminu), więc prowadzi do panelu, gdzie
+        // ten kontekst stoi razem z przyciskiem.
+        if (action.kind === 'REPLY' && lead.threadId) {
+            navigate(`/communication?thread=${lead.threadId}`);
+            return;
+        }
+        selectLead(lead.id);
     };
 
-    /** Wartość leada to suma wyceny - kliknięcie prowadzi do edytora usług w oknie. */
-    const editServicesOf = (item: Lead) => {
-        setOpenServicesEditor(true);
-        setSearchParams({ lead: item.id }, { replace: true });
-    };
+    /**
+     * Zmiana segmentu ZDEJMUJE zaznaczenie.
+     *
+     * Bez tego wejście w „Zamknięte" przy otwartym panelu podmieniało go na okno
+     * modalne z tą samą sprawą: panel stoi pod warunkiem `isSplit && !inArchive`,
+     * okno pod `(!isSplit || inArchive) && selectedLeadId`, więc archiwum gasiło
+     * pierwszy warunek i zapalało drugi. Wyglądało to na przypadkowe otwarcie
+     * cudzego leada, bo nim było.
+     *
+     * Reguła jest szersza niż sama naprawa i celowo: zaznaczenie należy do LISTY,
+     * na którą się patrzy. Sprawa z „Twój ruch" wyświetlana obok kolejki „U klienta"
+     * to szczegóły rekordu, którego nie ma w widocznym spisie.
+     */
+    const changeSegment = useCallback(
+        (next: LeadSegment) => {
+            setSegment(next);
+            if (next !== 'ARCHIVE') setArchiveStatus(undefined);
+            selectLead(null);
+        },
+        [selectLead]
+    );
+
+    const openArchive = () => changeSegment('ARCHIVE');
 
     // Pierwsza synchronizacja skrzynki w toku: leady dopiero powstają z nadciągającej
-    // poczty, więc tabela rosnąca z sekundy na sekundę wyglądałaby jak zepsuta,
-    // nie jak niepełna. Jeden spokojny ekran z postępem zamiast tego.
+    // poczty, więc lista rosnąca z sekundy na sekundę wyglądałaby jak zepsuta.
     if (mailboxSync.syncing) {
         return (
-            <ViewContainer>
-                <PageHeader title="Leady" subtitle="Zapytania od potencjalnych klientów" />
-                <SurfaceCard>
-                    <MailboxSyncPanel />
-                </SurfaceCard>
-            </ViewContainer>
+            <ViewShell>
+                <QueueColumn $split={false}>
+                    <QueueHeader>
+                        <div>
+                            <h1>Zapytania</h1>
+                            <p>Zapytania od potencjalnych klientów</p>
+                        </div>
+                    </QueueHeader>
+                    <SurfaceCard style={{ margin: 16 }}>
+                        <MailboxSyncPanel />
+                    </SurfaceCard>
+                </QueueColumn>
+            </ViewShell>
         );
     }
 
     return (
-        <ViewContainer>
-            <PageHeader
-                title="Leady"
-                subtitle={
-                    leadPage
-                        ? `${leadPage.total} ${leadPage.total === 1 ? 'zapytanie' : 'zapytań'} w tym widoku`
-                        : 'Zapytania od potencjalnych klientów'
-                }
-                actions={
-                    <Link to="/leads/analytics">
-                        <PageHeaderGhostButton as="span">
-                            <BarChart3 /> Analityka
-                        </PageHeaderGhostButton>
-                    </Link>
-                }
-            />
+        <ViewShell>
+            <QueueColumn $split={isSplit && !inArchive}>
+                <QueueHeader>
+                    <div>
+                        <h1>Zapytania</h1>
+                        <p>
+                            {open.isLoading
+                                ? 'Zapytania od potencjalnych klientów'
+                                : `${open.total} ${open.total === 1 ? 'otwarta sprawa' : 'otwartych spraw'}`}
+                        </p>
+                    </div>
+                    {isWide ? (
+                        <Link to="/leads/analytics">
+                            <GhostAction><BarChart3 /> Analityka</GhostAction>
+                        </Link>
+                    ) : (
+                        <Link to="/leads/analytics" aria-label="Analityka">
+                            <IconAction title="Analityka"><BarChart3 /></IconAction>
+                        </Link>
+                    )}
+                </QueueHeader>
 
-            {owed && owed.count > 0 && !awaitingReply && (
-                <OwedStrip
-                    type="button"
-                    title="Pokaż rozmowy, w których czekamy z odpowiedzią"
-                    onClick={() => { setAwaitingReply(true); setPage(0); }}
-                >
-                    {/* Bez groszy: to jest kwota-hasło, nie pozycja na fakturze. */}
-                    <span className="amount">{formatMoney(owed.value)}</span>
-                    <span className="text">
-                        czeka na Twoją odpowiedź w{' '}
-                        <strong>{owed.count} {owed.count === 1 ? 'rozmowie' : 'rozmowach'}</strong>
-                        {owed.oldest && (
-                            <>
-                                {' - najdłużej '}
-                                <strong>{owed.oldest.name}</strong>
-                                {owed.oldest.vehicle && <>, {owed.oldest.vehicle}</>}
-                                {owed.oldest.waitingDays > 0 && <>, {owed.oldest.waitingDays} dni</>}
-                            </>
+                {/* Na wąskim ekranie archiwum jest trybem, nie zakładką - więc i wyjście
+                    z niego jest jawne, a nie ukryte w przełączniku, którego tam nie ma. */}
+                {!isWide && inArchive ? (
+                    <Toolbar>
+                        <BackToQueue type="button" onClick={() => changeSegment('OURS')}>
+                            <ArrowLeft /> Wróć do kolejki
+                        </BackToQueue>
+                    </Toolbar>
+                ) : (
+                    <Toolbar>
+                        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                            <LeadSegments
+                                value={segment}
+                                ours={queue.ours.length}
+                                client={queue.client.length}
+                                showArchive={isWide}
+                                onChange={changeSegment}
+                            />
+                        </div>
+                        {!isWide && (
+                            <IconAction
+                                as="button"
+                                type="button"
+                                onClick={openArchive}
+                                title="Szukaj w zamkniętych sprawach"
+                                aria-label="Szukaj w zamkniętych sprawach"
+                            >
+                                <Search />
+                            </IconAction>
                         )}
-                    </span>
-                    <ArrowRight />
-                </OwedStrip>
+                    </Toolbar>
+                )}
+
+                {segment === 'OURS' && queue.ours.length > 0 && (
+                    <OwedStrip>
+                        {/* Bez groszy: to jest kwota-hasło, nie pozycja na fakturze. */}
+                        <span className="amount">{formatMoney(owedValue)}</span>
+                        <span className="text">
+                            czeka na Twoją odpowiedź w {queue.ours.length}{' '}
+                            {queue.ours.length === 1 ? 'sprawie' : 'sprawach'}
+                        </span>
+                    </OwedStrip>
+                )}
+
+                {inArchive ? (
+                    <ArchivePane>
+                        <LeadArchive
+                            bundle={archive}
+                            query={archiveQuery}
+                            onQueryChange={setArchiveQuery}
+                            status={archiveStatus}
+                            onStatusChange={setArchiveStatus}
+                            onOpen={selectLead}
+                        />
+                    </ArchivePane>
+                ) : (
+                    <QueueScroll>
+                        {!open.isLoading && visible.length === 0 && (
+                            <EmptyHint>
+                                {segment === 'OURS'
+                                    ? 'Nikt nie czeka na Twoją odpowiedź.'
+                                    : 'Nie czekamy teraz na żadnego klienta.'}
+                            </EmptyHint>
+                        )}
+
+                        {visible.map(({ lead, urgency }) => (
+                            <LeadQueueCard
+                                key={lead.id}
+                                lead={lead}
+                                urgency={urgency}
+                                active={lead.id === selectedLeadId}
+                                onOpen={() => selectLead(lead.id)}
+                                onAction={(action) => runAction(lead, action)}
+                            />
+                        ))}
+
+                        {open.truncated && (
+                            <Truncated>
+                                Otwartych spraw jest więcej, niż mieści jedna strona. Zamknij
+                                część zapytań albo skorzystaj z analityki, żeby zobaczyć całość.
+                            </Truncated>
+                        )}
+                    </QueueScroll>
+                )}
+            </QueueColumn>
+
+            {/* Szczegóły obok kolejki: przeskakiwanie między sprawami nie zamyka
+                i nie otwiera okna, więc obsłużenie pięciu zapytań pod rząd to pięć
+                kliknięć, a nie piętnaście. */}
+            {isSplit && !inArchive && (
+                <DetailColumn>
+                    {selectedLeadId ? (
+                        <LeadDetailPane
+                            key={selectedLeadId}
+                            leadId={selectedLeadId}
+                            keyHint="j / k — następny lead"
+                            onClose={() => selectLead(null)}
+                            onDeleted={() => selectLead(null)}
+                        />
+                    ) : (
+                        <PaneEmpty>
+                            <Inbox />
+                            Wybierz sprawę z kolejki
+                        </PaneEmpty>
+                    )}
+                </DetailColumn>
             )}
 
-            <FiltersRow>
-                <FilterChip $active={!statusFilter} onClick={() => { setStatusFilter(undefined); setPage(0); }}>
-                    Wszystkie
-                </FilterChip>
-                {LEAD_STATUS_FLOW.map((option) => (
-                    <FilterChip
-                        key={option}
-                        $active={statusFilter === option}
-                        onClick={() => { setStatusFilter(option); setPage(0); }}
-                    >
-                        {LEAD_STATUS_LABELS[option]}
-                    </FilterChip>
-                ))}
-                {/* Stoi za statusami i wizualnie osobno, bo to inna oś: statusy dzielą
-                    leady po etapie, ten filtr - po tym, kto ma teraz ruch. Można je
-                    złożyć („W kontakcie" + „Do odpisania"), i o to chodzi. */}
-                <FilterSeparator />
-                <FilterChip
-                    $active={awaitingReply}
-                    title="Leady, w których ostatnie słowo należy do klienta"
-                    onClick={() => { setAwaitingReply((current) => !current); setPage(0); }}
-                >
-                    Do odpisania
-                </FilterChip>
-                <SearchBox>
-                    <Search size={14} />
-                    <input
-                        placeholder="Szukaj po adresie, telefonie, nazwisku…"
-                        value={query}
-                        onChange={(event) => { setQuery(event.target.value); setPage(0); }}
-                    />
-                </SearchBox>
-            </FiltersRow>
-
-            <SurfaceCard>
-                <TableScroll>
-                    <HeadRow>
-                        <span>Kontakt</span>
-                        <span>Pojazd</span>
-                        <span>Tagi</span>
-                        <span>Wartość</span>
-                        <span>Status</span>
-                        <span>Utworzony</span>
-                    </HeadRow>
-                    {leadPage && leadPage.items.length === 0 && (
-                        <EmptyHint>Brak leadów w tym widoku</EmptyHint>
-                    )}
-                    {(leadPage?.items ?? []).map((item) => (
-                        <Row
-                            key={item.id}
-                            $active={item.id === selectedLeadId}
-                            $tone={leadReplyTone(
-                                item.replyState,
-                                item.waitingSince,
-                                CLOSED_STATUSES.has(item.status)
-                            )}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => selectLead(item.id)}
-                            onKeyDown={(event) => {
-                                if (event.target !== event.currentTarget) return;
-                                if (event.key !== 'Enter' && event.key !== ' ') return;
-                                event.preventDefault();
-                                selectLead(item.id);
-                            }}
-                        >
-                            <span className="who">
-                                <LeadSourceIcon source={item.source} />
-                                <span>
-                                    <span className="name">{item.customerName ?? item.contactIdentifier}</span>
-                                    {item.customerName && <div className="sub">{item.contactIdentifier}</div>}
-                                </span>
-                            </span>
-
-                            {item.vehicleDetectionStatus === 'PENDING' ? (
-                                <span className="vehicle">
-                                    <VehicleSpinner title="Rozpoznajemy auto z korespondencji">
-                                        <Loader2 /> Rozpoznaję…
-                                    </VehicleSpinner>
-                                </span>
-                            ) : (
-                                <EditableCell
-                                    type="button"
-                                    title="Kliknij, żeby poprawić pojazd"
-                                    onClick={(event) => openCellEditor(event, item, 'vehicle')}
-                                >
-                                    {/* Awatar marki, ten sam co w module pojazdów: w kolumnie
-                                        pełnej podobnych do siebie napisów logo jest znakiem,
-                                        który wpada w oko przed przeczytaniem nazwy. Bez marki
-                                        nie ma czego pokazać - zostaje samo „-". */}
-                                    {item.vehicleBrand && <CarLogoImage brand={item.vehicleBrand} size="xs" />}
-                                    <span className={formatVehicle(item) ? 'value' : 'value none'}>
-                                        {formatVehicle(item) ?? '-'}
-                                    </span>
-                                </EditableCell>
-                            )}
-
-                            <EditableCell
-                                type="button"
-                                title="Kliknij, żeby zmienić tagi"
-                                onClick={(event) => openCellEditor(event, item, 'tags')}
-                            >
-                                {item.tagLabels.length === 0 && <span className="none">-</span>}
-                                {item.tagLabels.map((label) => (
-                                    <TagPill key={label}>{label}</TagPill>
-                                ))}
-                            </EditableCell>
-
-                            <EditableCell
-                                type="button"
-                                title="Kliknij, żeby otworzyć wycenę"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    editServicesOf(item);
-                                }}
-                            >
-                                {/* Wartość to suma wyceny, więc nie da się jej wpisać wprost -
-                                    kliknięcie prowadzi tam, gdzie ta liczba naprawdę powstaje. */}
-                                <span className="value" style={{ fontWeight: 600, color: '#0f172a' }}>
-                                    {item.estimatedValue > 0 ? formatGrosze(item.estimatedValue) : '-'}
-                                </span>
-                            </EditableCell>
-
-                            <EditableCell
-                                type="button"
-                                title="Kliknij, żeby zmienić status"
-                                onClick={(event) => openCellEditor(event, item, 'status')}
-                            >
-                                {/* Etap i „czyj ruch" jedno pod drugim: to dwie odpowiedzi
-                                    na dwa różne pytania o ten sam lead, a rozdzielone
-                                    na dwie kolumny kazałyby wodzić wzrokiem w bok. */}
-                                <StatusStack>
-                                    <StatusLine>
-                                        <StatusDot $color={LEAD_STATUS_COLORS[item.status].fg} />
-                                        {LEAD_STATUS_LABELS[item.status]}
-                                    </StatusLine>
-                                    <LeadReplyBadge
-                                        replyState={item.replyState}
-                                        waitingSince={item.waitingSince}
-                                        muted={CLOSED_STATUSES.has(item.status)}
-                                    />
-                                </StatusStack>
-                            </EditableCell>
-
-                            <span>{formatRelativeTime(item.createdAt)}</span>
-                        </Row>
-                    ))}
-                </TableScroll>
-            </SurfaceCard>
-
-            {selectedLeadId && (
+            {/* Wąski ekran (albo archiwum): szczegóły jako okno pełnoekranowe. */}
+            {(!isSplit || inArchive) && selectedLeadId && (
                 <LeadDetailModal
-                    // Remount na każdego leada: stan edycji (wycena, pojazd) należy
-                    // do jednego otwarcia i nie ma prawa przejść na następnego.
+                    // Remount na każdą sprawę: stan edycji (wycena, pojazd, tagi)
+                    // należy do jednego otwarcia i nie ma prawa przejść na następną.
                     key={selectedLeadId}
                     leadId={selectedLeadId}
-                    openServicesEditor={openServicesEditor}
                     onClose={() => selectLead(null)}
+                    onDeleted={() => selectLead(null)}
                 />
             )}
-
-            {cellEditor && (
-                <LeadCellEditor
-                    // Remount na każdą komórkę zeruje pola bez efektu synchronizującego stan.
-                    key={`${cellEditor.lead.id}-${cellEditor.field}`}
-                    lead={cellEditor.lead}
-                    field={cellEditor.field}
-                    anchor={cellEditor.anchor}
-                    onClose={() => setCellEditor(null)}
-                    onRequestLost={status.requestLost}
-                    onChangeStatus={status.requestStatus}
-                />
-            )}
-
-            {status.lostDialog}
-        </ViewContainer>
+        </ViewShell>
     );
 }

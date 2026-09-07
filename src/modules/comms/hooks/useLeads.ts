@@ -1,6 +1,6 @@
 // src/modules/comms/hooks/useLeads.ts
-import { useCallback, useEffect, useRef } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
@@ -9,11 +9,13 @@ import { apiClient } from '@/core/apiClient';
 import { useToast } from '@/common/components/Toast';
 import { leadsApi } from '../api/leadsApi';
 import { COMMS_THREADS_KEY } from './useComms';
+import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrgency';
 import type {
     DashboardSocketEvent,
     Lead,
     LeadPage,
     LeadServiceItemInput,
+    LeadSortDirection,
     LeadStatus,
     MarkThreadAsLeadRequest,
     SimilarVisits,
@@ -27,6 +29,7 @@ export const useLeads = (filters: {
     status?: LeadStatus;
     query?: string;
     awaitingReply?: boolean;
+    sortDirection?: LeadSortDirection;
     page?: number;
     pageSize?: number;
 }) =>
@@ -35,6 +38,127 @@ export const useLeads = (filters: {
         queryFn: () => leadsApi.getLeads(filters),
         placeholderData: (previous) => previous,
     });
+
+/** Sprawy w toku - te, które mają jeszcze „czyj ruch". */
+export const OPEN_LEAD_STATUSES: LeadStatus[] = ['NEW', 'IN_PROGRESS', 'CONFIRMED'];
+
+/** Sprawy rozstrzygnięte - archiwum. */
+export const CLOSED_LEAD_STATUSES: LeadStatus[] = ['COMPLETED', 'LOST', 'NO_SHOW'];
+
+/** Sufit narzucony przez serwer (pageSize.coerceIn(1, 100)) - nie ma sensu prosić o więcej. */
+const BUNDLE_PAGE_SIZE = 100;
+
+export interface LeadBundle {
+    items: Lead[];
+    total: number;
+    isLoading: boolean;
+    /**
+     * Któryś ze statusów wypełnił stronę do sufitu, więc lista jest niepełna.
+     * Widok MUSI to pokazać - ciche gubienie rekordów jest dokładnie tym błędem,
+     * który tabela popełniała przez brak paginacji.
+     */
+    truncated: boolean;
+}
+
+/**
+ * Leady kilku statusów naraz, złożone w jedną listę.
+ *
+ * Serwerowy filtr `status` jest jednowartościowy, więc „wszystkie otwarte" to
+ * trzy zapytania. Brzmi rozrzutnie, ale przy realnym stanie konta (dziesiątki
+ * spraw otwartych) każde z nich jest krótkie, a TanStack trzyma je w pamięci
+ * podręcznej pod tym samym prefiksem co reszta modułu - więc WebSocket i
+ * unieważnienia mutacji obsługują je za darmo.
+ *
+ * Kolejność ustala konsument, na scalonym zbiorze: żadne sortowanie serwerowe
+ * nie ułoży trzech osobnych odpowiedzi w jedną kolejkę. To świadome odstępstwo
+ * od zasady „sortowanie na backendzie" i jest ograniczone: gdy [truncated]
+ * zacznie zapalać się u realnych klientów, kolejka musi dostać jedno zapytanie
+ * z filtrem wielostatusowym i sortowaniem po stronie serwera.
+ */
+export const useLeadsByStatuses = (
+    statuses: LeadStatus[],
+    options: { query?: string; sortDirection?: LeadSortDirection } = {}
+): LeadBundle => {
+    const { query, sortDirection } = options;
+
+    const results = useQueries({
+        queries: statuses.map((status) => {
+            const filters = {
+                status,
+                query: query || undefined,
+                sortDirection,
+                page: 0,
+                pageSize: BUNDLE_PAGE_SIZE,
+            };
+            return {
+                queryKey: [...LEADS_KEY, 'list', filters],
+                queryFn: () => leadsApi.getLeads(filters),
+                placeholderData: (previous: LeadPage | undefined) => previous,
+            };
+        }),
+    });
+
+    return useMemo(() => {
+        const pages = results.map((result) => result.data).filter(Boolean) as LeadPage[];
+        return {
+            items: pages.flatMap((page) => page.items),
+            total: pages.reduce((sum, page) => sum + page.total, 0),
+            isLoading: results.some((result) => result.isLoading),
+            truncated: pages.some((page) => page.items.length >= BUNDLE_PAGE_SIZE),
+        };
+        // Zależność po danych, nie po tablicy wyników: useQueries zwraca nową
+        // tablicę przy każdym renderze, więc referencja niczego nie mówi.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [results.map((r) => r.dataUpdatedAt).join('|'), results.some((r) => r.isLoading)]);
+};
+
+/**
+ * Progi stygnięcia studia - jedno źródło prawdy dla kolejki, plakietek i paska
+ * pilności. [staleTime] długi, bo to ustawienie zmieniane raz na kwartał, a nie
+ * dane operacyjne; przy braku odpowiedzi (starszy backend, brak uprawnień)
+ * konsument sięga po DEFAULT_STAGNATION i widok działa dalej.
+ */
+export const useLeadAlertConfig = () =>
+    useQuery({
+        queryKey: [...LEADS_KEY, 'alert-config'],
+        queryFn: leadsApi.getAlertConfig,
+        staleTime: 30 * 60_000,
+        retry: false,
+    });
+
+/**
+ * Para, którą backend zwraca, gdy studio NICZEGO nie ustawiło.
+ *
+ * TYMCZASOWE. Kolumny lead_stagnant_* nie mają migracji Flyway i powstają tylko
+ * z ddl-auto, a kontroler podstawia `?: 48` / `?: 72`. Żaden ekran nie pozwala
+ * ich zmienić, a endpoint jest owner-only i nieudokumentowany - więc 48/72
+ * w praktyce znaczy „nieskonfigurowane", a nie „tak wybrał właściciel".
+ *
+ * Gdyby to potraktować jako wybór, wdrożenie samego frontendu przestawiłoby
+ * każdą plakietkę u wszystkich klientów naraz: próg naszej zwłoki z 24 h na 48,
+ * cisza klienta z 5 dni na 3 - bez żadnej decyzji produktowej.
+ *
+ * DO USUNIĘCIA razem z migracją V115, która ustawi domyślne na 24/120
+ * (docs/leads-queue-backend-spec.md, punkt B3). Po niej ta para przestanie być
+ * wyróżniona i będzie znaczyć dokładnie to, co mówi.
+ */
+const UNCONFIGURED_BACKEND_DEFAULTS = { our: 48, client: 72 } as const;
+
+/** Progi w kształcie, którego oczekuje reguła pilności; domyślne, gdy serwer milczy. */
+export const useStagnationThresholds = (): StagnationThresholds => {
+    const { data } = useLeadAlertConfig();
+    return useMemo(() => {
+        if (!data) return DEFAULT_STAGNATION;
+        const unconfigured =
+            data.leadStagnantOurThresholdHours === UNCONFIGURED_BACKEND_DEFAULTS.our &&
+            data.leadStagnantClientThresholdHours === UNCONFIGURED_BACKEND_DEFAULTS.client;
+        if (unconfigured) return DEFAULT_STAGNATION;
+        return {
+            ourReplyHours: data.leadStagnantOurThresholdHours,
+            clientSilenceHours: data.leadStagnantClientThresholdHours,
+        };
+    }, [data]);
+};
 
 export const useLead = (leadId: string | null) =>
     useQuery({
@@ -269,7 +393,18 @@ export const useRecordLeadCallback = () => {
             leadsApi.recordCallback(leadId, note),
         onSuccess: (_callback, { leadId }) => {
             invalidate(leadId);
-            showSuccess('Kontakt odnotowany', 'Lead zszedł z kolejki oczekujących na odpowiedź');
+            /*
+             * Komunikat mówi o tym, co ZASZŁO, a nie o tym, co powinno z tego wyniknąć.
+             *
+             * Stało tu „Lead zszedł z kolejki oczekujących na odpowiedź" - zdanie
+             * nieprawdziwe za każdym razem, gdy backend nie miał czym przesunąć
+             * „czyjego ruchu": telefon trafia do `lead_callbacks`, a `replyState`
+             * liczy się z `comm_messages` i przy drugim kontakcie w tej samej sprawie
+             * nie drgnie. Kolejka bywa więc dokładnie tam, gdzie była - a użytkownik
+             * przeczytał, że jest inaczej. Fałszywy komunikat kosztuje zaufanie do
+             * wszystkich następnych.
+             */
+            showSuccess('Kontakt odnotowany', 'Zapisany w przebiegu sprawy');
         },
         onError: (error) => {
             const message =

@@ -2,12 +2,14 @@
 import { apiClient } from '@/core/apiClient';
 import type {
     Lead,
+    LeadAlertConfig,
     LeadAnalytics,
     DictionaryEntry,
     LeadDictionaries,
     LeadNote,
     LeadPage,
     LeadServiceItemInput,
+    LeadSortDirection,
     LeadStatus,
     LeadTimelineEntry,
     LeadCallback,
@@ -21,6 +23,13 @@ export const leadsApi = {
         query?: string;
         /** true = tylko leady, w których ostatnie słowo należy do klienta. */
         awaitingReply?: boolean;
+        /**
+         * Kierunek po dacie wpłynięcia. Backend do wersji z parametrem sortuje na
+         * sztywno DESC i nieznany parametr po prostu ignoruje - czyli kolejka do
+         * czasu wdrożenia backendu pokazuje właściwe leady w odwrotnej kolejności,
+         * a nie pustą listę. Świadoma degradacja, nie przeoczenie.
+         */
+        sortDirection?: LeadSortDirection;
         page?: number;
         pageSize?: number;
     }): Promise<LeadPage> => {
@@ -28,9 +37,22 @@ export const leadsApi = {
         if (filters.status) params.set('status', filters.status);
         if (filters.query) params.set('query', filters.query);
         if (filters.awaitingReply) params.set('awaitingReply', 'true');
+        if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);
         params.set('page', String(filters.page ?? 0));
         params.set('pageSize', String(filters.pageSize ?? 25));
         const { data } = await apiClient.get(`/v1/leads?${params}`);
+        return data;
+    },
+
+    /**
+     * Progi stygnięcia studia. Ścieżka jest pod /v1/company, bo to ustawienie
+     * firmy, a nie zasób leada - ale czyta je wyłącznie moduł leadów, więc
+     * wywołanie mieszka tutaj, przy jedynym konsumencie.
+     */
+    getAlertConfig: async (): Promise<LeadAlertConfig> => {
+        const { data } = await apiClient.get('/v1/company/lead-alert-config', {
+            skipErrorToast: true,
+        });
         return data;
     },
 

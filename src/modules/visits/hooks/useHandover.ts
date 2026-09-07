@@ -9,6 +9,12 @@ import { companyApi } from '@/modules/settings/api/companyApi';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { useToast } from '@/common/components/Toast';
 import { isPiiMasked } from '@/common/pii';
+import { useThankYouSmsAvailability } from './useThankYouSmsAvailability';
+import {
+    buildThankYouSmsPayload,
+    defaultThankYouSendAt,
+    toDateTimeLocal,
+} from '../components/handover/thankYouSms';
 import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
@@ -177,6 +183,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             exemptionBasis: '',
             protocolSigned: false,
             sendToKsef: null,
+            // Zaznaczone domyślnie: podziękowanie jest tym, co studio chce wysłać -
+            // problemem była zawsze pora, a nie sama wiadomość.
+            thankYouSms: true,
+            thankYouSmsAt: toDateTimeLocal(defaultThankYouSendAt()),
         };
     }, [visit, priceOf, totals.gross]);
 
@@ -207,6 +217,13 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // wydanie pojazdu nadal działa, w trybie uproszczonym, bez dokumentu; backend
     // egzekwuje tę samą regułę (jawna faktura -> 402, paragon pomijany).
     const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
+
+    // Wybór momentu podziękowania ma sens tylko wtedy, gdy studio takie SMS-y w ogóle
+    // wysyła. Przy wyłączonym szablonie sekcja znika i nic o niej nie idzie do backendu.
+    const thankYouSms = useThankYouSmsAvailability({
+        enabled: isOpen,
+        customerPhone: visit.customer.phone,
+    });
 
     // Stan integracji z KSeF (token, jego uprawnienia, domyślna odpowiedź studia).
     // Pytamy tylko wtedy, gdy faktura w ogóle wchodzi w grę - wizyta bezpłatna ani
@@ -300,6 +317,11 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                     documentType === 'INVOICE' && canIssueDocuments
                         ? toInvoicePayload(state, totals.gross, sendToKsef)
                         : undefined,
+                thankYouSms: buildThankYouSmsPayload({
+                    available: thankYouSms.available,
+                    send: state.thankYouSms,
+                    sendAt: state.thankYouSmsAt,
+                }),
             });
         },
         onSuccess: response => {
@@ -327,6 +349,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         // stan
         state,
         patch,
+        thankYouSms,
         ksef,
         sendToKsef,
         canChooseSendToKsef,

@@ -396,10 +396,6 @@ export const ActivityView = () => {
                 <Hero>
                     <HeroInner>
                         <HeroText>
-                            <HeroEyebrow>
-                                <Activity />
-                                Historia firmy
-                            </HeroEyebrow>
                             <HeroTitle>Aktywność</HeroTitle>
                             <HeroSubtitle>
                                 Wszystko, co dzieje się w studiu: kto co zrobił, kiedy i na jaką

@@ -76,10 +76,10 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'booking',
     name: 'Link do Karty Rezerwacji',
     description:
-      'Strona rezerwacji ze szczegółami terminu i zakresem usług z wyceną, wysyłana zanim pojazd trafi do serwisu. Wstaw zmienną link, żeby dodać adres strony.',
+      'Strona rezerwacji ze szczegółami terminu i zakresem usług z wyceną, wysyłana zanim pojazd trafi do serwisu. Wstaw zmienną link, żeby dodać adres strony. Pojazd bywa jeszcze nieznany na tym etapie - wtedy {{pojazd}} i {{rejestracja}} zostają puste. Numeru wizyty tu nie ma: wizyta powstaje dopiero przy przyjęciu pojazdu.',
     trigger: 'Przy wysyłce Karty Rezerwacji',
-    sms: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER, ...SCHEDULE, 'link'] },
-    email: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER_FULL, ...SCHEDULE, 'link'] },
+    sms: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER, ...VEHICLE, ...SCHEDULE, 'link'] },
+    email: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...SCHEDULE, 'link'] },
   },
   {
     key: 'preVisit',
@@ -159,7 +159,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'after',
     name: 'Podziękowanie po wizycie',
     description:
-      'Wysyłane tylko po wizytach faktycznie zakończonych, a czas liczymy od momentu odbioru pojazdu. Rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
+      'Wysyłane tylko po wizytach faktycznie zakończonych. Godzinę wybiera pracownik przy wydaniu pojazdu (12:00-18:00), a poniższe opóźnienie obowiązuje tylko wtedy, gdy przy wydaniu nikt jej nie ustawił. Rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
     trigger: 'Po odbiorze pojazdu',
     timing: 'afterPickup',
     sms: { ruleKey: 'postVisit', placeholders: [...CUSTOMER, ...SCHEDULE] },
