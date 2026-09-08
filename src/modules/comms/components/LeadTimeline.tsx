@@ -13,9 +13,16 @@
 // czasu stoi W LINII nazwy zdarzenia, a treść wiadomości jest zwykłym akapitem -
 // bez przycisku, bez cytatu, bez ramki.
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadTimelineEntry } from '../types';
+import { Paperclip } from 'lucide-react';
+import { commsApi } from '../api/commsApi';
+import {
+    LEAD_STATUS_COLORS,
+    LEAD_STATUS_LABELS,
+    type LeadTimelineAttachment,
+    type LeadTimelineEntry,
+} from '../types';
 import { formatAge } from '../utils/leadUrgency';
 
 /**
@@ -25,7 +32,10 @@ import { formatAge } from '../utils/leadUrgency';
  */
 const colorOf = (entry: LeadTimelineEntry, theme: DefaultTheme): string => {
     switch (entry.kind) {
-        case 'INBOUND_MESSAGE': return theme.colors.warning;
+        // Załączniki bez wiadomości też przyszły od klienta — kropka ma o tym mówić
+        // tym samym kolorem, którym mówi o jego mailu.
+        case 'INBOUND_MESSAGE':
+        case 'ATTACHMENTS': return theme.colors.warning;
         case 'OUTBOUND_MESSAGE':
         case 'CALLBACK': return theme.colors.success;
         case 'STATUS':
@@ -130,6 +140,48 @@ const Text = styled.div`
     overflow-wrap: anywhere;
 `;
 
+/**
+ * Rząd plików pod treścią zdarzenia.
+ *
+ * Ten sam kształt plakietki co w skrzynce ([ConversationView], [MessageReaderOverlay]) —
+ * plik wygląda tak samo niezależnie od tego, w którym miejscu CRM-u się na niego patrzy.
+ */
+const AttachmentRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+`;
+
+const AttachmentChip = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surfaceAlt};
+    color: ${p => p.theme.colors.textSecondary};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    max-width: 100%;
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+`;
+
+const ChipName = styled.span`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const ChipSize = styled.span`
+    flex-shrink: 0;
+    color: ${p => p.theme.colors.textMuted};
+    font-variant-numeric: tabular-nums;
+`;
+
 const Empty = styled.div`
     font-size: 13px;
     color: ${p => p.theme.colors.textMuted};
@@ -146,6 +198,8 @@ const headlineOf = (entry: LeadTimelineEntry, isFirstInbound: boolean): string =
             return isFirstInbound ? 'Pierwszy kontakt klienta' : 'Klient odpisał';
         case 'OUTBOUND_MESSAGE':
             return 'Odpisaliśmy';
+        case 'ATTACHMENTS':
+            return 'Klient przysłał pliki';
         case 'CALLBACK':
             // Nie „Oddzwoniliśmy": zapis nie niesie kanału, a kontaktem bywa SMS albo
             // spotkanie. Nazwa ma opisywać to, co wiemy, i brzmieć tak samo jak
@@ -166,6 +220,12 @@ const headlineOf = (entry: LeadTimelineEntry, isFirstInbound: boolean): string =
  */
 const showsActor = (kind: LeadTimelineEntry['kind']): boolean =>
     kind === 'CALLBACK' || kind === 'STATUS';
+
+/**
+ * Rozmiar pliku w kilobajtach — jak w skrzynce. Plik mniejszy niż kilobajt i tak
+ * ma dostać liczbę, bo „0 KB" wygląda jak plik pusty; taki pokazujemy jako „1 KB".
+ */
+const sizeOf = (bytes: number): string => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 const agoOf = (iso: string): string => {
     const age = formatAge(Math.max(0, Date.now() - new Date(iso).getTime()));
@@ -196,6 +256,29 @@ interface LeadTimelineProps {
 }
 
 export function LeadTimeline({ entries }: LeadTimelineProps) {
+    /*
+     * Pobranie przez blob, a nie przez `<a href>`: załącznik chroniony jest sesją,
+     * więc żądanie musi przejść tą samą drogą co reszta API. Ta sama procedura co
+     * w skrzynce ([MailView]).
+     */
+    const download = useCallback(
+        async (attachment: LeadTimelineAttachment) => {
+            try {
+                const blob = await commsApi.downloadAttachment(attachment.id);
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = attachment.fileName;
+                anchor.click();
+                URL.revokeObjectURL(url);
+            } catch {
+                // Komunikat pokazuje już przechwytywacz `apiClient` — tu zostaje
+                // tylko zdjęcie odrzuconej obietnicy, żeby nie wisiała w konsoli.
+            }
+        },
+        []
+    );
+
     /*
      * Backend oddaje oś rosnąco (`compareBy({ it.at })`), a czyta się ją od końca:
      * pytanie brzmi „co się wydarzyło ostatnio", nie „od czego się zaczęło".
@@ -244,6 +327,22 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                                 </When>
                             </HeadRow>
                             {text && <Text>{text}</Text>}
+                            {entry.attachments.length > 0 && (
+                                <AttachmentRow>
+                                    {entry.attachments.map((attachment) => (
+                                        <AttachmentChip
+                                            key={attachment.id}
+                                            type="button"
+                                            title={attachment.fileName}
+                                            onClick={() => void download(attachment)}
+                                        >
+                                            <Paperclip size={12} />
+                                            <ChipName>{attachment.fileName}</ChipName>
+                                            <ChipSize>{sizeOf(attachment.sizeBytes)}</ChipSize>
+                                        </AttachmentChip>
+                                    ))}
+                                </AttachmentRow>
+                            )}
                         </EntryBody>
                     </Entry>
                 );

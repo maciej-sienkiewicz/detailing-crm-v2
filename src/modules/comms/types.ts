@@ -317,7 +317,21 @@ export type LeadTimelineKind =
     | 'STATUS'
     | 'INBOUND_MESSAGE'
     | 'OUTBOUND_MESSAGE'
-    | 'CALLBACK';
+    | 'CALLBACK'
+    /**
+     * Pliki od klienta, których wiadomości na osi nie ma — tak wygląda zgłoszenie
+     * z formularza WWW: lead nie ma wątku (wątek należy do robota formularza),
+     * a to właśnie tam klient najczęściej dokłada zdjęcia.
+     */
+    | 'ATTACHMENTS';
+
+/** Wskazanie na plik w skrzynce; sam plik pobiera się na żądanie. */
+export interface LeadTimelineAttachment {
+    id: string;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+}
 
 export interface LeadTimelineEntry {
     id: string;
@@ -333,6 +347,8 @@ export interface LeadTimelineEntry {
     body: string | null;
     /** Notatka przy odnotowanym telefonie; opcjonalna, jak samo pole. */
     note: string | null;
+    /** Załączniki przysłane przez klienta; pusta lista przy zdarzeniach bez plików. */
+    attachments: LeadTimelineAttachment[];
 }
 
 /**

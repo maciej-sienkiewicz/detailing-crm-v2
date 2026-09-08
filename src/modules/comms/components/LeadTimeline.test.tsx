@@ -32,6 +32,7 @@ const entry = (over: Partial<LeadTimelineEntry> & Pick<LeadTimelineEntry, 'id' |
     subject: null,
     body: null,
     note: null,
+    attachments: [],
     ...over,
 });
 
@@ -94,9 +95,10 @@ describe('LeadTimeline', () => {
         expect(screen.getByText('za drogo. 800 dam')).toBeTruthy();
     });
 
-    it('oś czasu nie ma czym klikać — to jest tekst do przeczytania', () => {
+    it('sama korespondencja nie ma czym klikać — to jest tekst do przeczytania', () => {
         // Ikona oka przy każdym wierszu robiła z przebiegu sprawy listę przycisków
-        // i przyciągała wzrok mocniej niż nazwy zdarzeń, które stały obok.
+        // i przyciągała wzrok mocniej niż nazwy zdarzeń, które stały obok. Jedyne
+        // przyciski, jakie na osi zostają, to pliki — a te są do pobrania.
         const { container } = renderTimeline(conversation);
 
         expect(container.querySelectorAll('button')).toHaveLength(0);
@@ -159,6 +161,45 @@ describe('LeadTimeline', () => {
         renderTimeline([entry({ id: '1', kind: 'CALLBACK', actorName: 'Maciej Sienkiewicz' })]);
 
         expect(screen.getByText('Kontakt poza pocztą')).toBeTruthy();
+    });
+
+    it('pliki przysłane przez klienta wiszą pod jego wiadomością', () => {
+        // Zgłoszenie z produkcji: klient dołączał do zapytania zdjęcia lakieru,
+        // a w „Przebiegu sprawy" nie było po nich śladu — trzeba było wiedzieć,
+        // że są w skrzynce, i trafić w odpowiedni wątek.
+        renderTimeline([
+            entry({
+                id: '1',
+                kind: 'INBOUND_MESSAGE',
+                body: 'zdjęcia w załączniku',
+                attachments: [
+                    { id: 'a1', fileName: 'lakier-przod.jpg', contentType: 'image/jpeg', sizeBytes: 245_000 },
+                    { id: 'a2', fileName: 'lakier-tyl.jpg', contentType: 'image/jpeg', sizeBytes: 512 },
+                ],
+            }),
+        ]);
+
+        expect(screen.getByText('lakier-przod.jpg')).toBeTruthy();
+        expect(screen.getByText('239 KB')).toBeTruthy();
+        // Plik mniejszy niż kilobajt też dostaje liczbę — „0 KB" wygląda jak plik pusty.
+        expect(screen.getByText('1 KB')).toBeTruthy();
+    });
+
+    it('pliki bez wiadomości są własnym zdarzeniem', () => {
+        // Zgłoszenie z formularza WWW: lead świadomie nie ma wątku (wątek należy do
+        // robota), więc zdjęcia klienta nie mają się pod czym powiesić.
+        renderTimeline([
+            entry({
+                id: 'attachments-1',
+                kind: 'ATTACHMENTS',
+                attachments: [
+                    { id: 'a1', fileName: 'formularz.jpg', contentType: 'image/jpeg', sizeBytes: 102_400 },
+                ],
+            }),
+        ]);
+
+        expect(screen.getByText('Klient przysłał pliki')).toBeTruthy();
+        expect(screen.getByText('formularz.jpg')).toBeTruthy();
     });
 
     it('pusta oś mówi wprost, że nic się nie wydarzyło', () => {
