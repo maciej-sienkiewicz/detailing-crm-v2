@@ -207,6 +207,22 @@ export interface CreateUpsellSuggestionRequest {
     notifyCustomer?: boolean;
 }
 
+/**
+ * Kilka propozycji zapisanych za jednym razem — i jedno powiadomienie na wszystkie.
+ * Pracownik ogląda auto raz; klient ma dostać jednego SMS-a wymieniającego wszystko,
+ * nie trzy pod rząd, każdy za osobny kredyt.
+ */
+export interface CreateUpsellSuggestionsRequest {
+    suggestions: Array<Omit<CreateUpsellSuggestionRequest, 'notifyCustomer'>>;
+    notifyCustomer?: boolean;
+}
+
+export interface CreateUpsellSuggestionsResponse {
+    suggestions: UpsellSuggestion[];
+    /** Jeden wynik na całą listę; null, gdy pracownik nie prosił o powiadomienie. */
+    customerNotification: UpsellNotificationResult | null;
+}
+
 /** Wynik powiadomienia klienta SMS-em, zwracany razem z utworzoną sugestią. */
 export interface UpsellNotificationResult {
     /** Wiadomość przyjęta: wysłana od ręki albo zakolejkowana na godziny wysyłki. */

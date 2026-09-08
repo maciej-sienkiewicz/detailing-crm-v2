@@ -19,7 +19,7 @@ import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjust
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
-import { useCapability } from '@/modules/subscription';
+import { useUpsellNotificationAvailability } from '../hooks/useUpsellNotificationAvailability';
 import type { Service, VatRate } from '@/modules/services/types';
 import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
 import type { UpsellNotificationResult, UpsellSuggestion, UpsellSuggestionStatus } from '../types';
@@ -465,6 +465,46 @@ const NotifyHint = styled.span`
     color: #64748b;
 `;
 
+const StagedBox = styled.div`
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+`;
+
+const StagedHeading = styled.div`
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+`;
+
+const Footer = styled.div`
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+`;
+
+const FooterActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+`;
+
+const TemplateHint = styled.p`
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #64748b;
+`;
+
 const NotificationResult = styled.div<{ $ok: boolean }>`
     margin-top: 10px;
     padding: 8px 12px;
@@ -491,11 +531,29 @@ interface UpsellSuggestionsManagerProps {
 
 const MONEY_TYPES: AdjustmentType[] = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'];
 
+/**
+ * Usługa odłożona do zapisania, jeszcze nie wysłana na serwer.
+ *
+ * Poczekalnia istnieje po to, żeby kilka propozycji poszło JEDNYM żądaniem, a klient
+ * dostał jedną wiadomość wymieniającą wszystko — zamiast trzech SMS-ów pod rząd,
+ * każdego za osobny kredyt. Cena i rabat są zamrożone w chwili odłożenia.
+ */
+interface StagedSuggestion {
+    key: string;
+    service: Service;
+    adjustment?: { type: AdjustmentType; value: number };
+    note?: string;
+    finalGrossCents: number;
+}
+
 export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsManagerProps) => {
-    // Powiadomienie SMS to moduł komunikacji: bez niego checkbox nie ma prawa się pojawić —
-    // backend i tak by odmówił, a pracownik nie ma oglądać opcji, której nie kupił.
-    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
+    // Powiadomienie SMS to moduł komunikacji ORAZ włączony szablon: bez modułu checkbox
+    // nie ma prawa się pojawić (backend i tak by odmówił, a pracownik nie ma oglądać
+    // opcji, której nie kupił), bez szablonu — zamiast checkboxa idzie informacja, co
+    // trzeba włączyć, żeby móc powiadamiać.
+    const notify = useUpsellNotificationAvailability(active);
     const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
+    const [staged, setStaged] = useState<StagedSuggestion[]>([]);
     const [notifyCustomer, setNotifyCustomer] = useState(false);
     const [notification, setNotification] = useState<UpsellNotificationResult | null>(null);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -520,6 +578,8 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         let cancelled = false;
         setError(null);
         setSelectedService(null);
+        setStaged([]);
+        setNotification(null);
         visitCardApi.getUpsellSuggestions(target)
             .then(list => { if (!cancelled) setSuggestions(list); })
             .catch(() => { if (!cancelled) setError('Nie udało się pobrać sugerowanych usług.'); });
@@ -585,28 +645,61 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         });
     };
 
-    const handleAdd = async () => {
-        if (!selectedService) return;
+    /** Pozycja z panelu → poczekalnia. Null, gdy panel nie nadaje się jeszcze do zapisania. */
+    const stageCurrent = (): StagedSuggestion | null => {
+        if (!selectedService) return null;
         if (discountOpen && adjustmentInput.trim() !== '' && (Number.isNaN(parsedValue) || parsedValue < 0)) {
             setError('Wartość rabatu musi być liczbą nieujemną.');
-            return;
+            return null;
         }
+        return {
+            key: `${selectedService.id}:${Date.now()}`,
+            service: selectedService,
+            adjustment: discountActive ? toAdjustment() : undefined,
+            note: noteOpen ? (note.trim() || undefined) : undefined,
+            finalGrossCents: preview?.finalGrossCents ?? selectedService.basePriceNet,
+        };
+    };
+
+    /** „Dodaj kolejną usługę": odkłada bieżącą i wraca do wyszukiwarki. */
+    const handleStageAndNext = () => {
+        const item = stageCurrent();
+        if (!item) return;
+        setStaged(prev => [...prev, item]);
+        setSelectedService(null);
+        setError(null);
+    };
+
+    const handleUnstage = (key: string) => setStaged(prev => prev.filter(item => item.key !== key));
+
+    /**
+     * Zapisuje wszystko naraz: to, co w poczekalni, plus usługę otwartą w panelu.
+     * Jedno żądanie, więc jedna wiadomość do klienta — o to w tym całym ekranie chodzi.
+     */
+    const handleSave = async () => {
+        const current = selectedService ? stageCurrent() : null;
+        if (selectedService && !current) return;
+        const items = current ? [...staged, current] : staged;
+        if (items.length === 0) return;
 
         setBusy(true);
         setError(null);
         setNotification(null);
         try {
-            const created = await visitCardApi.createUpsellSuggestion(target, {
-                serviceId: selectedService.id,
-                adjustment: discountActive ? toAdjustment() : undefined,
-                note: noteOpen ? (note.trim() || undefined) : undefined,
-                notifyCustomer: comms.enabled && notifyCustomer ? true : undefined,
+            const created = await visitCardApi.createUpsellSuggestions(target, {
+                suggestions: items.map(item => ({
+                    serviceId: item.service.id,
+                    adjustment: item.adjustment,
+                    note: item.note,
+                })),
+                notifyCustomer: notify.templateReady && notifyCustomer ? true : undefined,
             });
+            setStaged([]);
             setSelectedService(null);
             setNotification(created.customerNotification ?? null);
             await reload();
         } catch {
-            setError('Nie udało się dodać sugestii.');
+            setError(items.length === 1 ? 'Nie udało się dodać sugestii.' : 'Nie udało się dodać sugestii.');
         } finally {
             setBusy(false);
         }
@@ -625,6 +718,9 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         }
     };
 
+    /** Ile propozycji pójdzie w najbliższym zapisie: poczekalnia + usługa otwarta w panelu. */
+    const pendingCount = staged.length + (selectedService ? 1 : 0);
+
     const discountLabels = t.appointments.invoiceSummary.discountTypes;
 
     return (
@@ -634,6 +730,26 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                 Wybrane usługi (z opcjonalnym rabatem) pojawią się na Karcie Wizyty jako propozycje.
                 Gdy klient je wybierze, otrzyma SMS z prośbą o potwierdzenie odpowiedzią „TAK”.
             </Hint>
+
+            {staged.length > 0 && (
+                <StagedBox>
+                    <StagedHeading>Do zapisania ({staged.length})</StagedHeading>
+                    <List>
+                        {staged.map(item => (
+                            <Row key={item.key}>
+                                <RowInfo>
+                                    <RowName>{item.service.name}</RowName>
+                                    {item.note && <RowMeta>{item.note}</RowMeta>}
+                                </RowInfo>
+                                <RowPrice>{formatPln(item.finalGrossCents)}</RowPrice>
+                                <RemoveBtn onClick={() => handleUnstage(item.key)} disabled={busy}>
+                                    Usuń
+                                </RemoveBtn>
+                            </Row>
+                        ))}
+                    </List>
+                </StagedBox>
+            )}
 
             {!selectedService && <ServiceAutocomplete onSelect={handleSelectService} onAddNew={handleAddNew} />}
 
@@ -703,24 +819,6 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                         </FieldGroup>
                     )}
 
-                    {comms.enabled && (
-                        <NotifyRow>
-                            <NotifyCheck
-                                type="checkbox"
-                                checked={notifyCustomer}
-                                onChange={e => setNotifyCustomer(e.target.checked)}
-                                disabled={busy}
-                            />
-                            <NotifyText>
-                                <NotifyTitle>Czy powiadomić klienta o edycji upsellingu?</NotifyTitle>
-                                <NotifyHint>
-                                    Klient dostanie SMS z linkiem do Karty Wizyty (szablon „Propozycja dodatkowych usług”).
-                                    Poza godzinami 12:00–18:00 wiadomość poczeka w kolejce.
-                                </NotifyHint>
-                            </NotifyText>
-                        </NotifyRow>
-                    )}
-
                     {discountOpen && preview?.hasDiscount && (
                         <PreviewLine>
                             Cena dla klienta:{' '}
@@ -746,14 +844,57 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                         <GhostBtn onClick={() => setSelectedService(null)} disabled={busy}>
                             Anuluj
                         </GhostBtn>
-                        <PrimaryBtn
-                            onClick={handleAdd}
+                        <GhostBtn
+                            onClick={handleStageAndNext}
                             disabled={busy || (discountOpen && MONEY_TYPES.includes(adjustmentType) && !hasValue)}
                         >
-                            Dodaj sugestię
-                        </PrimaryBtn>
+                            + Dodaj kolejną usługę
+                        </GhostBtn>
                     </PanelActions>
                 </SelectedServicePanel>
+            )}
+
+            {pendingCount > 0 && (
+                <Footer>
+                    {/* Bez modułu komunikacji nie ma czego pokazywać: modal Karty Wizyty
+                        niesie już własny baner o braku modułu. Bez szablonu pokazujemy,
+                        co włączyć — zamiast checkboxa, który i tak nic by nie wysłał. */}
+                    {!notify.isLoading && notify.moduleEnabled && (
+                        notify.templateReady ? (
+                            <NotifyRow>
+                                <NotifyCheck
+                                    type="checkbox"
+                                    checked={notifyCustomer}
+                                    onChange={e => setNotifyCustomer(e.target.checked)}
+                                    disabled={busy}
+                                />
+                                <NotifyText>
+                                    <NotifyTitle>Czy powiadomić klienta o dodanych usługach?</NotifyTitle>
+                                    <NotifyHint>
+                                        Klient dostanie jednego SMS-a z linkiem do Karty Wizyty, wymieniającego
+                                        {pendingCount === 1 ? ' tę usługę' : ` wszystkie ${pendingCount} usługi`}.
+                                        Poza godzinami 12:00–18:00 wiadomość poczeka w kolejce.
+                                    </NotifyHint>
+                                </NotifyText>
+                            </NotifyRow>
+                        ) : (
+                            <TemplateHint>
+                                Jeśli włączysz szablon „Propozycja dodatkowych usług” w Ustawieniach → Szablony
+                                wiadomości, będziesz mógł powiadomić klienta o dodanych usługach.
+                            </TemplateHint>
+                        )
+                    )}
+
+                    <FooterActions>
+                        <PrimaryBtn onClick={handleSave} disabled={busy}>
+                            {busy
+                                ? 'Zapisywanie...'
+                                : pendingCount === 1
+                                    ? 'Zapisz sugestię'
+                                    : `Zapisz sugestie (${pendingCount})`}
+                        </PrimaryBtn>
+                    </FooterActions>
+                </Footer>
             )}
 
             {error && <ErrorText>{error}</ErrorText>}
