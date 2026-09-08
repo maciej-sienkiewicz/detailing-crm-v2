@@ -17,6 +17,7 @@ import type {
     TechnicalNoteHistoryResponse,
     OpenDraftVisit,
     OpenDraftVisitListResponse,
+    UpdateArrivalStatePayload,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -621,6 +622,15 @@ export const visitApi = {
     updateCustomerEmail: async (visitId: string, email: string): Promise<{ customerId: string; email: string }> => {
         const response = await apiClient.patch(`${BASE_PATH}/${visitId}/customer-email`, { email });
         return response.data;
+    },
+
+    /** PATCH /visits/{id}/arrival-state — przebieg, kluczyki, dokumenty z widoku wizyty. */
+    updateArrivalState: async (visitId: string, payload: UpdateArrivalStatePayload): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return;
+        }
+        await apiClient.patch(`${BASE_PATH}/${visitId}/arrival-state`, payload);
     },
 
     updateTitle: async (visitId: string, title: string): Promise<void> => {

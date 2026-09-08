@@ -3,6 +3,7 @@ import { visitApi } from '../api/visitApi';
 import { visitCommentApi } from '../api/visitCommentApi';
 import { communicationApi } from '../api/communicationApi';
 import type {
+    UpdateArrivalStatePayload,
     UpdateVisitPayload,
     UploadDocumentPayload,
     UploadPhotoPayload,
@@ -66,6 +67,32 @@ export const useUpdateVisit = (visitId: string) => {
 
     return {
         updateVisit: mutate,
+        isUpdating: isPending,
+    };
+};
+
+/**
+ * Poprawka „Stanu przy przyjęciu" (przebieg, kluczyki, dokumenty). Osobny endpoint,
+ * bo ogólny PATCH wizyty nie istnieje po stronie backendu — zmiana ginęła po cichu.
+ */
+export const useUpdateArrivalState = (visitId: string) => {
+    const queryClient = useQueryClient();
+    const { showSuccess, showError } = useToast();
+
+    const { mutate, mutateAsync, isPending } = useMutation({
+        mutationFn: (payload: UpdateArrivalStatePayload) => visitApi.updateArrivalState(visitId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            showSuccess('Stan przy przyjęciu zaktualizowany');
+        },
+        onError: () => {
+            showError('Nie udało się zapisać stanu przy przyjęciu');
+        },
+    });
+
+    return {
+        updateArrivalState: mutate,
+        updateArrivalStateAsync: mutateAsync,
         isUpdating: isPending,
     };
 };

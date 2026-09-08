@@ -182,6 +182,13 @@ export interface VisitDetailResponse {
     documents?: VisitDocument[];
 }
 
+/** „Stan przy przyjęciu" — każde pole opcjonalne, pominięte zostaje bez zmian. */
+export interface UpdateArrivalStatePayload {
+    mileageAtArrival?: number;
+    keysHandedOver?: boolean;
+    documentsHandedOver?: boolean;
+}
+
 export interface UpdateVisitPayload {
     status?: VisitStatus;
     mileageAtArrival?: number;

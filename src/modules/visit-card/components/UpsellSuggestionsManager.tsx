@@ -19,9 +19,10 @@ import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjust
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
+import { useCapability } from '@/modules/subscription';
 import type { Service, VatRate } from '@/modules/services/types';
 import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
-import type { UpsellSuggestion, UpsellSuggestionStatus } from '../types';
+import type { UpsellNotificationResult, UpsellSuggestion, UpsellSuggestionStatus } from '../types';
 
 const formatPln = (grosz: number): string =>
     new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(grosz / 100);
@@ -424,6 +425,57 @@ const ErrorText = styled.div`
     color: #b91c1c;
 `;
 
+const NotifyRow = styled.label`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+`;
+
+const NotifyCheck = styled.input`
+    margin-top: 2px;
+    width: 16px;
+    height: 16px;
+    accent-color: #0ea5e9;
+    cursor: pointer;
+    flex-shrink: 0;
+`;
+
+const NotifyText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+const NotifyTitle = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const NotifyHint = styled.span`
+    font-size: 12px;
+    line-height: 1.45;
+    color: #64748b;
+`;
+
+const NotificationResult = styled.div<{ $ok: boolean }>`
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    background: ${p => (p.$ok ? 'rgba(16,185,129,0.10)' : 'rgba(245,158,11,0.12)')};
+    color: ${p => (p.$ok ? '#047857' : '#b45309')};
+    border: 1px solid ${p => (p.$ok ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.30)')};
+`;
+
 const EmptyText = styled.div`
     margin-top: 12px;
     font-size: 12.5px;
@@ -440,7 +492,12 @@ interface UpsellSuggestionsManagerProps {
 const MONEY_TYPES: AdjustmentType[] = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'];
 
 export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsManagerProps) => {
+    // Powiadomienie SMS to moduł komunikacji: bez niego checkbox nie ma prawa się pojawić —
+    // backend i tak by odmówił, a pracownik nie ma oglądać opcji, której nie kupił.
+    const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
+    const [notifyCustomer, setNotifyCustomer] = useState(false);
+    const [notification, setNotification] = useState<UpsellNotificationResult | null>(null);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     /** Discount fields stay hidden until the employee explicitly opts in. */
     const [discountOpen, setDiscountOpen] = useState(false);
@@ -537,13 +594,16 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
 
         setBusy(true);
         setError(null);
+        setNotification(null);
         try {
-            await visitCardApi.createUpsellSuggestion(target, {
+            const created = await visitCardApi.createUpsellSuggestion(target, {
                 serviceId: selectedService.id,
                 adjustment: discountActive ? toAdjustment() : undefined,
                 note: noteOpen ? (note.trim() || undefined) : undefined,
+                notifyCustomer: comms.enabled && notifyCustomer ? true : undefined,
             });
             setSelectedService(null);
+            setNotification(created.customerNotification ?? null);
             await reload();
         } catch {
             setError('Nie udało się dodać sugestii.');
@@ -643,6 +703,24 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                         </FieldGroup>
                     )}
 
+                    {comms.enabled && (
+                        <NotifyRow>
+                            <NotifyCheck
+                                type="checkbox"
+                                checked={notifyCustomer}
+                                onChange={e => setNotifyCustomer(e.target.checked)}
+                                disabled={busy}
+                            />
+                            <NotifyText>
+                                <NotifyTitle>Czy powiadomić klienta o edycji upsellingu?</NotifyTitle>
+                                <NotifyHint>
+                                    Klient dostanie SMS z linkiem do Karty Wizyty (szablon „Propozycja dodatkowych usług”).
+                                    Poza godzinami 12:00–18:00 wiadomość poczeka w kolejce.
+                                </NotifyHint>
+                            </NotifyText>
+                        </NotifyRow>
+                    )}
+
                     {discountOpen && preview?.hasDiscount && (
                         <PreviewLine>
                             Cena dla klienta:{' '}
@@ -679,6 +757,16 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
             )}
 
             {error && <ErrorText>{error}</ErrorText>}
+            {notification && (
+                <NotificationResult $ok={notification.sent} role="status">
+                    {notification.message}
+                    {notification.queued && notification.scheduledFor && (
+                        <> (wyjdzie o {new Date(notification.scheduledFor).toLocaleString('pl-PL', {
+                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                        })})</>
+                    )}
+                </NotificationResult>
+            )}
 
             {createPortal(
                 <QuickServiceModal

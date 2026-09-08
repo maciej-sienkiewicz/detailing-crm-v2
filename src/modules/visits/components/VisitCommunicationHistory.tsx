@@ -9,9 +9,11 @@ import {
     SmsIcon,
     CheckIcon,
     AlertIcon,
+    ClockIcon,
     formatCommDate,
 } from '@/common/components/CommunicationPreviewModal';
-import type { CommunicationEntry } from '../types';
+import { COMMUNICATION_STATUS_LABEL, COMMUNICATION_TONE_STYLE, communicationTone, queuedHint } from '@/common/utils/communicationStatus';
+import type { CommunicationEntry, CommunicationStatus } from '../types';
 
 const BRAND     = '#0ea5e9';
 const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
@@ -159,7 +161,7 @@ const EntryRight = styled.div`
     @media (max-width: 480px) { flex-direction: row; align-items: center; gap: 8px; }
 `;
 
-const StatusBadge = styled.span<{ $status: string }>`
+const StatusBadge = styled.span<{ $status: CommunicationStatus }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -167,27 +169,9 @@ const StatusBadge = styled.span<{ $status: string }>`
     font-weight: 700;
     padding: 2px 8px;
     border-radius: ${st.radiusFull};
-    background: ${p =>
-        p.$status === 'FAILED'
-            ? 'rgba(239,68,68,0.12)'
-            : p.$status === 'RECEIVED'
-                ? BRAND_DIM
-                : 'rgba(16,185,129,0.12)'
-    };
-    color: ${p =>
-        p.$status === 'FAILED'
-            ? st.accentRed
-            : p.$status === 'RECEIVED'
-                ? '#0284c7'
-                : st.accentGreen
-    };
-    border: 1px solid ${p =>
-        p.$status === 'FAILED'
-            ? 'rgba(239,68,68,0.25)'
-            : p.$status === 'RECEIVED'
-                ? 'rgba(14,165,233,0.25)'
-                : 'rgba(16,185,129,0.25)'
-    };
+    background: ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].background};
+    color: ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].color};
+    border: 1px solid ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].border};
 `;
 
 const PreviewHint = styled.span`
@@ -290,17 +274,18 @@ export const VisitCommunicationHistory = ({ entries, isLoading }: VisitCommunica
                                         <span>·</span>
                                         <span>{entry.recipientAddress}</span>
                                         <span>·</span>
-                                        <span>{formatCommDate(entry.sentAt)}</span>
+                                        <span>{queuedHint(entry) ?? formatCommDate(entry.sentAt)}</span>
                                     </EntryMeta>
                                 </EntryMain>
                                 <EntryRight>
                                     <StatusBadge $status={entry.status}>
-                                        {entry.status === 'SENT'
-                                            ? <><CheckIcon /> Wysłano</>
-                                            : entry.status === 'RECEIVED'
-                                                ? <><CheckIcon /> Otrzymano</>
-                                                : <><AlertIcon /> Błąd</>
+                                        {entry.status === 'FAILED'
+                                            ? <AlertIcon />
+                                            : entry.status === 'QUEUED'
+                                                ? <ClockIcon />
+                                                : <CheckIcon />
                                         }
+                                        {' '}{COMMUNICATION_STATUS_LABEL[communicationTone(entry.status)]}
                                     </StatusBadge>
                                     <PreviewHint>Podgląd →</PreviewHint>
                                 </EntryRight>

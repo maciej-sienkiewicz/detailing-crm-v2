@@ -306,6 +306,70 @@ const KvMissing = styled.span`
     font-weight: 400;
 `;
 
+const MileageValueRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+`;
+
+const MileageEditBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: transparent;
+    color: ${st.textSecondary};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all ${st.transition};
+
+    &:hover { color: ${BRAND}; border-color: ${BRAND}; }
+`;
+
+const MileageEditor = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+`;
+
+const MileageInput = styled.input`
+    width: 96px;
+    padding: 4px 8px;
+    border: 1px solid ${BRAND};
+    border-radius: 6px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: ${st.text};
+    background: ${st.bgCard};
+    outline: none;
+`;
+
+const MileageUnit = styled.span`
+    font-size: 12px;
+    color: ${st.textMuted};
+`;
+
+const MileageActionBtn = styled.button<{ $primary?: boolean }>`
+    padding: 3px 9px;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid ${p => p.$primary ? BRAND : st.border};
+    background: ${p => p.$primary ? BRAND : 'transparent'};
+    color: ${p => p.$primary ? '#fff' : st.textSecondary};
+
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
 const StatusPill = styled.span<{ $ok: boolean }>`
     display: inline-flex;
     align-items: center;
@@ -553,6 +617,8 @@ interface VehicleInfoCardProps {
         };
     };
     onMileageChange: (mileage: number) => void;
+    /** Uprawnienie do edycji stanu przy przyjęciu (VISITS_CREATE). Domyślnie tak. */
+    canEdit?: boolean;
     onKeysToggle: (checked: boolean) => void;
     onDocumentsToggle: (checked: boolean) => void;
     onViewDetails?: () => void;
@@ -564,11 +630,31 @@ export const VehicleInfoCard = ({
     keysHandedOver,
     documentsHandedOver,
     vehicleHandoff,
+    onMileageChange,
+    canEdit = true,
     onViewDetails,
 }: VehicleInfoCardProps) => {
     const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
     const mileageStr = hasMileage ? `${mileageAtArrival!.toLocaleString('pl-PL')} km` : null;
     const [isOpen, setIsOpen] = useState(true);
+
+    // Przebieg spisany przy ladzie bywa z literówką (12 400 zamiast 124 000) — poprawka
+    // na miejscu, bez wracania do formularza przyjęcia. Enter zapisuje, Escape porzuca.
+    const [editingMileage, setEditingMileage] = useState(false);
+    const [mileageDraft, setMileageDraft] = useState('');
+
+    const startMileageEdit = () => {
+        setMileageDraft(hasMileage ? String(mileageAtArrival) : '');
+        setEditingMileage(true);
+    };
+    const cancelMileageEdit = () => setEditingMileage(false);
+    const commitMileageEdit = () => {
+        const parsed = Number(mileageDraft.replace(/\s/g, ''));
+        if (!Number.isInteger(parsed) || parsed < 0) return;
+        setEditingMileage(false);
+        if (parsed !== (mileageAtArrival ?? 0)) onMileageChange(parsed);
+    };
+    const mileageDraftValid = /^\d+$/.test(mileageDraft.replace(/\s/g, ''));
 
     return (
         <SidebarCard>
@@ -611,10 +697,51 @@ export const VehicleInfoCard = ({
             <VehicleBody>
                 <KvRow>
                     <KvLabel>Przebieg</KvLabel>
-                    {mileageStr
-                        ? <KvValue style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageStr}</KvValue>
-                        : <KvMissing>Nie podano</KvMissing>
-                    }
+                    {editingMileage ? (
+                        <MileageEditor>
+                            <MileageInput
+                                type="text"
+                                inputMode="numeric"
+                                autoFocus
+                                aria-label="Przebieg przy przyjęciu w kilometrach"
+                                value={mileageDraft}
+                                onChange={e => setMileageDraft(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') commitMileageEdit();
+                                    if (e.key === 'Escape') cancelMileageEdit();
+                                }}
+                            />
+                            <MileageUnit>km</MileageUnit>
+                            <MileageActionBtn
+                                type="button"
+                                $primary
+                                onClick={commitMileageEdit}
+                                disabled={!mileageDraftValid}
+                                aria-label="Zapisz przebieg"
+                            >
+                                Zapisz
+                            </MileageActionBtn>
+                            <MileageActionBtn type="button" onClick={cancelMileageEdit} aria-label="Anuluj edycję przebiegu">
+                                Anuluj
+                            </MileageActionBtn>
+                        </MileageEditor>
+                    ) : (
+                        <MileageValueRow>
+                            {mileageStr
+                                ? <KvValue style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageStr}</KvValue>
+                                : <KvMissing>Nie podano</KvMissing>
+                            }
+                            {canEdit && (
+                                <MileageEditBtn type="button" onClick={startMileageEdit} aria-label="Edytuj przebieg">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 20h9" />
+                                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                    </svg>
+                                    {hasMileage ? 'Popraw' : 'Uzupełnij'}
+                                </MileageEditBtn>
+                            )}
+                        </MileageValueRow>
+                    )}
                 </KvRow>
 
                 <KvRow>
