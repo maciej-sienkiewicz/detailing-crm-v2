@@ -6,7 +6,7 @@ import { MobileSectionNav, MobileSectionPanel } from '@/common/components/Mobile
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
-import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate } from '../hooks';
+import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
 import { useUpdateServiceStatus } from '../hooks';
@@ -660,6 +660,7 @@ export const VisitDetailView = () => {
     const { documents } = useVisitDocuments(activeVisitId);
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(activeVisitId);
     const { updateVisit } = useUpdateVisit(visitId!);
+    const { updateArrivalState } = useUpdateArrivalState(visitId!);
     const { updateTitle } = useUpdateVisitTitle(visitId!);
     const { updateEstimatedCompletionDate } = useUpdateEstimatedCompletionDate(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
@@ -824,9 +825,9 @@ export const VisitDetailView = () => {
     const handleCancelVisit = () => setIsDeleteModalOpen(true);
     const handleConfirmDelete = () => deleteVisit();
 
-    const handleMileageChange = (mileage: number) => { updateVisit({ mileageAtArrival: mileage }); };
-    const handleKeysToggle = (checked: boolean) => { updateVisit({ keysHandedOver: checked }); };
-    const handleDocumentsToggle = (checked: boolean) => { updateVisit({ documentsHandedOver: checked }); };
+    const handleMileageChange = (mileage: number) => { updateArrivalState({ mileageAtArrival: mileage }); };
+    const handleKeysToggle = (checked: boolean) => { updateArrivalState({ keysHandedOver: checked }); };
+    const handleDocumentsToggle = (checked: boolean) => { updateArrivalState({ documentsHandedOver: checked }); };
 
     const handleUploadDocument = (file: File, type: DocumentType, category: string) => {
         uploadDocument({ visitId: visitId!, customerId: visit.customer.id, file, type, category });
@@ -1150,6 +1151,7 @@ export const VisitDetailView = () => {
                                     documentsHandedOver={visit.documentsHandedOver}
                                     vehicleHandoff={visit.vehicleHandoff}
                                     onMileageChange={handleMileageChange}
+                                    canEdit={can('VISITS_CREATE')}
                                     onKeysToggle={handleKeysToggle}
                                     onDocumentsToggle={handleDocumentsToggle}
                                     onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}

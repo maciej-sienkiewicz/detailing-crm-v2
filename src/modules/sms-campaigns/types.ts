@@ -80,6 +80,7 @@ export type SmsRuleKey =
   | 'visitCardLink'
   | 'reservationCardLink'
   | 'upsellConsent'
+  | 'upsellSuggestion'
   | 'signatureRequest';
 
 export type SmsAutomationConfig = Record<SmsRuleKey, SmsAutomationRule>;

@@ -4,8 +4,9 @@
 // Used by VisitCommunicationHistory and CustomerCommunicationList.
 
 import styled, { keyframes, css } from 'styled-components';
+import { COMMUNICATION_STATUS_LABEL, COMMUNICATION_TONE_STYLE, communicationTone } from '@/common/utils/communicationStatus';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { CommunicationEntry } from '@/common/types/communication';
+import type { CommunicationEntry, CommunicationStatus } from '@/common/types/communication';
 
 const BRAND      = '#0ea5e9';
 const BRAND_DIM  = 'rgba(14, 165, 233, 0.10)';
@@ -189,7 +190,7 @@ const MetaValue = styled.span`
     color: ${st.text};
 `;
 
-const StatusBadge = styled.span<{ $status: string }>`
+const StatusBadge = styled.span<{ $status: CommunicationStatus }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -197,27 +198,9 @@ const StatusBadge = styled.span<{ $status: string }>`
     font-weight: 700;
     padding: 2px 8px;
     border-radius: ${st.radiusFull};
-    background: ${p =>
-        p.$status === 'FAILED'
-            ? 'rgba(239,68,68,0.12)'
-            : p.$status === 'RECEIVED'
-                ? BRAND_DIM
-                : 'rgba(16,185,129,0.12)'
-    };
-    color: ${p =>
-        p.$status === 'FAILED'
-            ? st.accentRed
-            : p.$status === 'RECEIVED'
-                ? '#0284c7'
-                : st.accentGreen
-    };
-    border: 1px solid ${p =>
-        p.$status === 'FAILED'
-            ? 'rgba(239,68,68,0.25)'
-            : p.$status === 'RECEIVED'
-                ? 'rgba(14,165,233,0.25)'
-                : 'rgba(16,185,129,0.25)'
-    };
+    background: ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].background};
+    color: ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].color};
+    border: 1px solid ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].border};
 `;
 
 // ─── Body ────────────────────────────────────────────────────────────────────
@@ -325,6 +308,13 @@ export const CheckIcon = ({ size = 10 }: { size?: number }) => (
     </svg>
 );
 
+export const ClockIcon = ({ size = 10 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15 14" />
+    </svg>
+);
+
 export const AlertIcon = ({ size = 10 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -382,16 +372,26 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                         <MetaValue>{entry.recipientAddress}</MetaValue>
                     </MetaItem>
                     <MetaItem>
-                        <MetaLabel>{entry.status === 'RECEIVED' ? 'Otrzymano:' : 'Wysłano:'}</MetaLabel>
+                        <MetaLabel>
+                            {entry.status === 'RECEIVED' ? 'Otrzymano:' : entry.status === 'QUEUED' ? 'W kolejce od:' : 'Wysłano:'}
+                        </MetaLabel>
                         <MetaValue>{formatCommDate(entry.sentAt)}</MetaValue>
                     </MetaItem>
+                    {entry.status === 'QUEUED' && (
+                        <MetaItem>
+                            <MetaLabel>Wyjdzie:</MetaLabel>
+                            <MetaValue>
+                                {entry.scheduledFor ? formatCommDate(entry.scheduledFor) : 'przy najbliższym otwarciu okna wysyłki'}
+                            </MetaValue>
+                        </MetaItem>
+                    )}
                     <MetaItem>
                         <StatusBadge $status={entry.status}>
-                            {entry.status === 'SENT'
-                                ? <><CheckIcon /> Wysłano</>
-                                : entry.status === 'RECEIVED'
-                                    ? <><CheckIcon /> Otrzymano</>
-                                    : <><AlertIcon /> Błąd wysyłki</>
+                            {entry.status === 'FAILED'
+                                ? <><AlertIcon /> Błąd wysyłki</>
+                                : entry.status === 'QUEUED'
+                                    ? <><ClockIcon /> W kolejce</>
+                                    : <><CheckIcon /> {COMMUNICATION_STATUS_LABEL[communicationTone(entry.status)]}</>
                             }
                         </StatusBadge>
                     </MetaItem>

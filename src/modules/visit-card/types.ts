@@ -191,6 +191,8 @@ export interface UpsellSuggestion {
     createdAt: string;
     requestedAt: string | null;
     confirmedAt: string | null;
+    /** Tylko w odpowiedzi na utworzenie z `notifyCustomer`; null w listowaniu. */
+    customerNotification?: UpsellNotificationResult | null;
 }
 
 export interface CreateUpsellSuggestionRequest {
@@ -201,4 +203,16 @@ export interface CreateUpsellSuggestionRequest {
         value: number;
     };
     note?: string;
+    /** „Czy powiadomić klienta o edycji upsellingu?" — SMS z linkiem do karty po zapisaniu sugestii. */
+    notifyCustomer?: boolean;
+}
+
+/** Wynik powiadomienia klienta SMS-em, zwracany razem z utworzoną sugestią. */
+export interface UpsellNotificationResult {
+    /** Wiadomość przyjęta: wysłana od ręki albo zakolejkowana na godziny wysyłki. */
+    sent: boolean;
+    queued: boolean;
+    scheduledFor: string | null;
+    /** Czytelny komunikat dla pracownika: co się stało albo dlaczego nie poszło. */
+    message: string;
 }

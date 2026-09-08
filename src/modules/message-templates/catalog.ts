@@ -131,6 +131,15 @@ export const MESSAGES: MessageSpec[] = [
     sms: { ruleKey: 'upsellConsent', placeholders: [...CUSTOMER, 'uslugi', 'kwota'] },
   },
   {
+    key: 'upsellSuggestion',
+    stage: 'inWork',
+    name: 'Propozycja dodatkowych usług',
+    description:
+      'Upselling: pracownik dodał na Karcie Wizyty propozycję dodatkowych usług i zaznaczył „powiadom klienta”. Klient dostaje informację z linkiem do karty — bez „odpisz TAK”; zgodę potwierdza dopiero wtedy, gdy sam wybierze usługę na karcie. Poza godzinami 12:00–18:00 SMS czeka w kolejce.',
+    trigger: 'Gdy pracownik doda propozycję z powiadomieniem',
+    sms: { ruleKey: 'upsellSuggestion', placeholders: [...CUSTOMER, 'uslugi', 'link'] },
+  },
+  {
     key: 'signatureRequest',
     stage: 'inWork',
     name: 'Link do podpisu dokumentu',

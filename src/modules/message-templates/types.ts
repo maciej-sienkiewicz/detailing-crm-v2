@@ -16,6 +16,7 @@ export type MessageKey =
   | 'visitWelcome'
   | 'visitCardLink'
   | 'upsellConsent'
+  | 'upsellSuggestion'
   | 'signatureRequest'
   | 'visitReadyForPickup'
   | 'postVisit'
