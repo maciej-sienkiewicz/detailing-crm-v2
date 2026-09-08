@@ -607,7 +607,7 @@ export function ContactCardPopover({
                             </Section>
 
                             <ProfileLink to={`/customers/${customer.id}`} onClick={onClose}>
-                                Otwórz pełną kartotekę →
+                                Otwórz pełen profil →
                             </ProfileLink>
                         </>
                     )}
@@ -615,7 +615,7 @@ export function ContactCardPopover({
                     {!isLoading && !customer && !linking && (
                         <Muted>
                             Tego adresu nie ma w kartotece. Możesz przypiąć go do klienta,
-                            którego już masz, albo założyć nową kartotekę.
+                            którego już masz, albo założyć nowy profil.
                         </Muted>
                     )}
 

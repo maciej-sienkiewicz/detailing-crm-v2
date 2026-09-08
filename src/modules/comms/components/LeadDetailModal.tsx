@@ -1215,13 +1215,13 @@ export function LeadDetailModal({
                         {unknownContact && (
                             <ClientNote>
                                 <UserPlus />
-                                <span>Tego kontaktu nie ma jeszcze w kartotece klientów.</span>
+                                <span>Tego kontaktu nie ma jeszcze w bazie klientów.</span>
                                 <span className="spacer" />
                                 <QuietLink
                                     type="button"
                                     onClick={(event) => setContactAnchor(event.currentTarget)}
                                 >
-                                    Połącz albo załóż kartotekę
+                                    Połącz albo załóż profil
                                 </QuietLink>
                             </ClientNote>
                         )}

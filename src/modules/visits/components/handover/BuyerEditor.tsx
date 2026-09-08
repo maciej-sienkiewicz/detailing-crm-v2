@@ -126,7 +126,7 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
             </FormGrid>
 
             <Muted>
-                Dane pochodzą z kartoteki klienta. Zmiana dotyczy wyłącznie tej faktury, kartoteka
+                Dane pochodzą z profilu klienta. Zmiana dotyczy wyłącznie tej faktury, profil
                 zostaje bez zmian.
             </Muted>
         </Wrap>

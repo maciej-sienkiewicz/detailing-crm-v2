@@ -2033,7 +2033,7 @@ export const VerificationStep = ({
                         <ModalTitle>Aktualizacja danych klienta</ModalTitle>
                         <ModalSubtitle>
                             Zmieniasz dane klienta, który jest już w bazie. Zapisać zmianę u niego,
-                            czy założyć osobną kartotekę?
+                            czy założyć osobny profil?
                         </ModalSubtitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={() => setShowCustomerChoice(false)} />
