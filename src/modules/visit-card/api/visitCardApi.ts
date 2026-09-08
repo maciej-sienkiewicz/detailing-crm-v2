@@ -2,7 +2,8 @@
 
 import { apiClient } from '@/core/apiClient';
 import type {
-    CreateUpsellSuggestionRequest,
+    CreateUpsellSuggestionsRequest,
+    CreateUpsellSuggestionsResponse,
     RequestUpsellResponse,
     UpdateVisitCardSettingsPayload,
     UpsellSuggestion,
@@ -88,11 +89,15 @@ export const visitCardApi = {
     },
 
     /** Employee endpoint: attach a suggested service (with optional discount) to the visit/reservation. */
-    createUpsellSuggestion: async (
+    /** Kilka propozycji naraz i jedno powiadomienie — patrz CreateUpsellSuggestionsRequest. */
+    createUpsellSuggestions: async (
         target: UpsellTarget,
-        request: CreateUpsellSuggestionRequest,
-    ): Promise<UpsellSuggestion> => {
-        const response = await apiClient.post<UpsellSuggestion>(`${upsellBasePath(target)}`, request);
+        request: CreateUpsellSuggestionsRequest,
+    ): Promise<CreateUpsellSuggestionsResponse> => {
+        const response = await apiClient.post<CreateUpsellSuggestionsResponse>(
+            `${upsellBasePath(target)}/batch`,
+            request,
+        );
         return response.data;
     },
 
