@@ -26,6 +26,15 @@ export const useVisitDetail = (visitId: string) => {
         queryFn: () => visitApi.getVisitDetail(visitId),
         enabled: !!visitId,
         /*
+         * Wyjątek od globalnego `refetchOnWindowFocus: false` (App.tsx) i dokładnie ten
+         * przypadek, dla którego ta opcja istnieje: nad jedną wizytą pracują dwie osoby.
+         * Auto wydaje jedna, wizytę zamyka druga, a między nimi jest jeszcze tablet na
+         * recepcji. Karta zostawiona otwarta pokazywała status sprzed godziny i oferowała
+         * przycisk, który musiał skończyć się konfliktem 409. Powrót do karty to najtańszy
+         * moment, żeby zobaczyć prawdę.
+         */
+        refetchOnWindowFocus: true,
+        /*
          * Nierozpoczętej wizyty nie ma sensu dopytywać: serwer nie zmieni zdania, dopóki
          * ktoś nie dokończy przyjęcia. Ponawianie tylko opóźniałoby komunikat, który
          * mówi użytkownikowi, co ma z tym zrobić.

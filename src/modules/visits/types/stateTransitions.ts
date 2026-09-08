@@ -82,10 +82,26 @@ export interface TransitionToCompletedPayload {
     thankYouSms?: ThankYouSmsPayload;
 }
 
+/**
+ * Odpowiedź endpointów zmiany statusu wizyty.
+ *
+ * `alreadyInTargetState` = wizyta była już w tym stanie i żądanie niczego nie zmieniło.
+ * To NIE jest błąd (kod 200): cel został osiągnięty, tylko wcześniej i przez kogoś
+ * innego. Backend pomija wtedy efekty uboczne — klient nie dostaje drugiego SMS-a,
+ * a księgowość drugiego dokumentu.
+ */
+export interface VisitStatusChangeResponse {
+    visitId: string;
+    newStatus: string;
+    message: string;
+    alreadyInTargetState?: boolean;
+}
+
 export interface CompleteVisitResponse {
     visitId: string;
     newStatus: string;
     message: string;
+    alreadyInTargetState?: boolean;
     financialDocumentId: string | null;
     financialDocumentNumber: string | null;
     ksefInvoiceId?: string | null;

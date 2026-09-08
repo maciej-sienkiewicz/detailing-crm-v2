@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
 import { apiErrorMessage } from '../api/apiError';
 import { visitDetailQueryKey } from './index';
+import { useVisitStateConflict } from './useVisitStateConflict';
 import { companyApi } from '@/modules/settings/api/companyApi';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { useToast } from '@/common/components/Toast';
@@ -84,7 +85,8 @@ interface UseHandoverArgs {
  */
 export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const queryClient = useQueryClient();
-    const { showError } = useToast();
+    const { showError, showInfo } = useToast();
+    const handleStateConflict = useVisitStateConflict(visit.id);
     const { calculateServicePrice } = useServicePricing();
 
     // Wycena jest współdzielona z modułem wizyt, ale jej sygnatura pochodzi
@@ -329,9 +331,19 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visit.id) });
             queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
             queryClient.invalidateQueries({ queryKey: ['income-documents'] });
+            // Pojazd był już wydany — dokument w odpowiedzi pochodzi z tamtego wydania,
+            // nie został wystawiony drugi raz. Ekran potwierdzenia pokazujemy normalnie
+            // (numer dokumentu jest prawdziwy), ale mówimy, skąd się wziął.
+            if (response?.alreadyInTargetState) {
+                showInfo(
+                    'Ta wizyta była już wydana',
+                    'Pokazujemy dokument z pierwszego wydania. Nie wystawiliśmy drugiego.'
+                );
+            }
             setResult(response);
         },
         onError: (error: unknown) => {
+            if (handleStateConflict(error)) return;
             showError('Nie udało się wydać pojazdu', apiErrorMessage(error, 'Spróbuj ponownie.'));
         },
     });
