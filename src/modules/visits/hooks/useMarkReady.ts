@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
 import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
 import { visitDetailQueryKey } from './index';
+import { useVisitStateConflict } from './useVisitStateConflict';
 import { useToast } from '@/common/components/Toast';
 import type { NotificationChannels } from '../types/stateTransitions';
 
@@ -16,7 +17,8 @@ import type { NotificationChannels } from '../types/stateTransitions';
  */
 export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
     const queryClient = useQueryClient();
-    const { showError } = useToast();
+    const { showError, showInfo } = useToast();
+    const handleStateConflict = useVisitStateConflict(visitId);
 
     const { mutate, isPending } = useMutation({
         mutationFn: (channels: NotificationChannels) =>
@@ -24,11 +26,25 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                 sms: channels.sms,
                 email: channels.email,
             }),
-        onSuccess: () => {
+        onSuccess: response => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            // Backend przyjął żądanie, ale wizyta była już gotowa do odbioru — ktoś
+            // zdążył pierwszy. Nie udajemy, że to my ją teraz oznaczyliśmy (SMS do
+            // klienta poszedł przy pierwszym razie albo wcale), tylko mówimy wprost.
+            if (response?.alreadyInTargetState) {
+                showInfo(
+                    'To już zostało zrobione',
+                    'Wizyta była już oznaczona jako gotowa do odbioru. Klient nie dostał drugiego powiadomienia.'
+                );
+            }
             onSuccess?.();
         },
         onError: (error: unknown) => {
+            // Konflikt stanu odświeża widok i sam się tłumaczy — patrz useVisitStateConflict.
+            if (handleStateConflict(error)) {
+                onSuccess?.();
+                return;
+            }
             if (apiErrorStatus(error) === 402) {
                 // The dialog now pre-checks credits, so this is the narrow race where the
                 // balance ran out between opening it and confirming. Name the exact place
