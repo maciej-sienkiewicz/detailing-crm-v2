@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { tabletApi } from '../api/tabletApi';
 import { useSignatureRequestsSocket } from './useSignatureRequestsSocket';
@@ -44,6 +44,7 @@ export const useProtocolSigning = ({
     enabled = true,
 }: UseProtocolSigningArgs) => {
     const { showSuccess, showError } = useToast();
+    const queryClient = useQueryClient();
     const [byProtocol, setByProtocol] = useState<Record<string, SigningState>>({});
 
     const { data: tablets = [] } = useQuery({
@@ -110,6 +111,14 @@ export const useProtocolSigning = ({
         switch (outcome) {
             case 'SIGNATURE_COMPLETED':
                 setState(protocolId, { phase: 'signed', requestId, channel });
+                // Podpisany protokół wydania DOPIERO TERAZ staje się dokumentem wizyty
+                // (patrz VisitProtocolDocumentRegistrar po stronie API), więc lista
+                // dokumentów za modalem musi się o tym dowiedzieć. Prefiks `['visit', id]`
+                // obejmuje dokumenty i szczegóły wizyty naraz.
+                if (visitId) {
+                    queryClient.invalidateQueries({ queryKey: ['visit', visitId] });
+                    queryClient.invalidateQueries({ queryKey: ['visit-protocols', visitId] });
+                }
                 showSuccess('Klient pomyślnie podpisał dokument');
                 break;
             case 'SIGNATURE_DECLINED':
