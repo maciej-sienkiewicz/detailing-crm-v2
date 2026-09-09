@@ -1477,7 +1477,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
     const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
-    const [agendaListActive, setAgendaListActive] = useState(() => window.innerWidth < 768);
+    // Domyślnie na telefonie kalendarz otwiera się w widoku Lista, ale nie wtedy,
+    // gdy trafiliśmy tu z Tablicy przez "Pokaż w kalendarzu": karta lecąca do
+    // konkretnej wizyty ma dokąd wylądować dopiero na siatce miesiąca. Uruchomienie
+    // od razu w Miesiącu unika przełączania widoku po drodze i sklejenia animacji.
+    const _incomingHighlight = (location.state as { highlightEventId?: string } | null)?.highlightEventId;
+    const [agendaListActive, setAgendaListActive] = useState(
+        () => !_incomingHighlight && window.innerWidth < 768,
+    );
 
     const deselectedCount =
         (3 - selectedAppointmentStatuses.length) +
