@@ -109,8 +109,12 @@ const HeroCard = styled.div`
     pointer-events: none;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    padding: 18px 16px;
+  /* Na telefonie z tego kartonika zostaje pasek akcji, więc masywny padding
+     robił z niego ciężki nagłówek bez treści. Zwężamy go do wysokości pigułek
+     w środku. */
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    padding: 12px;
+    border-radius: ${p => p.theme.radii.lg};
   }
 `;
 
@@ -230,36 +234,50 @@ const HeroBtnGhost = styled.button`
 
 // ─── Hero stats toggle (mobile) ───────────────────────────────────────────────
 //
-// Na telefonie kafelek KPI zajmował pół ekranu powitalnego, zanim użytkownik
-// zobaczył cokolwiek do zrobienia. Chowamy go za wąskim przyciskiem - liczby
-// są o jedno dotknięcie, a nagłówek wraca do rozmiaru nagłówka.
+// Na telefonie KPI chowa się za pigułką - liczby są o jedno dotknięcie, a
+// nagłówek Tablicy schodzi do wysokości paska akcji, zamiast zajmować pół
+// ekranu na powitanie, które nic nie mówi.
 const StatsToggle = styled.button<{ $open: boolean }>`
-  display: flex; /* Zmieniono z inline-flex na flex */
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between; /* Opcjonalnie: rozsuwa element po lewej i strzałkę po prawej */
   gap: 7px;
-  width: 100%;
-  box-sizing: border-box; /* Zapewnia, że padding 14px nie wykracza poza 100% szerokości */
-  padding: 7px 14px;
+  padding: 9px 16px;
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
   border-radius: 9999px;
-  color: #cbd5e1;
+  color: #e2e8f0;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background 150ms ease, color 150ms ease;
+  white-space: nowrap;
 
-  &:active { background: rgba(255,255,255,0.12); color: #f1f5f9; }
+  &:active { background: rgba(255,255,255,0.14); color: #f8fafc; }
 
-  svg { width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; }
+  svg { width: 15px; height: 15px; stroke-width: 2; flex-shrink: 0; }
 
   svg:last-child {
     transition: transform 200ms ease;
     transform: rotate(${p => p.$open ? '180deg' : '0deg'});
   }
+`;
+
+// Dwa CTA w jednym rzędzie: "Nowa wizyta" po lewej, "Pokaż statystyki" po
+// prawej. Wrap dopuszczony na wypadek długich tłumaczeń lub bardzo wąskich
+// ekranów - wtedy pigułki spadają jedna pod drugą, a nie wychodzą poza kartę.
+const MobileHeroRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+// Odstęp od paska akcji, jeżeli KPI się rozwinie: bez tego slider siadał
+// wprost na pigułkach.
+const MobileKpiSlot = styled.div`
+  margin-top: 12px;
 `;
 
 // ─── Two-column panels grid ───────────────────────────────────────────────────
@@ -411,25 +429,34 @@ export const DashboardView = () => {
     <ViewContainer>
 
       <HeroCard>
-        <HeroRow>
-          <HeroLeft>
+        {isDesktop ? (
+          <HeroRow>
+            <HeroLeft>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
               {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
               <HeroActions>
+                <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
+                  <CalendarPlus />
+                  Nowa wizyta
+                </HeroBtnPrimary>
+                <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
+                  <Sparkles />
+                  Generuj post
+                </HeroBtnGhost>
+              </HeroActions>
+            </HeroLeft>
+            <KpiSlider />
+          </HeroRow>
+        ) : (
+          /* Wersja mobilna: bez powitania, opisu dnia i "Generuj post" -
+             te elementy niosły dużo pikseli, a mało treści. Zostają dwa
+             realne narzędzia: skrót do przyjęcia wizyty i wejście w KPI. */
+          <>
+            <MobileHeroRow>
               <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
                 <CalendarPlus />
                 Nowa wizyta
               </HeroBtnPrimary>
-              <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
-                <Sparkles />
-                Generuj post
-              </HeroBtnGhost>
-            </HeroActions>
-          </HeroLeft>
-          {isDesktop ? (
-            <KpiSlider />
-          ) : (
-            <>
               <StatsToggle
                 $open={heroStatsOpen}
                 onClick={() => setHeroStatsOpen(v => !v)}
@@ -439,12 +466,16 @@ export const DashboardView = () => {
                 {heroStatsOpen ? 'Ukryj statystyki' : 'Pokaż statystyki'}
                 <ChevronDown />
               </StatsToggle>
-              {/* Montowany dopiero po rozwinięciu: slider mierzy swoje wymiary
-                  przy pierwszym renderze i w ukrytym kontenerze zmierzyłby zero. */}
-              {heroStatsOpen && <KpiSlider />}
-            </>
-          )}
-        </HeroRow>
+            </MobileHeroRow>
+            {/* Montowany dopiero po rozwinięciu: slider mierzy swoje wymiary
+                przy pierwszym renderze i w ukrytym kontenerze zmierzyłby zero. */}
+            {heroStatsOpen && (
+              <MobileKpiSlot>
+                <KpiSlider />
+              </MobileKpiSlot>
+            )}
+          </>
+        )}
       </HeroCard>
 
       {/* Podpowiedzi między powitaniem a kafelkami - komponent sam chowa się
