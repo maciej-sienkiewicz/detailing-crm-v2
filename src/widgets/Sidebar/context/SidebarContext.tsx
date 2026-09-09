@@ -42,15 +42,43 @@ export const SidebarProvider = ({ children }: SidebarProviderProps) => {
         }
     }, [isCollapsed]);
 
-    // Prevent body scroll when mobile menu is open
+    // Blokada scrolla tła po otwarciu menu bocznego.
+    //
+    // Sam `overflow: hidden` na <body> nie wystarcza w mobilnych przeglądarkach
+    // (zwłaszcza iOS Safari): gesty dotyku dalej przesuwają viewport, więc palcem
+    // można było scrollować treść pod overlayem, co dezorientuje. Sztywnym stopem
+    // jest `position: fixed` na <body> - viewport nie ma już czego przewijać.
+    // Zapamiętujemy aktualną pozycję scrolla, po zamknięciu przywracamy ją, żeby
+    // użytkownik nie wracał na górę strony.
     useEffect(() => {
-        if (isMobileOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
+        if (!isMobileOpen) return;
+
+        const scrollY = window.scrollY;
+        const body = document.body;
+        const prev = {
+            position: body.style.position,
+            top: body.style.top,
+            left: body.style.left,
+            right: body.style.right,
+            width: body.style.width,
+            overflow: body.style.overflow,
+        };
+
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollY}px`;
+        body.style.left = '0';
+        body.style.right = '0';
+        body.style.width = '100%';
+        body.style.overflow = 'hidden';
+
         return () => {
-            document.body.style.overflow = '';
+            body.style.position = prev.position;
+            body.style.top = prev.top;
+            body.style.left = prev.left;
+            body.style.right = prev.right;
+            body.style.width = prev.width;
+            body.style.overflow = prev.overflow;
+            window.scrollTo(0, scrollY);
         };
     }, [isMobileOpen]);
 
