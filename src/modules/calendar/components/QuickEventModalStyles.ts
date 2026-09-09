@@ -247,13 +247,15 @@ export const Row = styled.div`
     gap: 12px;
     padding: 6px 0;
 
+    /* Materiał 1:1 z st.shadowSm (dwuwarstwowy) i st.radius (14 px) - te same
+       tokeny, których używa SectionCard z VerificationStep. */
     @media (max-width: 639px) {
         display: block;
         padding: 0;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
         overflow: hidden;
     }
 `;
@@ -283,7 +285,7 @@ export const RowHeaderTitleRow = styled.div`
     flex: 1;
 `;
 
-/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki. */
+/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki (st.accentBlue = #3B82F6). */
 export const RowHeaderNum = styled.span`
     display: inline-flex;
     align-items: center;
@@ -291,7 +293,7 @@ export const RowHeaderNum = styled.span`
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #0ea5e9;
+    background: #3B82F6;
     color: #fff;
     font-size: 11px;
     font-weight: 700;
@@ -303,7 +305,7 @@ export const RowHeaderLabel = styled.h3`
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: #0f172a;
+    color: #0F172A;
     display: flex;
     align-items: center;
     gap: 7px;
@@ -312,7 +314,7 @@ export const RowHeaderLabel = styled.h3`
     svg {
         width: 17px;
         height: 17px;
-        color: #0ea5e9;
+        color: #3B82F6;
         flex-shrink: 0;
     }
 `;
@@ -323,8 +325,8 @@ export const RowHeaderStatus = styled.span`
     display: inline-flex;
     align-items: center;
     padding: 2px 9px;
-    background: rgba(14, 165, 233, 0.12);
-    color: #0ea5e9;
+    background: rgba(59, 130, 246, 0.12);
+    color: #3B82F6;
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 600;
