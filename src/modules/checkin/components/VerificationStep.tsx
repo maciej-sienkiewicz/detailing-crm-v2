@@ -695,6 +695,9 @@ export const VerificationStep = ({
      * jednym `contains`, więc „Jan Kowalski 123456789" nie pasowałoby do niczego.
      */
     const [customerSearchField, setCustomerSearchField] = useState<'name' | 'phone'>('name');
+    // Które DOKŁADNIE pole ma kursor - żeby podpowiedzi renderować bezpośrednio
+    // pod nim (Imię vs Nazwisko vs Telefon), a nie zawsze pod nazwiskiem.
+    const [focusedCustomerFieldName, setFocusedCustomerFieldName] = useState<'firstName' | 'lastName' | 'phone'>('firstName');
     // Deklarowane tutaj, a nie niżej razem z resztą stanu wyboru klienta, bo
     // zapytanie po telefonie (poniżej) czyta wpisywany numer właśnie stąd.
     const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
@@ -1088,10 +1091,12 @@ export const VerificationStep = ({
     const handleCustomerInputFocus = (
         fieldRef: React.RefObject<HTMLDivElement | null>,
         field: 'name' | 'phone' = 'name',
+        fieldName: 'firstName' | 'lastName' | 'phone' = 'firstName',
     ) => {
         if (customerJustSelectedRef.current) return;
         activeCustomerFieldRef.current = fieldRef.current;
         setCustomerSearchField(field);
+        setFocusedCustomerFieldName(fieldName);
         setCustomerAutocompleteOpen(true);
     };
 
@@ -1121,6 +1126,28 @@ export const VerificationStep = ({
         });
         setSelectedCustomerIdForVehicles(customer.id || undefined);
         setTimeout(() => { customerJustSelectedRef.current = false; }, 500);
+    };
+
+    // Lista podpowiedzi w przepływie - renderowana bezpośrednio pod aktywnym
+    // polem (patrz miejsca wywołania gated przez focusedCustomerFieldName).
+    const renderCustomerAutocomplete = () => {
+        if (!showCustomerAutocomplete) return null;
+        return (
+            <div style={{ gridColumn: '1 / -1' }}>
+                <CustomerAutocompleteDropdown onMouseDown={(e) => e.preventDefault()}>
+                    {foundCustomers.map((c) => (
+                        <CustomerDropdownItemBtn key={c.id} type="button" onClick={() => handleCustomerSelectFromAutocomplete(c)}>
+                            <CustomerDropdownItemName>
+                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
+                            </CustomerDropdownItemName>
+                            {(c.phone || c.email) && (
+                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
+                            )}
+                        </CustomerDropdownItemBtn>
+                    ))}
+                </CustomerAutocompleteDropdown>
+            </div>
+        );
     };
 
     const handleCustomerSelect = async (customer: SelectedCustomer) => {
@@ -1389,12 +1416,15 @@ export const VerificationStep = ({
                                 value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
                                 onChange={(e) => handleCustomerFieldChange({ firstName: capitalizeFirst(e.target.value) })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
-                                onFocus={() => handleCustomerInputFocus(firstNameFieldRef)}
+                                onFocus={() => handleCustomerInputFocus(firstNameFieldRef, 'name', 'firstName')}
                                 autoComplete="new-password"
                             />
                             {errors.firstName && <FieldError>{errors.firstName}</FieldError>}
                         </FieldGroup>
                         </div>
+
+                        {/* Podpowiedzi bezpośrednio pod polem Imię */}
+                        {focusedCustomerFieldName === 'firstName' && renderCustomerAutocomplete()}
 
                         <div ref={lastNameFieldRef}>
                         <FieldGroup>
@@ -1403,38 +1433,22 @@ export const VerificationStep = ({
                                 value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
                                 onChange={(e) => handleCustomerFieldChange({ lastName: capitalizeFirst(e.target.value) })}
                                 onBlur={() => { handleCustomerFieldBlur(); handleCustomerInputBlur(); }}
-                                onFocus={() => handleCustomerInputFocus(lastNameFieldRef)}
+                                onFocus={() => handleCustomerInputFocus(lastNameFieldRef, 'name', 'lastName')}
                                 autoComplete="new-password"
                             />
                             {errors.lastName && <FieldError>{errors.lastName}</FieldError>}
                         </FieldGroup>
                         </div>
 
-                        {/* Podpowiedzi po nazwisku - w przepływie, bezpośrednio pod
-                            polami imienia/nazwiska (span na całą szerokość gridu). */}
-                        {customerSearchField === 'name' && showCustomerAutocomplete && (
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <CustomerAutocompleteDropdown onMouseDown={(e) => e.preventDefault()}>
-                                    {foundCustomers.map((c) => (
-                                        <CustomerDropdownItemBtn key={c.id} type="button" onClick={() => handleCustomerSelectFromAutocomplete(c)}>
-                                            <CustomerDropdownItemName>
-                                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
-                                            </CustomerDropdownItemName>
-                                            {(c.phone || c.email) && (
-                                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
-                                            )}
-                                        </CustomerDropdownItemBtn>
-                                    ))}
-                                </CustomerAutocompleteDropdown>
-                            </div>
-                        )}
+                        {/* Podpowiedzi bezpośrednio pod polem Nazwisko */}
+                        {focusedCustomerFieldName === 'lastName' && renderCustomerAutocomplete()}
 
                         <div ref={phoneFieldRef}>
                         <FieldGroup>
                             <Label>{t.checkin.verification.phone}</Label>
                             <PhoneInput
                                 variant="legacy"
-                                onFocus={() => handleCustomerInputFocus(phoneFieldRef, 'phone')}
+                                onFocus={() => handleCustomerInputFocus(phoneFieldRef, 'phone', 'phone')}
                                 value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
                                 onChange={(value) => {
                                     const getCountryCode = (v?: string) => {
@@ -1460,23 +1474,8 @@ export const VerificationStep = ({
                         </FieldGroup>
                         </div>
 
-                        {/* Podpowiedzi po telefonie - w przepływie, bezpośrednio pod polem telefonu. */}
-                        {customerSearchField === 'phone' && showCustomerAutocomplete && (
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <CustomerAutocompleteDropdown onMouseDown={(e) => e.preventDefault()}>
-                                    {foundCustomers.map((c) => (
-                                        <CustomerDropdownItemBtn key={c.id} type="button" onClick={() => handleCustomerSelectFromAutocomplete(c)}>
-                                            <CustomerDropdownItemName>
-                                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
-                                            </CustomerDropdownItemName>
-                                            {(c.phone || c.email) && (
-                                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
-                                            )}
-                                        </CustomerDropdownItemBtn>
-                                    ))}
-                                </CustomerAutocompleteDropdown>
-                            </div>
-                        )}
+                        {/* Podpowiedzi bezpośrednio pod polem Telefon */}
+                        {focusedCustomerFieldName === 'phone' && renderCustomerAutocomplete()}
 
                         <FieldGroup>
                             <Label>{t.checkin.verification.email}</Label>

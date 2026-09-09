@@ -297,10 +297,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.customerPhone || form.customerEmail || form.selectedCustomer
     );
 
-    // Podpowiedzi klienta na mobile pokazujemy w przepływie pod polami imienia -
-    // osobny stan od desktopowego showCustomerDropdown/arkusza, żeby wpisywanie
-    // otwierało listę inline, a nie pełnoekranowy arkusz.
+    // Podpowiedzi klienta na mobile pokazujemy w przepływie DOKŁADNIE pod tym
+    // polem, w którym stoi kursor (Imię / Nazwisko / Telefon) - stąd osobny
+    // znacznik aktywnego pola. Osobny stan od desktopowego showCustomerDropdown.
     const [mobileSuggestOpen, setMobileSuggestOpen] = useState(false);
+    const [mobileActiveCustomerField, setMobileActiveCustomerField] = useState<'firstName' | 'lastName' | 'phone'>('firstName');
 
     // Lista podpowiedzi widoczna, gdy: użytkownik pisze (mobileSuggestOpen),
     // są wyniki, i nie wybrano jeszcze klienta.
@@ -988,29 +989,32 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         ref={form.customerInputRef}
                                                         value={form.customerFirstName}
                                                         onChange={(e) => { form.setCustomerFirstName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
-                                                        onFocus={() => setMobileSuggestOpen(true)}
+                                                        onFocus={() => { setMobileActiveCustomerField('firstName'); setMobileSuggestOpen(true); }}
                                                         $hasError={!!form.errors.customerFirstName}
                                                         autoComplete="new-password"
                                                     />
                                                     {form.errors.customerFirstName && <FormFieldError>{form.errors.customerFirstName}</FormFieldError>}
                                                 </FieldGroup>
+                                                {/* Podpowiedzi bezpośrednio pod polem Imię, gdy tam stoi kursor */}
+                                                {mobileActiveCustomerField === 'firstName' && renderMobileCustomerSuggestions()}
                                                 <FieldGroup>
                                                     <FormLabel>Nazwisko</FormLabel>
                                                     <FormInputField
                                                         value={form.customerLastName}
                                                         onChange={(e) => { form.setCustomerLastName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
-                                                        onFocus={() => setMobileSuggestOpen(true)}
+                                                        onFocus={() => { setMobileActiveCustomerField('lastName'); setMobileSuggestOpen(true); }}
                                                         $hasError={!!form.errors.customerLastName}
                                                         autoComplete="new-password"
                                                     />
                                                     {form.errors.customerLastName && <FormFieldError>{form.errors.customerLastName}</FormFieldError>}
                                                 </FieldGroup>
-                                                {/* Podpowiedzi zaraz pod polami imienia/nazwiska */}
-                                                {renderMobileCustomerSuggestions()}
+                                                {/* Podpowiedzi bezpośrednio pod polem Nazwisko */}
+                                                {mobileActiveCustomerField === 'lastName' && renderMobileCustomerSuggestions()}
                                                 <FieldGroup>
                                                     <FormLabel>Telefon</FormLabel>
                                                     <PhoneInput
                                                         variant="legacy"
+                                                        onFocus={() => { setMobileActiveCustomerField('phone'); setMobileSuggestOpen(true); }}
                                                         value={`${form.customerPhonePrefix || '+48'} ${form.customerPhone}`.trim()}
                                                         onChange={(full) => {
                                                             const m = full.match(/^(\+\d+)\s*(.*)$/);
@@ -1027,6 +1031,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     />
                                                     {form.errors.customerPhone && <FormFieldError>{form.errors.customerPhone}</FormFieldError>}
                                                 </FieldGroup>
+                                                {/* Podpowiedzi bezpośrednio pod polem Telefon */}
+                                                {mobileActiveCustomerField === 'phone' && renderMobileCustomerSuggestions()}
                                                 <FieldGroup>
                                                     <FormLabel>E-mail</FormLabel>
                                                     <FormInputField
