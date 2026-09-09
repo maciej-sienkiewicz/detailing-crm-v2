@@ -9,6 +9,8 @@ export interface ProtocolTemplate {
   name: string;
   description?: string;
   templateUrl?: string; // URL to the template file (PDF or HTML)
+  /** Podgląd przez backend: szablon systemowy z logo studia w nagłówku (gdy włączone). Brak dla HTML. */
+  previewUrl?: string | null;
   fileFormat: ProtocolTemplateFormat;
   /** Systemowy szablon domyślny: przywracany automatycznie, gdy studio nie ma żadnego szablonu przyjęcia. */
   isDefault: boolean;

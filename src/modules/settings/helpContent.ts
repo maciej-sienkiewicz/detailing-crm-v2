@@ -6,7 +6,7 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'logo',
             label: 'Logo firmy',
-            description: 'Wgrywasz jeden plik, a system sam przygotowuje z niego wersję do menu aplikacji i wersję do druku. Najlepszy jest plik SVG (wektor, ostry w każdej skali) albo PNG z przezroczystym tłem; WebP i JPEG też są przyjmowane, ale JPEG nie ma przezroczystości. Dla plików rastrowych dłuższy bok musi mieć co najmniej 300 px, a zalecane jest 1000 px lub więcej — logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Maksymalny rozmiar pliku to 5 MB. Poziomy logotyp wygląda najlepiej; sygnet (kwadrat) też się mieści — logo nigdy nie jest deformowane. O tym, czy logo trafia na dokumenty, decyduje przełącznik w sekcji „Dokumenty i podpisy".',
+            description: 'Wgrywasz jeden plik, a system sam przygotowuje z niego wersję do menu aplikacji i wersję do druku. Najlepszy jest plik SVG (wektor, ostry w każdej skali) albo PNG z przezroczystym tłem; WebP i JPEG też są przyjmowane, ale JPEG nie ma przezroczystości. Dla plików rastrowych dłuższy bok musi mieć co najmniej 300 px, a zalecane jest 1000 px lub więcej, bo logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Maksymalny rozmiar pliku to 5 MB. Poziomy logotyp wygląda najlepiej; sygnet (kwadrat) też się mieści, a logo nigdy nie jest deformowane. O tym, czy logo trafia na dokumenty, decyduje przełącznik w sekcji „Dokumenty i podpisy".',
             usedIn: [
                 'Menu boczne aplikacji',
                 'Nagłówek protokołów przyjęcia i wydania (szablony systemowe)',
@@ -137,7 +137,7 @@ export const DOCUMENTS_HELP: HelpContent = {
         {
             id: 'logo-on-documents',
             label: 'Logo na dokumentach',
-            description: 'Przełącznik „Czy umieszczać logo na dokumentach?" decyduje, czy logo firmy z sekcji „Dane firmy" jest wstawiane w nagłówek systemowych protokołów przyjęcia i wydania oraz systemowej zgody marketingowej. Logo ląduje w zarezerwowanym miejscu po lewej stronie nagłówka, skalowane bez deformacji. Własne szablony wgrane przez studio nie są modyfikowane — mają logo tam, gdzie je narysowano. Zmiana dotyczy dokumentów generowanych od tej chwili; już wypełnione i podpisane pozostają bez zmian.',
+            description: 'Przełącznik „Czy umieszczać logo na dokumentach?" decyduje, czy logo firmy z sekcji „Dane firmy" jest wstawiane w nagłówek systemowych protokołów przyjęcia i wydania oraz systemowej zgody marketingowej. Logo ląduje w zarezerwowanym miejscu po lewej stronie nagłówka, skalowane bez deformacji. Własne szablony wgrane przez studio nie są modyfikowane, bo mają logo tam, gdzie je narysowano. Zmiana dotyczy dokumentów generowanych od tej chwili; już wypełnione i podpisane pozostają bez zmian.',
             usedIn: [
                 'Protokół przyjęcia (szablon systemowy)',
                 'Protokół wydania (szablon systemowy)',

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useToast } from '@/common/components/Toast';
+import { InfoTooltip } from '@/common/components/InfoTooltip';
 import {
     useCompanySettings,
     useUpdateCompanySettings,
@@ -84,47 +85,16 @@ const LogoActions = styled.div`
     gap: 8px;
 `;
 
-// Wskazówki dla właściciela warsztatu, który nie musi znać się na grafice: co wgrać,
-// żeby logo było ostre na kartce A4 i czytelne w ciemnym menu. Wartości zgodne z
-// walidacją backendu (CompanyLogoProcessor: min. 300 px, max 5 MB).
-const LogoGuidance = styled.div`
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 16px 24px;
-    align-items: start;
-    padding: 14px 22px 18px;
-    border-bottom: 1px solid #f1f5f9;
-    background: #fafbfc;
-
-    @media (max-width: 640px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const GuidanceList = styled.ul`
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #475569;
-
-    li { display: flex; gap: 8px; }
-    li::before { content: '·'; color: #94a3b8; font-weight: 700; }
-    strong { color: #0f172a; font-weight: 600; }
-`;
-
 const PreviewPair = styled.div`
     display: flex;
     gap: 10px;
 `;
 
+// Ten sam plik na jasnym i ciemnym tle: menu boczne jest ciemne, dokumenty białe,
+// więc użytkownik od razu widzi, czy jego logo czyta się w obu miejscach.
 const PreviewTile = styled.div<{ $dark?: boolean }>`
-    width: 96px;
-    height: 56px;
+    width: 84px;
+    height: 48px;
     border-radius: 10px;
     border: 1px solid ${p => (p.$dark ? 'rgba(255,255,255,0.08)' : '#e2e8f0')};
     background: ${p => (p.$dark ? '#0f172a' : '#ffffff')};
@@ -312,6 +282,15 @@ function validate(form: CompanyForm): FormErrors {
 /** Zgodne z CompanyController.MAX_LOGO_SIZE_BYTES. */
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
+/** Zalecenia dla właściciela warsztatu; wartości zgodne z walidacją backendu (CompanyLogoProcessor). */
+const LOGO_GUIDANCE =
+    'Wystarczy jeden plik: system sam przygotuje wersję do menu i wersję do druku. ' +
+    'Najlepiej SVG albo PNG z przezroczystym tłem. WebP i JPEG też działają, ale JPEG nie ma przezroczystości. ' +
+    'Dla PNG, WebP i JPEG dłuższy bok powinien mieć co najmniej 300 px, zalecane 1000 px lub więcej, ' +
+    'bo logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Plik do 5 MB. ' +
+    'Poziomy logotyp wygląda najlepiej, sygnet też się zmieści, a logo nigdy nie jest deformowane. ' +
+    'Logo pojawia się w menu bocznym oraz, jeśli włączysz to w sekcji „Dokumenty i podpisy", w nagłówku protokołów i zgód.';
+
 export function CompanySection() {
     const { company, isLoading } = useCompanySettings();
     const updateMutation = useUpdateCompanySettings();
@@ -446,9 +425,22 @@ export function CompanySection() {
                         <LogoInfo>
                             <LogoName>{form.name || 'Nazwa firmy'}</LogoName>
                             <LogoMeta>
-                                {logoUrl ? 'Logo wgrane · SVG, PNG, WebP lub JPEG · max 5 MB' : 'Brak logo · najlepiej SVG lub PNG z przezroczystym tłem, min. 1000 px'}
+                                {logoUrl ? 'Logo wgrane' : 'Brak logo'}
+                                <InfoTooltip text={LOGO_GUIDANCE} width={340} />
                             </LogoMeta>
                         </LogoInfo>
+                        {showLogo && (
+                            <PreviewPair aria-label="Podgląd logo na jasnym i ciemnym tle">
+                                <PreviewTile>
+                                    <img src={logoUrl!} alt="" />
+                                    <span>jasne</span>
+                                </PreviewTile>
+                                <PreviewTile $dark>
+                                    <img src={logoUrl!} alt="" />
+                                    <span>ciemne</span>
+                                </PreviewTile>
+                            </PreviewPair>
+                        )}
                         <LogoActions>
                             <input
                                 ref={fileInputRef}
@@ -471,28 +463,6 @@ export function CompanySection() {
                             )}
                         </LogoActions>
                     </LogoRow>
-
-                    <LogoGuidance>
-                        <GuidanceList aria-label="Zalecenia dotyczące logo">
-                            <li><span><strong>Jeden plik wystarczy</strong> — system sam przygotuje wersję do menu i wersję do druku.</span></li>
-                            <li><span><strong>Format:</strong> najlepiej SVG (ostry w każdej skali) albo PNG z przezroczystym tłem. WebP i JPEG też działają, ale JPEG nie ma przezroczystości.</span></li>
-                            <li><span><strong>Wymiary (PNG/WebP/JPEG):</strong> dłuższy bok min. 300 px, zalecane 1000 px lub więcej — logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Plik do 5 MB.</span></li>
-                            <li><span><strong>Proporcje:</strong> poziomy logotyp wygląda najlepiej w nagłówku dokumentów; sygnet (kwadrat) też się zmieści — logo nigdy nie jest deformowane.</span></li>
-                            <li><span><strong>Gdzie się pojawia:</strong> menu boczne aplikacji oraz — jeśli włączysz to w „Dokumenty i podpisy" — nagłówek protokołów i zgód.</span></li>
-                        </GuidanceList>
-                        {showLogo && (
-                            <PreviewPair aria-label="Podgląd logo na jasnym i ciemnym tle">
-                                <PreviewTile>
-                                    <img src={logoUrl!} alt="" />
-                                    <span>jasne</span>
-                                </PreviewTile>
-                                <PreviewTile $dark>
-                                    <img src={logoUrl!} alt="" />
-                                    <span>ciemne</span>
-                                </PreviewTile>
-                            </PreviewPair>
-                        )}
-                    </LogoGuidance>
 
                     {/* Form grid */}
                     <Grid>

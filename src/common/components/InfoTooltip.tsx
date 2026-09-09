@@ -74,6 +74,8 @@ const GAP = 8;
 interface HoverInfoProps {
   /** Explanation shown while hovering [children]. */
   text: string;
+  /** Popup width in px; the default fits one or two sentences. */
+  width?: number;
   children: ReactNode;
 }
 
@@ -84,7 +86,7 @@ interface HoverInfoProps {
  * button - to explain why it won't do anything, without needing the native
  * `disabled` attribute (which silently swallows both hover and click).
  */
-export function HoverInfo({ text, children }: HoverInfoProps) {
+export function HoverInfo({ text, width = POPUP_WIDTH, children }: HoverInfoProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -96,8 +98,8 @@ export function HoverInfo({ text, children }: HoverInfoProps) {
   // Clamp horizontally so the popup never bleeds off screen.
   const cx = rect ? rect.left + rect.width / 2 : 0;
   const clampedLeft = Math.max(
-    POPUP_WIDTH / 2 + 8,
-    Math.min(window.innerWidth - POPUP_WIDTH / 2 - 8, cx),
+    width / 2 + 8,
+    Math.min(window.innerWidth - width / 2 - 8, cx),
   );
 
   return (
@@ -109,6 +111,7 @@ export function HoverInfo({ text, children }: HoverInfoProps) {
             style={{
               left: clampedLeft,
               top: rect.top - GAP,
+              width,
               transform: 'translateX(-50%) translateY(-100%)',
             }}
           >
@@ -122,12 +125,13 @@ export function HoverInfo({ text, children }: HoverInfoProps) {
 
 interface InfoTooltipProps {
   text: string;
+  width?: number;
 }
 
 /** The familiar "i" badge - an explanation with no element of its own to attach to. */
-export function InfoTooltip({ text }: InfoTooltipProps) {
+export function InfoTooltip({ text, width }: InfoTooltipProps) {
   return (
-    <HoverInfo text={text}>
+    <HoverInfo text={text} width={width}>
       <Wrap>
         <Icon>i</Icon>
       </Wrap>
