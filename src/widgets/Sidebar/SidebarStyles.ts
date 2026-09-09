@@ -27,6 +27,11 @@ export const Overlay = styled.div<{ $isVisible: boolean }>`
         background: rgba(0, 0, 0, 0.65);
         backdrop-filter: blur(4px);
         z-index: 99;
+        /* Gest przewijania palcem po overlayu nie może pociągnąć treści pod nim
+           – overlay łapie touch i wygasza go, zamiast pozwolić przeglądarce
+           scrollować viewport. */
+        touch-action: none;
+        overscroll-behavior: contain;
         animation: fadeIn 220ms ease;
 
         @keyframes fadeIn {
@@ -293,6 +298,10 @@ export const MenuContainer = styled.nav`
     overflow-y: auto;
     overflow-x: hidden;
     padding: 6px 8px;
+    /* Doscrollowanie do końca listy nie może przekazać ruchu do tła
+       (scroll chaining na iOS/Android potrafi wtedy poruszyć viewportem). */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 
     &::-webkit-scrollbar { width: 3px; }
     &::-webkit-scrollbar-track { background: transparent; }
