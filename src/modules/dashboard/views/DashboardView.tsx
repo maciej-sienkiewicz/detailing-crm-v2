@@ -173,6 +173,20 @@ const HeroGreeting = styled.h1`
   }
 `;
 
+// Powitanie na telefonie: mniejsze, ciaśniej pod paskiem akcji. Reszta karty
+// jest zwinięta do dwóch pigułek, więc 34px pełnowymiarowego HeroGreeting
+// znów wypełniłoby połowę ekranu.
+const HeroGreetingMobile = styled.h1`
+  position: relative;
+  z-index: 1;
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.4px;
+  line-height: 1.15;
+`;
+
 const HeroDesc = styled.p`
   font-size: 14px;
   color: #94a3b8;
@@ -448,24 +462,27 @@ export const DashboardView = () => {
             <KpiSlider />
           </HeroRow>
         ) : (
-          /* Wersja mobilna: bez powitania, opisu dnia i "Generuj post" -
-             te elementy niosły dużo pikseli, a mało treści. Zostają dwa
-             realne narzędzia: skrót do przyjęcia wizyty i wejście w KPI. */
+          /* Wersja mobilna: samo powitanie i dwie pigułki - Statystyki po lewej
+             (wejście w KPI), "+ Wizyta" po prawej (skrót do przyjęcia).
+             Opis dnia i "Generuj post" znikają - niosły dużo pikseli, mało treści. */
           <>
+            <HeroGreetingMobile>
+              {greeting}{user?.firstName ? `, ${user.firstName}` : ''}!
+            </HeroGreetingMobile>
             <MobileHeroRow>
-              <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
-                <CalendarPlus />
-                Nowa wizyta
-              </HeroBtnPrimary>
               <StatsToggle
                 $open={heroStatsOpen}
                 onClick={() => setHeroStatsOpen(v => !v)}
                 aria-expanded={heroStatsOpen}
               >
                 <LineChart />
-                {heroStatsOpen ? 'Ukryj statystyki' : 'Pokaż statystyki'}
+                {heroStatsOpen ? 'Ukryj' : 'Statystyki'}
                 <ChevronDown />
               </StatsToggle>
+              <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
+                <span aria-hidden="true" style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>+</span>
+                Wizyta
+              </HeroBtnPrimary>
             </MobileHeroRow>
             {/* Montowany dopiero po rozwinięciu: slider mierzy swoje wymiary
                 przy pierwszym renderze i w ukrytym kontenerze zmierzyłby zero. */}
