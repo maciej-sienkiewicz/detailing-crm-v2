@@ -46,15 +46,20 @@ describe('hasPermission', () => {
 });
 
 describe('getDefaultRoute', () => {
-    it('sends the owner to /customers (historical default)', () => {
-        expect(getDefaultRoute(owner)).toBe('/customers');
+    it('sends the owner to the dashboard - it is the natural home', () => {
+        expect(getDefaultRoute(owner)).toBe('/dashboard');
     });
 
-    it('picks the first area the user can access', () => {
+    it('sends any user with dashboard access to the dashboard', () => {
+        expect(getDefaultRoute(employee('CUSTOMERS_VIEW'))).toBe('/dashboard');
+        expect(getDefaultRoute(employee('CUSTOMERS_VIEW', 'VISITS_VIEW'))).toBe('/dashboard');
+        expect(getDefaultRoute(employee('LEADS_MANAGE'))).toBe('/dashboard');
+        expect(getDefaultRoute(employee('FINANCE_VIEW_REPORTS'))).toBe('/dashboard');
+    });
+
+    it('falls back to the first area the user can access when the dashboard is out of reach', () => {
         expect(getDefaultRoute(employee('VISITS_VIEW'))).toBe('/calendar');
-        expect(getDefaultRoute(employee('LEADS_MANAGE'))).toBe('/leads');
-        expect(getDefaultRoute(employee('FINANCE_VIEW_REPORTS'))).toBe('/finances');
-        expect(getDefaultRoute(employee('CUSTOMERS_VIEW', 'VISITS_VIEW'))).toBe('/customers');
+        expect(getDefaultRoute(employee('BATCH_ORDERS'))).toBe('/batch-orders');
     });
 
     it('sends a zero-permission user to the task inbox, never into a redirect loop', () => {
