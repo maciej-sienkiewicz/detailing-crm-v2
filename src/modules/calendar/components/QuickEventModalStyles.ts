@@ -349,6 +349,51 @@ export const RowHeaderHint = styled.span<{ $required?: boolean }>`
     flex-shrink: 0;
 `;
 
+/** Podpowiedzi klienta na mobile - lista W PRZEPŁYWIE dokumentu, bezpośrednio
+    pod polami Imię/Nazwisko. Celowo NIE position: fixed/absolute z liczeniem
+    pozycji w JS (jak stary portal) - to właśnie tamto "przeskakiwało" przy
+    otwarciu klawiatury i scrollu. Element w normalnym flow zawsze siedzi pod
+    polem i przewija się razem z nim. */
+export const MobileCustomerSuggestions = styled.div`
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10), 0 4px 8px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    max-height: 240px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+`;
+
+export const MobileCustomerSuggestionItem = styled.button`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+
+    & + & { border-top: 1px solid #F1F5F9; }
+    &:active { background: #F1F5F9; }
+`;
+
+export const MobileCustomerSuggestionName = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0F172A;
+`;
+
+export const MobileCustomerSuggestionSub = styled.span<{ $warn?: boolean }>`
+    font-size: 11px;
+    color: ${p => p.$warn ? '#B45309' : '#94A3B8'};
+`;
+
 /** SectionActions z /checkin/new: rząd przycisków akcji po prawej stronie
     nagłówka (np. "Wycofaj zmiany", "Wybierz klienta"). Na mobile bierze pełną
     szerokość i dzieli ją równo między przyciski. */
