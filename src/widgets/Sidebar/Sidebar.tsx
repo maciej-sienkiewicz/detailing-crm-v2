@@ -44,9 +44,11 @@ import {
     SidebarContainer,
     SidebarHeader,
     Logo,
+    CollapsedInitials,
     LogoIcon,
     LogoImage,
     LogoText,
+    LogoWide,
     HeaderActions,
     CollapseButton,
     CloseButton,
@@ -232,7 +234,12 @@ export const Sidebar = () => {
 
     useEffect(() => {
         if (company) {
-            writeCompanyHeader(user?.studioId, { name: company.name ?? null, logoUrl: company.logoUrl ?? null });
+            writeCompanyHeader(user?.studioId, {
+                name: company.name ?? null,
+                logoUrl: company.logoUrl ?? null,
+                logoNeedsLightPlate: company.logoNeedsLightPlate,
+                logoAspectRatio: company.logoAspectRatio,
+            });
         }
     }, [company, user?.studioId]);
 
@@ -254,6 +261,19 @@ export const Sidebar = () => {
     const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
     const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
 
+    /**
+     * Układ nagłówka zależy od kształtu logo. Poziomy logotyp (szerokość ≥ 1,6 ×
+     * wysokość) dostaje całą szerokość i zastępuje nazwę firmy, którą i tak niesie.
+     * Sygnet albo logo zbliżone do kwadratu staje jako 36-pikselowy kafelek obok
+     * nazwy. Podkładka pod logo tylko wtedy, gdy backend uznał, że bez niej logo
+     * zniknie na ciemnym pasku (przezroczyste tło + ciemny tusz); logo sprzed tej
+     * analizy (brak proporcji) zachowuje dawny wygląd: kafelek z białą podkładką.
+     */
+    const logoSource = company ?? cachedHeader;
+    const logoAspectRatio = logoSource?.logoAspectRatio ?? null;
+    const logoNeedsPlate = logoSource?.logoNeedsLightPlate ?? true;
+    const isWideLogo = logoAspectRatio !== null && logoAspectRatio >= 1.6;
+
     const displayName = user
         ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email
         : '';
@@ -265,19 +285,39 @@ export const Sidebar = () => {
             <SidebarContainer $isCollapsed={isCollapsed} $isMobileOpen={isMobileOpen}>
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <Logo $isCollapsed={isCollapsed}>
-                        {showLogo
-                            ? (
-                                <LogoImage
+                        {showLogo && isWideLogo ? (
+                            <>
+                                <LogoWide
                                     key={logoUrl}
                                     src={logoUrl!}
                                     alt={companyName}
+                                    title={companyName}
+                                    $isCollapsed={isCollapsed}
+                                    $plate={logoNeedsPlate}
                                     onError={() => setFailedLogoUrl(logoUrl)}
                                 />
-                            )
-                            : <LogoIcon>{companyInitials(company?.name)}</LogoIcon>}
-                        <LogoText $isCollapsed={isCollapsed} title={companyName}>
-                            {companyName}
-                        </LogoText>
+                                <CollapsedInitials $isCollapsed={isCollapsed}>
+                                    <LogoIcon>{companyInitials(company?.name)}</LogoIcon>
+                                </CollapsedInitials>
+                            </>
+                        ) : (
+                            <>
+                                {showLogo
+                                    ? (
+                                        <LogoImage
+                                            key={logoUrl}
+                                            src={logoUrl!}
+                                            alt={companyName}
+                                            $plate={logoNeedsPlate}
+                                            onError={() => setFailedLogoUrl(logoUrl)}
+                                        />
+                                    )
+                                    : <LogoIcon>{companyInitials(company?.name)}</LogoIcon>}
+                                <LogoText $isCollapsed={isCollapsed} title={companyName}>
+                                    {companyName}
+                                </LogoText>
+                            </>
+                        )}
                     </Logo>
                     <HeaderActions>
                         <CollapseButton

@@ -35,9 +35,11 @@ const LogoRow = styled.div`
     flex-wrap: wrap;
 `;
 
-const LogoThumb = styled.div`
-    width: 56px;
+// Poziomy logotyp dostaje szerszy kafelek: w kwadracie 56 px byłby nieczytelny.
+const LogoThumb = styled.div<{ $wide?: boolean }>`
+    width: ${p => (p.$wide ? '132px' : '56px')};
     height: 56px;
+    padding: ${p => (p.$wide ? '6px 10px' : '0')};
     border-radius: 12px;
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
@@ -416,7 +418,7 @@ export function CompanySection() {
                 <Panel>
                     {/* Logo */}
                     <LogoRow>
-                        <LogoThumb>
+                        <LogoThumb $wide={showLogo && (company?.logoAspectRatio ?? 0) >= 1.6}>
                             {showLogo
                                 ? <img key={logoUrl!} src={logoUrl!} alt="Logo firmy" onError={() => setFailedLogoUrl(logoUrl)} />
                                 : <LogoMark>{(form.name || 'D').trim().charAt(0).toUpperCase()}</LogoMark>

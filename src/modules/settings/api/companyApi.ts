@@ -24,6 +24,8 @@ const MOCK_DATA: CompanySettings = {
     website: 'https://detailpro.pl',
     bankAccount: '12 1020 1042 0000 0102 0123 4567',
     logoUrl: null,
+    logoNeedsLightPlate: true,
+    logoAspectRatio: null,
     emailAlias: 'detailpro',
     updatedAt: new Date().toISOString(),
 };
@@ -59,8 +61,8 @@ export const companyApi = {
             return new Promise(resolve =>
                 setTimeout(() => {
                     const url = URL.createObjectURL(file);
-                    mockStore = { ...mockStore, logoUrl: url };
-                    resolve({ logoUrl: url });
+                    mockStore = { ...mockStore, logoUrl: url, logoNeedsLightPlate: false, logoAspectRatio: 2 };
+                    resolve({ logoUrl: url, logoNeedsLightPlate: false, logoAspectRatio: 2 });
                 }, 800)
             );
         }
@@ -78,7 +80,7 @@ export const companyApi = {
         if (USE_MOCKS) {
             return new Promise(resolve =>
                 setTimeout(() => {
-                    mockStore = { ...mockStore, logoUrl: null };
+                    mockStore = { ...mockStore, logoUrl: null, logoNeedsLightPlate: true, logoAspectRatio: null };
                     resolve();
                 }, 400)
             );
