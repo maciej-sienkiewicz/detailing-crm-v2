@@ -129,12 +129,20 @@ const Achievements = styled.p`
     line-height: 1.55;
 `;
 
-/** Liczby są dowodem pod zdaniem, nie komunikatem samym w sobie. */
-const Evidence = styled.p`
+/**
+ * Liczby są dowodem pod zdaniem, nie komunikatem samym w sobie. Gdy `achievements`
+ * mówi już wystarczająco (a mówi w większości przypadków), na mobile ukrywamy
+ * drugą linię danych - jest podręcznikiem, nie odpowiedzią.
+ */
+const Evidence = styled.p<{ $secondary?: boolean }>`
     margin: 0;
     font-size: ${st.fontSm};
     color: ${st.textMuted};
     line-height: 1.5;
+
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        ${p => p.$secondary && 'display: none;'}
+    }
 `;
 
 /**
@@ -279,7 +287,7 @@ const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) =>
 
                 {profile.achievements && <Achievements>{profile.achievements}</Achievements>}
 
-                <Evidence>{profile.evidence}</Evidence>
+                <Evidence $secondary={Boolean(profile.achievements)}>{profile.evidence}</Evidence>
 
                 {(links.length > 0 || ads.length > 0) && (
                     <PostLinks>
@@ -361,7 +369,7 @@ export const WeekTab: React.FC<{
 
             <Card>
                 <CardTitle>Co się działo u obserwowanych profili</CardTitle>
-                <CardHint>
+                <CardHint $hideOnMobile>
                     Każdy profil raz, z tego tygodnia. Liczby porównujemy z normą danego profilu
                     z ostatniego pół roku, a nie ze średnią całej grupy.
                 </CardHint>
@@ -382,9 +390,7 @@ export const WeekTab: React.FC<{
                     <CardTitle>Rozbuduj grupę porównawczą</CardTitle>
                     <CardHint>
                         Obserwujesz {digest.profilesWatched}{' '}
-                        {digest.profilesWatched === 1 ? 'profil' : 'profile'}. Od 4 profili odblokujemy
-                        porównania z medianą Twojej grupy. Oto konta podobne do tych, które już
-                        obserwujesz:
+                        {digest.profilesWatched === 1 ? 'profil' : 'profile'}. Od 4 profili pokażemy medianę grupy.
                     </CardHint>
                     <SuggestionsSection compact />
                 </Card>

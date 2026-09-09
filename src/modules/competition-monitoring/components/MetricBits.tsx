@@ -58,11 +58,19 @@ export const CardTitle = styled.h2`
     letter-spacing: -0.2px;
 `;
 
-export const CardHint = styled.p`
+export const CardHint = styled.p<{ $hideOnMobile?: boolean }>`
     margin: 0 0 16px;
     font-size: ${st.fontSm};
     color: ${st.textMuted};
     line-height: 1.5;
+
+    /* Długie akapity wyjaśniające („domyślnie sortujemy po skuteczności...") są
+       na desktopie kontekstem, na telefonie szumem — właściciel skanuje ekran
+       między klientami. Miejsca gdzie hint nie jest esencjalny mają go schować
+       poniżej md. */
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        ${p => p.$hideOnMobile && 'display: none;'}
+    }
 `;
 
 // ─── Delta ────────────────────────────────────────────────────────────────────
