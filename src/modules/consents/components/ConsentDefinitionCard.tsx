@@ -128,7 +128,7 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
                                     <TemplateActions>
                                         {version.pdfUrl && !version.isActive && (
                                             <ViewPdfButton
-                                                href={version.pdfUrl}
+                                                href={version.previewUrl || version.pdfUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
@@ -137,7 +137,7 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
                                         )}
                                         {version.isActive && version.pdfUrl && (
                                             <ViewPdfButton
-                                                href={version.pdfUrl}
+                                                href={version.previewUrl || version.pdfUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >

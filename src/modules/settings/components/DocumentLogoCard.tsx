@@ -112,7 +112,7 @@ export function DocumentLogoCard() {
                     <OptionHint>
                         {!hasLogo && !isLoading ? (
                             <>
-                                Firma nie ma jeszcze wgranego logo — dodaj je w{' '}
+                                Firma nie ma jeszcze wgranego logo. Dodaj je w{' '}
                                 <Link to="/settings?tab=company">Danych firmy</Link>, a pojawi się na dokumentach.
                             </>
                         ) : !isOwner ? (

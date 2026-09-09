@@ -29,6 +29,8 @@ export interface ConsentVersionResponse {
     isActive: boolean;
     requiresResign: boolean;
     pdfUrl: string | null;
+    /** Podgląd przez backend: wersja systemowa z logo studia w nagłówku (gdy włączone). */
+    previewUrl?: string | null;
     createdAt: string;
 }
 

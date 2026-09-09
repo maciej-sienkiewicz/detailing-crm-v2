@@ -535,10 +535,10 @@ function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSec
                                         </RuleMeta>
                                     </RuleInfo>
                                     <RuleActions>
-                                        {tpl?.templateUrl && (
+                                        {(tpl?.previewUrl || tpl?.templateUrl) && (
                                             <IconBtn
                                                 as="a"
-                                                href={tpl.templateUrl}
+                                                href={tpl.previewUrl || tpl.templateUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 title="Podgląd PDF"
@@ -697,10 +697,10 @@ function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) 
                                 </RuleMeta>
                             </RuleInfo>
                             <RuleActions>
-                                {def.currentVersion?.pdfUrl && (
+                                {(def.currentVersion?.previewUrl || def.currentVersion?.pdfUrl) && (
                                     <IconBtn
                                         as="a"
-                                        href={def.currentVersion.pdfUrl}
+                                        href={def.currentVersion.previewUrl || def.currentVersion.pdfUrl!}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         title="Podgląd PDF"
