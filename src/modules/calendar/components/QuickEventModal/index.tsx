@@ -36,16 +36,6 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
 
-/** Podpis nad polem koloru - ten sam język co etykiety w arkuszu przyjęcia. */
-const MobileColorLabel = styled.div`
-    margin-bottom: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
 const SmsCheckList = styled.div`
     display: flex;
     flex-direction: column;
@@ -285,31 +275,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
      * robi to tylko z focus() wywołanego wewnątrz gestu, stąd chwilowe pole
      * poza ekranem, do którego wchodzimy, zanim arkusz się zamontuje.
      */
-    const customerTapGuardRef = useRef(0);
-    const openCustomerSheetFromTap = useCallback((e: React.PointerEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
-        if (!isMobile) return;
-        e.preventDefault();
-
-        // Jedno dotknięcie daje i pointerdown, i touchstart - arkusz otwieramy raz.
-        const now = performance.now();
-        if (now - customerTapGuardRef.current < 700) return;
-        customerTapGuardRef.current = now;
-
-        const tmp = document.createElement('div');
-        tmp.contentEditable = 'true';
-        tmp.setAttribute('inputmode', 'search');
-        tmp.style.cssText = 'position:fixed;top:-200px;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
-        document.body.appendChild(tmp);
-        tmp.focus();
-
-        form.setFocusedField('customer');
-        form.setShowCustomerDropdown(true);
-
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            customerSheetInputRef.current?.focus();
-            tmp.remove();
-        }));
-    }, [isMobile, form]);
+    // Wcześniej dotknięcie pola klienta na telefonie otwierało osobny arkusz
+    // z wyszukiwarką - pola były wtedy podglądowe, nie dało się w nich pisać
+    // bezpośrednio. Teraz sekcja klienta na mobile działa jak w /checkin/new:
+    // Imię, Nazwisko, Telefon, E-mail są edytowane inline, klawiatura otwiera
+    // się natywnie z fokusu inputa. Handler zostawiony jako no-op, żeby nie
+    // musieć wycinać `onPointerDown`/`onTouchStart` z wszystkich pól -
+    // ale tam gdzie jest podpięty, nic nie robi.
+    const openCustomerSheetFromTap = useCallback(() => {
+        // no-op na obu breakpointach
+    }, []);
 
     /**
      * Trzy powiadomienia SMS jako niezależne przełączniki - każda kombinacja jest
@@ -708,6 +683,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                         <S.ScrollableContent>
                             {/* ── Time row ───────────────────────────────────────── */}
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderIcon><IconClock /></S.RowHeaderIcon>
+                                    <S.RowHeaderLabel>Termin</S.RowHeaderLabel>
+                                    <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
+                                </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField?.startsWith('time') ? form.accentColor : undefined}>
                                     <IconClock />
                                 </S.IconWrapper>
@@ -781,6 +761,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             {/* ── Customer row ───────────────────────────────────── */}
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderIcon><IconUser /></S.RowHeaderIcon>
+                                    <S.RowHeaderLabel>Klient</S.RowHeaderLabel>
+                                    <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
+                                </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField === 'customer' ? form.accentColor : undefined}>
                                     <IconUser />
                                 </S.IconWrapper>
@@ -1101,8 +1086,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     document.body
                                                 )}
 
-                                                {/* Mobile bottom sheet for customer results */}
-                                                {isMobile && form.showCustomerDropdown && createPortal(
+                                                {/* Mobile bottom sheet for customer results - wyłączone.
+                                                    Pola Imię/Nazwisko/Telefon/E-mail są teraz edytowane inline
+                                                    (jak w /checkin/new), więc arkusz z wyszukiwarką po prostu
+                                                    zasłaniał widoczne pola. Wyszukanie istniejącego klienta na
+                                                    telefonie wróci osobnym przyciskiem "Wyszukaj klienta" - do
+                                                    dopięcia w kolejnej iteracji. */}
+                                                {false && isMobile && form.showCustomerDropdown && createPortal(
                                                     <>
                                                         <S.MobileSheetBackdrop
                                                             // Arkusz wstaje pod palcem, więc „kliknięcie" domykające gest
@@ -1234,6 +1224,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             {/* ── Vehicle row ────────────────────────────────────── */}
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderIcon><IconCar /></S.RowHeaderIcon>
+                                    <S.RowHeaderLabel>Pojazd</S.RowHeaderLabel>
+                                    <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
+                                </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField === 'vehicle' ? form.accentColor : undefined}>
                                     <IconCar />
                                 </S.IconWrapper>
@@ -1460,6 +1455,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             {/* ── Services row ───────────────────────────────────── */}
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderIcon><IconSettings /></S.RowHeaderIcon>
+                                    <S.RowHeaderLabel>Usługi</S.RowHeaderLabel>
+                                    {form.services.length > 0 && (
+                                        <S.RowHeaderHint>
+                                            {form.services.length === 1 ? '1 pozycja' : `${form.services.length} pozycji`}
+                                        </S.RowHeaderHint>
+                                    )}
+                                </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField === 'services' ? form.accentColor : undefined}>
                                     <IconSettings />
                                 </S.IconWrapper>
@@ -1791,11 +1795,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <>
                                     <S.Divider />
                                     <S.Row>
+                                        <S.RowHeader>
+                                            <S.RowHeaderIcon><IconPalette /></S.RowHeaderIcon>
+                                            <S.RowHeaderLabel>Kolor w kalendarzu</S.RowHeaderLabel>
+                                            <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
+                                        </S.RowHeader>
                                         <S.IconWrapper>
                                             <IconPalette />
                                         </S.IconWrapper>
                                         <S.RowContent>
-                                            <MobileColorLabel>Kolor w kalendarzu</MobileColorLabel>
                                             <ColorDropdown
                                                 colors={form.appointmentColors}
                                                 value={form.selectedColorId ?? ''}
@@ -1830,6 +1838,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             {/* ── Notes row ──────────────────────────────────────── */}
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderIcon><IconNote /></S.RowHeaderIcon>
+                                    <S.RowHeaderLabel>Notatka</S.RowHeaderLabel>
+                                    <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
+                                </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField === 'notes' ? form.accentColor : undefined}>
                                     <IconNote />
                                 </S.IconWrapper>
@@ -1850,6 +1863,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             {/* ── Door to Door row ───────────────────────────────── */}
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderIcon $color={form.doorToDoor.enabled ? '#0ea5e9' : undefined}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                            <polyline points="9 22 9 12 15 12 15 22"/>
+                                        </svg>
+                                    </S.RowHeaderIcon>
+                                    <S.RowHeaderLabel>Odbiór i dostawa</S.RowHeaderLabel>
+                                    <S.RowHeaderHint>{form.doorToDoor.enabled ? 'włączone' : 'opcjonalne'}</S.RowHeaderHint>
+                                </S.RowHeader>
                                 <S.IconWrapper $color={form.doorToDoor.enabled ? '#0ea5e9' : undefined}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
