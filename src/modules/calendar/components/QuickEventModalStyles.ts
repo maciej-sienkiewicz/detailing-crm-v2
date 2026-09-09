@@ -99,9 +99,47 @@ export const Header = styled.div`
     gap: 12px;
     flex-shrink: 0;
 
+    /* Mobile: header zmienia rolę - staje się paskiem zamknięcia z tytułem
+       "Nowa wizyta" po lewej (statycznym, edycja tytułu żyje w sekcji 0).
+       Białe tło, border-bottom, kompaktowy padding jak w PageHeader z
+       CheckInWizardView. Sam edytowalny tytuł ląduje w SectionCard 0 na
+       górze ScrollableContent - patrz index.tsx. */
     @media (max-width: 639px) {
-        padding: 16px 16px 12px 18px;
+        padding: 14px 16px;
+        align-items: center;
+        background: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
     }
+`;
+
+/** Statyczna nazwa modalu widoczna na telefonie w miejscu edytowanego tytułu.
+    Sam tytuł rezerwacji przenosi się do sekcji 0 poniżej. */
+export const MobilePageTitle = styled.div`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+`;
+
+export const MobilePageTitleName = styled.h1`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+    line-height: 1.15;
+`;
+
+export const MobilePageTitleSub = styled.p`
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.2;
 `;
 
 export const HeaderContent = styled.div`
@@ -135,10 +173,30 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
             p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
     }
 
+    /* Mobile: sam edytowalny tytuł znika z Headera i przenosi się do sekcji 0
+       na wzór /checkin/new. Element mieści się teraz w SectionBody i musi
+       wyglądać jak standardowy Input, nie jak wielki nagłówek. */
     @media (max-width: 639px) {
-        && { font-size: 18px; }
+        && { font-size: 15px; }
+        font-weight: 400;
+        letter-spacing: 0;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        color: #0f172a;
+
+        &::placeholder { color: #94a3b8; }
+
+        &:focus {
+            border-color: ${p =>
+                p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+        }
     }
 `;
+
 
 // ─── Scrollable body ──────────────────────────────────────────────────────────
 
@@ -159,11 +217,12 @@ export const ScrollableContent = styled.div`
     }
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
-    /* Mobile: karty-sekcje potrzebują większego rytmu pionowego niż zbite rzędy
-       na desktopie - 14 px oddechu między sekcjami zamiast 2 px. */
+    /* Mobile: sekcje potrzebują takiego samego oddechu jak w /checkin/new -
+       gap 16 px między kartami, tło z zaznaczoną szarością żeby karty
+       oddzielały się materiałowo od kontenera. */
     @media (max-width: 639px) {
-        padding: 14px 12px 24px;
-        gap: 14px;
+        padding: 16px 12px 24px;
+        gap: 16px;
         background: #f8fafc;
     }
 `;
@@ -175,6 +234,13 @@ export const ScrollableContent = styled.div`
 // na górze, treść w polu poniżej. Sekcje separują się materiałem, nie liniami
 // dividera (patrz `Divider` niżej - chowa się na mobile).
 
+// Row layout - mobile mirrors /checkin/new's SectionCard pattern EXACTLY:
+// biała karta, subtelny cień shadowSm, border slate-200. Nagłówek to szara
+// listwa (#f8fafc) z numeryczną plakietką pilkową i etykietą z inline'ową
+// ikoną (jak SectionLabel z VerificationStep). Docelowo te style powinny
+// zjechać do wspólnego modułu i być re-używane w obu miejscach - w tej
+// iteracji odwzorowujemy 1:1 wizualnie, żeby użytkownik widział ten sam
+// layout na mobile jak w arkuszu przyjęcia pojazdu.
 export const Row = styled.div`
     display: flex;
     align-items: flex-start;
@@ -187,50 +253,97 @@ export const Row = styled.div`
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
-        box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 8px rgba(15,23,42,0.03);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         overflow: hidden;
     }
 `;
 
-/** Nagłówek sekcji widoczny tylko na mobile - ikona modułu + etykieta + opcjonalny hint.
-    Etykietę przekazuje się przez prop `label` na komponencie Row.tsx (patrz index.tsx).
-    Na desktopie nagłówek pozostaje ukryty, żeby zachować dotychczasowy kompaktowy layout. */
+/** SectionHead z /checkin/new: szara listwa z border-bottom, flex-wrap dla akcji. */
 export const RowHeader = styled.div`
     display: none;
 
     @media (max-width: 639px) {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 10px;
-        padding: 11px 14px;
-        border-bottom: 1px solid #f1f5f9;
-        background: #fbfcfe;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+        flex-wrap: wrap;
     }
 `;
 
-export const RowHeaderIcon = styled.span<{ $color?: string }>`
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: rgba(14, 165, 233, 0.10);
-    color: ${p => p.$color ?? '#0ea5e9'};
+/** SectionTitleRow z /checkin/new: lewa strona nagłówka - numer + etykieta. */
+export const RowHeaderTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+`;
+
+/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki. */
+export const RowHeaderNum = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-
-    svg { width: 15px; height: 15px; stroke-width: 2; }
-`;
-
-export const RowHeaderLabel = styled.span`
-    font-size: 13px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #0ea5e9;
+    color: #fff;
+    font-size: 11px;
     font-weight: 700;
-    color: #0f172a;
-    letter-spacing: -0.1px;
-    flex: 1;
-    min-width: 0;
+    flex-shrink: 0;
 `;
 
+/** SectionLabel z /checkin/new: h3 z inline'ową ikoną w kolorze akcentu marki. */
+export const RowHeaderLabel = styled.h3`
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+
+    svg {
+        width: 17px;
+        height: 17px;
+        color: #0ea5e9;
+        flex-shrink: 0;
+    }
+`;
+
+/** StatusPill z /checkin/new: mała pigułka informacyjna obok label
+    (np. „Nowy klient", „12 pozycji"). Kolor akcentu marki. */
+export const RowHeaderStatus = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+`;
+
+/** Zachowany dla kompatybilności - stare użycia RowHeaderIcon jako plakietka.
+    Na mobile ukryte, bo ikona sekcji trafia teraz INLINE do RowHeaderLabel jak
+    w /checkin/new. */
+export const RowHeaderIcon = styled.span<{ $color?: string }>`
+    display: none;
+`;
+
+/** Hint po prawej stronie nagłówka - "wymagane" / "opcjonalne" jako subtelny
+    napis. W /checkin/new hint pojawia się jako SectionActions (przyciski),
+    ale dla QuickEvent nie ma akcji, więc korzystamy z hintu jako marker. */
 export const RowHeaderHint = styled.span<{ $required?: boolean }>`
     font-size: 11px;
     font-weight: 600;
@@ -252,6 +365,7 @@ export const IconWrapper = styled.div<{ $color?: string }>`
     }
 `;
 
+/** SectionBody z /checkin/new: padding 14px 16px 16px, gap 12px między polami. */
 export const RowContent = styled.div`
     flex: 1;
     display: flex;
@@ -261,7 +375,7 @@ export const RowContent = styled.div`
 
     @media (max-width: 639px) {
         flex: none;
-        padding: 14px;
+        padding: 14px 16px 16px;
         gap: 12px;
     }
 `;
