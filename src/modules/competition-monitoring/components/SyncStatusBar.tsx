@@ -22,12 +22,34 @@ const Bar = styled.div`
     color: ${st.textSecondary};
 
     > svg { width: 13px; height: 13px; color: ${st.textMuted}; flex-shrink: 0; }
+
+    /* Na mobile pasek jest tylko sygnałem świeżości - trzymamy go w jednej linii
+       z ikoną + kompaktową datą, wyjaśnienie chowa się pod ikoną (i). */
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        flex-wrap: nowrap;
+        overflow: hidden;
+        padding: 6px 10px;
+    }
 `;
 
 const Sep = styled.span`
     color: ${st.textMuted};
 
     @media (max-width: 560px) { display: none; }
+`;
+
+const NextSyncText = styled.span`
+    /* Druga linia informacji („następna aktualizacja") pomaga na desktopie planować,
+       ale na mobile jest szumem — ikona (i) pokazuje ten sam szczegół. */
+    @media (max-width: ${p => p.theme.breakpoints.md}) { display: none; }
+`;
+
+const PrimaryText = styled.span`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
 `;
 
 const InfoWrap = styled.span`
@@ -100,11 +122,13 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSyncAt, nextDa
     return (
         <Bar>
             <RefreshCw aria-hidden />
-            <span>{last ? <>Dane z: <strong>{last}</strong></> : 'Pierwsza synchronizacja w toku...'}</span>
+            <PrimaryText>
+                {last ? <>Dane z: <strong>{last}</strong></> : 'Pierwsza synchronizacja w toku...'}
+            </PrimaryText>
             {nextDaily && (
                 <>
                     <Sep>·</Sep>
-                    <span>następna aktualizacja: {nextDaily}</span>
+                    <NextSyncText>następna aktualizacja: {nextDaily}</NextSyncText>
                 </>
             )}
             <InfoWrap>

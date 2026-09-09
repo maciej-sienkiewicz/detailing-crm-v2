@@ -39,6 +39,15 @@ export const Card = styled.section`
     border-radius: ${st.radiusLg};
     box-shadow: ${st.shadowSm};
     padding: 20px 24px;
+
+    /* Padding 24 px z desktopu to na 375 px 48 px odjęte od szerokości karty,
+       przy kolumnie profilu 34 + gap 14 = ~48 zostaje na treść. Na mobile
+       zmniejszamy do 16 px, żeby tytuł i zdanie o realizacjach nie zwijały się
+       w dwa piętra na kciuku. */
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        padding: 14px 14px;
+        border-radius: ${st.radiusSm};
+    }
 `;
 
 export const CardTitle = styled.h2`
