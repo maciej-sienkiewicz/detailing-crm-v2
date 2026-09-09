@@ -12,7 +12,7 @@ import { OperationFilterBar } from '../components/OperationFilterBar';
 import { OperationFilterPanel } from '../components/OperationFilterPanel';
 import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { useBreakpoint } from '@/common/hooks';
 import { UnfinishedCheckInsPanel } from '@/modules/checkin';
 
@@ -87,112 +87,6 @@ const SeriesBannerBtn = styled.button`
     flex-shrink: 0;
 `;
 
-/**
- * Mobilny app-bar - kompaktowa karta w miejscu, gdzie na desktopie stoi
- * gradientowy hero. Wzorzec z natywnych aplikacji SaaS (Linear, Stripe,
- * Airtable, HubSpot): ikona-plakietka + nazwa modułu + licznik jako caption +
- * primary CTA. Materiał (białe tło, border, subtelny cień) daje mu ciężar
- * chrome'u, zamiast osamotnionego rzędu na tle strony.
- */
-const MobileAppBar = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: 14px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
-`;
-
-const MobileAppBarLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    flex: 1;
-`;
-
-/** Kolorowa plakietka ikony - kontynuuje ikonografię z sidebar (CalendarCheck),
-    daje wzrokową kotwicę modułu i akcent marki bez ciężaru hero. */
-const MobileAppBarIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: 11px;
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.14) 0%, rgba(14, 165, 233, 0.06) 100%);
-    color: ${st.accentBlue};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 1px solid rgba(14, 165, 233, 0.16);
-
-    svg { width: 20px; height: 20px; stroke-width: 2; }
-`;
-
-const MobileAppBarText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-`;
-
-const MobileAppBarTitle = styled.div`
-    font-size: 15px;
-    font-weight: 600;
-    color: ${st.text};
-    letter-spacing: -0.2px;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const MobileAppBarCount = styled.div`
-    font-size: 12px;
-    font-weight: 500;
-    color: ${st.textSecondary};
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-`;
-
-const MobileAppBarCountValue = styled.span`
-    color: ${st.text};
-    font-weight: 700;
-`;
-
-const MobileNewVisitBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 15px;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: 9999px;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.32);
-    -webkit-tap-highlight-color: transparent;
-    flex-shrink: 0;
-    transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
-
-    &:active {
-        background: #0284c7;
-        box-shadow: 0 1px 4px rgba(14, 165, 233, 0.32);
-        transform: translateY(0.5px);
-    }
-
-    span[aria-hidden='true'] {
-        font-size: 17px;
-        font-weight: 700;
-        line-height: 1;
-    }
-`;
-
 export const OperationListView = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -263,30 +157,21 @@ export const OperationListView = () => {
                     }
                 />
             ) : (
-                /* Mobile: gradient hero znika. Zamiast tego kompaktowy app-bar
-                   z materiałem (biała karta, subtelny cień, border) - wzorzec
-                   z Linear/Stripe/HubSpot mobile. Ikona-plakietka jako wzrokowa
-                   kotwica modułu, tytuł widoku, licznik jako caption, primary
-                   CTA po prawej. */
-                <MobileAppBar>
-                    <MobileAppBarLeft>
-                        <MobileAppBarIcon aria-hidden="true">
-                            <CalendarCheck />
-                        </MobileAppBarIcon>
-                        <MobileAppBarText>
-                            <MobileAppBarTitle>Wizyty i Rezerwacje</MobileAppBarTitle>
-                            <MobileAppBarCount>
-                                {pagination
-                                    ? <><MobileAppBarCountValue>{pagination.totalItems}</MobileAppBarCountValue> rekordów</>
-                                    : 'Wczytywanie…'}
-                            </MobileAppBarCount>
-                        </MobileAppBarText>
-                    </MobileAppBarLeft>
-                    <MobileNewVisitBtn onClick={() => navigate('/checkin/new')}>
-                        <span aria-hidden="true">+</span>
-                        Wizyta
-                    </MobileNewVisitBtn>
-                </MobileAppBar>
+                /* Mobile: gradient hero znika. Zamiast tego wspólny kompaktowy
+                   app-bar (MobilePageHeader) - identyczny na wszystkich listach. */
+                <MobilePageHeader
+                    icon={<CalendarCheck />}
+                    title="Wizyty i Rezerwacje"
+                    subtitle={pagination
+                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
+                        : 'Wczytywanie…'}
+                    actions={
+                        <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>
+                            <span aria-hidden="true">+</span>
+                            Wizyta
+                        </MobilePageHeaderButton>
+                    }
+                />
             )}
 
             {/*

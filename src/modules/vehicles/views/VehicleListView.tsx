@@ -16,7 +16,8 @@ import { VehicleFilterPanel } from '../components/VehicleFilterPanel';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { Car } from 'lucide-react';
+import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import type { VehicleAdvancedFilters } from '../types';
 
 const ViewContainer = styled.main`
@@ -314,6 +315,8 @@ export const VehicleListView = () => {
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
     const { deleteVehicle } = useDeleteVehicle();
     const isDesktop = useBreakpoint('lg');
+    // Nagłówek jak na Wizytach - mobilny app-bar poniżej md (768px).
+    const isDesktopHeader = useBreakpoint('md');
 
     const activeFilterCount = countActiveFilters(appliedFilters);
 
@@ -414,26 +417,42 @@ export const VehicleListView = () => {
 
     return (
         <ViewContainer>
-            <PageHeader
-                title={t.vehicles.title}
-                subtitle={
-                    <>
-                        {t.vehicles.subtitle}
-                        {pagination && (
-                            <TotalChip>{pagination.totalItems} rekordów</TotalChip>
-                        )}
-                    </>
-                }
-                actions={
-                    <PageHeaderPrimaryButton onClick={handleAddVehicle}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        {t.vehicles.addVehicle}
-                    </PageHeaderPrimaryButton>
-                }
-            />
+            {isDesktopHeader ? (
+                <PageHeader
+                    title={t.vehicles.title}
+                    subtitle={
+                        <>
+                            {t.vehicles.subtitle}
+                            {pagination && (
+                                <TotalChip>{pagination.totalItems} rekordów</TotalChip>
+                            )}
+                        </>
+                    }
+                    actions={
+                        <PageHeaderPrimaryButton onClick={handleAddVehicle}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            {t.vehicles.addVehicle}
+                        </PageHeaderPrimaryButton>
+                    }
+                />
+            ) : (
+                <MobilePageHeader
+                    icon={<Car />}
+                    title={t.vehicles.title}
+                    subtitle={pagination
+                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
+                        : 'Wczytywanie…'}
+                    actions={
+                        <MobilePageHeaderButton onClick={handleAddVehicle}>
+                            <span aria-hidden="true">+</span>
+                            Pojazd
+                        </MobilePageHeaderButton>
+                    }
+                />
+            )}
 
             <ContentSection>
                 <FilterBar>
