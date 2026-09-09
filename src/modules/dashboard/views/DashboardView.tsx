@@ -109,12 +109,8 @@ const HeroCard = styled.div`
     pointer-events: none;
   }
 
-  /* Na telefonie z tego kartonika zostaje pasek akcji, więc masywny padding
-     robił z niego ciężki nagłówek bez treści. Zwężamy go do wysokości pigułek
-     w środku. */
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: 12px;
-    border-radius: ${p => p.theme.radii.lg};
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding: 18px 16px;
   }
 `;
 
@@ -171,20 +167,6 @@ const HeroGreeting = styled.h1`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: 28px;
   }
-`;
-
-// Powitanie na telefonie: mniejsze, ciaśniej pod paskiem akcji. Reszta karty
-// jest zwinięta do dwóch pigułek, więc 34px pełnowymiarowego HeroGreeting
-// znów wypełniłoby połowę ekranu.
-const HeroGreetingMobile = styled.h1`
-  position: relative;
-  z-index: 1;
-  margin: 0 0 12px 0;
-  font-size: 22px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.4px;
-  line-height: 1.15;
 `;
 
 const HeroDesc = styled.p`
@@ -248,50 +230,36 @@ const HeroBtnGhost = styled.button`
 
 // ─── Hero stats toggle (mobile) ───────────────────────────────────────────────
 //
-// Na telefonie KPI chowa się za pigułką - liczby są o jedno dotknięcie, a
-// nagłówek Tablicy schodzi do wysokości paska akcji, zamiast zajmować pół
-// ekranu na powitanie, które nic nie mówi.
+// Na telefonie kafelek KPI zajmował pół ekranu powitalnego, zanim użytkownik
+// zobaczył cokolwiek do zrobienia. Chowamy go za wąskim przyciskiem - liczby
+// są o jedno dotknięcie, a nagłówek wraca do rozmiaru nagłówka.
 const StatsToggle = styled.button<{ $open: boolean }>`
-  display: inline-flex;
+  display: flex; /* Zmieniono z inline-flex na flex */
   align-items: center;
+  justify-content: space-between; /* Opcjonalnie: rozsuwa element po lewej i strzałkę po prawej */
   gap: 7px;
-  padding: 9px 16px;
+  width: 100%;
+  box-sizing: border-box; /* Zapewnia, że padding 14px nie wykracza poza 100% szerokości */
+  padding: 7px 14px;
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 9999px;
-  color: #e2e8f0;
+  color: #cbd5e1;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background 150ms ease, color 150ms ease;
-  white-space: nowrap;
 
-  &:active { background: rgba(255,255,255,0.14); color: #f8fafc; }
+  &:active { background: rgba(255,255,255,0.12); color: #f1f5f9; }
 
-  svg { width: 15px; height: 15px; stroke-width: 2; flex-shrink: 0; }
+  svg { width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; }
 
   svg:last-child {
     transition: transform 200ms ease;
     transform: rotate(${p => p.$open ? '180deg' : '0deg'});
   }
-`;
-
-// Dwa CTA w jednym rzędzie: "Nowa wizyta" po lewej, "Pokaż statystyki" po
-// prawej. Wrap dopuszczony na wypadek długich tłumaczeń lub bardzo wąskich
-// ekranów - wtedy pigułki spadają jedna pod drugą, a nie wychodzą poza kartę.
-const MobileHeroRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-// Odstęp od paska akcji, jeżeli KPI się rozwinie: bez tego slider siadał
-// wprost na pigułkach.
-const MobileKpiSlot = styled.div`
-  margin-top: 12px;
 `;
 
 // ─── Two-column panels grid ───────────────────────────────────────────────────
@@ -443,56 +411,40 @@ export const DashboardView = () => {
     <ViewContainer>
 
       <HeroCard>
-        {isDesktop ? (
-          <HeroRow>
-            <HeroLeft>
+        <HeroRow>
+          <HeroLeft>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
               {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
               <HeroActions>
-                <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
-                  <CalendarPlus />
-                  Nowa wizyta
-                </HeroBtnPrimary>
-                <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
-                  <Sparkles />
-                  Generuj post
-                </HeroBtnGhost>
-              </HeroActions>
-            </HeroLeft>
+              <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
+                <CalendarPlus />
+                Nowa wizyta
+              </HeroBtnPrimary>
+              <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
+                <Sparkles />
+                Generuj post
+              </HeroBtnGhost>
+            </HeroActions>
+          </HeroLeft>
+          {isDesktop ? (
             <KpiSlider />
-          </HeroRow>
-        ) : (
-          /* Wersja mobilna: samo powitanie i dwie pigułki - Statystyki po lewej
-             (wejście w KPI), "+ Wizyta" po prawej (skrót do przyjęcia).
-             Opis dnia i "Generuj post" znikają - niosły dużo pikseli, mało treści. */
-          <>
-            <HeroGreetingMobile>
-              {greeting}{user?.firstName ? `, ${user.firstName}` : ''}!
-            </HeroGreetingMobile>
-            <MobileHeroRow>
+          ) : (
+            <>
               <StatsToggle
                 $open={heroStatsOpen}
                 onClick={() => setHeroStatsOpen(v => !v)}
                 aria-expanded={heroStatsOpen}
               >
                 <LineChart />
-                {heroStatsOpen ? 'Ukryj' : 'Statystyki'}
+                {heroStatsOpen ? 'Ukryj statystyki' : 'Pokaż statystyki'}
                 <ChevronDown />
               </StatsToggle>
-              <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
-                <span aria-hidden="true" style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>+</span>
-                Wizyta
-              </HeroBtnPrimary>
-            </MobileHeroRow>
-            {/* Montowany dopiero po rozwinięciu: slider mierzy swoje wymiary
-                przy pierwszym renderze i w ukrytym kontenerze zmierzyłby zero. */}
-            {heroStatsOpen && (
-              <MobileKpiSlot>
-                <KpiSlider />
-              </MobileKpiSlot>
-            )}
-          </>
-        )}
+              {/* Montowany dopiero po rozwinięciu: slider mierzy swoje wymiary
+                  przy pierwszym renderze i w ukrytym kontenerze zmierzyłby zero. */}
+              {heroStatsOpen && <KpiSlider />}
+            </>
+          )}
+        </HeroRow>
       </HeroCard>
 
       {/* Podpowiedzi między powitaniem a kafelkami - komponent sam chowa się
