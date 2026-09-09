@@ -84,6 +84,74 @@ const LogoActions = styled.div`
     gap: 8px;
 `;
 
+// Wskazówki dla właściciela warsztatu, który nie musi znać się na grafice: co wgrać,
+// żeby logo było ostre na kartce A4 i czytelne w ciemnym menu. Wartości zgodne z
+// walidacją backendu (CompanyLogoProcessor: min. 300 px, max 5 MB).
+const LogoGuidance = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px 24px;
+    align-items: start;
+    padding: 14px 22px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fafbfc;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const GuidanceList = styled.ul`
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #475569;
+
+    li { display: flex; gap: 8px; }
+    li::before { content: '·'; color: #94a3b8; font-weight: 700; }
+    strong { color: #0f172a; font-weight: 600; }
+`;
+
+const PreviewPair = styled.div`
+    display: flex;
+    gap: 10px;
+`;
+
+const PreviewTile = styled.div<{ $dark?: boolean }>`
+    width: 96px;
+    height: 56px;
+    border-radius: 10px;
+    border: 1px solid ${p => (p.$dark ? 'rgba(255,255,255,0.08)' : '#e2e8f0')};
+    background: ${p => (p.$dark ? '#0f172a' : '#ffffff')};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    position: relative;
+
+    img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    span {
+        position: absolute;
+        bottom: 3px;
+        right: 6px;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: ${p => (p.$dark ? '#64748b' : '#94a3b8')};
+    }
+`;
+
 const Grid = styled.div`
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -241,6 +309,9 @@ function validate(form: CompanyForm): FormErrors {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Zgodne z CompanyController.MAX_LOGO_SIZE_BYTES. */
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
 export function CompanySection() {
     const { company, isLoading } = useCompanySettings();
     const updateMutation = useUpdateCompanySettings();
@@ -253,6 +324,10 @@ export function CompanySection() {
     const [savedForm, setSavedForm] = useState<CompanyForm | null>(null);
     const [errors, setErrors] = useState<FormErrors>({});
     const [dirty, setDirty] = useState(false);
+    // Adres logo to podpisany link S3 z ograniczonym czasem życia — po wygaśnięciu
+    // <img> zwróci błąd. Pamiętamy KTÓRY adres zawiódł, żeby świeży (po ponownym
+    // pobraniu ustawień) dostał kolejną szansę zamiast utknąć w fallbacku.
+    const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         if (company && !form) {
@@ -319,15 +394,19 @@ export function CompanySection() {
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 2 * 1024 * 1024) {
-            showError('Plik za duży', 'Logo nie może przekraczać 2 MB.');
+        if (file.size > MAX_LOGO_BYTES) {
+            showError('Plik za duży', 'Logo nie może przekraczać 5 MB.');
             return;
         }
         try {
             await uploadLogoMutation.mutateAsync(file);
-            showSuccess('Logo zaktualizowane', 'Nowe logo zostało wgrane.');
-        } catch {
-            showError('Błąd', 'Nie udało się wgrać logo.');
+            setFailedLogoUrl(null);
+            showSuccess('Logo zaktualizowane', 'Przygotowaliśmy wersję do menu i wersję do druku.');
+        } catch (err) {
+            // Backend odrzuca m.in. za małe rastry i uszkodzone pliki z konkretnym
+            // powodem — pokazujemy go zamiast ogólnego „nie udało się".
+            const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Nie udało się wgrać logo', message ?? 'Sprawdź format i rozmiar pliku i spróbuj ponownie.');
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
@@ -343,6 +422,9 @@ export function CompanySection() {
         }
     };
 
+    const logoUrl = company?.logoUrl?.trim() || null;
+    const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
+
     const isSaving = updateMutation.isPending;
     const logoUploading = uploadLogoMutation.isPending;
     const logoDeleting = deleteLogoMutation.isPending;
@@ -356,15 +438,15 @@ export function CompanySection() {
                     {/* Logo */}
                     <LogoRow>
                         <LogoThumb>
-                            {company?.logoUrl
-                                ? <img src={company.logoUrl} alt="Logo firmy" />
+                            {showLogo
+                                ? <img key={logoUrl!} src={logoUrl!} alt="Logo firmy" onError={() => setFailedLogoUrl(logoUrl)} />
                                 : <LogoMark>{(form.name || 'D').trim().charAt(0).toUpperCase()}</LogoMark>
                             }
                         </LogoThumb>
                         <LogoInfo>
                             <LogoName>{form.name || 'Nazwa firmy'}</LogoName>
                             <LogoMeta>
-                                {company?.logoUrl ? 'Logo wgrane' : 'Brak logo · zalecane SVG lub PNG, min. 400 px'}
+                                {logoUrl ? 'Logo wgrane · SVG, PNG, WebP lub JPEG · max 5 MB' : 'Brak logo · najlepiej SVG lub PNG z przezroczystym tłem, min. 1000 px'}
                             </LogoMeta>
                         </LogoInfo>
                         <LogoActions>
@@ -389,6 +471,28 @@ export function CompanySection() {
                             )}
                         </LogoActions>
                     </LogoRow>
+
+                    <LogoGuidance>
+                        <GuidanceList aria-label="Zalecenia dotyczące logo">
+                            <li><span><strong>Jeden plik wystarczy</strong> — system sam przygotuje wersję do menu i wersję do druku.</span></li>
+                            <li><span><strong>Format:</strong> najlepiej SVG (ostry w każdej skali) albo PNG z przezroczystym tłem. WebP i JPEG też działają, ale JPEG nie ma przezroczystości.</span></li>
+                            <li><span><strong>Wymiary (PNG/WebP/JPEG):</strong> dłuższy bok min. 300 px, zalecane 1000 px lub więcej — logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Plik do 5 MB.</span></li>
+                            <li><span><strong>Proporcje:</strong> poziomy logotyp wygląda najlepiej w nagłówku dokumentów; sygnet (kwadrat) też się zmieści — logo nigdy nie jest deformowane.</span></li>
+                            <li><span><strong>Gdzie się pojawia:</strong> menu boczne aplikacji oraz — jeśli włączysz to w „Dokumenty i podpisy" — nagłówek protokołów i zgód.</span></li>
+                        </GuidanceList>
+                        {showLogo && (
+                            <PreviewPair aria-label="Podgląd logo na jasnym i ciemnym tle">
+                                <PreviewTile>
+                                    <img src={logoUrl!} alt="" />
+                                    <span>jasne</span>
+                                </PreviewTile>
+                                <PreviewTile $dark>
+                                    <img src={logoUrl!} alt="" />
+                                    <span>ciemne</span>
+                                </PreviewTile>
+                            </PreviewPair>
+                        )}
+                    </LogoGuidance>
 
                     {/* Form grid */}
                     <Grid>

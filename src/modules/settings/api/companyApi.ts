@@ -1,7 +1,9 @@
 import { apiClient } from '@/core';
 import type {
     CompanySettings,
+    DocumentLogoConfig,
     UpdateCompanySettingsRequest,
+    UpdateDocumentLogoConfigRequest,
     UpdateVisitNumberingConfigRequest,
     UploadLogoResponse,
     VisitNumberingConfig,
@@ -64,7 +66,11 @@ export const companyApi = {
         }
         const form = new FormData();
         form.append('file', file);
-        const response = await apiClient.post<UploadLogoResponse>(`${BASE_PATH}/logo`, form);
+        // Powód odrzucenia (za mały raster, zły format) pokazuje CompanySection we
+        // własnym toaście — globalny toast z interceptora byłby dubletem.
+        const response = await apiClient.post<UploadLogoResponse>(`${BASE_PATH}/logo`, form, {
+            skipErrorToast: true,
+        });
         return response.data;
     },
 
@@ -87,6 +93,16 @@ export const companyApi = {
 
     updateVisitNumberingConfig: async (data: UpdateVisitNumberingConfigRequest): Promise<VisitNumberingConfig> => {
         const response = await apiClient.patch<VisitNumberingConfig>(`${BASE_PATH}/visit-numbering-config`, data);
+        return response.data;
+    },
+
+    getDocumentLogoConfig: async (): Promise<DocumentLogoConfig> => {
+        const response = await apiClient.get<DocumentLogoConfig>(`${BASE_PATH}/document-logo-config`);
+        return response.data;
+    },
+
+    updateDocumentLogoConfig: async (data: UpdateDocumentLogoConfigRequest): Promise<DocumentLogoConfig> => {
+        const response = await apiClient.patch<DocumentLogoConfig>(`${BASE_PATH}/document-logo-config`, data);
         return response.data;
     },
 };
