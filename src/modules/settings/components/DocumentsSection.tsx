@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
 import { MySignatureSection } from './MySignatureSection';
+import { DocumentLogoCard } from './DocumentLogoCard';
 import {
     useProtocolTemplates,
     useProtocolRules,
@@ -781,6 +782,8 @@ export function DocumentsSection() {
                             onAdd={() => setConsentModalOpen(true)}
                             onRefresh={handleRefresh}
                         />
+
+                        <DocumentLogoCard />
                     </>
                 )
             )}

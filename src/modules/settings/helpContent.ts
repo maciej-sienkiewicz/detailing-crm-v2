@@ -6,12 +6,12 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'logo',
             label: 'Logo firmy',
-            description: 'Logo reprezentuje markę studia we wszystkich materiałach generowanych przez system. Pojawia się jako element graficzny w nagłówkach: klienci widzą je przy podpisywaniu dokumentów i w otrzymywanych wiadomościach. Zalecany format to SVG lub PNG o minimalnej szerokości 400 px. Plik nie może przekraczać 2 MB.',
+            description: 'Wgrywasz jeden plik, a system sam przygotowuje z niego wersję do menu aplikacji i wersję do druku. Najlepszy jest plik SVG (wektor, ostry w każdej skali) albo PNG z przezroczystym tłem; WebP i JPEG też są przyjmowane, ale JPEG nie ma przezroczystości. Dla plików rastrowych dłuższy bok musi mieć co najmniej 300 px, a zalecane jest 1000 px lub więcej — logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Maksymalny rozmiar pliku to 5 MB. Poziomy logotyp wygląda najlepiej; sygnet (kwadrat) też się mieści — logo nigdy nie jest deformowane. O tym, czy logo trafia na dokumenty, decyduje przełącznik w sekcji „Dokumenty i podpisy".',
             usedIn: [
-                'Nagłówki faktur VAT',
-                'Wiadomości e-mail do klientów',
-                'Protokoły zdawczo-odbiorcze (ekran podpisu)',
-                'Wydruki dokumentów PDF',
+                'Menu boczne aplikacji',
+                'Nagłówek protokołów przyjęcia i wydania (szablony systemowe)',
+                'Nagłówek zgód marketingowych (szablon systemowy)',
+                'Karta Wizyty klienta',
             ],
         },
         {
@@ -134,6 +134,16 @@ export const SERVICES_HELP: HelpContent = {
 export const DOCUMENTS_HELP: HelpContent = {
     title: 'Dokumenty i podpisy',
     items: [
+        {
+            id: 'logo-on-documents',
+            label: 'Logo na dokumentach',
+            description: 'Przełącznik „Czy umieszczać logo na dokumentach?" decyduje, czy logo firmy z sekcji „Dane firmy" jest wstawiane w nagłówek systemowych protokołów przyjęcia i wydania oraz systemowej zgody marketingowej. Logo ląduje w zarezerwowanym miejscu po lewej stronie nagłówka, skalowane bez deformacji. Własne szablony wgrane przez studio nie są modyfikowane — mają logo tam, gdzie je narysowano. Zmiana dotyczy dokumentów generowanych od tej chwili; już wypełnione i podpisane pozostają bez zmian.',
+            usedIn: [
+                'Protokół przyjęcia (szablon systemowy)',
+                'Protokół wydania (szablon systemowy)',
+                'Zgody marketingowe (szablon systemowy)',
+            ],
+        },
         {
             id: 'checkin',
             label: 'Protokół przyjęcia',

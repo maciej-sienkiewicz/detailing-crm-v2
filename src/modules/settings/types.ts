@@ -32,6 +32,19 @@ export interface UploadLogoResponse {
     logoUrl: string;
 }
 
+// ─── Logo na dokumentach ──────────────────────────────────────────────────────
+
+export interface DocumentLogoConfig {
+    /** „Czy umieszczać logo na dokumentach?" — nagłówek systemowych protokołów i zgód. */
+    showLogoOnDocuments: boolean;
+    /** Bez wgranego logo przełącznik nic nie zmienia — UI mówi to wprost. */
+    hasLogo: boolean;
+}
+
+export interface UpdateDocumentLogoConfigRequest {
+    showLogoOnDocuments: boolean;
+}
+
 // ─── Numeracja wizyt ──────────────────────────────────────────────────────────
 
 export interface VisitNumberingConfig {
