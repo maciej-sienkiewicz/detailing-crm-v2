@@ -35,6 +35,23 @@ const FilterRow = styled.div`
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 16px;
+
+    /* Na wąskim ekranie pigułki jadą w bok w jednym rzędzie, żeby nie zajmowały
+       trzech linii nad postami. Widoczna część mieści 3-4 chipy, reszta jest
+       przewijalna kciukiem. */
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin: 0 -4px 12px;
+        padding: 4px;
+
+        &::-webkit-scrollbar { display: none; }
+
+        > * { flex-shrink: 0; }
+    }
 `;
 
 const FilterLabel = styled.span`
@@ -233,6 +250,12 @@ const HeatCell = styled.td<{ $intensity: number; $best: boolean }>`
     font-size: ${st.fontXs};
     color: ${p => (p.$intensity > 0.55 ? '#fff' : st.textSecondary)};
     font-variant-numeric: tabular-nums;
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        height: 28px;
+        min-width: 28px;
+        font-size: 10.5px;
+    }
 `;
 
 // ─── Hashtagi ─────────────────────────────────────────────────────────────────

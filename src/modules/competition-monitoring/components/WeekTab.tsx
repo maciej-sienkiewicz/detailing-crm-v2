@@ -155,9 +155,29 @@ const AdChip = styled.button`
     font-weight: 700;
     cursor: pointer;
     transition: background ${st.transition};
+    max-width: 100%;
+    min-width: 0;
+    text-align: left;
+
+    /* Długie tytuły kampanii („Uruchomił: Powłoka ceramiczna · od 2 wrz") nie
+       mogą rozpychać wiersza profilu w bok — tniemy elipsą i pokazujemy pełny
+       tekst po tapnięciu przez AdDetailModal. */
+    > span, > strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+    }
 
     &:hover { background: rgba(139, 92, 246, 0.18); }
     svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
+const AdChipLabel = styled.span`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 `;
 
 const PostLinks = styled.div`
@@ -165,6 +185,7 @@ const PostLinks = styled.div`
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 3px;
+    min-width: 0;
 `;
 
 const PostLink = styled.a<{ $highlight?: boolean }>`
@@ -279,9 +300,9 @@ const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) =>
                                 key={ad.adId}
                                 type="button"
                                 onClick={() => onOpenAd?.(ad.adId)}
-                                title="Szczegóły kampanii"
+                                title={adChipLabel(ad)}
                             >
-                                <Megaphone /> {adChipLabel(ad)}
+                                <Megaphone /> <AdChipLabel>{adChipLabel(ad)}</AdChipLabel>
                             </AdChip>
                         ))}
                     </PostLinks>

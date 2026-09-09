@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useBreakpoint } from '@/common/hooks';
 import type { AdCalendar, AdCalendarRow } from '../types';
 import { PROFILE_COLORS } from '../types';
 import { Card, CardTitle, CardHint, CenterState, formatExact } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
+import { AdsTabMobile } from './AdsTabMobile';
 import { barGeometry, dayOfYear, monthStartDays, yearLength } from '../utils/adCalendar';
 
 /**
@@ -375,7 +377,18 @@ interface Props {
     onOpenAd: (adId: string) => void;
 }
 
-export const AdsTab: React.FC<Props> = ({ calendar, onOpenAd }) => {
+/**
+ * Publiczny komponent Reklamy — wybiera implementację po breakpoincie. Desktop
+ * (>= md) renderuje pełny kalendarz roczny plus tabelę podsumowania (AdsTabDesktop).
+ * Mobile ma osobny widok listowy z histogramem 12 miesięcy per profil, bo roczny
+ * timeline pikselowy jest na 375 px nieczytelny (patrz komentarz w AdsTabMobile).
+ */
+export const AdsTab: React.FC<Props> = (props) => {
+    const isDesktop = useBreakpoint('md');
+    return isDesktop ? <AdsTabDesktop {...props} /> : <AdsTabMobile {...props} />;
+};
+
+const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
     const [linking, setLinking] = useState<
         { profileId: string; username: string; pageId?: string | null } | null
     >(null);

@@ -9,6 +9,7 @@ import {
     RefreshCw, Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useBreakpoint } from '@/common/hooks';
 import type { Benchmark, BenchmarkRow, PulseEvent, PulseEventKind } from '../types';
 import { PROFILE_COLORS } from '../types';
 import { usePulse, useResyncFailedProfiles } from '../hooks/useAnalytics';
@@ -154,6 +155,86 @@ const ChartsGrid = styled.div`
     gap: 20px;
 
     @media (max-width: 1100px) { grid-template-columns: 1fr; }
+`;
+
+// ─── Mobile: karty per profil zamiast tabeli ─────────────────────────────────
+
+const MobileList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const MobileCard = styled.button<{ $self: boolean; $selected: boolean }>`
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid ${p => (p.$selected ? st.accentBlue : st.border)};
+    border-radius: ${st.radiusSm};
+    background: ${p => (p.$self ? st.bgAccentBlue : st.bgCard)};
+    cursor: pointer;
+    transition: border-color ${st.transition}, background ${st.transition};
+
+    &:hover, &:focus-visible {
+        border-color: ${p => (p.$selected ? st.accentBlue : st.borderHover)};
+    }
+`;
+
+const MobileCardHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    span.name { font-weight: 700; color: ${st.text}; font-size: ${st.fontMd}; }
+`;
+
+const MobileSelectMark = styled.span<{ $selected: boolean }>`
+    margin-left: auto;
+    padding: 3px 10px;
+    border-radius: ${st.radiusFull};
+    background: ${p => (p.$selected ? st.accentBlueDim : st.bgCardAlt)};
+    color: ${p => (p.$selected ? st.accentBlue : st.textMuted)};
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+`;
+
+const MobileMetrics = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 12px;
+    padding-top: 8px;
+    border-top: 1px solid ${st.border};
+`;
+
+const MobileMetric = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+
+    > .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: ${st.textMuted};
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+`;
+
+const MobileExtras = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    padding-top: 2px;
+
+    strong { color: ${st.text}; font-weight: 700; }
 `;
 
 const HintNote = styled.p`
@@ -499,6 +580,8 @@ const PULSE_STYLE: Record<PulseEventKind, { icon: LucideIcon; tone: PulseTone }>
 };
 
 export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) => {
+    const isDesktop = useBreakpoint('md');
+
     // Na wykresach: self + pierwsi konkurenci (klik w wiersz tabeli zmienia wybór)
     const defaultSelection = useMemo(() => {
         const ordered = [...benchmark.rows].sort((a, b) => Number(b.isSelf) - Number(a.isSelf));
@@ -725,6 +808,65 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
         </ProfileRow>
     );
 
+    /**
+     * Wersja mobilna wiersza tabeli: kompaktowa karta, tap = toggle wyboru
+     * profilu na wykresach (ta sama semantyka, co klik w wiersz na desktopie).
+     * Zamiast tabeli, każda metryka ma własną linię z etykietą; format mix
+     * i regularność wchodzą pod spód jako mikroetykiety.
+     */
+    const renderBenchCard = (row: BenchmarkRow) => {
+        const isSelected = selected.includes(row.profileId);
+        return (
+            <MobileCard
+                key={row.studioProfileId}
+                $self={row.isSelf}
+                $selected={isSelected}
+                onClick={() => toggleProfile(row.profileId)}
+                aria-pressed={isSelected}
+            >
+                <MobileCardHead>
+                    <ColorDot $color={colorFor(row.profileId)} $muted={!isSelected} />
+                    <span className="name">@{row.username}</span>
+                    {row.isSelf && (
+                        <SelfTag>
+                            <Star size={10} style={{ marginRight: 3 }} /> Ty
+                        </SelfTag>
+                    )}
+                    {row.apiError && <ErrorTag>problem z pobraniem</ErrorTag>}
+                    <MobileSelectMark $selected={isSelected}>
+                        {isSelected ? 'NA WYKRESIE' : 'DOTKNIJ, BY DODAĆ'}
+                    </MobileSelectMark>
+                </MobileCardHead>
+                <MobileMetrics>
+                    <MobileMetric>
+                        <span className="label">Obserwujący</span>
+                        <MetricCell metric={row.followers} decimals={0} showBenchmark={false} />
+                    </MobileMetric>
+                    <MobileMetric>
+                        <span className="label">Zaangażowanie</span>
+                        <MetricCell metric={row.erPct} decimals={1} unit="%" showBenchmark={false} />
+                    </MobileMetric>
+                    <MobileMetric>
+                        <span className="label">Posty/tydz.</span>
+                        <MetricCell metric={row.postsPerWeek} decimals={1} showBenchmark={false} />
+                    </MobileMetric>
+                </MobileMetrics>
+                <MobileExtras>
+                    <MixBar
+                        style={{ width: 84, marginBottom: 0 }}
+                        title={`Zdjęcia ${row.formatMix.photoPct.toFixed(0)}% · Rolki ${row.formatMix.reelsPct.toFixed(0)}% · Karuzele ${row.formatMix.carouselPct.toFixed(0)}%`}
+                    >
+                        <MixSeg $w={row.formatMix.photoPct} $c={st.accentBlue} />
+                        <MixSeg $w={row.formatMix.reelsPct} $c={st.accentAmber} />
+                        <MixSeg $w={row.formatMix.carouselPct} $c={st.accentGreen} />
+                    </MixBar>
+                    <span><strong>{row.regularityPct.toFixed(0)}%</strong> tygodni z postem</span>
+                    <span>wizytówka <strong>{row.storefront.score}/100</strong></span>
+                </MobileExtras>
+            </MobileCard>
+        );
+    };
+
     return (
         <Layout>
             <Card>
@@ -738,23 +880,29 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         {4 - benchmark.comparisonGroupSize === 1 ? 'profil' : 'profile'}, aby odblokować
                         odniesienie do mediany grupy.</>
                     )}{' '}
-                    Kliknij wiersz, aby dodać profil do wykresów (maks. {MAX_CHART_PROFILES}).
+                    {isDesktop
+                        ? `Kliknij wiersz, aby dodać profil do wykresów (maks. ${MAX_CHART_PROFILES}).`
+                        : `Dotknij kartę, aby dodać profil do wykresów (maks. ${MAX_CHART_PROFILES}).`}
                 </CardHint>
-                <TableScroll>
-                    <Table>
-                        <thead>
-                            <tr>
-                                <th>Profil</th>
-                                <th>Obserwujący</th>
-                                <th>Zaangażowanie</th>
-                                <th>Posty / tydz.</th>
-                                <th>Formaty i regularność</th>
-                                <th>Aktywność (0-100)</th>
-                            </tr>
-                        </thead>
-                        <tbody>{benchmark.rows.map(renderBenchRow)}</tbody>
-                    </Table>
-                </TableScroll>
+                {isDesktop ? (
+                    <TableScroll>
+                        <Table>
+                            <thead>
+                                <tr>
+                                    <th>Profil</th>
+                                    <th>Obserwujący</th>
+                                    <th>Zaangażowanie</th>
+                                    <th>Posty / tydz.</th>
+                                    <th>Formaty i regularność</th>
+                                    <th>Aktywność (0-100)</th>
+                                </tr>
+                            </thead>
+                            <tbody>{benchmark.rows.map(renderBenchRow)}</tbody>
+                        </Table>
+                    </TableScroll>
+                ) : (
+                    <MobileList>{benchmark.rows.map(renderBenchCard)}</MobileList>
+                )}
                 <HintNote>
                     Formaty: <span style={{ color: st.accentBlue }}>■</span> zdjęcia ·{' '}
                     <span style={{ color: st.accentAmber }}>■</span> rolki ·{' '}
