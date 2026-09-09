@@ -117,21 +117,54 @@ export const LogoIcon = styled.div`
 `;
 
 /**
- * Kafelek z logo studia w miejscu inicjałów.
+ * Kafelek z logo studia w miejscu inicjałów (sygnet, logo zbliżone do kwadratu).
  *
- * Jasne tło pod logo jest konieczne, a nie kosmetyczne: pasek boczny jest ciemny
- * (#0f172a), a logotypy bywają czarne albo granatowe - na ciemnym tle znikałyby.
- * `contain` zamiast `cover`, bo logo przycięte do kwadratu przestaje być logiem.
+ * Jasna podkładka NIE jest domyślna: pasek jest ciemny (#0f172a), więc czarny
+ * logotyp na przezroczystym tle by na nim zniknął, ale logo z własnym tłem
+ * (biały napis na czarnym prostokącie) wygląda w białej ramce jak znaczek
+ * pocztowy. O podkładce decyduje backend po analizie pliku
+ * (`logoNeedsLightPlate`), a nie założenie z góry.
  */
-export const LogoImage = styled.img`
+export const LogoImage = styled.img<{ $plate: boolean }>`
     width: 36px;
     height: 36px;
     border-radius: 10px;
     flex-shrink: 0;
     object-fit: contain;
-    background: #ffffff;
-    padding: 3px;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+    background: ${p => (p.$plate ? '#ffffff' : 'transparent')};
+    padding: ${p => (p.$plate ? '3px' : '0')};
+    box-shadow: ${p => (p.$plate ? '0 4px 12px rgba(15, 23, 42, 0.35)' : 'none')};
+`;
+
+/**
+ * Poziomy logotyp: zajmuje całą szerokość nagłówka i zastępuje nazwę firmy,
+ * bo sam ją niesie. W zwiniętym menu (64 px) 36-pikselowy logotyp byłby
+ * nieczytelny, więc chowamy go i pokazujemy kafelek z inicjałami.
+ */
+export const LogoWide = styled.img<{ $isCollapsed: boolean; $plate: boolean }>`
+    display: block;
+    max-width: 100%;
+    max-height: 44px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: left center;
+    border-radius: 8px;
+    background: ${p => (p.$plate ? '#ffffff' : 'transparent')};
+    padding: ${p => (p.$plate ? '4px 8px' : '0')};
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        display: ${p => (p.$isCollapsed ? 'none' : 'block')};
+    }
+`;
+
+/** Inicjały widoczne tylko w zwiniętym menu na desktopie, w miejscu ukrytego logotypu. */
+export const CollapsedInitials = styled.div<{ $isCollapsed: boolean }>`
+    display: none;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        display: ${p => (p.$isCollapsed ? 'flex' : 'none')};
+    }
 `;
 
 // Nazwa firmy z rejestru bywa długa („CARSLAB SPÓŁKA Z OGRANICZONĄ

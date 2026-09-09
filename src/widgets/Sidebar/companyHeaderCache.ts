@@ -21,6 +21,9 @@ const MAX_AGE_MS = 20 * 60 * 60 * 1000;
 export interface CompanyHeaderSnapshot {
     name: string | null;
     logoUrl: string | null;
+    /** Brak w zapisie sprzed tej wersji = zachowanie dawne (podkładka, układ z inicjałem). */
+    logoNeedsLightPlate?: boolean;
+    logoAspectRatio?: number | null;
 }
 
 interface StoredSnapshot extends CompanyHeaderSnapshot {
@@ -45,7 +48,12 @@ export function readCompanyHeader(studioId: string | undefined): CompanyHeaderSn
     if (Date.now() - stored.savedAt > MAX_AGE_MS) {
         return { name: stored.name, logoUrl: null };
     }
-    return { name: stored.name, logoUrl: stored.logoUrl };
+    return {
+        name: stored.name,
+        logoUrl: stored.logoUrl,
+        logoNeedsLightPlate: stored.logoNeedsLightPlate,
+        logoAspectRatio: stored.logoAspectRatio,
+    };
 }
 
 export function writeCompanyHeader(studioId: string | undefined, snapshot: CompanyHeaderSnapshot): void {

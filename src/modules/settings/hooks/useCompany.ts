@@ -36,9 +36,9 @@ export const useUploadCompanyLogo = () => {
 
     return useMutation({
         mutationFn: (file: File) => companyApi.uploadLogo(file),
-        onSuccess: ({ logoUrl }) => {
+        onSuccess: ({ logoUrl, logoNeedsLightPlate, logoAspectRatio }) => {
             queryClient.setQueryData(QUERY_KEY, (prev: ReturnType<typeof useCompanySettings>['company']) =>
-                prev ? { ...prev, logoUrl } : prev
+                prev ? { ...prev, logoUrl, logoNeedsLightPlate, logoAspectRatio } : prev
             );
             // Karta „Logo na dokumentach" pokazuje, czy logo w ogóle jest — po uploadzie
             // i usunięciu jej stan (hasLogo) się zmienia.
@@ -54,7 +54,7 @@ export const useDeleteCompanyLogo = () => {
         mutationFn: companyApi.deleteLogo,
         onSuccess: () => {
             queryClient.setQueryData(QUERY_KEY, (prev: ReturnType<typeof useCompanySettings>['company']) =>
-                prev ? { ...prev, logoUrl: null } : prev
+                prev ? { ...prev, logoUrl: null, logoNeedsLightPlate: true, logoAspectRatio: null } : prev
             );
             queryClient.invalidateQueries({ queryKey: DOCUMENT_LOGO_CONFIG_QUERY_KEY });
         },

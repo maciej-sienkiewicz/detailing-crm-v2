@@ -11,6 +11,10 @@ export interface CompanySettings {
     website: string | null;
     bankAccount: string | null;
     logoUrl: string | null;
+    /** Jasna podkładka pod logo w ciemnym menu: tylko przezroczyste logo z ciemnym tuszem. */
+    logoNeedsLightPlate: boolean;
+    /** Szerokość / wysokość logo; null dla logo sprzed analizy. */
+    logoAspectRatio: number | null;
     emailAlias: string | null;
     updatedAt: string;
 }
@@ -30,6 +34,8 @@ export interface UpdateCompanySettingsRequest {
 
 export interface UploadLogoResponse {
     logoUrl: string;
+    logoNeedsLightPlate: boolean;
+    logoAspectRatio: number | null;
 }
 
 // ─── Logo na dokumentach ──────────────────────────────────────────────────────
