@@ -19,7 +19,8 @@ import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CustomerAdvancedFilters, CustomerSortField, SortDirection } from '../types';
-import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { Users } from 'lucide-react';
+import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -272,6 +273,9 @@ export const CustomerListView = () => {
     const { searchInput, debouncedSearch, handleSearchChange } = useCustomerSearch();
     const { page, limit, goToPage, resetPagination } = useCustomerPagination();
     const isDesktop = useBreakpoint('lg');
+    // Nagłówek przełącza się na mobilny app-bar poniżej md (768px) - tak samo
+    // jak na Wizytach; tablet (768-1024) dalej widzi gradientowy PageHeader.
+    const isDesktopHeader = useBreakpoint('md');
 
     const activeFilterCount = countActiveFilters(appliedFilters);
 
@@ -358,26 +362,42 @@ export const CustomerListView = () => {
 
     return (
         <ViewContainer>
-            <PageHeader
-                title={t.customers.title}
-                subtitle={
-                    <>
-                        {t.customers.subtitle}
-                        {pagination && (
-                            <TotalChip>{pagination.totalItems} rekordów</TotalChip>
-                        )}
-                    </>
-                }
-                actions={
-                    <PageHeaderPrimaryButton onClick={handleOpenModal}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        {t.customers.addCustomer}
-                    </PageHeaderPrimaryButton>
-                }
-            />
+            {isDesktopHeader ? (
+                <PageHeader
+                    title={t.customers.title}
+                    subtitle={
+                        <>
+                            {t.customers.subtitle}
+                            {pagination && (
+                                <TotalChip>{pagination.totalItems} rekordów</TotalChip>
+                            )}
+                        </>
+                    }
+                    actions={
+                        <PageHeaderPrimaryButton onClick={handleOpenModal}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            {t.customers.addCustomer}
+                        </PageHeaderPrimaryButton>
+                    }
+                />
+            ) : (
+                <MobilePageHeader
+                    icon={<Users />}
+                    title={t.customers.title}
+                    subtitle={pagination
+                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
+                        : 'Wczytywanie…'}
+                    actions={
+                        <MobilePageHeaderButton onClick={handleOpenModal}>
+                            <span aria-hidden="true">+</span>
+                            Klient
+                        </MobilePageHeaderButton>
+                    }
+                />
+            )}
 
             <ContentSection>
                 <FilterBar>

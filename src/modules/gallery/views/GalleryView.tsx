@@ -2,8 +2,11 @@
 
 import { memo, useState, useCallback, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { Images } from 'lucide-react';
 import { PiiValue } from '@/common/pii';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
+import { useBreakpoint } from '@/common/hooks';
+import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
 import { useGallery } from '../hooks/useGallery';
@@ -501,6 +504,8 @@ export const GalleryView = () => {
 
     const { photos, pagination, availableTags, isFetching, isLoading } = useGallery(filters);
 
+    const isDesktopHeader = useBreakpoint('md');
+
     const handleSelectPhoto = useCallback((photo: GalleryPhoto) => {
         setSelectedPhoto(photo);
     }, []);
@@ -540,12 +545,25 @@ export const GalleryView = () => {
     return (
         <Page>
             {/* Header */}
-            <HeaderWrap>
-                <PageHeader>
-                    <PageTitle>Galeria</PageTitle>
-                    <PageSubtitle>Wszystkie zdjęcia z wizyt, pojazdów i klientów</PageSubtitle>
-                </PageHeader>
-            </HeaderWrap>
+            {isDesktopHeader ? (
+                <HeaderWrap>
+                    <PageHeader>
+                        <PageTitle>Galeria</PageTitle>
+                        <PageSubtitle>Wszystkie zdjęcia z wizyt, pojazdów i klientów</PageSubtitle>
+                    </PageHeader>
+                </HeaderWrap>
+            ) : (
+                /* Mobile: gradient hero znika, wspólny app-bar jak na "Wizyty". */
+                <HeaderWrap>
+                    <MobilePageHeader
+                        icon={<Images />}
+                        title="Galeria"
+                        subtitle={pagination
+                            ? <><MobilePageHeaderCountValue>{pagination.total}</MobilePageHeaderCountValue> zdjęć</>
+                            : 'Wczytywanie…'}
+                    />
+                </HeaderWrap>
+            )}
 
             {/* Filters */}
             <GalleryFilterBar

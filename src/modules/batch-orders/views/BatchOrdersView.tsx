@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { Layers, Settings } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
+import { MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { useBreakpoint } from '@/common/hooks';
 import {
     useContractors,
     useCreateContractor,
@@ -116,25 +119,49 @@ export function BatchOrdersView() {
         await updateContractor.mutateAsync({ contractorId: editContractor.id, data });
     }
 
+    const isDesktop = useBreakpoint('md');
+    const contractorCount = contractors?.length ?? 0;
+
     return (
         <ViewContainer>
-            <PageHeader
-                title="Zlecenia zbiorcze"
-                subtitle="Zarządzaj kontrahentami B2B i ich rozliczeniami"
-                actions={
-                    <>
-                        {/* Krótkie etykiety: pełne ("Zarządzaj usługami", "+ Dodaj
-                            kontrahenta") nie mieściły się obok siebie na telefonie
-                            i łamały się na dwa wiersze pod tytułem. */}
-                        <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Zarządzaj usługami">
-                            Usługi
-                        </PageHeaderGhostButton>
-                        <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)} title="Dodaj kontrahenta">
-                            + Kontrahent
-                        </PageHeaderPrimaryButton>
-                    </>
-                }
-            />
+            {isDesktop ? (
+                <PageHeader
+                    title="Zlecenia zbiorcze"
+                    subtitle="Zarządzaj kontrahentami B2B i ich rozliczeniami"
+                    actions={
+                        <>
+                            {/* Krótkie etykiety: pełne ("Zarządzaj usługami", "+ Dodaj
+                                kontrahenta") nie mieściły się obok siebie na telefonie
+                                i łamały się na dwa wiersze pod tytułem. */}
+                            <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Zarządzaj usługami">
+                                Usługi
+                            </PageHeaderGhostButton>
+                            <PageHeaderPrimaryButton onClick={() => setShowCreateModal(true)} title="Dodaj kontrahenta">
+                                + Kontrahent
+                            </PageHeaderPrimaryButton>
+                        </>
+                    }
+                />
+            ) : (
+                <MobilePageHeader
+                    icon={<Layers />}
+                    title="Zlecenia zbiorcze"
+                    subtitle={!isLoading
+                        ? <><MobilePageHeaderCountValue>{contractorCount}</MobilePageHeaderCountValue> {contractorCount === 1 ? 'kontrahent' : 'kontrahentów'}</>
+                        : 'Wczytywanie…'}
+                    actions={
+                        <>
+                            <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Zarządzaj usługami" aria-label="Zarządzaj usługami">
+                                <Settings />
+                            </MobilePageHeaderIconButton>
+                            <MobilePageHeaderButton onClick={() => setShowCreateModal(true)}>
+                                <span aria-hidden="true">+</span>
+                                Kontrahent
+                            </MobilePageHeaderButton>
+                        </>
+                    }
+                />
+            )}
 
             {isLoading && <LoadingState>Ładowanie kontrahentów...</LoadingState>}
 

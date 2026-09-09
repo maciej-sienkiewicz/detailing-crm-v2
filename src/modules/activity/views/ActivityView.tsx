@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Activity, AlertCircle, Inbox, Loader2 } from 'lucide-react';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
+import { useBreakpoint } from '@/common/hooks';
+import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { ActivityFilterBar } from '../components/ActivityFilterBar';
 import { ActivityRow } from '../components/ActivityRow';
 import { useActivityFeed, useActivityFilterOptions } from '../hooks/useActivityFeed';
@@ -345,6 +347,8 @@ export const ActivityView = () => {
     }, [data]);
     const groups = useMemo(() => groupByDay(items), [items]);
 
+    const isDesktopHeader = useBreakpoint('md');
+
     const isDefault = useMemo(
         () =>
             filters.modules.length === 0 &&
@@ -393,24 +397,35 @@ export const ActivityView = () => {
     return (
         <Page>
             <Content>
-                <Hero>
-                    <HeroInner>
-                        <HeroText>
-                            <HeroTitle>Aktywność</HeroTitle>
-                            <HeroSubtitle>
-                                Wszystko, co dzieje się w studiu: kto co zrobił, kiedy i na jaką
-                                kwotę. Razem z tym, co robią klienci na swoich Kartach Wizyty.
-                            </HeroSubtitle>
-                        </HeroText>
+                {isDesktopHeader ? (
+                    <Hero>
+                        <HeroInner>
+                            <HeroText>
+                                <HeroTitle>Aktywność</HeroTitle>
+                                <HeroSubtitle>
+                                    Wszystko, co dzieje się w studiu: kto co zrobił, kiedy i na jaką
+                                    kwotę. Razem z tym, co robią klienci na swoich Kartach Wizyty.
+                                </HeroSubtitle>
+                            </HeroText>
 
-                        {items.length > 0 && (
-                            <HeroCount>
-                                <strong>{items.length}</strong>
-                                <span>{hasNextPage ? 'wczytanych zdarzeń' : 'zdarzeń'}</span>
-                            </HeroCount>
-                        )}
-                    </HeroInner>
-                </Hero>
+                            {items.length > 0 && (
+                                <HeroCount>
+                                    <strong>{items.length}</strong>
+                                    <span>{hasNextPage ? 'wczytanych zdarzeń' : 'zdarzeń'}</span>
+                                </HeroCount>
+                            )}
+                        </HeroInner>
+                    </Hero>
+                ) : (
+                    /* Mobile: gradient hero znika, wspólny app-bar jak na "Wizyty". */
+                    <MobilePageHeader
+                        icon={<Activity />}
+                        title="Aktywność"
+                        subtitle={isLoading
+                            ? 'Wczytywanie…'
+                            : <><MobilePageHeaderCountValue>{items.length}</MobilePageHeaderCountValue> {hasNextPage ? 'wczytanych zdarzeń' : 'zdarzeń'}</>}
+                    />
+                )}
 
                 <ActivityFilterBar
                     filters={filters}
