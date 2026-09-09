@@ -13,6 +13,10 @@ import { Toggle } from '@/common/components/Toggle';
 import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
 import { FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
+// Współdzielone komponenty pól z /checkin/new (VerificationStep używa tych samych):
+// dzięki temu układ i stylistyka pól są 1:1 z formularzem przyjęcia pojazdu.
+import { FormGrid, FieldGroup, Label as FormLabel, Input as FormInputField, ErrorMessage as FormFieldError } from '@/common/components/Form';
+import { PhoneInput } from '@/common/components/PhoneInput';
 import * as S from '../QuickEventModalStyles';
 import { MobileNewCustomerSheet, type NewCustomerDraft } from './MobileNewCustomerSheet';
 import { SmsOptionsSheet, type SmsOption } from './SmsOptionsSheet';
@@ -286,6 +290,126 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const openCustomerSheetFromTap = useCallback(() => {
         // no-op na obu breakpointach
     }, []);
+
+    // Czy w sekcji klienta jest cokolwiek do wycofania (dane wpisane lub klient wybrany).
+    const hasCustomerData = !!(
+        form.customerFirstName || form.customerLastName ||
+        form.customerPhone || form.customerEmail || form.selectedCustomer
+    );
+
+    // "Wycofaj zmiany" na mobile: czyści wybór klienta i wszystkie pola,
+    // wraca do pustego formularza (jak reset sekcji w /checkin/new).
+    const handleResetCustomerMobile = useCallback(() => {
+        form.setSelectedCustomer(null);
+        form.setSelectedCustomerId(undefined);
+        form.setCustomerFirstName('');
+        form.setCustomerLastName('');
+        form.setCustomerPhone('');
+        form.setCustomerEmail('');
+        form.setSelectedVehicle(null);
+        form.setVehicleBrand('');
+        form.setVehicleModel('');
+        form.setVehicleYear('');
+    }, [form]);
+
+    // Arkusz wyszukiwania istniejącego klienta - otwierany przyciskiem
+    // "Wybierz klienta" w nagłówku sekcji na mobile. Wcześniej był podpięty do
+    // dotknięcia pola (co zasłaniało pola); teraz to świadoma akcja.
+    const renderMobileCustomerSearchSheet = () => {
+        if (!isMobile || !form.showCustomerDropdown) return null;
+        return createPortal(
+            <>
+                <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
+                <S.MobileBottomSheet ref={customerSheetRef}>
+                    <S.MobileSheetHandle />
+                    <S.MobileSheetTitle>
+                        <span>Szukaj klienta</span>
+                        <S.MobileSheetClose
+                            type="button"
+                            aria-label="Zamknij"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => form.setShowCustomerDropdown(false)}
+                        >
+                            <IconX />
+                        </S.MobileSheetClose>
+                    </S.MobileSheetTitle>
+                    <S.MobileSheetSearchWrap>
+                        <S.MobileSheetSearchEditable
+                            ref={customerSheetInputRef}
+                            contentEditable
+                            suppressContentEditableWarning
+                            role="searchbox"
+                            aria-label="Szukaj klienta"
+                            data-placeholder="Imię lub nazwisko..."
+                            inputMode="search"
+                            enterKeyHint="search"
+                            autoCorrect="off"
+                            autoCapitalize="words"
+                            spellCheck={false}
+                            onInput={(e) => {
+                                const text = e.currentTarget.innerText.replace(/\n/g, '');
+                                form.setCustomerFirstName(text);
+                                form.setShowCustomerDropdown(true);
+                            }}
+                            onPaste={(e) => {
+                                e.preventDefault();
+                                const text = e.clipboardData.getData('text/plain').replace(/\n/g, '');
+                                document.execCommand('insertText', false, text);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') e.preventDefault();
+                            }}
+                        />
+                    </S.MobileSheetSearchWrap>
+                    <S.MobileSheetScrollable>
+                        {form.customerResults.map((c) => {
+                            const hasContact = !!(c.phone || c.email);
+                            return (
+                                <S.DropdownItem
+                                    key={c.id}
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                        form.customerJustSelectedRef.current = true;
+                                        form.handleCustomerSelect({
+                                            id: c.id,
+                                            firstName: c.firstName,
+                                            lastName: c.lastName,
+                                            phone: c.phone,
+                                            email: c.email,
+                                            isNew: false,
+                                        });
+                                        form.setShowCustomerDropdown(false);
+                                    }}
+                                    $accentColor={form.accentColor}
+                                >
+                                    {(c.firstName || c.lastName)
+                                        ? <span>{c.firstName} {c.lastName}</span>
+                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                    }
+                                    <S.DropdownItemMeta $warning={!hasContact}>
+                                        {hasContact
+                                            ? [c.phone, c.email].filter(Boolean).join('  ·  ')
+                                            : '⚠ Brak danych kontaktowych'
+                                        }
+                                    </S.DropdownItemMeta>
+                                </S.DropdownItem>
+                            );
+                        })}
+                        <S.DropdownAddButton
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => form.setShowCustomerDropdown(false)}
+                        >
+                            <IconPlus />
+                            <span>Wpisuję nowego klienta w polach powyżej</span>
+                        </S.DropdownAddButton>
+                    </S.MobileSheetScrollable>
+                </S.MobileBottomSheet>
+            </>,
+            document.body
+        );
+    };
 
     /**
      * Trzy powiadomienia SMS jako niezależne przełączniki - każda kombinacja jest
@@ -746,6 +870,61 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             />
                                         </div>
                                     )}
+                                    {/* Mobile: FormGrid z /checkin/new - trzy pola pod sobą
+                                        (Data rozpoczęcia, Data zakończenia, Kolor). Desktop
+                                        zostaje przy S.InputGrid, kolor w stopce. */}
+                                    {isMobile ? (
+                                        <FormGrid>
+                                            <FieldGroup>
+                                                <FormLabel>{form.isAllDay ? 'Data' : 'Data rozpoczęcia'}</FormLabel>
+                                                <DateTimePicker
+                                                    value={form.startDateTime}
+                                                    onChange={(val) => {
+                                                        form.setStartDateTime(val);
+                                                        if (form.isAllDay) {
+                                                            form.setEndDateTime(`${val.split('T')[0]}T23:59:59`);
+                                                        } else {
+                                                            const startDate = val.split('T')[0];
+                                                            const endDate = form.endDateTime.split('T')[0];
+                                                            if (startDate > endDate) {
+                                                                const endTime = form.endDateTime.split('T')[1] ?? '00:00';
+                                                                form.setEndDateTime(`${startDate}T${endTime}`);
+                                                            }
+                                                        }
+                                                    }}
+                                                    showTime={!form.isAllDay}
+                                                    placeholder="Wybierz datę i godzinę"
+                                                    hasError={!!form.errors.startDateTime}
+                                                    containerRef={form.startInputRef}
+                                                />
+                                                {form.errors.startDateTime && <FormFieldError>{form.errors.startDateTime}</FormFieldError>}
+                                            </FieldGroup>
+                                            {!form.isAllDay && (
+                                                <FieldGroup>
+                                                    <FormLabel>Data zakończenia</FormLabel>
+                                                    <DateTimePicker
+                                                        value={form.endDateTime}
+                                                        onChange={form.setEndDateTime}
+                                                        showTime
+                                                        placeholder="Wybierz datę i godzinę"
+                                                        hasError={!!form.errors.endDateTime}
+                                                        containerRef={form.endInputRef}
+                                                    />
+                                                    {form.errors.endDateTime && <FormFieldError>{form.errors.endDateTime}</FormFieldError>}
+                                                </FieldGroup>
+                                            )}
+                                            <FieldGroup>
+                                                <FormLabel>Kolor w kalendarzu *</FormLabel>
+                                                <ColorDropdown
+                                                    colors={form.appointmentColors}
+                                                    value={form.selectedColorId ?? ''}
+                                                    onChange={(id) => form.setSelectedColorId(id)}
+                                                    onAddColor={() => form.setIsQuickColorModalOpen(true)}
+                                                />
+                                                {form.errors.color && <FormFieldError>{form.errors.color}</FormFieldError>}
+                                            </FieldGroup>
+                                        </FormGrid>
+                                    ) : (
                                     <S.InputGrid>
                                         <S.InputGroup>
                                             <S.Label>{form.isAllDay ? 'Data' : 'Początek'}</S.Label>
@@ -792,6 +971,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.InputGroup>
                                         )}
                                     </S.InputGrid>
+                                    )}
                                 </S.RowContent>
                             </S.Row>
 
@@ -809,12 +989,92 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             )}
                                         </S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
-                                    <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
+                                    {isMobile ? (
+                                        /* Dwa przyciski akcji jak w /checkin/new (SectionActions). */
+                                        <S.RowHeaderActions>
+                                            <S.RowHeaderActionBtn
+                                                type="button"
+                                                onClick={handleResetCustomerMobile}
+                                                disabled={!hasCustomerData}
+                                            >
+                                                Wycofaj zmiany
+                                            </S.RowHeaderActionBtn>
+                                            <S.RowHeaderActionBtn
+                                                type="button"
+                                                $primary
+                                                onClick={() => form.setShowCustomerDropdown(true)}
+                                            >
+                                                {form.selectedCustomer ? 'Zmień klienta' : 'Wybierz klienta'}
+                                            </S.RowHeaderActionBtn>
+                                        </S.RowHeaderActions>
+                                    ) : (
+                                        <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
+                                    )}
                                 </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField === 'customer' ? form.accentColor : undefined}>
                                     <IconUser />
                                 </S.IconWrapper>
                                 <S.RowContent>
+                                    {/* Mobile: pola pod sobą (FormGrid z /checkin/new) - Imię,
+                                        Nazwisko, Telefon, E-mail. Wyszukiwarka istniejącego
+                                        klienta wchodzi w arkusz otwierany "Wybierz klienta". */}
+                                    {isMobile ? (
+                                        <>
+                                            {form.errors.customer && <FormFieldError>{form.errors.customer}</FormFieldError>}
+                                            <FormGrid>
+                                                <FieldGroup>
+                                                    <FormLabel>Imię</FormLabel>
+                                                    <FormInputField
+                                                        value={form.customerFirstName}
+                                                        onChange={(e) => form.setCustomerFirstName(e.target.value)}
+                                                        $hasError={!!form.errors.customerFirstName}
+                                                        autoComplete="new-password"
+                                                    />
+                                                    {form.errors.customerFirstName && <FormFieldError>{form.errors.customerFirstName}</FormFieldError>}
+                                                </FieldGroup>
+                                                <FieldGroup>
+                                                    <FormLabel>Nazwisko</FormLabel>
+                                                    <FormInputField
+                                                        value={form.customerLastName}
+                                                        onChange={(e) => form.setCustomerLastName(e.target.value)}
+                                                        $hasError={!!form.errors.customerLastName}
+                                                        autoComplete="new-password"
+                                                    />
+                                                    {form.errors.customerLastName && <FormFieldError>{form.errors.customerLastName}</FormFieldError>}
+                                                </FieldGroup>
+                                                <FieldGroup>
+                                                    <FormLabel>Telefon</FormLabel>
+                                                    <PhoneInput
+                                                        variant="legacy"
+                                                        value={`${form.customerPhonePrefix || '+48'} ${form.customerPhone}`.trim()}
+                                                        onChange={(full) => {
+                                                            const m = full.match(/^(\+\d+)\s*(.*)$/);
+                                                            if (m) {
+                                                                form.setCustomerPhonePrefix(m[1]);
+                                                                form.setCustomerPhone(m[2]);
+                                                            } else {
+                                                                form.setCustomerPhone(full);
+                                                            }
+                                                        }}
+                                                        hasError={!!form.errors.customerPhone}
+                                                    />
+                                                    {form.errors.customerPhone && <FormFieldError>{form.errors.customerPhone}</FormFieldError>}
+                                                </FieldGroup>
+                                                <FieldGroup>
+                                                    <FormLabel>E-mail</FormLabel>
+                                                    <FormInputField
+                                                        type="email"
+                                                        value={form.customerEmail}
+                                                        onChange={(e) => form.setCustomerEmail(e.target.value)}
+                                                        $hasError={!!form.errors.customerEmail}
+                                                    />
+                                                    {form.errors.customerEmail && <FormFieldError>{form.errors.customerEmail}</FormFieldError>}
+                                                </FieldGroup>
+                                            </FormGrid>
+                                            {renderMobileCustomerSearchSheet()}
+                                        </>
+                                    ) : (
+                                    <>
                                     {/* ── stan: klient wybrany, tryb edycji ── */}
                                     {form.selectedCustomer && form.customerEditMode ? (
                                         <>
@@ -1263,6 +1523,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.DropdownContainer>
                                         </>
                                     )}
+                                    </>
+                                    )}
 
                                 </S.RowContent>
                             </S.Row>
@@ -1280,7 +1542,40 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconCar />
                                 </S.IconWrapper>
                                 <S.RowContent ref={form.vehicleSectionRef}>
-                                    {form.selectedVehicle && form.vehicleEditMode ? (
+                                    {/* Mobile: pola pod sobą (FormGrid z /checkin/new) -
+                                        Marka, Model, Rok produkcji. Marka → auto-otwarcie
+                                        modelu. */}
+                                    {isMobile ? (
+                                        <FormGrid>
+                                            <FieldGroup>
+                                                <FormLabel>Marka</FormLabel>
+                                                <BrandSelect
+                                                    value={form.vehicleBrand}
+                                                    onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); setAutoOpenModel(true); }}
+                                                />
+                                            </FieldGroup>
+                                            <FieldGroup>
+                                                <FormLabel>Model</FormLabel>
+                                                <ModelSelect
+                                                    brand={form.vehicleBrand}
+                                                    value={form.vehicleModel}
+                                                    onChange={(model) => form.setVehicleModel(model)}
+                                                    autoOpen={autoOpenModel}
+                                                />
+                                            </FieldGroup>
+                                            <FieldGroup>
+                                                <FormLabel>Rok produkcji</FormLabel>
+                                                <FormInputField
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    maxLength={4}
+                                                    placeholder="np. 2021"
+                                                    value={form.vehicleYear}
+                                                    onChange={(e) => form.setVehicleYear(e.target.value.replace(/\D/g, ''))}
+                                                />
+                                            </FieldGroup>
+                                        </FormGrid>
+                                    ) : form.selectedVehicle && form.vehicleEditMode ? (
                                         /* ── stan: pojazd wybrany, tryb edycji ── */
                                         <>
                                             <S.CustomerHint style={{ color: '#0ea5e9' }}>
@@ -1838,40 +2133,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.RowContent>
                             </S.Row>
 
-                            {/* ── Kolor w kalendarzu (telefon) ───────────────────── */}
-                            {/* Rząd kolorowych kropek w stopce wymagał celowania palcem
-                                w kółko o średnicy 18 px i nie mówił, co znaczy który
-                                kolor. Na telefonie to zwykłe pole formularza - takie
-                                samo jak w arkuszu przyjęcia pojazdu. */}
-                            {/* ── 5. Kolor w kalendarzu (tylko mobile) ──────────── */}
-                            {isMobile && (
-                                <>
-                                    <S.Divider />
-                                    <S.Row>
-                                        <S.RowHeader>
-                                            <S.RowHeaderTitleRow>
-                                                <S.RowHeaderNum>5</S.RowHeaderNum>
-                                                <S.RowHeaderLabel>Kolor w kalendarzu</S.RowHeaderLabel>
-                                            </S.RowHeaderTitleRow>
-                                            <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
-                                        </S.RowHeader>
-                                        <S.IconWrapper>
-                                            <IconPalette />
-                                        </S.IconWrapper>
-                                        <S.RowContent>
-                                            <ColorDropdown
-                                                colors={form.appointmentColors}
-                                                value={form.selectedColorId ?? ''}
-                                                onChange={(id) => form.setSelectedColorId(id)}
-                                                onAddColor={() => form.setIsQuickColorModalOpen(true)}
-                                            />
-                                            {form.errors.color && (
-                                                <S.ColorErrorMessage>{form.errors.color}</S.ColorErrorMessage>
-                                            )}
-                                        </S.RowContent>
-                                    </S.Row>
-                                </>
-                            )}
+                            {/* Kolor w kalendarzu na mobile jest teraz trzecim polem
+                                sekcji "Termin wizyty" (jak w /checkin/new), więc nie ma
+                                już osobnej sekcji koloru. */}
 
                             {/* Advanced toggle (mobile only) */}
                             {isMobile && !showAdvanced && (
@@ -1891,11 +2155,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             <S.Divider />
 
-                            {/* ── 6. Notatki ──────────────────────────────────────── */}
+                            {/* ── 5. Notatki ──────────────────────────────────────── */}
                             <S.Row>
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
-                                        <S.RowHeaderNum>6</S.RowHeaderNum>
+                                        <S.RowHeaderNum>5</S.RowHeaderNum>
                                         <S.RowHeaderLabel>Notatki</S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
@@ -1918,11 +2182,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             <S.Divider />
 
-                            {/* ── 7. Door to Door ─────────────────────────────────── */}
+                            {/* ── 6. Door to Door ─────────────────────────────────── */}
                             <S.Row>
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
-                                        <S.RowHeaderNum>7</S.RowHeaderNum>
+                                        <S.RowHeaderNum>6</S.RowHeaderNum>
                                         <S.RowHeaderLabel>
                                             Odbiór i dostawa
                                             {form.doorToDoor.enabled && (

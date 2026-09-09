@@ -349,6 +349,57 @@ export const RowHeaderHint = styled.span<{ $required?: boolean }>`
     flex-shrink: 0;
 `;
 
+/** SectionActions z /checkin/new: rząd przycisków akcji po prawej stronie
+    nagłówka (np. "Wycofaj zmiany", "Wybierz klienta"). Na mobile bierze pełną
+    szerokość i dzieli ją równo między przyciski. */
+export const RowHeaderActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+
+    @media (max-width: 639px) {
+        width: 100%;
+    }
+`;
+
+/** ActionBtn z /checkin/new: 1:1 te same tokeny (border 1.5px, radius 8px,
+    font 12px semibold, primary = accentBlueDim + #3B82F6). */
+export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 13px;
+    border: 1.5px solid ${p => p.$primary ? '#3B82F6' : '#E2E8F0'};
+    border-radius: 8px;
+    background: ${p => p.$primary ? 'rgba(59, 130, 246, 0.12)' : '#FFFFFF'};
+    color: ${p => p.$primary ? '#3B82F6' : '#475569'};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 180ms ease;
+    white-space: nowrap;
+    font-family: inherit;
+
+    &:hover:not(:disabled) {
+        border-color: #3B82F6;
+        color: #3B82F6;
+        background: rgba(59, 130, 246, 0.12);
+    }
+
+    &:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
+    }
+
+    @media (max-width: 639px) {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 13px;
+    }
+`;
+
 export const IconWrapper = styled.div<{ $color?: string }>`
     flex-shrink: 0;
     margin-top: 12px;
