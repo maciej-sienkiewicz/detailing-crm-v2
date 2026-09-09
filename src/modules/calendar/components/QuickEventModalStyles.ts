@@ -159,18 +159,85 @@ export const ScrollableContent = styled.div`
     }
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
+    /* Mobile: karty-sekcje potrzebują większego rytmu pionowego niż zbite rzędy
+       na desktopie - 14 px oddechu między sekcjami zamiast 2 px. */
     @media (max-width: 639px) {
-        padding: 4px 16px 20px;
+        padding: 14px 12px 24px;
+        gap: 14px;
+        background: #f8fafc;
     }
 `;
 
 // ─── Row layout ───────────────────────────────────────────────────────────────
+//
+// Desktop: rząd z ikoną po lewej i treścią po prawej (kompaktowy layout okna).
+// Mobile: karta-sekcja (jak w /checkin/new) - pasek nagłówka z ikoną i etykietą
+// na górze, treść w polu poniżej. Sekcje separują się materiałem, nie liniami
+// dividera (patrz `Divider` niżej - chowa się na mobile).
 
 export const Row = styled.div`
     display: flex;
     align-items: flex-start;
     gap: 12px;
     padding: 6px 0;
+
+    @media (max-width: 639px) {
+        display: block;
+        padding: 0;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 8px rgba(15,23,42,0.03);
+        overflow: hidden;
+    }
+`;
+
+/** Nagłówek sekcji widoczny tylko na mobile - ikona modułu + etykieta + opcjonalny hint.
+    Etykietę przekazuje się przez prop `label` na komponencie Row.tsx (patrz index.tsx).
+    Na desktopie nagłówek pozostaje ukryty, żeby zachować dotychczasowy kompaktowy layout. */
+export const RowHeader = styled.div`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #fbfcfe;
+    }
+`;
+
+export const RowHeaderIcon = styled.span<{ $color?: string }>`
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: rgba(14, 165, 233, 0.10);
+    color: ${p => p.$color ?? '#0ea5e9'};
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg { width: 15px; height: 15px; stroke-width: 2; }
+`;
+
+export const RowHeaderLabel = styled.span`
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.1px;
+    flex: 1;
+    min-width: 0;
+`;
+
+export const RowHeaderHint = styled.span<{ $required?: boolean }>`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${p => p.$required ? '#dc2626' : '#94a3b8'};
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
 `;
 
 export const IconWrapper = styled.div<{ $color?: string }>`
@@ -179,6 +246,10 @@ export const IconWrapper = styled.div<{ $color?: string }>`
     color: ${p => p.$color ?? '#94a3b8'};
     transition: color 150ms ease;
     svg { width: 16px; height: 16px; }
+
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 export const RowContent = styled.div`
@@ -187,6 +258,12 @@ export const RowContent = styled.div`
     flex-direction: column;
     gap: 8px;
     min-width: 0;
+
+    @media (max-width: 639px) {
+        flex: none;
+        padding: 14px;
+        gap: 12px;
+    }
 `;
 
 export const InputGrid = styled.div`
@@ -252,6 +329,12 @@ export const Divider = styled.div`
     height: 1px;
     margin: 4px 0;
     background: #f1f5f9;
+
+    /* Na mobile sekcje są kartami z materiałem - separują się same, dodatkowa
+       linia dividera brudziłaby rytm pionowy między kartami. */
+    @media (max-width: 639px) {
+        display: none;
+    }
 `;
 
 // ─── Select / trigger button ──────────────────────────────────────────────────
