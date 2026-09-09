@@ -297,6 +297,57 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.customerPhone || form.customerEmail || form.selectedCustomer
     );
 
+    // Podpowiedzi klienta na mobile pokazujemy w przepływie pod polami imienia -
+    // osobny stan od desktopowego showCustomerDropdown/arkusza, żeby wpisywanie
+    // otwierało listę inline, a nie pełnoekranowy arkusz.
+    const [mobileSuggestOpen, setMobileSuggestOpen] = useState(false);
+
+    // Lista podpowiedzi widoczna, gdy: użytkownik pisze (mobileSuggestOpen),
+    // są wyniki, i nie wybrano jeszcze klienta.
+    const renderMobileCustomerSuggestions = () => {
+        if (!isMobile || !mobileSuggestOpen || form.selectedCustomer) return null;
+        if (form.customerResults.length === 0) return null;
+        return (
+            <S.MobileCustomerSuggestions>
+                {form.customerResults.map((c) => {
+                    const hasContact = !!(c.phone || c.email);
+                    return (
+                        <S.MobileCustomerSuggestionItem
+                            key={c.id}
+                            type="button"
+                            // preventDefault na mousedown/touchstart, żeby klik w podpowiedź
+                            // nie zabrał najpierw focusu polu (i nie zdążył go schować).
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                                form.customerJustSelectedRef.current = true;
+                                form.handleCustomerSelect({
+                                    id: c.id,
+                                    firstName: c.firstName,
+                                    lastName: c.lastName,
+                                    phone: c.phone,
+                                    email: c.email,
+                                    isNew: false,
+                                });
+                                setMobileSuggestOpen(false);
+                            }}
+                        >
+                            <S.MobileCustomerSuggestionName>
+                                {(c.firstName || c.lastName)
+                                    ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
+                                    : '(Nie uzupełniono imienia i nazwiska)'}
+                            </S.MobileCustomerSuggestionName>
+                            <S.MobileCustomerSuggestionSub $warn={!hasContact}>
+                                {hasContact
+                                    ? [c.phone, c.email].filter(Boolean).join('  ·  ')
+                                    : '⚠ Brak danych kontaktowych'}
+                            </S.MobileCustomerSuggestionSub>
+                        </S.MobileCustomerSuggestionItem>
+                    );
+                })}
+            </S.MobileCustomerSuggestions>
+        );
+    };
+
     // "Wycofaj zmiany" na mobile: czyści wybór klienta i wszystkie pola,
     // wraca do pustego formularza (jak reset sekcji w /checkin/new).
     const handleResetCustomerMobile = useCallback(() => {
@@ -312,104 +363,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setVehicleYear('');
     }, [form]);
 
-    // Arkusz wyszukiwania istniejącego klienta - otwierany przyciskiem
-    // "Wybierz klienta" w nagłówku sekcji na mobile. Wcześniej był podpięty do
-    // dotknięcia pola (co zasłaniało pola); teraz to świadoma akcja.
-    const renderMobileCustomerSearchSheet = () => {
-        if (!isMobile || !form.showCustomerDropdown) return null;
-        return createPortal(
-            <>
-                <S.MobileSheetBackdrop onClick={() => form.setShowCustomerDropdown(false)} />
-                <S.MobileBottomSheet ref={customerSheetRef}>
-                    <S.MobileSheetHandle />
-                    <S.MobileSheetTitle>
-                        <span>Szukaj klienta</span>
-                        <S.MobileSheetClose
-                            type="button"
-                            aria-label="Zamknij"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => form.setShowCustomerDropdown(false)}
-                        >
-                            <IconX />
-                        </S.MobileSheetClose>
-                    </S.MobileSheetTitle>
-                    <S.MobileSheetSearchWrap>
-                        <S.MobileSheetSearchEditable
-                            ref={customerSheetInputRef}
-                            contentEditable
-                            suppressContentEditableWarning
-                            role="searchbox"
-                            aria-label="Szukaj klienta"
-                            data-placeholder="Imię lub nazwisko..."
-                            inputMode="search"
-                            enterKeyHint="search"
-                            autoCorrect="off"
-                            autoCapitalize="words"
-                            spellCheck={false}
-                            onInput={(e) => {
-                                const text = e.currentTarget.innerText.replace(/\n/g, '');
-                                form.setCustomerFirstName(text);
-                                form.setShowCustomerDropdown(true);
-                            }}
-                            onPaste={(e) => {
-                                e.preventDefault();
-                                const text = e.clipboardData.getData('text/plain').replace(/\n/g, '');
-                                document.execCommand('insertText', false, text);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') e.preventDefault();
-                            }}
-                        />
-                    </S.MobileSheetSearchWrap>
-                    <S.MobileSheetScrollable>
-                        {form.customerResults.map((c) => {
-                            const hasContact = !!(c.phone || c.email);
-                            return (
-                                <S.DropdownItem
-                                    key={c.id}
-                                    type="button"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                        form.customerJustSelectedRef.current = true;
-                                        form.handleCustomerSelect({
-                                            id: c.id,
-                                            firstName: c.firstName,
-                                            lastName: c.lastName,
-                                            phone: c.phone,
-                                            email: c.email,
-                                            isNew: false,
-                                        });
-                                        form.setShowCustomerDropdown(false);
-                                    }}
-                                    $accentColor={form.accentColor}
-                                >
-                                    {(c.firstName || c.lastName)
-                                        ? <span>{c.firstName} {c.lastName}</span>
-                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
-                                    }
-                                    <S.DropdownItemMeta $warning={!hasContact}>
-                                        {hasContact
-                                            ? [c.phone, c.email].filter(Boolean).join('  ·  ')
-                                            : '⚠ Brak danych kontaktowych'
-                                        }
-                                    </S.DropdownItemMeta>
-                                </S.DropdownItem>
-                            );
-                        })}
-                        <S.DropdownAddButton
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => form.setShowCustomerDropdown(false)}
-                        >
-                            <IconPlus />
-                            <span>Wpisuję nowego klienta w polach powyżej</span>
-                        </S.DropdownAddButton>
-                    </S.MobileSheetScrollable>
-                </S.MobileBottomSheet>
-            </>,
-            document.body
-        );
-    };
 
     /**
      * Trzy powiadomienia SMS jako niezależne przełączniki - każda kombinacja jest
@@ -1002,7 +955,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.RowHeaderActionBtn
                                                 type="button"
                                                 $primary
-                                                onClick={() => form.setShowCustomerDropdown(true)}
+                                                onClick={() => {
+                                                    // Reset ewentualnego wyboru i fokus na Imię -
+                                                    // wpisywanie od razu pokazuje podpowiedzi inline.
+                                                    if (form.selectedCustomer) handleResetCustomerMobile();
+                                                    setMobileSuggestOpen(true);
+                                                    requestAnimationFrame(() => form.customerInputRef.current?.focus());
+                                                }}
                                             >
                                                 {form.selectedCustomer ? 'Zmień klienta' : 'Wybierz klienta'}
                                             </S.RowHeaderActionBtn>
@@ -1016,8 +975,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.IconWrapper>
                                 <S.RowContent>
                                     {/* Mobile: pola pod sobą (FormGrid z /checkin/new) - Imię,
-                                        Nazwisko, Telefon, E-mail. Wyszukiwarka istniejącego
-                                        klienta wchodzi w arkusz otwierany "Wybierz klienta". */}
+                                        Nazwisko, Telefon, E-mail. Podpowiedzi istniejących
+                                        klientów pojawiają się W PRZEPŁYWIE bezpośrednio pod
+                                        polami imienia (renderMobileCustomerSuggestions). */}
                                     {isMobile ? (
                                         <>
                                             {form.errors.customer && <FormFieldError>{form.errors.customer}</FormFieldError>}
@@ -1025,8 +985,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <FieldGroup>
                                                     <FormLabel>Imię</FormLabel>
                                                     <FormInputField
+                                                        ref={form.customerInputRef}
                                                         value={form.customerFirstName}
-                                                        onChange={(e) => form.setCustomerFirstName(e.target.value)}
+                                                        onChange={(e) => { form.setCustomerFirstName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
+                                                        onFocus={() => setMobileSuggestOpen(true)}
                                                         $hasError={!!form.errors.customerFirstName}
                                                         autoComplete="new-password"
                                                     />
@@ -1036,12 +998,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <FormLabel>Nazwisko</FormLabel>
                                                     <FormInputField
                                                         value={form.customerLastName}
-                                                        onChange={(e) => form.setCustomerLastName(e.target.value)}
+                                                        onChange={(e) => { form.setCustomerLastName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
+                                                        onFocus={() => setMobileSuggestOpen(true)}
                                                         $hasError={!!form.errors.customerLastName}
                                                         autoComplete="new-password"
                                                     />
                                                     {form.errors.customerLastName && <FormFieldError>{form.errors.customerLastName}</FormFieldError>}
                                                 </FieldGroup>
+                                                {/* Podpowiedzi zaraz pod polami imienia/nazwiska */}
+                                                {renderMobileCustomerSuggestions()}
                                                 <FieldGroup>
                                                     <FormLabel>Telefon</FormLabel>
                                                     <PhoneInput
@@ -1055,6 +1020,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             } else {
                                                                 form.setCustomerPhone(full);
                                                             }
+                                                            form.customerJustSelectedRef.current = false;
+                                                            setMobileSuggestOpen(true);
                                                         }}
                                                         hasError={!!form.errors.customerPhone}
                                                     />
@@ -1071,7 +1038,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     {form.errors.customerEmail && <FormFieldError>{form.errors.customerEmail}</FormFieldError>}
                                                 </FieldGroup>
                                             </FormGrid>
-                                            {renderMobileCustomerSearchSheet()}
                                         </>
                                     ) : (
                                     <>
@@ -1391,135 +1357,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     document.body
                                                 )}
 
-                                                {/* Mobile bottom sheet for customer results - wyłączone.
-                                                    Pola Imię/Nazwisko/Telefon/E-mail są teraz edytowane inline
-                                                    (jak w /checkin/new), więc arkusz z wyszukiwarką po prostu
-                                                    zasłaniał widoczne pola. Wyszukanie istniejącego klienta na
-                                                    telefonie wróci osobnym przyciskiem "Wyszukaj klienta" - do
-                                                    dopięcia w kolejnej iteracji. */}
-                                                {false && isMobile && form.showCustomerDropdown && createPortal(
-                                                    <>
-                                                        <S.MobileSheetBackdrop
-                                                            // Arkusz wstaje pod palcem, więc „kliknięcie" domykające gest
-                                                            // dotknięcia lądowałoby już na tle i od razu by go zamknęło.
-                                                            onClick={() => {
-                                                                if (performance.now() - customerTapGuardRef.current < 400) return;
-                                                                form.setShowCustomerDropdown(false);
-                                                            }}
-                                                        />
-                                                        <S.MobileBottomSheet ref={customerSheetRef}>
-                                                            <S.MobileSheetHandle />
-                                                            <S.MobileSheetTitle>
-                                                                <span>Szukaj klienta</span>
-                                                                <S.MobileSheetClose
-                                                                    type="button"
-                                                                    aria-label="Zamknij"
-                                                                    // Keep focus on the editable until the click lands; the
-                                                                    // sheet then unmounts and the keyboard drops with it.
-                                                                    onMouseDown={(e) => e.preventDefault()}
-                                                                    onClick={() => form.setShowCustomerDropdown(false)}
-                                                                >
-                                                                    <IconX />
-                                                                </S.MobileSheetClose>
-                                                            </S.MobileSheetTitle>
-                                                            <S.MobileSheetSearchWrap>
-                                                                <S.MobileSheetSearchEditable
-                                                                    ref={customerSheetInputRef}
-                                                                    contentEditable
-                                                                    suppressContentEditableWarning
-                                                                    role="searchbox"
-                                                                    aria-label="Szukaj klienta"
-                                                                    data-placeholder="Imię lub nazwisko..."
-                                                                    inputMode="search"
-                                                                    enterKeyHint="search"
-                                                                    autoCorrect="off"
-                                                                    autoCapitalize="words"
-                                                                    spellCheck={false}
-                                                                    onInput={(e) => {
-                                                                        const text = e.currentTarget.innerText.replace(/\n/g, '');
-                                                                        form.setCustomerFirstName(text);
-                                                                        form.setShowCustomerDropdown(true);
-                                                                    }}
-                                                                    onPaste={(e) => {
-                                                                        e.preventDefault();
-                                                                        const text = e.clipboardData.getData('text/plain').replace(/\n/g, '');
-                                                                        document.execCommand('insertText', false, text);
-                                                                    }}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') e.preventDefault();
-                                                                    }}
-                                                                />
-                                                            </S.MobileSheetSearchWrap>
-                                                            <S.MobileSheetScrollable>
-                                                                {form.customerResults.map((c) => {
-                                                                    const hasContact = !!(c.phone || c.email);
-                                                                    return (
-                                                                        <S.DropdownItem
-                                                                            key={c.id}
-                                                                            type="button"
-                                                                            onMouseDown={(e) => e.preventDefault()}
-                                                                            onClick={() => {
-                                                                                form.customerJustSelectedRef.current = true;
-                                                                                form.handleCustomerSelect({
-                                                                                    id: c.id,
-                                                                                    firstName: c.firstName,
-                                                                                    lastName: c.lastName,
-                                                                                    phone: c.phone,
-                                                                                    email: c.email,
-                                                                                    isNew: false,
-                                                                                });
-                                                                                form.setShowCustomerDropdown(false);
-                                                                            }}
-                                                                            $accentColor={form.accentColor}
-                                                                        >
-                                                                            {(c.firstName || c.lastName)
-                                                                                ? <span>{c.firstName} {c.lastName}</span>
-                                                                                : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
-                                                                            }
-                                                                            <S.DropdownItemMeta $warning={!hasContact}>
-                                                                                {hasContact
-                                                                                    ? [c.phone, c.email].filter(Boolean).join('  ·  ')
-                                                                                    : '⚠ Brak danych kontaktowych'
-                                                                                }
-                                                                            </S.DropdownItemMeta>
-                                                                        </S.DropdownItem>
-                                                                    );
-                                                                })}
-                                                                <S.DropdownAddButton
-                                                                    type="button"
-                                                                    onMouseDown={(e) => e.preventDefault()}
-                                                                    onClick={() => {
-                                                                        // Zamiast zapisywać klienta z samym imieniem wpisanym
-                                                                        // w wyszukiwarkę, otwieramy formularz z kompletem pól.
-                                                                        // To, co wpisano, dzielimy na imię i nazwisko.
-                                                                        const typed = form.customerFirstName.trim();
-                                                                        const spaceAt = typed.indexOf(' ');
-                                                                        setNewCustomerDraft({
-                                                                            firstName: spaceAt > 0 ? typed.slice(0, spaceAt) : typed,
-                                                                            lastName: spaceAt > 0
-                                                                                ? typed.slice(spaceAt + 1).trim()
-                                                                                : form.customerLastName.trim(),
-                                                                            phonePrefix: form.customerPhonePrefix || '+48',
-                                                                            phone: form.customerPhone,
-                                                                            email: form.customerEmail,
-                                                                        });
-                                                                        form.setShowCustomerDropdown(false);
-                                                                        form.setFocusedField(null);
-                                                                    }}
-                                                                >
-                                                                    <IconPlus />
-                                                                    <span>
-                                                                        {form.customerResults.length > 0
-                                                                            ? 'To inna osoba, dodaj jako nowego klienta'
-                                                                            : 'Dodaj nowego klienta'
-                                                                        }
-                                                                    </span>
-                                                                </S.DropdownAddButton>
-                                                            </S.MobileSheetScrollable>
-                                                        </S.MobileBottomSheet>
-                                                    </>,
-                                                    document.body
-                                                )}
                                             </S.DropdownContainer>
                                         </>
                                     )}

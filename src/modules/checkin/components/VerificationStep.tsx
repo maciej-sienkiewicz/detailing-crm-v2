@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
-import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
@@ -339,15 +338,21 @@ const FilledBadge = styled.span`
 
 // ─── Customer autocomplete dropdown ──────────────────────────────────────────
 
+/* W PRZEPŁYWIE dokumentu, bezpośrednio pod polami imienia - nie position:fixed
+   z liczeniem pozycji w JS. Tamten wariant „przeskakiwał" przy otwarciu
+   klawiatury i scrollu (przeliczał się na każdym zdarzeniu visualViewport),
+   a bywało że lądował w złym miejscu. W normalnym flow lista zawsze siedzi pod
+   polem i przewija się razem z sekcją. */
 const CustomerAutocompleteDropdown = styled.div`
-    position: fixed;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     box-shadow: ${st.shadowLg};
-    z-index: 9999;
     overflow: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    max-height: 240px;
 `;
 
 const CustomerDropdownItemBtn = styled.button`
@@ -693,7 +698,6 @@ export const VerificationStep = ({
     // Deklarowane tutaj, a nie niżej razem z resztą stanu wyboru klienta, bo
     // zapytanie po telefonie (poniżej) czyta wpisywany numer właśnie stąd.
     const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
-    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number } | null>(null);
     const [selectedCustomerIdForVehicles, setSelectedCustomerIdForVehicles] = useState<string | undefined>(undefined);
 
     // Swapping the customer on a visit that already has a car leaves one open question the
@@ -776,39 +780,6 @@ export const VerificationStep = ({
 
     useEffect(() => {
     }, [formData.homeAddress, formData.company]);
-
-    // Position the customer autocomplete dropdown below (or above) the focused input field
-    useEffect(() => {
-        if (!showCustomerAutocomplete) {
-            setCustomerDropdownPos(null);
-            return;
-        }
-        const el = activeCustomerFieldRef.current;
-        if (!el) return;
-        const update = () => {
-            const r = el.getBoundingClientRect();
-            const vvHeight = window.visualViewport?.height ?? window.innerHeight;
-            const spaceBelow = vvHeight - r.bottom - 4;
-            const spaceAbove = r.top - 4;
-            const maxH = 280;
-            if (spaceBelow < 120 && spaceAbove > spaceBelow) {
-                setCustomerDropdownPos({ bottom: vvHeight - r.top + 4, left: r.left, width: r.width, maxHeight: Math.min(maxH, spaceAbove) });
-            } else {
-                setCustomerDropdownPos({ top: r.bottom + 4, left: r.left, width: r.width, maxHeight: Math.min(maxH, spaceBelow) });
-            }
-        };
-        update();
-        window.addEventListener('scroll', update, true);
-        window.addEventListener('resize', update);
-        window.visualViewport?.addEventListener('resize', update);
-        window.visualViewport?.addEventListener('scroll', update);
-        return () => {
-            window.removeEventListener('scroll', update, true);
-            window.removeEventListener('resize', update);
-            window.visualViewport?.removeEventListener('resize', update);
-            window.visualViewport?.removeEventListener('scroll', update);
-        };
-    }, [showCustomerAutocomplete]);
 
     // Auto-select vehicle when customer has exactly one vehicle
     useEffect(() => {
@@ -1134,7 +1105,6 @@ export const VerificationStep = ({
     const handleCustomerSelectFromAutocomplete = async (customer: { id: string; firstName: string | null; lastName: string | null; phone: string | null; email: string | null }) => {
         customerJustSelectedRef.current = true;
         setCustomerAutocompleteOpen(false);
-        setCustomerDropdownPos(null);
         if (customerBlurTimerRef.current) {
             clearTimeout(customerBlurTimerRef.current);
             customerBlurTimerRef.current = null;
@@ -1440,6 +1410,25 @@ export const VerificationStep = ({
                         </FieldGroup>
                         </div>
 
+                        {/* Podpowiedzi po nazwisku - w przepływie, bezpośrednio pod
+                            polami imienia/nazwiska (span na całą szerokość gridu). */}
+                        {customerSearchField === 'name' && showCustomerAutocomplete && (
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <CustomerAutocompleteDropdown onMouseDown={(e) => e.preventDefault()}>
+                                    {foundCustomers.map((c) => (
+                                        <CustomerDropdownItemBtn key={c.id} type="button" onClick={() => handleCustomerSelectFromAutocomplete(c)}>
+                                            <CustomerDropdownItemName>
+                                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
+                                            </CustomerDropdownItemName>
+                                            {(c.phone || c.email) && (
+                                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
+                                            )}
+                                        </CustomerDropdownItemBtn>
+                                    ))}
+                                </CustomerAutocompleteDropdown>
+                            </div>
+                        )}
+
                         <div ref={phoneFieldRef}>
                         <FieldGroup>
                             <Label>{t.checkin.verification.phone}</Label>
@@ -1470,6 +1459,24 @@ export const VerificationStep = ({
                             {errors.phone && <FieldError>{errors.phone}</FieldError>}
                         </FieldGroup>
                         </div>
+
+                        {/* Podpowiedzi po telefonie - w przepływie, bezpośrednio pod polem telefonu. */}
+                        {customerSearchField === 'phone' && showCustomerAutocomplete && (
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <CustomerAutocompleteDropdown onMouseDown={(e) => e.preventDefault()}>
+                                    {foundCustomers.map((c) => (
+                                        <CustomerDropdownItemBtn key={c.id} type="button" onClick={() => handleCustomerSelectFromAutocomplete(c)}>
+                                            <CustomerDropdownItemName>
+                                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
+                                            </CustomerDropdownItemName>
+                                            {(c.phone || c.email) && (
+                                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
+                                            )}
+                                        </CustomerDropdownItemBtn>
+                                    ))}
+                                </CustomerAutocompleteDropdown>
+                            </div>
+                        )}
 
                         <FieldGroup>
                             <Label>{t.checkin.verification.email}</Label>
@@ -1999,29 +2006,6 @@ export const VerificationStep = ({
             </SectionCard>
 
             {/* ── Customer autocomplete dropdown ───────────────────────── */}
-            {showCustomerAutocomplete && customerDropdownPos && createPortal(
-                <CustomerAutocompleteDropdown
-                    style={{ top: customerDropdownPos.top, bottom: customerDropdownPos.bottom, left: customerDropdownPos.left, width: customerDropdownPos.width, maxHeight: customerDropdownPos.maxHeight }}
-                    onMouseDown={(e) => e.preventDefault()}
-                >
-                    {foundCustomers.map((c) => (
-                        <CustomerDropdownItemBtn
-                            key={c.id}
-                            type="button"
-                            onClick={() => handleCustomerSelectFromAutocomplete(c)}
-                        >
-                            <CustomerDropdownItemName>
-                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '(Brak danych)'}
-                            </CustomerDropdownItemName>
-                            {(c.phone || c.email) && (
-                                <CustomerDropdownItemSub>{c.phone || c.email}</CustomerDropdownItemSub>
-                            )}
-                        </CustomerDropdownItemBtn>
-                    ))}
-                </CustomerAutocompleteDropdown>,
-                document.body
-            )}
-
             {/* ── Modals ────────────────────────────────────────────────── */}
             <ModalShell
                 isOpen={showCustomerChoice}
