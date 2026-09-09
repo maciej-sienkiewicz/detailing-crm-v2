@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { AlertCircle, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronRight, ChevronUp, ExternalLink } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AdBar, AdCalendar, AdCalendarRow, UnlinkedProfile } from '../types';
 import { PROFILE_COLORS } from '../types';
@@ -140,15 +140,14 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
 
     return (
         <Layout>
-            {calendar.unlinked.map(profile => (
-                <UnlinkedCard
-                    key={profile.profileId}
-                    profile={profile}
-                    onLink={() =>
+            {calendar.unlinked.length > 0 && (
+                <UnlinkedGroup
+                    profiles={calendar.unlinked}
+                    onLink={profile =>
                         setLinking({ profileId: profile.profileId, username: profile.username })
                     }
                 />
-            ))}
+            )}
 
             {sortedRows.map(({ row, color }) => (
                 <ProfileCard
@@ -168,13 +167,6 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
                 />
             ))}
 
-            <Footnote>
-                <strong>Dni sponsorowane</strong> — dni każdej kampanii liczone osobno. Cztery kampanie
-                od 14 do 16 marca to 4 × 3 = 12 dni.<br />
-                <strong>Zasięg</strong> — szacunkowa liczba kont Meta w Polsce, które zobaczyły reklamę
-                co najmniej raz.
-            </Footnote>
-
             {linking && (
                 <LinkFacebookPageModal
                     profileId={linking.profileId}
@@ -187,27 +179,60 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
     );
 };
 
-// ─── Karta unlinked profilu ──────────────────────────────────────────────────
+// ─── Zbiorcza karta unlinked profili ─────────────────────────────────────────
 
-const UnlinkedCard: React.FC<{ profile: UnlinkedProfile; onLink: () => void }> = ({
-    profile,
-    onLink,
-}) => (
-    <Card $variant="unlinked">
-        <CardHead>
-            <UnlinkedIcon>
-                <AlertCircle size={16} />
-            </UnlinkedIcon>
-            <UserName>@{profile.username}</UserName>
-        </CardHead>
-        <UnlinkedText>
-            Profil nie jest połączony ze stroną na Facebooku — nie wiemy, czy się reklamuje.
-        </UnlinkedText>
-        <UnlinkedButton type="button" onClick={onLink}>
-            Wskaż stronę FB
-        </UnlinkedButton>
-    </Card>
-);
+/**
+ * Jedna karta na WSZYSTKIE niepodpięte profile — nawet gdy jest ich pięć.
+ * W pierwszej iteracji było N osobnych kart z powtarzającym się akapitem
+ * „profil nie jest połączony ze stroną na Facebooku — nie wiemy, czy się
+ * reklamuje" i pół ekranu bez informacji o reklamach.
+ *
+ * Chip per profil (tap → LinkFacebookPageModal). Karta zwinięta domyślnie
+ * gdy profili jest 3+, żeby nie zabierała miejsca — jeden lub dwa chipy
+ * pokazujemy od razu, wiele profili chowamy pod chevron.
+ */
+const UnlinkedGroup: React.FC<{
+    profiles: UnlinkedProfile[];
+    onLink: (profile: UnlinkedProfile) => void;
+}> = ({ profiles, onLink }) => {
+    const many = profiles.length >= 3;
+    const [expanded, setExpanded] = useState(!many);
+
+    return (
+        <Card $variant="unlinked">
+            <UnlinkedGroupHead
+                as={many ? 'button' : 'div'}
+                type={many ? 'button' : undefined}
+                onClick={many ? () => setExpanded(v => !v) : undefined}
+                aria-expanded={many ? expanded : undefined}
+            >
+                <UnlinkedIcon>
+                    <AlertCircle size={16} />
+                </UnlinkedIcon>
+                <UnlinkedTitle>
+                    {profiles.length === 1
+                        ? `@${profiles[0].username} bez strony FB`
+                        : `${profiles.length} profili bez strony FB`}
+                </UnlinkedTitle>
+                {many && (expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+            </UnlinkedGroupHead>
+            {expanded && (
+                <UnlinkedChips>
+                    {profiles.map(profile => (
+                        <UnlinkedChip
+                            key={profile.profileId}
+                            type="button"
+                            onClick={() => onLink(profile)}
+                        >
+                            @{profile.username}
+                            <ExternalLink size={11} aria-hidden />
+                        </UnlinkedChip>
+                    ))}
+                </UnlinkedChips>
+            )}
+        </Card>
+    );
+};
 
 // ─── Karta profilu ───────────────────────────────────────────────────────────
 
@@ -673,50 +698,82 @@ const UnlinkedIcon = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: ${st.accentAmberDim};
     color: ${st.accentAmber};
     flex-shrink: 0;
 `;
 
-const UnlinkedText = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
-
-const UnlinkedButton = styled.button`
+const UnlinkedGroupHead = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0 16px;
-    border: 1px solid ${st.accentAmber};
-    border-radius: ${st.radiusSm};
-    background: ${st.accentAmberDim};
-    color: #b45309;
+    gap: 10px;
+    width: 100%;
+    min-height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
     font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    cursor: pointer;
-    transition: all ${st.transition};
+    text-align: left;
+    cursor: default;
 
-    &:hover, &:focus-visible {
-        background: rgba(245, 158, 11, 0.18);
-        outline: none;
+    &[type='button'] {
+        cursor: pointer;
+    }
+
+    > svg:last-child {
+        margin-left: auto;
+        color: ${st.textMuted};
+        flex-shrink: 0;
+    }
+
+    &:focus-visible {
+        outline: 2px solid ${st.accentBlue};
+        outline-offset: 2px;
+        border-radius: ${st.radiusSm};
     }
 `;
 
-// ─── Footnote ────────────────────────────────────────────────────────────────
+const UnlinkedTitle = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+`;
 
-const Footnote = styled.div`
-    padding: 12px 4px 4px;
-    font-size: 11.5px;
-    color: ${st.textMuted};
-    line-height: 1.65;
+const UnlinkedChips = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+`;
 
-    strong { color: ${st.textSecondary}; font-weight: 700; }
+const UnlinkedChip = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid ${st.accentAmber};
+    border-radius: ${st.radiusFull};
+    background: ${st.accentAmberDim};
+    color: #b45309;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background ${st.transition};
+
+    &:hover, &:focus-visible {
+        background: rgba(245, 158, 11, 0.22);
+        outline: none;
+    }
+
+    svg { flex-shrink: 0; }
 `;

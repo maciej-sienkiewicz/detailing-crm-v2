@@ -170,7 +170,7 @@ const MobileCard = styled.button<{ $self: boolean; $selected: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 14px;
+    padding: 12px 14px;
     border: 1px solid ${p => (p.$selected ? st.accentBlue : st.border)};
     border-radius: ${st.radiusSm};
     background: ${p => (p.$self ? st.bgAccentBlue : st.bgCard)};
@@ -186,34 +186,37 @@ const MobileCardHead = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
 
-    span.name { font-weight: 700; color: ${st.text}; font-size: ${st.fontMd}; }
-`;
+    span.name {
+        font-weight: 700;
+        color: ${st.text};
+        font-size: ${st.fontMd};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        flex: 1;
+    }
 
-const MobileSelectMark = styled.span<{ $selected: boolean }>`
-    margin-left: auto;
-    padding: 3px 10px;
-    border-radius: ${st.radiusFull};
-    background: ${p => (p.$selected ? st.accentBlueDim : st.bgCardAlt)};
-    color: ${p => (p.$selected ? st.accentBlue : st.textMuted)};
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+    span.error {
+        font-size: 10.5px;
+        color: ${st.textMuted};
+        font-style: italic;
+    }
 `;
 
 const MobileMetrics = styled.div`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px 12px;
-    padding-top: 8px;
+    gap: 8px 12px;
+    padding-top: 6px;
     border-top: 1px solid ${st.border};
 `;
 
 const MobileMetric = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
 
     > .label {
@@ -225,16 +228,35 @@ const MobileMetric = styled.div`
     }
 `;
 
-const MobileExtras = styled.div`
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    padding-top: 2px;
+// ─── Mobile: jednolinijkowe podsumowanie zamiast wykresów ─────────────────────
 
-    strong { color: ${st.text}; font-weight: 700; }
+const MobileHeadline = styled.div`
+    padding: 12px 14px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgAccentBlue};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    line-height: 1.45;
+
+    strong { font-weight: 700; }
+`;
+
+const MobilePulseFold = styled.button`
+    all: unset;
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 6px;
+    border: 1px dashed ${st.border};
+    border-radius: ${st.radiusSm};
+    text-align: center;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.accentBlue};
+    cursor: pointer;
+
+    &:hover { background: ${st.bgAccentBlue}; }
 `;
 
 const HintNote = styled.p`
@@ -735,7 +757,10 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     // z zakładką, bez przycisku i bez czekania.
     const pulseQuery = usePulse();
     const [showPulseDemo, setShowPulseDemo] = useState(false);
+    const [pulseExpanded, setPulseExpanded] = useState(false);
     const pulseEvents = showPulseDemo ? DEMO_EVENTS : pulseQuery.data?.events ?? [];
+    /** Na mobile pokazujemy 3 wydarzenia domyślnie, resztę pod expand — na desktopie wszystko naraz. */
+    const visiblePulseEvents = !isDesktop && !pulseExpanded ? pulseEvents.slice(0, 3) : pulseEvents;
 
     // ── Ponowienie pobrania dla profili z błędem ─────────────────────────────
     // Przycisk pojawia się WYŁĄCZNIE gdy jakiś profil ma flagę błędu - poza tym
@@ -809,10 +834,11 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
     );
 
     /**
-     * Wersja mobilna wiersza tabeli: kompaktowa karta, tap = toggle wyboru
-     * profilu na wykresach (ta sama semantyka, co klik w wiersz na desktopie).
-     * Zamiast tabeli, każda metryka ma własną linię z etykietą; format mix
-     * i regularność wchodzą pod spód jako mikroetykiety.
+     * Wersja mobilna: kolorowa kropka, nazwa profilu, trzy kluczowe liczby z deltami.
+     * Zero dodatkowych badge, plakietek, mikropasków — właściciel patrzy pod ręką
+     * jednym spojrzeniem, nie planuje strategii. Selekcja komunikowana ramką i tłem
+     * karty, nie napisem „NA WYKRESIE". Format mix, regularność, wizytówka — na
+     * desktopie w tabeli, na mobile schowane.
      */
     const renderBenchCard = (row: BenchmarkRow) => {
         const isSelected = selected.includes(row.profileId);
@@ -827,15 +853,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 <MobileCardHead>
                     <ColorDot $color={colorFor(row.profileId)} $muted={!isSelected} />
                     <span className="name">@{row.username}</span>
-                    {row.isSelf && (
-                        <SelfTag>
-                            <Star size={10} style={{ marginRight: 3 }} /> Ty
-                        </SelfTag>
-                    )}
-                    {row.apiError && <ErrorTag>problem z pobraniem</ErrorTag>}
-                    <MobileSelectMark $selected={isSelected}>
-                        {isSelected ? 'NA WYKRESIE' : 'DOTKNIJ, BY DODAĆ'}
-                    </MobileSelectMark>
+                    {row.apiError && <span className="error">brak danych</span>}
                 </MobileCardHead>
                 <MobileMetrics>
                     <MobileMetric>
@@ -851,18 +869,6 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         <MetricCell metric={row.postsPerWeek} decimals={1} showBenchmark={false} />
                     </MobileMetric>
                 </MobileMetrics>
-                <MobileExtras>
-                    <MixBar
-                        style={{ width: 84, marginBottom: 0 }}
-                        title={`Zdjęcia ${row.formatMix.photoPct.toFixed(0)}% · Rolki ${row.formatMix.reelsPct.toFixed(0)}% · Karuzele ${row.formatMix.carouselPct.toFixed(0)}%`}
-                    >
-                        <MixSeg $w={row.formatMix.photoPct} $c={st.accentBlue} />
-                        <MixSeg $w={row.formatMix.reelsPct} $c={st.accentAmber} />
-                        <MixSeg $w={row.formatMix.carouselPct} $c={st.accentGreen} />
-                    </MixBar>
-                    <span><strong>{row.regularityPct.toFixed(0)}%</strong> tygodni z postem</span>
-                    <span>wizytówka <strong>{row.storefront.score}/100</strong></span>
-                </MobileExtras>
             </MobileCard>
         );
     };
@@ -871,19 +877,21 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
         <Layout>
             <Card>
                 <CardTitle>Porównanie profili</CardTitle>
-                <CardHint>
-                    Każda liczba ze zmianą vs poprzedni okres. Porównania dotyczą wyłącznie{' '}
-                    <strong>obserwowanej przez Ciebie grupy {benchmark.comparisonGroupSize}{' '}
-                    {benchmark.comparisonGroupSize === 1 ? 'profilu' : 'profili'}</strong>.
-                    {benchmark.comparisonGroupSize < 4 && (
-                        <> Dodaj jeszcze {4 - benchmark.comparisonGroupSize}{' '}
-                        {4 - benchmark.comparisonGroupSize === 1 ? 'profil' : 'profile'}, aby odblokować
-                        odniesienie do mediany grupy.</>
-                    )}{' '}
-                    {isDesktop
-                        ? `Kliknij wiersz, aby dodać profil do wykresów (maks. ${MAX_CHART_PROFILES}).`
-                        : `Dotknij kartę, aby dodać profil do wykresów (maks. ${MAX_CHART_PROFILES}).`}
-                </CardHint>
+                {isDesktop ? (
+                    <CardHint>
+                        Każda liczba ze zmianą vs poprzedni okres. Porównania dotyczą wyłącznie{' '}
+                        <strong>obserwowanej przez Ciebie grupy {benchmark.comparisonGroupSize}{' '}
+                        {benchmark.comparisonGroupSize === 1 ? 'profilu' : 'profili'}</strong>.
+                        {benchmark.comparisonGroupSize < 4 && (
+                            <> Dodaj jeszcze {4 - benchmark.comparisonGroupSize}{' '}
+                            {4 - benchmark.comparisonGroupSize === 1 ? 'profil' : 'profile'}, aby odblokować
+                            odniesienie do mediany grupy.</>
+                        )}{' '}
+                        Kliknij wiersz, aby dodać profil do wykresów (maks. {MAX_CHART_PROFILES}).
+                    </CardHint>
+                ) : (
+                    <CardHint>Dotknij kartę, by dodać do porównania.</CardHint>
+                )}
                 {isDesktop ? (
                     <TableScroll>
                         <Table>
@@ -903,29 +911,37 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 ) : (
                     <MobileList>{benchmark.rows.map(renderBenchCard)}</MobileList>
                 )}
-                <HintNote>
-                    Formaty: <span style={{ color: st.accentBlue }}>■</span> zdjęcia ·{' '}
-                    <span style={{ color: st.accentAmber }}>■</span> rolki ·{' '}
-                    <span style={{ color: st.accentGreen }}>■</span> karuzele
-                </HintNote>
+                {isDesktop && (
+                    <HintNote>
+                        Formaty: <span style={{ color: st.accentBlue }}>■</span> zdjęcia ·{' '}
+                        <span style={{ color: st.accentAmber }}>■</span> rolki ·{' '}
+                        <span style={{ color: st.accentGreen }}>■</span> karuzele
+                    </HintNote>
+                )}
 
                 {(failedProfiles.length > 0 || resyncMessage) && (
                     <ErrorBanner>
                         <ErrorBannerText>
                             {failedProfiles.length > 0 ? (
-                                <>
-                                    Nie udało się pobrać danych dla{' '}
-                                    <strong>{failedProfiles.map(row => `@${row.username}`).join(', ')}</strong>.
-                                    {' '}Kolejna automatyczna próba jutro rano - możesz też ponowić teraz.
-                                </>
+                                isDesktop ? (
+                                    <>
+                                        Nie udało się pobrać danych dla{' '}
+                                        <strong>{failedProfiles.map(row => `@${row.username}`).join(', ')}</strong>.
+                                        {' '}Kolejna automatyczna próba jutro rano - możesz też ponowić teraz.
+                                    </>
+                                ) : (
+                                    <>
+                                        Brak danych: <strong>{failedProfiles.map(row => `@${row.username}`).join(', ')}</strong>. Ponowi się jutro.
+                                    </>
+                                )
                             ) : (
                                 resyncMessage
                             )}
-                            {failedProfiles.length > 0 && resyncMessage && (
+                            {failedProfiles.length > 0 && resyncMessage && isDesktop && (
                                 <><br />{resyncMessage}</>
                             )}
                         </ErrorBannerText>
-                        {failedProfiles.length > 0 && (
+                        {failedProfiles.length > 0 && isDesktop && (
                             <RetryBtn onClick={handleResync} disabled={resync.isPending}>
                                 <RefreshCw size={13} />
                                 {resync.isPending ? 'Ponawiam…' : 'Ponów pobieranie'}
@@ -935,7 +951,22 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 )}
             </Card>
 
-            <ChartsGrid>
+            {!isDesktop && growthHeadline && (
+                <MobileHeadline>
+                    {growthHeadline.leader ? (
+                        <>
+                            <strong>{growthHeadline.rank}./{growthHeadline.total}</strong> pod względem zdobytych obserwujących.
+                            {growthHeadline.multiple !== null && (
+                                <> Lider @{growthHeadline.leader.username}: <strong>{growthHeadline.multiple.toFixed(1)}× więcej</strong>.</>
+                            )}
+                        </>
+                    ) : (
+                        <>Prowadzisz w liczbie zdobytych obserwujących: <strong>{growthHeadline.rank}./{growthHeadline.total}</strong>.</>
+                    )}
+                </MobileHeadline>
+            )}
+
+            {isDesktop && <ChartsGrid>
                 <Card>
                     <CardTitle>Ile publikują tydzień po tygodniu</CardTitle>
                     <CardHint>Pionowe linie to wykryte wydarzenia (promocje, hity), najedź, aby zobaczyć.</CardHint>
@@ -1191,33 +1222,37 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                         </>
                     )}
                 </Card>
-            </ChartsGrid>
+            </ChartsGrid>}
 
             <Card>
                 <PulseHead>
                     <div style={{ minWidth: 0 }}>
                         <CardTitle>
-                            Puls konkurencji · ostatnie 7 dni
-                            {pulseQuery.data && ` (${pulseQuery.data.windowFrom} – ${pulseQuery.data.windowTo})`}
+                            {isDesktop ? 'Puls konkurencji · ostatnie 7 dni' : 'Ostatnie 7 dni'}
+                            {isDesktop && pulseQuery.data && ` (${pulseQuery.data.windowFrom} – ${pulseQuery.data.windowTo})`}
                         </CardTitle>
-                        <CardHint style={{ margin: 0 }}>
-                            Co wydarzyło się u obserwowanych profili. Każdą liczbę zestawiamy z normą
-                            danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni.
-                            Ta sekcja zawsze pokazuje ostatnie 7 dni - <strong>nie zależy od przełącznika
-                            okresu</strong> nad zakładką, bo zdarzenia sprzed miesięcy nie są już
-                            wiadomością.
-                        </CardHint>
+                        {isDesktop && (
+                            <CardHint style={{ margin: 0 }}>
+                                Co wydarzyło się u obserwowanych profili. Każdą liczbę zestawiamy z normą
+                                danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni.
+                                Ta sekcja zawsze pokazuje ostatnie 7 dni - <strong>nie zależy od przełącznika
+                                okresu</strong> nad zakładką, bo zdarzenia sprzed miesięcy nie są już
+                                wiadomością.
+                            </CardHint>
+                        )}
                     </div>
-                    <DemoBtn
-                        $active={showPulseDemo}
-                        onClick={() => setShowPulseDemo(value => !value)}
-                    >
-                        <Eye size={13} />
-                        {showPulseDemo ? 'Ukryj przykład' : 'Zobacz jak może wyglądać sekcja'}
-                    </DemoBtn>
+                    {isDesktop && (
+                        <DemoBtn
+                            $active={showPulseDemo}
+                            onClick={() => setShowPulseDemo(value => !value)}
+                        >
+                            <Eye size={13} />
+                            {showPulseDemo ? 'Ukryj przykład' : 'Zobacz jak może wyglądać sekcja'}
+                        </DemoBtn>
+                    )}
                 </PulseHead>
 
-                {showPulseDemo && (
+                {isDesktop && showPulseDemo && (
                     <DemoBanner>
                         <Eye size={15} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>
@@ -1244,15 +1279,17 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     <HintNote style={{ marginTop: 14 }}>
                         {pulseQuery.data.profilesWatched === 0
                             ? 'Dodaj profile do obserwacji, aby zobaczyć, co się u nich dzieje.'
-                            : 'W ostatnich 7 dniach nic się nie wydarzyło - ani u ciebie, ani u konkurencji. ' +
-                              'Zobacz przykład powyżej, żeby sprawdzić, jakie zdarzenia tu trafiają.'}
+                            : isDesktop
+                                ? 'W ostatnich 7 dniach nic się nie wydarzyło - ani u ciebie, ani u konkurencji. ' +
+                                  'Zobacz przykład powyżej, żeby sprawdzić, jakie zdarzenia tu trafiają.'
+                                : 'Ostatnie 7 dni bez zdarzeń.'}
                     </HintNote>
                 )}
 
                 {pulseEvents.length > 0 && (
                     <>
                         <PulseList>
-                            {pulseEvents.map((event, index) => {
+                            {visiblePulseEvents.map((event, index) => {
                                 const style = PULSE_STYLE[event.kind];
                                 const Icon = style.icon;
                                 const isAd = event.kind === 'AD_STARTED' || event.kind === 'AD_ENDED';
@@ -1266,7 +1303,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                                 {event.headline}
                                                 {isAd && <PaidBadge>REKLAMA</PaidBadge>}
                                             </PulseHeadline>
-                                            <PulseDetail>{event.detail}</PulseDetail>
+                                            {isDesktop && <PulseDetail>{event.detail}</PulseDetail>}
                                             {event.permalink && (
                                                 <PulseLink
                                                     href={event.permalink}
@@ -1283,7 +1320,12 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 );
                             })}
                         </PulseList>
-                        {!showPulseDemo && (
+                        {!isDesktop && !pulseExpanded && pulseEvents.length > 3 && (
+                            <MobilePulseFold type="button" onClick={() => setPulseExpanded(true)}>
+                                Pokaż {pulseEvents.length - 3} więcej
+                            </MobilePulseFold>
+                        )}
+                        {isDesktop && !showPulseDemo && (
                             <PulseFootnote>
                                 Nie widzimy zasięgów, zapisów, udostępnień ani tego, czy post był promowany
                                 płatnie - Instagram nie udostępnia tych danych dla obserwowanych profili.

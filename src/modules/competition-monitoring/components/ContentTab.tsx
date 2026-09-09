@@ -5,6 +5,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ContentItem, WeeksOption } from '../types';
 import { DAYPART_LABELS, DAY_LABELS, FORMAT_LABELS } from '../types';
 import { useContent, useHashtags, useHeatmap, useReactToPost } from '../hooks/useAnalytics';
+import { useBreakpoint } from '@/common/hooks';
 import { Card, CardTitle, CardHint, CenterState, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
 
 /** „1 post", „3 posty", „12 postów" - polska odmiana po liczebniku. */
@@ -135,6 +136,12 @@ const Caption = styled.p`
     overflow: hidden;
     white-space: pre-wrap;
     word-break: break-word;
+
+    /* Krótszy clamp na mobile — właściciel skanuje, nie czyta. Pełny caption dostępny
+       po tapnięciu w post (Instagram). */
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        -webkit-line-clamp: 2;
+    }
 `;
 
 const StatRow = styled.div`
@@ -212,6 +219,26 @@ const Pagination = styled.div`
     margin-top: 16px;
     font-size: ${st.fontSm};
     color: ${st.textSecondary};
+`;
+
+const ExpandPostsBtn = styled.button`
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px dashed ${st.border};
+    border-radius: ${st.radiusSm};
+    background: transparent;
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.accentBlue};
+    cursor: pointer;
+
+    &:hover, &:focus-visible {
+        background: ${st.bgAccentBlue};
+        outline: none;
+    }
 `;
 
 // ─── Heatmapa ─────────────────────────────────────────────────────────────────
@@ -296,14 +323,18 @@ const CopyBtn = styled.button`
 `;
 
 const PAGE_SIZE = 12;
+const MOBILE_POSTS_PREVIEW = 3;
 
 export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
+    const isDesktop = useBreakpoint('md');
     const [sort, setSort] = useState<'engagement' | 'date'>('engagement');
     const [topic, setTopic] = useState<string | undefined>(undefined);
     const [format, setFormat] = useState<string | undefined>(undefined);
     const [promoOnly, setPromoOnly] = useState(false);
     const [page, setPage] = useState(0);
     const [copiedTags, setCopiedTags] = useState(false);
+    /** Na mobile posty są domyślnie zwinięte do trzech — pełny grid pod tapem. */
+    const [postsExpanded, setPostsExpanded] = useState(false);
 
     const filters = useMemo(
         () => ({ weeks, sort, topic, format, promoOnly, page, pageSize: PAGE_SIZE }),
@@ -338,18 +369,29 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
         setPage(0);
     };
 
+    /**
+     * Na mobile domyślnie pokazujemy najciekawsze insighty (heatmap + hashtagi) NAD
+     * gridem postów — inaczej właściciel scrolluje 12 dużych kart zanim dojdzie do
+     * dwóch metryk, które faktycznie pomagają zaplanować kolejny post. Kolejność
+     * przełączamy przez CSS `order`, żeby nie duplikować JSX.
+     */
+    const postsItems = content?.items ?? [];
+    const showAllPosts = isDesktop || postsExpanded;
+    const visiblePosts = showAllPosts ? postsItems : postsItems.slice(0, MOBILE_POSTS_PREVIEW);
+    const hiddenPostsCount = postsItems.length - visiblePosts.length;
+
     return (
         <Layout>
-            <Card>
+            <Card style={{ order: isDesktop ? 1 : 2 }}>
                 <CardTitle>Najskuteczniejsze posty w Twojej okolicy</CardTitle>
-                <CardHint>
+                <CardHint $hideOnMobile>
                     Domyślnie sortujemy po skuteczności (reakcje względem wielkości profilu), nie po dacie:
                     najpierw widzisz to, co naprawdę zadziałało. Oceniaj posty, a generator AI nauczy się
                     Twojego gustu.
                 </CardHint>
 
                 <FilterRow>
-                    <FilterLabel>Pokaż</FilterLabel>
+                    {isDesktop && <FilterLabel>Pokaż</FilterLabel>}
                     <Pill $active={sort === 'engagement'} onClick={() => resetPage(() => setSort('engagement'))}>
                         Najskuteczniejsze
                     </Pill>
@@ -359,7 +401,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                     <Pill $active={promoOnly} onClick={() => resetPage(() => setPromoOnly(v => !v))}>
                         Tylko promocje i konkursy
                     </Pill>
-                    <FilterLabel style={{ marginLeft: 8 }}>Format</FilterLabel>
+                    {isDesktop && <FilterLabel style={{ marginLeft: 8 }}>Format</FilterLabel>}
                     {(['REELS', 'PHOTO', 'CAROUSEL'] as const).map(f => (
                         <Pill
                             key={f}
@@ -373,7 +415,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
 
                 {content && content.topics.length > 0 && (
                     <FilterRow>
-                        <FilterLabel>Temat</FilterLabel>
+                        {isDesktop && <FilterLabel>Temat</FilterLabel>}
                         {content.topics.slice(0, 8).map(option => (
                             <Pill
                                 key={option.value}
@@ -409,7 +451,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                 {content && content.items.length > 0 && (
                     <>
                         <PostsGrid>
-                            {content.items.map(item => (
+                            {visiblePosts.map(item => (
                                 <PostCard key={item.postId} $rated={item.reaction}>
                                     <PostTop>
                                         <PostUser>
@@ -428,7 +470,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                         <Badge $tone="format">{FORMAT_LABELS[item.format]}</Badge>
                                         {item.topic !== 'INNE' && <Badge>{item.topicLabel}</Badge>}
                                         {item.isPromo && <Badge $tone="promo">Promocja</Badge>}
-                                        {item.isContest && <Badge $tone="contest">Konkurs</Badge>}
+                                        {isDesktop && item.isContest && <Badge $tone="contest">Konkurs</Badge>}
                                     </Badges>
 
                                     {item.caption
@@ -438,7 +480,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                     <StatRow>
                                         <span>♥ <strong>{formatNumber(item.likeCount)}</strong></span>
                                         <span>💬 <strong>{formatNumber(item.commentCount)}</strong></span>
-                                        {item.viewCount !== null && (
+                                        {isDesktop && item.viewCount !== null && (
                                             <span>▶ <strong>{formatNumber(item.viewCount)}</strong></span>
                                         )}
                                         {item.erPct !== null && (
@@ -475,7 +517,13 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                             ))}
                         </PostsGrid>
 
-                        {totalPages > 1 && (
+                        {!isDesktop && !postsExpanded && hiddenPostsCount > 0 && (
+                            <ExpandPostsBtn type="button" onClick={() => setPostsExpanded(true)}>
+                                Pokaż więcej postów ({hiddenPostsCount})
+                            </ExpandPostsBtn>
+                        )}
+
+                        {(isDesktop || postsExpanded) && totalPages > 1 && (
                             <Pagination>
                                 <Pill disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
                                     ← Poprzednie
@@ -495,10 +543,10 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                 )}
             </Card>
 
-            <SideGrid>
+            <SideGrid style={{ order: isDesktop ? 2 : 1 }}>
                 <Card>
                     <CardTitle>Kiedy publikować</CardTitle>
-                    <CardHint>
+                    <CardHint $hideOnMobile>
                         Rozkład postów Twojej konkurencji według dnia i pory. Liczba w komórce = posty;
                         im ciemniej, tym więcej. Złota ramka to pora z najlepszymi reakcjami.
                     </CardHint>
@@ -557,9 +605,10 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                             )}
                             {/* Bez tej informacji liczby w komórkach nie zgadzałyby się z tym,
                                 co widać na profilach konkurencji - a użytkownik nie miałby jak
-                                się domyślić, że część postów świadomie pomijamy. */}
+                                się domyślić, że część postów świadomie pomijamy. Na mobile
+                                ukrywamy — metanotka nie jest tam potrzebna. */}
                             {heatmapQuery.data.excludedOutliers > 0 && (
-                                <CardHint style={{ marginTop: 6, marginBottom: 0 }}>
+                                <CardHint $hideOnMobile style={{ marginTop: 6, marginBottom: 0 }}>
                                     Pominięto {heatmapQuery.data.excludedOutliers}{' '}
                                     {postsWordForm(heatmapQuery.data.excludedOutliers)} o skrajnie
                                     wysokich reakcjach (górne 10%) - oznaczenia znanych kont, płatne
@@ -577,7 +626,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                         <Tag size={16} style={{ marginRight: 6, verticalAlign: -2 }} />
                         Hasztagi, które działają
                     </CardTitle>
-                    <CardHint>Najczęściej używane przez Twoją konkurencję w tym okresie.</CardHint>
+                    <CardHint $hideOnMobile>Najczęściej używane przez Twoją konkurencję w tym okresie.</CardHint>
                     {hashtagsQuery.data && hashtagsQuery.data.length > 0 ? (
                         <>
                             <TagList>
