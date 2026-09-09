@@ -12,6 +12,7 @@ import { OperationFilterPanel } from '../components/OperationFilterPanel';
 import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import { useBreakpoint } from '@/common/hooks';
 import { UnfinishedCheckInsPanel } from '@/modules/checkin';
 
 // ─── Styled components ────────────────────────────────────────────────────────
@@ -85,6 +86,64 @@ const SeriesBannerBtn = styled.button`
     flex-shrink: 0;
 `;
 
+/**
+ * Mobilny rząd akcji nad listą - w miejscu, gdzie na desktopie stoi gradientowy
+ * hero. Ma być cichy: jasne tło strony, żadnej karty, tyle pikseli ile trzeba,
+ * żeby licznik i "+ Wizyta" były pod ręką. Zasada: 1 piksel na mobile = 1
+ * informacja albo 1 akcja.
+ */
+const MobileActionRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+`;
+
+const MobileCountChip = styled.span`
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    color: ${st.textSecondary};
+    font-size: 13px;
+    font-weight: 500;
+
+    strong {
+        color: ${st.text};
+        font-size: 15px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
+const MobileNewVisitBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    background: ${st.accentBlue};
+    color: #fff;
+    border: none;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 150ms ease, box-shadow 150ms ease;
+
+    &:active {
+        background: #0284c7;
+        box-shadow: 0 1px 4px rgba(14, 165, 233, 0.32);
+    }
+
+    span[aria-hidden='true'] {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+    }
+`;
+
 export const OperationListView = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -104,6 +163,7 @@ export const OperationListView = () => {
     } = useOperationFilters();
 
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const isDesktop = useBreakpoint('md');
 
     const apiFilters = getApiFilters();
 
@@ -137,21 +197,38 @@ export const OperationListView = () => {
 
     return (
         <ViewContainer>
-            <PageHeader
-                title="Wizyty i Rezerwacje"
-                subtitle={
-                    pagination ? <TotalChip>{pagination.totalItems} rekordów</TotalChip> : undefined
-                }
-                actions={
-                    <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Nowa wizyta
-                    </PageHeaderPrimaryButton>
-                }
-            />
+            {isDesktop ? (
+                <PageHeader
+                    title="Wizyty i Rezerwacje"
+                    subtitle={
+                        pagination ? <TotalChip>{pagination.totalItems} rekordów</TotalChip> : undefined
+                    }
+                    actions={
+                        <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Nowa wizyta
+                        </PageHeaderPrimaryButton>
+                    }
+                />
+            ) : (
+                /* Mobile: gradient hero znika. Zamiast tego wąski, płaski rząd -
+                   licznik po lewej (kontekst listy, nie tytuł widoku), "+ Wizyta"
+                   po prawej (jedyna akcja, którą hero niósł na desktopie). */
+                <MobileActionRow>
+                    <MobileCountChip>
+                        {pagination
+                            ? <><strong>{pagination.totalItems}</strong> rekordów</>
+                            : <>&nbsp;</>}
+                    </MobileCountChip>
+                    <MobileNewVisitBtn onClick={() => navigate('/checkin/new')}>
+                        <span aria-hidden="true">+</span>
+                        Wizyta
+                    </MobileNewVisitBtn>
+                </MobileActionRow>
+            )}
 
             {/*
               * Nad listą, nie w niej: to nie są wizyty, tylko przyjęcia w toku - auta,
