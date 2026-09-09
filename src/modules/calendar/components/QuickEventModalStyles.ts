@@ -248,7 +248,8 @@ export const Row = styled.div`
     padding: 6px 0;
 
     /* Materiał 1:1 z st.shadowSm (dwuwarstwowy) i st.radius (14 px) - te same
-       tokeny, których używa SectionCard z VerificationStep. */
+       tokeny, których używa SectionCard z VerificationStep. Bez overflow:hidden
+       - clipuje portale dropdown'ów i psuje layout na mobile. */
     @media (max-width: 639px) {
         display: block;
         padding: 0;
@@ -256,7 +257,6 @@ export const Row = styled.div`
         border: 1px solid #E2E8F0;
         border-radius: 14px;
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-        overflow: hidden;
     }
 `;
 
@@ -361,10 +361,9 @@ export const IconWrapper = styled.div<{ $color?: string }>`
     }
 `;
 
-/** SectionBody z /checkin/new: padding 14px 16px 16px, gap 12px między polami.
-    Na mobile pola (DateTimePicker.Trigger, CustomerInputBlock) mają białe tło
-    i były niewidoczne na białym tle SectionCard - stąd override na wszystkie
-    inputy/buttony wewnątrz: bg slate-50 (#F8FAFC), tak jak w Input z Form.tsx. */
+/** SectionBody z /checkin/new: padding 14px 16px 16px. Na mobile treść leży
+    bezpośrednio pod nagłówkiem sekcji, więc musi mieć flex-direction: column
+    i naturalnie się rozkładać (auto height), inaczej dzieci kolapsują do 0. */
 export const RowContent = styled.div`
     flex: 1;
     display: flex;
@@ -373,19 +372,13 @@ export const RowContent = styled.div`
     min-width: 0;
 
     @media (max-width: 639px) {
-        flex: none;
+        display: block;
         padding: 14px 16px 16px;
-        gap: 12px;
 
-        /* DateTimePicker.Trigger, plain inputs, SelectButton itd. mają teraz
-           slate-50 bg zamiast białego - tak jak w standardowym Input z
-           Form.tsx w /checkin/new. */
-        button[type="button"]:not([data-transparent]),
-        input[type="text"]:not([data-transparent]),
-        input[type="email"]:not([data-transparent]),
-        input[type="tel"]:not([data-transparent]),
-        textarea:not([data-transparent]) {
-            background: #F8FAFC;
+        /* Odstępy między polami w środku sekcji - stack odstępów zamiast gap
+           (bo display: block, gap tylko w flex/grid). */
+        > * + * {
+            margin-top: 12px;
         }
     }
 `;
@@ -1356,8 +1349,14 @@ export const Footer = styled.div`
     gap: 10px;
     flex-shrink: 0;
 
+    /* Mobile: dokładnie te same tokeny co FooterShell z StickyFormFooter na
+       /checkin/new - białe tło, border slate-200, box-shadow "unosi" pasek nad
+       treścią. Tak samo wygląda cały footer na formularzu przyjęcia pojazdu. */
     @media (max-width: 639px) {
         padding: 12px 16px;
+        background: #FFFFFF;
+        border-top: 1px solid #E2E8F0;
+        box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
     }
 `;
 

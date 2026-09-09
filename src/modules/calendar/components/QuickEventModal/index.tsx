@@ -12,6 +12,7 @@ import { QuickColorModal } from '../QuickColorModal';
 import { Toggle } from '@/common/components/Toggle';
 import { useVisualViewportSheet } from '@/common/hooks';
 import { LockedSection } from '@/common/components/LockedSection';
+import { FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
 import * as S from '../QuickEventModalStyles';
 import { MobileNewCustomerSheet, type NewCustomerDraft } from './MobileNewCustomerSheet';
 import { SmsOptionsSheet, type SmsOption } from './SmsOptionsSheet';
@@ -2167,17 +2168,37 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         Wyczyść wszystko
                                     </S.Button>
                                 )}
-                                <S.Button type="button" onClick={onClose} $variant="secondary">
-                                    Anuluj
-                                </S.Button>
-                                <S.Button
-                                    type="submit"
-                                    $variant="primary"
-                                    disabled={form.isSubmitting}
-                                    style={{ '--button-bg': form.accentColor, opacity: form.isSubmitting ? 0.7 : 1 } as React.CSSProperties}
-                                >
-                                    {form.isSubmitting ? 'Zapisywanie...' : 'Zapisz wizytę'}
-                                </S.Button>
+                                {isMobile ? (
+                                    /* Reużywamy tych samych przycisków co StickyFormFooter
+                                       na /checkin/new - żeby "Zapisz wizytę" wyglądało 1:1
+                                       z "Dalej" na formularzu przyjęcia pojazdu. */
+                                    <>
+                                        <FooterSecondaryButton type="button" onClick={onClose}>
+                                            Anuluj
+                                        </FooterSecondaryButton>
+                                        <FooterPrimaryButton
+                                            type="submit"
+                                            disabled={form.isSubmitting}
+                                            $disabled={form.isSubmitting}
+                                        >
+                                            {form.isSubmitting ? 'Zapisywanie...' : 'Zapisz wizytę'}
+                                        </FooterPrimaryButton>
+                                    </>
+                                ) : (
+                                    <>
+                                        <S.Button type="button" onClick={onClose} $variant="secondary">
+                                            Anuluj
+                                        </S.Button>
+                                        <S.Button
+                                            type="submit"
+                                            $variant="primary"
+                                            disabled={form.isSubmitting}
+                                            style={{ '--button-bg': form.accentColor, opacity: form.isSubmitting ? 0.7 : 1 } as React.CSSProperties}
+                                        >
+                                            {form.isSubmitting ? 'Zapisywanie...' : 'Zapisz wizytę'}
+                                        </S.Button>
+                                    </>
+                                )}
                             </S.FooterActions>
                         </S.Footer>
 
