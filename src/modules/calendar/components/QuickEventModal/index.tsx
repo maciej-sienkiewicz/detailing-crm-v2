@@ -696,12 +696,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.Row>
                                     <S.RowHeader>
                                         <S.RowHeaderTitleRow>
-                                            <S.RowHeaderLabel>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                </svg>
-                                                Tytuł wizyty / rezerwacji
-                                            </S.RowHeaderLabel>
+                                            <S.RowHeaderLabel>Tytuł wizyty / rezerwacji</S.RowHeaderLabel>
                                         </S.RowHeaderTitleRow>
                                     </S.RowHeader>
                                     <S.RowContent>
@@ -719,18 +714,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             )}
 
                             {/* ── 1. Termin wizyty ───────────────────────────────── */}
-                            {/* Kolejność sekcji i style nagłówka odzwierciedlają
-                                /checkin/new (VerificationStep): numer sekcji w
-                                pigułce, ikona INLINE w etykiecie, StatusPill/hint
-                                po prawej stronie. */}
+                            {/* Kolejność sekcji i style nagłówka 1:1 z /checkin/new
+                                (VerificationStep): numeryczna pigułka + tekst label
+                                (BEZ ikony), StatusPill/hint po prawej. */}
                             <S.Row>
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>1</S.RowHeaderNum>
-                                        <S.RowHeaderLabel>
-                                            <IconClock />
-                                            Termin wizyty
-                                        </S.RowHeaderLabel>
+                                        <S.RowHeaderLabel>Termin wizyty</S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                 </S.RowHeader>
@@ -811,7 +802,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>2</S.RowHeaderNum>
                                         <S.RowHeaderLabel>
-                                            <IconUser />
                                             Dane klienta
                                             {form.selectedCustomer?.isNew && (
                                                 <S.RowHeaderStatus>Nowy</S.RowHeaderStatus>
@@ -1281,10 +1271,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>3</S.RowHeaderNum>
-                                        <S.RowHeaderLabel>
-                                            <IconCar />
-                                            Pojazd
-                                        </S.RowHeaderLabel>
+                                        <S.RowHeaderLabel>Dane pojazdu</S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
                                 </S.RowHeader>
@@ -1519,7 +1506,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>4</S.RowHeaderNum>
                                         <S.RowHeaderLabel>
-                                            <IconSettings />
                                             Usługi
                                             {form.services.length > 0 && (
                                                 <S.RowHeaderStatus>
@@ -1864,10 +1850,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <S.RowHeader>
                                             <S.RowHeaderTitleRow>
                                                 <S.RowHeaderNum>5</S.RowHeaderNum>
-                                                <S.RowHeaderLabel>
-                                                    <IconPalette />
-                                                    Kolor w kalendarzu
-                                                </S.RowHeaderLabel>
+                                                <S.RowHeaderLabel>Kolor w kalendarzu</S.RowHeaderLabel>
                                             </S.RowHeaderTitleRow>
                                             <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                         </S.RowHeader>
@@ -1912,10 +1895,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>6</S.RowHeaderNum>
-                                        <S.RowHeaderLabel>
-                                            <IconNote />
-                                            Notatki
-                                        </S.RowHeaderLabel>
+                                        <S.RowHeaderLabel>Notatki</S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
                                 </S.RowHeader>
@@ -1943,10 +1923,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>7</S.RowHeaderNum>
                                         <S.RowHeaderLabel>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                                <polyline points="9 22 9 12 15 12 15 22"/>
-                                            </svg>
                                             Odbiór i dostawa
                                             {form.doorToDoor.enabled && (
                                                 <S.RowHeaderStatus>Włączone</S.RowHeaderStatus>

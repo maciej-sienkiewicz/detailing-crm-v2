@@ -300,7 +300,8 @@ export const RowHeaderNum = styled.span`
     flex-shrink: 0;
 `;
 
-/** SectionLabel z /checkin/new: h3 z inline'ową ikoną w kolorze akcentu marki. */
+/** SectionLabel z /checkin/new: h3 - sam tekst, BEZ ikony (rzeczywisty
+    /checkin/new nie ma ikon w nagłówkach sekcji, sprawdzone na produkcji). */
 export const RowHeaderLabel = styled.h3`
     margin: 0;
     font-size: 14px;
@@ -310,13 +311,6 @@ export const RowHeaderLabel = styled.h3`
     align-items: center;
     gap: 7px;
     flex-wrap: wrap;
-
-    svg {
-        width: 17px;
-        height: 17px;
-        color: #3B82F6;
-        flex-shrink: 0;
-    }
 `;
 
 /** StatusPill z /checkin/new: mała pigułka informacyjna obok label
@@ -367,7 +361,10 @@ export const IconWrapper = styled.div<{ $color?: string }>`
     }
 `;
 
-/** SectionBody z /checkin/new: padding 14px 16px 16px, gap 12px między polami. */
+/** SectionBody z /checkin/new: padding 14px 16px 16px, gap 12px między polami.
+    Na mobile pola (DateTimePicker.Trigger, CustomerInputBlock) mają białe tło
+    i były niewidoczne na białym tle SectionCard - stąd override na wszystkie
+    inputy/buttony wewnątrz: bg slate-50 (#F8FAFC), tak jak w Input z Form.tsx. */
 export const RowContent = styled.div`
     flex: 1;
     display: flex;
@@ -379,6 +376,17 @@ export const RowContent = styled.div`
         flex: none;
         padding: 14px 16px 16px;
         gap: 12px;
+
+        /* DateTimePicker.Trigger, plain inputs, SelectButton itd. mają teraz
+           slate-50 bg zamiast białego - tak jak w standardowym Input z
+           Form.tsx w /checkin/new. */
+        button[type="button"]:not([data-transparent]),
+        input[type="text"]:not([data-transparent]),
+        input[type="email"]:not([data-transparent]),
+        input[type="tel"]:not([data-transparent]),
+        textarea:not([data-transparent]) {
+            background: #F8FAFC;
+        }
     }
 `;
 
