@@ -348,7 +348,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
                     <>
                         <HintText>
                             Pracownik nie może się logować. Utwórz konto, a zaproszenie
-                            trafi na jego adres e-mail.
+                            trafi na jego adres e-mail. Link w zaproszeniu jest ważny 48 godzin.
                         </HintText>
                         <OutlineBtn onClick={() => setShowCreateForm(true)}>
                             <KeyIcon /> Utwórz konto i wyślij zaproszenie
