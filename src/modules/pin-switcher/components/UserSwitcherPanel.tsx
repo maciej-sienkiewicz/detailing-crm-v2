@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { pinApi } from '../api/pinApi';
-import { useStudioProfiles } from '../hooks/usePinStatus';
+import { useStudioProfiles, useResetPinLock } from '../hooks/usePinStatus';
 import { useAuth } from '@/core/context/AuthContext';
 import { useKnownProfiles } from '../hooks/useKnownProfiles';
 import type { StudioProfile } from '../types';
@@ -190,6 +190,22 @@ const ProfileLockHint = styled.span`
     text-align: center;
 `;
 
+const UnlockBtn = styled.span`
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: background 150ms;
+
+    &:hover { background: #dbeafe; }
+    &:focus-visible { outline: 2px solid #93c5fd; outline-offset: 1px; }
+`;
+
 // ─── PIN entry view ───────────────────────────────────────────────────────────
 
 const ModalWrap = styled.div`
@@ -340,7 +356,7 @@ interface Props {
 
 export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
     const navigate = useNavigate();
-    const { setUser, setAuthenticated } = useAuth();
+    const { user, setUser, setAuthenticated } = useAuth();
     const { addOrUpdateProfile } = useKnownProfiles();
     const { profiles, isLoading } = useStudioProfiles();
 
@@ -349,6 +365,10 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
     const [error, setError] = useState('');
     const [shake, setShake] = useState(false);
     const [isSwitching, setIsSwitching] = useState(false);
+    const resetLock = useResetPinLock();
+    const [unlockingId, setUnlockingId] = useState<string | null>(null);
+    // Odblokowanie PIN to akcja tylko dla właściciela (backend: reset-lock owner-only).
+    const isOwner = user?.role === 'OWNER';
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
@@ -408,6 +428,12 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
     };
 
     const handlePasswordLogin = () => { onClose(); navigate('/login'); };
+
+    const handleUnlock = (userId: string) => {
+        if (resetLock.isPending) return;
+        setUnlockingId(userId);
+        resetLock.mutate(userId, { onSettled: () => setUnlockingId(null) });
+    };
 
     const clearSelection = () => { setSelected(null); setPin(''); setError(''); };
 
@@ -525,6 +551,17 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                             <ProfileName>{profile.firstName} {profile.lastName}</ProfileName>
                             <ProfileRole>{getRoleLabel(profile)}</ProfileRole>
                             {profile.pinLocked && <ProfileLockHint>PIN zablokowany</ProfileLockHint>}
+                            {profile.pinLocked && isOwner && (
+                                <UnlockBtn
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Odblokuj PIN: ${profile.firstName} ${profile.lastName}`}
+                                    onClick={(e) => { e.stopPropagation(); handleUnlock(profile.userId); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); handleUnlock(profile.userId); } }}
+                                >
+                                    {unlockingId === profile.userId ? 'Odblokowuję…' : 'Odblokuj PIN'}
+                                </UnlockBtn>
+                            )}
                             {!profile.pinLocked && !profile.hasPinConfigured && (
                                 <ProfileLockHint style={{ color: '#64748b' }}>Brak PIN</ProfileLockHint>
                             )}
