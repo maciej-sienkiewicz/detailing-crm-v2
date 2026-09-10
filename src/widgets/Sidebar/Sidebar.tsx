@@ -45,8 +45,10 @@ import {
     SidebarHeader,
     Logo,
     CollapsedInitials,
+    LogoCaption,
     LogoIcon,
     LogoImage,
+    LogoStack,
     LogoText,
     LogoWide,
     HeaderActions,
@@ -263,9 +265,9 @@ export const Sidebar = () => {
 
     /**
      * Układ nagłówka zależy od kształtu logo. Poziomy logotyp (szerokość ≥ 1,6 ×
-     * wysokość) dostaje całą szerokość i zastępuje nazwę firmy, którą i tak niesie.
-     * Sygnet albo logo zbliżone do kwadratu staje jako 36-pikselowy kafelek obok
-     * nazwy. Podkładka pod logo tylko wtedy, gdy backend uznał, że bez niej logo
+     * wysokość) dostaje całą szerokość, a nazwa firmy schodzi pod niego w jednej
+     * linii. Sygnet albo logo zbliżone do kwadratu staje jako 36-pikselowy kafelek
+     * obok nazwy. Podkładka pod logo tylko wtedy, gdy backend uznał, że bez niej logo
      * zniknie na ciemnym pasku (przezroczyste tło + ciemny tusz); logo sprzed tej
      * analizy (brak proporcji) zachowuje dawny wygląd: kafelek z białą podkładką.
      */
@@ -287,15 +289,18 @@ export const Sidebar = () => {
                     <Logo $isCollapsed={isCollapsed}>
                         {showLogo && isWideLogo ? (
                             <>
-                                <LogoWide
-                                    key={logoUrl}
-                                    src={logoUrl!}
-                                    alt={companyName}
-                                    title={companyName}
-                                    $isCollapsed={isCollapsed}
-                                    $plate={logoNeedsPlate}
-                                    onError={() => setFailedLogoUrl(logoUrl)}
-                                />
+                                <LogoStack $isCollapsed={isCollapsed}>
+                                    <LogoWide
+                                        key={logoUrl}
+                                        src={logoUrl!}
+                                        alt={companyName}
+                                        title={companyName}
+                                        $isCollapsed={isCollapsed}
+                                        $plate={logoNeedsPlate}
+                                        onError={() => setFailedLogoUrl(logoUrl)}
+                                    />
+                                    <LogoCaption title={companyName}>{companyName}</LogoCaption>
+                                </LogoStack>
                                 <CollapsedInitials $isCollapsed={isCollapsed}>
                                     <LogoIcon>{companyInitials(company?.name)}</LogoIcon>
                                 </CollapsedInitials>
