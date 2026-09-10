@@ -253,11 +253,13 @@ export const Sidebar = () => {
      * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów - to jego
      * znak firmowy, a litery były tylko namiastką na czas, gdy loga nie ma.
      *
-     * Adres logo to podpisany link do S3, więc potrafi wygasnąć albo nie odpowiedzieć.
-     * Ikona zepsutego obrazka w nagłówku wygląda jak awaria aplikacji, dlatego przy
-     * błędzie wczytania wracamy do inicjałów. Zapamiętujemy ADRES, który zawiódł, a nie
-     * samą flagę - świeży link (po wgraniu nowego logo albo po odświeżeniu podpisu)
-     * jest wtedy próbowany od nowa, bez efektu czyszczącego stan.
+     * Adres logo jest stały (hash treści w ścieżce), więc przeglądarka rysuje je z
+     * pamięci podręcznej od pierwszej klatki. Obrazek nie ma `key` po adresie: gdy
+     * adres się zmieni (nowe logo), stary obraz zostaje na ekranie do chwili wczytania
+     * nowego, zamiast mignięcia pustym miejscem. Gdyby link nie odpowiedział (usunięte
+     * logo, wygasły podpis starego linku), ikona zepsutego obrazka wyglądałaby jak
+     * awaria, dlatego przy błędzie wracamy do inicjałów. Zapamiętujemy ADRES, który
+     * zawiódł, a nie samą flagę: nowy adres jest próbowany od nowa.
      */
     const logoUrl = (company ? company.logoUrl : cachedHeader?.logoUrl)?.trim() || null;
     const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
@@ -291,7 +293,6 @@ export const Sidebar = () => {
                             <>
                                 <LogoStack $isCollapsed={isCollapsed}>
                                     <LogoWide
-                                        key={logoUrl}
                                         src={logoUrl!}
                                         alt={companyName}
                                         title={companyName}
@@ -310,7 +311,6 @@ export const Sidebar = () => {
                                 {showLogo
                                     ? (
                                         <LogoImage
-                                            key={logoUrl}
                                             src={logoUrl!}
                                             alt={companyName}
                                             $plate={logoNeedsPlate}

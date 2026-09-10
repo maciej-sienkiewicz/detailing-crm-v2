@@ -433,7 +433,7 @@ export function CompanySection() {
                     <LogoRow>
                         <LogoThumb $wide={showLogo && (company?.logoAspectRatio ?? 0) >= 1.6} $plain={showLogo && logoPlain}>
                             {showLogo
-                                ? <img key={logoUrl!} src={logoUrl!} alt="Logo firmy" onError={() => setFailedLogoUrl(logoUrl)} />
+                                ? <img src={logoUrl!} alt="Logo firmy" onError={() => setFailedLogoUrl(logoUrl)} />
                                 : <LogoMark>{(form.name || 'D').trim().charAt(0).toUpperCase()}</LogoMark>
                             }
                         </LogoThumb>

@@ -11,12 +11,16 @@
 const STORAGE_KEY = 'crm.sidebar.company-header';
 
 /**
- * Adres logo to podpisany link do S3 ważny 24 h (CompanyController.LOGO_URL_TTL).
- * Starszego zapisu nie używamy: pokazałby obrazek, który i tak nie wczyta się
- * z S3, czyli zamienił jeden przeskok na drugi. Margines bezpieczeństwa bierze się
- * z tego, że link podpisano chwilę PRZED tym, jak go zapisaliśmy.
+ * Adres logo jest stały (hash treści w ścieżce, CompanyLogoService.appLogoUrl), więc
+ * zapis może żyć długo: po podmianie logo przychodzi nowy adres z `GET /company`, a
+ * stary po prostu przestaje odpowiadać i nagłówek wraca do inicjałów. Limit zostaje
+ * dla logo sprzed wariantów, które nadal ma podpisany link S3 ważny 24 h.
  */
-const MAX_AGE_MS = 20 * 60 * 60 * 1000;
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const SIGNED_LINK_MAX_AGE_MS = 20 * 60 * 60 * 1000;
+
+/** Podpisany link S3 poznać po parametrach podpisu w adresie. */
+const isSignedLink = (url: string | null) => !!url && url.includes('X-Amz-Signature=');
 
 export interface CompanyHeaderSnapshot {
     name: string | null;
@@ -45,7 +49,8 @@ export function readCompanyHeader(studioId: string | undefined): CompanyHeaderSn
     if (!studioId) return null;
     const stored = readRaw();
     if (!stored || stored.studioId !== studioId) return null;
-    if (Date.now() - stored.savedAt > MAX_AGE_MS) {
+    const age = Date.now() - stored.savedAt;
+    if (age > MAX_AGE_MS || (isSignedLink(stored.logoUrl) && age > SIGNED_LINK_MAX_AGE_MS)) {
         return { name: stored.name, logoUrl: null };
     }
     return {
