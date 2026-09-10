@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { HintText, ErrorMsg } from '../rbacShared.styles';
 import { useCreateRole } from '../../hooks/useRoles';
@@ -30,6 +31,8 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
     const [creatingId, setCreatingId] = useState<string | null>(null);
     const [createError, setCreateError] = useState<string | null>(null);
     const wrapRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const createRole = useCreateRole();
 
@@ -45,7 +48,12 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
     useEffect(() => {
         if (!open) return;
         const onDocClick = (e: MouseEvent) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+            const target = e.target as Node;
+            // The menu lives in a portal outside wrapRef, so it needs its own guard —
+            // otherwise a click on a role row counts as "outside" and closes the menu
+            // before the row's onClick fires.
+            if (wrapRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+            setOpen(false);
         };
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDocClick);
@@ -55,6 +63,50 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);
+
+    // The menu is portaled to <body> and positioned as fixed against the trigger, so
+    // the modal's own overflow (ModalCard: hidden, ModalBody: auto) can't clip it —
+    // the earlier absolute menu was cut off and forced the user to scroll the modal.
+    // Coordinates are written straight onto the node (measured, then revealed) to avoid
+    // a flash in the corner and an extra render.
+    const positionMenu = useCallback(() => {
+        const trigger = triggerRef.current;
+        const menu = menuRef.current;
+        if (!trigger || !menu) return;
+        const rect = trigger.getBoundingClientRect();
+        const vh = window.visualViewport?.height ?? window.innerHeight;
+        const menuH = menu.offsetHeight || 320;
+        const spaceBelow = vh - rect.bottom - 8;
+        const spaceAbove = rect.top - 8;
+        const openBelow = spaceBelow >= menuH || spaceBelow >= spaceAbove;
+        const avail = openBelow ? spaceBelow : spaceAbove;
+        menu.style.maxHeight = `${Math.max(160, Math.min(320, avail))}px`;
+        if (openBelow) {
+            menu.style.top = `${rect.bottom + 4}px`;
+            menu.style.bottom = 'auto';
+        } else {
+            menu.style.top = 'auto';
+            menu.style.bottom = `${vh - rect.top + 4}px`;
+        }
+        menu.style.left = `${rect.left}px`;
+        menu.style.width = `${rect.width}px`;
+        menu.style.visibility = 'visible';
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!open) return;
+        positionMenu();
+        window.addEventListener('scroll', positionMenu, true);
+        window.addEventListener('resize', positionMenu);
+        window.visualViewport?.addEventListener('resize', positionMenu);
+        window.visualViewport?.addEventListener('scroll', positionMenu);
+        return () => {
+            window.removeEventListener('scroll', positionMenu, true);
+            window.removeEventListener('resize', positionMenu);
+            window.visualViewport?.removeEventListener('resize', positionMenu);
+            window.visualViewport?.removeEventListener('scroll', positionMenu);
+        };
+    }, [open, positionMenu]);
 
     const pick = (roleId: string) => {
         onChange(roleId);
@@ -90,6 +142,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
     return (
         <Wrap ref={wrapRef}>
             <Trigger
+                ref={triggerRef}
                 type="button"
                 $open={open}
                 $error={!!error}
@@ -107,8 +160,8 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                 </Caret>
             </Trigger>
 
-            {open && (
-                <Menu role="listbox">
+            {open && createPortal(
+                <Menu ref={menuRef} role="listbox">
                     {roles.length > 0 && (
                         <MenuGroup>
                             {roles.map(role => (
@@ -165,7 +218,8 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                             Zbuduj rolę od zera: pełny edytor uprawnień
                         </LinkBtn>
                     </MenuFooter>
-                </Menu>
+                </Menu>,
+                document.body
             )}
 
             {createError && <ErrorMsg>{createError}</ErrorMsg>}
@@ -227,18 +281,21 @@ const Caret = styled.span<{ $open: boolean }>`
     transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
 `;
 
+/* Pozycję (top/bottom/left/width/maxHeight) i widoczność nadaje positionMenu wprost
+   na elemencie, po zmierzeniu go; z-index ponad Overlay modalu (3000). */
 const Menu = styled.div`
-    position: absolute;
-    top: calc(100% + 4px);
+    position: fixed;
+    top: auto;
+    bottom: auto;
     left: 0;
-    right: 0;
-    z-index: 40;
+    z-index: 4000;
     max-height: 320px;
     overflow-y: auto;
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     box-shadow: 0 12px 32px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.08);
+    visibility: hidden;
 `;
 
 const MenuGroup = styled.div`
