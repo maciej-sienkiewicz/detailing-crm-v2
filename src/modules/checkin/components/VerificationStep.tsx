@@ -14,7 +14,7 @@ import type { SelectedCustomer, AppointmentColor } from '@/modules/appointments/
 import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { t } from '@/common/i18n';
 import { fromDateToLocalInput } from '@/common/dateTime';
-import { DateTimePicker } from '@/modules/calendar/components/DateTimePicker';
+import { DateRangePicker } from '@/common/components/DateTimePicker';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 import {
     ModalShell,
@@ -668,6 +668,43 @@ export const VerificationStep = ({
 
     const startInputRef = useRef<HTMLDivElement | null>(null);
     const endInputRef = useRef<HTMLDivElement | null>(null);
+
+    // Oba pola terminu otwierają ten sam kalendarz zakresu (od, potem do). Kalendarz
+    // sam pilnuje, żeby koniec nie został przed początkiem; tu zostaje domyślne
+    // „godzina po rozpoczęciu", gdy końca jeszcze nie ma albo cofnął się za początek.
+    const handleVisitStartChange = (start: string) => {
+        const updates: Partial<CheckInFormData> = { visitStartAt: start };
+        if (!formData.visitEndAt) {
+            const d = new Date(start);
+            if (!isNaN(d.getTime())) {
+                d.setHours(d.getHours() + 1);
+                updates.visitEndAt = fromDateToLocalInput(d);
+            }
+        } else {
+            const s = new Date(start);
+            const eDate = new Date(formData.visitEndAt);
+            if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
+                const d2 = new Date(s.getTime());
+                d2.setHours(d2.getHours() + 1);
+                updates.visitEndAt = fromDateToLocalInput(d2);
+            }
+        }
+        onChange(updates);
+    };
+
+    const handleVisitEndChange = (newEnd: string) => {
+        let nextEnd = newEnd;
+        if (formData.visitStartAt) {
+            const s = new Date(formData.visitStartAt);
+            const eDate = new Date(newEnd);
+            if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
+                const d = new Date(s.getTime());
+                d.setHours(d.getHours() + 1);
+                nextEnd = fromDateToLocalInput(d);
+            }
+        }
+        onChange({ visitEndAt: nextEnd });
+    };
 
     const [isHomeAddressOpen, setIsHomeAddressOpen] = useState(false);
     const [isCompanyOpen, setIsCompanyOpen] = useState(false);
@@ -1325,27 +1362,12 @@ export const VerificationStep = ({
                     <FormGrid $columns={3}>
                         <FieldGroup>
                             <Label>Data rozpoczęcia</Label>
-                            <DateTimePicker
-                                value={formData.visitStartAt ?? ''}
-                                onChange={(start) => {
-                                    const updates: Partial<CheckInFormData> = { visitStartAt: start };
-                                    if (!formData.visitEndAt) {
-                                        const d = new Date(start);
-                                        if (!isNaN(d.getTime())) {
-                                            d.setHours(d.getHours() + 1);
-                                            updates.visitEndAt = fromDateToLocalInput(d);
-                                        }
-                                    } else {
-                                        const s = new Date(start);
-                                        const eDate = new Date(formData.visitEndAt);
-                                        if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
-                                            const d2 = new Date(s.getTime());
-                                            d2.setHours(d2.getHours() + 1);
-                                            updates.visitEndAt = fromDateToLocalInput(d2);
-                                        }
-                                    }
-                                    onChange(updates);
-                                }}
+                            <DateRangePicker
+                                role="start"
+                                start={formData.visitStartAt ?? ''}
+                                end={formData.visitEndAt ?? ''}
+                                onStartChange={handleVisitStartChange}
+                                onEndChange={handleVisitEndChange}
                                 showTime
                                 placeholder="Wybierz datę i godzinę"
                                 containerRef={startInputRef}
@@ -1353,21 +1375,12 @@ export const VerificationStep = ({
                         </FieldGroup>
                         <FieldGroup>
                             <Label>Data zakończenia</Label>
-                            <DateTimePicker
-                                value={formData.visitEndAt ?? ''}
-                                onChange={(newEnd) => {
-                                    let nextEnd = newEnd;
-                                    if (formData.visitStartAt) {
-                                        const s = new Date(formData.visitStartAt);
-                                        const eDate = new Date(newEnd);
-                                        if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
-                                            const d = new Date(s.getTime());
-                                            d.setHours(d.getHours() + 1);
-                                            nextEnd = fromDateToLocalInput(d);
-                                        }
-                                    }
-                                    onChange({ visitEndAt: nextEnd });
-                                }}
+                            <DateRangePicker
+                                role="end"
+                                start={formData.visitStartAt ?? ''}
+                                end={formData.visitEndAt ?? ''}
+                                onStartChange={handleVisitStartChange}
+                                onEndChange={handleVisitEndChange}
                                 showTime
                                 placeholder="Wybierz datę i godzinę"
                                 containerRef={endInputRef}

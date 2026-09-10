@@ -5,7 +5,7 @@ import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { DateTimePicker } from '../DateTimePicker';
+import { DateTimePicker, DateRangePicker } from '../DateTimePicker';
 import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
 import { QuickColorModal } from '../QuickColorModal';
@@ -237,6 +237,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     initialData,
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
+
+    // Początek i koniec to jeden kalendarz zakresu; wizyta całodniowa ma jedno pole.
+    const handleStartDateTimeChange = (val: string) => {
+        form.setStartDateTime(val);
+        if (form.isAllDay) {
+            form.setEndDateTime(`${val.split('T')[0]}T23:59:59`);
+        } else {
+            const startDate = val.split('T')[0];
+            const endDate = form.endDateTime.split('T')[0];
+            if (startDate > endDate) {
+                const endTime = form.endDateTime.split('T')[1] ?? '00:00';
+                form.setEndDateTime(`${startDate}T${endTime}`);
+            }
+        }
+    };
     const queryClient = useQueryClient();
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
@@ -749,37 +764,45 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.InputGrid>
                                         <S.InputGroup>
                                             <S.Label>{form.isAllDay ? 'Data' : 'Początek'}</S.Label>
-                                            <DateTimePicker
-                                                value={form.startDateTime}
-                                                onChange={(val) => {
-                                                    form.setStartDateTime(val);
-                                                    if (form.isAllDay) {
-                                                        form.setEndDateTime(`${val.split('T')[0]}T23:59:59`);
-                                                    } else {
-                                                        const startDate = val.split('T')[0];
-                                                        const endDate = form.endDateTime.split('T')[0];
-                                                        if (startDate > endDate) {
-                                                            const endTime = form.endDateTime.split('T')[1] ?? '00:00';
-                                                            form.setEndDateTime(`${startDate}T${endTime}`);
-                                                        }
-                                                    }
-                                                }}
-                                                showTime={!form.isAllDay}
-                                                placeholder="Wybierz datę"
-                                                accentColor={form.focusedField === 'time-start' ? form.accentColor : undefined}
-                                                hasError={!!form.errors.startDateTime}
-                                                containerRef={form.startInputRef}
-                                                onFocus={() => form.setFocusedField('time-start')}
-                                                onBlur={() => form.setFocusedField(null)}
-                                            />
+                                            {form.isAllDay ? (
+                                                <DateTimePicker
+                                                    value={form.startDateTime}
+                                                    onChange={handleStartDateTimeChange}
+                                                    showTime={false}
+                                                    placeholder="Wybierz datę"
+                                                    accentColor={form.focusedField === 'time-start' ? form.accentColor : undefined}
+                                                    hasError={!!form.errors.startDateTime}
+                                                    containerRef={form.startInputRef}
+                                                    onFocus={() => form.setFocusedField('time-start')}
+                                                    onBlur={() => form.setFocusedField(null)}
+                                                />
+                                            ) : (
+                                                <DateRangePicker
+                                                    role="start"
+                                                    start={form.startDateTime}
+                                                    end={form.endDateTime}
+                                                    onStartChange={handleStartDateTimeChange}
+                                                    onEndChange={form.setEndDateTime}
+                                                    showTime
+                                                    placeholder="Wybierz datę"
+                                                    accentColor={form.focusedField === 'time-start' ? form.accentColor : undefined}
+                                                    hasError={!!form.errors.startDateTime}
+                                                    containerRef={form.startInputRef}
+                                                    onFocus={() => form.setFocusedField('time-start')}
+                                                    onBlur={() => form.setFocusedField(null)}
+                                                />
+                                            )}
                                             {form.errors.startDateTime && <S.ErrorMessage>{form.errors.startDateTime}</S.ErrorMessage>}
                                         </S.InputGroup>
                                         {!form.isAllDay && (
                                             <S.InputGroup>
                                                 <S.Label>Koniec</S.Label>
-                                                <DateTimePicker
-                                                    value={form.endDateTime}
-                                                    onChange={form.setEndDateTime}
+                                                <DateRangePicker
+                                                    role="end"
+                                                    start={form.startDateTime}
+                                                    end={form.endDateTime}
+                                                    onStartChange={handleStartDateTimeChange}
+                                                    onEndChange={form.setEndDateTime}
                                                     showTime
                                                     placeholder="Wybierz datę i godzinę"
                                                     accentColor={form.focusedField === 'time-end' ? form.accentColor : undefined}

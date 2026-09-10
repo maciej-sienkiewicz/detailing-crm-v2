@@ -13,7 +13,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { DateTimePicker } from '@/common/components/DateTimePicker';
+import { DateRangePicker } from '@/common/components/DateTimePicker';
 import type { Operation } from '../types';
 
 const FormGroup = styled.div`
@@ -111,9 +111,12 @@ export const ChangeDateModal = ({
             <ModalContent>
                 <FormGroup>
                     <Label>Data i godzina przyjazdu</Label>
-                    <DateTimePicker
-                        value={startDateTime}
-                        onChange={setStartDateTime}
+                    <DateRangePicker
+                        role="start"
+                        start={startDateTime}
+                        end={endDateTime}
+                        onStartChange={setStartDateTime}
+                        onEndChange={setEndDateTime}
                         showTime
                         placeholder="Wybierz datę i godzinę"
                     />
@@ -121,9 +124,12 @@ export const ChangeDateModal = ({
 
                 <FormGroup>
                     <Label>Data i godzina zakończenia</Label>
-                    <DateTimePicker
-                        value={endDateTime}
-                        onChange={setEndDateTime}
+                    <DateRangePicker
+                        role="end"
+                        start={startDateTime}
+                        end={endDateTime}
+                        onStartChange={setStartDateTime}
+                        onEndChange={setEndDateTime}
                         showTime
                         placeholder="Wybierz datę i godzinę"
                     />

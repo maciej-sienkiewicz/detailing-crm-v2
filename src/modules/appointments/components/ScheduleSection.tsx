@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import { Card } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, Input } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
-import { DateTimePicker } from '@/common/components/DateTimePicker';
+import { DateRangePicker } from '@/common/components/DateTimePicker';
 import { t } from '@/common/i18n';
 
 const SectionHeaderWithToggle = styled.div`
@@ -48,6 +48,11 @@ export const ScheduleSection = ({
                                     endDateTime,
                                     onEndDateTimeChange,
                                 }: ScheduleSectionProps) => {
+    // Koniec terminu jest całym dniem: kalendarz oddaje samą datę, a tu dokładamy 23:59:59.
+    const handleEndDateChange = (value: string) => {
+        onEndDateTimeChange(`${value.split('T')[0]}T23:59:59`);
+    };
+
     const handleAllDayToggle = (checked: boolean) => {
         onIsAllDayChange(checked);
         const nowIso = new Date().toISOString();
@@ -89,10 +94,14 @@ export const ScheduleSection = ({
                             }}
                         />
                     ) : (
-                        <DateTimePicker
-                            value={startDateTime}
-                            onChange={onStartDateTimeChange}
+                        <DateRangePicker
+                            role="start"
+                            start={startDateTime}
+                            end={endDateTime}
+                            onStartChange={onStartDateTimeChange}
+                            onEndChange={handleEndDateChange}
                             showTime
+                            endHasTime={false}
                             placeholder="Wybierz datę i godzinę"
                         />
                     )}
@@ -101,12 +110,15 @@ export const ScheduleSection = ({
                 {!isAllDay && (
                     <FieldGroup>
                         <Label>{t.appointments.createView.endDate}</Label>
-                        <Input
-                            type="date"
-                            value={endDateTime.split('T')[0] || ''}
-                            onChange={(e) => {
-                                onEndDateTimeChange(`${e.target.value}T23:59:59`);
-                            }}
+                        <DateRangePicker
+                            role="end"
+                            start={startDateTime}
+                            end={endDateTime}
+                            onStartChange={onStartDateTimeChange}
+                            onEndChange={handleEndDateChange}
+                            showTime
+                            endHasTime={false}
+                            placeholder="Wybierz datę"
                         />
                     </FieldGroup>
                 )}
