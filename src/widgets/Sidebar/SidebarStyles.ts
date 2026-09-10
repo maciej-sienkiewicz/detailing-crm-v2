@@ -137,14 +137,28 @@ export const LogoImage = styled.img<{ $plate: boolean }>`
 `;
 
 /**
- * Poziomy logotyp: zajmuje całą szerokość nagłówka i zastępuje nazwę firmy,
- * bo sam ją niesie. W zwiniętym menu (64 px) 36-pikselowy logotyp byłby
- * nieczytelny, więc chowamy go i pokazujemy kafelek z inicjałami.
+ * Poziomy logotyp z nazwą firmy pod spodem: logo dostaje całą szerokość nagłówka,
+ * nazwa jedną linię pod nim. Sam logotyp nie wystarcza: ogranicza go wysokość,
+ * więc bywa niski i nagłówek bez nazwy wyglądał na pusty. W zwiniętym menu (64 px)
+ * 36-pikselowy logotyp byłby nieczytelny, więc całość ustępuje kafelkowi z inicjałami.
  */
+export const LogoStack = styled.div<{ $isCollapsed: boolean }>`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    flex: 1;
+    min-width: 0;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        display: ${p => (p.$isCollapsed ? 'none' : 'flex')};
+    }
+`;
+
 export const LogoWide = styled.img<{ $isCollapsed: boolean; $plate: boolean }>`
     display: block;
     max-width: 100%;
-    max-height: 44px;
+    max-height: 48px;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -156,6 +170,19 @@ export const LogoWide = styled.img<{ $isCollapsed: boolean; $plate: boolean }>`
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         display: ${p => (p.$isCollapsed ? 'none' : 'block')};
     }
+`;
+
+/** Nazwa firmy pod poziomym logotypem: jedna linia, przycięta wielokropkiem. */
+export const LogoCaption = styled.span`
+    color: ${S.text};
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    line-height: 1.2;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 /** Inicjały widoczne tylko w zwiniętym menu na desktopie, w miejscu ukrytego logotypu. */
