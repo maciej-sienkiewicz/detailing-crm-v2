@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
@@ -81,6 +81,51 @@ function parseValue(value: string): Parsed {
     return { year, month, day, hour, minute };
 }
 
+/** `YYYY-MM-DD` for a calendar day; sorts chronologically as a plain string. */
+function toDateKey(year: number, month: number, day: number) {
+    return `${year}-${padTwo(month + 1)}-${padTwo(day)}`;
+}
+
+function dateKeyOf(value: string): string | null {
+    const p = parseValue(value);
+    return p.year !== null && p.month !== null && p.day !== null ? toDateKey(p.year, p.month, p.day) : null;
+}
+
+function shiftMonth(year: number, month: number, offset: -1 | 0 | 1): { year: number; month: number } {
+    if (offset === -1) return month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 };
+    if (offset === 1) return month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 };
+    return { year, month };
+}
+
+interface TimeOfDay {
+    hour: number;
+    minute: number;
+}
+
+function timeOf(value: string, fallback: TimeOfDay): TimeOfDay {
+    const p = parseValue(value);
+    return {
+        hour: p.hour !== null ? p.hour : fallback.hour,
+        minute: p.minute !== null ? snapToStep(p.minute) : fallback.minute,
+    };
+}
+
+function hourLater(time: TimeOfDay): TimeOfDay {
+    return { hour: (time.hour + 1) % 24, minute: time.minute };
+}
+
+function buildValue(dateKey: string, time: TimeOfDay | null): string {
+    return time ? `${dateKey}T${padTwo(time.hour)}:${padTwo(time.minute)}` : dateKey;
+}
+
+/** Same format as [value], one hour later; rolls over midnight like the callers' Date arithmetic. */
+function plusOneHour(value: string): string {
+    const p = parseValue(value);
+    if (p.year === null || p.month === null || p.day === null) return value;
+    const d = new Date(p.year, p.month, p.day, p.hour ?? 0, (p.minute ?? 0) + 60);
+    return buildValue(toDateKey(d.getFullYear(), d.getMonth(), d.getDate()), { hour: d.getHours(), minute: d.getMinutes() });
+}
+
 // ---- STYLED COMPONENTS ----
 const Trigger = styled.button<{ $accentColor?: string; $hasError?: boolean; $hasValue?: boolean }>`
     width: 100%;
@@ -107,11 +152,12 @@ const Trigger = styled.button<{ $accentColor?: string; $hasError?: boolean; $has
     }
 `;
 
-const DropdownFixed = styled.div<{ $top?: number; $bottom?: number; $left: number; $ready: boolean }>`
+/* Współrzędne i widoczność nadaje usePickerDropdown wprost na elemencie, po zmierzeniu go. */
+const DropdownFixed = styled.div`
     position: fixed;
-    top: ${props => props.$top !== undefined ? `${props.$top}px` : 'auto'};
-    bottom: ${props => props.$bottom !== undefined ? `${props.$bottom}px` : 'auto'};
-    left: ${props => props.$left}px;
+    top: auto;
+    bottom: auto;
+    left: 0;
     z-index: 9999;
     background: ${props => props.theme.colors.surface};
     border: 1.5px solid #e2e8f0;
@@ -121,7 +167,7 @@ const DropdownFixed = styled.div<{ $top?: number; $bottom?: number; $left: numbe
         0 8px 24px -4px rgba(0,0,0,0.12);
     display: flex;
     overflow: hidden;
-    visibility: ${props => props.$ready ? 'visible' : 'hidden'};
+    visibility: hidden;
 `;
 
 const CalendarSection = styled.div`
@@ -163,10 +209,15 @@ const MonthYearLabel = styled.span`
     color: ${props => props.theme.colors.text};
 `;
 
+/*
+ * Kolumny 34 px bez odstępu: pas zakresu (DayWrap) ma być ciągły między dniami,
+ * a kółko dnia (32 px) zachowuje dotychczasowy rytm 2 px między kolumnami.
+ */
 const CalGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(7, 32px);
-    gap: 2px;
+    grid-template-columns: repeat(7, 34px);
+    row-gap: 2px;
+    column-gap: 0;
 `;
 
 const DayHeader = styled.div`
@@ -175,6 +226,23 @@ const DayHeader = styled.div`
     font-weight: ${props => props.theme.fontWeights.medium};
     color: ${props => props.theme.colors.textMuted};
     padding: 4px 0 6px;
+`;
+
+type RangeBand = 'none' | 'start' | 'middle' | 'end';
+
+const DayWrap = styled.div<{ $band: RangeBand; $accentColor?: string }>`
+    width: 34px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: ${props => {
+        if (props.$band === 'none') return 'transparent';
+        const tint = `color-mix(in srgb, ${props.$accentColor || props.theme.colors.primary} 18%, transparent)`;
+        if (props.$band === 'start') return `linear-gradient(to right, transparent 50%, ${tint} 50%)`;
+        if (props.$band === 'end') return `linear-gradient(to right, ${tint} 50%, transparent 50%)`;
+        return tint;
+    }};
 `;
 
 const DayCell = styled.button<{
@@ -230,6 +298,12 @@ const TimeLabel = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.06em;
     align-self: flex-start;
+`;
+
+const AllDayNote = styled.div`
+    font-size: 12px;
+    color: ${props => props.theme.colors.textMuted};
+    text-align: center;
 `;
 
 const HourSpinner = styled.div`
@@ -315,7 +389,309 @@ const MinuteBtn = styled.button<{ $active: boolean; $accentColor?: string }>`
     }
 `;
 
-// ---- COMPONENT ----
+// ---- RANGE PICKER STYLES ----
+const RangeLayout = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const PickerRow = styled.div`
+    display: flex;
+`;
+
+const RangeHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 14px 0;
+`;
+
+const Segment = styled.button<{ $active: boolean; $accentColor?: string }>`
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1.5px solid ${props => props.$active
+        ? (props.$accentColor || props.theme.colors.primary)
+        : props.theme.colors.border};
+    background: ${props => props.$active
+        ? `color-mix(in srgb, ${props.$accentColor || props.theme.colors.primary} 8%, transparent)`
+        : props.theme.colors.surface};
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color ${props => props.theme.transitions.fast};
+`;
+
+const SegmentLabel = styled.span`
+    display: block;
+    font-size: 10px;
+    font-weight: ${props => props.theme.fontWeights.medium};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: ${props => props.theme.colors.textMuted};
+`;
+
+const SegmentValue = styled.span<{ $empty: boolean }>`
+    display: block;
+    font-size: 13px;
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    color: ${props => props.$empty ? props.theme.colors.textMuted : props.theme.colors.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+`;
+
+const SegmentArrow = styled.span`
+    color: ${props => props.theme.colors.textMuted};
+    font-size: 16px;
+    line-height: 1;
+`;
+
+const FooterRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 14px 12px;
+`;
+
+const FooterHint = styled.span`
+    font-size: 12px;
+    color: ${props => props.theme.colors.textSecondary};
+`;
+
+const DoneBtn = styled.button<{ $accentColor?: string }>`
+    padding: 7px 16px;
+    border: none;
+    border-radius: 10px;
+    background: ${props => props.$accentColor || props.theme.colors.primary};
+    color: #fff;
+    font-size: 13px;
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter ${props => props.theme.transitions.fast};
+
+    &:hover { filter: brightness(0.95); }
+`;
+
+// ---- SHARED DROPDOWN BEHAVIOUR ----
+/**
+ * Otwieranie, pozycjonowanie w porcie widoku i zamykanie kliknięciem poza
+ * oknem lub klawiszem Escape. Wspólne dla obu pickerów.
+ */
+function usePickerDropdown(onFocus?: () => void, onBlur?: () => void) {
+    const [isOpen, setIsOpen] = useState(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const close = useCallback(() => {
+        setIsOpen(false);
+        onBlur?.();
+    }, [onBlur]);
+
+    const toggle = () => {
+        if (isOpen) {
+            close();
+        } else {
+            setIsOpen(true);
+            onFocus?.();
+        }
+    };
+
+    // Okno pod (albo nad) przyciskiem, docięte do portu widoku. Współrzędne idą
+    // wprost na element: montuje się ukryty i pokazuje dopiero po zmierzeniu, więc
+    // nie ma klatki w rogu ekranu ani dodatkowej rundy stanu.
+    const updatePosition = useCallback(() => {
+        const trigger = triggerRef.current;
+        const drop = dropdownRef.current;
+        if (!trigger || !drop) return;
+        const rect = trigger.getBoundingClientRect();
+        const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+        let left = rect.left;
+        const maxLeft = window.innerWidth - drop.offsetWidth - 8;
+        if (left > maxLeft) left = Math.max(8, maxLeft);
+        const dropH = drop.offsetHeight || 320;
+        const spaceBelow = vvHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (spaceBelow < dropH && spaceAbove > spaceBelow) {
+            drop.style.top = 'auto';
+            drop.style.bottom = `${vvHeight - rect.top + 4}px`;
+        } else {
+            drop.style.top = `${rect.bottom + 4}px`;
+            drop.style.bottom = 'auto';
+        }
+        drop.style.left = `${left}px`;
+        drop.style.visibility = 'visible';
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!isOpen) return;
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        window.visualViewport?.addEventListener('resize', updatePosition);
+        window.visualViewport?.addEventListener('scroll', updatePosition);
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+            window.visualViewport?.removeEventListener('resize', updatePosition);
+            window.visualViewport?.removeEventListener('scroll', updatePosition);
+        };
+    }, [isOpen, updatePosition]);
+
+    // Close on outside click or Escape
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleMouse = (e: MouseEvent) => {
+            if (
+                triggerRef.current?.contains(e.target as Node) ||
+                dropdownRef.current?.contains(e.target as Node)
+            ) return;
+            close();
+        };
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') close();
+        };
+        document.addEventListener('mousedown', handleMouse);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('mousedown', handleMouse);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, [isOpen, close]);
+
+    return { isOpen, toggle, close, triggerRef, dropdownRef };
+}
+
+// ---- CALENDAR MONTH ----
+interface CalendarMonthProps {
+    viewYear: number;
+    viewMonth: number;
+    onPrevMonth: () => void;
+    onNextMonth: () => void;
+    accentColor?: string;
+    /** Dni rysowane jako wypełnione kółka (klucze `YYYY-MM-DD`). */
+    selectedKeys: string[];
+    /** Pas zakresu między końcami, włącznie; tylko gdy oba końce są znane i początek jest przed końcem. */
+    rangeStartKey?: string | null;
+    rangeEndKey?: string | null;
+    onDayClick: (year: number, month: number, day: number) => void;
+}
+
+const CalendarMonth: React.FC<CalendarMonthProps> = ({
+    viewYear, viewMonth, onPrevMonth, onNextMonth, accentColor,
+    selectedKeys, rangeStartKey, rangeEndKey, onDayClick,
+}) => {
+    const today = new Date();
+    const todayKey = toDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+    const hasBand = !!rangeStartKey && !!rangeEndKey && rangeStartKey < rangeEndKey;
+
+    const firstWeekDay = getFirstWeekDay(viewYear, viewMonth);
+    const daysInMonth = getDaysInMonth(viewYear, viewMonth);
+    const prevMonthDays = getDaysInMonth(viewYear, viewMonth - 1);
+
+    type Cell = { day: number; isCurrent: boolean; monthOffset: -1 | 0 | 1 };
+    const cells: Cell[] = [];
+    for (let i = firstWeekDay - 1; i >= 0; i--) {
+        cells.push({ day: prevMonthDays - i, isCurrent: false, monthOffset: -1 });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        cells.push({ day: d, isCurrent: true, monthOffset: 0 });
+    }
+    while (cells.length % 7 !== 0 || cells.length < 35) {
+        cells.push({ day: cells.length - daysInMonth - firstWeekDay + 1, isCurrent: false, monthOffset: 1 });
+    }
+
+    const bandFor = (key: string): RangeBand => {
+        if (!hasBand) return 'none';
+        if (key === rangeStartKey) return 'start';
+        if (key === rangeEndKey) return 'end';
+        return key > rangeStartKey! && key < rangeEndKey! ? 'middle' : 'none';
+    };
+
+    return (
+        <CalendarSection>
+            <NavRow>
+                <NavBtn type="button" onClick={onPrevMonth} aria-label="Poprzedni miesiąc">‹</NavBtn>
+                <MonthYearLabel>{MONTHS_PL[viewMonth]} {viewYear}</MonthYearLabel>
+                <NavBtn type="button" onClick={onNextMonth} aria-label="Następny miesiąc">›</NavBtn>
+            </NavRow>
+            <CalGrid>
+                {WEEK_DAYS.map(d => <DayHeader key={d}>{d}</DayHeader>)}
+                {cells.map((cell, idx) => {
+                    const { year, month } = shiftMonth(viewYear, viewMonth, cell.monthOffset);
+                    const key = toDateKey(year, month, cell.day);
+                    const band = bandFor(key);
+                    return (
+                        <DayWrap
+                            key={idx}
+                            $band={band}
+                            $accentColor={accentColor}
+                            data-range={band === 'none' ? undefined : band}
+                        >
+                            <DayCell
+                                type="button"
+                                $isCurrent={cell.isCurrent}
+                                $isSelected={selectedKeys.includes(key)}
+                                $isToday={key === todayKey}
+                                $accentColor={accentColor}
+                                aria-pressed={selectedKeys.includes(key)}
+                                onClick={() => onDayClick(year, month, cell.day)}
+                            >
+                                {cell.day}
+                            </DayCell>
+                        </DayWrap>
+                    );
+                })}
+            </CalGrid>
+        </CalendarSection>
+    );
+};
+
+// ---- TIME CONTROLS ----
+interface TimeControlsProps {
+    hour: number;
+    minute: number;
+    accentColor?: string;
+    caption?: string;
+    onHourDelta: (delta: number) => void;
+    onMinuteSelect: (minute: number) => void;
+}
+
+const TimeControls: React.FC<TimeControlsProps> = ({ hour, minute, accentColor, caption, onHourDelta, onMinuteSelect }) => (
+    <TimeSection>
+        <TimeLabel>{caption ?? 'Godzina'}</TimeLabel>
+        <HourSpinner>
+            <SpinBtn type="button" onClick={() => onHourDelta(1)} aria-label="Godzina do przodu">▲</SpinBtn>
+            <HourDisplay $accentColor={accentColor}>
+                {padTwo(hour)}
+            </HourDisplay>
+            <SpinBtn type="button" onClick={() => onHourDelta(-1)} aria-label="Godzina do tyłu">▼</SpinBtn>
+        </HourSpinner>
+
+        <Divider />
+
+        <TimeLabel>Minuty</TimeLabel>
+        <MinuteGrid>
+            {MINUTE_STEPS.map(step => (
+                <MinuteBtn
+                    key={step}
+                    type="button"
+                    $active={minute === step}
+                    $accentColor={accentColor}
+                    onClick={() => onMinuteSelect(step)}
+                >
+                    :{padTwo(step)}
+                </MinuteBtn>
+            ))}
+        </MinuteGrid>
+    </TimeSection>
+);
+
+// ---- SINGLE DATE PICKER ----
 export interface DateTimePickerProps {
     value: string;
     onChange: (value: string) => void;
@@ -339,12 +715,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     onFocus,
     onBlur,
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
-    const [posReady, setPosReady] = useState(false);
-
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const { isOpen, toggle, close, triggerRef, dropdownRef } = usePickerDropdown(onFocus, onBlur);
     const internalContainerRef = useRef<HTMLDivElement>(null);
 
     const today = new Date();
@@ -353,148 +724,49 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const [viewYear, setViewYear] = useState(() => parsed.year ?? today.getFullYear());
     const [viewMonth, setViewMonth] = useState(() => parsed.month ?? today.getMonth());
 
-    const _defaultSlot = getNearestUpcomingSlot();
-    // Hour state, derived from value, or nearest upcoming slot
-    const [hour, setHour] = useState(() =>
-        parsed.hour !== null ? parsed.hour : _defaultSlot.hour
-    );
-    // Minute, snapped to nearest 15-min step, or nearest upcoming slot
-    const [minute, setMinute] = useState(() =>
-        parsed.minute !== null ? snapToStep(parsed.minute) : _defaultSlot.minute
-    );
+    // Godzina pochodzi z wartości pola; własny stan trzyma tylko wybór sprzed
+    // kliknięcia dnia (najbliższy kwadrans), więc nic nie trzeba synchronizować.
+    const [pendingTime, setPendingTime] = useState<TimeOfDay>(getNearestUpcomingSlot);
+    const time = timeOf(value, pendingTime);
+    const selectedKey = dateKeyOf(value);
 
-    // Sync from external value changes
-    useEffect(() => {
-        const p = parseValue(value);
-        if (p.year !== null) setViewYear(p.year);
-        if (p.month !== null) setViewMonth(p.month);
-        if (p.hour !== null) setHour(p.hour);
-        if (p.minute !== null) setMinute(snapToStep(p.minute));
-    }, [value]);
+    const buildIso = (key: string, t: TimeOfDay) => buildValue(key, showTime ? t : null);
 
-    // Position dropdown below (or above) trigger, clamped to viewport
-    const updatePosition = useCallback(() => {
-        if (!triggerRef.current) return;
-        const rect = triggerRef.current.getBoundingClientRect();
-        const vvHeight = window.visualViewport?.height ?? window.innerHeight;
-        let left = rect.left;
-        if (dropdownRef.current) {
-            const dropW = dropdownRef.current.offsetWidth;
-            const maxLeft = window.innerWidth - dropW - 8;
-            if (left > maxLeft) left = Math.max(8, maxLeft);
+    const handleTriggerClick = () => {
+        if (!isOpen && parsed.year !== null && parsed.month !== null) {
+            setViewYear(parsed.year);
+            setViewMonth(parsed.month);
         }
-        const dropH = dropdownRef.current?.offsetHeight ?? 320;
-        const spaceBelow = vvHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (spaceBelow < dropH && spaceAbove > spaceBelow) {
-            setDropdownPos({ bottom: vvHeight - rect.top + 4, left });
-        } else {
-            setDropdownPos({ top: rect.bottom + 4, left });
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!isOpen) { setPosReady(false); return; }
-        updatePosition();
-        setPosReady(true);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-        window.visualViewport?.addEventListener('resize', updatePosition);
-        window.visualViewport?.addEventListener('scroll', updatePosition);
-        return () => {
-            window.removeEventListener('scroll', updatePosition, true);
-            window.removeEventListener('resize', updatePosition);
-            window.visualViewport?.removeEventListener('resize', updatePosition);
-            window.visualViewport?.removeEventListener('scroll', updatePosition);
-        };
-    }, [isOpen, updatePosition]);
-
-    // Close on outside click
-    useEffect(() => {
-        if (!isOpen) return;
-        const handle = (e: MouseEvent) => {
-            if (
-                triggerRef.current?.contains(e.target as Node) ||
-                dropdownRef.current?.contains(e.target as Node)
-            ) return;
-            setIsOpen(false);
-            onBlur?.();
-        };
-        document.addEventListener('mousedown', handle);
-        return () => document.removeEventListener('mousedown', handle);
-    }, [isOpen, onBlur]);
-
-    // Build calendar cells
-    const firstWeekDay = getFirstWeekDay(viewYear, viewMonth);
-    const daysInMonth = getDaysInMonth(viewYear, viewMonth);
-    const prevMonthDays = getDaysInMonth(viewYear, viewMonth - 1);
-
-    type Cell = { day: number; isCurrent: boolean; monthOffset: -1 | 0 | 1 };
-    const cells: Cell[] = [];
-    for (let i = firstWeekDay - 1; i >= 0; i--) {
-        cells.push({ day: prevMonthDays - i, isCurrent: false, monthOffset: -1 });
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-        cells.push({ day: d, isCurrent: true, monthOffset: 0 });
-    }
-    while (cells.length % 7 !== 0 || cells.length < 35) {
-        cells.push({ day: cells.length - daysInMonth - firstWeekDay + 1, isCurrent: false, monthOffset: 1 });
-    }
-
-    const buildIso = (y: number, mo: number, d: number, h: number, min: number) => {
-        const datePart = `${y}-${padTwo(mo + 1)}-${padTwo(d)}`;
-        return showTime ? `${datePart}T${padTwo(h)}:${padTwo(min)}` : datePart;
+        toggle();
     };
 
-    const handleDayClick = (cell: Cell) => {
-        let year = viewYear;
-        let month = viewMonth;
-        if (cell.monthOffset === -1) {
-            if (month === 0) { month = 11; year -= 1; } else { month -= 1; }
-            setViewYear(year); setViewMonth(month);
-        } else if (cell.monthOffset === 1) {
-            if (month === 11) { month = 0; year += 1; } else { month += 1; }
-            setViewYear(year); setViewMonth(month);
-        }
-        onChange(buildIso(year, month, cell.day, hour, minute));
-        setIsOpen(false);
-        onBlur?.();
+    const handleDayClick = (year: number, month: number, day: number) => {
+        setViewYear(year);
+        setViewMonth(month);
+        onChange(buildIso(toDateKey(year, month, day), time));
+        close();
     };
 
-    const handleHourChange = (delta: number) => {
-        const newHour = (hour + delta + 24) % 24;
-        setHour(newHour);
-        const p = parseValue(value);
-        if (p.year !== null && p.month !== null && p.day !== null) {
-            onChange(buildIso(p.year, p.month, p.day, newHour, minute));
-        }
+    const changeTime = (next: TimeOfDay) => {
+        setPendingTime(next);
+        if (selectedKey) onChange(buildIso(selectedKey, next));
     };
 
-    const handleMinuteClick = (min: number) => {
-        setMinute(min);
-        const p = parseValue(value);
-        if (p.year !== null && p.month !== null && p.day !== null) {
-            onChange(buildIso(p.year, p.month, p.day, hour, min));
-        }
-    };
+    const handleHourChange = (delta: number) =>
+        changeTime({ hour: (time.hour + delta + 24) % 24, minute: time.minute });
+
+    const handleMinuteClick = (minute: number) =>
+        changeTime({ hour: time.hour, minute });
 
     const handlePrevMonth = () => {
-        if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-        else setViewMonth(m => m - 1);
+        const next = shiftMonth(viewYear, viewMonth, -1);
+        setViewYear(next.year); setViewMonth(next.month);
     };
 
     const handleNextMonth = () => {
-        if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-        else setViewMonth(m => m + 1);
+        const next = shiftMonth(viewYear, viewMonth, 1);
+        setViewYear(next.year); setViewMonth(next.month);
     };
-
-    const isSelected = (day: number) =>
-        parsed.year === viewYear && parsed.month === viewMonth && parsed.day === day;
-
-    const isTodayCell = (day: number) =>
-        today.getFullYear() === viewYear &&
-        today.getMonth() === viewMonth &&
-        today.getDate() === day;
 
     const displayValue = formatDisplay(value, showTime);
     const wrapperRef = externalContainerRef ?? internalContainerRef;
@@ -507,12 +779,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 $accentColor={accentColor}
                 $hasError={hasError}
                 $hasValue={!!displayValue}
-                onClick={() => {
-                    const opening = !isOpen;
-                    setIsOpen(opening);
-                    if (opening) onFocus?.();
-                    else onBlur?.();
-                }}
+                onClick={handleTriggerClick}
             >
                 {displayValue || placeholder}
             </Trigger>
@@ -520,64 +787,286 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {isOpen && createPortal(
                 <DropdownFixed
                     ref={dropdownRef}
-                    $top={dropdownPos.top}
-                    $bottom={dropdownPos.bottom}
-                    $left={dropdownPos.left}
-                    $ready={posReady}
                 >
-                    <CalendarSection>
-                        <NavRow>
-                            <NavBtn type="button" onClick={handlePrevMonth}>‹</NavBtn>
-                            <MonthYearLabel>{MONTHS_PL[viewMonth]} {viewYear}</MonthYearLabel>
-                            <NavBtn type="button" onClick={handleNextMonth}>›</NavBtn>
-                        </NavRow>
-                        <CalGrid>
-                            {WEEK_DAYS.map(d => <DayHeader key={d}>{d}</DayHeader>)}
-                            {cells.map((cell, idx) => (
-                                <DayCell
-                                    key={idx}
-                                    type="button"
-                                    $isCurrent={cell.isCurrent}
-                                    $isSelected={cell.isCurrent && isSelected(cell.day)}
-                                    $isToday={cell.isCurrent && isTodayCell(cell.day)}
-                                    $accentColor={accentColor}
-                                    onClick={() => handleDayClick(cell)}
-                                >
-                                    {cell.day}
-                                </DayCell>
-                            ))}
-                        </CalGrid>
-                    </CalendarSection>
+                    <CalendarMonth
+                        viewYear={viewYear}
+                        viewMonth={viewMonth}
+                        onPrevMonth={handlePrevMonth}
+                        onNextMonth={handleNextMonth}
+                        accentColor={accentColor}
+                        selectedKeys={selectedKey ? [selectedKey] : []}
+                        onDayClick={handleDayClick}
+                    />
 
                     {showTime && (
-                        <TimeSection>
-                            <TimeLabel>Godzina</TimeLabel>
-                            <HourSpinner>
-                                <SpinBtn type="button" onClick={() => handleHourChange(1)}>▲</SpinBtn>
-                                <HourDisplay $accentColor={accentColor}>
-                                    {padTwo(hour)}
-                                </HourDisplay>
-                                <SpinBtn type="button" onClick={() => handleHourChange(-1)}>▼</SpinBtn>
-                            </HourSpinner>
-
-                            <Divider />
-
-                            <TimeLabel>Minuty</TimeLabel>
-                            <MinuteGrid>
-                                {MINUTE_STEPS.map(step => (
-                                    <MinuteBtn
-                                        key={step}
-                                        type="button"
-                                        $active={minute === step}
-                                        $accentColor={accentColor}
-                                        onClick={() => handleMinuteClick(step)}
-                                    >
-                                        :{padTwo(step)}
-                                    </MinuteBtn>
-                                ))}
-                            </MinuteGrid>
-                        </TimeSection>
+                        <TimeControls
+                            hour={time.hour}
+                            minute={time.minute}
+                            accentColor={accentColor}
+                            onHourDelta={handleHourChange}
+                            onMinuteSelect={handleMinuteClick}
+                        />
                     )}
+                </DropdownFixed>,
+                document.body
+            )}
+        </div>
+    );
+};
+
+// ---- DATE RANGE PICKER ----
+export type DateRangeRole = 'start' | 'end';
+
+export interface DateRangePickerProps {
+    /** Który koniec pary pokazuje to pole i który jest aktywny zaraz po otwarciu. */
+    role: DateRangeRole;
+    start: string;
+    end: string;
+    onStartChange: (value: string) => void;
+    onEndChange: (value: string) => void;
+    /** Godzina przy początku (i przy końcu, chyba że [endHasTime] mówi inaczej). */
+    showTime?: boolean;
+    /** `false`, gdy koniec jest całym dniem (emitowany jako sama data), a początek ma godzinę. */
+    endHasTime?: boolean;
+    placeholder?: string;
+    accentColor?: string;
+    hasError?: boolean;
+    containerRef?: React.RefObject<HTMLDivElement | null>;
+    onFocus?: () => void;
+    onBlur?: () => void;
+}
+
+/**
+ * Para pól „od” i „do” z jednym kalendarzem. Pierwsze kliknięcie w dzień ustawia
+ * początek i nie zamyka okna, drugie ustawia koniec; wybrany zakres jest
+ * podświetlony pasem między końcami. Okno zamyka przycisk „Gotowe” (albo
+ * kliknięcie poza nim lub Escape). Każde pole pary renderuje ten komponent ze
+ * swoją rolą, więc z obu stron otwiera się ten sam kalendarz.
+ *
+ * Zakres nigdy nie „odwraca się”: przesunięcie początku za koniec przesuwa też
+ * koniec, a dzień kliknięty przed początkiem podczas wyboru końca staje się
+ * nowym początkiem. Godzina końca wcześniejsza niż początku tego samego dnia
+ * pozostaje do sprawdzenia wywołującemu, tak jak w pojedynczym pickerze.
+ */
+export const DateRangePicker: React.FC<DateRangePickerProps> = ({
+    role,
+    start,
+    end,
+    onStartChange,
+    onEndChange,
+    showTime = true,
+    endHasTime: endHasTimeProp,
+    placeholder = 'Wybierz datę',
+    accentColor,
+    hasError,
+    containerRef: externalContainerRef,
+    onFocus,
+    onBlur,
+}) => {
+    const startHasTime = showTime;
+    const endHasTime = endHasTimeProp ?? showTime;
+
+    const { isOpen, toggle, close, triggerRef, dropdownRef } = usePickerDropdown(onFocus, onBlur);
+    const internalContainerRef = useRef<HTMLDivElement>(null);
+    const [active, setActive] = useState<DateRangeRole>(role);
+
+    const today = new Date();
+    const anchor = parseValue(role === 'end' && end ? end : (start || end));
+    const [viewYear, setViewYear] = useState(() => anchor.year ?? today.getFullYear());
+    const [viewMonth, setViewMonth] = useState(() => anchor.month ?? today.getMonth());
+
+    // Godziny pochodzą z wartości pól; własny stan trzyma tylko wybór sprzed
+    // kliknięcia dnia (najbliższy kwadrans i godzina później dla końca).
+    const [pendingStartTime, setPendingStartTime] = useState<TimeOfDay>(getNearestUpcomingSlot);
+    const [pendingEndTime, setPendingEndTime] = useState<TimeOfDay>(() => hourLater(timeOf(start, getNearestUpcomingSlot())));
+    const startTime = timeOf(start, pendingStartTime);
+    const endTime = timeOf(end, pendingEndTime);
+
+    const startKey = dateKeyOf(start);
+    const endKey = dateKeyOf(end);
+
+    const valueFor = (key: string, side: DateRangeRole) =>
+        side === 'start'
+            ? buildValue(key, startHasTime ? startTime : null)
+            : buildValue(key, endHasTime ? endTime : null);
+
+    /** Koniec wcześniejszy niż początek: tego samego dnia liczy się godzina, inaczej sam dzień. */
+    const endTooEarly = (startValue: string, endValue: string) => {
+        const s = dateKeyOf(startValue);
+        const e = dateKeyOf(endValue);
+        if (!s || !e) return false;
+        if (s !== e) return e < s;
+        return startHasTime && endHasTime && endValue <= startValue;
+    };
+
+    /** Koniec, który nie zostaje w tyle za nowym początkiem: ten sam dzień z godziną końca albo godzinę później. */
+    const endFollowing = (newStart: string) => {
+        const key = dateKeyOf(newStart)!;
+        if (!endHasTime) return key;
+        const candidate = buildValue(key, endTime);
+        return startHasTime && candidate <= newStart ? plusOneHour(newStart) : candidate;
+    };
+
+    const changeStart = (newStart: string) => {
+        onStartChange(newStart);
+        if (end && endTooEarly(newStart, end)) onEndChange(endFollowing(newStart));
+    };
+
+    const handleDayClick = (year: number, month: number, day: number) => {
+        setViewYear(year);
+        setViewMonth(month);
+        const key = toDateKey(year, month, day);
+
+        if (active === 'start') {
+            changeStart(valueFor(key, 'start'));
+            setActive('end');
+            return;
+        }
+
+        if (startKey && key < startKey) {
+            // Dzień przed początkiem podczas wyboru końca: to jest nowy początek, koniec zostaje.
+            onStartChange(valueFor(key, 'start'));
+            return;
+        }
+        let newEnd = valueFor(key, 'end');
+        if (start && endTooEarly(start, newEnd)) newEnd = endFollowing(start);
+        onEndChange(newEnd);
+    };
+
+    const changeTime = (next: TimeOfDay) => {
+        if (active === 'start') {
+            setPendingStartTime(next);
+            if (startKey) changeStart(buildValue(startKey, next));
+        } else {
+            setPendingEndTime(next);
+            if (endKey) onEndChange(buildValue(endKey, next));
+        }
+    };
+
+    const activeTime = active === 'start' ? startTime : endTime;
+    const activeHasTime = active === 'start' ? startHasTime : endHasTime;
+
+    const handleHourDelta = (delta: number) =>
+        changeTime({ hour: (activeTime.hour + delta + 24) % 24, minute: activeTime.minute });
+
+    const handleMinuteSelect = (minute: number) =>
+        changeTime({ hour: activeTime.hour, minute });
+
+    const handlePrevMonth = () => {
+        const next = shiftMonth(viewYear, viewMonth, -1);
+        setViewYear(next.year); setViewMonth(next.month);
+    };
+
+    const handleNextMonth = () => {
+        const next = shiftMonth(viewYear, viewMonth, 1);
+        setViewYear(next.year); setViewMonth(next.month);
+    };
+
+    const handleTriggerClick = () => {
+        if (!isOpen) {
+            setActive(role);
+            const p = parseValue(role === 'end' && end ? end : (start || end));
+            if (p.year !== null && p.month !== null) {
+                setViewYear(p.year);
+                setViewMonth(p.month);
+            }
+        }
+        toggle();
+    };
+
+    const ownValue = role === 'start' ? start : end;
+    const ownHasTime = role === 'start' ? startHasTime : endHasTime;
+    const displayValue = formatDisplay(ownValue, ownHasTime);
+    const startDisplay = formatDisplay(start, startHasTime);
+    const endDisplay = formatDisplay(end, endHasTime);
+    const wrapperRef = externalContainerRef ?? internalContainerRef;
+
+    const hint = active === 'start'
+        ? 'Wybierz dzień rozpoczęcia'
+        : endKey ? 'Popraw zakres albo zatwierdź' : 'Teraz wybierz dzień zakończenia';
+
+    return (
+        <div ref={wrapperRef as React.RefObject<HTMLDivElement>} style={{ position: 'relative', width: '100%' }}>
+            <Trigger
+                ref={triggerRef}
+                type="button"
+                $accentColor={accentColor}
+                $hasError={hasError}
+                $hasValue={!!displayValue}
+                onClick={handleTriggerClick}
+            >
+                {displayValue || placeholder}
+            </Trigger>
+
+            {isOpen && createPortal(
+                <DropdownFixed
+                    ref={dropdownRef}
+                    role="dialog"
+                    aria-label="Wybór zakresu dat"
+                >
+                    <RangeLayout>
+                        <RangeHeader>
+                            <Segment
+                                type="button"
+                                $active={active === 'start'}
+                                $accentColor={accentColor}
+                                aria-pressed={active === 'start'}
+                                onClick={() => setActive('start')}
+                            >
+                                <SegmentLabel>Od</SegmentLabel>
+                                <SegmentValue $empty={!startDisplay}>{startDisplay || 'Wybierz'}</SegmentValue>
+                            </Segment>
+                            <SegmentArrow aria-hidden="true">›</SegmentArrow>
+                            <Segment
+                                type="button"
+                                $active={active === 'end'}
+                                $accentColor={accentColor}
+                                aria-pressed={active === 'end'}
+                                onClick={() => setActive('end')}
+                            >
+                                <SegmentLabel>Do</SegmentLabel>
+                                <SegmentValue $empty={!endDisplay}>{endDisplay || 'Wybierz'}</SegmentValue>
+                            </Segment>
+                        </RangeHeader>
+
+                        <PickerRow>
+                            <CalendarMonth
+                                viewYear={viewYear}
+                                viewMonth={viewMonth}
+                                onPrevMonth={handlePrevMonth}
+                                onNextMonth={handleNextMonth}
+                                accentColor={accentColor}
+                                selectedKeys={[startKey, endKey].filter((k): k is string => !!k)}
+                                rangeStartKey={startKey}
+                                rangeEndKey={endKey}
+                                onDayClick={handleDayClick}
+                            />
+
+                            {(startHasTime || endHasTime) && (
+                                activeHasTime ? (
+                                    <TimeControls
+                                        hour={activeTime.hour}
+                                        minute={activeTime.minute}
+                                        accentColor={accentColor}
+                                        caption={active === 'start' ? 'Godzina od' : 'Godzina do'}
+                                        onHourDelta={handleHourDelta}
+                                        onMinuteSelect={handleMinuteSelect}
+                                    />
+                                ) : (
+                                    <TimeSection>
+                                        <AllDayNote>{active === 'start' ? 'Początek' : 'Koniec'} bez godziny, liczy się cały dzień</AllDayNote>
+                                    </TimeSection>
+                                )
+                            )}
+                        </PickerRow>
+
+                        <FooterRow>
+                            <FooterHint>{hint}</FooterHint>
+                            <DoneBtn type="button" $accentColor={accentColor} onClick={close}>
+                                Gotowe
+                            </DoneBtn>
+                        </FooterRow>
+                    </RangeLayout>
                 </DropdownFixed>,
                 document.body
             )}

@@ -1,3 +1,3 @@
 // Re-exported from shared location, import from '@/common/components/DateTimePicker' in new code
-export { DateTimePicker } from '@/common/components/DateTimePicker';
-export type { DateTimePickerProps } from '@/common/components/DateTimePicker';
+export { DateTimePicker, DateRangePicker } from '@/common/components/DateTimePicker';
+export type { DateTimePickerProps, DateRangePickerProps, DateRangeRole } from '@/common/components/DateTimePicker';
