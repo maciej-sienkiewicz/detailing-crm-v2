@@ -36,13 +36,15 @@ const LogoRow = styled.div`
 `;
 
 // Poziomy logotyp dostaje szerszy kafelek: w kwadracie 56 px byłby nieczytelny.
-const LogoThumb = styled.div<{ $wide?: boolean }>`
+// Logo z własnym tłem (np. biały napis na czarnym prostokącie) rysuje się bez
+// jasnego kafelka i ramki: ten kafelek wyglądał przy nim jak biała obwódka.
+const LogoThumb = styled.div<{ $wide?: boolean; $plain?: boolean }>`
     width: ${p => (p.$wide ? '132px' : '56px')};
     height: 56px;
-    padding: ${p => (p.$wide ? '6px 10px' : '0')};
+    padding: ${p => (p.$plain ? '0' : p.$wide ? '6px 10px' : '0')};
     border-radius: 12px;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: ${p => (p.$plain ? 'transparent' : '#f1f5f9')};
+    border: 1px solid ${p => (p.$plain ? 'transparent' : '#e2e8f0')};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -53,6 +55,7 @@ const LogoThumb = styled.div<{ $wide?: boolean }>`
         width: 100%;
         height: 100%;
         object-fit: contain;
+        border-radius: 10px;
     }
 `;
 
@@ -405,6 +408,16 @@ export function CompanySection() {
 
     const logoUrl = company?.logoUrl?.trim() || null;
     const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
+    // Co backend ustalił przy wgraniu; null proporcji = logo sprzed analizy.
+    const logoAnalyzed = company?.logoAspectRatio != null;
+    const logoPlain = logoAnalyzed && !company?.logoNeedsLightPlate;
+    const logoMeta = !logoUrl
+        ? 'Brak logo'
+        : !logoAnalyzed
+            ? 'Logo wgrane przed analizą wyglądu, wgraj je ponownie'
+            : logoPlain
+                ? 'Logo wgrane, własne tło, w menu bez podkładki'
+                : 'Logo wgrane, przezroczyste tło, w menu na jasnej podkładce';
 
     const isSaving = updateMutation.isPending;
     const logoUploading = uploadLogoMutation.isPending;
@@ -418,7 +431,7 @@ export function CompanySection() {
                 <Panel>
                     {/* Logo */}
                     <LogoRow>
-                        <LogoThumb $wide={showLogo && (company?.logoAspectRatio ?? 0) >= 1.6}>
+                        <LogoThumb $wide={showLogo && (company?.logoAspectRatio ?? 0) >= 1.6} $plain={showLogo && logoPlain}>
                             {showLogo
                                 ? <img key={logoUrl!} src={logoUrl!} alt="Logo firmy" onError={() => setFailedLogoUrl(logoUrl)} />
                                 : <LogoMark>{(form.name || 'D').trim().charAt(0).toUpperCase()}</LogoMark>
@@ -427,19 +440,19 @@ export function CompanySection() {
                         <LogoInfo>
                             <LogoName>{form.name || 'Nazwa firmy'}</LogoName>
                             <LogoMeta>
-                                {logoUrl ? 'Logo wgrane' : 'Brak logo'}
+                                {logoMeta}
                                 <InfoTooltip text={LOGO_GUIDANCE} width={340} />
                             </LogoMeta>
                         </LogoInfo>
                         {showLogo && (
-                            <PreviewPair aria-label="Podgląd logo na jasnym i ciemnym tle">
+                            <PreviewPair aria-label="Podgląd logo na dokumencie i w menu">
                                 <PreviewTile>
                                     <img src={logoUrl!} alt="" />
-                                    <span>jasne</span>
+                                    <span>dokument</span>
                                 </PreviewTile>
                                 <PreviewTile $dark>
                                     <img src={logoUrl!} alt="" />
-                                    <span>ciemne</span>
+                                    <span>menu</span>
                                 </PreviewTile>
                             </PreviewPair>
                         )}
