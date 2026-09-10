@@ -194,7 +194,7 @@ export function EmployeeFormModal({
                                 <div>
                                     <AccountBoxTitle>Utwórz konto użytkownika</AccountBoxTitle>
                                     <HintText>
-                                        Zaproszenie z linkiem do ustawienia hasła zostanie wysłane na adres e-mail podany powyżej.
+                                        Zaproszenie z linkiem do ustawienia hasła zostanie wysłane na adres e-mail podany powyżej. Link jest ważny 48 godzin.
                                     </HintText>
                                 </div>
                             </CheckRow>
