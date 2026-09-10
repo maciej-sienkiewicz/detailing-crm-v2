@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
@@ -641,15 +641,24 @@ const HdrPickerTrigger = styled.button<{ $active: boolean }>`
   svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
+/* Pozycję (top/bottom/left/maxHeight) i widoczność nadaje positionPanel wprost na
+   elemencie, po zmierzeniu go. Szerokość ograniczona do widoku, żeby na telefonie
+   panel nie wyszedł poza ekran; nadmiar treści przewija się w środku. */
 const HdrPickerPanel = styled.div`
   position: fixed;
+  top: 0;
+  left: 0;
   z-index: 9000;
   background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: ${st.radius};
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
-  min-width: 240px;
+  width: 280px;
+  max-width: calc(100vw - 16px);
   padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  visibility: hidden;
 `;
 
 interface FinHeaderDatePickerProps {
@@ -661,7 +670,6 @@ interface FinHeaderDatePickerProps {
 
 const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, customFrom, customTo, onChange }) => {
   const [open, setOpen] = useState(false);
-  const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
   const [pendingFrom, setPendingFrom] = useState('');
   const [pendingTo, setPendingTo] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -675,18 +683,63 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
         triggerRef.current && !triggerRef.current.contains(e.target as Node)
       ) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
+  // Pozycję liczymy po zamontowaniu, z realnego rozmiaru panelu, i przycinamy do
+  // widoku. Wcześniej brano zakodowane 240 px sprzed renderu: gdy natywne pola
+  // type="date" rozpychały panel szerzej (telefon), lewa połowa uciekała za ekran.
+  const positionPanel = useCallback(() => {
+    const trigger = triggerRef.current;
+    const panel = panelRef.current;
+    if (!trigger || !panel) return;
+    const rect = trigger.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const MARGIN = 8;
+    const panelW = panel.offsetWidth;
+    // Prawa krawędź panelu przy prawej krawędzi triggera, ale obie krawędzie w widoku.
+    const left = Math.max(MARGIN, Math.min(rect.right - panelW, vw - panelW - MARGIN));
+    const panelH = panel.offsetHeight;
+    const spaceBelow = vh - rect.bottom - MARGIN;
+    const spaceAbove = rect.top - MARGIN;
+    const openBelow = spaceBelow >= panelH || spaceBelow >= spaceAbove;
+    const avail = openBelow ? spaceBelow : spaceAbove;
+    panel.style.maxHeight = `${Math.max(200, Math.min(avail, 460))}px`;
+    if (openBelow) {
+      panel.style.top = `${rect.bottom + 6}px`;
+      panel.style.bottom = 'auto';
+    } else {
+      panel.style.top = 'auto';
+      panel.style.bottom = `${vh - rect.top + 6}px`;
+    }
+    panel.style.left = `${left}px`;
+    panel.style.visibility = 'visible';
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    positionPanel();
+    window.addEventListener('scroll', positionPanel, true);
+    window.addEventListener('resize', positionPanel);
+    window.visualViewport?.addEventListener('resize', positionPanel);
+    window.visualViewport?.addEventListener('scroll', positionPanel);
+    return () => {
+      window.removeEventListener('scroll', positionPanel, true);
+      window.removeEventListener('resize', positionPanel);
+      window.visualViewport?.removeEventListener('resize', positionPanel);
+      window.visualViewport?.removeEventListener('scroll', positionPanel);
+    };
+  }, [open, positionPanel]);
+
   const handleToggle = () => {
-    if (!open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const PANEL_W = 240;
-      const MARGIN = 8;
-      const right = Math.min(Math.max(MARGIN, vw - rect.right), vw - PANEL_W - MARGIN);
-      setPanelPos({ top: rect.bottom + 8, right });
+    if (!open) {
       setPendingFrom(customFrom);
       setPendingTo(customTo);
     }
@@ -717,8 +770,8 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
         <SmallChevron />
       </HdrPickerTrigger>
 
-      {open && panelPos && createPortal(
-        <HdrPickerPanel ref={panelRef} style={{ top: panelPos.top, right: panelPos.right }}>
+      {open && createPortal(
+        <HdrPickerPanel ref={panelRef}>
           <DPPresetGroup>
             {([
               ['currentMonth', 'Bieżący miesiąc', currentMonthHint()] as const,
