@@ -136,12 +136,10 @@ const Page = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 22px;
-    padding-block: 22px 80px;
     min-width: 0;
 
     @media (max-width: 900px) {
         gap: 14px;
-        padding-block: 14px 40px;
     }
 `;
 

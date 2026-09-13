@@ -31,19 +31,6 @@ const PageBody = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding-block: 24px;
-
-    @media (max-width: 639px) {
-        padding-block: 16px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding-block: 32px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding-block: 40px;
-    }
 `;
 
 const TotalChip = styled.span`

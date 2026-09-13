@@ -7,16 +7,7 @@ const Container = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.xl};
-    padding-block: ${props => props.theme.spacing.lg};
     background: rgb(248, 250, 252); // bg-slate-50
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding-block: ${props => props.theme.spacing.xl};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding-block: ${props => props.theme.spacing.xxl};
-    }
 `;
 
 const Header = styled.header`

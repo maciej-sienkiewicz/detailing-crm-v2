@@ -21,17 +21,8 @@ const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding-block: 16px;
     overflow-x: clip;
     box-sizing: border-box;
-
-    @media (min-width: ${p => p.theme.breakpoints.sm}) {
-        padding-block: 24px;
-    }
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding-block: 32px;
-    }
 `;
 
 const ContractorsList = styled.div`

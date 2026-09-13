@@ -27,12 +27,7 @@ const Page = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-block: 32px 48px;
   animation: ${fadeUp} 250ms ease both;
-
-  @media (max-width: 768px) {
-    padding-block: 20px 40px;
-  }
 `;
 
 // ─── Header ───────────────────────────────────────────────────────────────────

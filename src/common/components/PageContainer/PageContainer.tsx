@@ -8,19 +8,18 @@ import styled, { css } from 'styled-components';
  * i treść „przeskakiwały" na szerszą/węższą kolumnę przy przechodzeniu między
  * widokami na dużym ekranie.
  *
- * Ten komponent centralizuje trzy rzeczy dla WSZYSTKICH widoków treściowych:
+ * Ten komponent centralizuje cztery rzeczy dla WSZYSTKICH widoków treściowych:
  *   1. spójny `max-width` (patrz PAGE_MAX_WIDTH),
  *   2. wyśrodkowanie kolumny (`margin-inline: auto`),
- *   3. jedną responsywną skalę paddingu POZIOMEGO (gutter).
- *
- * Świadomie ustawiamy tylko `padding-inline`. „Przeskakiwanie" jest problemem
- * poziomym (szerokość + wyrównanie lewej/prawej krawędzi nagłówka i treści),
- * więc padding PIONOWY zostaje po stronie widoku (`padding-block`). Dzięki temu
- * ujednolicamy szerokość, nie ruszając rytmu pionowego ani miejsca zostawionego
- * pod przyklejone stopki akcji (np. karty klienta/pojazdu).
+ *   3. jedną responsywną skalę paddingu POZIOMEGO (gutter),
+ *   4. wspólny GÓRNY odstęp, żeby nagłówek zaczynał się w tym samym miejscu na
+ *      każdym widoku (koniec „skakania" nagłówka w pionie).
  *
  * Widok nie powinien już deklarować własnego `max-width` / `margin: 0 auto`
- * ani poziomego paddingu — od tego jest właśnie PageContainer.
+ * ani paddingu poziomego/górnego — od tego jest właśnie PageContainer. Jedyne,
+ * co widok może dołożyć, to DOLNY zapas (`padding-block-end`), gdy ma przyklejoną
+ * stopkę akcji albo pasek zakładek (np. karty klienta/pojazdu/wizyty, edycja
+ * wizyty). Górny odstęp zostaje wspólny.
  *
  * Renderuje się domyślnie jako <main> — kolumna treści jest jednocześnie
  * landmarkiem `main` strony. Widok pełnoekranowego tła (wzorzec z osobnym
@@ -93,9 +92,16 @@ export const PageContainer = styled.main<PageContainerProps>`
     ${({ $noPadding }) =>
         !$noPadding &&
         css`
-            /* Jedna, wspólna skala guttera dla całej aplikacji. Ten sam poziomy
-               padding na każdym widoku = nagłówek i treść zaczynają się w tym
-               samym miejscu niezależnie od tego, którą stronę otworzysz. */
+            /* Jedna, wspólna skala paddingu dla całej aplikacji. Ten sam padding
+               POZIOMY (gutter) i PIONOWY (odstęp od góry) na każdym widoku =
+               nagłówek i treść zaczynają się w tym samym miejscu niezależnie od
+               tego, którą stronę otworzysz.
+
+               Padding-block bywa nadpisywany PRZEZ widok tylko od dołu
+               (padding-block-end) - gdy widok ma przyklejoną stopkę akcji albo
+               pasek zakładek i musi zostawić pod nie zapas. Górny odstęp zostaje
+               wspólny, żeby nagłówek nie „skakał" w pionie. */
+            padding-block: ${(p) => p.theme.spacing.lg};
             padding-inline: ${(p) => p.theme.spacing.md};
 
             @media (min-width: ${(p) => p.theme.breakpoints.sm}) {
@@ -103,6 +109,7 @@ export const PageContainer = styled.main<PageContainerProps>`
             }
 
             @media (min-width: ${(p) => p.theme.breakpoints.md}) {
+                padding-block: ${(p) => p.theme.spacing.xl};
                 padding-inline: ${(p) => p.theme.spacing.xl};
             }
 

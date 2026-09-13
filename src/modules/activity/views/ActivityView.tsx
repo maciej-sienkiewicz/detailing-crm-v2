@@ -46,11 +46,6 @@ const Content = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${p => p.theme.spacing.lg};
-    padding-block: ${p => p.theme.spacing.lg};
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding-block: ${p => p.theme.spacing.xl};
-    }
 `;
 
 // ─── hero ─────────────────────────────────────────────────────────────────────
