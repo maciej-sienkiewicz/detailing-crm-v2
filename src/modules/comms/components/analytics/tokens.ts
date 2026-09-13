@@ -19,14 +19,16 @@ export const LOST = '#dc2626';
 export const OPEN = '#cbd5e1';
 
 /**
- * Rozmowy formalnie otwarte, ale starsze niż okno decyzji.
+ * Rozmowy formalnie otwarte, ale starsze niż okno decyzji - „ucichłe".
  *
- * Osobny, wyraźnie bledszy odcień tej samej szarości co „w grze": to jest ten sam
- * rodzaj rzeczy - brak rozstrzygnięcia - tylko wystygły. Gdyby dostały kolor straty,
- * przypisalibyśmy im wynik, którego nie mamy; gdyby zostały w „w grze", zawyżałyby
- * pipeline dokładnie o pieniądze, których nie będzie.
+ * WYRAŹNIE ciemniejszy szaroniebieski niż „w grze" (#cbd5e1), nie bledszy: to wciąż
+ * ten sam rodzaj rzeczy - brak rozstrzygnięcia - tylko wystygły, ale na belce jest
+ * pieniędzmi do odzyskania (główne wezwanie do działania), więc musi być widoczny,
+ * a nie ledwie widocznym, kreskowanym paskiem myljonym z granicą między segmentami.
+ * Gdyby dostał kolor straty, przypisalibyśmy mu wynik, którego nie ma; gdyby został
+ * kolorem „w grze", zniknąłby dokładnie tam, gdzie siedzi treść.
  */
-export const SILENT = '#e7ebf1';
+export const SILENT = '#94a3b8';
 
 /** Jedna seria wielkości (ile zapytań, ile z którego kanału). */
 export const MAGNITUDE = '#2563eb';

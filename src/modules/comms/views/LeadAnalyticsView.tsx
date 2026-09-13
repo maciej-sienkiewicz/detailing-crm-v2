@@ -53,6 +53,8 @@ const MIN_LEADS_FOR_DELTA = 20;
 const MIN_LEADS_FOR_LEAKS = 15;
 /** Ranking kanałów po liczbie zapytań - solidny dopiero od pewnej próby. */
 const MIN_LEADS_FOR_SOURCE = 25;
+/** Poniżej tylu rozstrzygniętych rozmów w kanale jego skuteczność (%) to szum - pokazujemy samą liczbę. */
+const MIN_CLOSED_FOR_SOURCE_RATE = 10;
 /** Werdykt „czy szybka odpowiedź się opłaca" pokazujemy dopiero przy realnym wolumenie. */
 const MIN_LEADS_FOR_SPEED = 40;
 /** Wykres pieniędzy w czasie - tylko przy długim zakresie i dużej liczbie zapytań. */
@@ -476,7 +478,7 @@ function Report({
         : undefined;
 
     const reward = data.confirmedValueThisWeek > 0
-        ? `W tym tygodniu domknąłeś rezerwacje na ${formatMoney(data.confirmedValueThisWeek)}.`
+        ? `W tym tygodniu domknąłeś zlecenia za ${formatMoney(data.confirmedValueThisWeek)}.`
         : undefined;
     const rewardNote = reward ? 'Za bieżący tydzień, niezależnie od wybranego okresu.' : undefined;
 
@@ -496,6 +498,7 @@ function Report({
                 />
             ) : (
                 <Hero
+                    accent="pipeline"
                     lead="W toku w tym okresie"
                     amount={formatMoney(data.pipelineValue)}
                     body={
@@ -566,6 +569,11 @@ function DeepSection({ data, monthly, goLost }: { data: LeadAnalytics; monthly: 
                             raw: leak.value,
                             count: leadCount(leak.count),
                         }))}
+                    note={
+                        data.leaks.length > 3
+                            ? `Trzy największe powody z ${formatMoney(data.leaks.reduce((sum, l) => sum + l.value, 0))} straconych i ucichłych.`
+                            : undefined
+                    }
                     onPick={goLost}
                 />
             )}
@@ -599,7 +607,11 @@ function SourceCard({ data }: { data: LeadAnalytics }) {
                     key: entry.source,
                     label: SOURCE_LABELS[entry.source] ?? entry.source,
                     value: entry.count,
-                    meta: `${leadCount(entry.count)} · skut. ${percent(entry.winRate)}`,
+                    // Skuteczność tylko przy stabilnej próbie: przy pięciu rozstrzygniętych
+                    // rozmowach jedna wygrana to 20 punktów - taki procent kłamie.
+                    meta: entry.closed >= MIN_CLOSED_FOR_SOURCE_RATE
+                        ? `${leadCount(entry.count)} · skuteczność ${percent(entry.winRate)}`
+                        : leadCount(entry.count),
                 }))}
             />
         </AnalyticsCard>
@@ -618,9 +630,8 @@ function SpeedCard({ data }: { data: LeadAnalytics }) {
             const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
             return (
                 <>
-                    <strong>Tak — szybka odpowiedź się opłaca.</strong> Gdy odpiszesz w ciągu doby,
-                    zamykasz {percent(impact.fastWinRate)} zapytań, później {percent(impact.slowWinRate)}.
-                    Różnica {points(gap)}
+                    <strong>Tak.</strong> Gdy odpiszesz w ciągu doby, zamykasz {percent(impact.fastWinRate)}{' '}
+                    zapytań, później tylko {percent(impact.slowWinRate)} — różnica {points(gap)}
                 </>
             );
         }
@@ -647,7 +658,7 @@ function TrendCard({ data, monthly }: { data: LeadAnalytics; monthly: boolean })
 
     return (
         <AnalyticsCard
-            question="Zamknięte pieniądze miesiąc po miesiącu"
+            question="Przychód miesiąc po miesiącu"
             answer={
                 delta === null || delta === 0
                     ? 'Ile pieniędzy zamykasz w kolejnych miesiącach.'
