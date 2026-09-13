@@ -61,7 +61,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Sparkles, TrendingDown, TrendingUp 
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useLeadAnalytics } from '../hooks/useLeads';
-import type { LeadAnalytics } from '../types';
+import type { LeadAnalytics, LeadStatus } from '../types';
 import { EmptyHint, PrimaryButton } from '../components/shared';
 import { PeriodPicker } from '../components/analytics/PeriodPicker';
 import { buildPeriod, type Period } from '../components/analytics/period';
@@ -104,6 +104,59 @@ const ViewContainer = styled.main`
 
     @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
+`;
+
+/**
+ * Obudowa analityki wstawionej w panel widoku leadów (desktop). Tu analityka nie
+ * jest osobnym ekranem, tylko domyślną zawartością panelu obok kolejki — więc
+ * zamiast ciężkiego PageHeadera aplikacji i linku „← Leady" (kolejka jest tuż obok)
+ * dostaje lekki nagłówek z samym wyborem okresu i przewija się w obrębie panelu.
+ */
+const EmbeddedShell = styled.div`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: ${p => p.theme.colors.surface};
+`;
+
+/**
+ * Nagłówek stoi POZA obszarem przewijania: rozwijany wybór okresu jest pozycjonowany
+ * absolutnie (bez portalu), więc w kontenerze z overflow zostałby przycięty.
+ */
+const EmbeddedHeader = styled.header`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    padding: 18px 20px 12px 20px;
+
+    h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        color: ${st.text};
+    }
+    p {
+        margin: 3px 0 0 0;
+        font-size: 13px;
+        color: ${st.textSecondary};
+    }
+`;
+
+/** Sama treść analityki się przewija; nagłówek z wyborem okresu zostaje na miejscu. */
+const EmbeddedBody = styled.div`
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 4px 20px 40px 20px;
 `;
 
 /**
@@ -485,7 +538,20 @@ const MIN_LEADS_FOR_RHYTHM = 20;
  */
 const THIN_DATA_BELOW = 10;
 
-export default function LeadAnalyticsView() {
+interface LeadAnalyticsViewProps {
+    /**
+     * true = analityka renderowana jako panel w widoku leadów (desktop): bez PageHeadera
+     * i linku powrotu, przewijana w panelu; odnośniki do kolejki/archiwum sterują tym
+     * samym widokiem zamiast nawigować na osobny adres.
+     */
+    embedded?: boolean;
+    /** Embedded: pokaż kolejkę „Twój ruch" (zamiast navigate('/leads')). */
+    onOpenQueue?: () => void;
+    /** Embedded: pokaż archiwum, opcjonalnie z filtrem statusu (zamiast navigate('/leads?status=...')). */
+    onOpenArchive?: (status?: LeadStatus) => void;
+}
+
+export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpenArchive }: LeadAnalyticsViewProps) {
     // Okres ustalany raz, przy wejściu. „Ten miesiąc" jest domyślny, bo to jest
     // pytanie, które właściciel zadaje sobie najczęściej: jak mi idzie TERAZ.
     const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
@@ -505,26 +571,8 @@ export default function LeadAnalyticsView() {
     // roku wyglądałby na zepsuty, a nie na przykład.
     const shown = demo ? buildDemoAnalytics(period.from, period.to) : data;
 
-    return (
-        <ViewContainer>
-            {/* Okres siedzi w nagłówku, bo jest właściwością całego widoku, tak
-                samo jak jego tytuł. Jako pasek pod spodem zabierał pierwszy ruch
-                wzroku kwocie, która ma go dostać. */}
-            <PageHeader
-                title="Pieniądze w zapytaniach"
-                subtitle={`Rachunek za ${period.label}`}
-                actions={
-                    <>
-                        <PeriodPicker value={period} onChange={setPeriod} />
-                        <Link to="/leads">
-                            <PageHeaderGhostButton as="span">
-                                <ArrowLeft /> Leady
-                            </PageHeaderGhostButton>
-                        </Link>
-                    </>
-                }
-            />
-
+    const body = (
+        <>
             {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
 
             {/* Pasek trybu pokazowego widoczny przez cały czas jego trwania:
@@ -575,14 +623,77 @@ export default function LeadAnalyticsView() {
             )}
 
             {shown && (demo || shown.totalCreated > 0) && (
-                <Report data={shown} monthly={demo ? false : monthly} />
+                <Report
+                    data={shown}
+                    monthly={demo ? false : monthly}
+                    embedded={embedded}
+                    onOpenQueue={onOpenQueue}
+                    onOpenArchive={onOpenArchive}
+                />
             )}
+        </>
+    );
+
+    // Panel w widoku leadów: lekki nagłówek, przewijanie w panelu, bez linku powrotu.
+    if (embedded) {
+        return (
+            <EmbeddedShell>
+                <EmbeddedHeader>
+                    <div>
+                        <h2>Pieniądze w zapytaniach</h2>
+                        <p>Rachunek za {period.label}</p>
+                    </div>
+                    <PeriodPicker value={period} onChange={setPeriod} />
+                </EmbeddedHeader>
+                <EmbeddedBody>{body}</EmbeddedBody>
+            </EmbeddedShell>
+        );
+    }
+
+    return (
+        <ViewContainer>
+            {/* Okres siedzi w nagłówku, bo jest właściwością całego widoku, tak
+                samo jak jego tytuł. Jako pasek pod spodem zabierał pierwszy ruch
+                wzroku kwocie, która ma go dostać. */}
+            <PageHeader
+                title="Pieniądze w zapytaniach"
+                subtitle={`Rachunek za ${period.label}`}
+                actions={
+                    <>
+                        <PeriodPicker value={period} onChange={setPeriod} />
+                        <Link to="/leads">
+                            <PageHeaderGhostButton as="span">
+                                <ArrowLeft /> Leady
+                            </PageHeaderGhostButton>
+                        </Link>
+                    </>
+                }
+            />
+            {body}
         </ViewContainer>
     );
 }
 
-function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+function Report({
+    data,
+    monthly,
+    embedded = false,
+    onOpenQueue,
+    onOpenArchive,
+}: {
+    data: LeadAnalytics;
+    monthly: boolean;
+    embedded?: boolean;
+    onOpenQueue?: () => void;
+    onOpenArchive?: (status?: LeadStatus) => void;
+}) {
     const navigate = useNavigate();
+
+    // Wewnątrz widoku leadów odnośniki sterują tym samym ekranem (kolejka/archiwum
+    // stoją obok), a nie przenoszą na osobny adres. Poza nim — klasyczna nawigacja.
+    const goQueue = () => (embedded ? onOpenQueue?.() : navigate('/leads'));
+    const goAwaiting = () => (embedded ? onOpenQueue?.() : navigate('/leads?awaiting=1'));
+    const goLost = () => (embedded ? onOpenArchive?.('LOST') : navigate('/leads?status=LOST'));
 
     const { awaiting } = data;
     const total = data.wonValue + data.pipelineValue + data.silentValue + data.lostValue;
@@ -617,7 +728,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                         </>
                     }
                     action={
-                        <PrimaryButton type="button" onClick={() => navigate('/leads?awaiting=1')}>
+                        <PrimaryButton type="button" onClick={goAwaiting}>
                             Odpisz im <ArrowRight size={14} />
                         </PrimaryButton>
                     }
@@ -642,7 +753,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                         </>
                     }
                     action={
-                        <PrimaryButton type="button" onClick={() => navigate('/leads')}>
+                        <PrimaryButton type="button" onClick={goQueue}>
                             Zobacz otwarte zapytania <ArrowRight size={14} />
                         </PrimaryButton>
                     }
@@ -662,17 +773,17 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                 inPlay={{
                     amount: formatMoney(data.pipelineValue),
                     raw: data.pipelineValue,
-                    onClick: () => navigate('/leads'),
+                    onClick: goQueue,
                 }}
                 silent={{
                     amount: formatMoney(data.silentValue),
                     raw: data.silentValue,
-                    onClick: () => navigate('/leads?awaiting=1'),
+                    onClick: goAwaiting,
                 }}
                 gone={{
                     amount: formatMoney(data.lostValue),
                     raw: data.lostValue,
-                    onClick: () => navigate('/leads?status=LOST'),
+                    onClick: goLost,
                 }}
                 delta={
                     data.wonValuePrevious > 0 || data.wonValue > 0 ? (
@@ -697,7 +808,7 @@ function Report({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
                         raw: leak.value,
                         count: `${leak.count} ${conversationCount(leak.count)}`,
                     }))}
-                    onPick={() => navigate('/leads?status=LOST')}
+                    onPick={goLost}
                 />
             )}
 
