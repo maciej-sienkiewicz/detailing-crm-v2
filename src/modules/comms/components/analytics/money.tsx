@@ -124,10 +124,35 @@ const HeroNote = styled.span`
  * zrobione, przestaje być narzędziem, a staje się wyrzutem.
  */
 const HeroReward = styled.p`
-    margin: 10px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 7px 12px 7px 10px;
+    align-self: flex-start;
+    border-radius: ${st.radiusFull};
+    background: ${st.bgAccentGreen};
     font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${p => p.theme.colors.success};
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: #047857;
+
+    /* Kropka zamiast ikony w kolorowym kółku: znak, że coś się wydarzyło, bez
+       dekoracji niosącej zero informacji. */
+    &::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: ${p => p.theme.colors.success};
+        flex-shrink: 0;
+    }
+`;
+
+/** Doprecyzowanie pod nagrodą: dlaczego ta kwota nie zgadza się z okresem wyżej. */
+const HeroRewardNote = styled.span`
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
 `;
 
 interface HeroProps {
@@ -136,18 +161,21 @@ interface HeroProps {
     body: ReactNode;
     action?: ReactNode;
     reward?: string;
+    /** Wygaszony przypis tuż pod nagrodą (np. „liczone za bieżący tydzień"). */
+    rewardNote?: ReactNode;
     note?: ReactNode;
-    /** Jest zaległość - listwa przy krawędzi robi się czerwona. */
+    /** Jest zaległość - listwa przy krawędzi robi się czerwona; domyślnie zielona. */
     urgent?: boolean;
 }
 
-export function Hero({ lead, amount, body, action, reward, note, urgent = false }: HeroProps) {
+export function Hero({ lead, amount, body, action, reward, rewardNote, note, urgent = false }: HeroProps) {
     return (
         <HeroBand $urgent={urgent}>
             <HeroLead>{lead}</HeroLead>
             <HeroAmount>{amount}</HeroAmount>
             <HeroBody>{body}</HeroBody>
             {reward && <HeroReward>{reward}</HeroReward>}
+            {rewardNote && <HeroRewardNote>{rewardNote}</HeroRewardNote>}
             {(action || note) && (
                 <HeroFoot>
                     {action}
@@ -212,11 +240,11 @@ const Bar = styled.div`
     /* Trzy piksele tła między odcinkami - bez szczeliny granica gubi się dokładnie
        tam, gdzie siedzi cała treść. */
     gap: 3px;
-    height: 30px;
+    height: 34px;
 `;
 
 const Segment = styled.div`
-    border-radius: 7px;
+    border-radius: 8px;
     min-width: 4px;
     transition: filter 160ms ease, transform 160ms ease;
 
@@ -224,18 +252,18 @@ const Segment = styled.div`
 `;
 
 /**
- * Pionowy gradient w obrębie JEDNEGO odcienia, nie tęcza. To jest zwykłe
- * cieniowanie bryły - nadaje paskowi materialność, której płaski prostokąt nie ma,
- * i nie koduje przy tym żadnej dodatkowej informacji, więc niczego nie zaciemnia.
+ * Płaskie, nasycone wypełnienie - bez poświaty i bez cienia rzucanego przez pasek.
+ * Kolorowy cień pod segmentem to dokładnie ten rodzaj dekoracji, który sprawia,
+ * że wykres wygląda na wygenerowany, a nie zaprojektowany: nie niesie żadnej
+ * informacji, a dokłada wizualnego hałasu.
  */
 const Kept = styled(Segment)`
-    background: linear-gradient(180deg, #3b82f6 0%, ${WON} 100%);
-    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.28);
+    background: ${WON};
 `;
 
 const InPlay = styled(Segment)`
     /* Wygaszone wypełnienie: to są pieniądze, których jeszcze nie masz. */
-    background: linear-gradient(180deg, #dbe3ee 0%, ${OPEN} 100%);
+    background: ${OPEN};
 `;
 
 /**
@@ -285,6 +313,7 @@ const Key = styled.div<{ $clickable?: boolean }>`
     flex-direction: column;
     gap: 3px;
     min-width: 0;
+    box-sizing: border-box;
     text-align: left;
     border: none;
     background: none;
@@ -303,7 +332,11 @@ const Key = styled.div<{ $clickable?: boolean }>`
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 20px;
+        /* Jedna linia zawsze: kwota złamana na „125 800" i „zł" czyta się jak dwie
+           liczby. Rozmiar dobrany tak, żeby cztery kwoty zmieściły się w rzędzie
+           w wąskim panelu bez zderzania się z sąsiadem. */
+        white-space: nowrap;
+        font-size: 17px;
         font-weight: ${p => p.theme.fontWeights.bold};
         color: ${st.text};
         font-variant-numeric: tabular-nums;

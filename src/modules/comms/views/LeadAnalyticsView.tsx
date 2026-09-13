@@ -10,14 +10,25 @@
 // praniami tapicerki i jedną wygraną powłoką ceramiczną to dziewięć procent
 // konwersji i bardzo dobry miesiąc.
 //
-// ── Cztery pasma i koniec ──────────────────────────────────────────────────
+// ── Front, a pod nim „dla ciekawskiego" ────────────────────────────────────
 //
-// 1. Zdanie-bohater: ile pieniędzy czeka na Twoją odpowiedź. Pierwsza fiksacja
-//    wzroku ustawia ramę dla reszty ekranu - liczba PRZESZŁA robi z tego raport,
-//    liczba OTWARTA robi z tego warsztat. Tylko drugie ma powód, żeby wracać.
+// Ten panel jest RACHUNKIEM za okres, nie listą zadań. Liczba „czeka na Twoją
+// odpowiedź" wyprowadziła się stąd do kolejki obok (pasek nad listą spraw) i to
+// ona jest jej jedynym źródłem - trzy powierzchnie liczące tę samą kwotę trzema
+// regułami zgłaszały trzy różne wyniki. Tu zostaje dolna linia rachunku.
+//
+// FRONT (widać od razu, ~1 ekran, bez klikania):
+// 1. Zdanie-bohater: ile pieniędzy ZATRZYMAŁEŚ w tym okresie (wonValue). Zielona
+//    krawędź, nie czerwona - to jest fakt, nie alarm. Pod spodem zielona nagroda
+//    za bieżący tydzień (jedyna liczba, która rusza się między wizytami) i - dopiero
+//    przy większym wolumenie - kierunek względem poprzedniego okresu. Świeże studio
+//    bez ani jednej wygranej dostaje tu „w grze", nigdy demotywujące 0 zł.
 // 2. Rachunek zapytań: jedna belka pieniędzy, które przeszły przez drzwi.
-// 3. Gdzie wyciekły: powody straty w złotówkach, każdy klikalny.
-// 4. Czytanie tygodniowe: rytm, odstępstwa, usługi, kanały - cicho, poniżej zgięcia.
+// 3. Jedno działanie: odzyskaj pieniądze, które ucichły - zanim ostygną na dobre.
+//
+// „DLA CIEKAWSKIEGO" (zwinięte pod „Zajrzyj głębiej w te pieniądze"):
+// • Gdzie wyciekły: powody straty w złotówkach, każdy klikalny.
+// • Czytanie tygodniowe: rytm, odstępstwa, usługi, kanały - jedno pytanie na ekran.
 //
 // Ekran się KOŃCZY. Żadnego nieskończonego strumienia kart: taki, który ma koniec,
 // zostaje przeczytany, a taki bez końca zostaje przewinięty.
@@ -57,13 +68,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { PageContainer } from '@/common/components/PageContainer';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useLeadAnalytics } from '../hooks/useLeads';
 import type { LeadAnalytics, LeadStatus } from '../types';
-import { EmptyHint, PrimaryButton } from '../components/shared';
+import { EmptyHint } from '../components/shared';
 import { PeriodPicker } from '../components/analytics/PeriodPicker';
 import { buildPeriod, type Period } from '../components/analytics/period';
 import { buildDemoAnalytics } from '../components/analytics/demoData';
@@ -94,10 +104,17 @@ import {
     points,
 } from '../components/analytics/tokens';
 
-const ViewContainer = styled(PageContainer)`
+const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
     gap: 22px;
+    padding: ${p => p.theme.spacing.md};
+    max-width: 1180px;
+    margin: 0 auto;
+    width: 100%;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
+    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
 /**
@@ -296,6 +313,90 @@ const DeepHeading = styled.div`
         color: ${st.textMuted};
     }
 `;
+
+/**
+ * Jedyne wezwanie do działania na froncie: odzyskaj pieniądze, które ucichły.
+ *
+ * Zdanie-bohater już nie ma przycisku - rachunek stwierdza, nie rozkazuje. Ale
+ * jedna rzecz na tym ekranie da się naprawić dziś i za zero złotych: rozmowy,
+ * które ostygły. Cienka niebieska listwa i strzałka to ten sam język, co
+ * klikalne kwoty niżej - zaproszenie, nie alarm.
+ */
+const ActionStrip = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    padding: 15px 18px;
+    border: 1px solid ${st.border};
+    border-left: 3px solid ${st.accentBlue};
+    background: ${st.bgCard};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.4;
+    color: ${st.textSecondary};
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+
+    strong {
+        color: ${st.text};
+        font-weight: ${p => p.theme.fontWeights.semibold};
+    }
+    .go {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        color: ${st.accentBlue};
+        transition: transform 160ms ease;
+    }
+    &:hover { border-color: ${st.borderHover}; box-shadow: ${st.shadowMd}; }
+    &:hover .go { transform: translateX(3px); }
+`;
+
+/**
+ * Granica między „dziś" a „przy okazji". Materiał pogłębiony jest domyślnie
+ * zwinięty: większość wejść to szybki rzut oka na pieniądze, a nie studiowanie
+ * wykresów. Kto chce, rozwija - i stan tego wyboru zostaje zapamiętany.
+ */
+const DeepToggle = styled.button`
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 15px 18px;
+    border: 1px solid ${st.border};
+    background: ${st.bgCard};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${st.text};
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+
+    &:hover { border-color: ${st.borderHover}; }
+
+    svg {
+        width: 18px;
+        height: 18px;
+        color: ${st.textMuted};
+        transition: transform 200ms ease;
+    }
+    svg.open { transform: rotate(180deg); }
+`;
+
+/** Od tylu zapytań kierunek względem poprzedniego okresu przestaje być rzutem monetą. */
+const MIN_LEADS_FOR_DELTA = 20;
+
+/** Stan rozwinięcia sekcji pogłębionej - per przeglądarka, przeżywa odświeżenie. */
+const DEEP_OPEN_KEY = 'leadAnalytics.deepOpen';
 
 /**
  * Zakładki zamiast siatki kart.
@@ -701,135 +802,152 @@ function Report({
     // Wewnątrz widoku leadów odnośniki sterują tym samym ekranem (kolejka/archiwum
     // stoją obok), a nie przenoszą na osobny adres. Poza nim — klasyczna nawigacja.
     const goQueue = () => (embedded ? onOpenQueue?.() : navigate('/leads'));
-    const goAwaiting = () => (embedded ? onOpenQueue?.() : navigate('/leads?awaiting=1'));
+    const goSilent = () => (embedded ? onOpenQueue?.() : navigate('/leads?awaiting=1'));
     const goLost = () => (embedded ? onOpenArchive?.('LOST') : navigate('/leads?status=LOST'));
 
-    const { awaiting } = data;
+    // Materiał pogłębiony domyślnie zwinięty; wybór zapamiętany między wejściami.
+    const [deepOpen, setDeepOpen] = useState(() => {
+        try { return localStorage.getItem(DEEP_OPEN_KEY) === '1'; } catch { return false; }
+    });
+    const toggleDeep = () => setDeepOpen((open) => {
+        const next = !open;
+        try { localStorage.setItem(DEEP_OPEN_KEY, next ? '1' : '0'); } catch { /* prywatne okno itp. */ }
+        return next;
+    });
+
     const total = data.wonValue + data.pipelineValue + data.silentValue + data.lostValue;
+    const hasWins = data.wonValue > 0;
+
+    // Kierunek względem poprzedniego okresu - dopiero od progu, bo niżej jedno duże
+    // zlecenie przewraca znak i „trend" jest rzutem monetą.
     const wonDelta = data.wonValue - data.wonValuePrevious;
+    const deltaNote = data.totalCreated >= MIN_LEADS_FOR_DELTA && data.wonValuePrevious > 0
+        ? (wonDelta === 0
+            ? 'Tyle samo, ile w poprzednim okresie.'
+            : `Zatrzymane pieniądze: o ${formatMoney(Math.abs(wonDelta))} ${wonDelta > 0 ? 'więcej' : 'mniej'} niż w poprzednim okresie.`)
+        : undefined;
+
+    // Kwit za bieżący tydzień - jedyna liczba, która rusza się między wizytami.
+    const reward = data.confirmedValueThisWeek > 0
+        ? `W tym tygodniu zamieniłeś w rezerwacje ${formatMoney(data.confirmedValueThisWeek)}.`
+        : undefined;
+    const rewardNote = reward ? 'Liczone za bieżący tydzień, niezależnie od wybranego okresu.' : undefined;
+
+    // Materiał „dla ciekawskiego" ma sens dopiero, gdy jest co drążyć. Przy garstce
+    // zapytań w ogóle go nie pokazujemy - nie ma jeszcze pieniędzy do rozłożenia.
+    const showDeep = data.totalCreated >= THIN_DATA_BELOW;
 
     return (
         <>
-            {/* ── Pasmo 1 ─────────────────────────────────────────────────────
-                Zaległość, a nie „zarobiłeś". Sprawy niedokończone zostają w głowie
-                i wytwarzają ciśnienie powrotu - a ta kwota zmienia się wyłącznie
-                dlatego, że użytkownik coś zrobił. Nazwisko i auto w zdaniu obok
-                sprawiają, że to jest JEGO klient, a nie abstrakcja, którą wygenerowałby
-                dowolny szablon. */}
-            {awaiting.count > 0 ? (
+            {/* ── FRONT · Pasmo 1 ─────────────────────────────────────────────
+                Pieniądze ZATRZYMANE, nie zaległość. Odkąd „odpisz teraz" żyje w
+                kolejce obok, ten panel jest rachunkiem - a jego dolną linią jest to,
+                ile realnie zamknąłeś na plus. Zielona krawędź: to fakt, nie alarm.
+                Świeże studio bez wygranej dostaje „w grze", nigdy demotywujące 0 zł. */}
+            {hasWins ? (
                 <Hero
-                    urgent
-                    lead="Czeka na Ciebie"
-                    amount={formatMoney(awaiting.value)}
+                    lead="Zatrzymałeś w tym okresie"
+                    amount={formatMoney(data.wonValue)}
                     body={
                         <>
-                            w <strong>{awaiting.count} {conversationWord(awaiting.count)}</strong>, w których
-                            piłka jest po Twojej stronie.
-                            {awaiting.oldest && (
-                                <>
-                                    {' '}Najdłużej czeka <strong>{awaiting.oldest.name}</strong>
-                                    {awaiting.oldest.vehicle && <> - {awaiting.oldest.vehicle}</>}
-                                    {awaiting.oldest.value > 0 && <>, {formatMoney(awaiting.oldest.value)}</>}
-                                    {', '}
-                                    {dayWord(awaiting.oldest.waitingDays)}.
-                                </>
-                            )}
+                            Tyle pieniędzy realnie zamknąłeś na plus - <strong>zapytania,
+                            które zamieniłeś w robotę</strong>.
                         </>
                     }
-                    action={
-                        <PrimaryButton type="button" onClick={goAwaiting}>
-                            Odpisz im <ArrowRight size={14} />
-                        </PrimaryButton>
-                    }
-                    // Domknięcie pętli - nagroda za to, co użytkownik zrobił po ostatniej
-                    // wizycie. Osobno od zastrzeżenia o zakresie, bo tamto jest przypisem,
-                    // a to jest kwitem.
-                    reward={
-                        data.confirmedValueThisWeek > 0
-                            ? `W tym tygodniu zamieniłeś w rezerwacje ${formatMoney(data.confirmedValueThisWeek)}.`
-                            : undefined
-                    }
-                    note="Liczone niezależnie od wybranego okresu."
+                    reward={reward}
+                    rewardNote={rewardNote}
+                    note={deltaNote}
                 />
             ) : (
                 <Hero
-                    lead="Nikt nie czeka na odpowiedź"
+                    lead="Wciąż w grze w tym okresie"
                     amount={formatMoney(data.pipelineValue)}
                     body={
                         <>
-                            Rzadka rzecz - w każdej rozmowie ostatnie słowo należy do klienta.
-                            Tyle masz wciąż <strong>w grze</strong>.
+                            Tyle masz w otwartych rozmowach. <strong>Pierwsza zatrzymana
+                            kwota</strong> pojawi się tu, gdy domkniesz którąś z nich.
                         </>
                     }
-                    action={
-                        <PrimaryButton type="button" onClick={goQueue}>
-                            Zobacz otwarte zapytania <ArrowRight size={14} />
-                        </PrimaryButton>
-                    }
+                    reward={reward}
+                    rewardNote={rewardNote}
                 />
             )}
 
-            {/* ── Pasmo 2 ─────────────────────────────────────────────────────
-                Belka pokazuje pieniądze OKNA, a zdanie-bohater stan bieżący. Przy
-                pustym oknie belka narysowałaby trzy zera i wyglądała na awarię,
-                więc zamiast niej idzie jedno zdanie. */}
+            {/* ── FRONT · Pasmo 2 ─────────────────────────────────────────────
+                Jedna belka pieniędzy, które przeszły przez drzwi: ile zatrzymałeś,
+                ile wciąż w grze, ile ucichło, ile poszło do konkurencji. Przy pustym
+                oknie belka narysowałaby same zera, więc zamiast niej idzie zdanie. */}
             {total === 0 ? (
                 <EmptyHint>W tym okresie nie wpłynęło ani jedno zapytanie.</EmptyHint>
             ) : (
-            <MoneyLedger
-                total={formatMoney(total)}
-                kept={{ amount: formatMoney(data.wonValue), raw: data.wonValue }}
-                inPlay={{
-                    amount: formatMoney(data.pipelineValue),
-                    raw: data.pipelineValue,
-                    onClick: goQueue,
-                }}
-                silent={{
-                    amount: formatMoney(data.silentValue),
-                    raw: data.silentValue,
-                    onClick: goAwaiting,
-                }}
-                gone={{
-                    amount: formatMoney(data.lostValue),
-                    raw: data.lostValue,
-                    onClick: goLost,
-                }}
-                delta={
-                    data.wonValuePrevious > 0 || data.wonValue > 0 ? (
-                        <>
-                            Zatrzymane pieniądze:{' '}
-                            {wonDelta === 0
-                                ? 'tyle samo co w poprzednim okresie.'
-                                : `o ${formatMoney(Math.abs(wonDelta))} ${wonDelta > 0 ? 'więcej' : 'mniej'} niż w poprzednim okresie.`}
-                        </>
-                    ) : null
-                }
-            />
-            )}
-
-            {/* ── Pasmo 3 ───────────────────────────────────────────────────── */}
-            {data.leaks.length > 0 && (
-                <LeakList
-                    rows={data.leaks.map((leak) => ({
-                        code: leak.code,
-                        label: leak.label,
-                        amount: formatMoney(leak.value),
-                        raw: leak.value,
-                        count: `${leak.count} ${conversationCount(leak.count)}`,
-                    }))}
-                    onPick={goLost}
+                <MoneyLedger
+                    total={formatMoney(total)}
+                    kept={{ amount: formatMoney(data.wonValue), raw: data.wonValue }}
+                    inPlay={{
+                        amount: formatMoney(data.pipelineValue),
+                        raw: data.pipelineValue,
+                        onClick: goQueue,
+                    }}
+                    silent={{
+                        amount: formatMoney(data.silentValue),
+                        raw: data.silentValue,
+                        onClick: goSilent,
+                    }}
+                    gone={{
+                        amount: formatMoney(data.lostValue),
+                        raw: data.lostValue,
+                        onClick: goLost,
+                    }}
                 />
             )}
 
-            {/* ── Pasmo 4 ─────────────────────────────────────────────────────
-                Jedno pytanie na ekran. Wszystko jest o jedno kliknięcie dalej
-                i podpisane pytaniem, którego dotyczy - nic nie ginie, a wzrok
-                ma gdzie usiąść. */}
-            <DeepHeading>
-                <h2>Skąd się te pieniądze biorą</h2>
-                <p>Materiał do przeczytania raz na jakiś czas. Jedno pytanie naraz.</p>
-            </DeepHeading>
-            <DeepRead data={data} monthly={monthly} />
+            {/* ── FRONT · Pasmo 3 ─────────────────────────────────────────────
+                Jedyne wezwanie do działania: rozmowy, które ucichły, wciąż da się
+                odzyskać - dziś i za zero złotych. Gdy nie ma czego odzyskiwać, nie
+                dorabiamy przycisku na siłę. */}
+            {data.silentValue > 0 && (
+                <ActionStrip type="button" onClick={goSilent}>
+                    <span>
+                        <strong>{formatMoney(data.silentValue)}</strong> ucichło - odezwij się,
+                        zanim te rozmowy ostygną na dobre.
+                    </span>
+                    <ArrowRight className="go" />
+                </ActionStrip>
+            )}
+
+            {/* ── DLA CIEKAWSKIEGO ────────────────────────────────────────────
+                Wszystko, co jest analizą, a nie 5-sekundowym rachunkiem, chowa się
+                pod jednym przełącznikiem. Najpierw powody straty, potem jedno pytanie
+                pogłębione na ekran. */}
+            {showDeep && (
+                <>
+                    <DeepToggle type="button" aria-expanded={deepOpen} onClick={toggleDeep}>
+                        <span>Zajrzyj głębiej w te pieniądze</span>
+                        <ChevronDown className={deepOpen ? 'open' : undefined} />
+                    </DeepToggle>
+                    {deepOpen && (
+                        <>
+                            {data.leaks.length > 0 && (
+                                <LeakList
+                                    rows={data.leaks.map((leak) => ({
+                                        code: leak.code,
+                                        label: leak.label,
+                                        amount: formatMoney(leak.value),
+                                        raw: leak.value,
+                                        count: `${leak.count} ${conversationCount(leak.count)}`,
+                                    }))}
+                                    onPick={goLost}
+                                />
+                            )}
+                            <DeepHeading>
+                                <h2>Skąd się te pieniądze biorą</h2>
+                                <p>Materiał do przeczytania raz na jakiś czas. Jedno pytanie naraz.</p>
+                            </DeepHeading>
+                            <DeepRead data={data} monthly={monthly} />
+                        </>
+                    )}
+                </>
+            )}
         </>
     );
 }
@@ -1331,22 +1449,10 @@ function WhoPanel({ data }: { data: LeadAnalytics }) {
     );
 }
 
-/** „1 rozmowie", „3 rozmowach" - miejscownik, bo zdanie brzmi „w 11 rozmowach". */
-function conversationWord(count: number): string {
-    return count === 1 ? 'rozmowie' : 'rozmowach';
-}
-
 /** „1 rozmowa", „3 rozmowy", „11 rozmów" - mianownik, gdy liczba stoi sama. */
 function conversationCount(count: number): string {
     if (count === 1) return 'rozmowa';
     const rest = count % 10;
     const teens = count % 100;
     return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? 'rozmowy' : 'rozmów';
-}
-
-/** „czeka 1 dzień", „czeka 6 dni", „od dziś". */
-function dayWord(days: number): string {
-    if (days <= 0) return 'od dziś';
-    if (days === 1) return 'czeka 1 dzień';
-    return `czeka ${days} dni`;
 }

@@ -748,8 +748,8 @@ const StackPiece = styled.div<{
     width: 100%;
     border-radius: ${p => `${p.$top ? '5px 5px' : '0 0'} ${p.$bottom ? '5px 5px' : '0 0'}`};
     background: ${p => (
-        p.$kind === 'won' ? `linear-gradient(180deg, #3b82f6 0%, ${WON} 100%)`
-        : p.$kind === 'open' ? `linear-gradient(180deg, #dbe3ee 0%, ${OPEN} 100%)`
+        p.$kind === 'won' ? WON
+        : p.$kind === 'open' ? OPEN
         : p.$kind === 'silent' ? SILENT
         : 'transparent'
     )};
@@ -771,7 +771,7 @@ const StackPiece = styled.div<{
 export function MoneyLegend() {
     return (
         <Legend>
-            <span><i style={{ background: `linear-gradient(180deg, #3b82f6, ${WON})` }} /> zatrzymane</span>
+            <span><i style={{ background: WON }} /> zatrzymane</span>
             <span><i style={{ background: OPEN }} /> w grze</span>
             <span><i style={{ background: SILENT, border: '1px dashed #c3ccd8' }} /> ucichło</span>
             <span>
