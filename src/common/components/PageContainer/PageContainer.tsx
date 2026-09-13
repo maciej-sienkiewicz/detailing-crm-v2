@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import { pageGutter, pageWidthStyles, type PageWidth } from './pageWidth';
 
 /**
  * PageContainer — jedyne źródło prawdy o szerokości i marginesach strony.
@@ -53,26 +54,6 @@ import styled, { css } from 'styled-components';
  * komponentu.
  */
 
-export type PageWidth = 'standard' | 'narrow' | 'full';
-
-/** Docelowa maksymalna szerokość standardowego widoku treściowego. */
-export const PAGE_MAX_WIDTH = '1600px';
-
-/** Maksymalna szerokość wariantu wąskiego (self-service / formularze). */
-export const PAGE_NARROW_MAX_WIDTH = '640px';
-
-const widthStyles = {
-    standard: css`
-        max-width: ${PAGE_MAX_WIDTH};
-    `,
-    narrow: css`
-        max-width: ${PAGE_NARROW_MAX_WIDTH};
-    `,
-    full: css`
-        max-width: none;
-    `,
-} as const;
-
 interface PageContainerProps {
     /** Wariant szerokości. Domyślnie "standard". */
     $width?: PageWidth;
@@ -87,34 +68,24 @@ interface PageContainerProps {
 export const PageContainer = styled.main<PageContainerProps>`
     width: 100%;
     margin-inline: auto;
-    ${({ $width = 'standard' }) => widthStyles[$width]}
+    ${({ $width = 'standard' }) => pageWidthStyles[$width]}
 
     ${({ $noPadding }) =>
         !$noPadding &&
         css`
-            /* Jedna, wspólna skala paddingu dla całej aplikacji. Ten sam padding
-               POZIOMY (gutter) i PIONOWY (odstęp od góry) na każdym widoku =
-               nagłówek i treść zaczynają się w tym samym miejscu niezależnie od
-               tego, którą stronę otworzysz.
+            /* Wspólny gutter POZIOMY (pageGutter) + wspólny odstęp PIONOWY (od
+               góry) na każdym widoku = nagłówek i treść zaczynają się w tym samym
+               miejscu niezależnie od tego, którą stronę otworzysz.
 
                Padding-block bywa nadpisywany PRZEZ widok tylko od dołu
                (padding-block-end) - gdy widok ma przyklejoną stopkę akcji albo
                pasek zakładek i musi zostawić pod nie zapas. Górny odstęp zostaje
                wspólny, żeby nagłówek nie „skakał" w pionie. */
+            ${pageGutter}
             padding-block: ${(p) => p.theme.spacing.lg};
-            padding-inline: ${(p) => p.theme.spacing.md};
-
-            @media (min-width: ${(p) => p.theme.breakpoints.sm}) {
-                padding-inline: ${(p) => p.theme.spacing.lg};
-            }
 
             @media (min-width: ${(p) => p.theme.breakpoints.md}) {
                 padding-block: ${(p) => p.theme.spacing.xl};
-                padding-inline: ${(p) => p.theme.spacing.xl};
-            }
-
-            @media (min-width: ${(p) => p.theme.breakpoints.xl}) {
-                padding-inline: 48px;
             }
         `}
 `;

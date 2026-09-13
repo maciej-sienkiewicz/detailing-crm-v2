@@ -7,7 +7,7 @@ import { PiiValue } from '@/common/pii';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useBreakpoint } from '@/common/hooks';
 import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
-import { PAGE_MAX_WIDTH } from '@/common/components/PageContainer';
+import { PAGE_MAX_WIDTH, pageColumn } from '@/common/components/PageContainer';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
 import { useGallery } from '../hooks/useGallery';
@@ -31,9 +31,14 @@ const Page = styled.div`
 `;
 
 // Galeria jest pełnej wysokości (własne przewijanie siatki), ale poszczególne
-// pasma - nagłówek, pasek filtrów i siatka - trzymamy w tej samej kolumnie
-// szerokości co reszta aplikacji (PAGE_MAX_WIDTH), żeby widok nie był szerszy
-// niż pozostałe. Górny odstęp (padding lg/xl) pokrywa się ze wspólnym z PageContainer.
+// pasma trzymamy w tej samej kolumnie co reszta aplikacji.
+//
+// - Nagłówek i siatka używają `pageColumn` = DOKŁADNIE ten sam max-width I gutter
+//   co PageContainer (m.in. 48px na ekranach ≥1280px), żeby karta nagłówka i
+//   kafelki miały identyczne krawędzie jak na pozostałych widokach.
+// - Toolbary (pasek filtrów, paginacja) używają `centeredBand` = tylko max-width
+//   bez guttera, bo ich tło/obramowanie ma wypełnić całą kolumnę, a własny gutter
+//   dokłada ich wewnętrzna treść.
 const centeredBand = css`
     width: 100%;
     max-width: ${PAGE_MAX_WIDTH};
@@ -41,12 +46,13 @@ const centeredBand = css`
 `;
 
 const HeaderWrap = styled.div`
-    ${centeredBand}
-    padding: ${p => p.theme.spacing.lg};
+    ${pageColumn}
+    /* Górny odstęp taki jak wspólny padding-block PageContainera (lg → xl). */
+    padding-block: ${p => p.theme.spacing.lg};
     flex-shrink: 0;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: ${p => p.theme.spacing.xl};
+        padding-block: ${p => p.theme.spacing.xl};
     }
 `;
 
@@ -120,16 +126,16 @@ const ScrollArea = styled.div`
 // ─── grid ─────────────────────────────────────────────────────────────────────
 
 const Grid = styled.div`
-    ${centeredBand}
+    ${pageColumn}
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: ${p => p.theme.spacing.md};
-    padding: ${p => p.theme.spacing.lg};
+    padding-block: ${p => p.theme.spacing.lg};
 
     @media (max-width: 480px) {
         grid-template-columns: repeat(2, 1fr);
         gap: ${p => p.theme.spacing.sm};
-        padding: ${p => p.theme.spacing.md};
+        padding-block: ${p => p.theme.spacing.md};
     }
 `;
 
@@ -329,12 +335,12 @@ const Ellipsis = styled.span`
 // ─── empty / loading ──────────────────────────────────────────────────────────
 
 const EmptyState = styled.div`
-    ${centeredBand}
+    ${pageColumn}
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${p => p.theme.spacing.xxl};
+    padding-block: ${p => p.theme.spacing.xxl};
     color: ${p => p.theme.colors.textMuted};
     gap: ${p => p.theme.spacing.md};
     text-align: center;
@@ -367,16 +373,16 @@ const EmptyDesc = styled.p`
 `;
 
 const LoadingGrid = styled.div`
-    ${centeredBand}
+    ${pageColumn}
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: ${p => p.theme.spacing.md};
-    padding: ${p => p.theme.spacing.lg};
+    padding-block: ${p => p.theme.spacing.lg};
 
     @media (max-width: 480px) {
         grid-template-columns: repeat(2, 1fr);
         gap: ${p => p.theme.spacing.sm};
-        padding: ${p => p.theme.spacing.md};
+        padding-block: ${p => p.theme.spacing.md};
     }
 `;
 

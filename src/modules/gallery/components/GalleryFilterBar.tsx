@@ -2,14 +2,18 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import styled, { css } from 'styled-components';
+import { pageGutter } from '@/common/components/PageContainer';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 // ─── outer shell ──────────────────────────────────────────────────────────────
 
+// Tło paska wypełnia całą kolumnę (FilterWrap), a jego treść trzyma ten sam
+// gutter poziomy co nagłówek i siatka (pageGutter) - dzięki temu krawędzie
+// filtra pokrywają się z resztą widoku.
 const Bar = styled.div`
     display: flex;
     align-items: stretch;
-    padding: 0 ${p => p.theme.spacing.xl};
+    ${pageGutter}
     background: ${p => p.theme.colors.surface};
     border-bottom: 1px solid ${p => p.theme.colors.border};
     min-height: 72px;
@@ -17,7 +21,7 @@ const Bar = styled.div`
 
     @media (max-width: 768px) {
         flex-direction: column;
-        padding: ${p => p.theme.spacing.md};
+        padding-block: ${p => p.theme.spacing.md};
         gap: ${p => p.theme.spacing.sm};
         min-height: unset;
     }
