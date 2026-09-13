@@ -51,13 +51,7 @@ const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding-block: 16px;
     animation: ${fadeUp} 300ms ease both;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding-block: 32px;
-        gap: 20px;
-    }
 `;
 
 const WeeksBar = styled.div<{ $onLight?: boolean }>`

@@ -69,7 +69,6 @@ const ViewContainer = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.spacing.xl};
-  padding-block: ${p => p.theme.spacing.lg};
   animation: ${fadeUp} 300ms ease both;
 
   /* Na telefonie 32px miedzy sekcjami to byl pusty ekran do przewijania,
@@ -77,11 +76,6 @@ const ViewContainer = styled(PageContainer)`
      sie same. Odstepy schodza do wysokosci jednego wiersza tekstu. */
   @media (max-width: 767px) {
     gap: 14px;
-    padding-block: 12px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-block: ${p => p.theme.spacing.xl};
   }
 `;
 

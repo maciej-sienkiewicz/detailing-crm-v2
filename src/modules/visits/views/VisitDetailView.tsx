@@ -82,17 +82,18 @@ const ViewContainer = styled.div`
 const ContentArea = styled(PageContainer)`
     flex: 1;
     min-width: 0;
-    padding-block: 20px 40px;
+    /* Górny odstęp jest wspólny (z PageContainer); tu tylko dolny zapas. */
+    padding-block-end: 40px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding-block: 24px 48px;
+        padding-block-end: 48px;
     }
 
     @media (max-width: 767px) {
         /* Bottom clearance = nav height + home-indicator inset, so the last card
            is never parked under the tab bar. */
         /* Zapas na zakładki sekcji; pasek globalny i safe-area dokłada Layout. */
-        padding-block: 14px 84px;
+        padding-block-end: 84px;
     }
 `;
 

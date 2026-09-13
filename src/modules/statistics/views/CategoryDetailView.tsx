@@ -18,15 +18,6 @@ const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.xl};
-    padding-block: ${props => props.theme.spacing.lg};
-
-    @media (max-width: 639px) {
-        padding-block: ${props => props.theme.spacing.md};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding-block: ${props => props.theme.spacing.xl};
-    }
 `;
 
 const BackButton = styled.button`

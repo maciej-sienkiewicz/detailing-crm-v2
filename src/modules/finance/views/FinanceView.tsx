@@ -36,16 +36,7 @@ const ViewContainer = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: ${(p) => p.theme.spacing.xl};
-  padding-block: ${(p) => p.theme.spacing.lg};
   animation: ${fadeUp} 300ms ease both;
-
-  @media (max-width: 639px) {
-    padding-block: ${(p) => p.theme.spacing.md};
-  }
-
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    padding-block: ${(p) => p.theme.spacing.xl};
-  }
 `;
 
 // ─── Hero: wyciągnięty do PageHeader w common/components ─────────────────────

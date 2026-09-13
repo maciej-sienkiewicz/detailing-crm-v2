@@ -25,15 +25,6 @@ const PageBody = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding-block: 24px;
-
-    @media (min-width: 768px) {
-        padding-block: 32px;
-    }
-
-    @media (min-width: 1280px) {
-        padding-block: 36px;
-    }
 `;
 
 const SubtitleLink = styled.button`

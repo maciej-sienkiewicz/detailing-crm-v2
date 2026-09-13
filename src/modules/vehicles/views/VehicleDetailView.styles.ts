@@ -30,18 +30,18 @@ export const ViewContainer = styled.div`
   animation: ${fadeIn} 0.25s ease both;
 `;
 
-// Szerokość (1600px), wyśrodkowanie i poziomy gutter dostarcza PageContainer;
-// tu zostaje tylko pionowy padding (w tym zapas pod przyklejony pasek zakładek).
+// Szerokość (1600px), wyśrodkowanie, poziomy gutter i GÓRNY odstęp dostarcza
+// PageContainer; tu zostaje tylko DOLNY zapas pod przyklejony pasek zakładek.
 export const PageContent = styled(PageContainer)`
-  padding-block: 20px 56px;
+  padding-block-end: 56px;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-block: 28px 64px;
+    padding-block-end: 64px;
   }
 
   /* Zapas na pasek zakładek sekcji; pasek globalny i safe-area dokłada Layout. */
   @media (max-width: 767px) {
-    padding-block: 16px 84px;
+    padding-block-end: 84px;
   }
 `;
 

@@ -32,10 +32,6 @@ export const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding-block: ${p => p.theme.spacing.md};
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding-block: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding-block: ${p => p.theme.spacing.xxl}; }
 `;
 
 /** @deprecated Nazwa z poprzedniego układu - zostaje, żeby nie przepisywać importów naraz. */

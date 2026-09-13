@@ -100,16 +100,11 @@ export const ConsentSettingsView = () => {
     );
 };
 
-// Pełnoekranowe tło + pionowy oddech. Poziomy gutter i szerokość dostarcza
+// Pełnoekranowe tło. Szerokość, gutter i pionowy odstęp dostarcza
 // ContentWrapper (PageContainer).
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${(props) => props.theme.colors.background};
-    padding-block: ${(props) => props.theme.spacing.lg};
-
-    @media (max-width: ${(props) => props.theme.breakpoints.sm}) {
-        padding-block: ${(props) => props.theme.spacing.md};
-    }
 `;
 
 const ContentWrapper = styled(PageContainer)``;

@@ -16,21 +16,12 @@ import {LoadingSkeleton} from "@/modules/appointments/components/common";
 import { SmsNotificationsSection } from '../components/SmsNotificationsSection';
 import { RecurrenceSection } from '../components/RecurrenceSection';
 
-// Pełnoekranowe tło + pionowy oddech strony. Poziomy gutter i szerokość
-// dostarcza ContentWrapper (PageContainer), więc tu tylko padding-block.
+// Pełnoekranowe tło. Szerokość, gutter i pionowy odstęp dostarcza
+// ContentWrapper (PageContainer).
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
     ${hexBackdrop}
-    padding-block: ${props => props.theme.spacing.lg};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding-block: ${props => props.theme.spacing.xl};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        padding-block: ${props => props.theme.spacing.xxl};
-    }
 `;
 
 const ContentWrapper = styled(PageContainer)``;

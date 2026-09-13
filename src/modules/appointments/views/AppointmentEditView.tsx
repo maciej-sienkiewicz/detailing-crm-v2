@@ -56,26 +56,24 @@ const DetachedBadge = styled.span`
     flex-shrink: 0;
 `;
 
-// Pełnoekranowe tło + pionowy oddech (w tym duży zapas pod przyklejoną stopkę).
-// Poziomy gutter i szerokość dostarcza ContentWrapper (PageContainer).
+// Pełnoekranowe tło. Szerokość, gutter i górny odstęp dostarcza ContentWrapper
+// (PageContainer); tu zostaje tylko tło.
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
     ${hexBackdrop}
-    /* Miejsce na przyklejoną stopkę (StickyFooter) - więcej na mobile, bo
-       przyciski są tam pełnej szerokości, jeden nad drugim. */
-    padding-block: ${props => props.theme.spacing.lg} 140px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding-block: ${props => props.theme.spacing.xl} 120px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        padding-block: ${props => props.theme.spacing.xxl} 120px;
-    }
 `;
 
-const ContentWrapper = styled(PageContainer)``;
+// Górny odstęp jest wspólny (z PageContainer), a od dołu zostawiamy duży zapas
+// pod przyklejoną stopkę (StickyFooter) - więcej na mobile, bo przyciski są tam
+// pełnej szerokości, jeden nad drugim.
+const ContentWrapper = styled(PageContainer)`
+    padding-block-end: 140px;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding-block-end: 120px;
+    }
+`;
 
 const Header = styled.div`
     display: flex;
