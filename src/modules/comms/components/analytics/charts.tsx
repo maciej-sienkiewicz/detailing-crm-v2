@@ -569,10 +569,15 @@ const MatrixGrid = styled.div`
 const MatrixScroll = styled.div`
     overflow-x: auto;
     /* Macierz nie skaluje się w dół bez utraty czytelności - siedem kolumn poniżej
-       620px daje kratki, w których nie mieści się liczba. Na telefonie przewija
+       620px daje kratki, w których nie mieści się liczba. W wąskim panelu przewija
        się w bok, tak jak tabela. */
     margin: 0 -4px;
-    padding: 0 4px;
+    padding: 0 4px 6px 4px;
+    /* Delikatne zgaszenie prawej krawędzi mówi „to się przewija w bok". Gdy macierz
+       mieści się w całości (szeroki panel), prawa krawędź jest pusta i maska nic nie
+       zmienia; gdy nie mieści się - gaśnie treść i widać, że jest coś dalej. */
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
 `;
 
 const MatrixHead = styled.span`

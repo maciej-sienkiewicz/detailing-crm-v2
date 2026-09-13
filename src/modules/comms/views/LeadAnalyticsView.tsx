@@ -117,7 +117,9 @@ const EmbeddedShell = styled.div`
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    background: ${p => p.theme.colors.surface};
+    /* Szara podłoga aplikacji, nie biel: dopiero na niej białe karty czytają się
+       jako uniesione powierzchnie, a nie jako płaskie prostokąty na bieli. */
+    background: ${p => p.theme.colors.background};
 `;
 
 /**
@@ -126,25 +128,31 @@ const EmbeddedShell = styled.div`
  */
 const EmbeddedHeader = styled.header`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 12px 16px;
     flex-wrap: wrap;
     flex-shrink: 0;
-    padding: 18px 20px 12px 20px;
+    padding: 18px 22px 16px 22px;
+    background: ${p => p.theme.colors.background};
+    border-bottom: 1px solid ${st.border};
 
     h2 {
         margin: 0;
-        font-size: 22px;
+        font-size: 21px;
         font-weight: ${p => p.theme.fontWeights.bold};
         letter-spacing: -0.02em;
-        line-height: 1.1;
+        line-height: 1.15;
         color: ${st.text};
     }
     p {
-        margin: 3px 0 0 0;
-        font-size: 13px;
-        color: ${st.textSecondary};
+        margin: 2px 0 0 0;
+        font-size: 12.5px;
+        color: ${st.textMuted};
+    }
+    /* Blok tytułu może się kurczyć, żeby wybór okresu nie był spychany poza panel. */
+    & > div:first-child {
+        min-width: 0;
     }
 `;
 
@@ -157,6 +165,16 @@ const EmbeddedBody = styled.div`
     flex-direction: column;
     gap: 22px;
     padding: 4px 20px 40px 20px;
+
+    /*
+     * KLUCZOWE: w kolumnie flex o ustalonej wysokości dzieci domyślnie się KURCZĄ
+     * (flex-shrink: 1), więc karty z overflow:hidden (zdanie-bohater) były ściskane
+     * do jednej linijki i gubiły kwotę. W przewijanym panelu każda sekcja ma
+     * zachować swoją naturalną wysokość, a nadmiar oddać do przewijania.
+     */
+    & > * {
+        flex-shrink: 0;
+    }
 `;
 
 /**
@@ -295,11 +313,8 @@ const DeepHeading = styled.div`
  */
 const Tabs = styled.div`
     display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+    flex-wrap: wrap;
+    gap: 6px;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
@@ -643,7 +658,7 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
                         <h2>Pieniądze w zapytaniach</h2>
                         <p>Rachunek za {period.label}</p>
                     </div>
-                    <PeriodPicker value={period} onChange={setPeriod} />
+                    <PeriodPicker value={period} onChange={setPeriod} variant="light" />
                 </EmbeddedHeader>
                 <EmbeddedBody>{body}</EmbeddedBody>
             </EmbeddedShell>
