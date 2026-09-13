@@ -6,25 +6,23 @@ import { ProtocolRuleCard } from '../components/ProtocolRuleCard';
 import { ProtocolTemplateModal } from '../components/ProtocolTemplateModal';
 import { ProtocolRuleModal } from '../components/ProtocolRuleModal';
 import { EmptyState } from '@/common/components/EmptyState';
+import { PageContainer } from '@/common/components/PageContainer';
 import type { ProtocolRule, ProtocolStage } from '../types';
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.lg};
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: ${props => props.theme.spacing.lg};
     background: rgb(248, 250, 252); // bg-slate-50
     ${hexBackdrop}
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
+        padding-block: ${props => props.theme.spacing.xl};
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: ${props => props.theme.spacing.xxl};
+        padding-block: ${props => props.theme.spacing.xxl};
     }
 `;
 

@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { usePermissions } from '@/core/permissions';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AccessRequirement } from '@/core/permissions';
@@ -129,19 +130,18 @@ const SECTION_HELP: Partial<Record<SectionId, HelpContent>> = {
 
 // ─── Styled components ───────────────────────────────────────────────────────
 
-const Page = styled.div`
+// Landmarkiem <main> jest tu wewnętrzny Content (panel ustawień), więc ten
+// zewnętrzny kontener renderujemy jako <div> (patrz `as="div"` w JSX).
+const Page = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 22px;
-    padding: 22px 28px 80px;
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: 22px 80px;
     min-width: 0;
 
     @media (max-width: 900px) {
         gap: 14px;
-        padding: 14px 12px 40px;
+        padding-block: 14px 40px;
     }
 `;
 
@@ -483,7 +483,7 @@ export function SettingsView() {
     }
 
     return (
-        <Page>
+        <Page as="div">
             <PageHeader
                 title="Ustawienia"
                 subtitle="Konfiguracja studia, automatyzacji i konta."

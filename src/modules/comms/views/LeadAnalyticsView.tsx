@@ -57,6 +57,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
@@ -93,17 +94,14 @@ import {
     points,
 } from '../components/analytics/tokens';
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 22px;
-    padding: ${p => p.theme.spacing.md};
-    max-width: 1180px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: ${p => p.theme.spacing.md};
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding-block: ${p => p.theme.spacing.xl}; }
+    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding-block: ${p => p.theme.spacing.xxl}; }
 `;
 
 /**

@@ -21,26 +21,33 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CustomerAdvancedFilters, CustomerSortField, SortDirection } from '../types';
 import { Users } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageContainer } from '@/common/components/PageContainer';
 
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 24px;
+// Tło i hexBackdrop sięgają od krawędzi do krawędzi (pełna szerokość obszaru
+// treści); o szerokość i wyśrodkowanie samej treści dba PageContainer poniżej.
+// To wrapper prezentacyjny (div) - landmarkiem <main> jest PageBody.
+const ViewContainer = styled.div`
     min-height: 100vh;
     background: ${st.bg};
     ${hexBackdrop}
+`;
+
+const PageBody = styled(PageContainer)`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-block: 24px;
 
     @media (max-width: 639px) {
-        padding: 16px;
+        padding-block: 16px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 32px;
+        padding-block: 32px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: 40px 48px;
+        padding-block: 40px;
     }
 `;
 
@@ -362,6 +369,7 @@ export const CustomerListView = () => {
 
     return (
         <ViewContainer>
+            <PageBody>
             {isDesktopHeader ? (
                 <PageHeader
                     title={t.customers.title}
@@ -505,6 +513,7 @@ export const CustomerListView = () => {
                 }}
                 onCancel={() => setPendingDeleteId(null)}
             />
+            </PageBody>
         </ViewContainer>
     );
 };

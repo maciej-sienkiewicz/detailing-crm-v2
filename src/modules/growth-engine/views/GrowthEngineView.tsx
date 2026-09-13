@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { ge } from '../components/GrowthEngineTheme';
 import { ContextHeader } from '../components/ContextHeader';
 import { SeasonalityPulse } from '../components/SeasonalityPulse';
@@ -7,13 +8,10 @@ import { useGrowthEngine } from '../hooks';
 
 // ─── Layout ──────────────────────────────────────────────────────
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1440px;
-  margin: 0 auto;
-  width: 100%;
 `;
 
 const ErrorCard = styled.div`

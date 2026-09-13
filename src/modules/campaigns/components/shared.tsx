@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Repeat, Send } from 'lucide-react';
+import { PageContainer } from '@/common/components/PageContainer';
 import { KIND_DESCRIPTIONS, KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '../constants';
 import type { CampaignKind, CampaignStatus } from '../types';
 
@@ -26,18 +27,15 @@ export {
 
 // ─── Layout strony ────────────────────────────────────────────────────────────
 
-/** Ten sam kontener, co w widoku leadów i w statystykach. */
-export const ViewContainer = styled.main`
+/** Ten sam kontener szerokości, co w pozostałych widokach (PageContainer). */
+export const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: ${p => p.theme.spacing.md};
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: ${p => p.theme.spacing.md};
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding-block: ${p => p.theme.spacing.xl}; }
+    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding-block: ${p => p.theme.spacing.xxl}; }
 `;
 
 /** @deprecated Nazwa z poprzedniego układu - zostaje, żeby nie przepisywać importów naraz. */

@@ -1,6 +1,7 @@
 // src/modules/appointments/views/AppointmentEditView.tsx
 
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -55,30 +56,26 @@ const DetachedBadge = styled.span`
     flex-shrink: 0;
 `;
 
+// Pełnoekranowe tło + pionowy oddech (w tym duży zapas pod przyklejoną stopkę).
+// Poziomy gutter i szerokość dostarcza ContentWrapper (PageContainer).
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
     ${hexBackdrop}
-    padding: ${props => props.theme.spacing.lg};
     /* Miejsce na przyklejoną stopkę (StickyFooter) - więcej na mobile, bo
        przyciski są tam pełnej szerokości, jeden nad drugim. */
-    padding-bottom: 140px;
+    padding-block: ${props => props.theme.spacing.lg} 140px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
-        padding-bottom: 120px;
+        padding-block: ${props => props.theme.spacing.xl} 120px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        padding: ${props => props.theme.spacing.xxl};
-        padding-bottom: 120px;
+        padding-block: ${props => props.theme.spacing.xxl} 120px;
     }
 `;
 
-const ContentWrapper = styled.div`
-    max-width: 1100px;
-    margin: 0 auto;
-`;
+const ContentWrapper = styled(PageContainer)``;
 
 const Header = styled.div`
     display: flex;
