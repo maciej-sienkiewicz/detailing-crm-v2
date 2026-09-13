@@ -20,11 +20,13 @@ import type { Lead } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
 import { formatMoney } from './shared';
 
-const Card = styled.div<{ $tone: ReplyTone; $active: boolean }>`
+const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>`
     position: relative;
     display: flex;
     align-items: stretch;
-    min-height: 88px;
+    /* Gęściej na desktopie (panel obok kolejki, mysz), luźniej na telefonie
+       (jedna ręka, rękawica) - stąd wysokość zależna od gęstości, nie stała. */
+    min-height: ${p => (p.$dense ? '72px' : '88px')};
     background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
     border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
     transition: background ${p => p.theme.transitions.fast};
@@ -53,13 +55,13 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean }>`
 `;
 
 /** Cały obszar karty poza przyciskiem otwiera szczegóły. */
-const OpenArea = styled.button`
+const OpenArea = styled.button<{ $dense: boolean }>`
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: 14px 0 14px 17px;
+    gap: ${p => (p.$dense ? '2px' : '3px')};
+    padding: ${p => (p.$dense ? '11px 0 11px 16px' : '14px 0 14px 17px')};
     border: none;
     background: transparent;
     text-align: left;
@@ -153,6 +155,14 @@ const ActionSlot = styled.div`
  * Cel dotykowy 48x48 - minimum, przy którym da się trafić w rękawicy nitrylowej.
  * Bez gestów: swipe w mokrym ekranie wykonuje się sam, a przerwany w połowie
  * nie zostawia śladu, po którym dałoby się poznać, czy zadziałał.
+ *
+ * WAGA WIZUALNA, nie tylko cel dotykowy. Pełny niebieski kafel na KAŻDYM wierszu
+ * kolejki (bo w „Twoim ruchu" każda sprawa czeka na akcję) robił z listy kolumnę
+ * krzyczących kwadratów - gdy wszystko jest wyróżnione, nic nie jest. Akcja główna
+ * jest teraz delikatnym kaflem w kolorze marki z kolorową ikoną: widać, że to
+ * przycisk, ale nie zabiera uwagi treści. Pełny kolor pojawia się dopiero pod
+ * kursorem/dotknięciem. Pilność niesie pasek przy krawędzi i etykieta wieku,
+ * nie przycisk.
  */
 const ActionButton = styled.a<{ $emphasis: 'primary' | 'quiet' }>`
     display: inline-flex;
@@ -165,15 +175,24 @@ const ActionButton = styled.a<{ $emphasis: 'primary' | 'quiet' }>`
     text-decoration: none;
     transition: all ${p => p.theme.transitions.fast};
 
-    background: ${({ $emphasis, theme }) =>
-        $emphasis === 'primary' ? theme.colors.primary : theme.colors.surface};
+    background: ${({ $emphasis }) =>
+        $emphasis === 'primary'
+            ? 'color-mix(in srgb, var(--brand-primary) 12%, #ffffff)'
+            : '#ffffff'};
     border: 1px solid ${({ $emphasis, theme }) =>
-        $emphasis === 'primary' ? 'transparent' : theme.colors.border};
-    color: ${({ $emphasis, theme }) => ($emphasis === 'primary' ? '#ffffff' : theme.colors.textSecondary)};
+        $emphasis === 'primary'
+            ? 'color-mix(in srgb, var(--brand-primary) 22%, #ffffff)'
+            : theme.colors.border};
+    color: ${({ $emphasis, theme }) =>
+        $emphasis === 'primary' ? 'var(--brand-primary)' : theme.colors.textSecondary};
 
     &:hover {
         background: ${({ $emphasis, theme }) =>
-            $emphasis === 'primary' ? '#0284c7' : theme.colors.surfaceHover};
+            $emphasis === 'primary' ? 'var(--brand-primary)' : theme.colors.surfaceHover};
+        border-color: ${({ $emphasis, theme }) =>
+            $emphasis === 'primary' ? 'transparent' : theme.colors.border};
+        color: ${({ $emphasis, theme }) =>
+            $emphasis === 'primary' ? '#ffffff' : theme.colors.text};
     }
 
     svg { width: 18px; height: 18px; }
@@ -190,12 +209,14 @@ interface LeadQueueCardProps {
     lead: Lead;
     urgency: LeadUrgency;
     active: boolean;
+    /** Gęstszy układ (niższa karta, ciaśniejsze odstępy) - desktop z panelem obok. */
+    dense?: boolean;
     onOpen: () => void;
     /** Wykonanie akcji innej niż `tel:` - te wychodzą linkiem, bez pośrednictwa CRM. */
     onAction: (action: LeadPrimaryAction) => void;
 }
 
-export function LeadQueueCard({ lead, urgency, active, onOpen, onAction }: LeadQueueCardProps) {
+export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen, onAction }: LeadQueueCardProps) {
     const action = leadPrimaryAction(lead, urgency);
     const vehicle = formatVehicle(lead);
     const person = lead.customerName ?? lead.contactIdentifier;
@@ -208,8 +229,8 @@ export function LeadQueueCard({ lead, urgency, active, onOpen, onAction }: LeadQ
     const subtitle = vehicle ? person : lead.customerName ? lead.contactIdentifier : null;
 
     return (
-        <Card $tone={urgency.tone} $active={active}>
-            <OpenArea type="button" onClick={onOpen}>
+        <Card $tone={urgency.tone} $active={active} $dense={dense}>
+            <OpenArea type="button" $dense={dense} onClick={onOpen}>
                 <Line>
                     <Headline>
                         {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}

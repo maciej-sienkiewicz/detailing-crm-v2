@@ -289,6 +289,46 @@ const ActionStrip = styled.button`
 `;
 
 /**
+ * Zastępuje zdanie-bohatera, gdy w okresie nic jeszcze nie zamknięto, A panel stoi
+ * OBOK kolejki (desktop). Kwotę „w toku" pokazuje już pasek nad kolejką po lewej -
+ * powtórzenie jej tutaj wielką liczbą to ta sama informacja w dwóch panelach naraz.
+ * Analityka jest rachunkiem OKRESU (co zamknięto), a nie kopią kolejki, więc bez
+ * wygranej mówi to wprost i odsyła do kolejki, zamiast dublować jej liczbę.
+ */
+const PipelineCoach = styled.section`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-left: 3px solid ${st.accentBlue};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        letter-spacing: -0.01em;
+        color: ${st.text};
+    }
+    p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+        color: ${st.textSecondary};
+        max-width: 54ch;
+    }
+    .reward {
+        margin-top: 8px;
+        font-size: 13px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: #047857;
+    }
+`;
+
+/**
  * Granica między „dziś" a „przy okazji". Szczegóły są domyślnie zwinięte: większość
  * wejść to szybki rzut oka na pieniądze, a nie studiowanie wykresów. Kto chce, rozwija
  * - i stan tego wyboru zostaje zapamiętany.
@@ -496,7 +536,20 @@ function Report({
                     rewardNote={rewardNote}
                     note={deltaNote}
                 />
+            ) : embedded ? (
+                // Panel obok kolejki: kwotę „w toku" pokazuje już pasek nad kolejką,
+                // więc nie dublujemy jej wielką liczbą - mówimy wprost i odsyłamy tam.
+                <PipelineCoach>
+                    <h3>Jeszcze nic nie zamknięte w tym okresie</h3>
+                    <p>
+                        Pieniądze w toku masz w kolejce obok. Domknij pierwszą sprawę,
+                        a pojawi się tu Twój przychód.
+                    </p>
+                    {reward && <span className="reward">{reward}</span>}
+                </PipelineCoach>
             ) : (
+                // Pełny ekran (bez kolejki obok): kwota „w toku" jest tu jedyna, więc
+                // pokazujemy ją jako liczbę - nie ma czego dublować.
                 <Hero
                     accent="pipeline"
                     lead="W toku w tym okresie"
