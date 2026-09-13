@@ -83,7 +83,9 @@ const HeroAmount = styled.strong`
     font-weight: ${p => p.theme.fontWeights.bold};
     letter-spacing: -0.03em;
     color: ${p => p.theme.colors.text};
-    font-variant-numeric: tabular-nums;
+    /* Cyfry proporcjonalne, nie tabelaryczne: pojedyncza duża kwota czyta się
+       zwarciej, gdy „1" jest węższe. Tabelaryczne zostawiamy tam, gdzie liczby
+       stoją w kolumnie jedna pod drugą (belka rachunku, oś wykresu). */
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
         font-size: 38px;
@@ -113,7 +115,7 @@ const HeroFoot = styled.div`
 
 const HeroNote = styled.span`
     font-size: 12.5px;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textSecondary};
 `;
 
 /**
@@ -152,7 +154,7 @@ const HeroReward = styled.p`
 const HeroRewardNote = styled.span`
     margin: 5px 0 0;
     font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textSecondary};
 `;
 
 interface HeroProps {
@@ -200,14 +202,14 @@ const LedgerBox = styled.section`
     }
 `;
 
-/** Nagłówek karty w języku modułu statystyk: mały, wersalikami, wygaszony. */
+/** Nagłówek karty w języku modułu statystyk: mały, wersalikami, kontrastowy. */
 const LedgerTitle = styled.h3`
     margin: 0;
     font-size: ${st.fontXs};
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
-    color: ${st.textMuted};
+    color: ${st.textSecondary};
 `;
 
 const LedgerTotal = styled.p`
@@ -224,7 +226,7 @@ const LedgerTotal = styled.p`
         font-size: 12.5px;
         font-weight: ${p => p.theme.fontWeights.normal};
         letter-spacing: 0;
-        color: ${st.textMuted};
+        color: ${st.textSecondary};
         margin-top: 2px;
     }
 `;
@@ -302,7 +304,14 @@ const Keys = styled.div`
     display: flex;
     gap: 3px;
 
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    /*
+     * Próg mierzony SZEROKOŚCIĄ PANELU, nie okna. Ten sam widok stoi raz jako
+     * wąski panel (~600px) w szerokim oknie desktopu, raz jako pełny ekran - zapytanie
+     * @media patrzyło na okno i w wąskim panelu na desktopie nigdy nie przełączało
+     * układu, więc cztery duże kwoty zderzały się w jednym rzędzie. @container patrzy
+     * na własną szerokość: gdy jest ciasno, etykiety schodzą w pion (nazwa: kwota).
+     */
+    @container (max-width: 600px) {
         flex-direction: column;
         gap: 10px;
     }
@@ -326,17 +335,16 @@ const Key = styled.div<{ $clickable?: boolean }>`
         align-items: center;
         gap: 6px;
         font-size: 12.5px;
-        color: ${p => p.theme.colors.textMuted};
+        color: ${st.textSecondary};
     }
     .amount {
         display: inline-flex;
         align-items: center;
         gap: 4px;
         /* Jedna linia zawsze: kwota złamana na „125 800" i „zł" czyta się jak dwie
-           liczby. Rozmiar dobrany tak, żeby cztery kwoty zmieściły się w rzędzie
-           w wąskim panelu bez zderzania się z sąsiadem. */
+           liczby. */
         white-space: nowrap;
-        font-size: 17px;
+        font-size: 18px;
         font-weight: ${p => p.theme.fontWeights.bold};
         color: ${st.text};
         font-variant-numeric: tabular-nums;
@@ -351,7 +359,7 @@ const Key = styled.div<{ $clickable?: boolean }>`
     }
     &:hover .amount svg { opacity: 1; transform: translateX(2px); }
 
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    @container (max-width: 600px) {
         flex-direction: row;
         align-items: baseline;
         justify-content: space-between;
@@ -398,24 +406,24 @@ export function MoneyLedger({ total, kept, inPlay, silent, gone, delta }: Ledger
 
     return (
         <LedgerBox>
-            <LedgerTitle>Rachunek zapytań</LedgerTitle>
+            <LedgerTitle>Wartość zapytań</LedgerTitle>
             <LedgerTotal>
                 {total}
-                <span>tyle pieniędzy przeszło przez Twoje drzwi w tym okresie</span>
+                <span>łącznie w tym okresie</span>
             </LedgerTotal>
 
             <Bar aria-hidden>
                 {kept.raw > 0 && (
-                    <Kept style={{ width: share(kept.raw) }} title={`Zatrzymałeś ${kept.amount}`} />
+                    <Kept style={{ width: share(kept.raw) }} title={`Zamknięte ${kept.amount}`} />
                 )}
                 {inPlay.raw > 0 && (
-                    <InPlay style={{ width: share(inPlay.raw) }} title={`Wciąż w grze ${inPlay.amount}`} />
+                    <InPlay style={{ width: share(inPlay.raw) }} title={`W toku ${inPlay.amount}`} />
                 )}
                 {silent.raw > 0 && (
                     <Silent style={{ width: share(silent.raw) }} title={`Ucichło ${silent.amount}`} />
                 )}
                 {gone.raw > 0 && (
-                    <Gone style={{ width: share(gone.raw) }} title={`Poszło do konkurencji ${gone.amount}`} />
+                    <Gone style={{ width: share(gone.raw) }} title={`Stracone ${gone.amount}`} />
                 )}
             </Bar>
 
@@ -426,7 +434,7 @@ export function MoneyLedger({ total, kept, inPlay, silent, gone, delta }: Ledger
                 odcinek nie ścisnął etykiety do wielokropka. */}
             <Keys>
                 <Key as="div" style={{ flex: `1 1 ${share(kept.raw)}`, minWidth: 120 }}>
-                    <span className="name"><Swatch $kind="kept" /> Zatrzymałeś</span>
+                    <span className="name"><Swatch $kind="kept" /> Zamknięte</span>
                     <span className="amount">{kept.amount}</span>
                 </Key>
                 <Key
@@ -436,7 +444,7 @@ export function MoneyLedger({ total, kept, inPlay, silent, gone, delta }: Ledger
                     onClick={inPlay.onClick}
                     style={{ flex: `1 1 ${share(inPlay.raw)}`, minWidth: 120 }}
                 >
-                    <span className="name"><Swatch $kind="play" /> Wciąż w grze</span>
+                    <span className="name"><Swatch $kind="play" /> W toku</span>
                     <span className="amount">
                         {inPlay.amount}
                         {inPlay.onClick && <ChevronRight />}
@@ -462,9 +470,9 @@ export function MoneyLedger({ total, kept, inPlay, silent, gone, delta }: Ledger
                     type={gone.onClick ? 'button' : undefined}
                     $clickable={Boolean(gone.onClick)}
                     onClick={gone.onClick}
-                    style={{ flex: `1 1 ${share(gone.raw)}`, minWidth: 150 }}
+                    style={{ flex: `1 1 ${share(gone.raw)}`, minWidth: 120 }}
                 >
-                    <span className="name"><Swatch $kind="gone" /> Poszło do konkurencji</span>
+                    <span className="name"><Swatch $kind="gone" /> Stracone</span>
                     <span className="amount">
                         {gone.amount}
                         {gone.onClick && <ChevronRight />}
@@ -497,7 +505,7 @@ const LeakTitle = styled.h3`
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
-    color: ${st.textMuted};
+    color: ${st.textSecondary};
 `;
 
 const LeakRow = styled.button`
@@ -550,7 +558,7 @@ const LeakRow = styled.button`
         display: block;
         font-size: 11.5px;
         font-weight: ${p => p.theme.fontWeights.normal};
-        color: ${p => p.theme.colors.textMuted};
+        color: ${st.textSecondary};
     }
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -570,7 +578,8 @@ const LeakTrack = styled.div`
 const LeakFill = styled.div`
     height: 100%;
     border-radius: 5px;
-    background: linear-gradient(180deg, #ef4444 0%, ${LOST} 100%);
+    /* Płaskie wypełnienie, jak reszta znaków danych - żadnego pionowego gradientu. */
+    background: ${LOST};
 `;
 
 interface LeakListProps {
@@ -591,7 +600,7 @@ export function LeakList({ rows, onPick }: LeakListProps) {
     const max = Math.max(1, ...rows.map(r => r.raw));
     return (
         <LeakBox>
-            <LeakTitle>Dlaczego utraciliśmy te pieniądze</LeakTitle>
+            <LeakTitle>Powody straconych zleceń</LeakTitle>
             {rows.map((row) => (
                 <LeakRow key={row.code} type="button" onClick={() => onPick?.(row.code)}>
                     <span className="name">{row.label}</span>

@@ -1,74 +1,32 @@
 // src/modules/comms/views/LeadAnalyticsView.tsx
-// Analityka leadów jako rachunek pieniędzy, nie jako raport ze wskaźnikami.
+// Analityka leadów jako RACHUNEK PIENIĘDZY, nie raport ze wskaźnikami.
 //
-// ── Dlaczego nie ma tu ani jednego procentu na pierwszym ekranie ────────────
+// ── Dlaczego tak mało ──────────────────────────────────────────────────────
 //
-// Właściciel studia myśli w złotówkach. Procent wymaga tłumaczenia na pieniądze,
-// zanim cokolwiek znaczy, i nie ma skali odniesienia: „skuteczność 41%" to ocena
-// szkolna bez kryteriów. Przy rozrzucie wartości zleceń od czterystu złotych do
-// dwunastu tysięcy procent dodatkowo kłamie - miesiąc z dziesięcioma przegranymi
-// praniami tapicerki i jedną wygraną powłoką ceramiczną to dziewięć procent
-// konwersji i bardzo dobry miesiąc.
-//
-// ── Front, a pod nim „dla ciekawskiego" ────────────────────────────────────
-//
-// Ten panel jest RACHUNKIEM za okres, nie listą zadań. Liczba „czeka na Twoją
-// odpowiedź" wyprowadziła się stąd do kolejki obok (pasek nad listą spraw) i to
-// ona jest jej jedynym źródłem - trzy powierzchnie liczące tę samą kwotę trzema
-// regułami zgłaszały trzy różne wyniki. Tu zostaje dolna linia rachunku.
+// Właściciel studia detailingowego dostaje 60–110 zapytań miesięcznie, o cenach
+// od trzystu złotych po dziesięć tysięcy. Przy tym wolumenie prawie każdy wykres
+// rozkładu i skuteczności - macierz dni tygodnia, słupki wygrane/przegrane po
+// usłudze, skuteczność po segmencie auta, po kanale, po czasie odpowiedzi - to
+// szum: trzy-pięć rozstrzygniętych rozmów na słupek, gdzie jedno zlecenie
+// przewraca wynik. Taki wykres wygląda na dane, a niesie przypadek. Dlatego ich
+// tu nie ma. Zostało to, na czym da się podjąć decyzję, i wszystko w złotówkach.
 //
 // FRONT (widać od razu, ~1 ekran, bez klikania):
-// 1. Zdanie-bohater: ile pieniędzy ZATRZYMAŁEŚ w tym okresie (wonValue). Zielona
-//    krawędź, nie czerwona - to jest fakt, nie alarm. Pod spodem zielona nagroda
-//    za bieżący tydzień (jedyna liczba, która rusza się między wizytami) i - dopiero
-//    przy większym wolumenie - kierunek względem poprzedniego okresu. Świeże studio
-//    bez ani jednej wygranej dostaje tu „w grze", nigdy demotywujące 0 zł.
-// 2. Rachunek zapytań: jedna belka pieniędzy, które przeszły przez drzwi.
-// 3. Jedno działanie: odzyskaj pieniądze, które ucichły - zanim ostygną na dobre.
+//  1. Ile ZAMKNĄŁEŚ w tym okresie - jedna duża kwota (wonValue). Zielona krawędź:
+//     to fakt, nie alarm. Świeże studio bez wygranej dostaje „w toku", nie 0 zł.
+//  2. Wartość zapytań - jedna belka: zamknięte / w toku / ucichło / stracone.
+//  3. Jedno działanie - odezwij się do rozmów, które ucichły (odzysk za 0 zł).
 //
-// „DLA CIEKAWSKIEGO" (zwinięte pod „Zajrzyj głębiej w te pieniądze"):
-// • Gdzie wyciekły: powody straty w złotówkach, każdy klikalny.
-// • Czytanie tygodniowe: rytm, odstępstwa, usługi, kanały - jedno pytanie na ekran.
-//
-// Ekran się KOŃCZY. Żadnego nieskończonego strumienia kart: taki, który ma koniec,
-// zostaje przeczytany, a taki bez końca zostaje przewinięty.
-//
-// ── Reguły dołożone przy przeprojektowaniu ─────────────────────────────────
-//
-//  8. Jedna karta = jedno pytanie = jedna odpowiedź zdaniem. Karta bez zdania
-//     jest surowcem, nie produktem - analizę zostawia czytelnikowi.
-//  9. Prawo Millera: najwyżej 3–4 obiekty do porównania naraz. Sześć wykresów
-//     obok siebie to nie wybór, tylko paraliż - dlatego materiał pogłębiony
-//     idzie zakładkami, po jednym pytaniu na ekran.
-// 10. Prawo bliskości rządzi kartami: odstęp MIĘDZY grupami wyraźnie większy
-//     niż wewnątrz grupy, inaczej wszystko czyta się jako jedna ściana.
-// 11. Karta niesie głębię. Biel z ramką = powierzchnia robocza, tło strony =
-//     kontekst. Treść położona wprost na teksturze tła nie ma ani jednego,
-//     ani drugiego - i męczy przy pierwszym akapicie.
-// 12. Okres jest właściwością widoku, nie sekcją w nim. Miejsce ma w nagłówku,
-//     obok tytułu, a nie jako pasek, który zabiera pierwszy ruch wzroku kwocie.
-// 13. Zakresy nazywają się tak, jak nazywa je użytkownik. „Ostatnie 90 dni" nie
-//     odpowiada żadnemu wydarzeniu w roku właściciela firmy; miesiąc odpowiada
-//     każdemu - księgowa, podatek, pensje i ZUS chodzą w tym rytmie.
-// 14. Ruch tylko jako informacja: wejście karty tak, tańczący wykres nie.
-//
-// ── Czego tu świadomie nie ma ──────────────────────────────────────────────
-//
-// • Rzędu sześciu kafli o równej wadze. Jeśli wszystko jest wyróżnione, nic nie
-//   jest - a ikonka w kolorowym kółku pod pastelowym gradientem to dekoracja
-//   niosąca zero informacji.
-// • Liczby zapytań jako metryki. To wejście, nie wyjście, i wejście, na które
-//   z tego ekranu nie ma wpływu. Rośnie niezależnie od pieniędzy, a studio jest
-//   ograniczone mocą przerobową, nie popytem: więcej zapytań bez większej mocy
-//   to więcej odmów, nie większy przychód.
-// • Rozkładu zapytań na dni miesiąca. Nie istnieje mechanizm, przez który trzeci
-//   dzień miesiąca miałby generować zapytania; przy tym wolumenie był to wykres
-//   szumu z podpisem sugerującym prawidłowość.
-// • Lejka sześciu statusów, wykresów kołowych, prognoz.
+// SZCZEGÓŁY (zwinięte pod „Zobacz szczegóły", dla ciekawskiego):
+//  • Powody straconych zleceń - w złotówkach, każdy klikalny.
+//  • Skąd przychodzą zapytania - ranking kanałów po liczbie.
+//  • Czy szybka odpowiedź się opłaca - jedno zdanie werdyktu.
+//  • Zamknięte pieniądze miesiąc po miesiącu - jedyny prawdziwy wykres (Recharts),
+//    tylko przy dłuższym zakresie i realnym wolumenie.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useLeadAnalytics } from '../hooks/useLeads';
@@ -78,50 +36,52 @@ import { PeriodPicker } from '../components/analytics/PeriodPicker';
 import { buildPeriod, type Period } from '../components/analytics/period';
 import { buildDemoAnalytics } from '../components/analytics/demoData';
 import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
-import {
-    AnalyticsCard,
-    ColumnChart,
-    EmptyChart,
-    MoneyColumns,
-    MoneyLegend,
-    RankedBars,
-    RateLine,
-    WeekdayMatrix,
-    WinLossBars,
-    WinLossLegend,
-} from '../components/analytics/charts';
-import {
-    MARKET_TIER_HINTS,
-    RESPONSE_LABELS,
-    SIZE_SEGMENT_HINTS,
-    SOURCE_LABELS,
-    WEEKDAY_FULL,
-    WEEKDAY_LABELS,
-    formatMoney,
-    formatPeriod,
-    formatPeriodTick,
-    percent,
-    points,
-} from '../components/analytics/tokens';
+import { AnalyticsCard, RankedBars, WonMoneyChart } from '../components/analytics/charts';
+import { SOURCE_LABELS, formatMoney, formatPeriodTick, percent, points } from '../components/analytics/tokens';
+
+// ── Progi ────────────────────────────────────────────────────────────────────
+
+/**
+ * Poniżej tylu zapytań większość liczb i tak nic nie znaczy, więc zamiast szczegółów
+ * proponujemy podgląd na przykładzie. Kwota zamknięta i belka zostają - są prawdziwe
+ * od pierwszego zlecenia; chowa się dopiero sekcja pogłębiona.
+ */
+const THIN_DATA_BELOW = 10;
+/** Od tylu zapytań kierunek względem poprzedniego okresu przestaje być rzutem monetą. */
+const MIN_LEADS_FOR_DELTA = 20;
+/** Powody straty mają sens, gdy jest ich z czego złożyć. */
+const MIN_LEADS_FOR_LEAKS = 15;
+/** Ranking kanałów po liczbie zapytań - solidny dopiero od pewnej próby. */
+const MIN_LEADS_FOR_SOURCE = 25;
+/** Werdykt „czy szybka odpowiedź się opłaca" pokazujemy dopiero przy realnym wolumenie. */
+const MIN_LEADS_FOR_SPEED = 40;
+/** Wykres pieniędzy w czasie - tylko przy długim zakresie i dużej liczbie zapytań. */
+const MIN_LEADS_FOR_TREND = 60;
+
+/** Stan rozwinięcia sekcji szczegółów - per przeglądarka, przeżywa odświeżenie. */
+const DEEP_OPEN_KEY = 'leadAnalytics.deepOpen';
+
+// ── Obudowa ────────────────────────────────────────────────────────────────
 
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 20px;
     padding: ${p => p.theme.spacing.md};
     max-width: 1180px;
     margin: 0 auto;
     width: 100%;
+    /* Kontener zapytań szerokości: karty w środku patrzą na szerokość widoku,
+       nie okna - ten sam kod stoi raz na pełnym ekranie, raz w wąskim panelu. */
+    container-type: inline-size;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
     @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
 `;
 
 /**
- * Obudowa analityki wstawionej w panel widoku leadów (desktop). Tu analityka nie
- * jest osobnym ekranem, tylko domyślną zawartością panelu obok kolejki — więc
- * zamiast ciężkiego PageHeadera aplikacji i linku „← Leady" (kolejka jest tuż obok)
- * dostaje lekki nagłówek z samym wyborem okresu i przewija się w obrębie panelu.
+ * Obudowa analityki wstawionej w panel widoku leadów (desktop): lekki nagłówek
+ * z samym wyborem okresu, przewijanie w obrębie panelu, bez linku „← Leady".
  */
 const EmbeddedShell = styled.div`
     display: flex;
@@ -129,7 +89,7 @@ const EmbeddedShell = styled.div`
     height: 100%;
     min-height: 0;
     /* Szara podłoga aplikacji, nie biel: dopiero na niej białe karty czytają się
-       jako uniesione powierzchnie, a nie jako płaskie prostokąty na bieli. */
+       jako uniesione powierzchnie, a nie płaskie prostokąty na bieli. */
     background: ${p => p.theme.colors.background};
 `;
 
@@ -159,9 +119,8 @@ const EmbeddedHeader = styled.header`
     p {
         margin: 2px 0 0 0;
         font-size: 12.5px;
-        color: ${st.textMuted};
+        color: ${st.textSecondary};
     }
-    /* Blok tytułu może się kurczyć, żeby wybór okresu nie był spychany poza panel. */
     & > div:first-child {
         min-width: 0;
     }
@@ -174,14 +133,16 @@ const EmbeddedBody = styled.div`
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 20px;
     padding: 4px 20px 40px 20px;
+    /* Kontener zapytań szerokości: karty reagują na szerokość PANELU (~600px),
+       nie okna desktopu - dzięki temu układ się nie rozjeżdża. */
+    container-type: inline-size;
 
     /*
-     * KLUCZOWE: w kolumnie flex o ustalonej wysokości dzieci domyślnie się KURCZĄ
-     * (flex-shrink: 1), więc karty z overflow:hidden (zdanie-bohater) były ściskane
-     * do jednej linijki i gubiły kwotę. W przewijanym panelu każda sekcja ma
-     * zachować swoją naturalną wysokość, a nadmiar oddać do przewijania.
+     * W kolumnie flex o ustalonej wysokości dzieci domyślnie się KURCZĄ, więc karty
+     * z overflow:hidden były ściskane do jednej linijki. Każda sekcja ma zachować
+     * naturalną wysokość, a nadmiar oddać do przewijania.
      */
     & > * {
         flex-shrink: 0;
@@ -189,18 +150,9 @@ const EmbeddedBody = styled.div`
 `;
 
 /**
- * Pasmo pogłębione - nagłówek sekcji, który mówi, że tu kończy się „dziś",
- * a zaczyna „przy okazji". Odstęp nad nim jest wyraźnie większy niż odstępy
- * między kartami wyżej: prawo bliskości robi z tego osobną grupę bez rysowania
- * ani jednej kreski więcej.
- */
-/**
- * Pusta analityka nie kończy się na „wróć tu potem".
- *
- * Studio, które dopiero zaczyna, widzi tu same komunikaty o braku danych i nie ma
- * jak się dowiedzieć, po co w ogóle ma zbierać leady - a to jest dokładnie ten
- * moment, w którym warto mu to pokazać. Pusty ekran uczy, że tu nic nie ma;
- * wypełniony przykładem uczy, co tu będzie, gdy zapytania zaczną spływać.
+ * Pusta analityka nie kończy się na „wróć tu potem". Studio, które dopiero zaczyna,
+ * widzi tu, po co w ogóle zbierać leady - pusty ekran uczy, że nic nie ma, wypełniony
+ * przykładem uczy, co tu będzie.
  */
 const EmptyCard = styled.section`
     background: ${st.bgCard};
@@ -249,10 +201,8 @@ const ThinDataBar = styled.div`
 `;
 
 /**
- * Pasek trybu pokazowego. Widoczny przez cały czas jego trwania i utrzymany
- * w tonie ostrzeżenia, bo jedynym realnym niebezpieczeństwem tej funkcji jest
- * pomylenie przykładu z własnym wynikiem. Przycisk wyjścia stoi w tym samym
- * pasku: droga powrotna ma być tam, gdzie informacja o tym, że się w czymś jest.
+ * Pasek trybu pokazowego - jedyne miejsce, w którym zostaje bursztyn, bo jedynym
+ * realnym niebezpieczeństwem tej funkcji jest pomylenie przykładu z własnym wynikiem.
  */
 const DemoBanner = styled.div`
     position: sticky;
@@ -295,32 +245,11 @@ const DemoButton = styled.button`
     &:hover { border-color: ${st.borderHover}; box-shadow: ${st.shadowSm}; }
 `;
 
-const DeepHeading = styled.div`
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    h2 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${st.text};
-    }
-    p {
-        margin: 0;
-        font-size: 13px;
-        color: ${st.textMuted};
-    }
-`;
-
 /**
- * Jedyne wezwanie do działania na froncie: odzyskaj pieniądze, które ucichły.
- *
- * Zdanie-bohater już nie ma przycisku - rachunek stwierdza, nie rozkazuje. Ale
- * jedna rzecz na tym ekranie da się naprawić dziś i za zero złotych: rozmowy,
- * które ostygły. Cienka niebieska listwa i strzałka to ten sam język, co
- * klikalne kwoty niżej - zaproszenie, nie alarm.
+ * Jedyne wezwanie do działania na froncie: odezwij się do rozmów, które ucichły.
+ * Zdanie-bohater już nie ma przycisku - rachunek stwierdza, nie rozkazuje. Ale jedno
+ * da się naprawić dziś i za zero złotych: rozmowy, które ostygły. Cienka niebieska
+ * listwa i strzałka to ten sam język, co klikalne kwoty niżej - zaproszenie, nie alarm.
  */
 const ActionStrip = styled.button`
     display: flex;
@@ -358,12 +287,12 @@ const ActionStrip = styled.button`
 `;
 
 /**
- * Granica między „dziś" a „przy okazji". Materiał pogłębiony jest domyślnie
- * zwinięty: większość wejść to szybki rzut oka na pieniądze, a nie studiowanie
- * wykresów. Kto chce, rozwija - i stan tego wyboru zostaje zapamiętany.
+ * Granica między „dziś" a „przy okazji". Szczegóły są domyślnie zwinięte: większość
+ * wejść to szybki rzut oka na pieniądze, a nie studiowanie wykresów. Kto chce, rozwija
+ * - i stan tego wyboru zostaje zapamiętany.
  */
 const DeepToggle = styled.button`
-    margin-top: 10px;
+    margin-top: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -386,273 +315,16 @@ const DeepToggle = styled.button`
     svg {
         width: 18px;
         height: 18px;
-        color: ${st.textMuted};
+        color: ${st.textSecondary};
         transition: transform 200ms ease;
     }
     svg.open { transform: rotate(180deg); }
 `;
 
-/** Od tylu zapytań kierunek względem poprzedniego okresu przestaje być rzutem monetą. */
-const MIN_LEADS_FOR_DELTA = 20;
-
-/** Stan rozwinięcia sekcji pogłębionej - per przeglądarka, przeżywa odświeżenie. */
-const DEEP_OPEN_KEY = 'leadAnalytics.deepOpen';
-
-/**
- * Zakładki zamiast siatki kart.
- *
- * Sześć wykresów obok siebie nie jest wyborem, tylko paraliżem: wzrok nie ma
- * gdzie usiąść, bo nic nie jest ważniejsze od reszty. Jedno pytanie na ekran
- * przywraca zasadę „jeden dominujący element", a nic nie ginie - wszystko jest
- * o jedno kliknięcie dalej i podpisane pytaniem, którego dotyczy.
- */
-const Tabs = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-    border: 1px solid ${p => (p.$active ? 'transparent' : st.border)};
-    background: ${p => (p.$active ? st.text : st.bgCard)};
-    color: ${p => (p.$active ? '#f8fafc' : st.textSecondary)};
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: ${p => (p.$active ? p.theme.fontWeights.semibold : p.theme.fontWeights.medium)};
-    padding: 9px 16px;
-    border-radius: ${st.radiusFull};
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 160ms ease;
-
-    &:hover { border-color: ${p => (p.$active ? 'transparent' : st.borderHover)}; }
-`;
-
-const WideCard = styled(AnalyticsCard)``;
-
-// ── Filtr segmentu auta na zakładce „Usługi" ────────────────────────────────
-//
-// Wygrywamy w premium - ale czy w SUV-ach, czy w sportowych? Bez filtra to
-// pytanie nie ma gdzie paść: kafle segmentów pokazują sumę wszystkich aut
-// naraz, a sama suma tego rozróżnienia nie widzi. Domyślnie wszystko, filtr
-// dokłada precyzję temu, kto już wie, czego szuka.
-
-const SegmentFilterBar = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 16px;
-`;
-
-const SegmentFilterField = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12.5px;
-    color: ${st.textMuted};
-`;
-
-const SegmentFilterSelect = styled.select`
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${st.text};
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: border-color ${st.transition};
-
-    &:hover { border-color: ${st.borderHover}; }
-    &:focus-visible { outline: none; border-color: ${st.borderFocus}; }
-`;
-
-const SegmentFilterReset = styled.button`
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${st.accentBlue};
-    background: none;
-    border: none;
-    padding: 2px;
-    cursor: pointer;
-
-    &:hover { text-decoration: underline; }
-`;
-
-type SegmentFilters = { size: string | null; tier: string | null };
-
-function SegmentFilterBarRow({
-    data,
-    filters,
-    onChange,
-}: {
-    data: LeadAnalytics;
-    filters: SegmentFilters;
-    onChange: (next: SegmentFilters) => void;
-}) {
-    const active = filters.size !== null || filters.tier !== null;
-    return (
-        <SegmentFilterBar>
-            <SegmentFilterField>
-                Segment rynkowy
-                <SegmentFilterSelect
-                    value={filters.tier ?? 'ALL'}
-                    onChange={(e) => onChange({ ...filters, tier: e.target.value === 'ALL' ? null : e.target.value })}
-                >
-                    <option value="ALL">Wszystkie</option>
-                    {data.byMarketTier.map((row) => (
-                        <option key={row.code} value={row.code}>{row.label}</option>
-                    ))}
-                </SegmentFilterSelect>
-            </SegmentFilterField>
-            <SegmentFilterField>
-                Wielkość
-                <SegmentFilterSelect
-                    value={filters.size ?? 'ALL'}
-                    onChange={(e) => onChange({ ...filters, size: e.target.value === 'ALL' ? null : e.target.value })}
-                >
-                    <option value="ALL">Wszystkie</option>
-                    {data.bySizeSegment.map((row) => (
-                        <option key={row.code} value={row.code}>{row.label}</option>
-                    ))}
-                </SegmentFilterSelect>
-            </SegmentFilterField>
-            {active && (
-                <SegmentFilterReset onClick={() => onChange({ size: null, tier: null })}>
-                    Wyczyść filtr
-                </SegmentFilterReset>
-            )}
-        </SegmentFilterBar>
-    );
-}
-
-/** Fakty spełniające aktywne filtry segmentu - jeden filtr wspólny dla całej zakładki. */
-function factsMatching(facts: LeadAnalytics['leadFacts'], filters: SegmentFilters) {
-    return facts.filter((fact) =>
-        (filters.size === null || fact.sizeSegment === filters.size) &&
-        (filters.tier === null || fact.marketTier === filters.tier)
-    );
-}
-
-/** Wygrane/przegrane po usłudze, przeliczone z surowych faktów pod aktywny filtr. */
-function categoryStatsFromFacts(
-    facts: LeadAnalytics['leadFacts'],
-    labelByCode: Map<string, string>
-): LeadAnalytics['categories'] {
-    const byCode = new Map<string, { count: number; completed: number; lost: number }>();
-    facts.forEach((fact) => {
-        const codes = fact.categories.length > 0 ? fact.categories : [NO_TAG_CODE];
-        codes.forEach((code) => {
-            const row = byCode.get(code) ?? { count: 0, completed: 0, lost: 0 };
-            row.count += 1;
-            if (fact.won) row.completed += 1;
-            if (fact.lost) row.lost += 1;
-            byCode.set(code, row);
-        });
-    });
-    return Array.from(byCode.entries())
-        .map(([code, row]) => ({
-            code: code === NO_TAG_CODE ? null : code,
-            label: labelByCode.get(code) ?? code,
-            count: row.count,
-            completed: row.completed,
-            lost: row.lost,
-            conversionRate: row.completed + row.lost === 0 ? null : row.completed / (row.completed + row.lost),
-        }))
-        .sort((a, b) => (b.conversionRate ?? -1) - (a.conversionRate ?? -1) || b.count - a.count);
-}
-
-const NO_TAG_CODE = '__none__';
-
-/** Wygrane/przegrane po segmencie auta, przeliczone z surowych faktów pod aktywny filtr drugiej osi. */
-function segmentStatsFromFacts(
-    facts: LeadAnalytics['leadFacts'],
-    axis: 'sizeSegment' | 'marketTier',
-    labelByCode: Map<string, string>
-): LeadAnalytics['bySizeSegment'] {
-    const byCode = new Map<string, { count: number; won: number; lost: number; valueSum: number; priced: number }>();
-    facts.forEach((fact) => {
-        const code = fact[axis];
-        if (code === null) return;
-        const row = byCode.get(code) ?? { count: 0, won: 0, lost: 0, valueSum: 0, priced: 0 };
-        row.count += 1;
-        if (fact.won) row.won += 1;
-        if (fact.lost) row.lost += 1;
-        if (fact.value > 0) { row.valueSum += fact.value; row.priced += 1; }
-        byCode.set(code, row);
-    });
-    return Array.from(byCode.entries())
-        .map(([code, row]) => ({
-            code,
-            label: labelByCode.get(code) ?? code,
-            count: row.count,
-            won: row.won,
-            lost: row.lost,
-            winRate: row.won + row.lost === 0 ? null : row.won / (row.won + row.lost),
-            averageValue: row.priced === 0 ? null : Math.round(row.valueSum / row.priced),
-        }))
-        .sort((a, b) => (b.winRate ?? -1) - (a.winRate ?? -1) || b.count - a.count);
-}
-
-const TrendStack = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`;
-
-const OutlierRow = styled.div<{ $above: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.surfaceAlt};
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-
-    svg {
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-        color: ${({ $above, theme }) => ($above ? theme.colors.success : theme.colors.error)};
-    }
-    .name {
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-    }
-    .spacer { flex: 1; }
-    .rate {
-        font-variant-numeric: tabular-nums;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${({ $above, theme }) => ($above ? theme.colors.success : theme.colors.error)};
-        white-space: nowrap;
-    }
-`;
-
-const OutlierList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-/** Poniżej tylu zapytań każdy „najczęstszy dzień" jest przypadkiem, nie prawidłowością. */
-const MIN_LEADS_FOR_RHYTHM = 20;
-
-/**
- * Poniżej tylu zapytań w okresie prawie każda karta i tak powie „za mało danych",
- * więc proponujemy podgląd na przykładzie. Próg celowo niski: przy dwunastu
- * zapytaniach część kart już coś znaczy i podsuwanie zmyślonych liczb komuś,
- * kto ma własne, byłoby zabieraniem uwagi prawdziwym danym.
- */
-const THIN_DATA_BELOW = 10;
-
 interface LeadAnalyticsViewProps {
     /**
      * true = analityka renderowana jako panel w widoku leadów (desktop): bez PageHeadera
-     * i linku powrotu, przewijana w panelu; odnośniki do kolejki/archiwum sterują tym
-     * samym widokiem zamiast nawigować na osobny adres.
+     * i linku powrotu, przewijana w panelu; odnośniki sterują tym samym widokiem.
      */
     embedded?: boolean;
     /** Embedded: pokaż kolejkę „Twój ruch" (zamiast navigate('/leads')). */
@@ -662,38 +334,28 @@ interface LeadAnalyticsViewProps {
 }
 
 export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpenArchive }: LeadAnalyticsViewProps) {
-    // Okres ustalany raz, przy wejściu. „Ten miesiąc" jest domyślny, bo to jest
-    // pytanie, które właściciel zadaje sobie najczęściej: jak mi idzie TERAZ.
+    // „Ten miesiąc" domyślnie: właściciel rozlicza się miesiącami (księgowa, podatek, ZUS).
     const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
-    // Tryb pokazowy trzymany na widoku, nie w adresie: to jest sposób oglądania,
-    // a nie miejsce w aplikacji - nikt nie powinien wysłać komuś odnośnika, który
-    // otwiera się na zmyślonych liczbach.
     const [demo, setDemo] = useState(false);
     const { data, isLoading } = useLeadAnalytics(period.from, period.to);
 
-    // Trend rysujemy miesiącami dopiero przy zakresie dłuższym niż kwartał -
-    // rok w tygodniach to 52 słupki, w których ginie kształt.
+    // Wykres pieniędzy w czasie ma sens miesiącami dopiero przy zakresie dłuższym niż
+    // kwartał - rok w tygodniach to 52 słupki, w których ginie kształt.
     const monthly = period.to.getTime() - period.from.getTime() > 120 * 24 * 3600 * 1000;
 
     const thin = Boolean(data) && data!.totalCreated < THIN_DATA_BELOW;
-    // Oś czasu przykładu zaczyna się na początku wybranego okresu, żeby podpisy
-    // pod wykresem zgadzały się z zakresem w nagłówku. Przykład z datami sprzed
-    // roku wyglądałby na zepsuty, a nie na przykład.
     const shown = demo ? buildDemoAnalytics(period.from, period.to) : data;
 
     const body = (
         <>
             {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
 
-            {/* Pasek trybu pokazowego widoczny przez cały czas jego trwania:
-                jedynym realnym niebezpieczeństwem tej funkcji jest pomylenie
-                przykładu z własnym wynikiem. */}
             {demo && (
                 <DemoBanner role="status">
                     <Sparkles />
                     <span className="grow">
                         <strong>To są przykładowe dane.</strong> Tak wygląda ten widok w studiu,
-                        do którego spływa około stu zapytań w miesiącu. Twoje liczby są ukryte.
+                        do którego wpływa około stu zapytań miesięcznie. Twoje dane są ukryte.
                     </span>
                     <DemoButton type="button" onClick={() => setDemo(false)}>
                         <EyeOff /> Schowaj
@@ -701,33 +363,28 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
                 </DemoBanner>
             )}
 
-            {/* Zero zapytań: nie ma czego pokazać, więc zamiast sześciu kart
-                z komunikatem „brak danych" idzie jedno wyjaśnienie i zaproszenie. */}
             {!demo && data && data.totalCreated === 0 && (
                 <EmptyCard>
                     <h2>Jeszcze nic tu nie ma</h2>
                     <p>
-                        W wybranym okresie nie wpłynęło ani jedno zapytanie, więc nie ma czego
-                        liczyć. Ten widok wypełni się sam, gdy zaczną spływać - a do tego czasu
-                        możesz zobaczyć, co będzie tu pokazywał.
+                        W tym okresie nie wpłynęło żadne zapytanie, więc nie ma czego liczyć.
+                        Widok wypełni się sam, gdy zaczną przychodzić — a na razie możesz zobaczyć,
+                        co się tu pojawi.
                     </p>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
-                        <Eye /> Pokaż, jak może wyglądać ten widok
+                        <Eye /> Zobacz ten widok na przykładzie
                     </DemoButton>
                 </EmptyCard>
             )}
 
-            {/* Zapytania są, ale za mało, żeby większość kart cokolwiek znaczyła.
-                Prawdziwe liczby zostają na ekranie - ukrycie ich byłoby gorsze niż
-                pokazanie szczupłych. Przykład jest propozycją, nie podmianą. */}
             {!demo && thin && data && data.totalCreated > 0 && (
                 <ThinDataBar>
                     <span className="grow">
-                        {data.totalCreated} {data.totalCreated === 1 ? 'zapytanie' : 'zapytań'} w tym
-                        okresie to za mało, żeby te liczby coś znaczyły.
+                        Na razie {leadCount(data.totalCreated)} w tym okresie — za mało, żeby
+                        porównania i wnioski były wiarygodne.
                     </span>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
-                        <Eye /> Pokaż, jak może wyglądać ten widok
+                        <Eye /> Zobacz ten widok na przykładzie
                     </DemoButton>
                 </ThinDataBar>
             )}
@@ -744,14 +401,13 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
         </>
     );
 
-    // Panel w widoku leadów: lekki nagłówek, przewijanie w panelu, bez linku powrotu.
     if (embedded) {
         return (
             <EmbeddedShell>
                 <EmbeddedHeader>
                     <div>
                         <h2>Pieniądze w zapytaniach</h2>
-                        <p>Rachunek za {period.label}</p>
+                        <p>Podsumowanie za {period.label}</p>
                     </div>
                     <PeriodPicker value={period} onChange={setPeriod} variant="light" />
                 </EmbeddedHeader>
@@ -762,12 +418,9 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
 
     return (
         <ViewContainer>
-            {/* Okres siedzi w nagłówku, bo jest właściwością całego widoku, tak
-                samo jak jego tytuł. Jako pasek pod spodem zabierał pierwszy ruch
-                wzroku kwocie, która ma go dostać. */}
             <PageHeader
                 title="Pieniądze w zapytaniach"
-                subtitle={`Rachunek za ${period.label}`}
+                subtitle={`Podsumowanie za ${period.label}`}
                 actions={
                     <>
                         <PeriodPicker value={period} onChange={setPeriod} />
@@ -799,13 +452,10 @@ function Report({
 }) {
     const navigate = useNavigate();
 
-    // Wewnątrz widoku leadów odnośniki sterują tym samym ekranem (kolejka/archiwum
-    // stoją obok), a nie przenoszą na osobny adres. Poza nim — klasyczna nawigacja.
     const goQueue = () => (embedded ? onOpenQueue?.() : navigate('/leads'));
     const goSilent = () => (embedded ? onOpenQueue?.() : navigate('/leads?awaiting=1'));
     const goLost = () => (embedded ? onOpenArchive?.('LOST') : navigate('/leads?status=LOST'));
 
-    // Materiał pogłębiony domyślnie zwinięty; wybór zapamiętany między wejściami.
     const [deepOpen, setDeepOpen] = useState(() => {
         try { return localStorage.getItem(DEEP_OPEN_KEY) === '1'; } catch { return false; }
     });
@@ -818,54 +468,40 @@ function Report({
     const total = data.wonValue + data.pipelineValue + data.silentValue + data.lostValue;
     const hasWins = data.wonValue > 0;
 
-    // Kierunek względem poprzedniego okresu - dopiero od progu, bo niżej jedno duże
-    // zlecenie przewraca znak i „trend" jest rzutem monetą.
     const wonDelta = data.wonValue - data.wonValuePrevious;
     const deltaNote = data.totalCreated >= MIN_LEADS_FOR_DELTA && data.wonValuePrevious > 0
         ? (wonDelta === 0
             ? 'Tyle samo, ile w poprzednim okresie.'
-            : `Zatrzymane pieniądze: o ${formatMoney(Math.abs(wonDelta))} ${wonDelta > 0 ? 'więcej' : 'mniej'} niż w poprzednim okresie.`)
+            : `O ${formatMoney(Math.abs(wonDelta))} ${wonDelta > 0 ? 'więcej' : 'mniej'} niż w poprzednim okresie.`)
         : undefined;
 
-    // Kwit za bieżący tydzień - jedyna liczba, która rusza się między wizytami.
     const reward = data.confirmedValueThisWeek > 0
-        ? `W tym tygodniu zamieniłeś w rezerwacje ${formatMoney(data.confirmedValueThisWeek)}.`
+        ? `W tym tygodniu domknąłeś rezerwacje na ${formatMoney(data.confirmedValueThisWeek)}.`
         : undefined;
-    const rewardNote = reward ? 'Liczone za bieżący tydzień, niezależnie od wybranego okresu.' : undefined;
+    const rewardNote = reward ? 'Za bieżący tydzień, niezależnie od wybranego okresu.' : undefined;
 
-    // Materiał „dla ciekawskiego" ma sens dopiero, gdy jest co drążyć. Przy garstce
-    // zapytań w ogóle go nie pokazujemy - nie ma jeszcze pieniędzy do rozłożenia.
     const showDeep = data.totalCreated >= THIN_DATA_BELOW;
 
     return (
         <>
-            {/* ── FRONT · Pasmo 1 ─────────────────────────────────────────────
-                Pieniądze ZATRZYMANE, nie zaległość. Odkąd „odpisz teraz" żyje w
-                kolejce obok, ten panel jest rachunkiem - a jego dolną linią jest to,
-                ile realnie zamknąłeś na plus. Zielona krawędź: to fakt, nie alarm.
-                Świeże studio bez wygranej dostaje „w grze", nigdy demotywujące 0 zł. */}
+            {/* ── FRONT · ile zamknąłeś ───────────────────────────────────────── */}
             {hasWins ? (
                 <Hero
-                    lead="Zatrzymałeś w tym okresie"
+                    lead="Zamknięte w tym okresie"
                     amount={formatMoney(data.wonValue)}
-                    body={
-                        <>
-                            Tyle pieniędzy realnie zamknąłeś na plus - <strong>zapytania,
-                            które zamieniłeś w robotę</strong>.
-                        </>
-                    }
+                    body={<>Tyle przyniosły zapytania, które <strong>zamieniłeś w zlecenia</strong>.</>}
                     reward={reward}
                     rewardNote={rewardNote}
                     note={deltaNote}
                 />
             ) : (
                 <Hero
-                    lead="Wciąż w grze w tym okresie"
+                    lead="W toku w tym okresie"
                     amount={formatMoney(data.pipelineValue)}
                     body={
                         <>
-                            Tyle masz w otwartych rozmowach. <strong>Pierwsza zatrzymana
-                            kwota</strong> pojawi się tu, gdy domkniesz którąś z nich.
+                            Tyle są warte zapytania w toku. Gdy pierwsze zamienisz w zlecenie,{' '}
+                            <strong>zobaczysz tu przychód</strong>.
                         </>
                     }
                     reward={reward}
@@ -873,586 +509,170 @@ function Report({
                 />
             )}
 
-            {/* ── FRONT · Pasmo 2 ─────────────────────────────────────────────
-                Jedna belka pieniędzy, które przeszły przez drzwi: ile zatrzymałeś,
-                ile wciąż w grze, ile ucichło, ile poszło do konkurencji. Przy pustym
-                oknie belka narysowałaby same zera, więc zamiast niej idzie zdanie. */}
+            {/* ── FRONT · wartość zapytań (belka) ─────────────────────────────── */}
             {total === 0 ? (
-                <EmptyHint>W tym okresie nie wpłynęło ani jedno zapytanie.</EmptyHint>
+                <EmptyHint>W tym okresie nie wpłynęło żadne zapytanie.</EmptyHint>
             ) : (
                 <MoneyLedger
                     total={formatMoney(total)}
                     kept={{ amount: formatMoney(data.wonValue), raw: data.wonValue }}
-                    inPlay={{
-                        amount: formatMoney(data.pipelineValue),
-                        raw: data.pipelineValue,
-                        onClick: goQueue,
-                    }}
-                    silent={{
-                        amount: formatMoney(data.silentValue),
-                        raw: data.silentValue,
-                        onClick: goSilent,
-                    }}
-                    gone={{
-                        amount: formatMoney(data.lostValue),
-                        raw: data.lostValue,
-                        onClick: goLost,
-                    }}
+                    inPlay={{ amount: formatMoney(data.pipelineValue), raw: data.pipelineValue, onClick: goQueue }}
+                    silent={{ amount: formatMoney(data.silentValue), raw: data.silentValue, onClick: goSilent }}
+                    gone={{ amount: formatMoney(data.lostValue), raw: data.lostValue, onClick: goLost }}
                 />
             )}
 
-            {/* ── FRONT · Pasmo 3 ─────────────────────────────────────────────
-                Jedyne wezwanie do działania: rozmowy, które ucichły, wciąż da się
-                odzyskać - dziś i za zero złotych. Gdy nie ma czego odzyskiwać, nie
-                dorabiamy przycisku na siłę. */}
+            {/* ── FRONT · jedno działanie ─────────────────────────────────────── */}
             {data.silentValue > 0 && (
                 <ActionStrip type="button" onClick={goSilent}>
                     <span>
-                        <strong>{formatMoney(data.silentValue)}</strong> ucichło - odezwij się,
-                        zanim te rozmowy ostygną na dobre.
+                        <strong>{formatMoney(data.silentValue)}</strong> w zapytaniach, które ucichły.
+                        Odezwij się, zanim klient pojedzie gdzie indziej.
                     </span>
                     <ArrowRight className="go" />
                 </ActionStrip>
             )}
 
-            {/* ── DLA CIEKAWSKIEGO ────────────────────────────────────────────
-                Wszystko, co jest analizą, a nie 5-sekundowym rachunkiem, chowa się
-                pod jednym przełącznikiem. Najpierw powody straty, potem jedno pytanie
-                pogłębione na ekran. */}
+            {/* ── SZCZEGÓŁY (zwinięte) ────────────────────────────────────────── */}
             {showDeep && (
                 <>
                     <DeepToggle type="button" aria-expanded={deepOpen} onClick={toggleDeep}>
-                        <span>Zajrzyj głębiej w te pieniądze</span>
+                        <span>Zobacz szczegóły</span>
                         <ChevronDown className={deepOpen ? 'open' : undefined} />
                     </DeepToggle>
-                    {deepOpen && (
-                        <>
-                            {data.leaks.length > 0 && (
-                                <LeakList
-                                    rows={data.leaks.map((leak) => ({
-                                        code: leak.code,
-                                        label: leak.label,
-                                        amount: formatMoney(leak.value),
-                                        raw: leak.value,
-                                        count: `${leak.count} ${conversationCount(leak.count)}`,
-                                    }))}
-                                    onPick={goLost}
-                                />
-                            )}
-                            <DeepHeading>
-                                <h2>Skąd się te pieniądze biorą</h2>
-                                <p>Materiał do przeczytania raz na jakiś czas. Jedno pytanie naraz.</p>
-                            </DeepHeading>
-                            <DeepRead data={data} monthly={monthly} />
-                        </>
-                    )}
+                    {deepOpen && <DeepSection data={data} monthly={monthly} goLost={goLost} />}
                 </>
             )}
         </>
     );
 }
 
-/** Pytania pogłębione - po jednym na ekran, w kolejności od najczęściej zadawanego. */
-const DEEP_TABS = [
-    { key: 'trend', label: 'Pieniądze w czasie' },
-    { key: 'rhythm', label: 'Kiedy co przychodzi' },
-    { key: 'services', label: 'Usługi' },
-    { key: 'speed', label: 'Czas odpowiedzi' },
-    { key: 'who', label: 'Marki i kanały' },
-    // Liczba zapytań na końcu i nigdzie indziej: to jest miara ruchu, nie wyniku,
-    // i wpuszczona wyżej przykrywałaby te, które mówią o pieniądzach.
-    { key: 'volume', label: 'Liczba zapytań' },
-] as const;
-
-type DeepTab = (typeof DEEP_TABS)[number]['key'];
-
 /**
- * Materiał, który nie zmienia pieniędzy w ciągu tygodnia, więc nie ma prawa
- * konkurować z tym, co zmienia. Prawdziwy i czasem cenny - ale czytany raz na
- * jakiś czas, po jednym pytaniu, a nie sześcioma wykresami naraz.
+ * Szczegóły „dla ciekawskiego" - płaska lista, po jednej odpowiedzi na temat, każda
+ * pod własnym progiem danych. Bez zakładek, bez sześciu wykresów naraz.
  */
-function DeepRead({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
-    const [tab, setTab] = useState<DeepTab>('trend');
-
+function DeepSection({ data, monthly, goLost }: { data: LeadAnalytics; monthly: boolean; goLost: () => void }) {
     return (
         <>
-            <Tabs role="tablist" aria-label="Pytania pogłębione">
-                {DEEP_TABS.map((entry) => (
-                    <Tab
-                        key={entry.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={tab === entry.key}
-                        $active={tab === entry.key}
-                        onClick={() => setTab(entry.key)}
-                    >
-                        {entry.label}
-                    </Tab>
-                ))}
-            </Tabs>
+            {data.totalCreated >= MIN_LEADS_FOR_LEAKS && data.leaks.length > 0 && (
+                <LeakList
+                    rows={[...data.leaks]
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 3)
+                        .map((leak) => ({
+                            code: leak.code,
+                            label: leak.label,
+                            amount: formatMoney(leak.value),
+                            raw: leak.value,
+                            count: leadCount(leak.count),
+                        }))}
+                    onPick={goLost}
+                />
+            )}
 
-            {tab === 'trend' && <TrendPanel data={data} monthly={monthly} />}
-            {tab === 'rhythm' && <RhythmPanel data={data} />}
-            {tab === 'services' && <ServicesPanel data={data} />}
-            {tab === 'speed' && <SpeedPanel data={data} />}
-            {tab === 'who' && <WhoPanel data={data} />}
-            {tab === 'volume' && <VolumePanel data={data} monthly={monthly} />}
+            {data.totalCreated >= MIN_LEADS_FOR_SOURCE && <SourceCard data={data} />}
+
+            <SpeedCard data={data} />
+
+            {monthly && data.timeline.length >= 3 && data.totalCreated >= MIN_LEADS_FOR_TREND && (
+                <TrendCard data={data} monthly={monthly} />
+            )}
         </>
     );
 }
 
-function TrendPanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
+/** Skąd przychodzą zapytania - ranking kanałów po LICZBIE (solidnej), skuteczność drobnym drukiem. */
+function SourceCard({ data }: { data: LeadAnalytics }) {
+    const sorted = [...data.bySource].sort((a, b) => b.count - a.count);
+    const top = sorted[0];
+    return (
+        <AnalyticsCard
+            question="Skąd przychodzą zapytania"
+            answer={
+                top && top.count > 0
+                    ? <>Najwięcej zapytań przychodzi przez <strong>{SOURCE_LABELS[top.source] ?? top.source}</strong>.</>
+                    : 'Za mało zamkniętych zapytań, żeby porównać kanały.'
+            }
+        >
+            <RankedBars
+                rows={sorted.map((entry) => ({
+                    key: entry.source,
+                    label: SOURCE_LABELS[entry.source] ?? entry.source,
+                    value: entry.count,
+                    meta: `${leadCount(entry.count)} · skut. ${percent(entry.winRate)}`,
+                }))}
+            />
+        </AnalyticsCard>
+    );
+}
+
+/** Czy szybka odpowiedź się opłaca - jedno zdanie werdyktu, bez wykresu przedziałów. */
+function SpeedCard({ data }: { data: LeadAnalytics }) {
+    const impact = data.responseImpact;
+
+    // Przy braku danych nie pokazujemy nawet zdania „za mało", dopóki nie ma sensownej próby.
+    if (impact.verdict === 'NOT_ENOUGH_DATA' && data.totalCreated < MIN_LEADS_FOR_SPEED) return null;
+
+    const answer = (() => {
+        if (impact.verdict === 'FASTER_WINS') {
+            const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
+            return (
+                <>
+                    <strong>Tak — szybka odpowiedź się opłaca.</strong> Gdy odpiszesz w ciągu doby,
+                    zamykasz {percent(impact.fastWinRate)} zapytań, później {percent(impact.slowWinRate)}.
+                    Różnica {points(gap)}
+                </>
+            );
+        }
+        if (impact.verdict === 'NO_RELATION') {
+            return (
+                <>
+                    Nie widać zależności. Skuteczność przy odpowiedzi w dobę ({percent(impact.fastWinRate)})
+                    i później ({percent(impact.slowWinRate)}) jest podobna — o wyniku decyduje coś innego
+                    niż tempo.
+                </>
+            );
+        }
+        return 'Za mało zamkniętych zapytań, żeby coś stwierdzić. Wróć tu przy szerszym zakresie.';
+    })();
+
+    return <AnalyticsCard question="Czy szybka odpowiedź się opłaca" answer={answer} />;
+}
+
+/** Zamknięte pieniądze miesiąc po miesiącu - jedyny prawdziwy wykres (Recharts). */
+function TrendCard({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
     const last = data.timeline[data.timeline.length - 1];
     const previous = data.timeline[data.timeline.length - 2];
     const delta = last && previous ? last.wonValue - previous.wonValue : null;
 
     return (
-        <WideCard
-            question="Pieniądze w czasie"
+        <AnalyticsCard
+            question="Zamknięte pieniądze miesiąc po miesiącu"
             answer={
-                data.timeline.length < 2
-                    ? 'Okres jest za krótki, żeby mówić o trendzie.'
-                    : delta === null || delta === 0
-                        ? `Wartość zapytań i to, ile z nich zatrzymujesz, w kolejnych ${monthly ? 'miesiącach' : 'tygodniach'}.`
-                        : (
-                            <>
-                                W ostatnim {monthly ? 'miesiącu' : 'tygodniu'} zatrzymałeś{' '}
-                                <strong>{formatMoney(last.wonValue)}</strong> - o {formatMoney(Math.abs(delta))}{' '}
-                                {delta > 0 ? 'więcej' : 'mniej'} niż {monthly ? 'miesiąc' : 'tydzień'} wcześniej.
-                            </>
-                        )
-            }
-        >
-            {data.timeline.length >= 2 && (
-                <TrendStack>
-                    {/* Ten sam podział kolorów co w rachunku wyżej - zatrzymane,
-                        w grze, stracone. Nie trzeba się go uczyć drugi raz. */}
-                    <MoneyColumns
-                        columns={data.timeline.map((point) => ({
-                            key: point.periodStart,
-                            tick: formatPeriodTick(point.periodStart, monthly),
-                            won: point.wonValue,
-                            open: point.openValue,
-                            silent: point.silentValue,
-                            lost: point.lostValue,
-                            caption: [
-                                formatPeriod(point.periodStart, monthly),
-                                `zatrzymane ${formatMoney(point.wonValue)}`,
-                                point.openValue > 0 ? `w grze ${formatMoney(point.openValue)}` : null,
-                                point.silentValue > 0 ? `ucichło ${formatMoney(point.silentValue)}` : null,
-                                `stracone ${formatMoney(point.lostValue)}`,
-                            ].filter(Boolean).join(', ').replace(',', ':'),
-                        }))}
-                        tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
-                    />
-                    <MoneyLegend />
-                    {/* Osobny rysunek, nie druga oś na tym samym: dwie skale na
-                        jednym wykresie dobiera się arbitralnie i produkują
-                        zależność, której w danych nie ma. */}
-                    <RateLine
-                        points={data.timeline.map((point) => ({
-                            key: point.periodStart,
-                            rate: point.winRate,
-                            caption: `${formatPeriod(point.periodStart, monthly)}: skuteczność ${percent(point.winRate)}`,
-                        }))}
-                    />
-                </TrendStack>
-            )}
-        </WideCard>
-    );
-}
-
-/**
- * Liczba zapytań - świadomie ostatnia i osobna.
- *
- * To jest miara ruchu, nie wyniku: rośnie niezależnie od pieniędzy, a studio jest
- * ograniczone mocą przerobową, nie popytem. Bywa przydatna („czy reklama w ogóle
- * dowozi"), więc zostaje - ale nie w miejscu, w którym przykrywałaby liczby
- * mówiące o przychodzie.
- */
-function VolumePanel({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
-    const total = data.timeline.reduce((sum, point) => sum + point.created, 0);
-    return (
-        <WideCard
-            question="Ile zapytań przychodziło"
-            answer={
-                data.timeline.length < 2
-                    ? 'Okres jest za krótki, żeby mówić o trendzie.'
+                delta === null || delta === 0
+                    ? 'Ile pieniędzy zamykasz w kolejnych miesiącach.'
                     : (
                         <>
-                            <strong>{total}</strong> zapytań w tym okresie. Sama liczba nie mówi o pieniądzach -
-                            czternaście pytań o mycie i trzy o folię to ta sama liczba i zupełnie inny miesiąc.
+                            W ostatnim miesiącu zamknąłeś <strong>{formatMoney(last.wonValue)}</strong> —
+                            o {formatMoney(Math.abs(delta))} {delta > 0 ? 'więcej' : 'mniej'} niż miesiąc wcześniej.
                         </>
                     )
             }
         >
-            {data.timeline.length >= 2 && (
-                <ColumnChart
-                    columns={data.timeline.map((point) => ({
-                        key: point.periodStart,
-                        tick: formatPeriodTick(point.periodStart, monthly),
-                        value: point.created,
-                        caption: `${formatPeriod(point.periodStart, monthly)}: ${point.created} zapytań`,
-                    }))}
-                    height={150}
-                    tickEvery={data.timeline.length > 16 ? 4 : data.timeline.length > 8 ? 2 : 1}
-                />
-            )}
-        </WideCard>
-    );
-}
-
-/**
- * Macierz „która usługa, w który dzień".
- *
- * Zwykły słupek „ile zapytań w poniedziałek" mówił tylko, kiedy jest ruch - a ruch
- * sam w sobie nie jest ani przychodem, ani problemem. Wiersze ustawione od
- * najdroższej usługi zamieniają ten sam materiał w pytanie, które ma konsekwencje
- * w grafiku: czy drogie zapytania przychodzą w innych dniach niż tanie.
- */
-function RhythmPanel({ data }: { data: LeadAnalytics }) {
-    const enough = data.totalCreated >= MIN_LEADS_FOR_RHYTHM;
-    const rows = data.weekdayMatrix;
-
-    // Porównujemy droższą połowę wierszy z tańszą. Połowa, nie pojedynczy wiersz:
-    // jedna usługa z trzema zapytaniami wskazywałaby dzień przypadkiem.
-    const priced = rows.filter((row) => row.averageValue !== null);
-    const half = Math.ceil(priced.length / 2);
-    const peakDay = (group: typeof rows): number | null => {
-        if (group.length === 0) return null;
-        const sums = Array.from({ length: 7 }, (_, day) => group.reduce((s, row) => s + row.counts[day], 0));
-        const best = Math.max(...sums);
-        return best === 0 ? null : sums.indexOf(best);
-    };
-    const expensiveDay = peakDay(priced.slice(0, half));
-    const cheapDay = peakDay(priced.slice(half));
-
-    /*
-     * Dzień decyzji jako zdanie, nie jako drugi wykres obok macierzy. Odpowiedź
-     * mieści się w sześciu słowach, a osobny rysunek obok niej odbierałby macierzy
-     * status jedynego elementu, na którym ma spocząć wzrok.
-     */
-    const decisionDay = (() => {
-        const best = Math.max(...data.decisionsByWeekday.map((entry) => entry.count));
-        if (best <= 0) return null;
-        return data.decisionsByWeekday.findIndex((entry) => entry.count === best);
-    })();
-
-    return (
-        <WideCard
-            question="Kiedy co przychodzi"
-            answer={
-                !enough || rows.length === 0
-                    ? `Przy ${data.totalCreated} zapytaniach rozkład na dni tygodnia to jeszcze przypadek, nie prawidłowość.`
-                    : expensiveDay !== null && cheapDay !== null && expensiveDay !== cheapDay
-                        ? (
-                            <>
-                                O najdroższe usługi klienci pytają najczęściej w{' '}
-                                <strong>{WEEKDAY_FULL[expensiveDay]}</strong>, o najtańsze w{' '}
-                                <strong>{WEEKDAY_FULL[cheapDay]}</strong>.
-                            </>
-                        )
-                        : 'Drogie i tanie zapytania rozkładają się na tydzień podobnie - nie ma dnia, który wymagałby innej obsady.'
-            }
-            footnote={
-                enough && decisionDay !== null
-                    ? <>Decyzje zapadają najczęściej we <strong>{WEEKDAY_FULL[decisionDay]}</strong>.</>
-                    : undefined
-            }
-        >
-            {rows.length === 0 ? (
-                <EmptyChart>Brak zapytań w tym okresie.</EmptyChart>
-            ) : (
-                <WeekdayMatrix
-                    dayLabels={WEEKDAY_LABELS}
-                    rows={rows.map((row) => ({
-                        key: row.code ?? row.label,
-                        label: row.label,
-                        note: row.averageValue === null
-                            ? 'brak wycen'
-                            : `średnio ${formatMoney(row.averageValue)}`,
-                        counts: row.counts,
-                        total: row.total,
-                    }))}
-                    describeCell={(row, dayIndex, count) =>
-                        count === 0
-                            ? `${row.label}: brak zapytań w ${WEEKDAY_FULL[dayIndex]}`
-                            : `${row.label}: ${count} w ${WEEKDAY_FULL[dayIndex]}`
-                    }
-                />
-            )}
-        </WideCard>
-    );
-}
-
-function ServicesPanel({ data }: { data: LeadAnalytics }) {
-    // Jeden filtr wspólny dla całej zakładki: „wygrywamy w premium, ale w
-    // sportowych czy w SUV-ach?" jest pytaniem o przecięcie dwóch osi naraz,
-    // więc filtr musi działać na obie karty pojazdu i na kartę usług jednocześnie.
-    const [filters, setFilters] = useState<SegmentFilters>({ size: null, tier: null });
-    const filtered = factsMatching(data.leadFacts, filters);
-
-    const categoryLabels = new Map<string, string>(
-        data.categories.map((entry) => [entry.code ?? NO_TAG_CODE, entry.label])
-    );
-    const sizeLabels = new Map(data.bySizeSegment.map((row) => [row.code, row.label]));
-    const tierLabels = new Map(data.byMarketTier.map((row) => [row.code, row.label]));
-
-    // Tematy z jednym zapytaniem to nie jest wiedza o tym, w czym wygrywamy -
-    // to jedno zdarzenie. Bez filtra kolejność przychodzi z backendu; pod
-    // filtrem liczy się z surowych faktów tym samym sposobem.
-    const categorySource = filters.size === null && filters.tier === null
-        ? data.categories
-        : categoryStatsFromFacts(filtered, categoryLabels);
-    const categories = categorySource.filter((entry) => entry.count >= 3).slice(0, 8);
-    const rated = categories.filter((entry) => entry.conversionRate !== null);
-    const best = rated[0];
-    const worst = rated[rated.length - 1];
-    const filterActive = filters.size !== null || filters.tier !== null;
-
-    return (
-        <>
-        <WideCard
-            question="W czym wygrywamy, w czym przegrywamy"
-            answer={
-                rated.length === 0
-                    ? 'Za mało rozstrzygniętych rozmów w poszczególnych usługach.'
-                    : (
-                        <>
-                            Najlepiej idzie w usłudze <strong>{best.label}</strong>{' '}
-                            ({percent(best.conversionRate)}), najgorzej w <strong>{worst.label}</strong>{' '}
-                            ({percent(worst.conversionRate)}).
-                        </>
-                    )
-            }
-            footnote="Filtr segmentu auta obejmuje tę kartę i obie karty pojazdu poniżej."
-        >
-            <SegmentFilterBarRow data={data} filters={filters} onChange={setFilters} />
-            {categories.length === 0 ? (
-                <EmptyChart>
-                    {filterActive
-                        ? 'Za mało rozstrzygniętych rozmów w tym segmencie - spróbuj szerszego filtra.'
-                        : 'Wróć tu, gdy zamkniesz więcej rozmów.'}
-                </EmptyChart>
-            ) : (
-                <>
-                    <WinLossBars
-                        rows={categories.map((entry) => ({
-                            key: entry.code ?? 'none',
-                            label: entry.label,
-                            won: entry.completed,
-                            lost: entry.lost,
-                            open: Math.max(0, entry.count - entry.completed - entry.lost),
-                            winRate: entry.conversionRate,
-                        }))}
-                    />
-                    <WinLossLegend />
-                </>
-            )}
-        </WideCard>
-
-        {/* Dwie osie pojazdu, bo odpowiadają na dwa różne pytania. Wielkość mówi
-            o pracy: ile lakieru, ile wykrojów folii, czy auto zmieści się na
-            stanowisku. Klasa rynkowa mówi o rozmowie o cenie - właściciel Dacii
-            i właściciel Porsche mogą przyjechać tym samym kompaktem i zupełnie
-            inaczej zareagować na wycenę. Każda karta przyjmuje filtr TYLKO z
-            drugiej osi: filtrowanie karty wielkości po wielkości pokazałoby
-            jeden wiersz równy filtrowi, czyli nic. */}
-        <SegmentCard
-            question="W jakich autach wygrywamy"
-            hint="Klasa marki decyduje o rozmowie o cenie. Najedź na wiersz, żeby zobaczyć przykładowe marki."
-            rows={filters.size === null ? data.byMarketTier : segmentStatsFromFacts(filtered, 'marketTier', tierLabels)}
-            hints={MARKET_TIER_HINTS}
-            crossFilterNote={filters.size !== null ? sizeLabels.get(filters.size) ?? filters.size : null}
-        />
-        <SegmentCard
-            question="Jakiej wielkości auta wygrywamy"
-            hint="Wielkość decyduje o nakładzie pracy i o tym, co się zmieści na stanowisku. Najedź na wiersz, żeby zobaczyć przykładowe marki."
-            rows={filters.tier === null ? data.bySizeSegment : segmentStatsFromFacts(filtered, 'sizeSegment', sizeLabels)}
-            hints={SIZE_SEGMENT_HINTS}
-            crossFilterNote={filters.tier !== null ? tierLabels.get(filters.tier) ?? filters.tier : null}
-        />
-        </>
-    );
-}
-
-/**
- * Wygrane i przegrane w jednym podziale aut.
- *
- * Segment z jednym rozstrzygniętym zapytaniem to nie jest wiedza o tym, w czym
- * wygrywamy - to jedno zdarzenie, a pokazane obok segmentów z dwudziestoma
- * wygląda na równorzędny wniosek. Próg trzech odsiewa je, nie ukrywając niczego
- * istotnego.
- */
-function SegmentCard({
-    question,
-    hint,
-    rows,
-    hints,
-    crossFilterNote,
-}: {
-    question: string;
-    hint: string;
-    rows: LeadAnalytics['bySizeSegment'];
-    /** Definicja segmentu z przykładowymi markami - tooltip po najechaniu na wiersz. */
-    hints: Record<string, string>;
-    /** Etykieta drugiej osi, jeśli filtr jest aktywny - dopisek do pytania karty. */
-    crossFilterNote: string | null;
-}) {
-    const solid = rows.filter((row) => row.won + row.lost >= 3);
-    const best = solid.find((row) => row.winRate !== null);
-
-    return (
-        <WideCard
-            question={crossFilterNote ? `${question} - ${crossFilterNote}` : question}
-            answer={
-                solid.length === 0
-                    ? 'Za mało rozstrzygniętych rozmów, żeby porównać segmenty. Auta rozpoznają się same z korespondencji - wróć tu, gdy uzbiera się ich więcej.'
-                    : (
-                        <>
-                            Najlepiej idzie w segmencie <strong>{best?.label ?? '-'}</strong>{' '}
-                            ({percent(best?.winRate)}).
-                        </>
-                    )
-            }
-            footnote={solid.length > 0 ? hint : undefined}
-        >
-            {solid.length > 0 && (
-                <>
-                    <WinLossBars
-                        rows={solid.map((row) => ({
-                            key: row.code,
-                            label: row.label,
-                            note: row.averageValue
-                                ? `średnio ${formatMoney(row.averageValue)}`
-                                : undefined,
-                            hint: hints[row.code] ? `${row.label}: ${hints[row.code]}` : row.label,
-                            won: row.won,
-                            lost: row.lost,
-                            open: Math.max(0, row.count - row.won - row.lost),
-                            winRate: row.winRate,
-                        }))}
-                    />
-                    <WinLossLegend />
-                </>
-            )}
-        </WideCard>
-    );
-}
-
-function SpeedPanel({ data }: { data: LeadAnalytics }) {
-    const impact = data.responseImpact;
-    const answer = (() => {
-        if (impact.verdict === 'NOT_ENOUGH_DATA') {
-            return 'Za mało rozstrzygniętych rozmów, żeby cokolwiek stwierdzić. Wróć tu przy szerszym zakresie.';
-        }
-        if (impact.verdict === 'FASTER_WINS') {
-            const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
-            return (
-                <>
-                    <strong>Tak - szybka odpowiedź się opłaca.</strong> Odpisując w ciągu doby wygrywasz{' '}
-                    {percent(impact.fastWinRate)} rozmów, później {percent(impact.slowWinRate)}. Różnica{' '}
-                    {points(gap)}.
-                </>
-            );
-        }
-        return (
-            <>
-                <strong>Nie wykryto zależności.</strong> Skuteczność przy odpowiedzi w dobę
-                ({percent(impact.fastWinRate)}) i później ({percent(impact.slowWinRate)}) jest zbliżona -
-                o wyniku decyduje coś innego niż tempo.
-            </>
-        );
-    })();
-
-    return (
-        <WideCard question="Czy czas odpowiedzi wpływa na skuteczność" answer={answer}>
-            <RankedBars
-                rows={impact.buckets
-                    .filter((bucket) => bucket.count > 0)
-                    .map((bucket) => ({
-                        key: bucket.key,
-                        label: RESPONSE_LABELS[bucket.key] ?? bucket.key,
-                        value: bucket.winRate ?? 0,
-                        meta: `${percent(bucket.winRate)} z ${bucket.closed}`,
-                    }))}
+            <WonMoneyChart
+                points={data.timeline.map((point) => ({
+                    period: formatPeriodTick(point.periodStart, monthly),
+                    value: point.wonValue,
+                }))}
             />
-            <EmptyChart>
-                Słupek to skuteczność w danym przedziale, liczba obok - na ilu rozstrzygniętych
-                rozmowach się opiera.
-            </EmptyChart>
-        </WideCard>
+        </AnalyticsCard>
     );
 }
 
-function WhoPanel({ data }: { data: LeadAnalytics }) {
-    const bestSource = [...data.bySource]
-        .filter((entry) => entry.winRate !== null && entry.closed >= 5)
-        .sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0))[0];
-
-    return (
-        <>
-            <WideCard
-                question="Czy coś odstaje"
-                answer={
-                    data.vehicleOutliers.length === 0
-                        ? 'Nie wykryto odstępstw - żadna marka nie odbiega wyraźnie od Twojej średniej.'
-                        : 'Marki, przy których wynik wyraźnie różni się od średniej.'
-                }
-            >
-                {data.vehicleOutliers.length > 0 && (
-                    <OutlierList>
-                        {data.vehicleOutliers.map((outlier) => {
-                            const above = outlier.direction === 'ABOVE';
-                            const Icon = above ? TrendingUp : TrendingDown;
-                            return (
-                                <OutlierRow key={outlier.label} $above={above}>
-                                    <Icon />
-                                    <span className="name">{outlier.label}</span>
-                                    <span>
-                                        {above ? 'wygrywamy częściej' : 'przegrywamy częściej'}
-                                        {' - '}{outlier.won} z {outlier.closed}
-                                    </span>
-                                    <span className="spacer" />
-                                    <span className="rate">{percent(outlier.winRate)}</span>
-                                </OutlierRow>
-                            );
-                        })}
-                    </OutlierList>
-                )}
-            </WideCard>
-
-            <WideCard
-                question="Skąd przychodzą zapytania"
-                answer={
-                    bestSource
-                        ? (
-                            <>
-                                Najskuteczniejszy kanał to{' '}
-                                <strong>{SOURCE_LABELS[bestSource.source] ?? bestSource.source}</strong>{' '}
-                                ({percent(bestSource.winRate)}).
-                            </>
-                        )
-                        : 'Za mało rozstrzygniętych rozmów, żeby porównać kanały.'
-                }
-            >
-                <RankedBars
-                    rows={data.bySource.map((entry) => ({
-                        key: entry.source,
-                        label: SOURCE_LABELS[entry.source] ?? entry.source,
-                        value: entry.count,
-                        meta: `${entry.count}, skut. ${percent(entry.winRate)}`,
-                    }))}
-                />
-            </WideCard>
-        </>
-    );
-}
-
-/** „1 rozmowa", „3 rozmowy", „11 rozmów" - mianownik, gdy liczba stoi sama. */
-function conversationCount(count: number): string {
-    if (count === 1) return 'rozmowa';
-    const rest = count % 10;
-    const teens = count % 100;
-    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? 'rozmowy' : 'rozmów';
+/** „1 zapytanie", „3 zapytania", „11 zapytań" - polska odmiana bez zaskoczeń przy 12–14. */
+function leadCount(n: number): string {
+    if (n === 1) return `${n} zapytanie`;
+    const rest = n % 10;
+    const teens = n % 100;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? `${n} zapytania` : `${n} zapytań`;
 }
