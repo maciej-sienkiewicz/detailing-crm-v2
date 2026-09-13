@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft, BarChart3, Inbox, Search } from 'lucide-react';
+import { ArrowLeft, BarChart3, Search } from 'lucide-react';
 import { useBreakpoint } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
@@ -43,6 +43,7 @@ import { describeLeadUrgency } from '../utils/leadUrgency';
 import type { LeadPrimaryAction } from '../utils/leadPrimaryAction';
 import type { Lead, LeadStatus } from '../types';
 import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
+import LeadAnalyticsView from './LeadAnalyticsView';
 
 /**
  * Widok wypełnia okno i dzieli się na dwie niezależnie przewijane kolumny.
@@ -241,20 +242,6 @@ const BackToQueue = styled.button`
     svg { width: 16px; height: 16px; }
 `;
 
-/** Panel bez wybranej sprawy - zaproszenie, nie pustka. */
-const PaneEmpty = styled.div`
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    color: ${p => p.theme.colors.textMuted};
-    font-size: 14px;
-
-    svg { width: 34px; height: 34px; opacity: 0.5; }
-`;
-
 /** Statusy zamknięte - do rozpoznania deep-linku z analityki. */
 const CLOSED_SET = new Set<LeadStatus>(CLOSED_LEAD_STATUSES);
 
@@ -432,7 +419,10 @@ export default function LeadsView() {
                                 : `${open.total} ${open.total === 1 ? 'otwarta sprawa' : 'otwartych spraw'}`}
                         </p>
                     </div>
-                    {isWide ? (
+                    {/* Na desktopie (panel obok kolejki) analityka jest domyślną treścią
+                        panelu, więc osobne wyjście nie jest potrzebne. Poniżej progu podziału
+                        panelu nie ma — tam analityka zostaje osobnym ekranem pod tym przyciskiem. */}
+                    {!isSplit && (isWide ? (
                         <Link to="/leads/analytics">
                             <GhostAction><BarChart3 /> Analityka</GhostAction>
                         </Link>
@@ -440,7 +430,7 @@ export default function LeadsView() {
                         <Link to="/leads/analytics" aria-label="Analityka">
                             <IconAction title="Analityka"><BarChart3 /></IconAction>
                         </Link>
-                    )}
+                    ))}
                 </QueueHeader>
 
                 {/* Na wąskim ekranie archiwum jest trybem, nie zakładką - więc i wyjście
@@ -534,6 +524,10 @@ export default function LeadsView() {
                 kliknięć, a nie piętnaście. */}
             {isSplit && !inArchive && (
                 <DetailColumn>
+                    {/* Jeden panel, dwa stany: wybrana sprawa albo — domyślnie — analityka.
+                        Analityka nie jest już osobnym ekranem, tylko domyślną treścią tej
+                        sekcji; zamknięcie sprawy wraca do niej, a jej odnośniki sterują
+                        kolejką/archiwum obok, zamiast przenosić na inny adres. */}
                     {selectedLeadId ? (
                         <LeadDetailPane
                             key={selectedLeadId}
@@ -543,10 +537,14 @@ export default function LeadsView() {
                             onDeleted={() => selectLead(null)}
                         />
                     ) : (
-                        <PaneEmpty>
-                            <Inbox />
-                            Wybierz sprawę z kolejki
-                        </PaneEmpty>
+                        <LeadAnalyticsView
+                            embedded
+                            onOpenQueue={() => changeSegment('OURS')}
+                            onOpenArchive={(status) => {
+                                changeSegment('ARCHIVE');
+                                if (status) setArchiveStatus(status);
+                            }}
+                        />
                     )}
                 </DetailColumn>
             )}
