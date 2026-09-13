@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 
 export type DashboardHintKind =
+    | 'LEADS_AWAITING'
     | 'WORKTIME_MISSING'
     | 'WORKTIME_UNUSED'
     | 'COMPETITOR_STANDOUT'
@@ -10,6 +11,13 @@ export type DashboardHintKind =
     | 'KSEF_UPSELL';
 
 export type DashboardHintActionType = 'NAVIGATE' | 'EXTERNAL' | 'DISABLE_WORKTIME';
+
+/**
+ * Waga podpowiedzi ustala backend, nie front. CRITICAL to zaległość, która
+ * kosztuje pieniądze teraz (klient czeka na naszą odpowiedź) - malujemy ją na
+ * czerwono; INFO zostaje spokojne (błękit).
+ */
+export type DashboardHintSeverity = 'INFO' | 'CRITICAL';
 
 export interface DashboardHintAction {
     label: string;
@@ -23,6 +31,7 @@ export interface DashboardHint {
     text: string;
     action: DashboardHintAction | null;
     permanentDismiss: boolean;
+    severity: DashboardHintSeverity;
 }
 
 const HINTS_KEY = ['dashboard', 'hints'] as const;

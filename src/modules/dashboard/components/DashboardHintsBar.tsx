@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, X } from 'lucide-react';
+import { AlertTriangle, Lightbulb, X } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import {
     useDashboardHints,
@@ -24,7 +24,10 @@ const slideIn = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-const Bar = styled.div`
+// Czerwień rezerwujemy dla wagi CRITICAL - zaległości, która kosztuje pieniądze
+// teraz (lead czeka na naszą odpowiedź). Reszta zostaje w spokojnym błękicie,
+// żeby czerwień nie spowszedniała i wciąż znaczyła „zrób to najpierw".
+const Bar = styled.div<{ $critical: boolean }>`
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -32,15 +35,15 @@ const Bar = styled.div`
         align-items: center;
         gap: 14px;
         padding: 12px 18px;
-        background: ${p => p.theme.colors.surface};
-        border: 1px solid ${p => p.theme.colors.border};
-        border-left: 3px solid #0ea5e9;
+        background: ${p => (p.$critical ? p.theme.colors.errorLight : p.theme.colors.surface)};
+        border: 1px solid ${p => (p.$critical ? p.theme.colors.error : p.theme.colors.border)};
+        border-left: 3px solid ${p => (p.$critical ? p.theme.colors.error : '#0ea5e9')};
         border-radius: ${p => p.theme.radii.lg};
         animation: ${slideIn} 220ms ease both;
     }
 `;
 
-const HintIcon = styled.span`
+const HintIcon = styled.span<{ $critical: boolean }>`
     flex-shrink: 0;
     width: 30px;
     height: 30px;
@@ -48,8 +51,8 @@ const HintIcon = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #e0f2fe;
-    color: #0369a1;
+    background: ${p => (p.$critical ? '#fee2e2' : '#e0f2fe')};
+    color: ${p => (p.$critical ? p.theme.colors.error : '#0369a1')};
 
     svg { width: 16px; height: 16px; }
 `;
@@ -63,21 +66,24 @@ const HintText = styled.p`
     color: ${p => p.theme.colors.text};
 `;
 
-const ActionBtn = styled.button`
+const ActionBtn = styled.button<{ $critical: boolean }>`
     flex-shrink: 0;
     padding: 7px 14px;
-    background: transparent;
-    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => (p.$critical ? p.theme.colors.error : 'transparent')};
+    border: 1px solid ${p => (p.$critical ? p.theme.colors.error : p.theme.colors.border)};
     border-radius: 9999px;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
-    color: #0369a1;
+    color: ${p => (p.$critical ? '#ffffff' : '#0369a1')};
     cursor: pointer;
     white-space: nowrap;
     transition: all 150ms ease;
 
-    &:hover:not(:disabled) { border-color: #0ea5e9; background: #f0f9ff; }
+    &:hover:not(:disabled) {
+        border-color: ${p => (p.$critical ? '#b91c1c' : '#0ea5e9')};
+        background: ${p => (p.$critical ? '#b91c1c' : '#f0f9ff')};
+    }
     &:disabled { opacity: 0.6; cursor: default; }
 `;
 
@@ -108,6 +114,8 @@ export const DashboardHintsBar = () => {
 
     const hint = hints[0];
     if (!hint) return null;
+
+    const critical = hint.severity === 'CRITICAL';
 
     const runAction = async (current: DashboardHint) => {
         const action = current.action;
@@ -140,11 +148,13 @@ export const DashboardHintsBar = () => {
     };
 
     return (
-        <Bar role="status">
-            <HintIcon><Lightbulb /></HintIcon>
+        // Alarm woła głośniej niż status: czytnik ekranu ma przeczytać pilną
+        // zaległość od razu, a nie dopiero gdy ktoś tam dojedzie.
+        <Bar $critical={critical} role={critical ? 'alert' : 'status'}>
+            <HintIcon $critical={critical}>{critical ? <AlertTriangle /> : <Lightbulb />}</HintIcon>
             <HintText>{hint.text}</HintText>
             {hint.action && (
-                <ActionBtn type="button" onClick={() => runAction(hint)} disabled={busy}>
+                <ActionBtn $critical={critical} type="button" onClick={() => runAction(hint)} disabled={busy}>
                     {busy ? 'Chwila...' : hint.action.label}
                 </ActionBtn>
             )}
