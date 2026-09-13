@@ -22,23 +22,24 @@ const Wrap = styled.div`
 `;
 
 /**
- * Przełącznik segmentowy na ciemnym nagłówku. Trzy stany widoczne naraz, bo są
- * trzy - rozwijana lista chowałaby wybór za kliknięciem i kazała pamiętać,
- * co jest ustawione.
+ * Przełącznik segmentowy. Dwa warianty tego samego wyboru:
+ *  - dark (domyślny) na ciemnym PageHeaderze pełnoekranowego widoku,
+ *  - light w panelu analityki na jasnym tle (osobne pigułki, jak zakładki niżej).
+ * Trzy stany widoczne naraz, bo są trzy - rozwijana lista chowałaby wybór za
+ * kliknięciem i kazała pamiętać, co jest ustawione.
  */
-const Segments = styled.div`
+const Segments = styled.div<{ $light?: boolean }>`
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 3px;
+    gap: ${p => (p.$light ? '6px' : '2px')};
+    padding: ${p => (p.$light ? '0' : '3px')};
     border-radius: ${p => p.theme.radii.full};
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(4px);
+    background: ${p => (p.$light ? 'transparent' : 'rgba(255, 255, 255, 0.08)')};
+    border: ${p => (p.$light ? 'none' : '1px solid rgba(255, 255, 255, 0.14)')};
+    backdrop-filter: ${p => (p.$light ? 'none' : 'blur(4px)')};
 `;
 
-const Segment = styled.button<{ $active: boolean }>`
-    border: none;
+const Segment = styled.button<{ $active: boolean; $light?: boolean }>`
     cursor: pointer;
     font-family: inherit;
     font-size: 13px;
@@ -51,10 +52,21 @@ const Segment = styled.button<{ $active: boolean }>`
     gap: 6px;
     transition: all 160ms ease;
 
-    background: ${p => (p.$active ? '#f1f5f9' : 'transparent')};
-    color: ${p => (p.$active ? '#0f172a' : 'rgba(241, 245, 249, 0.72)')};
+    border: ${p => (p.$light ? `1px solid ${p.$active ? 'transparent' : p.theme.colors.border}` : 'none')};
+    background: ${p => {
+        if (p.$light) return p.$active ? p.theme.colors.text : p.theme.colors.surface;
+        return p.$active ? '#f1f5f9' : 'transparent';
+    }};
+    color: ${p => {
+        if (p.$light) return p.$active ? '#ffffff' : p.theme.colors.textSecondary;
+        return p.$active ? '#0f172a' : 'rgba(241, 245, 249, 0.72)';
+    }};
 
-    &:hover { color: ${p => (p.$active ? '#0f172a' : '#f1f5f9')}; }
+    &:hover {
+        ${p => (p.$light
+            ? (!p.$active && `color: ${p.theme.colors.text};`)
+            : `color: ${p.$active ? '#0f172a' : '#f1f5f9'};`)}
+    }
 
     svg { width: 14px; height: 14px; }
 `;
@@ -131,9 +143,12 @@ const Hint = styled.span`
 interface PeriodPickerProps {
     value: Period;
     onChange: (period: Period) => void;
+    /** 'light' dla jasnego tła (panel analityki); 'dark' (domyślnie) dla ciemnego PageHeadera. */
+    variant?: 'dark' | 'light';
 }
 
-export function PeriodPicker({ value, onChange }: PeriodPickerProps) {
+export function PeriodPicker({ value, onChange, variant = 'dark' }: PeriodPickerProps) {
+    const light = variant === 'light';
     const [open, setOpen] = useState(false);
     const [draftFrom, setDraftFrom] = useState(() => toInputValue(value.from));
     const [draftTo, setDraftTo] = useState(() => toInputValue(value.to));
@@ -166,10 +181,11 @@ export function PeriodPicker({ value, onChange }: PeriodPickerProps) {
 
     return (
         <Wrap ref={wrapRef}>
-            <Segments role="group" aria-label="Okres">
+            <Segments role="group" aria-label="Okres" $light={light}>
                 <Segment
                     type="button"
                     $active={value.mode === 'current'}
+                    $light={light}
                     onClick={() => pickMonth('current')}
                 >
                     Ten miesiąc
@@ -177,6 +193,7 @@ export function PeriodPicker({ value, onChange }: PeriodPickerProps) {
                 <Segment
                     type="button"
                     $active={value.mode === 'previous'}
+                    $light={light}
                     onClick={() => pickMonth('previous')}
                 >
                     Poprzedni
@@ -184,6 +201,7 @@ export function PeriodPicker({ value, onChange }: PeriodPickerProps) {
                 <Segment
                     type="button"
                     $active={value.mode === 'custom'}
+                    $light={light}
                     aria-haspopup="dialog"
                     aria-expanded={open}
                     onClick={() => setOpen((current) => !current)}
