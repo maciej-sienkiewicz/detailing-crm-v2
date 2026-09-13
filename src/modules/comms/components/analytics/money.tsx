@@ -35,7 +35,7 @@ const surface = css`
 
 // ── Zdanie-bohater ──────────────────────────────────────────────────────────
 
-const HeroBand = styled.section<{ $urgent: boolean }>`
+const HeroBand = styled.section<{ $accent: 'won' | 'pipeline' }>`
     ${surface}
     position: relative;
     overflow: hidden;
@@ -45,9 +45,10 @@ const HeroBand = styled.section<{ $urgent: boolean }>`
     padding: 26px 28px 24px;
 
     /*
-     * Czerwona listwa przy krawędzi, gdy jest zaległość - ten sam znak pilności,
-     * co przy wierszu tabeli leadów. Kto nauczył się go tam, rozumie go tutaj bez
-     * tłumaczenia, a listwa nie zabiera ani piksela szerokości treści.
+     * Listwa przy krawędzi niesie znaczenie kwoty obok. ZIELONA tylko dla pieniędzy
+     * ZAMKNIĘTYCH (zarobionych) - to jedyny sygnał „to już Twoje" w całym panelu.
+     * NIEBIESKA dla kwoty „w toku" (świeże studio bez wygranej): pieniądze możliwe,
+     * jeszcze nie zarobione - zieleń przy nich kłamałaby o przychodzie.
      */
     &::before {
         content: '';
@@ -56,7 +57,7 @@ const HeroBand = styled.section<{ $urgent: boolean }>`
         top: 0;
         bottom: 0;
         width: 4px;
-        background: ${p => (p.$urgent ? p.theme.colors.error : p.theme.colors.success)};
+        background: ${p => (p.$accent === 'pipeline' ? st.accentBlue : p.theme.colors.success)};
     }
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -166,13 +167,13 @@ interface HeroProps {
     /** Wygaszony przypis tuż pod nagrodą (np. „liczone za bieżący tydzień"). */
     rewardNote?: ReactNode;
     note?: ReactNode;
-    /** Jest zaległość - listwa przy krawędzi robi się czerwona; domyślnie zielona. */
-    urgent?: boolean;
+    /** Kolor listwy: 'won' (zielona, pieniądze zamknięte) lub 'pipeline' (niebieska, w toku). */
+    accent?: 'won' | 'pipeline';
 }
 
-export function Hero({ lead, amount, body, action, reward, rewardNote, note, urgent = false }: HeroProps) {
+export function Hero({ lead, amount, body, action, reward, rewardNote, note, accent = 'won' }: HeroProps) {
     return (
-        <HeroBand $urgent={urgent}>
+        <HeroBand $accent={accent}>
             <HeroLead>{lead}</HeroLead>
             <HeroAmount>{amount}</HeroAmount>
             <HeroBody>{body}</HeroBody>
@@ -247,7 +248,9 @@ const Bar = styled.div`
 
 const Segment = styled.div`
     border-radius: 8px;
-    min-width: 4px;
+    /* Każdy niezerowy segment ma być widoczny: 8px to podłoga, żeby drobna kwota
+       (np. ucichłe 2% belki) nie schudła do kreski mylonej z granicą segmentów. */
+    min-width: 8px;
     transition: filter 160ms ease, transform 160ms ease;
 
     &:hover { filter: brightness(0.94); }
@@ -274,8 +277,8 @@ const InPlay = styled(Segment)`
  * nie pipeline.
  */
 const Silent = styled(Segment)`
+    /* Pełny, widoczny szaroniebieski - to pieniądze do odzyskania, nie tło. */
     background: ${SILENT};
-    border: 1px dashed #c3ccd8;
 `;
 
 /**
@@ -378,11 +381,7 @@ const Swatch = styled.i<{ $kind: 'kept' | 'play' | 'silent' | 'gone' }>`
         : p.$kind === 'silent' ? SILENT
         : 'transparent'
     )};
-    border: ${p => (
-        p.$kind === 'gone' ? `1px solid ${LOST}99`
-        : p.$kind === 'silent' ? '1px dashed #c3ccd8'
-        : 'none'
-    )};
+    border: ${p => (p.$kind === 'gone' ? `1px solid ${LOST}99` : 'none')};
 `;
 
 const Delta = styled.p`
@@ -582,8 +581,16 @@ const LeakFill = styled.div`
     background: ${LOST};
 `;
 
+const LeakNote = styled.p`
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: ${st.textSecondary};
+`;
+
 interface LeakListProps {
     rows: { code: string; label: string; amount: string; raw: number; count: string }[];
+    /** Wygaszony przypis pod listą - np. że to tylko najczęstsze powody. */
+    note?: string;
     onPick?: (code: string) => void;
 }
 
@@ -596,11 +603,11 @@ interface LeakListProps {
  * twierdzeniem; klikalna jest dowodem - i to jest jedyny prawdziwy mechanizm
  * zaufania do liczby na ekranie.
  */
-export function LeakList({ rows, onPick }: LeakListProps) {
+export function LeakList({ rows, note, onPick }: LeakListProps) {
     const max = Math.max(1, ...rows.map(r => r.raw));
     return (
         <LeakBox>
-            <LeakTitle>Powody straconych zleceń</LeakTitle>
+            <LeakTitle>Powody straconych zapytań</LeakTitle>
             {rows.map((row) => (
                 <LeakRow key={row.code} type="button" onClick={() => onPick?.(row.code)}>
                     <span className="name">{row.label}</span>
@@ -614,6 +621,7 @@ export function LeakList({ rows, onPick }: LeakListProps) {
                     <ChevronRight className="go" />
                 </LeakRow>
             ))}
+            {note && <LeakNote>{note}</LeakNote>}
         </LeakBox>
     );
 }
