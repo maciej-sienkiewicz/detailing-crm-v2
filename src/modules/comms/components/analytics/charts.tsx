@@ -12,10 +12,9 @@
 import type { ReactNode } from 'react';
 import styled from 'styled-components';
 import {
-    Bar,
-    BarChart,
     CartesianGrid,
-    Cell,
+    Line,
+    LineChart,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -182,13 +181,13 @@ export function RankedBars({ rows, color = MAGNITUDE }: RankedBarsProps) {
     );
 }
 
-// ── Jedyny prawdziwy wykres: zamknięte pieniądze miesiąc po miesiącu ─────────
+// ── Jedyny prawdziwy wykres: zamknięte pieniądze przez cały rok ──────────────
 //
-// Recharts w jasnej skórce modułu statystyk: jedna seria słupków, jedna oś,
-// hairline'owa siatka (ciągła, nie kreskowana - kreska czyta się jak próg albo
-// prognoza), ostatni miesiąc pełnym kolorem, wcześniejsze wygaszone. Bez drugiej
-// osi i bez linii skuteczności: dwie skale na jednym rysunku dobiera się
-// arbitralnie i produkują zależność, której w danych nie ma.
+// Recharts w jasnej skórce modułu statystyk: jedna linia, jedna oś, hairline'owa
+// siatka (ciągła, nie kreskowana - kreska czyta się jak próg albo prognoza).
+// Zawsze pełny rok (styczeń–grudzień); miesiące jeszcze nieprzeżyte są dziurą
+// w linii (null), nie zerem - „nic nie zamknięto" i „miesiąc nie nadszedł" to
+// dwie różne rzeczy. Bez drugiej osi i bez linii skuteczności.
 
 /** Oś Y w tysiącach złotych: „13 tys." zamiast „12 580 zł" - kwota na osi ma być skalą, nie treścią. */
 const axisMoney = (grosze: number): string => {
@@ -227,21 +226,25 @@ function WonTooltip({ active, payload, label }: WonTooltipProps) {
     );
 }
 
-export interface WonMoneyPoint {
+export interface YearPoint {
+    /** Skrót miesiąca na osi: „sty", „lut", … */
     period: string;
-    value: number;
+    /** Zamknięte pieniądze w tym miesiącu; null dla miesięcy, które jeszcze nie nadeszły. */
+    value: number | null;
 }
 
-export function WonMoneyChart({ points }: { points: WonMoneyPoint[] }) {
+export function YearLineChart({ points }: { points: YearPoint[] }) {
     return (
         <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={points} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
+            <LineChart data={points} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
                 <CartesianGrid stroke={st.border} vertical={false} />
                 <XAxis
                     dataKey="period"
                     tick={{ fontSize: 11, fill: st.textSecondary }}
                     tickLine={false}
                     axisLine={{ stroke: st.border }}
+                    interval={0}
+                    minTickGap={0}
                 />
                 <YAxis
                     tick={{ fontSize: 11, fill: st.textSecondary }}
@@ -251,13 +254,19 @@ export function WonMoneyChart({ points }: { points: WonMoneyPoint[] }) {
                     allowDecimals={false}
                     tickFormatter={axisMoney}
                 />
-                <Tooltip cursor={{ fill: 'rgba(15,23,42,0.03)' }} content={<WonTooltip />} />
-                <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={40} animationDuration={700} animationEasing="ease-out">
-                    {points.map((point, index) => (
-                        <Cell key={point.period} fill={index === points.length - 1 ? WON : `${WON}59`} />
-                    ))}
-                </Bar>
-            </BarChart>
+                <Tooltip cursor={{ stroke: st.border, strokeWidth: 1 }} content={<WonTooltip />} />
+                <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={WON}
+                    strokeWidth={2.5}
+                    connectNulls={false}
+                    dot={{ r: 3, fill: WON, strokeWidth: 0 }}
+                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
+                    animationDuration={700}
+                    animationEasing="ease-out"
+                />
+            </LineChart>
         </ResponsiveContainer>
     );
 }

@@ -22,7 +22,7 @@
 //     więc przeskakiwanie między sprawami nie zamyka i nie otwiera okna. Na
 //     telefonie miejsca na to nie ma i szczegóły wracają jako okno pełnoekranowe.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ArrowLeft, BarChart3, Search } from 'lucide-react';
 import { useBreakpoint } from '@/common/hooks';
@@ -40,8 +40,7 @@ import { LeadDetailModal, LeadDetailPane } from '../components/LeadDetailModal';
 import { LeadQueueCard } from '../components/LeadQueueCard';
 import { LeadSegments, type LeadSegment } from '../components/LeadSegments';
 import { describeLeadUrgency } from '../utils/leadUrgency';
-import type { LeadPrimaryAction } from '../utils/leadPrimaryAction';
-import type { Lead, LeadStatus } from '../types';
+import type { LeadStatus } from '../types';
 import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
 import LeadAnalyticsView from './LeadAnalyticsView';
 
@@ -247,7 +246,6 @@ const CLOSED_SET = new Set<LeadStatus>(CLOSED_LEAD_STATUSES);
 
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
     /*
      * Podział na dwie kolumny od 1280 px w górę - to pierwsza szerokość, przy
      * której po odjęciu sidebara (248 px) zostaje dość miejsca na kolejkę i panel
@@ -351,17 +349,6 @@ export default function LeadsView() {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [isSplit, inArchive, visible, selectedLeadId, selectLead]);
-
-    const runAction = (lead: Lead, action: LeadPrimaryAction) => {
-        // Jedyny skrót omijający szczegóły: odpowiedź na maila. Reszta akcji
-        // potrzebuje kontekstu (wyceny, terminu), więc prowadzi do panelu, gdzie
-        // ten kontekst stoi razem z przyciskiem.
-        if (action.kind === 'REPLY' && lead.threadId) {
-            navigate(`/communication?thread=${lead.threadId}`);
-            return;
-        }
-        selectLead(lead.id);
-    };
 
     /**
      * Zmiana segmentu ZDEJMUJE zaznaczenie.
@@ -506,7 +493,6 @@ export default function LeadsView() {
                                 active={lead.id === selectedLeadId}
                                 dense={isSplit}
                                 onOpen={() => selectLead(lead.id)}
-                                onAction={(action) => runAction(lead, action)}
                             />
                         ))}
 
@@ -533,7 +519,6 @@ export default function LeadsView() {
                         <LeadDetailPane
                             key={selectedLeadId}
                             leadId={selectedLeadId}
-                            keyHint="j / k — następny lead"
                             onClose={() => selectLead(null)}
                             onDeleted={() => selectLead(null)}
                         />

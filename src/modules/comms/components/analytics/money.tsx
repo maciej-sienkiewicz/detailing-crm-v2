@@ -42,7 +42,7 @@ const HeroBand = styled.section<{ $accent: 'won' | 'pipeline' }>`
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 26px 28px 24px;
+    padding: 18px 24px 18px;
 
     /*
      * Listwa przy krawędzi niesie znaczenie kwoty obok. ZIELONA tylko dla pieniędzy
@@ -61,7 +61,7 @@ const HeroBand = styled.section<{ $accent: 'won' | 'pipeline' }>`
     }
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 20px 18px 18px;
+        padding: 16px 16px 16px;
     }
 `;
 
@@ -79,17 +79,17 @@ const HeroLead = styled.span`
  * a to ma być fakt.
  */
 const HeroAmount = styled.strong`
-    font-size: 52px;
+    font-size: 40px;
     line-height: 1.05;
     font-weight: ${p => p.theme.fontWeights.bold};
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
     color: ${p => p.theme.colors.text};
     /* Cyfry proporcjonalne, nie tabelaryczne: pojedyncza duża kwota czyta się
        zwarciej, gdy „1" jest węższe. Tabelaryczne zostawiamy tam, gdzie liczby
        stoją w kolumnie jedna pod drugą (belka rachunku, oś wykresu). */
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        font-size: 38px;
+        font-size: 32px;
     }
 `;
 
@@ -161,7 +161,7 @@ const HeroRewardNote = styled.span`
 interface HeroProps {
     lead: string;
     amount: string;
-    body: ReactNode;
+    body?: ReactNode;
     action?: ReactNode;
     reward?: string;
     /** Wygaszony przypis tuż pod nagrodą (np. „liczone za bieżący tydzień"). */
@@ -176,7 +176,7 @@ export function Hero({ lead, amount, body, action, reward, rewardNote, note, acc
         <HeroBand $accent={accent}>
             <HeroLead>{lead}</HeroLead>
             <HeroAmount>{amount}</HeroAmount>
-            <HeroBody>{body}</HeroBody>
+            {body && <HeroBody>{body}</HeroBody>}
             {reward && <HeroReward>{reward}</HeroReward>}
             {rewardNote && <HeroRewardNote>{rewardNote}</HeroRewardNote>}
             {(action || note) && (

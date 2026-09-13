@@ -1,24 +1,21 @@
 // src/modules/comms/components/LeadQueueCard.tsx
-// Jedna sprawa w kolejce. Cztery fakty i jeden przycisk.
+// Jedna sprawa w kolejce. Trzy fakty, żadnego przycisku.
 //
 // Karta zastąpiła wiersz tabeli o sześciu kolumnach, którego na telefonie nie
-// dało się przeczytać bez przewijania w bok (siatka miała sztywne 880 px).
-// Wysokość 88 px to nie rozrzutność: trzy linijki plus cel dotykowy 48 px muszą
-// się zmieścić bez ściskania. Wiersz 52 px z wytycznych pochodzi z widoku
-// biurkowego z myszą i w rękawicy nitrylowej nie działa.
+// dało się przeczytać bez przewijania w bok. Klik w kartę otwiera szczegóły, gdzie
+// stoją wszystkie akcje razem z kontekstem (wycena, termin) - osobny przycisk na
+// karcie tylko dublował jedną z nich i przyciągał wzrok na każdym wierszu.
 //
-// STATUSU TU NIE MA i nie ma go być. Etap zmienia się w oknie szczegółów albo
-// - najczęściej - sam, jako skutek odpowiedzi. Kolejka pokazuje pracę do
-// zrobienia, a nie stan bazy do wyklikania.
+// Zamiast „Czeka N dni" i szacowanej kwoty karta mówi, CZEGO wymaga: nowej
+// odpowiedzi albo ponownego kontaktu. Wiek i kwota niosły mniej: wiek powtarzał
+// to, co pasek pilności przy krawędzi, a kwota jest często zgadywana, więc na
+// liście wprowadzała w błąd. Pilność zostaje na pasku i na kolorze - nie w liczbie.
 import styled from 'styled-components';
-import { CalendarCheck, CalendarPlus, Phone, Send } from 'lucide-react';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { formatVehicle } from '../utils/leadFormat';
-import { leadPrimaryAction, type LeadPrimaryAction } from '../utils/leadPrimaryAction';
 import type { LeadUrgency, ReplyTone } from '../utils/leadUrgency';
 import type { Lead } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
-import { formatMoney } from './shared';
 
 const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>`
     position: relative;
@@ -26,7 +23,7 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>
     align-items: stretch;
     /* Gęściej na desktopie (panel obok kolejki, mysz), luźniej na telefonie
        (jedna ręka, rękawica) - stąd wysokość zależna od gęstości, nie stała. */
-    min-height: ${p => (p.$dense ? '72px' : '88px')};
+    min-height: ${p => (p.$dense ? '64px' : '80px')};
     background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
     border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
     transition: background ${p => p.theme.transitions.fast};
@@ -38,7 +35,6 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>
      * Pasek pilności przy lewej krawędzi. Zaległość jest cechą całej sprawy,
      * a nie zawartością którejś linijki, i - co ważniejsze - pasek nie zabiera
      * ani piksela szerokości. Skanuje się go jednym spojrzeniem w dół listy.
-     * Sam kolor niczego nie niesie: to samo mówi etykieta wieku po prawej.
      */
     &::before {
         content: '';
@@ -46,7 +42,7 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>
         left: 0;
         top: 0;
         bottom: 0;
-        width: 4px;
+        width: 3px;
         background: ${({ $tone, theme }) =>
             $tone === 'due' ? theme.colors.error
             : $tone === 'stale' ? theme.colors.warning
@@ -54,14 +50,14 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>
     }
 `;
 
-/** Cały obszar karty poza przyciskiem otwiera szczegóły. */
+/** Cała karta otwiera szczegóły. */
 const OpenArea = styled.button<{ $dense: boolean }>`
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: ${p => (p.$dense ? '2px' : '3px')};
-    padding: ${p => (p.$dense ? '11px 0 11px 16px' : '14px 0 14px 17px')};
+    padding: ${p => (p.$dense ? '10px 16px 10px 16px' : '13px 16px 13px 16px')};
     border: none;
     background: transparent;
     text-align: left;
@@ -88,7 +84,7 @@ const Headline = styled.span`
     align-items: center;
     gap: 6px;
     min-width: 0;
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     letter-spacing: -0.01em;
     color: ${p => p.theme.colors.text};
@@ -100,16 +96,17 @@ const Headline = styled.span`
     }
 `;
 
-const Age = styled.span<{ $tone: ReplyTone }>`
+/**
+ * Czego karta wymaga - „Nowa wiadomość" (ruch po naszej stronie) albo „Ponowny
+ * kontakt" (czekamy na klienta). Ton neutralny: pilność niesie pasek przy
+ * krawędzi, więc etykieta nie musi jej powtarzać kolorem.
+ */
+const Kind = styled.span`
     flex-shrink: 0;
-    font-size: 12.5px;
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.medium};
     white-space: nowrap;
-    font-weight: ${({ $tone, theme }) =>
-        $tone === 'neutral' ? theme.fontWeights.normal : theme.fontWeights.semibold};
-    color: ${({ $tone, theme }) =>
-        $tone === 'due' ? theme.colors.error
-        : $tone === 'stale' ? theme.colors.warning
-        : theme.colors.textMuted};
+    color: ${p => p.theme.colors.textMuted};
 `;
 
 const Services = styled.span`
@@ -121,20 +118,12 @@ const Services = styled.span`
     white-space: nowrap;
 `;
 
-const Money = styled.span<{ $empty?: boolean }>`
-    flex-shrink: 0;
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    font-weight: ${({ $empty, theme }) => ($empty ? theme.fontWeights.normal : theme.fontWeights.semibold)};
-    color: ${({ $empty, theme }) => ($empty ? theme.colors.textMuted : theme.colors.text)};
-`;
-
 const Who = styled.span`
     display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
-    font-size: 13px;
+    font-size: 12.5px;
     color: ${p => p.theme.colors.textMuted};
 
     > span {
@@ -144,67 +133,6 @@ const Who = styled.span`
     }
 `;
 
-const ActionSlot = styled.div`
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    flex-shrink: 0;
-`;
-
-/**
- * Cel dotykowy 48x48 - minimum, przy którym da się trafić w rękawicy nitrylowej.
- * Bez gestów: swipe w mokrym ekranie wykonuje się sam, a przerwany w połowie
- * nie zostawia śladu, po którym dałoby się poznać, czy zadziałał.
- *
- * WAGA WIZUALNA, nie tylko cel dotykowy. Pełny niebieski kafel na KAŻDYM wierszu
- * kolejki (bo w „Twoim ruchu" każda sprawa czeka na akcję) robił z listy kolumnę
- * krzyczących kwadratów - gdy wszystko jest wyróżnione, nic nie jest. Akcja główna
- * jest teraz delikatnym kaflem w kolorze marki z kolorową ikoną: widać, że to
- * przycisk, ale nie zabiera uwagi treści. Pełny kolor pojawia się dopiero pod
- * kursorem/dotknięciem. Pilność niesie pasek przy krawędzi i etykieta wieku,
- * nie przycisk.
- */
-const ActionButton = styled.a<{ $emphasis: 'primary' | 'quiet' }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: ${p => p.theme.radii.lg};
-    cursor: pointer;
-    text-decoration: none;
-    transition: all ${p => p.theme.transitions.fast};
-
-    background: ${({ $emphasis }) =>
-        $emphasis === 'primary'
-            ? 'color-mix(in srgb, var(--brand-primary) 12%, #ffffff)'
-            : '#ffffff'};
-    border: 1px solid ${({ $emphasis, theme }) =>
-        $emphasis === 'primary'
-            ? 'color-mix(in srgb, var(--brand-primary) 22%, #ffffff)'
-            : theme.colors.border};
-    color: ${({ $emphasis, theme }) =>
-        $emphasis === 'primary' ? 'var(--brand-primary)' : theme.colors.textSecondary};
-
-    &:hover {
-        background: ${({ $emphasis, theme }) =>
-            $emphasis === 'primary' ? 'var(--brand-primary)' : theme.colors.surfaceHover};
-        border-color: ${({ $emphasis, theme }) =>
-            $emphasis === 'primary' ? 'transparent' : theme.colors.border};
-        color: ${({ $emphasis, theme }) =>
-            $emphasis === 'primary' ? '#ffffff' : theme.colors.text};
-    }
-
-    svg { width: 18px; height: 18px; }
-`;
-
-const ACTION_ICONS = {
-    REPLY: <Send />,
-    CALL: <Phone />,
-    BOOK: <CalendarPlus />,
-    APPOINTMENT: <CalendarCheck />,
-} as const;
-
 interface LeadQueueCardProps {
     lead: Lead;
     urgency: LeadUrgency;
@@ -212,21 +140,20 @@ interface LeadQueueCardProps {
     /** Gęstszy układ (niższa karta, ciaśniejsze odstępy) - desktop z panelem obok. */
     dense?: boolean;
     onOpen: () => void;
-    /** Wykonanie akcji innej niż `tel:` - te wychodzą linkiem, bez pośrednictwa CRM. */
-    onAction: (action: LeadPrimaryAction) => void;
 }
 
-export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen, onAction }: LeadQueueCardProps) {
-    const action = leadPrimaryAction(lead, urgency);
+export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen }: LeadQueueCardProps) {
     const vehicle = formatVehicle(lead);
     const person = lead.customerName ?? lead.contactIdentifier;
     /*
      * Nagłówkiem jest auto, bo detailer myśli autami („ten X5 od ceramiki").
-     * Gdy auta nie rozpoznano, nazwisko awansuje na nagłówek - pusty nagłówek
-     * i wiersz „-" nie niosą nic, a kosztują tę samą wysokość. Wtedy w trzeciej
-     * linijce zostaje sam identyfikator, żeby nie powtarzać nazwiska dwa razy.
+     * Gdy auta nie rozpoznano, nazwisko awansuje na nagłówek, a w trzeciej linijce
+     * zostaje sam identyfikator, żeby nie powtarzać nazwiska dwa razy.
      */
     const subtitle = vehicle ? person : lead.customerName ? lead.contactIdentifier : null;
+    // Ruch po naszej stronie = ktoś czeka na odpowiedź; u klienta = następny krok
+    // to ponowny kontakt z naszej strony.
+    const kind = urgency.turn === 'OURS' ? 'Nowa wiadomość' : 'Ponowny kontakt';
 
     return (
         <Card $tone={urgency.tone} $active={active} $dense={dense}>
@@ -236,19 +163,12 @@ export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen, on
                         {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}
                         <span>{vehicle ?? person}</span>
                     </Headline>
-                    {urgency.label && <Age $tone={urgency.tone}>{urgency.label}</Age>}
+                    {urgency.turn !== 'SETTLED' && <Kind>{kind}</Kind>}
                 </Line>
 
-                <Line>
-                    <Services>
-                        {lead.tagLabels.length > 0 ? lead.tagLabels.join(', ') : 'Bez opisu usługi'}
-                    </Services>
-                    {lead.estimatedValue > 0 ? (
-                        <Money>{formatMoney(lead.estimatedValue)}</Money>
-                    ) : (
-                        <Money $empty>bez wyceny</Money>
-                    )}
-                </Line>
+                <Services>
+                    {lead.tagLabels.length > 0 ? lead.tagLabels.join(', ') : 'Bez opisu usługi'}
+                </Services>
 
                 {subtitle && (
                     <Who>
@@ -257,25 +177,6 @@ export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen, on
                     </Who>
                 )}
             </OpenArea>
-
-            <ActionSlot>
-                <ActionButton
-                    as={action.href ? 'a' : 'button'}
-                    href={action.href}
-                    type={action.href ? undefined : 'button'}
-                    $emphasis={action.emphasis}
-                    title={action.label}
-                    aria-label={action.label}
-                    onClick={(event: React.MouseEvent) => {
-                        event.stopPropagation();
-                        // Link `tel:` obsługuje przeglądarka - nie odbieramy jej tego,
-                        // bo tylko tak dialer otwiera się jednym tapnięciem.
-                        if (!action.href) onAction(action);
-                    }}
-                >
-                    {ACTION_ICONS[action.kind]}
-                </ActionButton>
-            </ActionSlot>
         </Card>
     );
 }

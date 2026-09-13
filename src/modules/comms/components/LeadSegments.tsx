@@ -14,39 +14,43 @@ import styled from 'styled-components';
 
 export type LeadSegment = 'OURS' | 'CLIENT' | 'ARCHIVE';
 
+/**
+ * Lekki przełącznik segmentowy: jasny tor, a aktywny segment to biała pigułka
+ * z delikatnym cieniem - nie pełny ciemny blok. Pełny granat na aktywnej zakładce
+ * ciążył całej kolejce; tu wybór jest czytelny, ale nie krzyczy.
+ */
 const Bar = styled.div`
     display: flex;
-    gap: 0;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
+    gap: 2px;
+    background: ${p => p.theme.colors.surfaceAlt};
     border-radius: ${p => p.theme.radii.lg};
-    padding: 4px;
+    padding: 3px;
 `;
 
-/** 48 px wysokości - ten sam cel dotykowy co przycisk akcji na karcie. */
 const Tab = styled.button<{ $active: boolean }>`
     flex: 1 1 0;
     min-width: 0;
-    height: 48px;
+    height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     border: none;
-    border-radius: 9px;
+    border-radius: 8px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     white-space: nowrap;
-    transition: background ${p => p.theme.transitions.fast};
+    transition: all ${p => p.theme.transitions.fast};
 
-    background: ${({ $active, theme }) => ($active ? theme.colors.text : 'transparent')};
-    color: ${({ $active, theme }) => ($active ? '#ffffff' : theme.colors.textSecondary)};
+    background: ${({ $active, theme }) => ($active ? theme.colors.surface : 'transparent')};
+    box-shadow: ${({ $active, theme }) => ($active ? theme.shadows.sm : 'none')};
+    color: ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.textSecondary)};
     font-weight: ${({ $active, theme }) =>
         $active ? theme.fontWeights.semibold : theme.fontWeights.medium};
 
     &:hover {
-        ${({ $active, theme }) => !$active && `background: ${theme.colors.surfaceHover};`}
+        ${({ $active, theme }) => !$active && `color: ${theme.colors.text};`}
     }
 `;
 

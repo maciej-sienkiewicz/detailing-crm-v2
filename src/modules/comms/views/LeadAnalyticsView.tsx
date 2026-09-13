@@ -33,11 +33,11 @@ import { useLeadAnalytics } from '../hooks/useLeads';
 import type { LeadAnalytics, LeadStatus } from '../types';
 import { EmptyHint } from '../components/shared';
 import { PeriodPicker } from '../components/analytics/PeriodPicker';
-import { buildPeriod, type Period } from '../components/analytics/period';
+import { buildPeriod, formatShort, type Period } from '../components/analytics/period';
 import { buildDemoAnalytics } from '../components/analytics/demoData';
 import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
-import { AnalyticsCard, RankedBars, WonMoneyChart } from '../components/analytics/charts';
-import { SOURCE_LABELS, formatMoney, formatPeriodTick, percent, points } from '../components/analytics/tokens';
+import { AnalyticsCard, RankedBars, YearLineChart, type YearPoint } from '../components/analytics/charts';
+import { SOURCE_LABELS, formatMoney, percent, points } from '../components/analytics/tokens';
 
 // ── Progi ────────────────────────────────────────────────────────────────────
 
@@ -47,8 +47,6 @@ import { SOURCE_LABELS, formatMoney, formatPeriodTick, percent, points } from '.
  * od pierwszego zlecenia; chowa się dopiero sekcja pogłębiona.
  */
 const THIN_DATA_BELOW = 10;
-/** Od tylu zapytań kierunek względem poprzedniego okresu przestaje być rzutem monetą. */
-const MIN_LEADS_FOR_DELTA = 20;
 /** Powody straty mają sens, gdy jest ich z czego złożyć. */
 const MIN_LEADS_FOR_LEAKS = 15;
 /** Ranking kanałów po liczbie zapytań - solidny dopiero od pewnej próby. */
@@ -57,11 +55,12 @@ const MIN_LEADS_FOR_SOURCE = 25;
 const MIN_CLOSED_FOR_SOURCE_RATE = 10;
 /** Werdykt „czy szybka odpowiedź się opłaca" pokazujemy dopiero przy realnym wolumenie. */
 const MIN_LEADS_FOR_SPEED = 40;
-/** Wykres pieniędzy w czasie - tylko przy długim zakresie i dużej liczbie zapytań. */
-const MIN_LEADS_FOR_TREND = 60;
 
 /** Stan rozwinięcia sekcji szczegółów - per przeglądarka, przeżywa odświeżenie. */
 const DEEP_OPEN_KEY = 'leadAnalytics.deepOpen';
+
+/** Skróty miesięcy na oś wykresu rocznego. */
+const MONTH_ABBR = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
 // ── Obudowa ────────────────────────────────────────────────────────────────
 
@@ -98,34 +97,19 @@ const EmbeddedShell = styled.div`
 /**
  * Nagłówek stoi POZA obszarem przewijania: rozwijany wybór okresu jest pozycjonowany
  * absolutnie (bez portalu), więc w kontenerze z overflow zostałby przycięty.
+ *
+ * Bez tytułu: „Pieniądze w zapytaniach / Podsumowanie za wrzesień" nic nie wnosiło -
+ * że to pieniądze w zapytaniach, wiadomo z kolejki obok, a okres i tak mówi wybór
+ * okresu oraz kwota-bohater niżej („Zamknięte w tym miesiącu"). Zostaje sam wybór okresu.
  */
 const EmbeddedHeader = styled.header`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px 16px;
-    flex-wrap: wrap;
+    justify-content: flex-end;
     flex-shrink: 0;
-    padding: 18px 22px 16px 22px;
+    padding: 12px 20px;
     background: ${p => p.theme.colors.background};
     border-bottom: 1px solid ${st.border};
-
-    h2 {
-        margin: 0;
-        font-size: 21px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        letter-spacing: -0.02em;
-        line-height: 1.15;
-        color: ${st.text};
-    }
-    p {
-        margin: 2px 0 0 0;
-        font-size: 12.5px;
-        color: ${st.textSecondary};
-    }
-    & > div:first-child {
-        min-width: 0;
-    }
 `;
 
 /** Sama treść analityki się przewija; nagłówek z wyborem okresu zostaje na miejscu. */
@@ -381,12 +365,14 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
     const [demo, setDemo] = useState(false);
     const { data, isLoading } = useLeadAnalytics(period.from, period.to);
 
-    // Wykres pieniędzy w czasie ma sens miesiącami dopiero przy zakresie dłuższym niż
-    // kwartał - rok w tygodniach to 52 słupki, w których ginie kształt.
-    const monthly = period.to.getTime() - period.from.getTime() > 120 * 24 * 3600 * 1000;
+    // Wykres roczny: zawsze pełny bieżący rok (styczeń–grudzień), niezależnie od
+    // wybranego okresu - stąd osobne zapytanie o cały rok.
+    const currentYear = new Date().getFullYear();
+    const yearQuery = useLeadAnalytics(new Date(currentYear, 0, 1), new Date(currentYear, 11, 31, 23, 59, 59, 999));
 
     const thin = Boolean(data) && data!.totalCreated < THIN_DATA_BELOW;
     const shown = demo ? buildDemoAnalytics(period.from, period.to) : data;
+    const yearSeries = demo ? buildDemoYearSeries() : buildYearSeries(yearQuery.data);
 
     const body = (
         <>
@@ -434,7 +420,8 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
             {shown && (demo || shown.totalCreated > 0) && (
                 <Report
                     data={shown}
-                    monthly={demo ? false : monthly}
+                    period={period}
+                    yearSeries={yearSeries}
                     embedded={embedded}
                     onOpenQueue={onOpenQueue}
                     onOpenArchive={onOpenArchive}
@@ -447,10 +434,6 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
         return (
             <EmbeddedShell>
                 <EmbeddedHeader>
-                    <div>
-                        <h2>Pieniądze w zapytaniach</h2>
-                        <p>Podsumowanie za {period.label}</p>
-                    </div>
                     <PeriodPicker value={period} onChange={setPeriod} variant="light" />
                 </EmbeddedHeader>
                 <EmbeddedBody>{body}</EmbeddedBody>
@@ -481,13 +464,15 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
 
 function Report({
     data,
-    monthly,
+    period,
+    yearSeries,
     embedded = false,
     onOpenQueue,
     onOpenArchive,
 }: {
     data: LeadAnalytics;
-    monthly: boolean;
+    period: Period;
+    yearSeries: YearPoint[];
     embedded?: boolean;
     onOpenQueue?: () => void;
     onOpenArchive?: (status?: LeadStatus) => void;
@@ -509,38 +494,24 @@ function Report({
 
     const total = data.wonValue + data.pipelineValue + data.silentValue + data.lostValue;
     const hasWins = data.wonValue > 0;
-
-    const wonDelta = data.wonValue - data.wonValuePrevious;
-    const deltaNote = data.totalCreated >= MIN_LEADS_FOR_DELTA && data.wonValuePrevious > 0
-        ? (wonDelta === 0
-            ? 'Tyle samo, ile w poprzednim okresie.'
-            : `O ${formatMoney(Math.abs(wonDelta))} ${wonDelta > 0 ? 'więcej' : 'mniej'} niż w poprzednim okresie.`)
-        : undefined;
+    const phrase = periodPhrase(period);
 
     const reward = data.confirmedValueThisWeek > 0
         ? `W tym tygodniu domknąłeś zlecenia za ${formatMoney(data.confirmedValueThisWeek)}.`
         : undefined;
-    const rewardNote = reward ? 'Za bieżący tydzień, niezależnie od wybranego okresu.' : undefined;
 
     const showDeep = data.totalCreated >= THIN_DATA_BELOW;
 
     return (
         <>
-            {/* ── FRONT · ile zamknąłeś ───────────────────────────────────────── */}
+            {/* ── FRONT · ile zamknąłeś (mała sekcja: etykieta okresu + kwota) ─── */}
             {hasWins ? (
-                <Hero
-                    lead="Zamknięte w tym okresie"
-                    amount={formatMoney(data.wonValue)}
-                    body={<>Tyle przyniosły zapytania, które <strong>zamieniłeś w zlecenia</strong>.</>}
-                    reward={reward}
-                    rewardNote={rewardNote}
-                    note={deltaNote}
-                />
+                <Hero lead={`Zamknięte ${phrase}`} amount={formatMoney(data.wonValue)} reward={reward} />
             ) : embedded ? (
                 // Panel obok kolejki: kwotę „w toku" pokazuje już pasek nad kolejką,
                 // więc nie dublujemy jej wielką liczbą - mówimy wprost i odsyłamy tam.
                 <PipelineCoach>
-                    <h3>Jeszcze nic nie zamknięte w tym okresie</h3>
+                    <h3>Jeszcze nic nie zamknięte {phrase}</h3>
                     <p>
                         Pieniądze w toku masz w kolejce obok. Domknij pierwszą sprawę,
                         a pojawi się tu Twój przychód.
@@ -550,19 +521,7 @@ function Report({
             ) : (
                 // Pełny ekran (bez kolejki obok): kwota „w toku" jest tu jedyna, więc
                 // pokazujemy ją jako liczbę - nie ma czego dublować.
-                <Hero
-                    accent="pipeline"
-                    lead="W toku w tym okresie"
-                    amount={formatMoney(data.pipelineValue)}
-                    body={
-                        <>
-                            Tyle są warte zapytania w toku. Gdy pierwsze zamienisz w zlecenie,{' '}
-                            <strong>zobaczysz tu przychód</strong>.
-                        </>
-                    }
-                    reward={reward}
-                    rewardNote={rewardNote}
-                />
+                <Hero accent="pipeline" lead={`W toku ${phrase}`} amount={formatMoney(data.pipelineValue)} reward={reward} />
             )}
 
             {/* ── FRONT · wartość zapytań (belka) ─────────────────────────────── */}
@@ -589,6 +548,14 @@ function Report({
                 </ActionStrip>
             )}
 
+            {/* ── FRONT · przychód przez cały rok ─────────────────────────────── */}
+            <AnalyticsCard
+                question="Zamknięte pieniądze w tym roku"
+                answer="Ile realnie zamknąłeś na plus w kolejnych miesiącach - cały rok, od stycznia do grudnia."
+            >
+                <YearLineChart points={yearSeries} />
+            </AnalyticsCard>
+
             {/* ── SZCZEGÓŁY (zwinięte) ────────────────────────────────────────── */}
             {showDeep && (
                 <>
@@ -596,7 +563,7 @@ function Report({
                         <span>Zobacz szczegóły</span>
                         <ChevronDown className={deepOpen ? 'open' : undefined} />
                     </DeepToggle>
-                    {deepOpen && <DeepSection data={data} monthly={monthly} goLost={goLost} />}
+                    {deepOpen && <DeepSection data={data} goLost={goLost} />}
                 </>
             )}
         </>
@@ -607,7 +574,7 @@ function Report({
  * Szczegóły „dla ciekawskiego" - płaska lista, po jednej odpowiedzi na temat, każda
  * pod własnym progiem danych. Bez zakładek, bez sześciu wykresów naraz.
  */
-function DeepSection({ data, monthly, goLost }: { data: LeadAnalytics; monthly: boolean; goLost: () => void }) {
+function DeepSection({ data, goLost }: { data: LeadAnalytics; goLost: () => void }) {
     return (
         <>
             {data.totalCreated >= MIN_LEADS_FOR_LEAKS && data.leaks.length > 0 && (
@@ -634,10 +601,6 @@ function DeepSection({ data, monthly, goLost }: { data: LeadAnalytics; monthly: 
             {data.totalCreated >= MIN_LEADS_FOR_SOURCE && <SourceCard data={data} />}
 
             <SpeedCard data={data} />
-
-            {monthly && data.timeline.length >= 3 && data.totalCreated >= MIN_LEADS_FOR_TREND && (
-                <TrendCard data={data} monthly={monthly} />
-            )}
         </>
     );
 }
@@ -703,34 +666,42 @@ function SpeedCard({ data }: { data: LeadAnalytics }) {
     return <AnalyticsCard question="Czy szybka odpowiedź się opłaca" answer={answer} />;
 }
 
-/** Zamknięte pieniądze miesiąc po miesiącu - jedyny prawdziwy wykres (Recharts). */
-function TrendCard({ data, monthly }: { data: LeadAnalytics; monthly: boolean }) {
-    const last = data.timeline[data.timeline.length - 1];
-    const previous = data.timeline[data.timeline.length - 2];
-    const delta = last && previous ? last.wonValue - previous.wonValue : null;
+/** Etykieta okresu do zdania-bohatera: „w tym miesiącu" / „w poprzednim miesiącu" / „od … do …". */
+function periodPhrase(period: Period): string {
+    if (period.mode === 'previous') return 'w poprzednim miesiącu';
+    if (period.mode === 'custom') return `od ${formatShort(period.from)} do ${formatShort(period.to)}`;
+    return 'w tym miesiącu';
+}
 
-    return (
-        <AnalyticsCard
-            question="Przychód miesiąc po miesiącu"
-            answer={
-                delta === null || delta === 0
-                    ? 'Ile pieniędzy zamykasz w kolejnych miesiącach.'
-                    : (
-                        <>
-                            W ostatnim miesiącu zamknąłeś <strong>{formatMoney(last.wonValue)}</strong> —
-                            o {formatMoney(Math.abs(delta))} {delta > 0 ? 'więcej' : 'mniej'} niż miesiąc wcześniej.
-                        </>
-                    )
-            }
-        >
-            <WonMoneyChart
-                points={data.timeline.map((point) => ({
-                    period: formatPeriodTick(point.periodStart, monthly),
-                    value: point.wonValue,
-                }))}
-            />
-        </AnalyticsCard>
-    );
+/**
+ * Zamknięte pieniądze w 12 miesiącach bieżącego roku. Miesiące jeszcze nieprzeżyte
+ * dostają null (dziura w linii), nie zero - „nic nie zamknięto" i „miesiąc nie
+ * nadszedł" to dwie różne rzeczy. Wartości sumujemy po miesiącu daty początkowej
+ * kubełka, więc działa i przy kubełkach tygodniowych, i miesięcznych.
+ */
+function buildYearSeries(analytics: LeadAnalytics | undefined): YearPoint[] {
+    const currentMonth = new Date().getMonth();
+    const byMonth = new Array<number>(12).fill(0);
+    if (analytics) {
+        for (const point of analytics.timeline) {
+            const month = new Date(`${point.periodStart}T00:00:00`).getMonth();
+            if (month >= 0 && month < 12) byMonth[month] += point.wonValue;
+        }
+    }
+    return MONTH_ABBR.map((label, index) => ({
+        period: label,
+        value: index > currentMonth ? null : byMonth[index],
+    }));
+}
+
+/** Przykładowy rok do trybu pokazowego - realistyczny kształt, nie losowy. */
+function buildDemoYearSeries(): YearPoint[] {
+    const currentMonth = new Date().getMonth();
+    const values = [820000, 940000, 1180000, 1060000, 1320000, 1240000, 980000, 1140000, 1560000, 1420000, 1680000, 1900000];
+    return MONTH_ABBR.map((label, index) => ({
+        period: label,
+        value: index > currentMonth ? null : values[index],
+    }));
 }
 
 /** „1 zapytanie", „3 zapytania", „11 zapytań" - polska odmiana bez zaskoczeń przy 12–14. */
