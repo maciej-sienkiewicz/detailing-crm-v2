@@ -109,15 +109,15 @@ const QueueHeader = styled.header`
 
     h1 {
         margin: 0;
-        font-size: 26px;
+        font-size: 21px;
         font-weight: ${p => p.theme.fontWeights.bold};
         letter-spacing: -0.02em;
-        line-height: 1.1;
+        line-height: 1.15;
         color: ${p => p.theme.colors.text};
     }
     p {
-        margin: 3px 0 0 0;
-        font-size: 13px;
+        margin: 2px 0 0 0;
+        font-size: 12.5px;
         color: ${p => p.theme.colors.textSecondary};
     }
 `;
@@ -176,14 +176,14 @@ const OwedStrip = styled.div`
     flex-shrink: 0;
 
     .amount {
-        font-size: 20px;
-        font-weight: ${p => p.theme.fontWeights.bold};
+        font-size: 16px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
         color: ${p => p.theme.colors.text};
         font-variant-numeric: tabular-nums;
         letter-spacing: -0.01em;
     }
     .text {
-        font-size: 13px;
+        font-size: 12.5px;
         color: ${p => p.theme.colors.textSecondary};
     }
 `;
@@ -504,6 +504,7 @@ export default function LeadsView() {
                                 lead={lead}
                                 urgency={urgency}
                                 active={lead.id === selectedLeadId}
+                                dense={isSplit}
                                 onOpen={() => selectLead(lead.id)}
                                 onAction={(action) => runAction(lead, action)}
                             />
