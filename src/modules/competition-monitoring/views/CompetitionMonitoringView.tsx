@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { BarChart3, Calendar, Grid3x3, Megaphone, MoreHorizontal, Plus, Sparkles, Users } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
@@ -46,18 +47,15 @@ const fadeUp = keyframes`
     to   { opacity: 1; transform: translateY(0); }
 `;
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 16px;
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: 16px;
     animation: ${fadeUp} 300ms ease both;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: 32px;
+        padding-block: 32px;
         gap: 20px;
     }
 `;

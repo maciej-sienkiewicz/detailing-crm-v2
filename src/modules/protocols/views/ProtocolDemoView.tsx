@@ -1,23 +1,21 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { ProtocolChecklist } from '../components/ProtocolChecklist';
 
-const Container = styled.main`
+const Container = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.xl};
-    padding: ${props => props.theme.spacing.lg};
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: ${props => props.theme.spacing.lg};
     background: rgb(248, 250, 252); // bg-slate-50
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
+        padding-block: ${props => props.theme.spacing.xl};
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: ${props => props.theme.spacing.xxl};
+        padding-block: ${props => props.theme.spacing.xxl};
     }
 `;
 

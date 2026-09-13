@@ -2,6 +2,7 @@ import styled, { keyframes } from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { Link } from 'react-router-dom';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { PageContainer } from '@/common/components/PageContainer';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -21,25 +22,26 @@ export const spin = keyframes`
 
 // ─── Page layout ──────────────────────────────────────────────────────────────
 
-export const ViewContainer = styled.main`
+// Tło pełnoekranowe (wrapper prezentacyjny). Landmarkiem <main> jest PageContent.
+export const ViewContainer = styled.div`
   min-height: 100vh;
   background: ${st.bg};
   ${hexBackdrop}
   animation: ${fadeIn} 0.25s ease both;
 `;
 
-export const PageContent = styled.div`
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 20px 24px 56px;
+// Szerokość (1600px), wyśrodkowanie i poziomy gutter dostarcza PageContainer;
+// tu zostaje tylko pionowy padding (w tym zapas pod przyklejony pasek zakładek).
+export const PageContent = styled(PageContainer)`
+  padding-block: 20px 56px;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 28px 32px 64px;
+    padding-block: 28px 64px;
   }
 
   /* Zapas na pasek zakładek sekcji; pasek globalny i safe-area dokłada Layout. */
   @media (max-width: 767px) {
-    padding: 16px 14px 84px;
+    padding-block: 16px 84px;
   }
 `;
 

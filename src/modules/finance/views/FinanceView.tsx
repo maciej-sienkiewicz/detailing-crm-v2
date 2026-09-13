@@ -21,6 +21,7 @@ import {
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { PageContainer } from '@/common/components/PageContainer';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -31,22 +32,19 @@ const fadeUp = keyframes`
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: ${(p) => p.theme.spacing.xl};
-  padding: ${(p) => p.theme.spacing.lg};
-  max-width: 1920px;
-  margin: 0 auto;
-  width: 100%;
+  padding-block: ${(p) => p.theme.spacing.lg};
   animation: ${fadeUp} 300ms ease both;
 
   @media (max-width: 639px) {
-    padding: ${(p) => p.theme.spacing.md};
+    padding-block: ${(p) => p.theme.spacing.md};
   }
 
   @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    padding: ${(p) => p.theme.spacing.xl};
+    padding-block: ${(p) => p.theme.spacing.xl};
   }
 `;
 

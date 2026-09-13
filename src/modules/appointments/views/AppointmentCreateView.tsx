@@ -1,5 +1,6 @@
 // src/modules/appointments/views/AppointmentCreateView.tsx
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useAppointmentCreation } from '../hooks/useAppointmentCreation';
 import { AppointmentHeader } from '../components/AppointmentHeader';
@@ -15,25 +16,24 @@ import {LoadingSkeleton} from "@/modules/appointments/components/common";
 import { SmsNotificationsSection } from '../components/SmsNotificationsSection';
 import { RecurrenceSection } from '../components/RecurrenceSection';
 
+// Pełnoekranowe tło + pionowy oddech strony. Poziomy gutter i szerokość
+// dostarcza ContentWrapper (PageContainer), więc tu tylko padding-block.
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
     ${hexBackdrop}
-    padding: ${props => props.theme.spacing.lg};
+    padding-block: ${props => props.theme.spacing.lg};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
+        padding-block: ${props => props.theme.spacing.xl};
     }
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        padding: ${props => props.theme.spacing.xxl};
+        padding-block: ${props => props.theme.spacing.xxl};
     }
 `;
 
-const ContentWrapper = styled.div`
-    max-width: 1400px;
-    margin: 0 auto;
-`;
+const ContentWrapper = styled(PageContainer)``;
 
 const MainContent = styled.div`
     display: grid;

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { t } from '@/common/i18n';
 import { StatsFilters } from '../components/StatsFilters';
 import { StatsTotalsBar } from '../components/StatsTotalsBar';
@@ -13,21 +14,18 @@ import { useCategoryDetail } from '../hooks/useCategories';
 import { useCategoryStats, useBreakdown } from '../hooks/useStats';
 import type { Granularity } from '../types';
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.xl};
-    padding: ${props => props.theme.spacing.lg};
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
+    padding-block: ${props => props.theme.spacing.lg};
 
     @media (max-width: 639px) {
-        padding: ${props => props.theme.spacing.md};
+        padding-block: ${props => props.theme.spacing.md};
     }
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
+        padding-block: ${props => props.theme.spacing.xl};
     }
 `;
 

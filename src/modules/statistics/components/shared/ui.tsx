@@ -4,20 +4,20 @@
 import styled, { css } from 'styled-components';
 import { st } from '../StatisticsTheme';
 import { cardEntrance } from './animations';
+import { PageContainer } from '@/common/components/PageContainer';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-export const ViewContainer = styled.main`
+// Szerokość, wyśrodkowanie i poziomy gutter dostarcza PageContainer (spójne
+// z resztą aplikacji); tu zostaje tylko układ pionowy zakładek statystyk.
+export const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 24px;
-    padding: ${p => p.theme.spacing.lg};
-    max-width: 1800px;
-    margin: 0 auto;
-    width: 100%;
-    @media (max-width: 639px) { padding: ${p => p.theme.spacing.md}; }
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
+    padding-block: ${p => p.theme.spacing.lg};
+    @media (max-width: 639px) { padding-block: ${p => p.theme.spacing.md}; }
+    @media (min-width: ${p => p.theme.breakpoints.md}) { padding-block: ${p => p.theme.spacing.xl}; }
+    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding-block: ${p => p.theme.spacing.xxl}; }
 `;
 
 export const Section = styled.section`
