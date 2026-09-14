@@ -573,7 +573,13 @@ export interface AreaResults {
     configured: boolean;
     /** ISO. Kiedy złożono wyniki (dane z cache, nie z chwili odczytu). */
     generatedAt: string;
+    /** STRONA wyników, nie całość. */
     advertisers: AdvertiserRow[];
+    /** Numer strony liczony od zera. */
+    page: number;
+    pageSize: number;
+    /** Wszyscy widoczni reklamodawcy — z tego liczy się liczbę stron. */
+    totalAdvertisers: number;
     totalActiveAds: number;
     /** Ilu reklamodawców odpadło przez wykluczenia - bez tego krótka tabela nie mówi dlaczego. */
     hiddenAdvertisers: number;
@@ -598,29 +604,21 @@ export interface BlockedAdvertiser {
 }
 
 /** Zapisane, trwałe śledzenie obszaru. */
-export interface LocationTracking {
-    id: string;
-    label: string;
+/** Ustawienia rejonu jednego studia. Jeden zestaw, nie lista. */
+export interface AreaSettings {
+    locations: string[];
+    matchMode: AreaMatchMode;
     /** Identyfikatory fraz z katalogu, które studio odznaczyło. */
     excludedPhraseIds: string[];
     /** Ile fraz katalogu zostaje po odznaczeniach. */
     trackedPhraseCount: number;
-    locations: string[];
-    matchMode: AreaMatchMode;
-    active: boolean;
-    createdAt: string;
-    updatedAt: string;
+    /** ISO albo null, gdy studio jeszcze nic nie ustawiło. */
+    updatedAt: string | null;
 }
 
-/** Ciało zapisu/edycji śledzenia obszaru. */
-export interface SaveLocationTracking {
-    label: string;
-    /**
-     * Frazy ODZNACZONE, nie wybrane. Katalog jest zamknięty i ustala go administrator
-     * aplikacji; studio może z niego tylko odejmować.
-     */
-    excludedPhraseIds: string[];
+export interface SaveAreaSettings {
     locations: string[];
     matchMode?: AreaMatchMode;
-    active?: boolean;
+    /** Frazy ODZNACZONE, nie wybrane — katalog ustala administrator aplikacji. */
+    excludedPhraseIds: string[];
 }

@@ -3,27 +3,27 @@ import type {
     AdCalendar,
     AdDetail,
     AreaResults,
+    AreaSettings,
+    Benchmark,
     BlockedAdvertiser,
     CatalogPhrase,
-    LocationTracking,
-    SaveLocationTracking,
-    PageCandidate,
-    Benchmark,
-    ProfileSuggestion,
-    WeeklyDigest,
     CompetitorPulse,
     ContentPage,
+    GenerateInstagramPostRequest,
     GeneratedInstagramPost,
     GeneratedPostRating,
-    GenerateInstagramPostRequest,
     HashtagStat,
     Heatmap,
     InstagramPostResult,
-    InstagramStyleRule,
     InstagramProfile,
+    InstagramStyleRule,
     Overview,
+    PageCandidate,
+    ProfileSuggestion,
     ResyncResult,
+    SaveAreaSettings,
     WeekDetail,
+    WeeklyDigest,
     WeeksOption,
 } from '../types';
 
@@ -190,16 +190,21 @@ export const instagramApi = {
 
     // ── Odkrywanie obszaru (kto reklamuje się na frazy w rejonie) ─────────────
 
-    /**
-     * Podgląd na żywo bez zapisu: frazy + rejon → tabela firm. Może dociągnąć nowe
-     * frazy do wspólnego cache, więc pierwsze wywołanie dla nieznanej frazy bywa
-     * wolniejsze - kolejne (także innych studiów) idą już z cache.
-     */
-    previewAreaDiscovery: async (request: SaveLocationTracking): Promise<AreaResults> => {
-        const response = await apiClient.post<AreaResults>(`${ADS_PATH}/discovery/preview`, {
-            excludedPhraseIds: request.excludedPhraseIds,
-            locations: request.locations,
-            matchMode: request.matchMode,
+    /** Ustawienia rejonu tego studia. Brak wiersza to stan pusty, nie błąd. */
+    getAreaSettings: async (): Promise<AreaSettings> => {
+        const response = await apiClient.get<AreaSettings>(`${ADS_PATH}/discovery/settings`);
+        return response.data;
+    },
+
+    saveAreaSettings: async (request: SaveAreaSettings): Promise<AreaSettings> => {
+        const response = await apiClient.put<AreaSettings>(`${ADS_PATH}/discovery/settings`, request);
+        return response.data;
+    },
+
+    /** Strona tabeli reklamodawców dla rejonu tego studia. */
+    getAreaResults: async (page: number): Promise<AreaResults> => {
+        const response = await apiClient.get<AreaResults>(`${ADS_PATH}/discovery/results`, {
+            params: { page },
         });
         return response.data;
     },
@@ -226,31 +231,6 @@ export const instagramApi = {
 
     unblockAdvertiser: async (pageId: string): Promise<void> => {
         await apiClient.delete(`${ADS_PATH}/discovery/blocks/${pageId}`);
-    },
-
-    listLocationTrackings: async (): Promise<LocationTracking[]> => {
-        const response = await apiClient.get<LocationTracking[]>(`${ADS_PATH}/discovery/trackings`);
-        return response.data;
-    },
-
-    createLocationTracking: async (request: SaveLocationTracking): Promise<LocationTracking> => {
-        const response = await apiClient.post<LocationTracking>(`${ADS_PATH}/discovery/trackings`, request);
-        return response.data;
-    },
-
-    updateLocationTracking: async (id: string, request: SaveLocationTracking): Promise<LocationTracking> => {
-        const response = await apiClient.put<LocationTracking>(`${ADS_PATH}/discovery/trackings/${id}`, request);
-        return response.data;
-    },
-
-    deleteLocationTracking: async (id: string): Promise<void> => {
-        await apiClient.delete(`${ADS_PATH}/discovery/trackings/${id}`);
-    },
-
-    /** Tabela wyników zapisanego śledzenia — z bieżącego, wspólnego cache. */
-    getLocationTrackingResults: async (id: string): Promise<AreaResults> => {
-        const response = await apiClient.get<AreaResults>(`${ADS_PATH}/discovery/trackings/${id}/results`);
-        return response.data;
     },
 
     // ── Reakcje i generator AI ───────────────────────────────────────────────

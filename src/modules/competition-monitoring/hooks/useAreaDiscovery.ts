@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
-import type { SaveLocationTracking } from '../types';
+import type { SaveAreaSettings } from '../types';
 
 /**
- * Odkrywanie obszaru: „kto jeszcze reklamuje się na frazy X w rejonie Y".
+ * Odkrywanie obszaru: „kto jeszcze reklamuje się w moim rejonie".
  *
- * Dane pochodzą ze wspólnego cache serwera (odświeżanego 2×/dobę), więc trzymamy
- * je u siebie długo - przełączanie zakładek nie ma po co odpytywać. Podgląd na
- * żywo to mutacja (bez zapisu), zapisane śledzenia to zapytania z listą i wynikami.
+ * Jedno ustawienie na studio i jedna, stronicowana tabela wyników. Dane pochodzą
+ * ze wspólnego cache serwera, odświeżanego strumieniem przez całą dobę, więc
+ * trzymamy je u siebie długo — przełączanie zakładek nie ma po co odpytywać.
  */
 
 export const AREA_KEYS = {
-    trackings: 'ig-area-trackings',
+    settings: 'ig-area-settings',
     results: 'ig-area-results',
     catalog: 'ig-area-phrase-catalog',
     blocks: 'ig-area-blocks',
@@ -19,60 +19,37 @@ export const AREA_KEYS = {
 
 const STALE_TIME = 5 * 60 * 1000;
 
-export const useLocationTrackings = (enabled = true) =>
+export const useAreaSettings = (enabled = true) =>
     useQuery({
-        queryKey: [AREA_KEYS.trackings],
-        queryFn: () => instagramApi.listLocationTrackings(),
+        queryKey: [AREA_KEYS.settings],
+        queryFn: () => instagramApi.getAreaSettings(),
         staleTime: STALE_TIME,
         enabled,
     });
 
-/** Wyniki zapisanego śledzenia; pobierane dopiero po wybraniu śledzenia. */
-export const useTrackingResults = (trackingId: string | null) =>
+/** Strona tabeli. Klucz zawiera numer strony, więc powrót na poprzednią jest natychmiastowy. */
+export const useAreaResults = (page: number) =>
     useQuery({
-        queryKey: [AREA_KEYS.results, trackingId],
-        queryFn: () => instagramApi.getLocationTrackingResults(trackingId!),
+        queryKey: [AREA_KEYS.results, page],
+        queryFn: () => instagramApi.getAreaResults(page),
         staleTime: STALE_TIME,
-        enabled: !!trackingId,
     });
 
 /**
- * Podgląd na żywo bez zapisu. Odpalany na żądanie (przycisk „Pokaż"), bo nieznana
- * fraza uruchamia pobranie z Meta i wchodzi we wspólny limit 200/godz.
+ * Zapis rejonu. Unieważnia WSZYSTKIE strony wyników, nie tylko bieżącą: zmiana
+ * rejonu albo fraz przestawia całą tabelę, więc strona druga sprzed zmiany
+ * opisywałaby już co innego.
  */
-export const usePreviewAreaDiscovery = () =>
-    useMutation({
-        mutationFn: (request: SaveLocationTracking) => instagramApi.previewAreaDiscovery(request),
-    });
-
-export const useCreateLocationTracking = () => {
+export const useSaveAreaSettings = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (request: SaveLocationTracking) => instagramApi.createLocationTracking(request),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: [AREA_KEYS.trackings] }),
-    });
-};
-
-export const useUpdateLocationTracking = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ id, request }: { id: string; request: SaveLocationTracking }) =>
-            instagramApi.updateLocationTracking(id, request),
-        onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.trackings] });
-            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results, variables.id] });
+        mutationFn: (request: SaveAreaSettings) => instagramApi.saveAreaSettings(request),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.settings] });
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
         },
     });
 };
-
-export const useDeleteLocationTracking = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: string) => instagramApi.deleteLocationTracking(id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: [AREA_KEYS.trackings] }),
-    });
-};
-
 
 /**
  * Katalog fraz. Zmienia się wyłącznie z wdrożeniem aplikacji, więc trzymamy go
@@ -95,9 +72,8 @@ export const useBlockedAdvertisers = (enabled = true) =>
     });
 
 /**
- * Ukrycie i przywrócenie reklamodawcy. Oba unieważniają WSZYSTKIE wyniki, nie tylko
- * bieżące śledzenie: ta sama firma potrafi wychodzić w kilku rejonach naraz, a
- * ukryta ma zniknąć ze wszystkich.
+ * Ukrycie i przywrócenie reklamodawcy. Oba unieważniają wszystkie strony wyników:
+ * ukrycie firmy przesuwa wiersze między stronami, więc żadna nie zostaje aktualna.
  */
 export const useBlockAdvertiser = () => {
     const queryClient = useQueryClient();

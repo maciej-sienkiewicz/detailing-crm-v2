@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Check, Pause, Pencil, Play, Plus, Trash2, X, RotateCcw, EyeOff } from 'lucide-react';
+import { Check, EyeOff, RotateCcw, X } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
     ModalShell,
@@ -13,24 +13,25 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import type { AreaMatchMode, LocationTracking, SaveLocationTracking, CatalogPhrase } from '../types';
+import type { AreaMatchMode, CatalogPhrase } from '../types';
 import {
-    useCreateLocationTracking,
-    useDeleteLocationTracking,
-    useLocationTrackings,
-    useUpdateLocationTracking,
+    useAreaSettings,
+    useSaveAreaSettings,
     usePhraseCatalog,
     useBlockedAdvertisers,
     useUnblockAdvertiser,
 } from '../hooks/useAreaDiscovery';
 
 /**
- * Konfiguracja śledzeń obszaru — pełny CRUD w jednym oknie, otwieranym kołem
- * zębatym z sekcji „Reklamodawcy w okolicy".
+ * Ustawienia rejonu — jedno okno, jeden zestaw ustawień.
  *
- * Góra: lista zapisanych śledzeń (edycja / wstrzymanie / usunięcie). Dół:
- * formularz dodania albo edycji jednego śledzenia. Sama tabela wyników mieszka
- * w widoku, nie tutaj — modal służy do ustawiania, nie do oglądania.
+ * Wcześniej był tu CRUD nazwanych śledzeń. Zniknął razem z powodem, dla którego
+ * istniał: odkąd frazy pochodzą ze wspólnego katalogu, wszystkie śledzenia jednego
+ * studia miały identyczne frazy i różniły się wyłącznie listą miejscowości — czyli
+ * były tym samym pytaniem zadanym kilka razy, z nazwą do wymyślenia za każdym razem.
+ *
+ * Zostały trzy rzeczy, na które studio faktycznie odpowiada: gdzie patrzeć, jak
+ * szeroko rozumieć „w rejonie" i czego z katalogu nie chce.
  */
 
 const MODE_LABELS: Record<AreaMatchMode, string> = {
@@ -38,66 +39,46 @@ const MODE_LABELS: Record<AreaMatchMode, string> = {
     INCLUDE_BROADER: 'Także województwo i cała Polska',
 };
 
+/** „1 fraza / 2 frazy / 5 fraz" — polska odmiana, bo „43 fraz" kłuje w oczy. */
+export const phraseWord = (n: number): string => {
+    if (n === 1) return 'fraza';
+    const last = n % 10;
+    const lastTwo = n % 100;
+    if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return 'frazy';
+    return 'fraz';
+};
+
 const Section = styled.div`
-    & + & { margin-top: 20px; padding-top: 20px; border-top: 1px solid ${st.border}; }
+    & + & {
+        margin-top: 22px;
+        padding-top: 22px;
+        border-top: 1px solid ${st.border};
+    }
 `;
 
 const SectionLabel = styled.h3`
     margin: 0 0 12px;
-    font-size: ${st.fontSm};
+    font-size: ${st.fontXs};
     font-weight: 700;
-    color: ${st.textSecondary};
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-`;
-
-const TrackingRow = styled.div<{ $active: boolean; $editing: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: ${st.radiusSm};
-    border: 1px solid ${p => (p.$editing ? st.accentBlue : st.border)};
-    background: ${p => (p.$editing ? st.accentBlueDim : st.bgCard)};
-    opacity: ${p => (p.$active ? 1 : 0.55)};
-
-    & + & { margin-top: 6px; }
-`;
-
-const TrackingInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-
-    strong { display: block; font-size: ${st.fontSm}; font-weight: 700; color: ${st.text}; }
-    span { display: block; font-size: ${st.fontXs}; color: ${st.textMuted}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-`;
-
-const RowAction = styled.button`
-    display: inline-flex;
-    border: none;
-    background: none;
-    padding: 5px;
-    border-radius: ${st.radiusFull};
+    letter-spacing: 0.5px;
     color: ${st.textMuted};
-    cursor: pointer;
-    &:hover { color: ${st.text}; background: ${st.bgCardAlt}; }
-    svg { width: 15px; height: 15px; }
 `;
 
 const Field = styled.div`
-    margin-bottom: 14px;
+    & + & { margin-top: 16px; }
 `;
 
 const FieldLabel = styled.label`
     display: block;
+    margin-bottom: 6px;
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${st.textSecondary};
-    margin-bottom: 6px;
+    color: ${st.text};
 `;
 
 const FieldHint = styled.span`
-    font-weight: 500;
+    font-weight: 400;
     color: ${st.textMuted};
 `;
 
@@ -106,97 +87,69 @@ const TagBox = styled.div`
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    padding: 8px 10px;
-    background: ${st.bgInput};
+    padding: 7px 9px;
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
+    background: ${st.bgCard};
 
-    &:focus-within { border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
+    &:focus-within { border-color: ${st.accentBlue}; }
 `;
 
 const Tag = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 4px 6px 4px 10px;
+    padding: 3px 8px;
+    border-radius: ${st.radiusFull};
     background: ${st.accentBlueDim};
     color: ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
+    font-size: ${st.fontXs};
     font-weight: 600;
 
-    button { display: inline-flex; border: none; background: none; padding: 0; cursor: pointer; color: inherit; opacity: 0.7; }
-    button:hover { opacity: 1; }
-    svg { width: 13px; height: 13px; }
+    button {
+        display: inline-flex;
+        border: none;
+        background: none;
+        padding: 0;
+        color: inherit;
+        cursor: pointer;
+        opacity: 0.7;
+        &:hover { opacity: 1; }
+    }
+    svg { width: 12px; height: 12px; }
 `;
 
 const TextInput = styled.input`
     flex: 1;
-    min-width: 140px;
+    min-width: 120px;
     border: none;
-    background: none;
     outline: none;
+    background: none;
     font-family: inherit;
-    font-size: ${st.fontMd};
+    font-size: ${st.fontSm};
     color: ${st.text};
-    padding: 4px 2px;
+
     &::placeholder { color: ${st.textMuted}; }
 `;
 
-const ModeToggle = styled.div`
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    padding: 3px;
-`;
-
-const ModeBtn = styled.button<{ $active: boolean }>`
-    padding: 6px 14px;
-    border-radius: ${st.radiusFull};
-    border: none;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: ${p => (p.$active ? 700 : 500)};
-    background: ${p => (p.$active ? st.bgCard : 'transparent')};
-    color: ${p => (p.$active ? st.text : st.textSecondary)};
-    box-shadow: ${p => (p.$active ? st.shadowXs : 'none')};
-    cursor: pointer;
-    transition: all ${st.transition};
-`;
-
-// ── Pole tagów (frazy / miejscowości) ─────────────────────────────────────────
-
-interface TagFieldProps {
+/** Lista miejscowości: Enter albo przecinek dodaje kolejną. */
+const TagField = ({
+    label,
+    placeholder,
+    values,
+    onChange,
+}: {
     label: React.ReactNode;
     placeholder: string;
     values: string[];
     onChange: (values: string[]) => void;
-}
-
-const TagField = ({ label, placeholder, values, onChange }: TagFieldProps) => {
+}) => {
     const [draft, setDraft] = useState('');
 
     const commit = (raw: string) => {
-        const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
-        if (parts.length === 0) return;
-        const next = [...values];
-        for (const part of parts) {
-            if (!next.some(v => v.toLowerCase() === part.toLowerCase())) next.push(part);
-        }
-        onChange(next);
+        const value = raw.trim().replace(/,$/, '').trim();
+        if (value && !values.includes(value)) onChange([...values, value]);
         setDraft('');
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            commit(draft);
-        } else if (e.key === 'Backspace' && draft === '' && values.length > 0) {
-            onChange(values.slice(0, -1));
-        }
     };
 
     return (
@@ -213,9 +166,12 @@ const TagField = ({ label, placeholder, values, onChange }: TagFieldProps) => {
                 ))}
                 <TextInput
                     value={draft}
-                    placeholder={values.length === 0 ? placeholder : ''}
-                    onChange={e => setDraft(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    placeholder={values.length ? '' : placeholder}
+                    onChange={e => (e.target.value.endsWith(',') ? commit(e.target.value) : setDraft(e.target.value))}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); commit(draft); }
+                        if (e.key === 'Backspace' && !draft && values.length) onChange(values.slice(0, -1));
+                    }}
                     onBlur={() => commit(draft)}
                 />
             </TagBox>
@@ -223,51 +179,29 @@ const TagField = ({ label, placeholder, values, onChange }: TagFieldProps) => {
     );
 };
 
-// ─── Modal ─────────────────────────────────────────────────────────────────────
-
-interface Props {
-    isOpen: boolean;
-    onClose: () => void;
-    /** Woła się z id zapisanego śledzenia, żeby widok pokazał jego wyniki. */
-    onSaved?: (id: string) => void;
-    /** Śledzenie usunięte — widok czyści zaznaczenie, jeśli to było ono. */
-    onDeleted?: (id: string) => void;
-}
-
-/**
- * Wybór fraz z KATALOGU — studio odznacza to, czego nie chce.
- *
- * Katalog ustala administrator aplikacji i jest wspólny dla wszystkich najemców:
- * fraza to klucz dzielonego cache, a każda unikalna fraza kosztuje osobne pobranie
- * ze wspólnego limitu Meta. Dlatego odznaczanie, a nie wpisywanie.
- *
- * Trzymamy WYKLUCZENIA, nie zaznaczenia: fraza dołożona do katalogu włącza się
- * wtedy wszystkim sama, zamiast czekać, aż każdy ją sobie zaznaczy.
- */
-const BlockedRow = styled.div`
+const ModeToggle = styled.div`
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid ${st.border};
-    &:last-child { border-bottom: none; }
+    flex-wrap: wrap;
+    gap: 6px;
 `;
 
-const BlockedName = styled.div`
-    flex: 1;
-    min-width: 0;
-    strong {
-        display: block;
-        font-size: ${st.fontSm};
-        font-weight: 600;
-        color: ${st.text};
-        overflow-wrap: anywhere;
-    }
-    span {
-        font-size: ${st.fontXs};
-        color: ${st.textMuted};
-    }
+const ModeBtn = styled.button<{ $active: boolean }>`
+    flex: 1 1 200px;
+    padding: 8px 12px;
+    border-radius: ${st.radiusSm};
+    border: 1px solid ${p => (p.$active ? st.accentBlue : st.border)};
+    background: ${p => (p.$active ? st.accentBlueDim : st.bgCard)};
+    color: ${p => (p.$active ? st.accentBlue : st.textSecondary)};
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: ${p => (p.$active ? 700 : 500)};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover { border-color: ${st.borderHover}; }
 `;
+
+// ── Wybór fraz z katalogu ─────────────────────────────────────────────────────
 
 const PhraseGroupBox = styled.div`
     & + & { margin-top: 14px; }
@@ -321,8 +255,11 @@ const PhraseChip = styled.button<{ $on: boolean }>`
     font-weight: ${p => (p.$on ? 600 : 500)};
     cursor: pointer;
     transition: all ${st.transition};
+    max-width: 100%;
+    text-align: left;
 
     &:hover { border-color: ${p => (p.$on ? st.accentBlue : st.borderHover)}; }
+    svg { flex-shrink: 0; }
 `;
 
 const PhraseCount = styled.div`
@@ -331,6 +268,12 @@ const PhraseCount = styled.div`
     color: ${st.textMuted};
 `;
 
+/**
+ * Katalog fraz z odznaczaniem.
+ *
+ * Trzymamy WYKLUCZENIA, nie zaznaczenia: fraza dołożona przez administratora
+ * włącza się wtedy wszystkim sama, zamiast czekać, aż każdy ją sobie zaznaczy.
+ */
 const PhrasePicker = ({
     catalog,
     excluded,
@@ -353,7 +296,7 @@ const PhrasePicker = ({
 
     const setGroup = (items: CatalogPhrase[], on: boolean) => {
         const ids = new Set(items.map(i => i.id));
-        // Zostawiamy wykluczenia spoza grupy nietknięte - przycisk grupy rusza tylko swoją.
+        // Wykluczenia spoza grupy zostają nietknięte — przycisk grupy rusza tylko swoją.
         const rest = excluded.filter(e => !ids.has(e));
         onChange(on ? rest : [...rest, ...items.map(i => i.id)]);
     };
@@ -398,185 +341,124 @@ const PhrasePicker = ({
             })}
 
             <PhraseCount>
-                Śledzone: <strong>{tracked}</strong> z {catalog.length} fraz
+                Śledzone: <strong>{tracked}</strong> z {catalog.length} {phraseWord(catalog.length)}
                 {tracked === 0 && ' — zaznacz przynajmniej jedną, inaczej nie ma czego szukać.'}
             </PhraseCount>
         </Field>
     );
 };
 
-const blank = () => ({ label: '', excluded: [] as string[], locations: [] as string[], mode: 'INCLUDE_BROADER' as AreaMatchMode });
+// ── Ukryci reklamodawcy ───────────────────────────────────────────────────────
 
-export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) => {
-    const trackingsQuery = useLocationTrackings(isOpen);
+const BlockedRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid ${st.border};
+    &:last-child { border-bottom: none; }
+`;
+
+const BlockedName = styled.div`
+    flex: 1;
+    min-width: 0;
+    strong {
+        display: block;
+        font-size: ${st.fontSm};
+        font-weight: 600;
+        color: ${st.text};
+        overflow-wrap: anywhere;
+    }
+    span {
+        font-size: ${st.fontXs};
+        color: ${st.textMuted};
+    }
+`;
+
+const RowAction = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: ${st.radiusSm};
+    border: 1px solid ${st.border};
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover:not(:disabled) { border-color: ${st.borderHover}; color: ${st.text}; }
+    &:disabled { opacity: 0.4; cursor: default; }
+    svg { width: 15px; height: 15px; }
+`;
+
+interface Props {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const AreaConfigModal = ({ isOpen, onClose }: Props) => {
+    const settingsQuery = useAreaSettings(isOpen);
     const catalogQuery = usePhraseCatalog(isOpen);
     const blocksQuery = useBlockedAdvertisers(isOpen);
+    const saveMut = useSaveAreaSettings();
     const unblockMut = useUnblockAdvertiser();
-    const createMut = useCreateLocationTracking();
-    const updateMut = useUpdateLocationTracking();
-    const deleteMut = useDeleteLocationTracking();
 
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [form, setForm] = useState(blank());
-
-    const trackings = trackingsQuery.data ?? [];
     const catalog = catalogQuery.data ?? [];
-    // Odznaczenie wszystkiego to śledzenie, które nigdy nic nie pokaże - backend też tego pilnuje.
-    const canSave =
-        form.label.trim() !== '' && form.locations.length > 0 && form.excluded.length < catalog.length;
-    const saving = createMut.isPending || updateMut.isPending;
+    const blocked = blocksQuery.data ?? [];
 
-    const startEdit = (tracking: LocationTracking) => {
-        setEditingId(tracking.id);
+    const [form, setForm] = useState({
+        locations: [] as string[],
+        excluded: [] as string[],
+        mode: 'INCLUDE_BROADER' as AreaMatchMode,
+    });
+
+    // Formularz zasilamy zapisanym stanem raz — przy otwarciu okna. Późniejsze
+    // odświeżenia zapytania nie mogą nadpisać tego, co człowiek właśnie klika.
+    const settings = settingsQuery.data;
+    useEffect(() => {
+        if (!isOpen || !settings) return;
         setForm({
-            label: tracking.label,
-            excluded: tracking.excludedPhraseIds,
-            locations: tracking.locations,
-            mode: tracking.matchMode,
+            locations: settings.locations,
+            excluded: settings.excludedPhraseIds,
+            mode: settings.matchMode,
         });
-    };
+    }, [isOpen, settings]);
 
-    const startNew = () => {
-        setEditingId(null);
-        setForm(blank());
-    };
+    const canSave =
+        form.locations.length > 0 && (catalog.length === 0 || form.excluded.length < catalog.length);
 
     const handleSave = () => {
         if (!canSave) return;
-        const body: SaveLocationTracking = {
-            label: form.label.trim(),
-            excludedPhraseIds: form.excluded,
-            locations: form.locations,
-            matchMode: form.mode,
-            active: true,
-        };
-        if (editingId) {
-            updateMut.mutate({ id: editingId, request: body }, { onSuccess: saved => { onSaved?.(saved.id); startNew(); } });
-        } else {
-            createMut.mutate(body, { onSuccess: saved => { onSaved?.(saved.id); startNew(); } });
-        }
-    };
-
-    const toggleActive = (tracking: LocationTracking) => {
-        updateMut.mutate({
-            id: tracking.id,
-            request: {
-                label: tracking.label,
-                excludedPhraseIds: tracking.excludedPhraseIds,
-                locations: tracking.locations,
-                matchMode: tracking.matchMode,
-                active: !tracking.active,
-            },
-        });
-    };
-
-    const remove = (tracking: LocationTracking) => {
-        deleteMut.mutate(tracking.id, { onSuccess: () => onDeleted?.(tracking.id) });
-        if (editingId === tracking.id) startNew();
+        saveMut.mutate(
+            { locations: form.locations, excludedPhraseIds: form.excluded, matchMode: form.mode },
+            { onSuccess: () => onClose() }
+        );
     };
 
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="640px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Śledzenie obszaru</ModalTitle>
+                    <ModalTitle>Reklamodawcy w okolicy</ModalTitle>
                     <ModalSubtitle>
-                        Wybierz rejon i odznacz frazy, które Cię nie dotyczą. Dane odświeżają się
-                        automatycznie dwa razy dziennie.
+                        Wskaż rejon i odznacz frazy, które Cię nie dotyczą. Dane odświeżają się
+                        automatycznie przez całą dobę.
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent>
-                {trackings.length > 0 && (
-                    <Section>
-                        <SectionLabel>Twoje śledzenia</SectionLabel>
-                        {trackings.map(tracking => (
-                            <TrackingRow key={tracking.id} $active={tracking.active} $editing={editingId === tracking.id}>
-                                <TrackingInfo>
-                                    <strong>{tracking.label}{!tracking.active && ' · wstrzymane'}</strong>
-                                    <span>
-                                        {tracking.locations.join(', ')} · {tracking.trackedPhraseCount} fraz
-                                    </span>
-                                </TrackingInfo>
-                                <RowAction type="button" aria-label="Edytuj" title="Edytuj" onClick={() => startEdit(tracking)}>
-                                    <Pencil />
-                                </RowAction>
-                                <RowAction
-                                    type="button"
-                                    aria-label={tracking.active ? 'Wstrzymaj' : 'Wznów'}
-                                    title={tracking.active ? 'Wstrzymaj' : 'Wznów'}
-                                    onClick={() => toggleActive(tracking)}
-                                >
-                                    {tracking.active ? <Pause /> : <Play />}
-                                </RowAction>
-                                <RowAction type="button" aria-label="Usuń" title="Usuń" onClick={() => remove(tracking)}>
-                                    <Trash2 />
-                                </RowAction>
-                            </TrackingRow>
-                        ))}
-                    </Section>
-                )}
-
-                {(blocksQuery.data ?? []).length > 0 && (
-                    <Section>
-                        <SectionLabel>Ukryci reklamodawcy</SectionLabel>
-                        {/*
-                          * Wyłącznie ukrycia TEGO studia. Wykluczeń globalnych (boty, hurtownie,
-                          * profile zza granicy) nie ma tu w ogóle — zakłada je administrator
-                          * aplikacji i obowiązują wszystkich, więc nie ma czego cofać.
-                          */}
-                        {(blocksQuery.data ?? []).map(blocked => (
-                            <BlockedRow key={blocked.pageId}>
-                                <EyeOff size={15} color={st.textMuted} />
-                                <BlockedName>
-                                    <strong>{blocked.pageName || 'Nazwa nieznana'}</strong>
-                                    <span>{blocked.pageId}</span>
-                                </BlockedName>
-                                <RowAction
-                                    type="button"
-                                    aria-label="Przywróć"
-                                    title="Przywróć w tabeli"
-                                    disabled={unblockMut.isPending}
-                                    onClick={() => unblockMut.mutate(blocked.pageId)}
-                                >
-                                    <RotateCcw />
-                                </RowAction>
-                            </BlockedRow>
-                        ))}
-                    </Section>
-                )}
-
                 <Section>
-                    <SectionLabel>{editingId ? 'Edytuj śledzenie' : 'Nowe śledzenie'}</SectionLabel>
-
-                    <Field>
-                        <FieldLabel>Nazwa</FieldLabel>
-                        <TagBox as="div">
-                            <TextInput
-                                value={form.label}
-                                placeholder="np. Detailing — aglomeracja poznańska"
-                                onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-                                style={{ width: '100%' }}
-                            />
-                        </TagBox>
-                    </Field>
-
                     <TagField
                         label={<>Rejon — miejscowości <FieldHint>(Enter lub przecinek dodaje kolejną)</FieldHint></>}
                         placeholder="np. Poznań, Skórzewo, Suchy Las"
                         values={form.locations}
                         onChange={locations => setForm(f => ({ ...f, locations }))}
                     />
-
-                    {catalog.length > 0 && (
-                        <PhrasePicker
-                            catalog={catalog}
-                            excluded={form.excluded}
-                            onChange={excluded => setForm(f => ({ ...f, excluded }))}
-                        />
-                    )}
 
                     <Field>
                         <FieldLabel>Jak szeroko rozumieć „w rejonie"</FieldLabel>
@@ -595,19 +477,57 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
                             ))}
                         </ModeToggle>
                     </Field>
-
-                    {editingId && (
-                        <SharedButton type="button" $variant="ghost" $size="sm" onClick={startNew}>
-                            <Plus size={15} /> Dodaj inne zamiast edytować
-                        </SharedButton>
-                    )}
                 </Section>
+
+                {catalog.length > 0 && (
+                    <Section>
+                        <PhrasePicker
+                            catalog={catalog}
+                            excluded={form.excluded}
+                            onChange={excluded => setForm(f => ({ ...f, excluded }))}
+                        />
+                    </Section>
+                )}
+
+                {blocked.length > 0 && (
+                    <Section>
+                        <SectionLabel>Ukryci reklamodawcy</SectionLabel>
+                        {/*
+                          * Wyłącznie ukrycia TEGO studia. Wykluczeń globalnych (boty, hurtownie,
+                          * profile zza granicy) nie ma tu w ogóle — zakłada je administrator
+                          * aplikacji i obowiązują wszystkich, więc nie ma czego cofać.
+                          */}
+                        {blocked.map(row => (
+                            <BlockedRow key={row.pageId}>
+                                <EyeOff size={15} color={st.textMuted} />
+                                <BlockedName>
+                                    <strong>{row.pageName || 'Nazwa nieznana'}</strong>
+                                    <span>{row.pageId}</span>
+                                </BlockedName>
+                                <RowAction
+                                    type="button"
+                                    aria-label={`Przywróć ${row.pageName ?? row.pageId}`}
+                                    title="Przywróć w tabeli"
+                                    disabled={unblockMut.isPending}
+                                    onClick={() => unblockMut.mutate(row.pageId)}
+                                >
+                                    <RotateCcw />
+                                </RowAction>
+                            </BlockedRow>
+                        ))}
+                    </Section>
+                )}
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose}>Zamknij</SharedButton>
-                <SharedButton $variant="primary" $size="sm" onClick={handleSave} disabled={!canSave || saving}>
-                    {editingId ? <><Check size={15} /> Zapisz zmiany</> : <><Plus size={15} /> Dodaj śledzenie</>}
+                <SharedButton $variant="secondary" $size="sm" onClick={onClose}>Anuluj</SharedButton>
+                <SharedButton
+                    $variant="primary"
+                    $size="sm"
+                    onClick={handleSave}
+                    disabled={!canSave || saveMut.isPending}
+                >
+                    <Check size={15} /> Zapisz
                 </SharedButton>
             </ModalFooter>
         </ModalShell>
