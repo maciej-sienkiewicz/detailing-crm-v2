@@ -8,6 +8,7 @@ import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationC
 import { MobileChromeProvider } from '@/common/context/MobileChromeContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
 import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
+import { GlobalShortcuts } from '@/common/shortcuts';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 
 const LayoutContainer = styled.div`
@@ -75,6 +76,10 @@ export const Layout = ({ children }: LayoutProps) => {
         <IdleTimeoutProvider>
             <CalendarNavigationProvider>
                 <MobileChromeProvider>
+                    {/* Globalne skróty klawiszowe (W/R/K/L/P/F/S/G/I/U) - nasłuch
+                        klawiatury dla całej zalogowanej aplikacji, wyłączalny
+                        w Ustawieniach → Skróty klawiszowe. */}
+                    <GlobalShortcuts />
                     <LayoutContainer>
                         <Sidebar />
                         <ContentWrapper $isCollapsed={isCollapsed}>

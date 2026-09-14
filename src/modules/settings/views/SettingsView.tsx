@@ -17,6 +17,7 @@ import { InvoicesSection } from '../components/InvoicesSection';
 import { MobileDevicesSection, type MobileDevicesSubView } from '../components/MobileDevicesSection';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadsSettingsSection } from '../components/LeadsSettingsSection';
+import { ShortcutsSection } from '../components/ShortcutsSection';
 import { SecuritySection } from '../components/SecuritySection';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { HelpModal } from '../components/shared/SettingsLayout';
@@ -36,6 +37,7 @@ type SectionId =
     | 'company' | 'labels' | 'services' | 'team'
     | 'templates' | 'documents'
     | 'mobile-devices' | 'visit-card' | 'leads'
+    | 'shortcuts'
     | 'plan' | 'credits' | 'invoices' | 'security';
 
 interface NavItem {
@@ -70,6 +72,7 @@ const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10
 const TabletIcon     = () => <Icon d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 15h.01" />;
 const CardIcon       = () => <Icon d="M2 6h20v12H2zM2 10h20M6 15h4" />;
 const FunnelIcon     = () => <Icon d="M3 4h18l-7 8v7l-4 2v-9z" />;
+const KeyboardIcon   = () => <Icon d="M2 6h20v12H2zM6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6" />;
 const QuestionIcon   = () => (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -103,6 +106,14 @@ const NAV_GROUPS: NavGroup[] = [
             { id: 'mobile-devices',  label: 'Urządzenia mobilne',    icon: <TabletIcon /> },
             { id: 'visit-card',      label: 'Karta Wizyty',          icon: <CardIcon /> },
             { id: 'leads',           label: 'Leady',                 icon: <FunnelIcon /> },
+        ],
+    },
+    {
+        // Ustawienia osobiste tej przeglądarki, nie polityka studia - stąd osobna
+        // grupa: nic tu nie wymaga uprawnień ani nie dotyka backendu.
+        group: 'Preferencje',
+        items: [
+            { id: 'shortcuts', label: 'Skróty klawiszowe', icon: <KeyboardIcon /> },
         ],
     },
     {
@@ -324,6 +335,7 @@ const VALID_SECTIONS = new Set<SectionId>([
     'company', 'labels', 'services', 'team',
     'templates', 'documents',
     'mobile-devices', 'visit-card', 'leads',
+    'shortcuts',
     'plan', 'credits', 'invoices', 'security',
 ]);
 
@@ -476,6 +488,8 @@ export function SettingsView() {
         content = <VisitCardSection />;
     } else if (section === 'leads') {
         content = <LeadsSettingsSection />;
+    } else if (section === 'shortcuts') {
+        content = <ShortcutsSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
     } else {
