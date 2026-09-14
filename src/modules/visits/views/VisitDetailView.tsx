@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey } from '../hooks';
@@ -60,7 +61,10 @@ const spin = keyframes`
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-const ViewContainer = styled.main`
+// Pełnoekranowe tło + gwarancja, że widok nigdy nie rozepchnie strony
+// (overflow-x: clip). Wrapper prezentacyjny (div) - landmarkiem <main> jest
+// ContentArea, który dba też o spójną szerokość (PageContainer).
+const ViewContainer = styled.div`
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -75,24 +79,21 @@ const ViewContainer = styled.main`
     animation: ${fadeIn} 0.3s ease both;
 `;
 
-const ContentArea = styled.div`
+const ContentArea = styled(PageContainer)`
     flex: 1;
-    padding: 20px 20px 40px;
-    max-width: 1280px;
-    margin: 0 auto;
-    width: 100%;
     min-width: 0;
+    /* Górny odstęp jest wspólny (z PageContainer); tu tylko dolny zapas. */
+    padding-block-end: 40px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 24px 32px 48px;
+        padding-block-end: 48px;
     }
 
     @media (max-width: 767px) {
         /* Bottom clearance = nav height + home-indicator inset, so the last card
            is never parked under the tab bar. */
         /* Zapas na zakładki sekcji; pasek globalny i safe-area dokłada Layout. */
-        padding: 14px max(12px, env(safe-area-inset-left, 0px)) 84px
-                 max(12px, env(safe-area-inset-right, 0px));
+        padding-block-end: 84px;
     }
 `;
 

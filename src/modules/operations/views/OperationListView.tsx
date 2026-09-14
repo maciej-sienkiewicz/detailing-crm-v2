@@ -14,30 +14,23 @@ import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { useBreakpoint } from '@/common/hooks';
+import { PageContainer } from '@/common/components/PageContainer';
 import { UnfinishedCheckInsPanel } from '@/modules/checkin';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 24px;
+// Tło i hexBackdrop na pełnej szerokości (wrapper prezentacyjny, div).
+// Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
+const ViewContainer = styled.div`
     min-height: 100vh;
     background: ${st.bg};
     ${hexBackdrop}
+`;
 
-    @media (max-width: 639px) {
-        padding: 16px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 32px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: 40px 48px;
-    }
+const PageBody = styled(PageContainer)`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 `;
 
 const TotalChip = styled.span`
@@ -140,6 +133,7 @@ export const OperationListView = () => {
 
     return (
         <ViewContainer>
+            <PageBody>
             {isDesktop ? (
                 <PageHeader
                     title="Wizyty i Rezerwacje"
@@ -227,6 +221,7 @@ export const OperationListView = () => {
                 onApply={filters => { setAdvancedFilters(filters); resetPagination(); }}
                 onClose={() => setIsFilterPanelOpen(false)}
             />
+            </PageBody>
         </ViewContainer>
     );
 };

@@ -3,27 +3,24 @@ import styled from 'styled-components';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader/PageHeader';
+import { PageContainer } from '@/common/components/PageContainer';
 import { useEmployees } from '../hooks/useEmployees';
 import { EmployeeTable } from '../components/EmployeeTable';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import type { EmployeeFilters } from '../types';
 
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 24px;
+// Tło i hexBackdrop na pełnej szerokości (wrapper prezentacyjny, div).
+// Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
+const ViewContainer = styled.div`
     min-height: 100vh;
     background: ${st.bg};
     ${hexBackdrop}
+`;
 
-    @media (min-width: 768px) {
-        padding: 32px;
-    }
-
-    @media (min-width: 1280px) {
-        padding: 40px 48px;
-    }
+const PageBody = styled(PageContainer)`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 `;
 
 const ContentSection = styled.section`
@@ -190,6 +187,7 @@ export const EmployeeListView = () => {
 
     return (
         <ViewContainer>
+            <PageBody>
             <PageHeader
                 title="Pracownicy"
                 subtitle={
@@ -247,6 +245,7 @@ export const EmployeeListView = () => {
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={() => setIsModalOpen(false)}
             />
+            </PageBody>
         </ViewContainer>
     );
 };

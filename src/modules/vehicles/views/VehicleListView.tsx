@@ -18,24 +18,21 @@ import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Car } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageContainer } from '@/common/components/PageContainer';
 import type { VehicleAdvancedFilters } from '../types';
 
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 24px;
+// Tło i hexBackdrop na pełnej szerokości (wrapper prezentacyjny, div).
+// Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
+const ViewContainer = styled.div`
     min-height: 100vh;
     background: ${st.bg};
     ${hexBackdrop}
+`;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 32px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: 40px 48px;
-    }
+const PageBody = styled(PageContainer)`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 `;
 
 const TotalChip = styled.span`
@@ -417,6 +414,7 @@ export const VehicleListView = () => {
 
     return (
         <ViewContainer>
+            <PageBody>
             {isDesktopHeader ? (
                 <PageHeader
                     title={t.vehicles.title}
@@ -533,6 +531,7 @@ export const VehicleListView = () => {
                 onConfirm={handleDeleteConfirm}
                 onCancel={handleDeleteCancel}
             />
+            </PageBody>
         </ViewContainer>
     );
 };

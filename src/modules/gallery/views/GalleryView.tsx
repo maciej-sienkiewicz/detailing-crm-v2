@@ -7,6 +7,7 @@ import { PiiValue } from '@/common/pii';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useBreakpoint } from '@/common/hooks';
 import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PAGE_MAX_WIDTH, pageColumn } from '@/common/components/PageContainer';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
 import { useGallery } from '../hooks/useGallery';
@@ -29,13 +30,35 @@ const Page = styled.div`
     ${hexBackdrop}
 `;
 
+// Galeria jest pełnej wysokości (własne przewijanie siatki), ale poszczególne
+// pasma trzymamy w tej samej kolumnie co reszta aplikacji.
+//
+// - Nagłówek i siatka używają `pageColumn` = DOKŁADNIE ten sam max-width I gutter
+//   co PageContainer (m.in. 48px na ekranach ≥1280px), żeby karta nagłówka i
+//   kafelki miały identyczne krawędzie jak na pozostałych widokach.
+// - Toolbary (pasek filtrów, paginacja) używają `centeredBand` = tylko max-width
+//   bez guttera, bo ich tło/obramowanie ma wypełnić całą kolumnę, a własny gutter
+//   dokłada ich wewnętrzna treść.
+const centeredBand = css`
+    width: 100%;
+    max-width: ${PAGE_MAX_WIDTH};
+    margin-inline: auto;
+`;
+
 const HeaderWrap = styled.div`
-    padding: ${p => p.theme.spacing.lg};
+    ${pageColumn}
+    /* Górny odstęp taki jak wspólny padding-block PageContainera (lg → xl). */
+    padding-block: ${p => p.theme.spacing.lg};
     flex-shrink: 0;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: ${p => p.theme.spacing.xl};
+        padding-block: ${p => p.theme.spacing.xl};
     }
+`;
+
+const FilterWrap = styled.div`
+    ${centeredBand}
+    flex-shrink: 0;
 `;
 
 const PageHeader = styled.div`
@@ -103,15 +126,16 @@ const ScrollArea = styled.div`
 // ─── grid ─────────────────────────────────────────────────────────────────────
 
 const Grid = styled.div`
+    ${pageColumn}
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: ${p => p.theme.spacing.md};
-    padding: ${p => p.theme.spacing.lg};
+    padding-block: ${p => p.theme.spacing.lg};
 
     @media (max-width: 480px) {
         grid-template-columns: repeat(2, 1fr);
         gap: ${p => p.theme.spacing.sm};
-        padding: ${p => p.theme.spacing.md};
+        padding-block: ${p => p.theme.spacing.md};
     }
 `;
 
@@ -262,6 +286,7 @@ const ZoomIcon = styled.div`
 // ─── pagination ───────────────────────────────────────────────────────────────
 
 const PaginationBar = styled.div`
+    ${centeredBand}
     display: flex;
     align-items: center;
     justify-content: center;
@@ -310,11 +335,12 @@ const Ellipsis = styled.span`
 // ─── empty / loading ──────────────────────────────────────────────────────────
 
 const EmptyState = styled.div`
+    ${pageColumn}
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${p => p.theme.spacing.xxl};
+    padding-block: ${p => p.theme.spacing.xxl};
     color: ${p => p.theme.colors.textMuted};
     gap: ${p => p.theme.spacing.md};
     text-align: center;
@@ -347,15 +373,16 @@ const EmptyDesc = styled.p`
 `;
 
 const LoadingGrid = styled.div`
+    ${pageColumn}
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: ${p => p.theme.spacing.md};
-    padding: ${p => p.theme.spacing.lg};
+    padding-block: ${p => p.theme.spacing.lg};
 
     @media (max-width: 480px) {
         grid-template-columns: repeat(2, 1fr);
         gap: ${p => p.theme.spacing.sm};
-        padding: ${p => p.theme.spacing.md};
+        padding-block: ${p => p.theme.spacing.md};
     }
 `;
 
@@ -566,19 +593,21 @@ export const GalleryView = () => {
             )}
 
             {/* Filters */}
-            <GalleryFilterBar
-                brand={brand}
-                model={model}
-                onBrandChange={handleBrandChange}
-                onModelChange={handleModelChange}
-                activeTags={activeTags}
-                availableTags={availableTags}
-                onTagToggle={handleTagToggle}
-                onClearTags={handleClearTags}
-                onClearAll={handleClearAll}
-                totalPhotos={pagination?.total ?? 0}
-                isFetching={isFetching}
-            />
+            <FilterWrap>
+                <GalleryFilterBar
+                    brand={brand}
+                    model={model}
+                    onBrandChange={handleBrandChange}
+                    onModelChange={handleModelChange}
+                    activeTags={activeTags}
+                    availableTags={availableTags}
+                    onTagToggle={handleTagToggle}
+                    onClearTags={handleClearTags}
+                    onClearAll={handleClearAll}
+                    totalPhotos={pagination?.total ?? 0}
+                    isFetching={isFetching}
+                />
+            </FilterWrap>
 
             {/* Content */}
             <Content>

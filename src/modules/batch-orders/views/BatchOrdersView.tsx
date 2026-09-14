@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { Layers, Settings } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import { MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
@@ -16,24 +17,12 @@ import { BatchServicesModal } from '../components/BatchServicesModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import type { BatchContractor, ContractorRequest } from '../types';
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 16px;
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
     overflow-x: clip;
     box-sizing: border-box;
-
-    @media (min-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 24px;
-    }
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: 32px;
-    }
 `;
 
 const ContractorsList = styled.div`

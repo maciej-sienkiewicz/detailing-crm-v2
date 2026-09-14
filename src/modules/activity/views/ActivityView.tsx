@@ -6,6 +6,7 @@ import { Activity, AlertCircle, Inbox, Loader2 } from 'lucide-react';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useBreakpoint } from '@/common/hooks';
 import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageContainer } from '@/common/components/PageContainer';
 import { ActivityFilterBar } from '../components/ActivityFilterBar';
 import { ActivityRow } from '../components/ActivityRow';
 import { useActivityFeed, useActivityFilterOptions } from '../hooks/useActivityFeed';
@@ -41,18 +42,10 @@ const Page = styled.div`
     ${hexBackdrop}
 `;
 
-const Content = styled.div`
+const Content = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${p => p.theme.spacing.lg};
-    padding: ${p => p.theme.spacing.lg};
-    width: 100%;
-    max-width: 1080px;
-    margin: 0 auto;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: ${p => p.theme.spacing.xl};
-    }
 `;
 
 // ─── hero ─────────────────────────────────────────────────────────────────────

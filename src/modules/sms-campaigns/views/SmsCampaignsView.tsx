@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { Plus, X } from 'lucide-react';
 import { CampaignList } from '../components/CampaignList';
 import { AiCampaignCreator } from '../components/AiCampaignCreator';
@@ -22,19 +23,11 @@ const slideDown = keyframes`
 
 // ─── Page layout ──────────────────────────────────────────────────────────────
 
-const Page = styled.div`
+const Page = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 32px 32px 48px;
-  max-width: 1280px;
-  margin: 0 auto;
-  width: 100%;
   animation: ${fadeUp} 250ms ease both;
-
-  @media (max-width: 768px) {
-    padding: 20px 16px 40px;
-  }
 `;
 
 // ─── Header ───────────────────────────────────────────────────────────────────

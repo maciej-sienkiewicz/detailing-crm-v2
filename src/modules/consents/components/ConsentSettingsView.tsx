@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
+import { PageContainer } from '@/common/components/PageContainer';
 import { Button } from '@/common/components/Button/Button';
 import { t } from '@/common/i18n';
 import { useConsentDefinitions } from '../hooks/useConsents';
@@ -99,20 +100,14 @@ export const ConsentSettingsView = () => {
     );
 };
 
+// Pełnoekranowe tło. Szerokość, gutter i pionowy odstęp dostarcza
+// ContentWrapper (PageContainer).
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${(props) => props.theme.colors.background};
-    padding: ${(props) => props.theme.spacing.lg};
-
-    @media (max-width: ${(props) => props.theme.breakpoints.sm}) {
-        padding: ${(props) => props.theme.spacing.md};
-    }
 `;
 
-const ContentWrapper = styled.div`
-    max-width: 1400px;
-    margin: 0 auto;
-`;
+const ContentWrapper = styled(PageContainer)``;
 
 const Header = styled.div`
     display: flex;

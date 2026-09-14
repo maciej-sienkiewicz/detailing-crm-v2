@@ -9,25 +9,22 @@ import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import { AccountManagementCard } from '../components/AccountManagementCard';
 import { LeavesTab } from '../components/LeavesTab';
 import { EmployeeWorkTimeSection } from '../components/EmployeeWorkTimeSection';
+import { PageContainer } from '@/common/components/PageContainer';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
-const Page = styled.main`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 24px;
+// Tło i hexBackdrop na pełnej szerokości (wrapper prezentacyjny, div).
+// Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
+const Page = styled.div`
     min-height: 100vh;
     background: ${st.bg};
     ${hexBackdrop}
+`;
 
-    @media (min-width: 768px) {
-        padding: 32px;
-    }
-
-    @media (min-width: 1280px) {
-        padding: 36px 48px;
-    }
+const PageBody = styled(PageContainer)`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 `;
 
 const SubtitleLink = styled.button`
@@ -239,7 +236,7 @@ export const EmployeeDetailView = () => {
     if (isLoading) {
         return (
             <Page>
-                <CenterBox><Spinner /></CenterBox>
+                <PageBody><CenterBox><Spinner /></CenterBox></PageBody>
             </Page>
         );
     }
@@ -247,16 +244,19 @@ export const EmployeeDetailView = () => {
     if (isError || !employee || !employeeId) {
         return (
             <Page>
+                <PageBody>
                 <CenterBox>
                     <ErrorText>Nie udało się załadować danych pracownika.</ErrorText>
                     <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
                 </CenterBox>
+                </PageBody>
             </Page>
         );
     }
 
     return (
         <Page>
+            <PageBody>
             <PageHeader
                 title={employee.fullName}
                 subtitle={
@@ -341,6 +341,7 @@ export const EmployeeDetailView = () => {
                     employee={employee}
                 />
             )}
+            </PageBody>
         </Page>
     );
 };

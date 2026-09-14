@@ -6,6 +6,7 @@ import type { AdBar, AdCalendar, AdCalendarRow, UnlinkedProfile } from '../types
 import { PROFILE_COLORS } from '../types';
 import { CenterState, formatExact } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
+import { AreaSection } from './AreaSection';
 import { dayOfYear, monthStartDays, yearLength } from '../utils/adCalendar';
 
 /**
@@ -131,10 +132,13 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
 
     if (calendar.rows.length === 0 && calendar.unlinked.length === 0) {
         return (
-            <CenterState>
-                <strong>Brak obserwowanych profili</strong>
-                <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
-            </CenterState>
+            <Layout>
+                <CenterState>
+                    <strong>Brak obserwowanych profili</strong>
+                    <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
+                </CenterState>
+                <AreaSection />
+            </Layout>
         );
     }
 
@@ -166,6 +170,8 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
                     }
                 />
             ))}
+
+            <AreaSection />
 
             {linking && (
                 <LinkFacebookPageModal

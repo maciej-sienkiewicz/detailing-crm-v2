@@ -2,6 +2,9 @@ import { apiClient } from '@/core/apiClient';
 import type {
     AdCalendar,
     AdDetail,
+    AreaResults,
+    LocationTracking,
+    SaveLocationTracking,
     PageCandidate,
     Benchmark,
     ProfileSuggestion,
@@ -181,6 +184,47 @@ export const instagramApi = {
     /** Odpięcie strony - razem z pobranymi reklamami, bo opisują już cudzą firmę. */
     unlinkFacebookPage: async (profileId: string): Promise<void> => {
         await apiClient.delete(`${ADS_PATH}/profiles/${profileId}/page`);
+    },
+
+    // ── Odkrywanie obszaru (kto reklamuje się na frazy w rejonie) ─────────────
+
+    /**
+     * Podgląd na żywo bez zapisu: frazy + rejon → tabela firm. Może dociągnąć nowe
+     * frazy do wspólnego cache, więc pierwsze wywołanie dla nieznanej frazy bywa
+     * wolniejsze - kolejne (także innych studiów) idą już z cache.
+     */
+    previewAreaDiscovery: async (request: SaveLocationTracking): Promise<AreaResults> => {
+        const response = await apiClient.post<AreaResults>(`${ADS_PATH}/discovery/preview`, {
+            phrases: request.phrases,
+            locations: request.locations,
+            matchMode: request.matchMode,
+        });
+        return response.data;
+    },
+
+    listLocationTrackings: async (): Promise<LocationTracking[]> => {
+        const response = await apiClient.get<LocationTracking[]>(`${ADS_PATH}/discovery/trackings`);
+        return response.data;
+    },
+
+    createLocationTracking: async (request: SaveLocationTracking): Promise<LocationTracking> => {
+        const response = await apiClient.post<LocationTracking>(`${ADS_PATH}/discovery/trackings`, request);
+        return response.data;
+    },
+
+    updateLocationTracking: async (id: string, request: SaveLocationTracking): Promise<LocationTracking> => {
+        const response = await apiClient.put<LocationTracking>(`${ADS_PATH}/discovery/trackings/${id}`, request);
+        return response.data;
+    },
+
+    deleteLocationTracking: async (id: string): Promise<void> => {
+        await apiClient.delete(`${ADS_PATH}/discovery/trackings/${id}`);
+    },
+
+    /** Tabela wyników zapisanego śledzenia — z bieżącego, wspólnego cache. */
+    getLocationTrackingResults: async (id: string): Promise<AreaResults> => {
+        const response = await apiClient.get<AreaResults>(`${ADS_PATH}/discovery/trackings/${id}/results`);
+        return response.data;
     },
 
     // ── Reakcje i generator AI ───────────────────────────────────────────────

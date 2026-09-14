@@ -7,6 +7,7 @@ import { PROFILE_COLORS } from '../types';
 import { Card, CardTitle, CardHint, CenterState, formatExact } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AdsTabMobile } from './AdsTabMobile';
+import { AreaSection } from './AreaSection';
 import { barGeometry, dayOfYear, monthStartDays, yearLength } from '../utils/adCalendar';
 
 /**
@@ -313,18 +314,6 @@ const Table = styled.table`
     tbody tr:last-child td { border-bottom: none; }
 `;
 
-const DaysBar = styled.div`
-    margin-top: 5px;
-    height: 5px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCardAlt};
-    overflow: hidden;
-    display: flex;
-    justify-content: flex-end;
-
-    i { display: block; height: 100%; border-radius: ${st.radiusFull}; }
-`;
-
 const ActiveTag = styled.span`
     display: inline-flex;
     align-items: center;
@@ -415,8 +404,6 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
         return map;
     }, [rows]);
 
-    const maxDays = Math.max(1, ...rows.map(row => row.sponsoredDays));
-
     if (!calendar.configured) {
         return (
             <Card>
@@ -431,19 +418,16 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
         );
     }
 
-    if (rows.length === 0 && calendar.unlinked.length === 0) {
-        return (
-            <Card>
-                <CenterState>
-                    <strong>Brak obserwowanych profili</strong>
-                    <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
-                </CenterState>
-            </Card>
-        );
-    }
-
     return (
         <Layout>
+            {rows.length === 0 && calendar.unlinked.length === 0 ? (
+                <Card>
+                    <CenterState>
+                        <strong>Brak obserwowanych profili</strong>
+                        <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
+                    </CenterState>
+                </Card>
+            ) : (
             <Card>
                 <HeadRow>
                     <CardTitle>Kalendarz reklam · {year}</CardTitle>
@@ -544,6 +528,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                     </>
                 )}
             </Card>
+            )}
 
             {rows.length > 0 && (
                 <Card>
@@ -564,7 +549,6 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                                     key={row.profileId}
                                     row={row}
                                     color={colors.get(row.profileId) ?? st.textMuted}
-                                    maxDays={maxDays}
                                     onEditPage={() =>
                                         setLinking({
                                             profileId: row.profileId,
@@ -585,6 +569,8 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                 </Card>
             )}
 
+            <AreaSection />
+
             {linking && (
                 <LinkFacebookPageModal
                     profileId={linking.profileId}
@@ -600,9 +586,8 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
 const SummaryRow: React.FC<{
     row: AdCalendarRow;
     color: string;
-    maxDays: number;
     onEditPage: () => void;
-}> = ({ row, color, maxDays, onEditPage }) => (
+}> = ({ row, color, onEditPage }) => (
     <tr style={row.ads.length === 0 ? { opacity: 0.6 } : undefined}>
         <td>
             <Name>
@@ -617,14 +602,7 @@ const SummaryRow: React.FC<{
             </Name>
         </td>
         <td className="num">{row.campaigns > 0 ? row.campaigns : '—'}</td>
-        <td className="num">
-            {row.sponsoredDays}
-            {row.sponsoredDays > 0 && (
-                <DaysBar>
-                    <i style={{ width: `${(row.sponsoredDays / maxDays) * 100}%`, background: color }} />
-                </DaysBar>
-            )}
-        </td>
+        <td className="num">{row.sponsoredDays}</td>
         <td className="num">{row.reachTotal !== null ? formatExact(row.reachTotal) : '—'}</td>
     </tr>
 );

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useBreakpoint } from '@/common/hooks';
 import { usePiiAccess } from '@/common/pii';
+import { PageContainer } from '@/common/components/PageContainer';
 import { ReportWorkdayButton } from '@/modules/worktime';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
@@ -64,14 +65,10 @@ const pulse = keyframes`
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-const ViewContainer = styled.main`
+const ViewContainer = styled(PageContainer)`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.spacing.xl};
-  padding: ${p => p.theme.spacing.lg};
-  max-width: 1920px;
-  margin: 0 auto;
-  width: 100%;
   animation: ${fadeUp} 300ms ease both;
 
   /* Na telefonie 32px miedzy sekcjami to byl pusty ekran do przewijania,
@@ -79,11 +76,6 @@ const ViewContainer = styled.main`
      sie same. Odstepy schodza do wysokosci jednego wiersza tekstu. */
   @media (max-width: 767px) {
     gap: 14px;
-    padding: 12px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.spacing.xl};
   }
 `;
 
