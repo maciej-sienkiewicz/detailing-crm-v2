@@ -26,7 +26,7 @@ import {
 /** Montowany raz w Layoucie; niczego nie renderuje - tylko słucha klawiatury. */
 export function GlobalShortcuts() {
     const navigate = useNavigate();
-    const { pathname } = useLocation();
+    const { pathname, search } = useLocation();
     const [enabled] = useShortcutsEnabled();
 
     useEffect(() => {
@@ -39,10 +39,19 @@ export function GlobalShortcuts() {
             const key = event.key.toLowerCase();
 
             // 1. Zakładki bieżącej sekcji (cyfry) - tylko tam, gdzie mają sens.
+            //    Zakładka trzymana w parametrze adresu przestawia TYLKO ten
+            //    parametr: reszta adresu (wybrany okres, rok) ma przeżyć skok
+            //    między zakładkami - tak samo, jak gdy klikniemy je myszą.
             const scoped = scopedShortcutsFor(pathname).find((entry) => entry.key === key);
             if (scoped) {
                 event.preventDefault();
-                navigate(scoped.to, { replace: true });
+                if (scoped.param) {
+                    const params = new URLSearchParams(search);
+                    params.set(scoped.param.name, scoped.param.value);
+                    navigate(`${pathname}?${params.toString()}`, { replace: true });
+                } else if (scoped.to) {
+                    navigate(scoped.to, { replace: true });
+                }
                 return;
             }
 
@@ -62,7 +71,7 @@ export function GlobalShortcuts() {
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [enabled, navigate, pathname]);
+    }, [enabled, navigate, pathname, search]);
 
     return null;
 }
