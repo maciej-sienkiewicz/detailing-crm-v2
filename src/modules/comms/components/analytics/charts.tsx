@@ -181,12 +181,12 @@ export function RankedBars({ rows, color = MAGNITUDE }: RankedBarsProps) {
     );
 }
 
-// ── Jedyny prawdziwy wykres: zamknięte pieniądze przez cały rok ──────────────
+// ── Jedyny prawdziwy wykres: wartość zapytań przez cały rok ──────────────────
 //
 // Recharts w jasnej skórce modułu statystyk: jedna linia, jedna oś, hairline'owa
 // siatka (ciągła, nie kreskowana - kreska czyta się jak próg albo prognoza).
 // Zawsze pełny rok (styczeń–grudzień); miesiące jeszcze nieprzeżyte są dziurą
-// w linii (null), nie zerem - „nic nie zamknięto" i „miesiąc nie nadszedł" to
+// w linii (null), nie zerem - „nic nie przyszło" i „miesiąc nie nadszedł" to
 // dwie różne rzeczy. Bez drugiej osi i bez linii skuteczności.
 
 /** Oś Y w tysiącach złotych: „13 tys." zamiast „12 580 zł" - kwota na osi ma być skalą, nie treścią. */
@@ -229,7 +229,7 @@ function WonTooltip({ active, payload, label }: WonTooltipProps) {
 export interface YearPoint {
     /** Skrót miesiąca na osi: „sty", „lut", … */
     period: string;
-    /** Zamknięte pieniądze w tym miesiącu; null dla miesięcy, które jeszcze nie nadeszły. */
+    /** Wartość zapytań, które przyszły w tym miesiącu; null dla miesięcy, które jeszcze nie nadeszły. */
     value: number | null;
 }
 
@@ -250,7 +250,9 @@ export function YearLineChart({ points }: { points: YearPoint[] }) {
                     tick={{ fontSize: 11, fill: st.textSecondary }}
                     tickLine={false}
                     axisLine={false}
-                    width={48}
+                    /* Na tyle szeroko, żeby „340 tys." zmieściło się w JEDNEJ linii -
+                       przy węższej osi Recharts łamał etykietę na „340" i „tys.". */
+                    width={64}
                     allowDecimals={false}
                     tickFormatter={axisMoney}
                 />

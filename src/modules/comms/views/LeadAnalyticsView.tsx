@@ -100,16 +100,30 @@ const EmbeddedShell = styled.div`
  *
  * Bez tytułu: „Pieniądze w zapytaniach / Podsumowanie za wrzesień" nic nie wnosiło -
  * że to pieniądze w zapytaniach, wiadomo z kolejki obok, a okres i tak mówi wybór
- * okresu oraz kwota-bohater niżej („Zamknięte w tym miesiącu"). Zostaje sam wybór okresu.
+ * okresu oraz kwota-bohater niżej („Zamknięte w tym miesiącu"). Po lewej stoi za to
+ * liczba zapytań z wybranego okresu: jedyny fakt o SKALI, którego nie ma nigdzie
+ * indziej (kolejka liczy otwarte sprawy, nie zapytania okresu), i mianownik dla
+ * kwot niżej - „125 800 zł zamknięte z 63 zapytań" znaczy co innego niż z 6.
  */
 const EmbeddedHeader = styled.header`
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    gap: 12px;
     flex-shrink: 0;
     padding: 12px 20px;
     background: ${p => p.theme.colors.background};
     border-bottom: 1px solid ${st.border};
+`;
+
+const HeaderCount = styled.span`
+    min-width: 0;
+    font-size: 14px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${st.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 /** Sama treść analityki się przewija; nagłówek z wyborem okresu zostaje na miejscu. */
@@ -434,6 +448,9 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
         return (
             <EmbeddedShell>
                 <EmbeddedHeader>
+                    {/* Pusty element, gdy danych jeszcze nie ma - żeby wybór okresu
+                        został przy prawej krawędzi i nie skakał po doczytaniu. */}
+                    <HeaderCount>{shown ? leadCount(shown.totalCreated) : ''}</HeaderCount>
                     <PeriodPicker value={period} onChange={setPeriod} variant="light" />
                 </EmbeddedHeader>
                 <EmbeddedBody>{body}</EmbeddedBody>
@@ -548,10 +565,10 @@ function Report({
                 </ActionStrip>
             )}
 
-            {/* ── FRONT · przychód przez cały rok ─────────────────────────────── */}
+            {/* ── FRONT · wszystkie zapytania przez cały rok ──────────────────── */}
             <AnalyticsCard
-                question="Zamknięte pieniądze w tym roku"
-                answer="Ile realnie zamknąłeś na plus w kolejnych miesiącach - cały rok, od stycznia do grudnia."
+                question="Zapytania miesiąc po miesiącu"
+                answer="Ile pieniędzy przyszło we wszystkich zapytaniach - cały rok, od stycznia do grudnia."
             >
                 <YearLineChart points={yearSeries} />
             </AnalyticsCard>
@@ -674,10 +691,13 @@ function periodPhrase(period: Period): string {
 }
 
 /**
- * Zamknięte pieniądze w 12 miesiącach bieżącego roku. Miesiące jeszcze nieprzeżyte
- * dostają null (dziura w linii), nie zero - „nic nie zamknięto" i „miesiąc nie
- * nadszedł" to dwie różne rzeczy. Wartości sumujemy po miesiącu daty początkowej
- * kubełka, więc działa i przy kubełkach tygodniowych, i miesięcznych.
+ * Wartość WSZYSTKICH zapytań, które przyszły w 12 miesiącach bieżącego roku -
+ * nie tylko zamkniętych. Kubełek osi czasu trzyma wartość okresu w rozbiciu na
+ * wynik, więc suma czterech pól to pełna wartość zapytań danego miesiąca.
+ *
+ * Miesiące jeszcze nieprzeżyte dostają null (dziura w linii), nie zero - „nic nie
+ * przyszło" i „miesiąc nie nadszedł" to dwie różne rzeczy. Sumujemy po miesiącu
+ * daty początkowej kubełka, więc działa i przy kubełkach tygodniowych, i miesięcznych.
  */
 function buildYearSeries(analytics: LeadAnalytics | undefined): YearPoint[] {
     const currentMonth = new Date().getMonth();
@@ -685,7 +705,8 @@ function buildYearSeries(analytics: LeadAnalytics | undefined): YearPoint[] {
     if (analytics) {
         for (const point of analytics.timeline) {
             const month = new Date(`${point.periodStart}T00:00:00`).getMonth();
-            if (month >= 0 && month < 12) byMonth[month] += point.wonValue;
+            if (month < 0 || month > 11) continue;
+            byMonth[month] += point.wonValue + point.lostValue + point.openValue + point.silentValue;
         }
     }
     return MONTH_ABBR.map((label, index) => ({
@@ -697,7 +718,10 @@ function buildYearSeries(analytics: LeadAnalytics | undefined): YearPoint[] {
 /** Przykładowy rok do trybu pokazowego - realistyczny kształt, nie losowy. */
 function buildDemoYearSeries(): YearPoint[] {
     const currentMonth = new Date().getMonth();
-    const values = [820000, 940000, 1180000, 1060000, 1320000, 1240000, 980000, 1140000, 1560000, 1420000, 1680000, 1900000];
+    const values = [
+        24_500_000, 27_800_000, 31_200_000, 28_600_000, 33_400_000, 30_100_000,
+        25_900_000, 29_700_000, 31_860_000, 34_000_000, 36_500_000, 38_000_000,
+    ];
     return MONTH_ABBR.map((label, index) => ({
         period: label,
         value: index > currentMonth ? null : values[index],
