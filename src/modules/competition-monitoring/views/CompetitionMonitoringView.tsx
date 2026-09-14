@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { PageContainer } from '@/common/components/PageContainer';
-import { BarChart3, Calendar, Grid3x3, MapPin, Megaphone, MoreHorizontal, Plus, Sparkles, Users } from 'lucide-react';
+import { BarChart3, Calendar, Grid3x3, Megaphone, MoreHorizontal, Plus, Sparkles, Users } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
     PageHeader,
@@ -19,7 +19,6 @@ import { BenchmarkTab } from '../components/BenchmarkTab';
 import { SyncStatusBar } from '../components/SyncStatusBar';
 import { ContentTab } from '../components/ContentTab';
 import { AdsTab } from '../components/AdsTab';
-import { AreaTab } from '../components/AreaTab';
 import { AdDetailModal } from '../components/AdDetailModal';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
@@ -240,14 +239,13 @@ const MenuBackdrop = styled.div`
 
 // ─── Zakładki i konfiguracja ──────────────────────────────────────────────────
 
-type TabKey = 'tydzien' | 'porownanie' | 'tresci' | 'reklamy' | 'obszar';
+type TabKey = 'tydzien' | 'porownanie' | 'tresci' | 'reklamy';
 
 const TABS: ReadonlyArray<TabDefinition<TabKey>> = [
     { key: 'tydzien', label: 'Tydzień', icon: <Calendar size={14} /> },
     { key: 'porownanie', label: 'Porównanie', icon: <BarChart3 size={14} /> },
     { key: 'tresci', label: 'Treści', icon: <Grid3x3 size={14} /> },
     { key: 'reklamy', label: 'Reklamy', icon: <Megaphone size={14} /> },
-    { key: 'obszar', label: 'W okolicy', icon: <MapPin size={14} /> },
 ];
 
 /**
@@ -314,7 +312,6 @@ export const CompetitionMonitoringView = () => {
             subtitle="Co robi konkurencja, co u niej działa i co możesz z tym zrobić"
             actions={
                 <>
-                    {tab !== 'obszar' && (
                     <WeeksBar>
                         {tab === 'reklamy'
                             ? Array.from({ length: AD_YEARS }, (_, index) => currentYear - AD_YEARS + 1 + index)
@@ -337,7 +334,6 @@ export const CompetitionMonitoringView = () => {
                                 </WeeksBtn>
                             ))}
                     </WeeksBar>
-                    )}
                     <PageHeaderGhostButton onClick={() => setGenerateOpen(true)}>
                         <Sparkles /> Generuj post
                     </PageHeaderGhostButton>
@@ -396,7 +392,6 @@ export const CompetitionMonitoringView = () => {
                     )}
                 </MenuWrap>
             </ToolbarRow1>
-            {tab !== 'obszar' && (
             <ToolbarRow2>
                 <WeeksBar $onLight>
                     {tab === 'reklamy'
@@ -423,7 +418,6 @@ export const CompetitionMonitoringView = () => {
                         ))}
                 </WeeksBar>
             </ToolbarRow2>
-            )}
         </MobileToolbar>
     );
 
@@ -497,8 +491,6 @@ export const CompetitionMonitoringView = () => {
                     <AdsTab calendar={adsQuery.data} onOpenAd={setOpenAdId} />
                 ) : null
             )}
-
-            {tab === 'obszar' && <AreaTab />}
 
             {openAdId && <AdDetailModal adId={openAdId} onClose={() => setOpenAdId(null)} />}
 
