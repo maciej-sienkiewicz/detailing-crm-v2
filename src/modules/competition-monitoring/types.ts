@@ -436,6 +436,11 @@ export interface PageCandidate {
     /** Ile reklam tej strony trafiło w zapytanie - odróżnia firmę od zbieżnej nazwy. */
     ads: number;
     lastStart: string | null;
+    /**
+     * Nazwa profilu na Instagramie, bez małpy. Meta jej nie podaje - backend
+     * wyprowadza ją z domeny reklamodawcy, więc bywa pusta i to jest normalne.
+     */
+    instagram: string | null;
 }
 
 export interface UnlinkedProfile {

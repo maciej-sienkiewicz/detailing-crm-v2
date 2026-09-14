@@ -69,6 +69,11 @@ const Candidates = styled.ul`
     overflow-y: auto;
 `;
 
+/** Nazwa firmy i jej konto na Instagramie jedno pod drugim; licznik reklam zostaje po prawej. */
+const Who = styled.div`
+    min-width: 0;
+`;
+
 /** Kandydat: nazwa, liczba reklam i data - tyle, żeby odróżnić firmę od zbieżnej nazwy. */
 const Candidate = styled.button<{ $chosen: boolean }>`
     display: flex;
@@ -88,9 +93,18 @@ const Candidate = styled.button<{ $chosen: boolean }>`
     &:hover { border-color: ${st.borderHover}; }
 
     strong {
+        display: block;
         font-size: ${st.fontSm};
         font-weight: 700;
         color: ${st.text};
+        overflow-wrap: anywhere;
+    }
+    em {
+        display: block;
+        margin-top: 1px;
+        font-size: ${st.fontXs};
+        font-style: normal;
+        color: ${st.textMuted};
         overflow-wrap: anywhere;
     }
     span {
@@ -240,7 +254,10 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                                     $chosen={candidate.pageId === digitsOnly}
                                     onClick={() => setPageId(candidate.pageId)}
                                 >
-                                    <strong>{candidate.pageName || 'Nazwa nieznana'}</strong>
+                                    <Who>
+                                        <strong>{candidate.pageName || 'Nazwa nieznana'}</strong>
+                                        {candidate.instagram && <em>@{candidate.instagram}</em>}
+                                    </Who>
                                     <span>
                                         {candidate.ads > 0
                                             ? `${candidate.ads} rekl.${candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}`
