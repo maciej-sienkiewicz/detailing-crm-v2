@@ -1465,6 +1465,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }, [canCreateVisits]);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
+    /**
+     * Wejście globalnym skrótem „R": /calendar ze stanem { openQuickEvent: true }
+     * otwiera od razu okno szybkiej wizyty z zakresem dziś → jutro.
+     *
+     * Zakres idzie w konwencji FullCalendara (koniec WYŁĄCZNY - stąd +2 dni
+     * o północy): useQuickEventForm odejmie dzień i pokaże start dziś 9:00,
+     * koniec jutro 20:00. Stan nawigacji czyścimy natychmiast, żeby odświeżenie
+     * strony (stan historii przeżywa F5) nie otwierało okna drugi raz.
+     */
+    const quickEventFromNav = Boolean((location.state as { openQuickEvent?: boolean } | null)?.openQuickEvent);
+    useEffect(() => {
+        if (!quickEventFromNav) return;
+        navigate(location.pathname + location.search, { replace: true, state: null });
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 2);
+        openQuickEvent({ start, end, allDay: true });
+    }, [quickEventFromNav, navigate, location.pathname, location.search, openQuickEvent]);
+
     // Filter state - persisted in localStorage
     const {
         appointmentStatuses: selectedAppointmentStatuses,
