@@ -535,8 +535,8 @@ export interface AdvertiserRow {
     companyName: string;
     /** Ile aktywnych reklam tej firmy trafia w obszar. */
     activeAds: number;
-    /** Łączny zasięg w Polsce; null, gdy Meta nie podała rozbicia. */
-    reachPl: number | null;
+    /** Łączny zasięg w UE (eu_total_reach); null, gdy Meta nie podała liczby. */
+    reach: number | null;
     /** Strona firmy w Bibliotece reklam Meta (aktywne reklamy, PL). */
     adLibraryUrl: string;
     /** Podgląd pojedynczej reklamy; null, gdy żadna nie ma migawki. */
