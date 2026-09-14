@@ -575,14 +575,36 @@ export interface AreaResults {
     generatedAt: string;
     advertisers: AdvertiserRow[];
     totalActiveAds: number;
+    /** Ilu reklamodawców odpadło przez wykluczenia - bez tego krótka tabela nie mówi dlaczego. */
+    hiddenAdvertisers: number;
     phraseStatuses: PhraseStatus[];
+}
+
+/** Jedna fraza z katalogu ustalonego przez administratora aplikacji. */
+export interface CatalogPhrase {
+    id: string;
+    text: string;
+    /** Klucz grupy (POWLOKI, FOLIE, ...) - stabilny, niezależny od etykiety. */
+    group: string;
+    groupLabel: string;
+}
+
+/** Reklamodawca ukryty przez to studio - da się przywrócić. */
+export interface BlockedAdvertiser {
+    pageId: string;
+    pageName: string | null;
+    reason: string | null;
+    createdAt: string;
 }
 
 /** Zapisane, trwałe śledzenie obszaru. */
 export interface LocationTracking {
     id: string;
     label: string;
-    phrases: string[];
+    /** Identyfikatory fraz z katalogu, które studio odznaczyło. */
+    excludedPhraseIds: string[];
+    /** Ile fraz katalogu zostaje po odznaczeniach. */
+    trackedPhraseCount: number;
     locations: string[];
     matchMode: AreaMatchMode;
     active: boolean;
@@ -593,7 +615,11 @@ export interface LocationTracking {
 /** Ciało zapisu/edycji śledzenia obszaru. */
 export interface SaveLocationTracking {
     label: string;
-    phrases: string[];
+    /**
+     * Frazy ODZNACZONE, nie wybrane. Katalog jest zamknięty i ustala go administrator
+     * aplikacji; studio może z niego tylko odejmować.
+     */
+    excludedPhraseIds: string[];
     locations: string[];
     matchMode?: AreaMatchMode;
     active?: boolean;

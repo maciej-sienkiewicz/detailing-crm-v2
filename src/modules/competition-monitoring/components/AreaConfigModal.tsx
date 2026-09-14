@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Check, Pause, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
+import { Check, Pause, Pencil, Play, Plus, Trash2, X, RotateCcw, EyeOff } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
     ModalShell,
@@ -13,12 +13,15 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import type { AreaMatchMode, LocationTracking, SaveLocationTracking } from '../types';
+import type { AreaMatchMode, LocationTracking, SaveLocationTracking, CatalogPhrase } from '../types';
 import {
     useCreateLocationTracking,
     useDeleteLocationTracking,
     useLocationTrackings,
     useUpdateLocationTracking,
+    usePhraseCatalog,
+    useBlockedAdvertisers,
+    useUnblockAdvertiser,
 } from '../hooks/useAreaDiscovery';
 
 /**
@@ -231,10 +234,184 @@ interface Props {
     onDeleted?: (id: string) => void;
 }
 
-const blank = () => ({ label: '', phrases: [] as string[], locations: [] as string[], mode: 'INCLUDE_BROADER' as AreaMatchMode });
+/**
+ * Wybór fraz z KATALOGU — studio odznacza to, czego nie chce.
+ *
+ * Katalog ustala administrator aplikacji i jest wspólny dla wszystkich najemców:
+ * fraza to klucz dzielonego cache, a każda unikalna fraza kosztuje osobne pobranie
+ * ze wspólnego limitu Meta. Dlatego odznaczanie, a nie wpisywanie.
+ *
+ * Trzymamy WYKLUCZENIA, nie zaznaczenia: fraza dołożona do katalogu włącza się
+ * wtedy wszystkim sama, zamiast czekać, aż każdy ją sobie zaznaczy.
+ */
+const BlockedRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid ${st.border};
+    &:last-child { border-bottom: none; }
+`;
+
+const BlockedName = styled.div`
+    flex: 1;
+    min-width: 0;
+    strong {
+        display: block;
+        font-size: ${st.fontSm};
+        font-weight: 600;
+        color: ${st.text};
+        overflow-wrap: anywhere;
+    }
+    span {
+        font-size: ${st.fontXs};
+        color: ${st.textMuted};
+    }
+`;
+
+const PhraseGroupBox = styled.div`
+    & + & { margin-top: 14px; }
+`;
+
+const PhraseGroupHead = styled.div`
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+`;
+
+const PhraseGroupName = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: ${st.textMuted};
+`;
+
+const GroupToggle = styled.button`
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: ${st.fontXs};
+    color: ${st.accentBlue};
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { text-decoration: underline; }
+`;
+
+const PhraseGrid = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+const PhraseChip = styled.button<{ $on: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${p => (p.$on ? st.accentBlue : st.border)};
+    background: ${p => (p.$on ? st.accentBlueDim : st.bgCard)};
+    color: ${p => (p.$on ? st.accentBlue : st.textMuted)};
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: ${p => (p.$on ? 600 : 500)};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover { border-color: ${p => (p.$on ? st.accentBlue : st.borderHover)}; }
+`;
+
+const PhraseCount = styled.div`
+    margin-top: 10px;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+const PhrasePicker = ({
+    catalog,
+    excluded,
+    onChange,
+}: {
+    catalog: CatalogPhrase[];
+    excluded: string[];
+    onChange: (excluded: string[]) => void;
+}) => {
+    const groups = catalog.reduce<{ key: string; label: string; items: CatalogPhrase[] }[]>((acc, phrase) => {
+        const found = acc.find(g => g.key === phrase.group);
+        if (found) found.items.push(phrase);
+        else acc.push({ key: phrase.group, label: phrase.groupLabel, items: [phrase] });
+        return acc;
+    }, []);
+
+    const excludedSet = new Set(excluded);
+    const toggle = (id: string) =>
+        onChange(excludedSet.has(id) ? excluded.filter(e => e !== id) : [...excluded, id]);
+
+    const setGroup = (items: CatalogPhrase[], on: boolean) => {
+        const ids = new Set(items.map(i => i.id));
+        // Zostawiamy wykluczenia spoza grupy nietknięte - przycisk grupy rusza tylko swoją.
+        const rest = excluded.filter(e => !ids.has(e));
+        onChange(on ? rest : [...rest, ...items.map(i => i.id)]);
+    };
+
+    const tracked = catalog.length - excludedSet.size;
+
+    return (
+        <Field>
+            <FieldLabel>
+                Śledzone frazy <FieldHint>(listę ustala administrator — odznacz to, co Cię nie dotyczy)</FieldHint>
+            </FieldLabel>
+
+            {groups.map(group => {
+                const allOn = group.items.every(i => !excludedSet.has(i.id));
+                return (
+                    <PhraseGroupBox key={group.key}>
+                        <PhraseGroupHead>
+                            <PhraseGroupName>{group.label}</PhraseGroupName>
+                            <GroupToggle type="button" onClick={() => setGroup(group.items, !allOn)}>
+                                {allOn ? 'odznacz grupę' : 'zaznacz grupę'}
+                            </GroupToggle>
+                        </PhraseGroupHead>
+                        <PhraseGrid>
+                            {group.items.map(phrase => {
+                                const on = !excludedSet.has(phrase.id);
+                                return (
+                                    <PhraseChip
+                                        key={phrase.id}
+                                        type="button"
+                                        role="checkbox"
+                                        aria-checked={on}
+                                        $on={on}
+                                        onClick={() => toggle(phrase.id)}
+                                    >
+                                        {on ? <Check size={13} /> : <X size={13} />} {phrase.text}
+                                    </PhraseChip>
+                                );
+                            })}
+                        </PhraseGrid>
+                    </PhraseGroupBox>
+                );
+            })}
+
+            <PhraseCount>
+                Śledzone: <strong>{tracked}</strong> z {catalog.length} fraz
+                {tracked === 0 && ' — zaznacz przynajmniej jedną, inaczej nie ma czego szukać.'}
+            </PhraseCount>
+        </Field>
+    );
+};
+
+const blank = () => ({ label: '', excluded: [] as string[], locations: [] as string[], mode: 'INCLUDE_BROADER' as AreaMatchMode });
 
 export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) => {
     const trackingsQuery = useLocationTrackings(isOpen);
+    const catalogQuery = usePhraseCatalog(isOpen);
+    const blocksQuery = useBlockedAdvertisers(isOpen);
+    const unblockMut = useUnblockAdvertiser();
     const createMut = useCreateLocationTracking();
     const updateMut = useUpdateLocationTracking();
     const deleteMut = useDeleteLocationTracking();
@@ -243,12 +420,20 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
     const [form, setForm] = useState(blank());
 
     const trackings = trackingsQuery.data ?? [];
-    const canSave = form.label.trim() !== '' && form.phrases.length > 0 && form.locations.length > 0;
+    const catalog = catalogQuery.data ?? [];
+    // Odznaczenie wszystkiego to śledzenie, które nigdy nic nie pokaże - backend też tego pilnuje.
+    const canSave =
+        form.label.trim() !== '' && form.locations.length > 0 && form.excluded.length < catalog.length;
     const saving = createMut.isPending || updateMut.isPending;
 
     const startEdit = (tracking: LocationTracking) => {
         setEditingId(tracking.id);
-        setForm({ label: tracking.label, phrases: tracking.phrases, locations: tracking.locations, mode: tracking.matchMode });
+        setForm({
+            label: tracking.label,
+            excluded: tracking.excludedPhraseIds,
+            locations: tracking.locations,
+            mode: tracking.matchMode,
+        });
     };
 
     const startNew = () => {
@@ -260,7 +445,7 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
         if (!canSave) return;
         const body: SaveLocationTracking = {
             label: form.label.trim(),
-            phrases: form.phrases,
+            excludedPhraseIds: form.excluded,
             locations: form.locations,
             matchMode: form.mode,
             active: true,
@@ -277,7 +462,7 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
             id: tracking.id,
             request: {
                 label: tracking.label,
-                phrases: tracking.phrases,
+                excludedPhraseIds: tracking.excludedPhraseIds,
                 locations: tracking.locations,
                 matchMode: tracking.matchMode,
                 active: !tracking.active,
@@ -291,12 +476,13 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="560px">
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="640px">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Śledzenie obszaru</ModalTitle>
                     <ModalSubtitle>
-                        Frazy z reklam + rejon. Frazy odświeżają się automatycznie dwa razy dziennie.
+                        Wybierz rejon i odznacz frazy, które Cię nie dotyczą. Dane odświeżają się
+                        automatycznie dwa razy dziennie.
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -310,7 +496,9 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
                             <TrackingRow key={tracking.id} $active={tracking.active} $editing={editingId === tracking.id}>
                                 <TrackingInfo>
                                     <strong>{tracking.label}{!tracking.active && ' · wstrzymane'}</strong>
-                                    <span>{tracking.locations.join(', ')} · {tracking.phrases.join(', ')}</span>
+                                    <span>
+                                        {tracking.locations.join(', ')} · {tracking.trackedPhraseCount} fraz
+                                    </span>
                                 </TrackingInfo>
                                 <RowAction type="button" aria-label="Edytuj" title="Edytuj" onClick={() => startEdit(tracking)}>
                                     <Pencil />
@@ -331,6 +519,35 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
                     </Section>
                 )}
 
+                {(blocksQuery.data ?? []).length > 0 && (
+                    <Section>
+                        <SectionLabel>Ukryci reklamodawcy</SectionLabel>
+                        {/*
+                          * Wyłącznie ukrycia TEGO studia. Wykluczeń globalnych (boty, hurtownie,
+                          * profile zza granicy) nie ma tu w ogóle — zakłada je administrator
+                          * aplikacji i obowiązują wszystkich, więc nie ma czego cofać.
+                          */}
+                        {(blocksQuery.data ?? []).map(blocked => (
+                            <BlockedRow key={blocked.pageId}>
+                                <EyeOff size={15} color={st.textMuted} />
+                                <BlockedName>
+                                    <strong>{blocked.pageName || 'Nazwa nieznana'}</strong>
+                                    <span>{blocked.pageId}</span>
+                                </BlockedName>
+                                <RowAction
+                                    type="button"
+                                    aria-label="Przywróć"
+                                    title="Przywróć w tabeli"
+                                    disabled={unblockMut.isPending}
+                                    onClick={() => unblockMut.mutate(blocked.pageId)}
+                                >
+                                    <RotateCcw />
+                                </RowAction>
+                            </BlockedRow>
+                        ))}
+                    </Section>
+                )}
+
                 <Section>
                     <SectionLabel>{editingId ? 'Edytuj śledzenie' : 'Nowe śledzenie'}</SectionLabel>
 
@@ -347,18 +564,19 @@ export const AreaConfigModal = ({ isOpen, onClose, onSaved, onDeleted }: Props) 
                     </Field>
 
                     <TagField
-                        label={<>Frazy <FieldHint>(Enter lub przecinek dodaje kolejną)</FieldHint></>}
-                        placeholder="np. detailing, powłoka ceramiczna, PPF"
-                        values={form.phrases}
-                        onChange={phrases => setForm(f => ({ ...f, phrases }))}
-                    />
-
-                    <TagField
                         label={<>Rejon — miejscowości <FieldHint>(Enter lub przecinek dodaje kolejną)</FieldHint></>}
                         placeholder="np. Poznań, Skórzewo, Suchy Las"
                         values={form.locations}
                         onChange={locations => setForm(f => ({ ...f, locations }))}
                     />
+
+                    {catalog.length > 0 && (
+                        <PhrasePicker
+                            catalog={catalog}
+                            excluded={form.excluded}
+                            onChange={excluded => setForm(f => ({ ...f, excluded }))}
+                        />
+                    )}
 
                     <Field>
                         <FieldLabel>Jak szeroko rozumieć „w rejonie"</FieldLabel>

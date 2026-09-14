@@ -30,6 +30,22 @@ const Layout = styled.div`
     gap: 20px;
 `;
 
+/**
+ * Podsumowanie roku i Reklamodawcy w okolicy obok siebie.
+ *
+ * Obie tabele mają po kilka wąskich kolumn i garść wierszy — jedna pod drugą
+ * zostawiały pół ekranu pustego po prawej i zmuszały do przewijania po nic.
+ * `auto-fit` z progiem 430 px układa je w dwie kolumny tam, gdzie się mieszczą,
+ * i sam wraca do jednej na węższym oknie — bez osobnego breakpointu i bez
+ * zgadywania, czy boczna nawigacja jest rozwinięta.
+ */
+const TwoUp = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+    gap: 16px;
+    align-items: start;
+`;
+
 const HeadRow = styled.div`
     display: flex;
     align-items: baseline;
@@ -530,6 +546,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
             </Card>
             )}
 
+            <TwoUp>
             {rows.length > 0 && (
                 <Card>
                     <CardTitle>Podsumowanie roku</CardTitle>
@@ -570,6 +587,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
             )}
 
             <AreaSection />
+            </TwoUp>
 
             {linking && (
                 <LinkFacebookPageModal

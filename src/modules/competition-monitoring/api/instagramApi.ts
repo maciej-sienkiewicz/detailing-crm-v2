@@ -3,6 +3,8 @@ import type {
     AdCalendar,
     AdDetail,
     AreaResults,
+    BlockedAdvertiser,
+    CatalogPhrase,
     LocationTracking,
     SaveLocationTracking,
     PageCandidate,
@@ -195,11 +197,35 @@ export const instagramApi = {
      */
     previewAreaDiscovery: async (request: SaveLocationTracking): Promise<AreaResults> => {
         const response = await apiClient.post<AreaResults>(`${ADS_PATH}/discovery/preview`, {
-            phrases: request.phrases,
+            excludedPhraseIds: request.excludedPhraseIds,
             locations: request.locations,
             matchMode: request.matchMode,
         });
         return response.data;
+    },
+
+    /** Katalog fraz - zamknięta lista ustalona przez administratora aplikacji. */
+    getPhraseCatalog: async (): Promise<CatalogPhrase[]> => {
+        const response = await apiClient.get<{ phrases: CatalogPhrase[] }>(`${ADS_PATH}/discovery/phrases`);
+        return response.data.phrases;
+    },
+
+    /** Reklamodawcy ukryci przez to studio. Wykluczeń globalnych tu nie ma. */
+    listBlockedAdvertisers: async (): Promise<BlockedAdvertiser[]> => {
+        const response = await apiClient.get<BlockedAdvertiser[]>(`${ADS_PATH}/discovery/blocks`);
+        return response.data;
+    },
+
+    blockAdvertiser: async (pageId: string, pageName: string | null): Promise<BlockedAdvertiser> => {
+        const response = await apiClient.post<BlockedAdvertiser>(`${ADS_PATH}/discovery/blocks`, {
+            pageId,
+            pageName,
+        });
+        return response.data;
+    },
+
+    unblockAdvertiser: async (pageId: string): Promise<void> => {
+        await apiClient.delete(`${ADS_PATH}/discovery/blocks/${pageId}`);
     },
 
     listLocationTrackings: async (): Promise<LocationTracking[]> => {

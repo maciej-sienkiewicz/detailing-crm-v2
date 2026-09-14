@@ -13,6 +13,8 @@ import type { SaveLocationTracking } from '../types';
 export const AREA_KEYS = {
     trackings: 'ig-area-trackings',
     results: 'ig-area-results',
+    catalog: 'ig-area-phrase-catalog',
+    blocks: 'ig-area-blocks',
 } as const;
 
 const STALE_TIME = 5 * 60 * 1000;
@@ -68,5 +70,54 @@ export const useDeleteLocationTracking = () => {
     return useMutation({
         mutationFn: (id: string) => instagramApi.deleteLocationTracking(id),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: [AREA_KEYS.trackings] }),
+    });
+};
+
+
+/**
+ * Katalog fraz. Zmienia się wyłącznie z wdrożeniem aplikacji, więc trzymamy go
+ * bez przeterminowania - odpytywanie co pięć minut o stałą listę to czysty koszt.
+ */
+export const usePhraseCatalog = (enabled = true) =>
+    useQuery({
+        queryKey: [AREA_KEYS.catalog],
+        queryFn: () => instagramApi.getPhraseCatalog(),
+        staleTime: Infinity,
+        enabled,
+    });
+
+export const useBlockedAdvertisers = (enabled = true) =>
+    useQuery({
+        queryKey: [AREA_KEYS.blocks],
+        queryFn: () => instagramApi.listBlockedAdvertisers(),
+        staleTime: STALE_TIME,
+        enabled,
+    });
+
+/**
+ * Ukrycie i przywrócenie reklamodawcy. Oba unieważniają WSZYSTKIE wyniki, nie tylko
+ * bieżące śledzenie: ta sama firma potrafi wychodzić w kilku rejonach naraz, a
+ * ukryta ma zniknąć ze wszystkich.
+ */
+export const useBlockAdvertiser = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ pageId, pageName }: { pageId: string; pageName: string | null }) =>
+            instagramApi.blockAdvertiser(pageId, pageName),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.blocks] });
+        },
+    });
+};
+
+export const useUnblockAdvertiser = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (pageId: string) => instagramApi.unblockAdvertiser(pageId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.blocks] });
+        },
     });
 };

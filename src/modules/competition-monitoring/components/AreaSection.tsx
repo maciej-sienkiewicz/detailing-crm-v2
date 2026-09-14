@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ExternalLink, MapPin, Settings } from 'lucide-react';
+import { ExternalLink, MapPin, Settings, EyeOff } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { SharedButton } from '@/common/styles';
 import type { AreaResults } from '../types';
 import { Card, CardTitle, CardHint, CenterState, Spinner, formatExact } from './MetricBits';
 import { AreaConfigModal } from './AreaConfigModal';
-import { useLocationTrackings, useTrackingResults } from '../hooks/useAreaDiscovery';
+import { useLocationTrackings, useTrackingResults, useBlockAdvertiser } from '../hooks/useAreaDiscovery';
 
 /**
  * „Reklamodawcy w okolicy" — sekcja pod podsumowaniem roku w zakładce Reklamy.
@@ -141,20 +141,58 @@ const Handle = styled.a`
     &:hover { color: ${st.accentBlue}; text-decoration: underline; }
 `;
 
-const PreviewLink = styled.a`
+/**
+ * Akcje wiersza jako ikony, nie przyciski z napisem.
+ *
+ * „Podgląd w Bibliotece Meta" zajmowało w każdym wierszu tyle miejsca co wszystkie
+ * liczby razem wzięte i powtarzało tę samą informację N razy. Sens niesie ikona,
+ * nazwę niesie `title` i `aria-label` — a tabela mieści się wreszcie obok drugiej.
+ *
+ * Widoczne dopiero przy najechaniu na wiersz (na dotyku zawsze — brak hovera),
+ * żeby spokojna tabela nie migała rzędem ikon.
+ */
+const RowActions = styled.div`
+    display: inline-flex;
+    gap: 4px;
+    justify-content: flex-end;
+`;
+
+const iconAction = `
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: ${st.radiusFull};
-    border: 1px solid ${st.border};
-    color: ${st.accentBlue};
-    font-size: ${st.fontSm};
-    font-weight: 600;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: ${st.radiusSm};
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    svg { width: 15px; height: 15px; }
+
+    @media (hover: hover) {
+        opacity: 0;
+        tr:hover &, &:focus-visible { opacity: 1; }
+    }
+`;
+
+const PreviewLink = styled.a`
+    ${iconAction}
+    color: ${st.textMuted};
     text-decoration: none;
-    white-space: nowrap;
-    &:hover { border-color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
-    svg { width: 14px; height: 14px; }
+
+    &:hover { color: ${st.accentBlue}; border-color: ${st.border}; background: ${st.accentBlueDim}; }
+`;
+
+const HideButton = styled.button`
+    ${iconAction}
+    color: ${st.textMuted};
+    font-family: inherit;
+
+    &:hover { color: ${st.accentRed}; border-color: ${st.border}; background: ${st.accentRedDim}; }
+    &:disabled { cursor: default; opacity: 0.4; }
 `;
 
 const Notice = styled.div<{ $tone: 'info' | 'warn' }>`
@@ -169,6 +207,8 @@ const Notice = styled.div<{ $tone: 'info' | 'warn' }>`
 `;
 
 const ResultsTable = ({ results }: { results: AreaResults }) => {
+    const blockMut = useBlockAdvertiser();
+
     if (!results.configured) {
         return (
             <CenterState>
@@ -226,9 +266,31 @@ const ResultsTable = ({ results }: { results: AreaResults }) => {
                                     <Td $num>{row.activeAds}</Td>
                                     <Td $num>{formatExact(row.reach)}</Td>
                                     <Td $num>
-                                        <PreviewLink href={row.adLibraryUrl} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink /> Podgląd w Bibliotece Meta
-                                        </PreviewLink>
+                                        <RowActions>
+                                            <PreviewLink
+                                                href={row.adLibraryUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Zobacz reklamy w Bibliotece Meta"
+                                                aria-label={`Zobacz reklamy firmy ${row.companyName} w Bibliotece Meta`}
+                                            >
+                                                <ExternalLink />
+                                            </PreviewLink>
+                                            <HideButton
+                                                type="button"
+                                                title="Ukryj tę firmę w moich tabelach"
+                                                aria-label={`Ukryj firmę ${row.companyName}`}
+                                                disabled={blockMut.isPending}
+                                                onClick={() =>
+                                                    blockMut.mutate({
+                                                        pageId: row.pageId,
+                                                        pageName: row.companyName,
+                                                    })
+                                                }
+                                            >
+                                                <EyeOff />
+                                            </HideButton>
+                                        </RowActions>
                                     </Td>
                                 </tr>
                             ))}
@@ -237,6 +299,13 @@ const ResultsTable = ({ results }: { results: AreaResults }) => {
                 </TableScroll>
             )}
 
+            {results.hiddenAdvertisers > 0 && (
+                <Notice $tone="info">
+                    Ukryto <strong>{results.hiddenAdvertisers}</strong>{' '}
+                    {results.hiddenAdvertisers === 1 ? 'reklamodawcę' : 'reklamodawców'} — własnych i odsianych
+                    globalnie. Własne przywrócisz w ustawieniach pod kołem zębatym.
+                </Notice>
+            )}
             {notVerified && (
                 <Notice $tone="warn">
                     <strong>Konto Meta niezweryfikowane.</strong> Biblioteka reklam nie zwraca reklam,
