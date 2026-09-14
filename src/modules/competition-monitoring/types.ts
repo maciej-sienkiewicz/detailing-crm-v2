@@ -546,6 +546,11 @@ export interface AdvertiserRow {
     adLibraryUrl: string;
     /** Podgląd pojedynczej reklamy; null, gdy żadna nie ma migawki. */
     sampleSnapshotUrl: string | null;
+    /**
+     * Nazwa profilu na Instagramie, bez małpy. Meta jej nie podaje - backend
+     * wyprowadza ją z adresu, na który kieruje reklama, więc bywa pusta.
+     */
+    instagram: string | null;
 }
 
 /** Status frazy we wspólnym cache — po nim wiadomo, czemu tabela jest pusta/niepełna. */

@@ -121,7 +121,24 @@ const Td = styled.td<{ $num?: boolean }>`
 `;
 
 const Company = styled.span`
+    display: block;
     font-weight: 700;
+`;
+
+/**
+ * Konto firmy na Instagramie pod jej nazwą - nie osobna kolumna, bo tabela ma
+ * cztery i na telefonie każda kolejna kosztuje czytelność. Bywa puste: Meta nie
+ * podaje nazwy IG, backend zgaduje ją z adresu, na który kieruje reklama.
+ */
+const Handle = styled.a`
+    display: inline-block;
+    margin-top: 2px;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    text-decoration: none;
+    overflow-wrap: anywhere;
+
+    &:hover { color: ${st.accentBlue}; text-decoration: underline; }
 `;
 
 const PreviewLink = styled.a`
@@ -194,7 +211,18 @@ const ResultsTable = ({ results }: { results: AreaResults }) => {
                         <tbody>
                             {results.advertisers.map(row => (
                                 <tr key={row.pageId}>
-                                    <Td><Company>{row.companyName}</Company></Td>
+                                    <Td>
+                                        <Company>{row.companyName}</Company>
+                                        {row.instagram && (
+                                            <Handle
+                                                href={`https://www.instagram.com/${row.instagram}/`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                @{row.instagram}
+                                            </Handle>
+                                        )}
+                                    </Td>
                                     <Td $num>{row.activeAds}</Td>
                                     <Td $num>{formatExact(row.reach)}</Td>
                                     <Td $num>
