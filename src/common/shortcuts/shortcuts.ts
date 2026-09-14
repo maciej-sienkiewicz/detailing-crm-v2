@@ -4,8 +4,8 @@
 // Trzy rodzaje skrótów:
 //  • GLOBAL_SHORTCUTS  - litera przenosi do widoku, działa wszędzie;
 //  • SCOPED_SHORTCUTS  - cyfra przełącza zakładkę, ale TYLKO w swojej sekcji
-//    (1-4 w Finansach, 1-2 w Statystykach). Cyfra poza sekcją nic nie robi,
-//    więc ta sama „1" może znaczyć co innego w każdej z nich;
+//    (1-4 w Finansach, 1-2 w Statystykach, 1-4 na Instagramie). Cyfra poza
+//    sekcją nic nie robi, więc ta sama „1" może znaczyć co innego w każdej;
 //  • ACTION_SHORTCUTS  - litera otwiera coś na miejscu, bez nawigacji (Z - notatka).
 //
 // Osobno od komponentu nasłuchu (GlobalShortcuts.tsx), bo z tych definicji
@@ -37,13 +37,30 @@ export const GLOBAL_SHORTCUTS: GlobalShortcut[] = [
     { key: 'u', to: '/settings', description: 'Ustawienia' },
 ];
 
+/**
+ * Skrót sekcyjny prowadzi do zakładki na dwa sposoby, bo zakładki są robione
+ * dwojako:
+ *  • `param` - zakładka siedzi w parametrze adresu (Finanse `?tab=`, Instagram
+ *    `?widok=`). Ustawiamy tylko ten jeden parametr i zostawiamy resztę, żeby
+ *    skok między zakładkami nie gubił wybranego okresu ani roku;
+ *  • `to`    - zakładka to osobna trasa (Statystyki mają `/statistics/costs`).
+ */
+export interface ScopedShortcut {
+    key: string;
+    /** Parametr adresu do ustawienia, z zachowaniem pozostałych. */
+    param?: { name: string; value: string };
+    /** Pełny cel nawigacji - dla zakładek będących osobnymi trasami. */
+    to?: string;
+    description: string;
+}
+
 /** Skróty działające tylko w obrębie jednej sekcji aplikacji. */
 export interface ScopedShortcutGroup {
     /** Prefiks ścieżki, w której te skróty działają. */
     path: string;
     /** Nazwa sekcji - nagłówek w ściądze. */
     label: string;
-    shortcuts: GlobalShortcut[];
+    shortcuts: ScopedShortcut[];
 }
 
 export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
@@ -51,10 +68,10 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
         path: '/finances',
         label: 'Finanse',
         shortcuts: [
-            { key: '1', to: '/finances?tab=income', description: 'Dokumenty przychodowe' },
-            { key: '2', to: '/finances?tab=expenses', description: 'Dokumenty kosztowe' },
-            { key: '3', to: '/finances?tab=cash', description: 'Kasa' },
-            { key: '4', to: '/finances?tab=payment-summary', description: 'Podsumowanie płatności' },
+            { key: '1', param: { name: 'tab', value: 'income' }, description: 'Dokumenty przychodowe' },
+            { key: '2', param: { name: 'tab', value: 'expenses' }, description: 'Dokumenty kosztowe' },
+            { key: '3', param: { name: 'tab', value: 'cash' }, description: 'Kasa' },
+            { key: '4', param: { name: 'tab', value: 'payment-summary' }, description: 'Podsumowanie płatności' },
         ],
     },
     {
@@ -63,6 +80,16 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
         shortcuts: [
             { key: '1', to: '/statistics', description: 'Przychody i sprzedaż' },
             { key: '2', to: '/statistics/costs', description: 'Koszta' },
+        ],
+    },
+    {
+        path: '/instagram',
+        label: 'Instagram',
+        shortcuts: [
+            { key: '1', param: { name: 'widok', value: 'tydzien' }, description: 'Tydzień' },
+            { key: '2', param: { name: 'widok', value: 'porownanie' }, description: 'Porównanie' },
+            { key: '3', param: { name: 'widok', value: 'tresci' }, description: 'Treści' },
+            { key: '4', param: { name: 'widok', value: 'reklamy' }, description: 'Reklamy' },
         ],
     },
 ];
@@ -82,7 +109,7 @@ export const ACTION_SHORTCUTS: ActionShortcut[] = [
 ];
 
 /** Skróty aktywne dla danej ścieżki: sekcyjne tej sekcji (jeśli jakaś pasuje). */
-export function scopedShortcutsFor(pathname: string): GlobalShortcut[] {
+export function scopedShortcutsFor(pathname: string): ScopedShortcut[] {
     const group = SCOPED_SHORTCUTS.find(
         (entry) => pathname === entry.path || pathname.startsWith(`${entry.path}/`),
     );

@@ -10,5 +10,6 @@ export {
     useShortcutsEnabled,
     type ActionShortcut,
     type GlobalShortcut,
+    type ScopedShortcut,
     type ScopedShortcutGroup,
 } from './shortcuts';
