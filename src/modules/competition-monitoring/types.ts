@@ -523,3 +523,68 @@ export const FORMAT_LABELS: Record<ContentFormat, string> = {
 export const DAYPART_LABELS = ['Rano (6-11)', 'Południe (11-16)', 'Wieczór (16-21)', 'Noc (21-6)'];
 
 export const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
+
+// ─── Odkrywanie obszaru (kto reklamuje się na frazy w rejonie) ────────────────
+
+/** Jak szeroko traktować „w rejonie": tylko wpisane miasta czy też szersze obszary. */
+export type AreaMatchMode = 'CITIES_ONLY' | 'INCLUDE_BROADER';
+
+/** Jeden wiersz tabeli wyników — jedna firma reklamująca się w rejonie. */
+export interface AdvertiserRow {
+    pageId: string;
+    companyName: string;
+    /** Ile aktywnych reklam tej firmy trafia w obszar. */
+    activeAds: number;
+    /** Łączny zasięg w Polsce; null, gdy Meta nie podała rozbicia. */
+    reachPl: number | null;
+    /** Strona firmy w Bibliotece reklam Meta (aktywne reklamy, PL). */
+    adLibraryUrl: string;
+    /** Podgląd pojedynczej reklamy; null, gdy żadna nie ma migawki. */
+    sampleSnapshotUrl: string | null;
+}
+
+/** Status frazy we wspólnym cache — po nim wiadomo, czemu tabela jest pusta/niepełna. */
+export interface PhraseStatus {
+    phrase: string;
+    /** OK | RATE_LIMITED | NOT_VERIFIED | ERROR | PENDING (jeszcze nie pobrana). */
+    status: string;
+    adCount: number;
+    /** true = fraza zbyt ogólna, biblioteka miała więcej reklam niż przeszliśmy. */
+    truncated: boolean;
+    lastFetchedAt: string | null;
+}
+
+/** Wyniki odkrywania obszaru — wspólny kształt dla podglądu i zapisanego śledzenia. */
+export interface AreaResults {
+    phrases: string[];
+    locations: string[];
+    matchMode: AreaMatchMode;
+    /** false = brak tokena Biblioteki reklam; ekran pokazuje „brak danych". */
+    configured: boolean;
+    /** ISO. Kiedy złożono wyniki (dane z cache, nie z chwili odczytu). */
+    generatedAt: string;
+    advertisers: AdvertiserRow[];
+    totalActiveAds: number;
+    phraseStatuses: PhraseStatus[];
+}
+
+/** Zapisane, trwałe śledzenie obszaru. */
+export interface LocationTracking {
+    id: string;
+    label: string;
+    phrases: string[];
+    locations: string[];
+    matchMode: AreaMatchMode;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/** Ciało zapisu/edycji śledzenia obszaru. */
+export interface SaveLocationTracking {
+    label: string;
+    phrases: string[];
+    locations: string[];
+    matchMode?: AreaMatchMode;
+    active?: boolean;
+}
