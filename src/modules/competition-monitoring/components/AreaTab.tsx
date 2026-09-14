@@ -382,7 +382,7 @@ const ResultsTable = ({ results }: { results: AreaResults }) => {
                             <tr>
                                 <Th>Firma</Th>
                                 <Th $num>Aktywne reklamy</Th>
-                                <Th $num>Zasięg (PL)</Th>
+                                <Th $num>Zasięg (UE)</Th>
                                 <Th aria-label="Podgląd" />
                             </tr>
                         </thead>
@@ -391,7 +391,7 @@ const ResultsTable = ({ results }: { results: AreaResults }) => {
                                 <tr key={row.pageId}>
                                     <Td><Company>{row.companyName}</Company></Td>
                                     <Td $num>{row.activeAds}</Td>
-                                    <Td $num>{formatExact(row.reachPl)}</Td>
+                                    <Td $num>{formatExact(row.reach)}</Td>
                                     <Td $num>
                                         <PreviewLink href={row.adLibraryUrl} target="_blank" rel="noopener noreferrer">
                                             <ExternalLink /> Podgląd w Bibliotece Meta
