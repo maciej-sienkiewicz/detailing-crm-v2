@@ -1,7 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
+
+/** Kolejność zakładek = kolejność skrótów 1-4; whitelist dla wartości z adresu. */
+const FINANCE_TABS: FinanceTab[] = ['income', 'expenses', 'cash', 'payment-summary'];
 import type { ExpenseSource, ExpensePaymentStatus } from '../types';
 import { useFinanceDocument } from '../hooks/useFinance';
 import { useKsefExpenses } from '../hooks/useKsef';
@@ -1265,7 +1269,23 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export const FinanceView: React.FC = () => {
-  const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
+  /**
+   * Zakładka mieszka w adresie (?tab=...), nie w stanie komponentu. Dzięki temu da
+   * się do niej podlinkować, przeżywa odświeżenie i przycisk Wstecz, a skróty
+   * klawiszowe 1-4 po prostu nawigują, zamiast sięgać do cudzego stanu.
+   * Nieznana albo brakująca wartość spada na „income" - adres z literówką pokazuje
+   * pierwszą zakładkę zamiast pustego panelu.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as FinanceTab | null;
+  const activeTab: FinanceTab = tabParam && FINANCE_TABS.includes(tabParam) ? tabParam : 'income';
+  const setActiveTab = useCallback((tab: FinanceTab) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isIssueInvoiceModalOpen, setIssueInvoiceModalOpen] = useState(false);

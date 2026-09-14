@@ -2,12 +2,13 @@
 //
 // Ustawienia → Preferencje → Skróty klawiszowe.
 //
-// Jeden przełącznik i ściąga: która litera dokąd prowadzi. Ustawienie mieszka
+// Jeden przełącznik i ściąga: co robi który klawisz. Ustawienie mieszka
 // w localStorage tej przeglądarki - skrót to nawyk dłoni przy konkretnej
 // klawiaturze, a nie polityka studia, więc nie ma powodu wozić go przez backend
 // ani narzucać całemu zespołowi.
+import { Fragment } from 'react';
 import styled from 'styled-components';
-import { GLOBAL_SHORTCUTS, useShortcutsEnabled } from '@/common/shortcuts';
+import { ACTION_SHORTCUTS, GLOBAL_SHORTCUTS, SCOPED_SHORTCUTS, useShortcutsEnabled } from '@/common/shortcuts';
 
 // ─── Styled (ten sam język co pozostałe sekcje ustawień) ─────────────────────
 
@@ -91,6 +92,16 @@ const ShortcutRows = styled.div<{ $muted: boolean }>`
     transition: opacity 180ms ease;
 `;
 
+/** Nagłówek grupy w ściądze - „Nawigacja", „Finanse", „Statystyki". */
+const GroupLabel = styled.div`
+    padding: 16px 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: ${p => p.theme.colors.textSecondary};
+`;
+
 const ShortcutRow = styled.div`
     display: flex;
     align-items: center;
@@ -128,15 +139,16 @@ export function ShortcutsSection() {
         <Card>
             <CardTitle>Skróty klawiszowe</CardTitle>
             <CardDescription>
-                Jedna litera przenosi do widoku. Skróty nie działają, gdy piszesz w polu
-                tekstowym albo masz otwarte okno dialogowe, i nie zjadają skrótów
-                przeglądarki (Ctrl / Cmd). Ustawienie dotyczy tej przeglądarki.
+                Litera przenosi do widoku, cyfra przełącza zakładkę w sekcji, w której
+                akurat jesteś. Skróty nie działają, gdy piszesz w polu tekstowym albo masz
+                otwarte okno dialogowe, i nie zjadają skrótów przeglądarki (Ctrl / Cmd).
+                Ustawienie dotyczy tej przeglądarki.
             </CardDescription>
 
             <OptionRow>
                 <OptionTexts>
                     <OptionLabel>Włącz skróty klawiszowe</OptionLabel>
-                    <OptionHint>Po wyłączeniu litery z listy niżej przestają nawigować.</OptionHint>
+                    <OptionHint>Po wyłączeniu klawisze z listy niżej przestają działać.</OptionHint>
                 </OptionTexts>
                 <ToggleTrack
                     type="button"
@@ -149,11 +161,34 @@ export function ShortcutsSection() {
             </OptionRow>
 
             <ShortcutRows $muted={!enabled}>
+                <GroupLabel>Nawigacja - działa wszędzie</GroupLabel>
                 {GLOBAL_SHORTCUTS.map((shortcut) => (
                     <ShortcutRow key={shortcut.key}>
                         <Kbd>{shortcut.key.toUpperCase()}</Kbd>
                         <span>{shortcut.description}</span>
                     </ShortcutRow>
+                ))}
+
+                <GroupLabel>Akcje - działa wszędzie</GroupLabel>
+                {ACTION_SHORTCUTS.map((shortcut) => (
+                    <ShortcutRow key={shortcut.key}>
+                        <Kbd>{shortcut.key.toUpperCase()}</Kbd>
+                        <span>{shortcut.description}</span>
+                    </ShortcutRow>
+                ))}
+
+                {/* Cyfry znaczą co innego w każdej sekcji, więc ściąga pokazuje je
+                    pogrupowane - inaczej „1" w jednej liście byłoby nie do rozszyfrowania. */}
+                {SCOPED_SHORTCUTS.map((group) => (
+                    <Fragment key={group.path}>
+                        <GroupLabel>{group.label} - tylko w tej sekcji</GroupLabel>
+                        {group.shortcuts.map((shortcut) => (
+                            <ShortcutRow key={`${group.path}-${shortcut.key}`}>
+                                <Kbd>{shortcut.key.toUpperCase()}</Kbd>
+                                <span>{shortcut.description}</span>
+                            </ShortcutRow>
+                        ))}
+                    </Fragment>
                 ))}
             </ShortcutRows>
         </Card>

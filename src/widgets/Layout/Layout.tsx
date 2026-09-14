@@ -9,6 +9,7 @@ import { MobileChromeProvider } from '@/common/context/MobileChromeContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
 import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
 import { GlobalShortcuts } from '@/common/shortcuts';
+import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 
 const LayoutContainer = styled.div`
@@ -80,6 +81,8 @@ export const Layout = ({ children }: LayoutProps) => {
                         klawiatury dla całej zalogowanej aplikacji, wyłączalny
                         w Ustawieniach → Skróty klawiszowe. */}
                     <GlobalShortcuts />
+                    {/* Okno „Nowa notatka" (skrót Z) dostępne z każdego widoku. */}
+                    <QuickNoteProvider>
                     <LayoutContainer>
                         <Sidebar />
                         <ContentWrapper $isCollapsed={isCollapsed}>
@@ -97,6 +100,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             <RouteFlash key={pathname} />
                         </ContentWrapper>
                     </LayoutContainer>
+                    </QuickNoteProvider>
                     <BottomNav />
                 </MobileChromeProvider>
                 <CalendarNavigationOverlay />

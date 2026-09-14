@@ -1,5 +1,12 @@
 // src/common/shortcuts/shortcuts.ts
-// Definicje globalnych skrótów klawiszowych + stan ich włączenia.
+// Definicje skrótów klawiszowych + stan ich włączenia.
+//
+// Trzy rodzaje skrótów:
+//  • GLOBAL_SHORTCUTS  - litera przenosi do widoku, działa wszędzie;
+//  • SCOPED_SHORTCUTS  - cyfra przełącza zakładkę, ale TYLKO w swojej sekcji
+//    (1-4 w Finansach, 1-2 w Statystykach). Cyfra poza sekcją nic nie robi,
+//    więc ta sama „1" może znaczyć co innego w każdej z nich;
+//  • ACTION_SHORTCUTS  - litera otwiera coś na miejscu, bez nawigacji (Z - notatka).
 //
 // Osobno od komponentu nasłuchu (GlobalShortcuts.tsx), bo z tych definicji
 // korzysta też ściąga w Ustawieniach - a plik eksportujący komponent nie może
@@ -7,7 +14,7 @@
 import { useEffect, useState } from 'react';
 
 export interface GlobalShortcut {
-    /** Litera z klawiatury - porównywana z event.key po zniżeniu. */
+    /** Klawisz - porównywany z event.key po zniżeniu. */
     key: string;
     /** Cel nawigacji. */
     to: string;
@@ -29,6 +36,58 @@ export const GLOBAL_SHORTCUTS: GlobalShortcut[] = [
     { key: 'i', to: '/instagram', description: 'Instagram' },
     { key: 'u', to: '/settings', description: 'Ustawienia' },
 ];
+
+/** Skróty działające tylko w obrębie jednej sekcji aplikacji. */
+export interface ScopedShortcutGroup {
+    /** Prefiks ścieżki, w której te skróty działają. */
+    path: string;
+    /** Nazwa sekcji - nagłówek w ściądze. */
+    label: string;
+    shortcuts: GlobalShortcut[];
+}
+
+export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
+    {
+        path: '/finances',
+        label: 'Finanse',
+        shortcuts: [
+            { key: '1', to: '/finances?tab=income', description: 'Dokumenty przychodowe' },
+            { key: '2', to: '/finances?tab=expenses', description: 'Dokumenty kosztowe' },
+            { key: '3', to: '/finances?tab=cash', description: 'Kasa' },
+            { key: '4', to: '/finances?tab=payment-summary', description: 'Podsumowanie płatności' },
+        ],
+    },
+    {
+        path: '/statistics',
+        label: 'Statystyki',
+        shortcuts: [
+            { key: '1', to: '/statistics', description: 'Przychody i sprzedaż' },
+            { key: '2', to: '/statistics/costs', description: 'Koszta' },
+        ],
+    },
+];
+
+/** Zdarzenie „otwórz okno nowej notatki" - nasłuchuje go QuickNoteProvider. */
+export const QUICK_NOTE_EVENT = 'app:quick-note';
+
+export interface ActionShortcut {
+    key: string;
+    /** Nazwa zdarzenia rozgłaszanego na window. */
+    event: string;
+    description: string;
+}
+
+export const ACTION_SHORTCUTS: ActionShortcut[] = [
+    { key: 'z', event: QUICK_NOTE_EVENT, description: 'Nowa notatka - z każdego widoku' },
+];
+
+/** Skróty aktywne dla danej ścieżki: sekcyjne tej sekcji (jeśli jakaś pasuje). */
+export function scopedShortcutsFor(pathname: string): GlobalShortcut[] {
+    const group = SCOPED_SHORTCUTS.find(
+        (entry) => pathname === entry.path || pathname.startsWith(`${entry.path}/`),
+    );
+    return group ? group.shortcuts : [];
+}
 
 const STORAGE_KEY = 'app.keyboardShortcuts.enabled';
 const CHANGE_EVENT = 'app:keyboard-shortcuts-change';
@@ -66,7 +125,7 @@ export function useShortcutsEnabled(): [boolean, (enabled: boolean) => void] {
     return [enabled, setShortcutsEnabled];
 }
 
-/** Czy klawisz padł tam, gdzie litera jest treścią albo należy do otwartego dialogu. */
+/** Czy klawisz padł tam, gdzie znak jest treścią albo należy do otwartego dialogu. */
 export function isTypingContext(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return true;
