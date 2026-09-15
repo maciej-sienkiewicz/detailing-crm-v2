@@ -5,6 +5,10 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { SharedButton } from '@/common/styles';
 import type { AreaResults, AdvertiserRow } from '../types';
 import { Card, CardTitle, CardHint, CenterState, Spinner, formatExact } from './MetricBits';
+import {
+    Table, Th, Td, Row, NameCell, NameText, MetaLink, NumLive, NumQuiet,
+    IconBtn, IconLink, RowActions, HiddenLabel, ROW_HEIGHT, INK_MUTED,
+} from './DataTable';
 import { AreaConfigModal, phraseWord } from './AreaConfigModal';
 import { useAreaResults, useAreaSettings, useBlockAdvertiser } from '../hooks/useAreaDiscovery';
 
@@ -60,18 +64,6 @@ const AreaLine = styled.p`
     strong { color: ${st.text}; font-weight: 600; }
 `;
 
-const CountPill = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 11px;
-    border-radius: ${st.radiusFull};
-    background: ${st.accentGreenDim};
-    color: #047857;
-    font-size: 12.5px;
-    font-weight: 700;
-    white-space: nowrap;
-`;
 
 // ── Akcje wiersza ─────────────────────────────────────────────────────────────
 
@@ -82,47 +74,6 @@ const CountPill = styled.span`
  * spokojniej, tylko że nikt nie miał jak się dowiedzieć, że da się kogoś ukryć,
  * a na dotyku nie ma czym najechać. Przygaszone, pełny kontrast na hover i focus.
  */
-const RowActions = styled.div`
-    display: inline-flex;
-    gap: 4px;
-    justify-content: flex-end;
-`;
-
-const actionBase = `
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border-radius: ${st.radiusSm};
-    border: 1px solid transparent;
-    background: none;
-    cursor: pointer;
-    opacity: 0.55;
-    transition: all ${st.transition};
-
-    svg { width: 15px; height: 15px; }
-    &:focus-visible { opacity: 1; outline: 2px solid ${st.accentBlue}; outline-offset: 1px; }
-`;
-
-const PreviewLink = styled.a`
-    ${actionBase}
-    color: ${st.textSecondary};
-    text-decoration: none;
-
-    &:hover { opacity: 1; color: ${st.accentBlue}; border-color: ${st.border}; background: ${st.accentBlueDim}; }
-`;
-
-const HideButton = styled.button`
-    ${actionBase}
-    color: ${st.textSecondary};
-    font-family: inherit;
-
-    &:hover:not(:disabled) { opacity: 1; color: ${st.accentRed}; border-color: ${st.border}; background: ${st.accentRedDim}; }
-    &:disabled { cursor: default; opacity: 0.25; }
-`;
-
 /**
  * Karta sekcji jest KONTENEREM zapytań i to jej własna szerokość decyduje
  * o układzie środka.
@@ -143,59 +94,38 @@ const AreaCard = styled(Card)`
     min-width: 0;
 `;
 
-// ── Tabela (gdy karta ma miejsce) ─────────────────────────────────────────────
+const Tally = styled.p`
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: ${INK_MUTED};
+    font-variant-numeric: tabular-nums;
 
-const Table = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-
-    /* Próg dobrany do treści, nie do urządzenia: najwęższy sensowny układ tej
-       tabeli to ~480 px. Niżej idą karty — także wtedy, gdy okno jest szerokie,
-       a wąska jest sama kolumna siatki. */
-    @container (max-width: 520px) { display: none; }
+    strong { color: ${st.text}; font-weight: 600; }
 `;
 
-const Th = styled.th<{ $num?: boolean }>`
-    text-align: ${p => (p.$num ? 'right' : 'left')};
-    padding: 8px 10px;
-    color: ${st.textMuted};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    border-bottom: 1px solid ${st.border};
-    white-space: nowrap;
+// ── Tabela ────────────────────────────────────────────────────────────────────
+
+const COL = { active: '64px', reach: '104px', act: '72px' };
+
+/**
+ * Tory liczbowe w tych samych szerokościach co w „Podsumowaniu roku" — obie
+ * tabele mają się czytać jako jedna, bo pokazują tę samą strukturę danych.
+ */
+
+/**
+ * Poniżej tej szerokości karty tabela ustępuje kartom.
+ *
+ * Ten sam próg co w panelu obok. Wcześniej panele przełączały się przy 520 i
+ * 640 px, więc stojąc ramię w ramię zmieniały układ w dwóch różnych momentach —
+ * przy pewnych szerokościach okna jeden był tabelą, drugi kartami.
+ */
+const CARDS_BELOW = 480;
+
+const AreaTable = styled(Table)`
+    @container (max-width: ${CARDS_BELOW}px) { display: none; }
 `;
 
-const Td = styled.td<{ $num?: boolean }>`
-    text-align: ${p => (p.$num ? 'right' : 'left')};
-    padding: 10px;
-    color: ${st.text};
-    border-bottom: 1px solid ${st.border};
-    vertical-align: middle;
-    font-variant-numeric: ${p => (p.$num ? 'tabular-nums' : 'normal')};
-
-    tbody tr:last-child & { border-bottom: none; }
-`;
-
-const Company = styled.span`
-    display: block;
-    font-weight: 700;
-`;
-
-const Handle = styled.a`
-    display: inline-block;
-    margin-top: 2px;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    text-decoration: none;
-    overflow-wrap: anywhere;
-
-    &:hover { color: ${st.accentBlue}; text-decoration: underline; }
-`;
-
-// ── Karty (do 640 px) ─────────────────────────────────────────────────────────
+// ── Karty (gdy karta jest wąska) ──────────────────────────────────────────────
 
 const CardList = styled.ul`
     display: none;
@@ -203,40 +133,78 @@ const CardList = styled.ul`
     margin: 0;
     padding: 0;
 
-    @container (max-width: 520px) { display: block; }
+    @container (max-width: ${CARDS_BELOW}px) { display: block; }
 `;
 
 const AdvertiserCard = styled.li`
-    padding: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-height: ${ROW_HEIGHT}px;
+    padding: 8px 0;
     border-bottom: 1px solid ${st.border};
+
     &:last-child { border-bottom: none; }
 `;
 
-const CardTop = styled.div`
+/**
+ * W układzie kartowym liczby stoją obok siebie w stałych torach, a nie pod
+ * etykietami — dzięki temu kolumna „aktywnych" nadal tworzy jedną oś, po
+ * której oko zjeżdża w dół. Etykiety są w nagłówku listy, nie przy każdej
+ * wartości: przy dziesięciu wierszach było ich dwadzieścia i wszystkie
+ * powtarzały to samo.
+ */
+const CardActions = styled.div`
+    width: ${COL.act};
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
+    justify-content: flex-end;
+    flex-shrink: 0;
 `;
 
-const CardStats = styled.div`
+const CardNums = styled.div`
     display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: 8px;
+    align-items: baseline;
+    margin-left: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: ${st.text};
+    white-space: nowrap;
 
-    div {
-        font-size: ${st.fontXs};
-        color: ${st.textMuted};
-        strong {
-            display: block;
-            margin-top: 1px;
-            font-size: ${st.fontSm};
-            font-weight: 700;
-            color: ${st.text};
-            font-variant-numeric: tabular-nums;
-        }
+    /*
+     * STAŁE tory, te same co w tabeli — nie odstęp. Przy zmiennej szerokości
+     * „12" i „8" lądują na różnych pozycjach i kolumna przestaje być kolumną;
+     * oko musi szukać każdej wartości osobno, zamiast zjechać jedną osią.
+     */
+    > * {
+        display: inline-block;
+        text-align: right;
     }
+    > *:nth-child(1) { width: ${COL.active}; }
+    > *:nth-child(2) { width: ${COL.reach}; }
+`;
+
+/** Nagłówek listy kartowej — tu mieszkają etykiety wyjęte z wierszy. */
+const CardHead = styled.div`
+    display: flex;
+    align-items: baseline;
+    padding-bottom: 8px;
+    border-bottom: 1px solid ${st.border};
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: ${INK_MUTED};
+    white-space: nowrap;
+
+    span { display: inline-block; text-align: right; }
+    span:first-child { margin-right: auto; text-align: left; }
+    span:nth-child(2) { width: ${COL.active}; }
+    span:nth-child(3) { width: ${COL.reach}; }
+
+    /* Czwarty, pusty tor nad kolumną akcji. Bez niego „ZASIĘG" wypada nad
+       ikonami, a nie nad liczbami, które opisuje. */
+    span:nth-child(4) { width: ${COL.act}; }
 `;
 
 // ── Stronicowanie ─────────────────────────────────────────────────────────────
@@ -298,7 +266,7 @@ const advertiserWord = (n: number): string => {
 
 const Actions = ({ row, onHide, busy }: { row: AdvertiserRow; onHide: () => void; busy: boolean }) => (
     <RowActions>
-        <PreviewLink
+        <IconLink
             href={row.adLibraryUrl}
             target="_blank"
             rel="noopener noreferrer"
@@ -306,8 +274,8 @@ const Actions = ({ row, onHide, busy }: { row: AdvertiserRow; onHide: () => void
             aria-label={`Zobacz reklamy firmy ${row.companyName} w Bibliotece Meta`}
         >
             <ExternalLink />
-        </PreviewLink>
-        <HideButton
+        </IconLink>
+        <IconBtn
             type="button"
             title="Ukryj tę firmę w moich tabelach"
             aria-label={`Ukryj firmę ${row.companyName}`}
@@ -315,7 +283,7 @@ const Actions = ({ row, onHide, busy }: { row: AdvertiserRow; onHide: () => void
             onClick={onHide}
         >
             <EyeOff />
-        </HideButton>
+        </IconBtn>
     </RowActions>
 );
 
@@ -351,62 +319,82 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
                 </CenterState>
             ) : (
                 <>
-                    <Table>
+                    <AreaTable>
+                        <colgroup>
+                            <col />
+                            <col style={{ width: COL.active }} />
+                            <col style={{ width: COL.reach }} />
+                            <col style={{ width: COL.act }} />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <Th>Firma</Th>
-                                <Th $num>Aktywne reklamy</Th>
-                                <Th $num>Zasięg (UE)</Th>
-                                <Th $num aria-label="Akcje" />
+                                <Th $num>Aktywne</Th>
+                                <Th $num>Zasięg</Th>
+                                <Th $num><HiddenLabel>Akcje</HiddenLabel></Th>
                             </tr>
                         </thead>
                         <tbody>
                             {results.advertisers.map(row => (
-                                <tr key={row.pageId}>
+                                <Row key={row.pageId}>
                                     <Td>
-                                        <Company>{row.companyName}</Company>
-                                        {row.instagram && (
-                                            <Handle
-                                                href={`https://www.instagram.com/${row.instagram}/`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                @{row.instagram}
-                                            </Handle>
-                                        )}
+                                        <NameCell>
+                                            <NameText title={row.companyName}>{row.companyName}</NameText>
+                                            {row.instagram && (
+                                                <MetaLink
+                                                    href={`https://www.instagram.com/${row.instagram}/`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    @{row.instagram}
+                                                </MetaLink>
+                                            )}
+                                        </NameCell>
                                     </Td>
-                                    <Td $num>{row.activeAds}</Td>
-                                    <Td $num>{formatExact(row.reach)}</Td>
+                                    <Td $num>
+                                        <NumLive $on={row.activeAds > 0}>{row.activeAds}</NumLive>
+                                    </Td>
+                                    <Td $num>
+                                        {row.reach !== null
+                                            ? formatExact(row.reach)
+                                            : <NumQuiet>{formatExact(null)}</NumQuiet>}
+                                    </Td>
                                     <Td $num>
                                         <Actions row={row} busy={blockMut.isPending} onHide={() => hide(row)} />
                                     </Td>
-                                </tr>
+                                </Row>
                             ))}
                         </tbody>
-                    </Table>
+                    </AreaTable>
 
                     <CardList>
+                        <CardHead aria-hidden="true">
+                            <span>Firma</span>
+                            <span>Aktywne</span>
+                            <span>Zasięg</span>
+                            <span />
+                        </CardHead>
                         {results.advertisers.map(row => (
                             <AdvertiserCard key={row.pageId}>
-                                <CardTop>
-                                    <div style={{ minWidth: 0 }}>
-                                        <Company>{row.companyName}</Company>
-                                        {row.instagram && (
-                                            <Handle
-                                                href={`https://www.instagram.com/${row.instagram}/`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                @{row.instagram}
-                                            </Handle>
-                                        )}
-                                    </div>
+                                <NameCell style={{ flex: 1, minWidth: 0 }}>
+                                    <NameText title={row.companyName}>{row.companyName}</NameText>
+                                    {row.instagram && (
+                                        <MetaLink
+                                            href={`https://www.instagram.com/${row.instagram}/`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            @{row.instagram}
+                                        </MetaLink>
+                                    )}
+                                </NameCell>
+                                <CardNums>
+                                    <NumLive $on={row.activeAds > 0}>{row.activeAds}</NumLive>
+                                    <span>{formatExact(row.reach)}</span>
+                                </CardNums>
+                                <CardActions>
                                     <Actions row={row} busy={blockMut.isPending} onHide={() => hide(row)} />
-                                </CardTop>
-                                <CardStats>
-                                    <div>Aktywne reklamy<strong>{row.activeAds}</strong></div>
-                                    <div>Zasięg (UE)<strong>{formatExact(row.reach)}</strong></div>
-                                </CardStats>
+                                </CardActions>
                             </AdvertiserCard>
                         ))}
                     </CardList>
@@ -514,13 +502,16 @@ export const AreaSection = () => {
                         <CenterState><Spinner /></CenterState>
                     ) : resultsQuery.data ? (
                         <>
+                            {/*
+                              * Zwykły tekst, nie zielona pigułka. Zieleń znaczy na tym
+                              * ekranie „emituje teraz"; użyta pod licznikiem czytała się
+                              * jak odznaka sukcesu przypięta konkurencji.
+                              */}
                             {resultsQuery.data.totalAdvertisers > 0 && (
-                                <div style={{ marginBottom: 12 }}>
-                                    <CountPill>
-                                        {resultsQuery.data.totalAdvertisers} firm · {resultsQuery.data.totalActiveAds}{' '}
-                                        aktywnych reklam
-                                    </CountPill>
-                                </div>
+                                <Tally>
+                                    <strong>{resultsQuery.data.totalAdvertisers}</strong> firm ·{' '}
+                                    <strong>{resultsQuery.data.totalActiveAds}</strong> aktywnych reklam
+                                </Tally>
                             )}
                             <Results results={resultsQuery.data} page={page} onPage={setPage} />
                         </>
