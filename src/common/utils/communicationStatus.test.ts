@@ -4,7 +4,7 @@ import { communicationTone, queuedHint, COMMUNICATION_STATUS_LABEL } from './com
 describe('communicationStatus', () => {
     it('QUEUED to osobny ton, nie „wysłano”', () => {
         expect(communicationTone('QUEUED')).toBe('queued');
-        expect(COMMUNICATION_STATUS_LABEL.queued).toBe('W kolejce');
+        expect(COMMUNICATION_STATUS_LABEL.queued).toBe('Zaplanowano');
         expect(communicationTone('SENT')).toBe('sent');
         expect(communicationTone('FAILED')).toBe('failed');
         expect(communicationTone('RECEIVED')).toBe('received');

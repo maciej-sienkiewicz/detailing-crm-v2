@@ -21,7 +21,7 @@ export const communicationTone = (status: CommunicationStatus): CommunicationTon
 export const COMMUNICATION_STATUS_LABEL: Record<CommunicationTone, string> = {
     sent: 'Wysłano',
     received: 'Otrzymano',
-    queued: 'W kolejce',
+    queued: 'Zapoanowano',
     failed: 'Błąd',
 };
 
