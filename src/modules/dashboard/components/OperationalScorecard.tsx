@@ -75,14 +75,9 @@ const shimmer = keyframes`
 
 // ─── Scorecard Grid ───────────────────────────────────────────────────────────
 //
-// Jeden układ na wszystkie szerokości. Wcześniej ta sama informacja miała dwa
-// warianty - pasek na telefon i rozwijaną pod chevronem siatkę kafelków - bo
-// pełne kafelki nie mieściły się na ekranie. Kafelek to teraz podpis + liczba,
-// więc mieści się wszędzie i nie ma czego chować.
-//
-// Cztery kolumny od 480px w górę. Poniżej 2x2: w 1/4 szerokości telefonu
-// podpis "Porzucone" musiałby zostać ucięty wielokropkiem, a licznik bez
-// czytelnej etykiety jest bezużyteczny.
+// Dwie kolumny do 768px, cztery powyżej. Kafelek niesie znacznik, podpis i
+// liczbę, więc w 1/4 szerokości telefonu podpis musiałby zostać ucięty, a
+// licznik bez czytelnej etykiety jest bezużyteczny.
 //
 // O tym, ile tekstu wchodzi do kafelka, decyduje SZEROKOŚĆ KAFELKA (@container),
 // nie szerokość okna. Przy tej samej szerokości okna kolumna bywa różna - raz
@@ -95,19 +90,27 @@ const ScorecardContainer = styled.div`
   gap: 8px;
   margin-top: 0;
 
-  @media (min-width: 480px) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     gap: 12px;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 `;
+
+/* Pełna nazwa, słowo przy znaczniku i chevron pojawiają się dopiero w kafelku,
+   który ma na nie miejsce; węższy nosi skróty - zamiast ucinać tekst
+   wielokropkiem. Skrót jest wartością domyślną, więc przeglądarka bez
+   @container pokazuje po prostu krótszy wariant.
+   Próg mierzy pole TREŚCI kafelka (tak działa container-type: inline-size),
+   czyli bez paddingu: 180px to znacznik 26 + odstęp 8 + chevron 22 i wciąż
+   ~124px na najdłuższy podpis ("Do przyjęcia dzisiaj"). */
+const WIDE_TILE = '@container stat-tile (min-width: 180px)';
 
 const tileSurface = `
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
 `;
 
 const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
@@ -117,14 +120,14 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 5px;
+  gap: 8px;
   min-width: 0;
   width: 100%;
-  padding: 9px 10px;
+  padding: 11px 12px 12px;
   border: 1px solid ${p => p.$isActive ? ACCENT : p.theme.colors.border};
   box-shadow: ${p => p.$isActive
-    ? `0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)`
-    : '0 1px 2px rgba(15, 23, 42, 0.04)'};
+    ? `0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)`
+    : '0 1px 2px rgba(15, 23, 42, 0.05)'};
   text-align: left;
   font-family: inherit;
   cursor: ${p => p.$clickable ? 'pointer' : 'default'};
@@ -132,14 +135,14 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: 6px;
-    padding: 11px 13px;
+    gap: 9px;
+    padding: 13px 15px 14px;
   }
 
   ${p => p.$clickable && `
     &:hover {
       border-color: #cbd5e1;
-      background: #fcfdfe;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.06);
     }
     &:active { background: #f8fafc; }
   `}
@@ -153,34 +156,55 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
 const StatLabelRow = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 `;
 
+/* Znacznik wraca - to on niósł charakter kafelka. Wraca jednak w JEDNYM
+   kolorze: wcześniej cztery nasycone akcenty udawały kategorie, tutaj to po
+   prostu znak rozpoznawczy kafelka. */
+const StatBadge = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: color-mix(in srgb, ${ACCENT} 11%, transparent);
+  color: ${ACCENT};
+
+  svg { width: 14px; height: 14px; stroke-width: 2; display: block; }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    svg { width: 15px; height: 15px; }
+  }
+`;
+
+/* 10px wersalikami w kolorze textMuted czytało się jak podpis pod podpisem.
+   Zdaniowa wielkość liter, wyraźniejszy kolor i normalny światłostan - podpis
+   ma być czytany, a nie odszyfrowywany. */
 const StatLabel = styled.span`
+  flex: 1;
   min-width: 0;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.3;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: ${p => p.theme.colors.textMuted};
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: ${p => p.theme.colors.textSecondary};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: 11px;
+    font-size: 13px;
   }
 `;
 
-/* Pełna nazwa dopiero w kafelku, który ma na nią miejsce; węższy nosi skrót -
-   zamiast ucinać podpis wielokropkiem. Skrót jest wartością domyślną, więc
-   przeglądarka bez @container pokazuje po prostu krótsze etykiety. */
-const WIDE_TILE = '@container stat-tile (min-width: 190px)';
-
-const LabelFull = styled.span`
+const WideOnly = styled.span`
   display: none;
 
   ${WIDE_TILE} {
@@ -188,7 +212,7 @@ const LabelFull = styled.span`
   }
 `;
 
-const LabelShort = styled.span`
+const NarrowOnly = styled.span`
   display: inline;
 
   ${WIDE_TILE} {
@@ -203,85 +227,62 @@ const StatChevron = styled.span<{ $active: boolean }>`
   transition: transform 200ms ease;
   transform: rotate(${p => p.$active ? '90deg' : '0deg'});
 
-  svg { width: 13px; height: 13px; display: block; }
+  svg { width: 14px; height: 14px; display: block; }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  ${WIDE_TILE} {
     display: block;
   }
 `;
 
 const StatValueRow = styled.div`
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   min-width: 0;
 `;
 
+/* Liczba jest tu treścią, a nie podpisem - dostaje rozmiar i ciężar, który to
+   mówi. Cyfry tabelaryczne, żeby "12" i "7" stały w tym samym miejscu w
+   sąsiednich kafelkach i nie skakały przy odświeżeniu danych. */
 const StatValue = styled.span`
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.5px;
+  line-height: 1;
+  letter-spacing: -0.03em;
   color: ${p => p.theme.colors.text};
   font-variant-numeric: tabular-nums;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: 24px;
+    font-size: 30px;
   }
 `;
 
-/* Jedyny kolor kategoryczny, jaki zostaje: "po terminie" to jedyna liczba,
-   która sama z siebie domaga się działania. */
-const OverdueChip = styled.span`
+/* JEDEN komponent na cały drugi wiersz zamiast czerwonej pigułki w jednym
+   kafelku i luźnego szarego tekstu w drugim. Kształt i miejsce są wspólne,
+   różni je tylko to, co faktycznie się różni: szary opisuje zakres liczby,
+   czerwony (z ikoną) mówi, że coś wymaga reakcji. */
+const MetaChip = styled.span<{ $alert: boolean }>`
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  align-self: center;
+  gap: 4px;
   flex-shrink: 0;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 5px;
-  border-radius: 8px;
-  background: rgba(220, 38, 38, 0.1);
-  color: ${p => p.theme.colors.error};
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    min-width: 18px;
-    height: 18px;
-    font-size: 11px;
-  }
-`;
-
-/* Samotna czerwona "2" obok "12" nie mówi nic - dopisujemy czego dotyczy
-   wszędzie tam, gdzie kafelek ma na to miejsce. */
-const OverdueWord = styled.span`
-  display: none;
-
-  ${WIDE_TILE} {
-    display: inline;
-    margin-left: 4px;
-    font-weight: 600;
-  }
-`;
-
-const StatHint = styled.span`
-  display: none;
-  min-width: 0;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 10px;
+  background: ${p => p.$alert
+    ? 'rgba(220, 38, 38, 0.1)'
+    : p.theme.colors.surfaceAlt};
+  color: ${p => p.$alert
+    ? p.theme.colors.error
+    : p.theme.colors.textSecondary};
   font-size: 11px;
-  font-weight: 500;
-  color: ${p => p.theme.colors.textMuted};
+  font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 
-  ${WIDE_TILE} {
-    display: inline;
-  }
+  svg { width: 11px; height: 11px; stroke-width: 2.2; flex-shrink: 0; }
 `;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -289,23 +290,49 @@ const StatHint = styled.span`
 const SkeletonTile = styled.div`
   ${tileSurface}
   border: 1px solid ${p => p.theme.colors.border};
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 9px 10px;
+  padding: 11px 12px 12px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     gap: 9px;
-    padding: 11px 13px;
+    padding: 13px 15px 14px;
+  }
+`;
+
+const SkeletonRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const shimmerBg = `
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+`;
+
+const SkeletonBadge = styled.div`
+  ${shimmerBg}
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  animation: ${shimmer} 1.5s infinite;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
   }
 `;
 
 const SkeletonBar = styled.div<{ $w: string; $h: string }>`
+  ${shimmerBg}
   width: ${p => p.$w};
   height: ${p => p.$h};
   border-radius: 5px;
-  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
-  background-size: 200% 100%;
   animation: ${shimmer} 1.5s infinite;
 `;
 
@@ -359,11 +386,13 @@ const DrawerHeader = styled.div`
   flex-shrink: 0;
 `;
 
+/* Ten sam znacznik co na kafelku, z ktorego szuflada zostala otwarta -
+   dlatego ten sam akcent, a nie neutralna szarosc. */
 const DrawerIconWrap = styled.div`
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: ${p => p.theme.colors.surfaceAlt};
+  background: color-mix(in srgb, ${ACCENT} 11%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -372,7 +401,7 @@ const DrawerIconWrap = styled.div`
   svg {
     width: 18px;
     height: 18px;
-    color: ${p => p.theme.colors.textSecondary};
+    color: ${ACCENT};
     stroke-width: 1.9;
   }
 `;
@@ -638,65 +667,83 @@ const VisitRow = ({
 
 // ─── Stat Tile ───────────────────────────────────────────────────────────────
 
+/** Drugi wiersz kafelka: liczba + najwyżej jeden znacznik. */
+interface TileMeta {
+  /** Czerwony z ikoną (wymaga reakcji) czy szary (opisuje zakres liczby). */
+  alert: boolean;
+  full: string;
+  short: string;
+}
+
 interface StatProps {
+  variant: CardVariant;
   labelFull: string;
   labelShort: string;
   value: number;
   hasDetails: boolean;
   isActive: boolean;
   onToggle: () => void;
-  overdueBadge?: number;
-  hint?: string;
+  meta?: TileMeta;
 }
 
 const StatCell = ({
+  variant,
   labelFull,
   labelShort,
   value,
   hasDetails,
   isActive,
   onToggle,
-  overdueBadge,
-  hint,
-}: StatProps) => (
-  <StatButton
-    type="button"
-    $clickable={hasDetails}
-    $isActive={isActive}
-    onClick={hasDetails ? onToggle : undefined}
-    aria-expanded={hasDetails ? isActive : undefined}
-    aria-disabled={hasDetails ? undefined : true}
-    aria-label={`${labelFull}: ${value}`}
-  >
-    <StatLabelRow>
-      <StatLabel aria-hidden="true">
-        <LabelFull>{labelFull}</LabelFull>
-        <LabelShort>{labelShort}</LabelShort>
-      </StatLabel>
-      {hasDetails && (
-        <StatChevron $active={isActive} aria-hidden="true">
-          <ChevronRight />
-        </StatChevron>
-      )}
-    </StatLabelRow>
+  meta,
+}: StatProps) => {
+  const Icon = CARD_ICON[variant];
 
-    <StatValueRow>
-      <StatValue aria-hidden="true">{value}</StatValue>
-      {typeof overdueBadge === 'number' && overdueBadge > 0 && (
-        <OverdueChip title={t.dashboard.stats.overdue}>
-          {overdueBadge}
-          <OverdueWord>{t.dashboard.stats.overdue.toLowerCase()}</OverdueWord>
-        </OverdueChip>
-      )}
-      {hint && <StatHint aria-hidden="true">{hint}</StatHint>}
-    </StatValueRow>
-  </StatButton>
-);
+  return (
+    <StatButton
+      type="button"
+      $clickable={hasDetails}
+      $isActive={isActive}
+      onClick={hasDetails ? onToggle : undefined}
+      aria-expanded={hasDetails ? isActive : undefined}
+      aria-disabled={hasDetails ? undefined : true}
+      aria-label={`${labelFull}: ${value}${meta ? `, ${meta.full}` : ''}`}
+    >
+      <StatLabelRow>
+        <StatBadge aria-hidden="true">
+          <Icon />
+        </StatBadge>
+        <StatLabel aria-hidden="true">
+          <WideOnly>{labelFull}</WideOnly>
+          <NarrowOnly>{labelShort}</NarrowOnly>
+        </StatLabel>
+        {hasDetails && (
+          <StatChevron $active={isActive} aria-hidden="true">
+            <ChevronRight />
+          </StatChevron>
+        )}
+      </StatLabelRow>
+
+      <StatValueRow>
+        <StatValue aria-hidden="true">{value}</StatValue>
+        {meta && (
+          <MetaChip $alert={meta.alert} aria-hidden="true" title={meta.full}>
+            {meta.alert && <AlertTriangle />}
+            <WideOnly>{meta.full}</WideOnly>
+            <NarrowOnly>{meta.short}</NarrowOnly>
+          </MetaChip>
+        )}
+      </StatValueRow>
+    </StatButton>
+  );
+};
 
 const StatCellSkeleton = () => (
   <SkeletonTile aria-hidden="true">
-    <SkeletonBar $w="70%" $h="11px" />
-    <SkeletonBar $w="40%" $h="20px" />
+    <SkeletonRow>
+      <SkeletonBadge />
+      <SkeletonBar $w="60%" $h="12px" />
+    </SkeletonRow>
+    <SkeletonBar $w="34%" $h="26px" />
   </SkeletonTile>
 );
 
@@ -845,18 +892,26 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       <ScorecardContainer>
         {stats ? (
           <StatCell
+            variant="inProgress"
             labelFull={t.dashboard.stats.inProgress}
             labelShort={SHORT_LABEL.inProgress}
             value={stats.inProgress}
             hasDetails={!!stats.inProgressDetails}
             isActive={activeKey === 'inProgress'}
             onToggle={() => toggle('inProgress')}
-            overdueBadge={stats.overdue}
+            meta={stats.overdue
+              ? {
+                  alert: true,
+                  full: `${stats.overdue} ${t.dashboard.stats.overdue.toLowerCase()}`,
+                  short: String(stats.overdue),
+                }
+              : undefined}
           />
         ) : <StatCellSkeleton />}
 
         {stats ? (
           <StatCell
+            variant="readyForPickup"
             labelFull={t.dashboard.stats.readyForPickup}
             labelShort={SHORT_LABEL.readyForPickup}
             value={stats.readyForPickup}
@@ -868,6 +923,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
         {stats ? (
           <StatCell
+            variant="incomingToday"
             labelFull={t.dashboard.stats.arrivals}
             labelShort={SHORT_LABEL.incomingToday}
             value={stats.incomingToday}
@@ -879,13 +935,14 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
         {stats ? (
           <StatCell
+            variant="abandoned"
             labelFull={t.dashboard.stats.abandoned}
             labelShort={SHORT_LABEL.abandoned}
             value={stats.abandonedLast30Days}
             hasDetails={stats.abandonedLast30Days > 0}
             isActive={activeKey === 'abandoned'}
             onToggle={() => toggle('abandoned')}
-            hint={t.dashboard.stats.abandonedSubLabel}
+            meta={{ alert: false, full: t.dashboard.stats.abandonedSubLabel, short: '30 dni' }}
           />
         ) : <StatCellSkeleton />}
       </ScorecardContainer>
