@@ -278,10 +278,18 @@ const Chip = styled.span<{ $tone?: 'plain' | 'excluded' | 'active' | 'off' }>`
  * Treść reklamy pokazana U NAS, a nie za linkiem do Biblioteki Meta.
  *
  * Granica jest twarda i wynika z API, nie z naszej wygody: `ads_archive` oddaje
- * TEKST kreacji (nagłówek, treść, opis, domenę) i NIE oddaje grafiki — adresu
- * zdjęcia ani wideo nie ma w żadnym polu. Jedynym oknem na obrazek jest
- * wyrenderowana strona Meta, której nie da się osadzić: leci z nią nasz token
- * w adresie, a facebook.com i tak nie pozwala wstawić się w ramkę.
+ * TEKST kreacji (nagłówek, treść, opis, domenę) i NIE oddaje materiału — adresu
+ * zdjęcia ani wideo nie ma w żadnym polu.
+ *
+ * Sprawdzone do końca, żeby nie wracać do tego pomysłu co kwartał:
+ *   • `ad_snapshot_url` (jedyna wyrenderowana wersja reklamy) niesie w adresie
+ *     nasz token instalacji, a strona odpowiada `X-Frame-Options: DENY` —
+ *     osadzenie w ramce odpada dwukrotnie;
+ *   • pobrana po stronie serwera ta strona to 200 kB szkieletu i JavaScriptu;
+ *     ani jednego adresu `scontent*.fbcdn.net`, bo materiał dociąga dopiero
+ *     ich skrypt w przeglądarce — nie ma czego sparsować;
+ *   • zrzut ekranu z headless Chromium odpada, bo reklama bywa wideo, a klatka
+ *     podana za całość kłamie.
  *
  * Pokazujemy więc to, co da się pokazać uczciwie, i mówimy wprost, po co jest
  * przycisk pod spodem.
@@ -688,7 +696,7 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
 
                 {ad.snapshotUrl && (
                     <SnapshotButton href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer">
-                        Zobacz grafikę w Bibliotece Meta <ExternalLink />
+                        Zobacz oryginał w Bibliotece Meta <ExternalLink />
                     </SnapshotButton>
                 )}
             </Stack>
@@ -732,8 +740,8 @@ const AdCreative: React.FC<{ ad: AdDetail; hasLinkCard: boolean }> = ({ ad, hasL
             )}
 
             <Missing>
-                Biblioteka reklam Meta nie udostępnia przez API zdjęcia ani wideo z reklamy —
-                tylko jej tekst. Grafikę zobaczysz w oryginale u Meta.
+                Biblioteka reklam Meta udostępnia przez API wyłącznie tekst reklamy — zdjęcia
+                ani wideo nie ma w żadnym polu. Materiał zobaczysz w oryginale u Meta.
             </Missing>
         </Creative>
     );
