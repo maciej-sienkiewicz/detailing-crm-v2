@@ -1,9 +1,12 @@
 /**
  * StatTile: shared KPI card component
- * Exact visual style from OperationalScorecard (Dashboard):
  * - 3px top border accent
  * - light gradient bg (tinted → white)
  * - icon top-left, large value, uppercase label
+ *
+ * Używają go Finanse, Statystyki i Urlopy. Tablica ma własne, znacznie mniejsze
+ * i jednokolorowe kafelki (OperationalScorecard) - cztery liczniki do podejrzenia
+ * nie potrzebują ani ikon, ani czterech różnych akcentów.
  */
 
 import React from 'react';
