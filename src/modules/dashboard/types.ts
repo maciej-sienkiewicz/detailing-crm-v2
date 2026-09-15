@@ -181,8 +181,14 @@ export interface UpcomingVisit {
   /** ISO date string (YYYY-MM-DD) used to render the calendar chip */
   isoDate: string;
   serviceName: string;
-  customerName: string;
-  vehicleName: string;
+  /**
+   * null = brak danych klienta. Świadomie null, a nie pusty string ani myślnik:
+   * o tym, jak pokazać brak, decyduje widok — tylko on zna właściwe słowa i to
+   * on wie, że pusta wartość ma być kursywą, a nie dziurą po separatorze.
+   */
+  customerName: string | null;
+  /** null = wizyta bez wskazanego pojazdu. */
+  vehicleName: string | null;
   price: number;
   priceNetto: number;
   statusKind: VisitStatusKind;
