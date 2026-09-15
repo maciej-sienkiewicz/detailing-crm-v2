@@ -17,6 +17,7 @@ export const incomeDocumentsApi = {
     if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
     if (filters.dateFrom)      params.append('dateFrom',      filters.dateFrom);
     if (filters.dateTo)        params.append('dateTo',        filters.dateTo);
+    if (filters.search)        params.append('search',        filters.search);
     if (filters.onlyKsef)        params.append('onlyKsef',        'true');
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
 

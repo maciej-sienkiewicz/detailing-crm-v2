@@ -533,11 +533,13 @@ const CardSkeleton = styled.div`
 interface Props {
   expenses:  KsefExpense[];
   isLoading?: boolean;
+  /** Aktywna fraza wyszukiwarki - pusty wynik szukania to co innego niż pusta lista. */
+  searchTerm?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
+export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, searchTerm }) => {
   const [openPaymentId, setOpenPaymentId]   = useState<string | null>(null);
   const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
   const [previewId, setPreviewId]           = useState<string | null>(null);
@@ -646,7 +648,11 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   if (expenses.length === 0) {
     return (
       <Wrapper>
-        <EmptyState>Brak dokumentów kosztowych dla wybranych filtrów</EmptyState>
+        <EmptyState>
+          {searchTerm
+            ? `Brak wyników dla „${searchTerm}". Szukamy po nazwie i NIP-ie sprzedawcy, nazwach pozycji, numerze dokumentu, numerze KSeF i kwocie.`
+            : 'Brak dokumentów kosztowych dla wybranych filtrów'}
+        </EmptyState>
       </Wrapper>
     );
   }

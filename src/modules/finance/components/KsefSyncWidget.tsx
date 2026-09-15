@@ -1,16 +1,20 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
-import { useKsefSyncStatus, useTriggerKsefSync } from '../hooks/useKsef';
-import { formatDate } from '../utils/formatters';
+import styled from 'styled-components';
+import { useKsefSyncStatus } from '../hooks/useKsef';
 import type { KsefSyncStatusValue } from '../types';
-
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-`;
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
+/**
+ * Pasek stanu synchronizacji z KSeF nad listą dokumentów.
+ *
+ * Mówi wyłącznie o tym, czy lista jest kompletna. Data ostatniej synchronizacji
+ * i ręczne „Synchronizuj teraz" zniknęły świadomie: synchronizacja chodzi
+ * automatycznie, więc obie rzeczy były obsługą systemu wstawioną w widok
+ * dokumentów - nie odpowiadały na żadne pytanie księgowej, a zabierały uwagę
+ * i miejsce nad tabelą. Zostaje sygnał, który faktycznie zmienia decyzję:
+ * kiedy synchronizacja się nie udała, na liście może brakować faktur.
+ */
 const Widget = styled.div`
   display: flex;
   align-items: center;
@@ -20,9 +24,8 @@ const Widget = styled.div`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   flex-wrap: wrap;
 
-  /* Telefon: data ostatniej synchronizacji i ręczne „Synchronizuj teraz" to
-     sprawy obsługi systemu, nie przeglądania dokumentów - synchronizacja
-     chodzi automatycznie, więc pasek znika i oddaje miejsce liście. */
+  /* Telefon: stan integracji to sprawa obsługi systemu, nie przeglądania
+     dokumentów - pasek znika i oddaje miejsce liście. */
   @media (max-width: 639px) {
     display: none;
   }
@@ -60,55 +63,6 @@ const ErrorText = styled.span`
   white-space: nowrap;
 `;
 
-const Spacer = styled.div`
-  flex: 1;
-`;
-
-const SyncBtn = styled.button<{ $loading?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 6px;
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => (p.$loading ? p.theme.colors.textMuted : p.theme.colors.text)};
-  cursor: ${(p) => (p.$loading ? 'not-allowed' : 'pointer')};
-  white-space: nowrap;
-  transition: all 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: ${(p) => p.theme.colors.surfaceHover};
-    border-color: #3b82f6;
-    color: #3b82f6;
-  }
-
-  &:disabled { opacity: 0.55; }
-`;
-
-const SpinnerIcon = styled.span`
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: ${spin} 0.7s linear infinite;
-  display: inline-block;
-  flex-shrink: 0;
-`;
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-const RefreshIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="23 4 23 10 17 10" />
-    <polyline points="1 20 1 14 7 14" />
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-  </svg>
-);
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const syncStatusLabel = (status: KsefSyncStatusValue): string => {
@@ -124,15 +78,6 @@ const syncStatusLabel = (status: KsefSyncStatusValue): string => {
 
 export const KsefSyncWidget: React.FC = () => {
   const { syncStatus, isLoading } = useKsefSyncStatus();
-  const triggerSync = useTriggerKsefSync();
-
-  const handleSync = async () => {
-    try {
-      await triggerSync.mutateAsync();
-    } catch {
-      // error is visible via syncStatus.lastError
-    }
-  };
 
   if (isLoading || !syncStatus) {
     return (
@@ -145,30 +90,13 @@ export const KsefSyncWidget: React.FC = () => {
 
   return (
     <Widget>
-      <StatusDot $status={triggerSync.isPending ? 'RUNNING' : syncStatus.syncStatus} />
-      <StatusText>
-        {triggerSync.isPending ? 'Synchronizacja trwa...' : syncStatusLabel(syncStatus.syncStatus)}
-      </StatusText>
-      {syncStatus.lastExpenseSync && !triggerSync.isPending && (
-        <StatusText style={{ opacity: 0.6 }}>
-          · ostatnia: {formatDate(syncStatus.lastExpenseSync)}
-        </StatusText>
-      )}
+      <StatusDot $status={syncStatus.syncStatus} />
+      <StatusText>{syncStatusLabel(syncStatus.syncStatus)}</StatusText>
       {syncStatus.syncStatus === 'FAILED' && syncStatus.lastError && (
         <ErrorText title={syncStatus.lastError}>
           {syncStatus.lastError}
         </ErrorText>
       )}
-      <Spacer />
-      <SyncBtn
-        onClick={handleSync}
-        disabled={triggerSync.isPending}
-        $loading={triggerSync.isPending}
-        title="Synchronizuj faktury z KSeF teraz"
-      >
-        {triggerSync.isPending ? <SpinnerIcon /> : <RefreshIcon />}
-        {triggerSync.isPending ? 'Synchronizuję...' : 'Synchronizuj teraz'}
-      </SyncBtn>
     </Widget>
   );
 };
