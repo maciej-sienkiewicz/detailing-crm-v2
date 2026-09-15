@@ -55,16 +55,26 @@ const LOCATION_TYPE_LABELS: Record<string, string> = {
 };
 
 const Summary = styled.div`
+    /*
+     * ModalContent jest kolumną flex, więc dziecko z domyślnym flex-shrink: 1
+     * zostaje ŚCIŚNIĘTE, gdy treść nie mieści się w oknie — a przy overflow:
+     * hidden nie widać tego jako przewinięcia, tylko jako przyciętą zawartość.
+     * Na 390 px kafelki zapadały się do dwóch pikseli. W przewijanej kolumnie
+     * dziecko ma trzymać swoją naturalną wysokość i to okno ma się przewijać.
+     */
+    flex-shrink: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr);
     border: 1px solid ${st.border};
     border-left: 3px solid ${st.accentGreen};
     border-radius: ${st.radiusLg};
     overflow: hidden;
     background: ${st.bgCard};
 
-    @media (max-width: 640px) {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Trzy kafelki obok siebie potrzebują ~520 px; niżej idą jedna pod drugą,
+       bo ściśnięta data łamie się w środku i przestaje być datą. */
+    @media (max-width: 560px) {
+        grid-template-columns: minmax(0, 1fr);
     }
 `;
 
@@ -95,37 +105,60 @@ const Cell = styled.div<{ $big?: boolean }>`
     }
 
     .u {
-        margin-top: 2px;
+        margin-top: 3px;
         font-size: 11.5px;
         color: ${st.textMuted};
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 560px) {
+        border-right: none;
         border-bottom: 1px solid ${st.border};
-        &:nth-child(2) { border-right: none; }
-        &:nth-child(3), &:nth-child(4) { border-bottom: none; }
+        &:last-child { border-bottom: none; }
     }
 `;
 
-const Grid = styled.div`
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    gap: 16px;
-    align-items: start;
+/** „12.06.2026 → trwa" jako jedna wartość: początek, strzałka, koniec. */
+const Span = styled.div`
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 5px;
+    font-size: 16px;
+    font-weight: 700;
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
 
-    @media (max-width: 900px) {
-        grid-template-columns: minmax(0, 1fr);
+    i {
+        font-style: normal;
+        font-weight: 500;
+        color: ${st.textMuted};
     }
 `;
 
-const Column = styled.div`
+/**
+ * Panele jeden pod drugim, każdy na pełną szerokość okna.
+ *
+ * Wcześniej były dwie kolumny: piramida po lewej, ustawienia po prawej. Wąska
+ * kolumna ustawień łamała „województwo zachodniopomorskie" w środku słowa,
+ * wiek rozlewał się na cztery linijki chipów, a pod piramidą zostawała pustka
+ * na pół okna, bo prawa kolumna była dwa razy wyższa.
+ *
+ * Kolejność niesie porządek czytania: najpierw CO WYSZŁO (zasięg, piramida),
+ * potem CO USTAWIONO (grupa odbiorców). Przygaszone wiersze piramidy nadal
+ * pokazują, że reklama trafiła poza ustawiony przedział.
+ */
+const Stack = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+    flex-shrink: 0;
 `;
 
 const Panel = styled.section<{ $quiet?: boolean }>`
+    flex-shrink: 0;
     border: 1px solid ${p => (p.$quiet ? 'transparent' : st.border)};
     border-radius: ${st.radiusLg};
     padding: 14px 16px;
@@ -152,51 +185,99 @@ const Panel = styled.section<{ $quiet?: boolean }>`
         color: ${st.textSecondary};
         letter-spacing: 0;
         text-transform: none;
+        /* Bez tego „ustawienia reklamodawcy" łamie się na dwie linijki i rozpycha nagłówek. */
+        white-space: nowrap;
     }
 `;
 
-const Kv = styled.dl`
+/**
+ * Jeden wiersz ustawień: etykieta i wartość.
+ *
+ * Wcześniej każdy wiersz wyglądał inaczej — status jako zielona pigułka, płeć
+ * gołym tekstem, lokalizacje jako chipy, płatnik pogrubioną nazwą łamiącą się
+ * na cztery linijki. Teraz WSZYSTKO, co jest ustawieniem targetowania, jest
+ * chipem tej samej klasy; tekstem zostaje tylko podmiot płacący, bo
+ * pięćdziesięcioznakowa nazwa spółki w pigułce wygląda jak pomyłka.
+ */
+const Rows = styled.dl`
     display: grid;
-    grid-template-columns: 96px minmax(0, 1fr);
-    gap: 8px 10px;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 10px 14px;
     margin: 0;
-    font-size: 12.5px;
+    align-items: start;
 
-    dt { color: ${st.textMuted}; font-size: 11.5px; padding-top: 2px; }
-    dd { margin: 0; color: ${st.text}; font-weight: 600; display: flex; gap: 5px; flex-wrap: wrap; }
+    dt {
+        color: ${st.textMuted};
+        font-size: 11.5px;
+        padding-top: 3px;
+    }
+
+    dd {
+        margin: 0;
+        min-width: 0;
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    /* W wąskiej kolumnie 96 px etykiety zabiera połowę miejsca wartości —
+       poniżej etykieta siada nad wartością i chipy dostają pełną szerokość. */
+    @media (max-width: 520px) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 3px;
+
+        dt { padding-top: 0; }
+        dd + dt { margin-top: 10px; }
+    }
 `;
 
-const Chip = styled.span<{ $excluded?: boolean }>`
+/**
+ * Chip ustawienia. Zawija się w środku nazwy — „województwo zachodniopomorskie"
+ * nie mieści się w kolumnie w żadnej szerokości okna i to ono wyjeżdżało poza
+ * panel, bo poprzednia wersja miała `white-space: nowrap`.
+ */
+const Chip = styled.span<{ $tone?: 'plain' | 'excluded' | 'active' | 'off' }>`
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
     gap: 5px;
-    padding: 2px 9px;
+    max-width: 100%;
+    padding: 3px 10px;
     border-radius: ${st.radiusFull};
-    border: 1px solid ${p => (p.$excluded ? st.accentRed : st.borderHover)};
-    background: ${p => (p.$excluded ? st.accentRedDim : st.bgCard)};
-    color: ${p => (p.$excluded ? '#b91c1c' : st.text)};
     font-size: 11.5px;
     font-weight: 600;
-    white-space: nowrap;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
 
-    u { text-decoration: none; font-size: 10px; font-weight: 500; color: ${st.textMuted}; }
+    ${p => {
+        switch (p.$tone) {
+            case 'excluded':
+                return `border: 1px solid ${st.accentRed}; background: ${st.accentRedDim}; color: #b91c1c;`;
+            case 'active':
+                return `border: 1px solid transparent; background: ${st.accentGreenDim}; color: #047857;`;
+            case 'off':
+                return `border: 1px dashed ${st.border}; background: transparent; color: ${st.textMuted};`;
+            default:
+                return `border: 1px solid ${st.borderHover}; background: ${st.bgCard}; color: ${st.text};`;
+        }
+    }}
+
+    u {
+        text-decoration: none;
+        font-size: 10px;
+        font-weight: 500;
+        color: ${st.textMuted};
+        white-space: nowrap;
+    }
 `;
 
-const Ages = styled.div`
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-`;
-
-const AgeCell = styled.div<{ $on: boolean }>`
-    text-align: center;
-    padding: 7px 0 6px;
-    border-radius: 6px;
-    border: 1px solid ${p => (p.$on ? 'transparent' : st.border)};
-    background: ${p => (p.$on ? st.accentBlueDim : st.bgCard)};
-    color: ${p => (p.$on ? st.accentBlue : st.textMuted)};
-    font-size: 10px;
-    font-weight: ${p => (p.$on ? 700 : 600)};
+/** Nazwa płatnika — tekst, nie chip: w pigułce nazwa spółki wygląda jak pomyłka. */
+const Party = styled.span`
+    font-size: 12px;
+    font-weight: 500;
+    color: ${st.textSecondary};
+    overflow-wrap: anywhere;
+    line-height: 1.4;
 `;
 
 const Legend = styled.span`
@@ -279,28 +360,39 @@ const PyramidFoot = styled.div`
     b { color: ${st.textSecondary}; }
 `;
 
-const SnapshotLink = styled.a`
+/**
+ * Wyjście do Biblioteki reklam Meta.
+ *
+ * Wcześniej był tu goły niebieski link wiszący pod panelami — jedyny element
+ * w oknie bez ramki i tła, wyglądał jak wklejony z innej aplikacji. Teraz jest
+ * przyciskiem w stylu reszty, na pełną szerokość kolumny, domykającym panel.
+ */
+const SnapshotButton = styled.a`
     display: inline-flex;
+    align-self: flex-start;
+    flex-shrink: 0;
     align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
-    color: ${st.accentBlue};
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: ${st.radiusSm};
+    border: 1.5px solid ${st.border};
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
     text-decoration: none;
+    text-align: center;
+    transition: all ${st.transition};
 
-    &:hover { text-decoration: underline; }
-    svg { width: 13px; height: 13px; }
-`;
+    &:hover {
+        background: ${st.accentBlueDim};
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+    }
 
-const StatusTag = styled.span<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 9px;
-    border-radius: ${st.radiusFull};
-    background: ${p => (p.$active ? st.accentGreenDim : st.bgCardAlt)};
-    color: ${p => (p.$active ? '#047857' : st.textMuted)};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    white-space: nowrap;
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
 const formatDay = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL');
@@ -355,6 +447,13 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
     const scale = Math.max(1, ...buckets.map(bucket => Math.max(bucket.male, bucket.female)));
     const platforms = ad.platforms.map(platform => AD_PLATFORM_LABELS[platform] ?? platform);
 
+    // Przedziały objęte ustawieniem wieku bierzemy z rozbicia, a nie parsujemy „18-65+"
+    // jeszcze raz na froncie: backend już to policzył i to on zna regułę.
+    const targetAges = new Set(buckets.filter(bucket => bucket.inTargetAge).map(bucket => bucket.ageRange));
+    const included = ad.locations.filter(location => !location.excluded);
+    const excluded = ad.locations.filter(location => location.excluded);
+    const samePayer = !!ad.payer && ad.payer === ad.beneficiary;
+
     return (
         <>
             <Summary>
@@ -364,12 +463,12 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                     <div className="u">kont w Polsce</div>
                 </Cell>
                 <Cell>
-                    <div className="k">Od kiedy</div>
-                    <div className="v">{formatDay(ad.start)}</div>
-                </Cell>
-                <Cell>
-                    <div className="k">Do kiedy</div>
-                    <div className="v">{ad.stop ? formatDay(ad.stop) : 'trwa'}</div>
+                    <div className="k">Emisja</div>
+                    <Span>
+                        {formatDay(ad.start)}
+                        <i>→</i>
+                        {ad.stop ? formatDay(ad.stop) : 'trwa'}
+                    </Span>
                     <div className="u">
                         {ad.active ? `${ad.days}. dzień emisji` : `${ad.days} dni emisji`}
                     </div>
@@ -383,132 +482,146 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                 </Cell>
             </Summary>
 
-            <Grid>
-                <Column>
-                    <Panel>
-                        <h4>
-                            Zasięg według wieku i płci
-                            <Legend>
-                                <s><i style={{ background: st.accentBlue }} />Mężczyźni</s>
-                                <s><i style={{ background: st.accentAmber }} />Kobiety</s>
-                            </Legend>
-                        </h4>
-                        <Pyramid>
-                            {buckets.map(bucket => {
-                                const share = total > 0 ? ((bucket.male + bucket.female) / total) * 100 : 0;
-                                return (
-                                    <PyramidRow key={bucket.ageRange} $dim={!bucket.inTargetAge}>
-                                        <Side $left>
-                                            <Num $left>{formatExact(bucket.male)}</Num>
-                                            <Rail $left>
-                                                <i style={{ width: `${(bucket.male / scale) * 100}%` }} />
-                                            </Rail>
-                                        </Side>
-                                        <Gutter>
-                                            <b>{bucket.ageRange}</b>
-                                            <span>{share.toFixed(1).replace('.', ',')}%</span>
-                                        </Gutter>
-                                        <Side>
-                                            <Rail>
-                                                <i style={{ width: `${(bucket.female / scale) * 100}%` }} />
-                                            </Rail>
-                                            <Num>{formatExact(bucket.female)}</Num>
-                                        </Side>
-                                    </PyramidRow>
-                                );
-                            })}
-                        </Pyramid>
-                        {ad.outOfTargetAgeReach > 0 && total > 0 && (
-                            <PyramidFoot>
-                                Poza ustawionym wiekiem:{' '}
-                                <b>
-                                    {formatExact(ad.outOfTargetAgeReach)} osób ·{' '}
-                                    {Math.round((ad.outOfTargetAgeReach / total) * 100)}%
-                                </b>
-                            </PyramidFoot>
-                        )}
-                    </Panel>
-                </Column>
-
-                <Column>
-                    <Panel $quiet>
-                        <h4>
-                            Grupa odbiorców <em>ustawienia</em>
-                        </h4>
-                        <Kv>
-                            <dt>Status</dt>
-                            <dd>
-                                <StatusTag $active={ad.active}>
-                                    {ad.active ? 'AKTYWNA' : 'ZAKOŃCZONA'}
-                                </StatusTag>
-                            </dd>
-                            <dt>Płeć</dt>
-                            <dd>{ad.targetGender ? GENDER_LABELS[ad.targetGender] ?? ad.targetGender : '—'}</dd>
-                            {ad.locations.some(location => !location.excluded) && (
-                                <>
-                                    <dt>Lokalizacje</dt>
-                                    <dd>
-                                        {ad.locations
-                                            .filter(location => !location.excluded)
-                                            .map(location => (
-                                                <Chip key={location.name}>
-                                                    {location.name}{' '}
-                                                    <u>{LOCATION_TYPE_LABELS[location.type] ?? location.type}</u>
-                                                </Chip>
-                                            ))}
-                                    </dd>
-                                </>
-                            )}
-                            {ad.locations.some(location => location.excluded) && (
-                                <>
-                                    <dt>Wykluczone</dt>
-                                    <dd>
-                                        {ad.locations
-                                            .filter(location => location.excluded)
-                                            .map(location => (
-                                                <Chip key={location.name} $excluded>
-                                                    − {location.name}{' '}
-                                                    <u>{LOCATION_TYPE_LABELS[location.type] ?? location.type}</u>
-                                                </Chip>
-                                            ))}
-                                    </dd>
-                                </>
-                            )}
-                            {ad.payer && (
-                                <>
-                                    <dt>Płatnik</dt>
-                                    <dd>{ad.payer}</dd>
-                                </>
-                            )}
-                            {ad.beneficiary && (
-                                <>
-                                    <dt>Beneficjent</dt>
-                                    <dd>{ad.beneficiary}</dd>
-                                </>
-                            )}
-                        </Kv>
-                    </Panel>
-
-                    <Panel $quiet>
-                        <h4>
-                            Wiek odbiorców <em>{ad.targetAges ?? 'nieustawiony'}</em>
-                        </h4>
-                        <Ages>
-                            {buckets.map(bucket => (
-                                <AgeCell key={bucket.ageRange} $on={bucket.inTargetAge}>
-                                    {bucket.ageRange}
-                                </AgeCell>
-                            ))}
-                        </Ages>
-                    </Panel>
-
-                    {ad.snapshotUrl && (
-                        <SnapshotLink href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer">
-                            Podgląd reklamy w Bibliotece reklam Meta <ExternalLink />
-                        </SnapshotLink>
+            <Stack>
+                <Panel>
+                    <h4>
+                        Zasięg według wieku i płci
+                        <Legend>
+                            <s><i style={{ background: st.accentBlue }} />Mężczyźni</s>
+                            <s><i style={{ background: st.accentAmber }} />Kobiety</s>
+                        </Legend>
+                    </h4>
+                    <Pyramid>
+                        {buckets.map(bucket => {
+                            const share = total > 0 ? ((bucket.male + bucket.female) / total) * 100 : 0;
+                            return (
+                                <PyramidRow key={bucket.ageRange} $dim={!bucket.inTargetAge}>
+                                    <Side $left>
+                                        <Num $left>{formatExact(bucket.male)}</Num>
+                                        <Rail $left>
+                                            <i style={{ width: `${(bucket.male / scale) * 100}%` }} />
+                                        </Rail>
+                                    </Side>
+                                    <Gutter>
+                                        <b>{bucket.ageRange}</b>
+                                        <span>{share.toFixed(1).replace('.', ',')}%</span>
+                                    </Gutter>
+                                    <Side>
+                                        <Rail>
+                                            <i style={{ width: `${(bucket.female / scale) * 100}%` }} />
+                                        </Rail>
+                                        <Num>{formatExact(bucket.female)}</Num>
+                                    </Side>
+                                </PyramidRow>
+                            );
+                        })}
+                    </Pyramid>
+                    {ad.outOfTargetAgeReach > 0 && total > 0 && (
+                        <PyramidFoot>
+                            Poza ustawionym wiekiem:{' '}
+                            <b>
+                                {formatExact(ad.outOfTargetAgeReach)} osób ·{' '}
+                                {Math.round((ad.outOfTargetAgeReach / total) * 100)}%
+                            </b>
+                        </PyramidFoot>
                     )}
-                </Column>
-            </Grid>
+                </Panel>
+                <Panel $quiet>
+                    <h4>
+                        Grupa odbiorców <em>ustawienia reklamodawcy</em>
+                    </h4>
+                    <Rows>
+                        <dt>Status</dt>
+                        <dd>
+                            <Chip $tone={ad.active ? 'active' : 'off'}>
+                                {ad.active ? 'aktywna' : 'zakończona'}
+                            </Chip>
+                        </dd>
+
+                        <dt>Płeć</dt>
+                        <dd>
+                            <Chip>
+                                {ad.targetGender ? GENDER_LABELS[ad.targetGender] ?? ad.targetGender : 'nieustawiona'}
+                            </Chip>
+                        </dd>
+
+                        {/*
+                          * Wiek był wcześniej osobnym panelem pod tym. Mówił dokładnie to samo,
+                          * co przygaszone wiersze piramidy obok — jedno ustawienie pokazane
+                          * dwa razy, w dwóch różnych formach.
+                          */}
+                        <dt>Wiek</dt>
+                        <dd>
+                            {AGE_BUCKETS.map(age => (
+                                <Chip key={age} $tone={targetAges.has(age) ? 'plain' : 'off'}>
+                                    {age}
+                                </Chip>
+                            ))}
+                        </dd>
+
+                        {included.length > 0 && (
+                            <>
+                                <dt>Lokalizacje</dt>
+                                <dd>
+                                    {included.map(location => (
+                                        <Chip key={location.name}>
+                                            {location.name}{' '}
+                                            <u>{LOCATION_TYPE_LABELS[location.type] ?? location.type}</u>
+                                        </Chip>
+                                    ))}
+                                </dd>
+                            </>
+                        )}
+
+                        {excluded.length > 0 && (
+                            <>
+                                <dt>Wykluczone</dt>
+                                <dd>
+                                    {excluded.map(location => (
+                                        <Chip key={location.name} $tone="excluded">
+                                            − {location.name}{' '}
+                                            <u>{LOCATION_TYPE_LABELS[location.type] ?? location.type}</u>
+                                        </Chip>
+                                    ))}
+                                </dd>
+                            </>
+                        )}
+
+                        {/*
+                          * Płatnik i beneficjent to niemal zawsze ten sam podmiot. Dwa wiersze
+                          * z identyczną nazwą spółki zajmowały pół panelu i nie niosły niczego
+                          * poza powtórzeniem — scalamy, a rozdzielamy dopiero gdy się różnią.
+                          */}
+                        {samePayer ? (
+                            <>
+                                <dt>Płatnik</dt>
+                                <dd><Party>{ad.payer} · zarazem beneficjent</Party></dd>
+                            </>
+                        ) : (
+                            <>
+                                {ad.payer && (
+                                    <>
+                                        <dt>Płatnik</dt>
+                                        <dd><Party>{ad.payer}</Party></dd>
+                                    </>
+                                )}
+                                {ad.beneficiary && (
+                                    <>
+                                        <dt>Beneficjent</dt>
+                                        <dd><Party>{ad.beneficiary}</Party></dd>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </Rows>
+                </Panel>
+
+                {ad.snapshotUrl && (
+                    <SnapshotButton href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer">
+                        Zobacz reklamę w Bibliotece Meta <ExternalLink />
+                    </SnapshotButton>
+                )}
+            </Stack>
         </>
     );
 };
