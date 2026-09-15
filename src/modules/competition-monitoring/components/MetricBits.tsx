@@ -20,13 +20,30 @@ export const formatNumber = (value: number | null | undefined, decimals = 0): st
 };
 
 /**
+ * JEDEN zapis braku danych w całym module: półpauza.
+ *
+ * Wcześniej w jednym wierszu tabeli stały obok siebie trzy różne zapisy tego
+ * samego pojęcia: `formatExact` zwracało łącznik „-", a JSX wypisywał półpauzę
+ * „—" i literalne „0". Trzy glify na „nic" w jednym wierszu każą czytelnikowi
+ * szukać różnicy, której nie ma.
+ */
+export const EMPTY = '—';
+
+/**
  * Liczba bez zaokrąglania, z grupowaniem tysięcy: „41 200".
  *
  * [formatNumber] skraca do „41 tys.", co przy zasięgu reklamy gubi różnicę między
  * 41 200 a 41 900 - a to jedyna liczba, po której właściciel porównuje kampanie.
+ *
+ * `useGrouping: 'always'` jest tu konieczne: domyślne pl-PL NIE grupuje liczb
+ * czterocyfrowych, więc w kolumnie stało „5170" tuż pod „41 717" i oko traciło
+ * wspólny rytm cyfr. Separatorem jest twarda spacja, więc liczba nie łamie się
+ * na końcu wiersza.
  */
+const GROUPED = new Intl.NumberFormat('pl-PL', { useGrouping: 'always' });
+
 export const formatExact = (value: number | null | undefined): string =>
-    value === null || value === undefined ? '-' : value.toLocaleString('pl-PL');
+    value === null || value === undefined ? EMPTY : GROUPED.format(value);
 
 export const formatDate = (iso: string): string =>
     new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
