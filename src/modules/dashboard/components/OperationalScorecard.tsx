@@ -99,20 +99,25 @@ const ScorecardContainer = styled.div`
   }
 `;
 
-/* Pełna nazwa, słowo przy znaczniku i chevron pojawiają się dopiero w kafelku,
-   który ma na nie miejsce; węższy nosi skróty - zamiast ucinać tekst
-   wielokropkiem. Skrót jest wartością domyślną, więc przeglądarka bez
-   @container pokazuje po prostu krótszy wariant.
+/* Pełna nazwa i chevron pojawiają się dopiero w kafelku, który ma na nie
+   miejsce; węższy nosi skrót - zamiast ucinać tekst wielokropkiem. Skrót jest
+   wartością domyślną, więc przeglądarka bez @container pokazuje po prostu
+   krótszy wariant.
    Próg mierzy pole TREŚCI kafelka (tak działa container-type: inline-size),
-   czyli bez paddingu: 180px to znacznik 26 + odstęp 8 + chevron 22 i wciąż
-   ~124px na najdłuższy podpis ("Do przyjęcia dzisiaj"). */
-const WIDE_TILE = '@container stat-tile (min-width: 180px)';
+   czyli bez paddingu: 145px to chevron 22 i wciąż ~123px na najdłuższy
+   podpis ("Do przyjęcia dzisiaj"). */
+const WIDE_TILE = '@container stat-tile (min-width: 145px)';
 
 const tileSurface = `
   background: #ffffff;
   border-radius: 14px;
 `;
 
+/* Kolor wchodzi górną krawędzią - tak jak w pierwotnej wersji kafelka.
+   Zmienia się tylko to, że jest JEDEN dla wszystkich czterech: wcześniej
+   cztery nasycone akcenty udawały kategorie, tutaj to wspólna listwa, po
+   której poznaje się kafelek stanu. Cała reszta powierzchni zostaje biała,
+   więc listwa jest jedynym kolorem, jaki kafelek zużywa. */
 const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   ${tileSurface}
   container-type: inline-size;
@@ -120,11 +125,12 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
   width: 100%;
-  padding: 11px 12px 12px;
+  padding: 10px 12px 11px;
   border: 1px solid ${p => p.$isActive ? ACCENT : p.theme.colors.border};
+  border-top: 3px solid ${ACCENT};
   box-shadow: ${p => p.$isActive
     ? `0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)`
     : '0 1px 2px rgba(15, 23, 42, 0.05)'};
@@ -135,13 +141,14 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: 9px;
-    padding: 13px 15px 14px;
+    gap: 6px;
+    padding: 12px 15px 13px;
   }
 
   ${p => p.$clickable && `
     &:hover {
       border-color: #cbd5e1;
+      border-top-color: ${ACCENT};
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.06);
     }
     &:active { background: #f8fafc; }
@@ -160,33 +167,9 @@ const StatLabelRow = styled.div`
   min-width: 0;
 `;
 
-/* Znacznik wraca - to on niósł charakter kafelka. Wraca jednak w JEDNYM
-   kolorze: wcześniej cztery nasycone akcenty udawały kategorie, tutaj to po
-   prostu znak rozpoznawczy kafelka. */
-const StatBadge = styled.span`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: color-mix(in srgb, ${ACCENT} 11%, transparent);
-  color: ${ACCENT};
-
-  svg { width: 14px; height: 14px; stroke-width: 2; display: block; }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    svg { width: 15px; height: 15px; }
-  }
-`;
-
 /* 10px wersalikami w kolorze textMuted czytało się jak podpis pod podpisem.
-   Zdaniowa wielkość liter, wyraźniejszy kolor i normalny światłostan - podpis
-   ma być czytany, a nie odszyfrowywany. */
+   Wielkość zdaniowa, wyraźniejszy kolor, normalny światłostan - podpis ma być
+   czytany, a nie odszyfrowywany. */
 const StatLabel = styled.span`
   flex: 1;
   min-width: 0;
@@ -234,19 +217,11 @@ const StatChevron = styled.span<{ $active: boolean }>`
   }
 `;
 
-const StatValueRow = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  min-width: 0;
-`;
-
 /* Liczba jest tu treścią, a nie podpisem - dostaje rozmiar i ciężar, który to
    mówi. Cyfry tabelaryczne, żeby "12" i "7" stały w tym samym miejscu w
    sąsiednich kafelkach i nie skakały przy odświeżeniu danych. */
 const StatValue = styled.span`
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -254,35 +229,29 @@ const StatValue = styled.span`
   font-variant-numeric: tabular-nums;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: 30px;
+    font-size: 28px;
   }
 `;
 
-/* JEDEN komponent na cały drugi wiersz zamiast czerwonej pigułki w jednym
-   kafelku i luźnego szarego tekstu w drugim. Kształt i miejsce są wspólne,
-   różni je tylko to, co faktycznie się różni: szary opisuje zakres liczby,
-   czerwony (z ikoną) mówi, że coś wymaga reakcji. */
-const MetaChip = styled.span<{ $alert: boolean }>`
+/* Dopisek NIE stoi obok liczby - pigułka doklejona do cyfry rozbijała ją na
+   dwa równorzędne elementy i wyglądała jak ozdoba. Stoi pod liczbą, jako
+   zwykły wiersz tekstu: jedno miejsce i jedno potraktowanie dla obu
+   przypadków. Różni je tylko to, co faktycznie się różni - szary opisuje
+   zakres liczby, czerwony z ikoną mówi, że coś wymaga reakcji. */
+const StatMeta = styled.span<{ $alert: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  flex-shrink: 0;
-  height: 20px;
-  padding: 0 7px;
-  border-radius: 10px;
-  background: ${p => p.$alert
-    ? 'rgba(220, 38, 38, 0.1)'
-    : p.theme.colors.surfaceAlt};
-  color: ${p => p.$alert
-    ? p.theme.colors.error
-    : p.theme.colors.textSecondary};
+  min-width: 0;
   font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
+  font-weight: ${p => p.$alert ? 600 : 500};
+  line-height: 1.3;
+  color: ${p => p.$alert ? p.theme.colors.error : p.theme.colors.textMuted};
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
-  svg { width: 11px; height: 11px; stroke-width: 2.2; flex-shrink: 0; }
+  svg { width: 12px; height: 12px; stroke-width: 2.2; flex-shrink: 0; }
 `;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -290,49 +259,25 @@ const MetaChip = styled.span<{ $alert: boolean }>`
 const SkeletonTile = styled.div`
   ${tileSurface}
   border: 1px solid ${p => p.theme.colors.border};
+  border-top: 3px solid color-mix(in srgb, ${ACCENT} 35%, #e2e8f0);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 11px 12px 12px;
+  gap: 9px;
+  padding: 10px 12px 11px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: 9px;
-    padding: 13px 15px 14px;
-  }
-`;
-
-const SkeletonRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const shimmerBg = `
-  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
-  background-size: 200% 100%;
-`;
-
-const SkeletonBadge = styled.div`
-  ${shimmerBg}
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  animation: ${shimmer} 1.5s infinite;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
+    gap: 10px;
+    padding: 12px 15px 13px;
   }
 `;
 
 const SkeletonBar = styled.div<{ $w: string; $h: string }>`
-  ${shimmerBg}
   width: ${p => p.$w};
   height: ${p => p.$h};
   border-radius: 5px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
   animation: ${shimmer} 1.5s infinite;
 `;
 
@@ -667,16 +612,14 @@ const VisitRow = ({
 
 // ─── Stat Tile ───────────────────────────────────────────────────────────────
 
-/** Drugi wiersz kafelka: liczba + najwyżej jeden znacznik. */
+/** Wiersz pod liczbą. Najwyżej jeden na kafelek. */
 interface TileMeta {
   /** Czerwony z ikoną (wymaga reakcji) czy szary (opisuje zakres liczby). */
   alert: boolean;
-  full: string;
-  short: string;
+  text: string;
 }
 
 interface StatProps {
-  variant: CardVariant;
   labelFull: string;
   labelShort: string;
   value: number;
@@ -687,7 +630,6 @@ interface StatProps {
 }
 
 const StatCell = ({
-  variant,
   labelFull,
   labelShort,
   value,
@@ -695,55 +637,43 @@ const StatCell = ({
   isActive,
   onToggle,
   meta,
-}: StatProps) => {
-  const Icon = CARD_ICON[variant];
+}: StatProps) => (
+  <StatButton
+    type="button"
+    $clickable={hasDetails}
+    $isActive={isActive}
+    onClick={hasDetails ? onToggle : undefined}
+    aria-expanded={hasDetails ? isActive : undefined}
+    aria-disabled={hasDetails ? undefined : true}
+    aria-label={`${labelFull}: ${value}${meta ? `, ${meta.text}` : ''}`}
+  >
+    <StatLabelRow>
+      <StatLabel aria-hidden="true">
+        <WideOnly>{labelFull}</WideOnly>
+        <NarrowOnly>{labelShort}</NarrowOnly>
+      </StatLabel>
+      {hasDetails && (
+        <StatChevron $active={isActive} aria-hidden="true">
+          <ChevronRight />
+        </StatChevron>
+      )}
+    </StatLabelRow>
 
-  return (
-    <StatButton
-      type="button"
-      $clickable={hasDetails}
-      $isActive={isActive}
-      onClick={hasDetails ? onToggle : undefined}
-      aria-expanded={hasDetails ? isActive : undefined}
-      aria-disabled={hasDetails ? undefined : true}
-      aria-label={`${labelFull}: ${value}${meta ? `, ${meta.full}` : ''}`}
-    >
-      <StatLabelRow>
-        <StatBadge aria-hidden="true">
-          <Icon />
-        </StatBadge>
-        <StatLabel aria-hidden="true">
-          <WideOnly>{labelFull}</WideOnly>
-          <NarrowOnly>{labelShort}</NarrowOnly>
-        </StatLabel>
-        {hasDetails && (
-          <StatChevron $active={isActive} aria-hidden="true">
-            <ChevronRight />
-          </StatChevron>
-        )}
-      </StatLabelRow>
+    <StatValue aria-hidden="true">{value}</StatValue>
 
-      <StatValueRow>
-        <StatValue aria-hidden="true">{value}</StatValue>
-        {meta && (
-          <MetaChip $alert={meta.alert} aria-hidden="true" title={meta.full}>
-            {meta.alert && <AlertTriangle />}
-            <WideOnly>{meta.full}</WideOnly>
-            <NarrowOnly>{meta.short}</NarrowOnly>
-          </MetaChip>
-        )}
-      </StatValueRow>
-    </StatButton>
-  );
-};
+    {meta && (
+      <StatMeta $alert={meta.alert} aria-hidden="true">
+        {meta.alert && <AlertTriangle />}
+        {meta.text}
+      </StatMeta>
+    )}
+  </StatButton>
+);
 
 const StatCellSkeleton = () => (
   <SkeletonTile aria-hidden="true">
-    <SkeletonRow>
-      <SkeletonBadge />
-      <SkeletonBar $w="60%" $h="12px" />
-    </SkeletonRow>
-    <SkeletonBar $w="34%" $h="26px" />
+    <SkeletonBar $w="62%" $h="13px" />
+    <SkeletonBar $w="30%" $h="26px" />
   </SkeletonTile>
 );
 
@@ -892,7 +822,6 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       <ScorecardContainer>
         {stats ? (
           <StatCell
-            variant="inProgress"
             labelFull={t.dashboard.stats.inProgress}
             labelShort={SHORT_LABEL.inProgress}
             value={stats.inProgress}
@@ -900,18 +829,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             isActive={activeKey === 'inProgress'}
             onToggle={() => toggle('inProgress')}
             meta={stats.overdue
-              ? {
-                  alert: true,
-                  full: `${stats.overdue} ${t.dashboard.stats.overdue.toLowerCase()}`,
-                  short: String(stats.overdue),
-                }
+              ? { alert: true, text: `${stats.overdue} ${t.dashboard.stats.overdue.toLowerCase()}` }
               : undefined}
           />
         ) : <StatCellSkeleton />}
 
         {stats ? (
           <StatCell
-            variant="readyForPickup"
             labelFull={t.dashboard.stats.readyForPickup}
             labelShort={SHORT_LABEL.readyForPickup}
             value={stats.readyForPickup}
@@ -923,7 +847,6 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
         {stats ? (
           <StatCell
-            variant="incomingToday"
             labelFull={t.dashboard.stats.arrivals}
             labelShort={SHORT_LABEL.incomingToday}
             value={stats.incomingToday}
@@ -935,14 +858,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
         {stats ? (
           <StatCell
-            variant="abandoned"
             labelFull={t.dashboard.stats.abandoned}
             labelShort={SHORT_LABEL.abandoned}
             value={stats.abandonedLast30Days}
             hasDetails={stats.abandonedLast30Days > 0}
             isActive={activeKey === 'abandoned'}
             onToggle={() => toggle('abandoned')}
-            meta={{ alert: false, full: t.dashboard.stats.abandonedSubLabel, short: '30 dni' }}
+            meta={{ alert: false, text: t.dashboard.stats.abandonedSubLabel }}
           />
         ) : <StatCellSkeleton />}
       </ScorecardContainer>
