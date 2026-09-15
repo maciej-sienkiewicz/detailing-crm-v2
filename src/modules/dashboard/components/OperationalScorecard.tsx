@@ -1,6 +1,13 @@
 /**
  * Operational Scorecard Component
- * Premium 4-KPI command strip + right-side visit drawer.
+ * Kompaktowy pasek 4 liczników + szuflada z listą wizyt.
+ *
+ * Kafelki są celowo małe i JEDNOKOLOROWE. Wcześniej każdy miał własny akcent
+ * (niebieski / zielony / bursztynowy / czerwony) - cztery nasycone kolory obok
+ * siebie czytały się jak przypadkowa paleta i sugerowały ważność, której tu nie
+ * ma: to są cztery równorzędne liczby do podejrzenia, a nie statusy. Kolor
+ * został tylko tam, gdzie niesie informację - na znaczniku "po terminie"
+ * (wymaga reakcji) - oraz jako akcent stanu (najechanie / otwarta szuflada).
  */
 
 import { useState, useEffect } from 'react';
@@ -11,7 +18,6 @@ import { ReservationContextMenu } from '@/common/components/ReservationContextMe
 import {
   Clock,
   AlertTriangle,
-  ChevronDown,
   ChevronRight,
   Wrench,
   CheckCircle2,
@@ -24,47 +30,21 @@ import { t } from '@/common/i18n';
 import { PiiValue, joinPiiName } from '@/common/pii';
 import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
-import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
-import { useBreakpoint } from '@/common/hooks';
-import { visitApi } from '@/modules/visits/api/visitApi';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 type CardVariant = 'inProgress' | 'readyForPickup' | 'incomingToday' | 'abandoned';
 
-interface CardConfig {
-  accentColor: string;
-  bgGradient: string;
-  iconBg: string;
-  icon: LucideIcon;
-}
+/** Jedyny akcent kafelków - stan interakcji, nie kategoria. */
+const ACCENT = 'var(--brand-primary, #0ea5e9)';
 
-const CARD_CONFIG: Record<CardVariant, CardConfig> = {
-  inProgress: {
-    accentColor: '#0ea5e9',
-    bgGradient: 'linear-gradient(140deg, #f0f9ff 0%, #ffffff 55%)',
-    iconBg: 'rgba(14, 165, 233, 0.1)',
-    icon: Wrench,
-  },
-  readyForPickup: {
-    accentColor: '#16a34a',
-    bgGradient: 'linear-gradient(140deg, #f0fdf4 0%, #ffffff 55%)',
-    iconBg: 'rgba(22, 163, 74, 0.1)',
-    icon: CheckCircle2,
-  },
-  incomingToday: {
-    accentColor: '#d97706',
-    bgGradient: 'linear-gradient(140deg, #fffbeb 0%, #ffffff 55%)',
-    iconBg: 'rgba(217, 119, 6, 0.1)',
-    icon: CalendarDays,
-  },
-  abandoned: {
-    accentColor: '#dc2626',
-    bgGradient: 'linear-gradient(140deg, #fef2f2 0%, #ffffff 55%)',
-    iconBg: 'rgba(220, 38, 38, 0.1)',
-    icon: XCircle,
-  },
+/** Ikony zostają wyłącznie w nagłówku szuflady, gdzie identyfikują kontekst. */
+const CARD_ICON: Record<CardVariant, LucideIcon> = {
+  inProgress: Wrench,
+  readyForPickup: CheckCircle2,
+  incomingToday: CalendarDays,
+  abandoned: XCircle,
 };
 
 interface OperationalScorecardProps {
@@ -88,179 +68,245 @@ const fadeIn = keyframes`
   to   { opacity: 1; }
 `;
 
+const shimmer = keyframes`
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+`;
+
 // ─── Scorecard Grid ───────────────────────────────────────────────────────────
+//
+// Jeden układ na wszystkie szerokości. Wcześniej ta sama informacja miała dwa
+// warianty - pasek na telefon i rozwijaną pod chevronem siatkę kafelków - bo
+// pełne kafelki nie mieściły się na ekranie. Kafelek to teraz podpis + liczba,
+// więc mieści się wszędzie i nie ma czego chować.
+//
+// Cztery kolumny od 480px w górę. Poniżej 2x2: w 1/4 szerokości telefonu
+// podpis "Porzucone" musiałby zostać ucięty wielokropkiem, a licznik bez
+// czytelnej etykiety jest bezużyteczny.
+//
+// O tym, ile tekstu wchodzi do kafelka, decyduje SZEROKOŚĆ KAFELKA (@container),
+// nie szerokość okna. Przy tej samej szerokości okna kolumna bywa różna - raz
+// jest boczne menu, raz go nie ma - więc próg liczony z viewportu ucinałby
+// podpis dokładnie tam, gdzie menu zabiera miejsce.
 
-const ScorecardContainer = styled.div<{ $collapsed?: boolean }>`
-  display: ${p => p.$collapsed ? 'none' : 'grid'};
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.spacing.md};
-  margin-top: ${p => p.theme.spacing.md};
+const ScorecardContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 0;
 
-  /* Kontener widoku ma juz swoj gap - drugi odstep tylko rozpycha ekran. */
-  @media (max-width: 767px) {
-    gap: 10px;
-    margin-top: 10px;
+  @media (min-width: 480px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
   }
 `;
 
-// ─── Compact strip (mobile) ───────────────────────────────────────────────────
-//
-// Cztery pełne kafelki zajmowały na telefonie cały ekran, zanim użytkownik
-// dotarł do zadań i wizyt. Ten sam komplet liczb mieści się w jednym rzędzie;
-// pozycje otwierają te same szuflady co kafelki, a chevron rozwija pełną siatkę.
-const CompactBar = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr) auto;
-  align-items: stretch;
-  margin-top: 0;
-  background: #fff;
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-  overflow: hidden;
+const tileSurface = `
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 `;
 
-const CompactItem = styled.button`
+const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
+  ${tileSurface}
+  container-type: inline-size;
+  container-name: stat-tile;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+  align-items: stretch;
+  gap: 5px;
   min-width: 0;
-  padding: 9px 2px;
-  background: none;
-  border: none;
-  border-right: 1px solid #f1f5f9;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid ${p => p.$isActive ? ACCENT : p.theme.colors.border};
+  box-shadow: ${p => p.$isActive
+    ? `0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)`
+    : '0 1px 2px rgba(15, 23, 42, 0.04)'};
+  text-align: left;
   font-family: inherit;
-  cursor: pointer;
+  cursor: ${p => p.$clickable ? 'pointer' : 'default'};
   -webkit-tap-highlight-color: transparent;
-  transition: background 140ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 
-  &:active { background: #f8fafc; }
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    gap: 6px;
+    padding: 11px 13px;
+  }
+
+  ${p => p.$clickable && `
+    &:hover {
+      border-color: #cbd5e1;
+      background: #fcfdfe;
+    }
+    &:active { background: #f8fafc; }
+  `}
+
+  &:focus-visible {
+    outline: 2px solid ${ACCENT};
+    outline-offset: 2px;
+  }
 `;
 
-// Cztery nasycone kolory obok siebie czytaly sie jak przypadkowa paleta.
-// Liczby wracaja do koloru tekstu, a kategoria zostaje oznaczona kropka -
-// tak jak w legendzie wykresu. Kolorem krzyczy tylko to, co wymaga reakcji.
-const CompactValue = styled.span`
-  display: inline-flex;
+const StatLabelRow = styled.div`
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 18px;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+`;
+
+const StatLabel = styled.span`
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: ${p => p.theme.colors.textMuted};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    font-size: 11px;
+  }
+`;
+
+/* Pełna nazwa dopiero w kafelku, który ma na nią miejsce; węższy nosi skrót -
+   zamiast ucinać podpis wielokropkiem. Skrót jest wartością domyślną, więc
+   przeglądarka bez @container pokazuje po prostu krótsze etykiety. */
+const WIDE_TILE = '@container stat-tile (min-width: 190px)';
+
+const LabelFull = styled.span`
+  display: none;
+
+  ${WIDE_TILE} {
+    display: inline;
+  }
+`;
+
+const LabelShort = styled.span`
+  display: inline;
+
+  ${WIDE_TILE} {
+    display: none;
+  }
+`;
+
+const StatChevron = styled.span<{ $active: boolean }>`
+  display: none;
+  flex-shrink: 0;
+  color: ${p => p.theme.colors.textMuted};
+  transition: transform 200ms ease;
+  transform: rotate(${p => p.$active ? '90deg' : '0deg'});
+
+  svg { width: 13px; height: 13px; display: block; }
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: block;
+  }
+`;
+
+const StatValueRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+`;
+
+const StatValue = styled.span`
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.1;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.5px;
   color: ${p => p.theme.colors.text};
   font-variant-numeric: tabular-nums;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    font-size: 24px;
+  }
 `;
 
-const CompactDot = styled.span<{ $variant: CardVariant }>`
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: ${p => CARD_CONFIG[p.$variant].accentColor};
-`;
-
-const CompactOverdue = styled.span`
+/* Jedyny kolor kategoryczny, jaki zostaje: "po terminie" to jedyna liczba,
+   która sama z siebie domaga się działania. */
+const OverdueChip = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
   border-radius: 8px;
   background: rgba(220, 38, 38, 0.1);
   color: ${p => p.theme.colors.error};
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-`;
-
-const CompactLabel = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  min-width: 0;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  color: ${p => p.theme.colors.textSecondary};
-
-  > span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-`;
-
-const CompactExpand = styled.button<{ $open: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  background: none;
-  border: none;
-  color: ${p => p.theme.colors.textMuted};
-  cursor: pointer;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
-
-  svg {
-    width: 16px;
-    height: 16px;
-    transition: transform 200ms ease;
-    transform: rotate(${p => p.$open ? '180deg' : '0deg'});
-  }
-`;
-
-const SubLabel = styled.span<{ $variant: CardVariant }>`
-  font-size: 11px;
-  color: ${p => CARD_CONFIG[p.$variant].accentColor};
-  font-weight: 500;
-`;
-
-const OverdueFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-`;
-
-const OverdueLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: ${p => p.theme.colors.error};
-
-  svg { width: 13px; height: 13px; flex-shrink: 0; }
-`;
-
-const OverdueCount = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  background: rgba(220, 38, 38, 0.1);
-  color: ${p => p.theme.colors.error};
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+  }
+`;
+
+/* Samotna czerwona "2" obok "12" nie mówi nic - dopisujemy czego dotyczy
+   wszędzie tam, gdzie kafelek ma na to miejsce. */
+const OverdueWord = styled.span`
+  display: none;
+
+  ${WIDE_TILE} {
+    display: inline;
+    margin-left: 4px;
+    font-weight: 600;
+  }
+`;
+
+const StatHint = styled.span`
+  display: none;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: ${p => p.theme.colors.textMuted};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  ${WIDE_TILE} {
+    display: inline;
+  }
+`;
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+const SkeletonTile = styled.div`
+  ${tileSurface}
+  border: 1px solid ${p => p.theme.colors.border};
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 10px;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    gap: 9px;
+    padding: 11px 13px;
+  }
+`;
+
+const SkeletonBar = styled.div<{ $w: string; $h: string }>`
+  width: ${p => p.$w};
+  height: ${p => p.$h};
+  border-radius: 5px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
 `;
 
 // ─── Drawer Overlay ───────────────────────────────────────────────────────────
@@ -313,11 +359,11 @@ const DrawerHeader = styled.div`
   flex-shrink: 0;
 `;
 
-const DrawerIconWrap = styled.div<{ $variant: CardVariant }>`
+const DrawerIconWrap = styled.div`
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: ${p => CARD_CONFIG[p.$variant].iconBg};
+  background: ${p => p.theme.colors.surfaceAlt};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,7 +372,7 @@ const DrawerIconWrap = styled.div<{ $variant: CardVariant }>`
   svg {
     width: 18px;
     height: 18px;
-    color: ${p => CARD_CONFIG[p.$variant].accentColor};
+    color: ${p => p.theme.colors.textSecondary};
     stroke-width: 1.9;
   }
 `;
@@ -449,18 +495,18 @@ const VisitItem = styled.div<{ $overdue: boolean; $clickable: boolean }>`
   &:hover { background: ${p => p.$clickable ? '#f8fafc' : 'transparent'}; }
 `;
 
-const BrandAvatar = styled.div<{ $variant: CardVariant }>`
+const BrandAvatar = styled.div`
   width: 36px;
   height: 36px;
   min-width: 36px;
   border-radius: 50%;
-  background: ${p => CARD_CONFIG[p.$variant].iconBg};
+  background: ${p => p.theme.colors.surfaceAlt};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  color: ${p => CARD_CONFIG[p.$variant].accentColor};
+  color: ${p => p.theme.colors.textSecondary};
   flex-shrink: 0;
 `;
 
@@ -541,11 +587,9 @@ const DateLine = styled.div<{ $overdue: boolean }>`
 
 const VisitRow = ({
   visit,
-  variant,
   onRowClick,
 }: {
   visit: VisitDetail;
-  variant: CardVariant;
   onRowClick?: (id: string, scheduledDate?: string, rect?: DOMRect) => void;
 }) => {
   const isOverdue = Boolean(
@@ -558,7 +602,7 @@ const VisitRow = ({
       $clickable={!!onRowClick}
       onClick={e => onRowClick?.(visit.id, visit.scheduledDate, (e.currentTarget as HTMLElement).getBoundingClientRect())}
     >
-      <BrandAvatar $variant={variant}>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
+      <BrandAvatar>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
 
       <VisitBody>
         <VisitMainRow>
@@ -592,71 +636,68 @@ const VisitRow = ({
   );
 };
 
-// ─── KPI Card ────────────────────────────────────────────────────────────────
+// ─── Stat Tile ───────────────────────────────────────────────────────────────
 
-interface KpiCardProps {
-  variant: CardVariant;
-  label: string;
+interface StatProps {
+  labelFull: string;
+  labelShort: string;
   value: number;
   hasDetails: boolean;
   isActive: boolean;
   onToggle: () => void;
   overdueBadge?: number;
-  subLabel?: string;
+  hint?: string;
 }
 
-const KpiCard = ({
-  variant,
-  label,
+const StatCell = ({
+  labelFull,
+  labelShort,
   value,
   hasDetails,
   isActive,
   onToggle,
   overdueBadge,
-  subLabel,
-}: KpiCardProps) => {
-  const cfg = CARD_CONFIG[variant];
+  hint,
+}: StatProps) => (
+  <StatButton
+    type="button"
+    $clickable={hasDetails}
+    $isActive={isActive}
+    onClick={hasDetails ? onToggle : undefined}
+    aria-expanded={hasDetails ? isActive : undefined}
+    aria-disabled={hasDetails ? undefined : true}
+    aria-label={`${labelFull}: ${value}`}
+  >
+    <StatLabelRow>
+      <StatLabel aria-hidden="true">
+        <LabelFull>{labelFull}</LabelFull>
+        <LabelShort>{labelShort}</LabelShort>
+      </StatLabel>
+      {hasDetails && (
+        <StatChevron $active={isActive} aria-hidden="true">
+          <ChevronRight />
+        </StatChevron>
+      )}
+    </StatLabelRow>
 
-  const subContent = subLabel
-    ? <SubLabel $variant={variant}>{subLabel}</SubLabel>
-    : undefined;
+    <StatValueRow>
+      <StatValue aria-hidden="true">{value}</StatValue>
+      {typeof overdueBadge === 'number' && overdueBadge > 0 && (
+        <OverdueChip title={t.dashboard.stats.overdue}>
+          {overdueBadge}
+          <OverdueWord>{t.dashboard.stats.overdue.toLowerCase()}</OverdueWord>
+        </OverdueChip>
+      )}
+      {hint && <StatHint aria-hidden="true">{hint}</StatHint>}
+    </StatValueRow>
+  </StatButton>
+);
 
-  const footerContent = typeof overdueBadge === 'number' && overdueBadge > 0
-    ? (
-      <OverdueFooter>
-        <OverdueLeft>
-          <AlertTriangle />
-          {t.dashboard.stats.overdue}
-        </OverdueLeft>
-        <OverdueCount>{overdueBadge}</OverdueCount>
-      </OverdueFooter>
-    )
-    : undefined;
-
-  return (
-    <StatTile
-      accentColor={cfg.accentColor}
-      bgGradient={cfg.bgGradient}
-      iconBg={cfg.iconBg}
-      icon={cfg.icon}
-      value={value}
-      label={label}
-      subContent={subContent}
-      footerContent={footerContent}
-      onClick={hasDetails ? onToggle : undefined}
-      isActive={isActive}
-    />
-  );
-};
-
-// ─── Skeleton Card ────────────────────────────────────────────────────────────
-
-const SkeletonCard = ({ variant }: { variant: CardVariant }) => (
-  <StatTileSkeleton
-    accentColor={CARD_CONFIG[variant].accentColor}
-    bgGradient={CARD_CONFIG[variant].bgGradient}
-    iconBg={CARD_CONFIG[variant].iconBg}
-  />
+const StatCellSkeleton = () => (
+  <SkeletonTile aria-hidden="true">
+    <SkeletonBar $w="70%" $h="11px" />
+    <SkeletonBar $w="40%" $h="20px" />
+  </SkeletonTile>
 );
 
 // ─── Visit Drawer ─────────────────────────────────────────────────────────────
@@ -679,7 +720,7 @@ const VisitDrawer = ({
   onClose: () => void;
 }) => {
   const navigate = useNavigate();
-  const Icon = CARD_CONFIG[data.variant].icon;
+  const Icon = CARD_ICON[data.variant];
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -694,7 +735,7 @@ const VisitDrawer = ({
       <DrawerOverlay onClick={onClose} />
       <Drawer>
         <DrawerHeader>
-          <DrawerIconWrap $variant={data.variant}>
+          <DrawerIconWrap>
             <Icon />
           </DrawerIconWrap>
           <DrawerTitleGroup>
@@ -719,7 +760,6 @@ const VisitDrawer = ({
               <VisitRow
                 key={visit.id}
                 visit={visit}
-                variant={data.variant}
                 onRowClick={data.onRowClick}
               />
             ))
@@ -742,18 +782,16 @@ const VisitDrawer = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-// Skróty etykiet na pasek kompaktowy: pełne nazwy nie mieszczą się w 1/4 szerokości telefonu.
-const COMPACT_ITEMS: { key: CardVariant; short: string }[] = [
-  { key: 'inProgress',     short: 'W trakcie' },
-  { key: 'readyForPickup', short: 'Gotowe' },
-  { key: 'incomingToday',  short: 'Dziś' },
-  { key: 'abandoned',      short: 'Porzucone' },
-];
+// Skróty na wąskie ekrany: pełne nazwy nie mieszczą się w 1/4 szerokości telefonu.
+const SHORT_LABEL: Record<CardVariant, string> = {
+  inProgress: 'W trakcie',
+  readyForPickup: 'Gotowe',
+  incomingToday: 'Dziś',
+  abandoned: 'Porzucone',
+};
 
 export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const isDesktop = useBreakpoint('md');
-  const [expanded, setExpanded] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const navigate = useNavigate();
   const { start: startNavAnim } = useCalendarNavigation();
@@ -775,7 +813,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       label: `${visit.brand} ${visit.model ?? ''}`.trim() || visit.name,
       customer: joinPiiName(visit.customerFirstName, visit.customerLastName) ?? '',
       amount: formatCurrency(visit.amount),
-      accentColor: CARD_CONFIG[variant].accentColor,
+      accentColor: ACCENT,
       sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),
       scheduledDate: dateBox.value || undefined,
     };
@@ -802,98 +840,54 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
   const drawerData = getDrawerData();
 
-  const compactValue = (key: CardVariant): number | null => {
-    if (!stats) return null;
-    switch (key) {
-      case 'inProgress':     return stats.inProgress;
-      case 'readyForPickup': return stats.readyForPickup;
-      case 'incomingToday':  return stats.incomingToday;
-      case 'abandoned':      return stats.abandonedLast30Days;
-    }
-  };
-
   return (
     <>
-      {!isDesktop && (
-        <CompactBar>
-          {COMPACT_ITEMS.map(({ key, short }) => {
-            const value = compactValue(key);
-            return (
-              <CompactItem
-                key={key}
-                onClick={() => toggle(key)}
-                aria-label={`${short}: ${value ?? '-'}`}
-              >
-                <CompactValue>
-                  {value ?? '-'}
-                  {key === 'inProgress' && !!stats?.overdue && (
-                    <CompactOverdue title="Po terminie">{stats.overdue}</CompactOverdue>
-                  )}
-                </CompactValue>
-                <CompactLabel>
-                  <CompactDot $variant={key} />
-                  <span>{short}</span>
-                </CompactLabel>
-              </CompactItem>
-            );
-          })}
-          <CompactExpand
-            $open={expanded}
-            onClick={() => setExpanded(v => !v)}
-            aria-expanded={expanded}
-            aria-label={expanded ? 'Zwiń kafelki' : 'Rozwiń kafelki'}
-          >
-            <ChevronDown />
-          </CompactExpand>
-        </CompactBar>
-      )}
-
-      <ScorecardContainer $collapsed={!isDesktop && !expanded}>
+      <ScorecardContainer>
         {stats ? (
-          <KpiCard
-            variant="inProgress"
-            label={t.dashboard.stats.inProgress}
+          <StatCell
+            labelFull={t.dashboard.stats.inProgress}
+            labelShort={SHORT_LABEL.inProgress}
             value={stats.inProgress}
             hasDetails={!!stats.inProgressDetails}
             isActive={activeKey === 'inProgress'}
             onToggle={() => toggle('inProgress')}
             overdueBadge={stats.overdue}
           />
-        ) : <SkeletonCard variant="inProgress" />}
+        ) : <StatCellSkeleton />}
 
         {stats ? (
-          <KpiCard
-            variant="readyForPickup"
-            label={t.dashboard.stats.readyForPickup}
+          <StatCell
+            labelFull={t.dashboard.stats.readyForPickup}
+            labelShort={SHORT_LABEL.readyForPickup}
             value={stats.readyForPickup}
             hasDetails={!!stats.readyForPickupDetails}
             isActive={activeKey === 'readyForPickup'}
             onToggle={() => toggle('readyForPickup')}
           />
-        ) : <SkeletonCard variant="readyForPickup" />}
+        ) : <StatCellSkeleton />}
 
         {stats ? (
-          <KpiCard
-            variant="incomingToday"
-            label={t.dashboard.stats.arrivals}
+          <StatCell
+            labelFull={t.dashboard.stats.arrivals}
+            labelShort={SHORT_LABEL.incomingToday}
             value={stats.incomingToday}
             hasDetails={!!stats.incomingTodayDetails}
             isActive={activeKey === 'incomingToday'}
             onToggle={() => toggle('incomingToday')}
           />
-        ) : <SkeletonCard variant="incomingToday" />}
+        ) : <StatCellSkeleton />}
 
         {stats ? (
-          <KpiCard
-            variant="abandoned"
-            label={t.dashboard.stats.abandoned}
+          <StatCell
+            labelFull={t.dashboard.stats.abandoned}
+            labelShort={SHORT_LABEL.abandoned}
             value={stats.abandonedLast30Days}
             hasDetails={stats.abandonedLast30Days > 0}
             isActive={activeKey === 'abandoned'}
             onToggle={() => toggle('abandoned')}
-            subLabel={t.dashboard.stats.abandonedSubLabel}
+            hint={t.dashboard.stats.abandonedSubLabel}
           />
-        ) : <SkeletonCard variant="abandoned" />}
+        ) : <StatCellSkeleton />}
       </ScorecardContainer>
 
       {drawerData && (
