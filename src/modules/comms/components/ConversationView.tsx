@@ -29,18 +29,21 @@ import {
     Archive,
     ArchiveRestore,
     ArrowLeft,
+    BrainCircuit,
     CalendarCheck,
     CalendarPlus,
     ChevronDown,
     Download,
     ChevronRight,
     FileInput,
+    FileText,
     Maximize2,
     Paperclip,
     MessagesSquare,
     Sparkles,
     StickyNote,
     Tag,
+    UserRound,
     Wallet,
 } from 'lucide-react';
 import type { CommAttachment, CommMessage, CommThread } from '../types';
@@ -96,23 +99,15 @@ const Header = styled.div`
         align-items: center;
         gap: 6px;
         flex-wrap: wrap;
+        min-width: 0;
     }
-`;
-
-/** Nazwisko i adres w nagłówku - wygląda jak tekst, zachowuje się jak przycisk. */
-const IdentityButton = styled.button`
-    border: none;
-    background: transparent;
-    padding: 0;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-    text-align: left;
-    border-bottom: 1px dashed transparent;
-
-    &:hover, &:focus-visible {
-        border-bottom-color: ${p => p.theme.colors.textMuted};
-        outline: none;
+    /* Nazwisko i adres to PODPIS, nie przycisk. Wcześniej pod nim siedziało ukryte
+       wejście w wizytówkę - kliknięcie, o którym nie sposób było wiedzieć, bo nic
+       w wyglądzie tekstu go nie zapowiadało. Tę rolę przejął przycisk „ludzika". */
+    .identity {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 `;
 
@@ -121,56 +116,105 @@ const HeaderActions = styled.div`
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+    /* Na wąskim ekranie pasek schodzi pod temat, a nie wyjeżdża za krawędź. */
+    flex-wrap: wrap;
+    justify-content: flex-end;
 `;
 
 /**
- * Plakietki przy adresie nadawcy: ile jeszcze rozmów mamy z tym adresem i notatki
- * o kliencie. Świadomie ciche - szara ramka, ten sam rozmiar co adres obok. To
- * kontekst do zerknięcia, nie akcja, a nagłówek ma prowadzić wzrok do tematu wątku.
+ * Paleta przycisków ikonowych nagłówka.
+ *
+ * Nagłówek mówi teraz dwoma językami zamiast jednym: OBRAZKIEM (co da się zrobić
+ * i jaki jest stan) oraz SŁOWEM - ale słowo zostało wyłącznie przy jednym
+ * przycisku głównym. Wcześniej wszystko było opisanymi pigułkami jednakowej wagi
+ * („Brak poprzednich rozmów", „Notatka do klienta", „Oznacz jako lead"), więc
+ * żadna nie odpowiadała na pytanie „co mam teraz kliknąć", a temat wątku - jedyna
+ * rzecz, po którą się tu patrzy - przegrywał z nimi o uwagę.
+ *
+ * Kolor nie jest dekoracją, tylko nośnikiem faktu: szary = „nic tu nie ma",
+ * kolorowy = „coś tu jest". Dlatego zieleń wraca w dwóch miejscach (rozpoznany
+ * klient i umówiony termin) - to ta sama treść: „to już mamy". Kolejność kolorów
+ * jest zgodna z paskiem klienta pod nagłówkiem, który niesie ten sam fakt zdaniem.
  */
-const BADGE_TONES = {
-    /** Domyślny - szarość adresu obok. Kontekst, na który nie trzeba patrzeć. */
-    neutral: { border: '#e2e8f0', background: '#f8fafc', color: '#64748b' },
-    /** Panel otwarty - plakietka pokazuje, że to ona go trzyma. */
+const ICON_TONES = {
+    /** Nic do pokazania - narzędzie dostępne, ale bez treści. Świadomie wyblakłe. */
+    idle: { border: '#e2e8f0', background: '#ffffff', color: '#94a3b8' },
+    /** Panel otwarty - przycisk pokazuje, że to on go trzyma. */
     active: { border: '#0ea5e9', background: '#f0f9ff', color: '#0284c7' },
+    /** Klient jest w kartotece - „ludzik się świeci". */
+    known: { border: '#a7f3d0', background: '#f0fdf4', color: '#15803d' },
     /**
      * Notatki istnieją. Bursztyn, a nie czerwień: to nie ostrzeżenie, tylko „ktoś
-     * coś tu zapisał, przeczytaj, zanim odpiszesz". Cicha plakietka z liczbą, której
-     * nie da się odróżnić od pustej, nie skłoniłaby nikogo do kliknięcia.
+     * coś tu zapisał, przeczytaj, zanim odpiszesz".
      */
-    filled: { border: '#fcd34d', background: '#fffbeb', color: '#b45309' },
+    notes: { border: '#fcd34d', background: '#fffbeb', color: '#b45309' },
     /** Rozmowa jest leadem. Stan, nie ostrzeżenie - dlatego chłodny błękit. */
     lead: { border: '#bae6fd', background: '#f0f9ff', color: '#0369a1' },
     /** Rozmowa ma już termin. Zieleń kończy ścieżkę: nie ma tu nic do zrobienia. */
-    booked: { border: '#bbf7d0', background: '#f0fdf4', color: '#15803d' },
+    booked: { border: '#a7f3d0', background: '#f0fdf4', color: '#15803d' },
+    /** Nadawca-robot formularza. Fiolet - inny rodzaj faktu niż lead czy termin. */
+    form: { border: '#ddd6fe', background: '#f5f3ff', color: '#6d28d9' },
 } as const;
 
-type BadgeTone = keyof typeof BADGE_TONES;
+type IconTone = keyof typeof ICON_TONES;
 
-const ContextBadge = styled.button<{ $tone?: BadgeTone }>`
+/**
+ * Okrągły przycisk nagłówka: jedna ikona, opis w tooltipie i `aria-label`.
+ *
+ * Licznik siada w narożniku jako plakietka, a nie w treści przycisku - dzięki
+ * temu wszystkie przyciski mają identyczną szerokość i nie przeskakują w boki,
+ * gdy liczby doczytają się z serwera.
+ */
+const HeaderIconButton = styled.button<{ $tone?: IconTone }>`
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    border: 1px solid ${({ $tone = 'neutral' }) => BADGE_TONES[$tone].border};
-    background: ${({ $tone = 'neutral' }) => BADGE_TONES[$tone].background};
-    color: ${({ $tone = 'neutral' }) => BADGE_TONES[$tone].color};
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: 1px solid ${({ $tone = 'idle' }) => ICON_TONES[$tone].border};
+    background: ${({ $tone = 'idle' }) => ICON_TONES[$tone].background};
+    color: ${({ $tone = 'idle' }) => ICON_TONES[$tone].color};
     border-radius: ${p => p.theme.radii.full};
-    padding: 2px 9px;
-    font-size: 11.5px;
-    font-family: inherit;
-    line-height: 1.7;
-    white-space: nowrap;
     cursor: pointer;
     transition: all ${p => p.theme.transitions.fast};
 
     &:hover { filter: brightness(0.96); }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
 
-    svg { width: 11px; height: 11px; flex-shrink: 0; }
+    svg { width: 16px; height: 16px; flex-shrink: 0; }
 
     .count {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        min-width: 15px;
+        height: 15px;
+        padding: 0 3px;
+        border-radius: ${p => p.theme.radii.full};
+        background: currentColor;
+        color: ${p => p.theme.colors.surface};
+        font-size: 9.5px;
+        line-height: 15px;
         font-weight: ${p => p.theme.fontWeights.semibold};
         font-variant-numeric: tabular-nums;
     }
+`;
+
+/**
+ * Kreska między grupami ikon. Nagłówek ma teraz trzy porcje znaczeń - kim jest
+ * klient, na czym stoi rozmowa, co można zrobić - i bez rozdzielenia czytałyby
+ * się jako jeden nierozróżnialny rządek guzików.
+ */
+const ActionDivider = styled.span`
+    width: 1px;
+    height: 18px;
+    flex-shrink: 0;
+    background: ${p => p.theme.colors.border};
 `;
 
 /**
@@ -714,14 +758,31 @@ function ConversationViewImpl({
         scrollRef.current?.scrollTo({ top: 0 });
     }, [thread.id]);
 
-    // Kotwicą chmurki notatek jest sama plakietka - trzymamy jej element, a nie flagę,
+    // Kotwicą chmurki notatek jest sam przycisk - trzymamy jego element, a nie flagę,
     // bo pozycja przelicza się przy przewinięciu nagłówka i zmianie szerokości okna.
     const [notesAnchor, setNotesAnchor] = useState<HTMLElement | null>(null);
     const [historyOpen, setHistoryOpen] = useState(false);
-    // Wizytówka klienta - kotwicą jest to, w co kliknięto: avatar przy wiadomości,
-    // nazwisko w nagłówku albo pasek rozpoznanego klienta.
+    // Wizytówka klienta - kotwicą jest to, w co kliknięto: „ludzik" w nagłówku,
+    // avatar przy wiadomości albo pasek rozpoznanego klienta.
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     const { data: contactBadges } = useThreadContactBadges(thread.id);
+    const noteCount = contactBadges?.noteCount ?? 0;
+    const otherThreadCount = contactBadges?.otherThreadCount ?? 0;
+    // Nadawca jest w kartotece. Ten sam fakt, który niesie pasek pod nagłówkiem —
+    // tylko że „ludzik" pokazuje go ZAWSZE, także klientowi bez ani jednej wizyty,
+    // dla którego paska nie ma po co rysować.
+    const clientKnown = clientSummary !== null;
+    /*
+     * Pasek klienta ma sens tylko wtedy, gdy ma co powiedzieć. Przy świeżo dodanym
+     * kliencie zdanie brzmiało „Maciej Sienkiewicz odbył u nas 0 wizyt o wartości
+     * 0,00 zł." — cały wiersz nad korespondencją po to, żeby zakomunikować dwa zera.
+     * Że klienta znamy, mówi teraz świecący „ludzik" w nagłówku; pasek zostaje dla
+     * liczb, które realnie zmieniają ton odpowiedzi.
+     */
+    const clientHistory =
+        clientSummary && (clientSummary.completedVisitCount > 0 || clientSummary.totalSpentGross > 0)
+            ? clientSummary
+            : null;
 
     return (
         <Pane $hiddenOnMobile={hiddenOnMobile}>
@@ -734,101 +795,114 @@ function ConversationViewImpl({
                 <div className="titles">
                     <h3 title={thread.subject ?? undefined}>{thread.subject ?? '(bez tematu)'}</h3>
                     <div className="sub">
-                        {/* Jedyne miejsce w widoku, w którym stoi adres uczestnika.
-                            Zarazem wejście w wizytówkę: „kto to jest" pada najczęściej
-                            wtedy, gdy patrzy się właśnie na to nazwisko. */}
-                        <IdentityButton
-                            type="button"
-                            title="Zobacz, kto to jest"
-                            onClick={(event) => setContactAnchor(event.currentTarget)}
-                        >
+                        {/* Jedyne miejsce w widoku, w którym stoi adres uczestnika. */}
+                        <span className="identity" title={thread.participantEmail}>
                             {thread.participantName
                                 ? `${thread.participantName} · ${thread.participantEmail}`
                                 : thread.participantEmail}
-                        </IdentityButton>
-
-                        {contactBadges && (
-                            <>
-                                <ContextBadge
-                                    type="button"
-                                    $tone={historyOpen ? 'active' : 'neutral'}
-                                    aria-expanded={historyOpen}
-                                    title="Zobacz historię korespondencji z tym adresem"
-                                    onClick={() => setHistoryOpen(true)}
-                                >
-                                    <MessagesSquare />
-                                    {contactBadges.otherThreadCount > 0 ? (
-                                        <>
-                                            <span className="count">{contactBadges.otherThreadCount}</span>
-                                            {` ${threadsLabel(contactBadges.otherThreadCount)}`}
-                                        </>
-                                    ) : (
-                                        'Brak poprzednich rozmów'
-                                    )}
-                                </ContextBadge>
-
-                                <ContextBadge
-                                    type="button"
-                                    $tone={
-                                        notesAnchor !== null
-                                            ? 'active'
-                                            : contactBadges.noteCount > 0
-                                              ? 'filled'
-                                              : 'neutral'
-                                    }
-                                    aria-expanded={notesAnchor !== null}
-                                    onClick={(event) => {
-                                        const badge = event.currentTarget as HTMLElement;
-                                        setNotesAnchor((current) => (current ? null : badge));
-                                    }}
-                                >
-                                    <StickyNote />
-                                    Notatka do klienta
-                                    {contactBadges.noteCount > 0 && (
-                                        <span className="count">{contactBadges.noteCount}</span>
-                                    )}
-                                </ContextBadge>
-                            </>
-                        )}
-
-                        {/* Stan rozmowy, nie akcja - dlatego stoi wśród plakietek przy
-                            adresie, a nie wśród przycisków. Kształt niesie znaczenie:
-                            pigułka mówi „tak jest", przycisk mówi „kliknij".
-
-                            Kliknięcie otwiera szczegóły leada na miejscu. Wcześniej
-                            przerzucało na widok leadów - czyli wyrzucało z rozmowy,
-                            którą się właśnie czytało, żeby pokazać dane o tej samej
-                            rozmowie, i kazało wracać przyciskiem wstecz. */}
-                        {thread.leadId && (
-                            <ContextBadge
-                                type="button"
-                                $tone={isBooked ? 'booked' : 'lead'}
-                                title="Zobacz szczegóły leada"
-                                onClick={() => setLeadDetailThreadId(thread.id)}
-                            >
-                                {isBooked ? <CalendarCheck /> : <Sparkles />}
-                                {isBooked ? 'Rezerwacja' : 'Lead'}
-                            </ContextBadge>
-                        )}
-
-                        {/* Nadawca-robot formularza: maile stąd automatycznie stają się
-                            leadami. Stan, nie akcja - ale kliknięcie otwiera zarządzanie,
-                            bo to jedyne miejsce, w którym automat da się wyłączyć. */}
-                        {activeFormSource && (
-                            <ContextBadge
-                                type="button"
-                                $tone="lead"
-                                title="Maile z tego adresu automatycznie stają się leadami - kliknij, aby zarządzać"
-                                onClick={() => setFormLeadThreadId(thread.id)}
-                            >
-                                <FileInput />
-                                Formularz
-                            </ContextBadge>
-                        )}
+                        </span>
                     </div>
                 </div>
 
                 <HeaderActions>
+                    {/* GRUPA 1 - kim jest ten klient.
+
+                        „Ludzik" świeci się, gdy nadawca jest w kartotece, i jest szary,
+                        gdy go tam nie ma. Fakt widoczny od razu, bez klikania: wcześniej
+                        odpowiedź na „czy my go w ogóle znamy" leżała pod nazwiskiem w
+                        podpisie, czyli pod kliknięciem, którego nic nie zapowiadało. */}
+                    <HeaderIconButton
+                        type="button"
+                        $tone={contactAnchor ? 'active' : clientKnown ? 'known' : 'idle'}
+                        aria-expanded={contactAnchor !== null}
+                        aria-label={clientKnown ? 'Zobacz profil klienta' : 'Zobacz, kto to jest'}
+                        title={
+                            clientKnown
+                                ? `W kartotece: ${clientSummary?.name ?? thread.participantName ?? thread.participantEmail} — zobacz profil`
+                                : 'Tego nadawcy nie ma jeszcze w kartotece — zobacz, co o nim wiemy'
+                        }
+                        onClick={(event) => {
+                            const button = event.currentTarget as HTMLElement;
+                            setContactAnchor((current) => (current ? null : button));
+                        }}
+                    >
+                        <UserRound />
+                    </HeaderIconButton>
+
+                    {/* Notatki o kliencie stoją zaraz przy ludziku, bo to ta sama porcja
+                        wiedzy: „co wiemy o tej osobie, zanim jej odpiszemy". */}
+                    <HeaderIconButton
+                        type="button"
+                        $tone={notesAnchor ? 'active' : noteCount > 0 ? 'notes' : 'idle'}
+                        aria-expanded={notesAnchor !== null}
+                        aria-label="Notatki o kliencie"
+                        title={
+                            noteCount > 0
+                                ? `Notatki o kliencie (${noteCount}) — przeczytaj, zanim odpiszesz`
+                                : 'Notatka do klienta — jeszcze żadnej nie ma'
+                        }
+                        onClick={(event) => {
+                            const button = event.currentTarget as HTMLElement;
+                            setNotesAnchor((current) => (current ? null : button));
+                        }}
+                    >
+                        <StickyNote />
+                        {noteCount > 0 && <span className="count">{noteCount}</span>}
+                    </HeaderIconButton>
+
+                    {/* Wcześniej stała tu pigułka „Brak poprzednich rozmów" - przycisk,
+                        który zapowiadał, że nie ma czego otwierać, i po kliknięciu
+                        otwierał pusty panel. Przy zerze nie ma go wcale. */}
+                    {otherThreadCount > 0 && (
+                        <HeaderIconButton
+                            type="button"
+                            $tone={historyOpen ? 'active' : 'idle'}
+                            aria-expanded={historyOpen}
+                            aria-label="Historia korespondencji z tym adresem"
+                            title={`${otherThreadCount} ${threadsLabel(otherThreadCount)} z tym adresem — zobacz historię`}
+                            onClick={() => setHistoryOpen(true)}
+                        >
+                            <MessagesSquare />
+                            <span className="count">{otherThreadCount}</span>
+                        </HeaderIconButton>
+                    )}
+
+                    {/* GRUPA 2 - na czym stoi ta rozmowa. Stan, nie krok następny:
+                        kliknięcie pokazuje szczegóły, nie zmienia świata. */}
+                    {(thread.leadId || activeFormSource) && <ActionDivider />}
+
+                    {thread.leadId && (
+                        <HeaderIconButton
+                            type="button"
+                            $tone={isBooked ? 'booked' : 'lead'}
+                            aria-label={isBooked ? 'Rezerwacja' : 'Lead'}
+                            title={
+                                isBooked
+                                    ? 'Termin już stoi — zobacz szczegóły rezerwacji'
+                                    : 'Ta rozmowa jest leadem — zobacz szczegóły'
+                            }
+                            onClick={() => setLeadDetailThreadId(thread.id)}
+                        >
+                            {isBooked ? <CalendarCheck /> : <BrainCircuit />}
+                        </HeaderIconButton>
+                    )}
+
+                    {activeFormSource && (
+                        <HeaderIconButton
+                            type="button"
+                            $tone="form"
+                            aria-label="Formularz ze strony"
+                            title="Maile z tego adresu automatycznie stają się leadami — kliknij, aby zarządzać"
+                            onClick={() => setFormLeadThreadId(thread.id)}
+                        >
+                            <FileText />
+                        </HeaderIconButton>
+                    )}
+
+                    {/* GRUPA 3 - co zrobić. Jedyne miejsce w nagłówku, w którym
+                        został NAPIS: krok następny musi dać się przeczytać, bo to on
+                        odpowiada na „co mam teraz kliknąć". Reszta jest w menu. */}
+                    <ActionDivider />
                     {primaryAction && (
                         <PrimaryButton type="button" onClick={primaryAction.onSelect}>
                             {primaryAction.icon}
@@ -903,18 +977,18 @@ function ConversationViewImpl({
                 )}
             </Header>
 
-            {clientSummary && (
+            {clientHistory && (
                 <ClientBar
                     onClick={(event) => setContactAnchor(event.currentTarget)}
                     title="Zobacz profil klienta"
                 >
                     <Wallet size={14} />
                     <span className="text">
-                        <strong>{clientSummary.name ?? thread.participantName ?? thread.participantEmail}</strong>
+                        <strong>{clientHistory.name ?? thread.participantName ?? thread.participantEmail}</strong>
                         {' odbył u nas '}
-                        <strong>{clientSummary.completedVisitCount}</strong>
-                        {` ${visitsLabel(clientSummary.completedVisitCount)} o wartości `}
-                        <strong>{formatGrosze(clientSummary.totalSpentGross)}</strong>.
+                        <strong>{clientHistory.completedVisitCount}</strong>
+                        {` ${visitsLabel(clientHistory.completedVisitCount)} o wartości `}
+                        <strong>{formatGrosze(clientHistory.totalSpentGross)}</strong>.
                     </span>
                     <span className="cta">Kliknij i dowiedz się więcej</span>
                     <ChevronRight size={14} />
