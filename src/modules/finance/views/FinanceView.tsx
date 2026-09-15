@@ -26,6 +26,7 @@ import {
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
+import { useDebounce } from '@/common/hooks';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -451,6 +452,121 @@ const ToggleText = styled.span`
   color: ${st.textSecondary};
   white-space: nowrap;
 `;
+
+// ─── Search field ─────────────────────────────────────────────────────────────
+
+/**
+ * Dokument znajduje się po tym, co akurat ma się pod ręką: numerze z papieru, NIP-ie
+ * z przelewu, nazwie kontrahenta, nazwie usługi z pozycji, numerze KSeF albo samej
+ * kwocie. Dlatego jedno pole, a nie pięć osobnych filtrów — dopasowaniem zajmuje się
+ * backend, więc szukanie obejmuje wszystkie dokumenty studia, nie tylko bieżącą stronę.
+ */
+const SearchField = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 300px;
+  min-width: 180px;
+
+  /* Telefon: wyszukiwarka jest głównym narzędziem listy, więc dostaje całą szerokość
+     i zostaje nad filtrami, zamiast ściskać się z nimi w jednym rzędzie. */
+  @media (max-width: 639px) {
+    flex: 1 1 100%;
+  }
+`;
+
+const SearchIconWrap = styled.span`
+  position: absolute;
+  left: 9px;
+  display: flex;
+  align-items: center;
+  color: ${st.textMuted};
+  pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 5px 28px 5px 29px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  color: ${st.text};
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${st.radiusSm};
+  transition: all ${st.transition};
+
+  &::placeholder { color: ${st.textMuted}; }
+
+  &:hover { border-color: ${st.borderHover}; }
+
+  &:focus {
+    outline: none;
+    border-color: ${st.accentBlue}88;
+    box-shadow: 0 0 0 3px ${st.accentBlueDim};
+  }
+
+  /* Natywny krzyżyk Safari/Chrome dublowałby własny przycisk czyszczenia. */
+  &::-webkit-search-cancel-button { display: none; }
+`;
+
+const SearchClearBtn = styled.button`
+  position: absolute;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: ${st.radiusFull};
+  background: transparent;
+  color: ${st.textMuted};
+  cursor: pointer;
+  transition: all ${st.transition};
+
+  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; color: ${st.text}; }
+`;
+
+const SearchIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const ClearIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+interface FilterSearchProps {
+  value:    string;
+  onChange: (value: string) => void;
+  label:    string;
+}
+
+const FilterSearch: React.FC<FilterSearchProps> = ({ value, onChange, label }) => (
+  <SearchField>
+    <SearchIconWrap><SearchIcon /></SearchIconWrap>
+    <SearchInput
+      type="search"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Szukaj: nazwa, NIP, numer, pozycja, kwota"
+      aria-label={label}
+      autoComplete="off"
+      spellCheck={false}
+    />
+    {value && (
+      <SearchClearBtn onClick={() => onChange('')} title="Wyczyść wyszukiwanie" aria-label="Wyczyść wyszukiwanie">
+        <ClearIcon />
+      </SearchClearBtn>
+    )}
+  </SearchField>
+);
 
 // ─── Other filter elements ────────────────────────────────────────────────────
 
@@ -979,12 +1095,16 @@ interface IncomeFilters {
   documentType:  string;
   paymentStatus: string;
   duplicates:    boolean;
+  search:        string;
   page:          number;
 }
 
 const EMPTY_INCOME_FILTERS: IncomeFilters = {
-  documentType: '', paymentStatus: '', duplicates: false, page: 1,
+  documentType: '', paymentStatus: '', duplicates: false, search: '', page: 1,
 };
+
+/** Pisanie we frazie nie może wysyłać zapytania na każdą literę. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 interface IncomeTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
@@ -999,6 +1119,7 @@ interface IncomeTabContentProps {
 const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, onSelect }) => {
   const [filters, setFilters] = useState<IncomeFilters>(EMPTY_INCOME_FILTERS);
   const [showExcluded, setShowExcluded] = useState(false);
+  const searchTerm = useDebounce(filters.search.trim(), SEARCH_DEBOUNCE_MS);
 
   const { documents, total, isLoading, isError, refetch } = useIncomeDocuments({
     documentType:  (filters.documentType  as IncomeDocumentType) || undefined,
@@ -1006,6 +1127,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
     dateFrom:        activeDateRange.dateFrom,
     dateTo:          activeDateRange.dateTo,
     includeExcluded: showExcluded || undefined,
+    search:          searchTerm || undefined,
     page:            filters.page,
     pageSize:        PAGE_SIZE,
   });
@@ -1017,7 +1139,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
     : documents;
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.documentType || filters.paymentStatus || filters.duplicates);
+  const hasFilters = !!(filters.documentType || filters.paymentStatus || filters.duplicates || filters.search);
   const setFilter  = <K extends keyof IncomeFilters>(key: K, value: IncomeFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
 
@@ -1026,6 +1148,11 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
       <KsefSyncWidget />
 
       <FiltersStrip>
+        <FilterSearch
+          value={filters.search}
+          onChange={(val) => setFilter('search', val)}
+          label="Szukaj dokumentu przychodowego"
+        />
         <FilterSelect
           value={filters.documentType}
           onChange={(val) => setFilter('documentType', val)}
@@ -1099,7 +1226,12 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           <button onClick={() => refetch()}>Spróbuj ponownie</button>
         </InlineError>
       ) : (
-        <IncomeDocumentsTable documents={visibleDocuments} isLoading={isLoading} onSelect={onSelect} />
+        <IncomeDocumentsTable
+          documents={visibleDocuments}
+          isLoading={isLoading}
+          onSelect={onSelect}
+          searchTerm={searchTerm}
+        />
       )}
 
       {totalPages > 1 && (
@@ -1134,18 +1266,22 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
 interface ExpenseFilters {
   source:        string;
   paymentStatus: string;
+  search:        string;
   page:          number;
 }
+
+const EMPTY_EXPENSE_FILTERS: ExpenseFilters = {
+  source: '', paymentStatus: '', search: '', page: 1,
+};
 
 interface ExpensesTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
 }
 
 const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange }) => {
-  const [filters, setFilters] = useState<ExpenseFilters>({
-    source: '', paymentStatus: '', page: 1,
-  });
+  const [filters, setFilters] = useState<ExpenseFilters>(EMPTY_EXPENSE_FILTERS);
   const [showExcluded, setShowExcluded] = useState(false);
+  const searchTerm = useDebounce(filters.search.trim(), SEARCH_DEBOUNCE_MS);
 
   const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
     source:          (filters.source        as ExpenseSource)        || undefined,
@@ -1153,12 +1289,13 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
     dateFrom:        activeDateRange.dateFrom,
     dateTo:          activeDateRange.dateTo,
     includeExcluded: showExcluded      || undefined,
+    search:          searchTerm || undefined,
     page:            filters.page,
     pageSize:        PAGE_SIZE,
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.source || filters.paymentStatus);
+  const hasFilters = !!(filters.source || filters.paymentStatus || filters.search);
   const setFilter  = <K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
 
@@ -1167,6 +1304,11 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
       <KsefSyncWidget />
 
       <FiltersStrip>
+        <FilterSearch
+          value={filters.search}
+          onChange={(val) => setFilter('search', val)}
+          label="Szukaj dokumentu kosztowego"
+        />
         <FilterSelect
           value={filters.source}
           onChange={(val) => setFilter('source', val)}
@@ -1188,7 +1330,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
         <DesktopOnlyControls>
           <FilterSeparator />
           {hasFilters && (
-            <ClearFiltersBtn onClick={() => setFilters({ source: '', paymentStatus: '', page: 1 })}>
+            <ClearFiltersBtn onClick={() => setFilters(EMPTY_EXPENSE_FILTERS)}>
               Wyczyść filtry
             </ClearFiltersBtn>
           )}
@@ -1212,7 +1354,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
             { kind: 'toggle', key: 'excluded', label: 'Pokaż ukryte', on: showExcluded,
               onSelect: () => setShowExcluded(!showExcluded) },
             ...(hasFilters ? [{ kind: 'action' as const, key: 'clear', label: 'Wyczyść filtry',
-              onSelect: () => setFilters({ source: '', paymentStatus: '', page: 1 }) }] : []),
+              onSelect: () => setFilters(EMPTY_EXPENSE_FILTERS) }] : []),
             { kind: 'action', key: 'refresh', label: 'Odśwież', icon: <RefreshIcon />, onSelect: () => refetch() },
           ]}
         />
@@ -1225,7 +1367,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           <button onClick={() => refetch()}>Spróbuj ponownie</button>
         </InlineError>
       ) : (
-        <KsefExpensesTable expenses={expenses} isLoading={isLoading} />
+        <KsefExpensesTable expenses={expenses} isLoading={isLoading} searchTerm={searchTerm} />
       )}
 
       {totalPages > 1 && (

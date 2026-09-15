@@ -413,6 +413,12 @@ export interface KsefExpenseListFilters {
   dateFrom?:        string;
   dateTo?:          string;
   includeExcluded?: boolean;
+  /**
+   * Jedna fraza szukana po NIP-ie i nazwie sprzedawcy, nazwach pozycji, numerze
+   * dokumentu, numerze KSeF i kwocie. Dopasowanie robi backend — szuka w całym
+   * zbiorze studia, nie tylko na bieżącej stronie listy.
+   */
+  search?:          string;
 }
 
 export interface CreateExpenseRequest {
@@ -511,6 +517,12 @@ export interface IncomeDocumentFilters {
   dateTo?:        string;
   onlyKsef?:      boolean;
   includeExcluded?: boolean;
+  /**
+   * Jedna fraza szukana po NIP-ie i nazwie kontrahenta, nazwach pozycji, numerze
+   * dokumentu, numerze KSeF i kwocie. Dopasowanie robi backend — szuka w całym
+   * zbiorze studia, nie tylko na bieżącej stronie listy.
+   */
+  search?:        string;
 }
 
 // ─── KSeF: Faktury przychodowe ────────────────────────────────────────────────

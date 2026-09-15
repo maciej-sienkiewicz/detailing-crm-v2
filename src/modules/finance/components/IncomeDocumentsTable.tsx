@@ -300,12 +300,15 @@ interface IncomeDocumentsTableProps {
   documents: IncomeDocument[];
   isLoading: boolean;
   onSelect: (document: IncomeDocument) => void;
+  /** Aktywna fraza wyszukiwarki - pusty wynik szukania to co innego niż pusta lista. */
+  searchTerm?: string;
 }
 
 export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   documents,
   isLoading,
   onSelect,
+  searchTerm,
 }) => {
   const excludeMutation = useExcludeIncomeDocument();
   const restoreMutation = useRestoreIncomeDocument();
@@ -320,6 +323,18 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   };
 
   if (!isLoading && documents.length === 0) {
+    // Szukający wie, że dokumenty istnieją - zachęta „wystaw fakturę" byłaby wtedy
+    // odpowiedzią na pytanie, którego nie zadał.
+    if (searchTerm) {
+      return (
+        <EmptyState>
+          <strong>Brak wyników dla „{searchTerm}"</strong>
+          Szukamy po nazwie i NIP-ie kontrahenta, nazwach pozycji, numerze dokumentu,
+          numerze KSeF i kwocie. Sprawdź też zakres dat i pozostałe filtry.
+        </EmptyState>
+      );
+    }
+
     return (
       <EmptyState>
         <strong>Brak dokumentów przychodowych</strong>
