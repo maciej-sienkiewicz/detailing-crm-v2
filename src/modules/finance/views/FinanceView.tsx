@@ -161,8 +161,14 @@ const FiltersStrip = styled.div`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
 `;
 
+/**
+ * Resztka wolnego miejsca po tym, jak wypełni się pole wyszukiwania - dzięki niej
+ * przełączniki trzymają się prawej krawędzi. Rośnie wolniej niż pole (grow 1 kontra 6),
+ * więc na typowym ekranie miejsce dostaje najpierw wyszukiwarka, a separator dopiero
+ * to, czego nie zdążyła wziąć przed swoim limitem szerokości.
+ */
 const FilterSeparator = styled.div`
-  flex: 1;
+  flex: 1 1 0;
 `;
 
 // ─── Custom Select for filters ────────────────────────────────────────────────
@@ -296,10 +302,17 @@ const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, p
 /* Telefon: pasek narzędzi ma zmieścić dwa filtry i nic więcej. Przełączniki
    („Tylko podejrzane duplikaty", „Pokaż ukryte"), czyszczenie filtrów
    i odświeżanie chowają się pod trzema kropkami. */
+/**
+ * Przełączniki „Tylko podejrzane duplikaty" i „Pokaż ukryte" zjadają w pasku ~370 px.
+ * Na wąskim laptopie zostawiały wyszukiwarce niecałe 290 px - pole podstawowe przegrywało
+ * miejscem z dwoma rzadko używanymi wyjątkami. Poniżej 1200 px składają się więc do menu
+ * „więcej" (tam, gdzie od zawsze idą na telefonie), a wyszukiwarka dostaje ich miejsce.
+ * Żadna funkcja nie znika: kebab niesie te same przełączniki, odświeżanie i czyszczenie filtrów.
+ */
 const DesktopOnlyControls = styled.div`
   display: contents;
 
-  @media (max-width: 639px) {
+  @media (max-width: 1199px) {
     display: none;
   }
 `;
@@ -308,7 +321,7 @@ const KebabWrap = styled.div`
   display: none;
   margin-left: auto;
 
-  @media (max-width: 639px) {
+  @media (max-width: 1199px) {
     display: block;
   }
 `;
@@ -458,26 +471,34 @@ const ToggleText = styled.span`
 /**
  * Dokument znajduje się po tym, co akurat ma się pod ręką: numerze z papieru, NIP-ie
  * z przelewu, nazwie kontrahenta, nazwie usługi z pozycji, numerze KSeF albo samej
- * kwocie. Dlatego jedno pole, a nie pięć osobnych filtrów — dopasowaniem zajmuje się
+ * kwocie. Dlatego jedno pole, a nie pięć osobnych filtrów - dopasowaniem zajmuje się
  * backend, więc szukanie obejmuje wszystkie dokumenty studia, nie tylko bieżącą stronę.
+ *
+ * Pole rośnie (`flex: 1`) i zabiera wolne miejsce, które wcześniej było pustym
+ * odstępem między filtrami a przełącznikami. To nie kosmetyka: przy stałych 300 px
+ * placeholder wypadał poza krawędź („Szukaj: nazwa, NIP, numer, pozycja, kwot…"),
+ * czyli jedyna podpowiedź, po czym wolno szukać, była ucięta w połowie. Górny limit
+ * trzyma pole w proporcji na szerokich ekranach, a [searchPlaceholder] dobiera
+ * długość tekstu do tego, ile miejsca realnie zostaje.
  */
 const SearchField = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  flex: 0 1 300px;
+  flex: 6 1 240px;
   min-width: 180px;
+  max-width: 520px;
 
-  /* Telefon: wyszukiwarka jest głównym narzędziem listy, więc dostaje całą szerokość
-     i zostaje nad filtrami, zamiast ściskać się z nimi w jednym rzędzie. */
+  /* Telefon: wyszukiwarka jest głównym narzędziem listy, więc bierze całą szerokość. */
   @media (max-width: 639px) {
     flex: 1 1 100%;
+    max-width: none;
   }
 `;
 
 const SearchIconWrap = styled.span`
   position: absolute;
-  left: 9px;
+  left: 10px;
   display: flex;
   align-items: center;
   color: ${st.textMuted};
@@ -486,7 +507,7 @@ const SearchIconWrap = styled.span`
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 5px 28px 5px 29px;
+  padding: 6px 30px 6px 31px;
   font-family: inherit;
   font-size: ${st.fontSm};
   color: ${st.text};
@@ -494,6 +515,7 @@ const SearchInput = styled.input`
   border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: ${st.radiusSm};
   transition: all ${st.transition};
+  text-overflow: ellipsis;
 
   &::placeholder { color: ${st.textMuted}; }
 
@@ -507,11 +529,17 @@ const SearchInput = styled.input`
 
   /* Natywny krzyżyk Safari/Chrome dublowałby własny przycisk czyszczenia. */
   &::-webkit-search-cancel-button { display: none; }
+
+  /* iOS zoomuje widok przy focusie na polu mniejszym niż 16px. */
+  @media (max-width: 639px) {
+    font-size: 16px;
+    padding: 9px 34px 9px 34px;
+  }
 `;
 
 const SearchClearBtn = styled.button`
   position: absolute;
-  right: 5px;
+  right: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -526,6 +554,12 @@ const SearchClearBtn = styled.button`
   transition: all ${st.transition};
 
   &:hover { background: ${(p) => p.theme.colors.surfaceHover}; color: ${st.text}; }
+
+  @media (max-width: 639px) {
+    right: 10px;
+    width: 22px;
+    height: 22px;
+  }
 `;
 
 const SearchIcon = () => (
@@ -542,30 +576,134 @@ const ClearIcon = () => (
   </svg>
 );
 
+/** Pełna lista przeszukiwanych pól - jako tooltip i jako tekst pustego wyniku. */
+const SEARCH_HINT = 'Szukaj po nazwie i NIP-ie kontrahenta, nazwach pozycji, numerze dokumentu, numerze KSeF i kwocie';
+
+/**
+ * Placeholder wymienia pola tylko wtedy, gdy cała lista naprawdę się mieści.
+ *
+ * Decyduje zmierzona szerokość pola, nie szerokość okna: to samo okno daje polu raz
+ * 390 px, raz 290 px - zależnie od zwiniętego menu bocznego i od tego, ile miejsca
+ * zabrały filtry. Pierwsza wersja zgadywała z media query i przy 1280 px dalej ucinała
+ * tekst w połowie słowa („…numer, kw…"), co jest gorsze niż krótkie wezwanie: obiecuje
+ * listę pól, a nie pokazuje żadnego. Progi mają zapas na wersaliki i szerszy font.
+ */
+const placeholderFor = (width: number): string => {
+  if (width >= 400) return 'Szukaj: nazwa, NIP, numer, pozycja, kwota';
+  if (width >= 330) return 'Szukaj: nazwa, NIP, numer, kwota';
+  if (width >= 240) return 'Szukaj faktury lub kontrahenta';
+  return 'Szukaj';
+};
+
+/** Aktualna szerokość elementu w px; 0 do pierwszego pomiaru. */
+const useMeasuredWidth = <T extends HTMLElement>() => {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, width };
+};
+
 interface FilterSearchProps {
   value:    string;
   onChange: (value: string) => void;
   label:    string;
 }
 
-const FilterSearch: React.FC<FilterSearchProps> = ({ value, onChange, label }) => (
-  <SearchField>
-    <SearchIconWrap><SearchIcon /></SearchIconWrap>
-    <SearchInput
-      type="search"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="Szukaj: nazwa, NIP, numer, pozycja, kwota"
-      aria-label={label}
-      autoComplete="off"
-      spellCheck={false}
-    />
-    {value && (
-      <SearchClearBtn onClick={() => onChange('')} title="Wyczyść wyszukiwanie" aria-label="Wyczyść wyszukiwanie">
-        <ClearIcon />
-      </SearchClearBtn>
-    )}
-  </SearchField>
+const FilterSearch: React.FC<FilterSearchProps> = ({ value, onChange, label }) => {
+  const { ref, width } = useMeasuredWidth<HTMLDivElement>();
+
+  return (
+    <SearchField ref={ref}>
+      <SearchIconWrap><SearchIcon /></SearchIconWrap>
+      <SearchInput
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholderFor(width)}
+        title={SEARCH_HINT}
+        aria-label={`${label}. ${SEARCH_HINT}`}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      {value && (
+        <SearchClearBtn onClick={() => onChange('')} title="Wyczyść wyszukiwanie" aria-label="Wyczyść wyszukiwanie">
+          <ClearIcon />
+        </SearchClearBtn>
+      )}
+    </SearchField>
+  );
+};
+
+// ─── Pasek kontekstu wyszukiwania ─────────────────────────────────────────────
+
+/**
+ * Pojawia się wyłącznie przy aktywnej frazie i odpowiada na pytanie, które zadaje
+ * sobie każdy szukający: „czy to już wszystko?". Bez niego lista po wpisaniu frazy
+ * wygląda jak lista skrócona bez powodu - licznik u dołu pokazuje się dopiero przy
+ * wielu stronach. Przy okazji daje wyjście jednym kliknięciem, bez celowania
+ * w krzyżyk w polu.
+ */
+const SearchSummary = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: ${st.accentBlueDim};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  font-size: ${st.fontSm};
+  color: ${st.textSecondary};
+
+  strong { color: ${st.text}; font-weight: 600; }
+
+  @media (max-width: 639px) {
+    padding: 8px 14px;
+  }
+`;
+
+const SearchSummaryClear = styled.button`
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: ${st.accentBlue};
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { text-decoration: underline; }
+`;
+
+const documentsCountLabel = (count: number): string => {
+  if (count === 1) return '1 dokument';
+  const rest = count % 10;
+  const teens = count % 100;
+  const few = rest >= 2 && rest <= 4 && !(teens >= 12 && teens <= 14);
+  return `${count} ${few ? 'dokumenty' : 'dokumentów'}`;
+};
+
+interface SearchSummaryBarProps {
+  term:    string;
+  count:   number;
+  onClear: () => void;
+}
+
+const SearchSummaryBar: React.FC<SearchSummaryBarProps> = ({ term, count, onClear }) => (
+  <SearchSummary>
+    <span>
+      {count === 0 ? 'Brak wyników dla ' : `${documentsCountLabel(count)} dla `}
+      <strong>„{term}"</strong>
+    </span>
+    <SearchSummaryClear onClick={onClear}>Wyczyść wyszukiwanie</SearchSummaryClear>
+  </SearchSummary>
 );
 
 // ─── Other filter elements ────────────────────────────────────────────────────
@@ -1219,6 +1357,14 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
         />
       </FiltersStrip>
 
+      {searchTerm && !isLoading && !isError && (
+        <SearchSummaryBar
+          term={searchTerm}
+          count={visibleDocuments.length}
+          onClear={() => setFilter('search', '')}
+        />
+      )}
+
       {isError ? (
         <InlineError>
           Nie udało się załadować dokumentów przychodowych.
@@ -1359,6 +1505,14 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           ]}
         />
       </FiltersStrip>
+
+      {searchTerm && !isLoading && !isError && (
+        <SearchSummaryBar
+          term={searchTerm}
+          count={total}
+          onClear={() => setFilter('search', '')}
+        />
+      )}
 
       {isError ? (
         <InlineError>

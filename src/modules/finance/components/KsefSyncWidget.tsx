@@ -1,102 +1,102 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useKsefSyncStatus } from '../hooks/useKsef';
-import type { KsefSyncStatusValue } from '../types';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 /**
- * Pasek stanu synchronizacji z KSeF nad listą dokumentów.
+ * Ostrzeżenie o niekompletnej liście dokumentów - i nic poza tym.
  *
- * Mówi wyłącznie o tym, czy lista jest kompletna. Data ostatniej synchronizacji
- * i ręczne „Synchronizuj teraz" zniknęły świadomie: synchronizacja chodzi
- * automatycznie, więc obie rzeczy były obsługą systemu wstawioną w widok
- * dokumentów - nie odpowiadały na żadne pytanie księgowej, a zabierały uwagę
- * i miejsce nad tabelą. Zostaje sygnał, który faktycznie zmienia decyzję:
- * kiedy synchronizacja się nie udała, na liście może brakować faktur.
+ * Wcześniej stał tu stały pasek statusu: zielona kropka, „Synchronizacja OK",
+ * data ostatniego przebiegu i przycisk „Synchronizuj teraz". Trzy czwarte tego
+ * paska to była obsługa systemu wstawiona w widok dokumentów, a po wyjęciu daty
+ * i przycisku zostawał pusty pas z jednym słowem - chrom bez treści.
+ *
+ * Stan zdrowej synchronizacji nie jest informacją: nikt nie wchodzi na listę
+ * faktur, żeby dowiedzieć się, że wszystko działa. Informacją jest dopiero jej
+ * brak, bo wtedy lista, którą właśnie czytasz, może nie zawierać wszystkich
+ * faktur - i to jedno zdanie ten komponent mówi. Przy zdrowym stanie nie
+ * renderuje niczego, więc nad tabelą nie zostaje po nim ślad.
  */
-const Widget = styled.div`
+const Banner = styled.div<{ $tone: 'warning' | 'danger' }>`
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 10px;
   padding: 10px 16px;
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
-  flex-wrap: wrap;
+  background: ${(p) => (p.$tone === 'danger' ? '#fef2f2' : '#fffbeb')};
+  border-bottom: 1px solid ${(p) => (p.$tone === 'danger' ? '#fecaca' : '#fde68a')};
+  color: ${(p) => (p.$tone === 'danger' ? '#991b1b' : '#92400e')};
 
-  /* Telefon: stan integracji to sprawa obsługi systemu, nie przeglądania
-     dokumentów - pasek znika i oddaje miejsce liście. */
   @media (max-width: 639px) {
-    display: none;
+    padding: 10px 14px;
   }
 `;
 
-const StatusDot = styled.span<{ $status: KsefSyncStatusValue }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+const IconSlot = styled.span`
+  display: flex;
   flex-shrink: 0;
-  background: ${(p) => {
-    switch (p.$status) {
-      case 'SUCCESS':      return '#10b981';
-      case 'RUNNING':      return '#3b82f6';
-      case 'FAILED':       return '#ef4444';
-      case 'NEVER_SYNCED': return '#94a3b8';
-    }
-  }};
+  margin-top: 1px;
 `;
 
-const StatusText = styled.span`
+const Message = styled.div`
   font-size: 12px;
-  font-weight: 500;
-  color: ${(p) => p.theme.colors.textSecondary};
-  white-space: nowrap;
+  line-height: 1.45;
+  min-width: 0;
+
+  strong {
+    font-weight: 600;
+  }
 `;
 
-const ErrorText = styled.span`
-  font-size: 12px;
-  color: #ef4444;
-  font-weight: 500;
-  max-width: 400px;
+/** Treść błędu z KSeF: techniczna, więc w drugim planie i skrócona do jednej linii. */
+const Detail = styled.span`
+  display: block;
+  margin-top: 2px;
+  opacity: 0.75;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const syncStatusLabel = (status: KsefSyncStatusValue): string => {
-  switch (status) {
-    case 'SUCCESS':      return 'Synchronizacja OK';
-    case 'RUNNING':      return 'Synchronizacja trwa...';
-    case 'FAILED':       return 'Błąd synchronizacji';
-    case 'NEVER_SYNCED': return 'Nigdy nie synchronizowano';
-  }
-};
+const AlertIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const KsefSyncWidget: React.FC = () => {
   const { syncStatus, isLoading } = useKsefSyncStatus();
 
-  if (isLoading || !syncStatus) {
-    return (
-      <Widget>
-        <StatusDot $status="NEVER_SYNCED" />
-        <StatusText>Ładowanie statusu synchronizacji...</StatusText>
-      </Widget>
-    );
-  }
+  // Cisza przy zdrowym stanie: OK, trwająca synchronizacja i jeszcze nieznany stan
+  // nie zmieniają tego, co użytkownik ma zrobić z listą.
+  if (isLoading || !syncStatus) return null;
+  if (syncStatus.syncStatus === 'SUCCESS' || syncStatus.syncStatus === 'RUNNING') return null;
+
+  const failed = syncStatus.syncStatus === 'FAILED';
 
   return (
-    <Widget>
-      <StatusDot $status={syncStatus.syncStatus} />
-      <StatusText>{syncStatusLabel(syncStatus.syncStatus)}</StatusText>
-      {syncStatus.syncStatus === 'FAILED' && syncStatus.lastError && (
-        <ErrorText title={syncStatus.lastError}>
-          {syncStatus.lastError}
-        </ErrorText>
-      )}
-    </Widget>
+    <Banner $tone={failed ? 'danger' : 'warning'} role="status">
+      <IconSlot><AlertIcon /></IconSlot>
+      <Message>
+        {failed ? (
+          <>
+            <strong>Synchronizacja z KSeF nie powiodła się.</strong>{' '}
+            Lista może nie zawierać najnowszych faktur.
+            {syncStatus.lastError && (
+              <Detail title={syncStatus.lastError}>{syncStatus.lastError}</Detail>
+            )}
+          </>
+        ) : (
+          <>
+            <strong>Nie pobrano jeszcze faktur z KSeF.</strong>{' '}
+            Widać tu wyłącznie dokumenty dodane w CRM - sprawdź dane dostępowe KSeF w Ustawieniach.
+          </>
+        )}
+      </Message>
+    </Banner>
   );
 };
