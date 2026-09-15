@@ -6,7 +6,6 @@ import {
   ModalHeader,
   ModalTitleGroup,
   ModalTitle,
-  ModalSubtitle,
   ModalContent,
   ModalFooter,
   CloseBtn,
@@ -22,10 +21,33 @@ const FieldGroup = styled.div`
   gap: 6px;
 `;
 
+// Naglowek bez podtytulu to jeden wiersz tekstu obok 40px ikony - domyslne
+// wyrownanie do gory zostawialoby tytul przyklejony do sufitu.
+const Header = styled(ModalHeader)`
+  align-items: center;
+`;
+
+const LabelRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
 const Label = styled.label`
   font-size: 13px;
   font-weight: 600;
   color: #374151;
+`;
+
+// Gwiazdka nie mowi nic komus, kto nie zna konwencji, a "(opcjonalnie)" wciete
+// w etykiete zlewa sie z jej trescia. Adnotacja stoi obok: mniejsza i szara,
+// wiec czyta sie ja po etykiecie, a nie razem z nia.
+const LabelNote = styled.span`
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  line-height: 1.3;
 `;
 
 const Input = styled.input`
@@ -265,29 +287,29 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
 
   return (
     <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
-      <ModalHeader>
+      <Header>
         <IconWrap>
           <ClipboardList />
         </IconWrap>
         <ModalTitleGroup>
           <ModalTitle>{isEditing ? 'Edytuj notatkę' : 'Nowa notatka'}</ModalTitle>
-          <ModalSubtitle>
-            {isEditing ? 'Zmień treść lub kontekst.' : 'Dodaj zadanie do listy "Do zrobienia".'}
-          </ModalSubtitle>
         </ModalTitleGroup>
         <CloseBtn onClick={onClose} aria-label="Zamknij" />
-      </ModalHeader>
+      </Header>
 
       <form onSubmit={handleSubmit}>
         <ModalContent>
           <FieldGroup>
-            <Label htmlFor="task-title">Tytuł *</Label>
+            <LabelRow>
+              <Label htmlFor="task-title">Tytuł</Label>
+              <LabelNote>Obowiązkowe</LabelNote>
+            </LabelRow>
             <Input
               id="task-title"
               ref={titleRef}
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="np. Zadzwoń do klienta, Zamów materiały..."
+              placeholder="np. Zadzwoń do klienta"
               maxLength={200}
               required
             />
@@ -297,12 +319,15 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
           </FieldGroup>
 
           <FieldGroup>
-            <Label htmlFor="task-meta">Kontekst (opcjonalnie)</Label>
+            <LabelRow>
+              <Label htmlFor="task-meta">Kontekst</Label>
+              <LabelNote>Opcjonalne</LabelNote>
+            </LabelRow>
             <Textarea
               id="task-meta"
               value={meta}
               onChange={e => setMeta(e.target.value)}
-              placeholder="np. Pilne · do piątku, Magazyn · niski stan..."
+              placeholder="np. Pilne, termin do piątku"
               maxLength={300}
             />
             {meta.length > 220 && (
