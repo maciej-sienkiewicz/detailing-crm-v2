@@ -44,6 +44,37 @@ const TwoUp = styled.div`
     grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
     gap: 16px;
     align-items: start;
+
+    /*
+     * Element siatki ma domyślnie min-width: auto, czyli NIE MOŻE być węższy
+     * od swojej treści — a tor owszem. Szeroka tabela rozpychała więc kartę poza
+     * tor i malowała swoje kolumny na sąsiednim panelu; nie widać tego jako
+     * przewijania, tylko jako cyfry w cudzych wierszach. Zero przywraca zasadę,
+     * że tor jest granicą.
+     */
+    > * { min-width: 0; }
+`;
+
+/**
+ * Karta podsumowania jest KONTENEREM zapytań — o układ tabeli w środku pyta
+ * własna szerokość karty, a nie szerokość okna.
+ *
+ * W siatce dwukolumnowej te dwie rzeczy się rozjeżdżają: przy oknie 1100 px
+ * karta dostaje ~520 px. `@media` widziałoby 1100 px i zostawiło układ
+ * desktopowy w kolumnie, w której się on nie mieści.
+ */
+const SummaryCard = styled(Card)`
+    container-type: inline-size;
+`;
+
+/**
+ * Ostatnia zapora: gdyby tabela mimo wszystko nie zmieściła się w karcie,
+ * ma przewinąć się W ŚRODKU, a nie wyjechać na sąsiada. Przewijanie widać
+ * i da się je obsłużyć — cicho przycięta kolumna to utrata danych.
+ */
+const TableScroll = styled.div`
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 `;
 
 const HeadRow = styled.div`
@@ -202,6 +233,16 @@ const Name = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
 
+    /* Nazwa, znacznik „TRWA" i odnośnik do strony w jednej nieprzerywalnej
+       linii mają ~260 px — to one, a nie liczby, rozpychały tabelę. W wąskiej
+       karcie schodzą do drugiej linijki. */
+    @container (max-width: 640px) {
+        flex-wrap: wrap;
+        white-space: normal;
+        row-gap: 4px;
+        padding-right: 0;
+    }
+
     em {
         font-style: normal;
         font-weight: 400;
@@ -312,6 +353,18 @@ const Table = styled.table`
     }
 
     th.num { text-align: right; }
+
+    /* „Dni sponsorowane" w jednej linii to ~130 px, których w wąskiej kolumnie
+       siatki po prostu nie ma. Łamany nagłówek jest brzydszy niż jednolinijkowy
+       i o wiele lepszy niż tabela wychodząca poza kartę.
+
+       Próg 640 px, a nie 560: w układzie szerokim ta tabela potrzebuje ~600 px,
+       więc przełącznik musi leżeć powyżej tej liczby. Przy 560 px karta o 562 px
+       dostawała jeszcze układ szeroki i tabela przewijała się w środku. */
+    @container (max-width: 640px) {
+        th { white-space: normal; }
+        th, td { padding: 8px 6px; }
+    }
 
     td {
         padding: 12px;
@@ -548,9 +601,10 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
 
             <TwoUp>
             {rows.length > 0 && (
-                <Card>
+                <SummaryCard>
                     <CardTitle>Podsumowanie roku</CardTitle>
                     <CardHint>Dni liczone dla każdej kampanii osobno.</CardHint>
+                    <TableScroll>
                     <Table>
                         <thead>
                             <tr>
@@ -577,13 +631,14 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                             ))}
                         </tbody>
                     </Table>
+                    </TableScroll>
                     <FootNote>
                         <strong>Dni sponsorowane</strong> — dni każdej kampanii liczone osobno: 4 kampanie
                         od 14 do 16 marca to 4 × 3 = 12 dni.<br />
                         <strong>Zasięg</strong> — szacunkowa liczba kont Meta w Polsce, które zobaczyły
                         reklamę co najmniej raz.
                     </FootNote>
-                </Card>
+                </SummaryCard>
             )}
 
             <AreaSection />

@@ -123,14 +123,37 @@ const HideButton = styled.button`
     &:disabled { cursor: default; opacity: 0.25; }
 `;
 
-// ── Tabela (od 641 px) ────────────────────────────────────────────────────────
+/**
+ * Karta sekcji jest KONTENEREM zapytań i to jej własna szerokość decyduje
+ * o układzie środka.
+ *
+ * Wcześniej o przełączeniu tabela↔karty decydowało `@media`, czyli szerokość
+ * OKNA. Ta sekcja stoi jednak obok „Podsumowania roku" w siatce dwukolumnowej:
+ * przy oknie 1100 px dostawała ~520 px, a zapytanie widziało 1100 px i zostawiało
+ * tabelę. Tabela nie mieściła się w torze i — bo element siatki ma domyślne
+ * `min-width: auto` — wylewała się na sąsiedni panel, malując swoje kolumny
+ * na cudzych wierszach.
+ *
+ * `container-type: inline-size` załatwia oba problemy naraz: daje jednostkę
+ * odniesienia zapytaniom niżej i odcina wpływ treści na szerokość karty, więc
+ * nic nie jest już w stanie rozepchnąć jej poza tor.
+ */
+const AreaCard = styled(Card)`
+    container-type: inline-size;
+    min-width: 0;
+`;
+
+// ── Tabela (gdy karta ma miejsce) ─────────────────────────────────────────────
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
 
-    @media (max-width: 640px) { display: none; }
+    /* Próg dobrany do treści, nie do urządzenia: najwęższy sensowny układ tej
+       tabeli to ~480 px. Niżej idą karty — także wtedy, gdy okno jest szerokie,
+       a wąska jest sama kolumna siatki. */
+    @container (max-width: 520px) { display: none; }
 `;
 
 const Th = styled.th<{ $num?: boolean }>`
@@ -180,7 +203,7 @@ const CardList = styled.ul`
     margin: 0;
     padding: 0;
 
-    @media (max-width: 640px) { display: block; }
+    @container (max-width: 520px) { display: block; }
 `;
 
 const AdvertiserCard = styled.li`
@@ -464,7 +487,7 @@ export const AreaSection = () => {
     const resultsQuery = useAreaResults(page);
 
     return (
-        <Card>
+        <AreaCard>
             <HeadRow>
                 <CardTitle>Reklamodawcy w okolicy</CardTitle>
                 <GearButton
@@ -525,6 +548,6 @@ export const AreaSection = () => {
             )}
 
             <AreaConfigModal isOpen={configOpen} onClose={() => setConfigOpen(false)} />
-        </Card>
+        </AreaCard>
     );
 };
