@@ -257,6 +257,32 @@ const VisitMeta = styled.div`
   svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
 `;
 
+/**
+ * Zdania zastępcze dla brakujących danych. Jedno miejsce, bo używa ich zarówno
+ * wiersz panelu, jak i kartka lecąca do kalendarza — i mają brzmieć tak samo.
+ */
+const NO_CUSTOMER = 'Nie wprowadzono klienta';
+const NO_VEHICLE = 'Nie wprowadzono pojazdu';
+
+/**
+ * Separator między klientem a pojazdem. Jaśniejszy od treści, bo jest
+ * interpunkcją, a nie informacją — i `aria-hidden`, żeby czytnik ekranu nie
+ * czytał go jako słowa.
+ */
+const MetaSeparator = styled.span`
+  color: #cbd5e1;
+  flex-shrink: 0;
+`;
+
+/**
+ * Brak danych. Kursywa odróżnia zastępcze zdanie od prawdziwej nazwy — bez niej
+ * „Nie wprowadzono pojazdu" czyta się jak model auta.
+ */
+const MetaMissing = styled.em`
+  font-style: italic;
+  color: #94a3b8;
+`;
+
 const StatusBadge = styled.span<{ $kind: VisitStatusKind }>`
   display: inline-flex;
   align-items: center;
@@ -436,7 +462,13 @@ const VisitRowItem = ({
       )}
       <VisitMeta>
         <User />
-        <PiiValue value={visit.customerName} kind="name" /> · {visit.vehicleName}
+        {visit.customerName
+          ? <PiiValue value={visit.customerName} kind="name" />
+          : <MetaMissing>{NO_CUSTOMER}</MetaMissing>}
+        <MetaSeparator aria-hidden="true">–</MetaSeparator>
+        {visit.vehicleName
+          ? <span>{visit.vehicleName}</span>
+          : <MetaMissing>{NO_VEHICLE}</MetaMissing>}
       </VisitMeta>
     </div>
     <StatusBadge $kind={visit.statusKind}>{visit.statusLabel}</StatusBadge>
@@ -495,8 +527,10 @@ export const UpcomingVisitsPanel = () => {
   const handleShowInCalendar = (visit: UpcomingVisit, sourceRect: DOMRect) => {
     const snap = {
       id: visit.id,
-      label: visit.vehicleName,
-      customer: visit.customerName,
+      // CardSnapshot wymaga stringów — brak zamieniamy na to samo zdanie,
+      // które widać w wierszu, żeby kartka nie mówiła czegoś innego niż panel.
+      label: visit.vehicleName ?? NO_VEHICLE,
+      customer: visit.customerName ?? NO_CUSTOMER,
       amount: formatCurrency(visit.price),
       accentColor: KIND_ACCENT[visit.statusKind],
       sourceRect,
