@@ -35,15 +35,24 @@ export const EMPTY = '—';
  * [formatNumber] skraca do „41 tys.", co przy zasięgu reklamy gubi różnicę między
  * 41 200 a 41 900 - a to jedyna liczba, po której właściciel porównuje kampanie.
  *
- * `useGrouping: 'always'` jest tu konieczne: domyślne pl-PL NIE grupuje liczb
- * czterocyfrowych, więc w kolumnie stało „5170" tuż pod „41 717" i oko traciło
- * wspólny rytm cyfr. Separatorem jest twarda spacja, więc liczba nie łamie się
- * na końcu wiersza.
+ * Grupujemy SAMI, zamiast przez `toLocaleString('pl-PL')`: polska lokalizacja
+ * nie rozdziela liczb czterocyfrowych (`minimumGroupingDigits` = 2), więc
+ * w kolumnie stało „5170" tuż pod „41 717" i oko traciło wspólny rytm cyfr.
+ *
+ * Opcja `useGrouping: 'always'` naprawiłaby to jedną linijką, ale pochodzi
+ * z ES2023, a aplikacja celuje w ES2020 — nie ma jej w bibliotece typów.
+ * Wynik poniżej jest identyczny co do znaku w całym zakresie, jaki tu występuje
+ * (liczby całkowite, nieujemne).
+ *
+ * Separatorem jest TWARDA spacja: zwykła pozwoliłaby złamać „41 717" na końcu
+ * wiersza na „41" i „717".
  */
-const GROUPED = new Intl.NumberFormat('pl-PL', { useGrouping: 'always' });
+const THOUSANDS = /\B(?=(\d{3})+(?!\d))/g;
 
 export const formatExact = (value: number | null | undefined): string =>
-    value === null || value === undefined ? EMPTY : GROUPED.format(value);
+    value === null || value === undefined
+        ? EMPTY
+        : String(Math.trunc(value)).replace(THOUSANDS, '\u00A0');
 
 export const formatDate = (iso: string): string =>
     new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });

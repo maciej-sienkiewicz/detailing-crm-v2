@@ -1,13 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { Link2 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBreakpoint } from '@/common/hooks';
 import type { AdCalendar, AdCalendarRow } from '../types';
 import { PROFILE_COLORS } from '../types';
-import { Card, CardTitle, CardHint, CenterState, formatExact } from './MetricBits';
+import { Card, CardTitle, CardHint, CenterState, formatExact, EMPTY } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AdsTabMobile } from './AdsTabMobile';
 import { AreaSection } from './AreaSection';
+import {
+    Table, Th, Td, Row, NameCell, NameText, MetaWarn, NumLive, NumQuiet,
+    IconBtn, RowActions, HiddenLabel, INK_MUTED,
+} from './DataTable';
 import { barGeometry, dayOfYear, monthStartDays, yearLength } from '../utils/adCalendar';
 
 /**
@@ -67,15 +72,6 @@ const SummaryCard = styled(Card)`
     container-type: inline-size;
 `;
 
-/**
- * Ostatnia zapora: gdyby tabela mimo wszystko nie zmieściła się w karcie,
- * ma przewinąć się W ŚRODKU, a nie wyjechać na sąsiada. Przewijanie widać
- * i da się je obsłużyć — cicho przycięta kolumna to utrata danych.
- */
-const TableScroll = styled.div`
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-`;
 
 const HeadRow = styled.div`
     display: flex;
@@ -336,96 +332,31 @@ const LegendToday = styled.i`
 
 // ── Tabela podsumowania ───────────────────────────────────────────────────────
 
-const Table = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-
-    th {
-        text-align: left;
-        font-size: ${st.fontXs};
-        font-weight: 700;
-        color: ${st.textMuted};
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        padding: 8px 12px;
-        border-bottom: 1px solid ${st.border};
-        white-space: nowrap;
-    }
-
-    th.num { text-align: right; }
-
-    /* „Dni sponsorowane" w jednej linii to ~130 px, których w wąskiej kolumnie
-       siatki po prostu nie ma. Łamany nagłówek jest brzydszy niż jednolinijkowy
-       i o wiele lepszy niż tabela wychodząca poza kartę.
-
-       Próg 640 px, a nie 560: w układzie szerokim ta tabela potrzebuje ~600 px,
-       więc przełącznik musi leżeć powyżej tej liczby. Przy 560 px karta o 562 px
-       dostawała jeszcze układ szeroki i tabela przewijała się w środku. */
-    @container (max-width: 640px) {
-        th { white-space: normal; }
-        th, td { padding: 8px 6px; }
-    }
-
-    td {
-        padding: 12px;
-        border-bottom: 1px solid ${st.border};
-        font-size: 13.5px;
-        color: ${st.text};
-    }
-
-    td.num {
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-        font-size: ${st.fontMd};
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-`;
-
-const ActiveTag = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 8px;
-    margin-left: 8px;
-    border-radius: ${st.radiusFull};
-    background: ${st.accentGreenDim};
-    color: #047857;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    white-space: nowrap;
-`;
-
 /**
- * Cicha akcja przy nazwie konkurenta: podejrzenie i zmiana wskazanej strony.
- * Stoi w tabeli podsumowania, a nie w kalendarzu, bo tam kolumna nazwy ma 186 px
- * i każdy dodatkowy element odbierałby miejsce nazwie.
+ * Szerokości torów liczbowych. Stałe, bo `table-layout: fixed` — dzięki temu
+ * prawa krawędź każdej liczby stoi w tym samym miejscu we wszystkich wierszach
+ * i oko zjeżdża jedną kolumną zamiast szukać wartości w każdym wierszu osobno.
  */
-const PageAction = styled.button`
-    margin-left: 8px;
-    padding: 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textMuted};
-    text-decoration: underline;
-    cursor: pointer;
-    white-space: nowrap;
+const COL = { live: '64px', campaigns: '76px', days: '64px', reach: '104px', act: '36px' };
 
-    &:hover { color: ${st.accentBlue}; }
+/** Poniżej tej szerokości karty „Kampanie" wypada — z czterech liczb jest najmniej nośna. */
+const HIDE_CAMPAIGNS = 620;
+
+const SumTable = styled(Table)`
+    @container (max-width: ${HIDE_CAMPAIGNS}px) {
+        .campaigns { display: none; }
+    }
 `;
 
 const FootNote = styled.div`
-    padding: 12px 12px 0;
+    padding: 12px 0 0;
     margin-top: 4px;
     border-top: 1px solid ${st.border};
-    font-size: 11.5px;
-    color: ${st.textMuted};
+    font-size: 12px;
+    color: ${INK_MUTED};
     line-height: 1.6;
 
-    strong { color: ${st.textSecondary}; font-weight: 700; }
+    strong { color: ${st.text}; font-weight: 600; }
 `;
 
 const colorOf = (index: number) => PROFILE_COLORS[index % PROFILE_COLORS.length];
@@ -604,14 +535,23 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                 <SummaryCard>
                     <CardTitle>Podsumowanie roku</CardTitle>
                     <CardHint>Dni liczone dla każdej kampanii osobno.</CardHint>
-                    <TableScroll>
-                    <Table>
+                    <SumTable>
+                        <colgroup>
+                            <col />
+                            <col style={{ width: COL.live }} />
+                            <col className="campaigns" style={{ width: COL.campaigns }} />
+                            <col style={{ width: COL.days }} />
+                            <col style={{ width: COL.reach }} />
+                            <col style={{ width: COL.act }} />
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th>Konkurent</th>
-                                <th className="num">Kampanie</th>
-                                <th className="num">Dni sponsorowane</th>
-                                <th className="num">Zasięg</th>
+                                <Th>Konkurent</Th>
+                                <Th $num>Dziś</Th>
+                                <Th $num className="campaigns">Kampanie</Th>
+                                <Th $num>Dni</Th>
+                                <Th $num>Zasięg</Th>
+                                <Th $num><HiddenLabel>Akcje</HiddenLabel></Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -630,8 +570,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                                 />
                             ))}
                         </tbody>
-                    </Table>
-                    </TableScroll>
+                    </SumTable>
                     <FootNote>
                         <strong>Dni sponsorowane</strong> — dni każdej kampanii liczone osobno: 4 kampanie
                         od 14 do 16 marca to 4 × 3 = 12 dni.<br />
@@ -660,22 +599,49 @@ const SummaryRow: React.FC<{
     row: AdCalendarRow;
     color: string;
     onEditPage: () => void;
-}> = ({ row, color, onEditPage }) => (
-    <tr style={row.ads.length === 0 ? { opacity: 0.6 } : undefined}>
-        <td>
-            <Name>
-                <Dot $color={color} />
-                {row.username}
-                {row.activeNow > 0 && <ActiveTag>TRWA {row.activeNow}</ActiveTag>}
-                {/* Przy profilu bez reklam to jest pierwsze pytanie, jakie się nasuwa:
-                    czy na pewno wskazano właściwą stronę. */}
-                <PageAction type="button" onClick={onEditPage}>
-                    {row.ads.length === 0 ? 'sprawdź stronę FB' : 'strona FB'}
-                </PageAction>
-            </Name>
-        </td>
-        <td className="num">{row.campaigns > 0 ? row.campaigns : '—'}</td>
-        <td className="num">{row.sponsoredDays}</td>
-        <td className="num">{row.reachTotal !== null ? formatExact(row.reachTotal) : '—'}</td>
-    </tr>
-);
+}> = ({ row, color, onEditPage }) => {
+    /*
+     * Profil bez wskazanej strony FB nie ma zer — ma pustki. To nie to samo
+     * i wcześniej wiersz twierdził jedno i drugie naraz: „—", „0", „—".
+     * Zero znaczy „zmierzone i wyszło zero"; półpauza znaczy „nie wiemy".
+     */
+    const known = row.ads.length > 0 || row.facebookPageId != null;
+    const num = (value: number) => (known ? value : EMPTY);
+
+    return (
+        <Row>
+            <Td>
+                <NameCell $bar={color}>
+                    <NameText title={row.username}>{row.username}</NameText>
+                    {!row.facebookPageId && <MetaWarn>Brak wskazanej strony FB</MetaWarn>}
+                </NameCell>
+            </Td>
+            <Td $num>
+                <NumLive $on={row.activeNow > 0}>{known ? row.activeNow : EMPTY}</NumLive>
+            </Td>
+            <Td $num className="campaigns">
+                {row.campaigns > 0 ? row.campaigns : <NumQuiet>{num(0)}</NumQuiet>}
+            </Td>
+            <Td $num>
+                {row.sponsoredDays > 0 ? row.sponsoredDays : <NumQuiet>{num(0)}</NumQuiet>}
+            </Td>
+            <Td $num>
+                {row.reachTotal !== null
+                    ? formatExact(row.reachTotal)
+                    : <NumQuiet>{EMPTY}</NumQuiet>}
+            </Td>
+            <Td $num>
+                <RowActions>
+                    <IconBtn
+                        type="button"
+                        onClick={onEditPage}
+                        title={row.facebookPageId ? 'Powiązana strona na Facebooku' : 'Wskaż stronę na Facebooku'}
+                        aria-label={row.facebookPageId ? 'Powiązana strona na Facebooku' : 'Wskaż stronę na Facebooku'}
+                    >
+                        <Link2 />
+                    </IconBtn>
+                </RowActions>
+            </Td>
+        </Row>
+    );
+};
