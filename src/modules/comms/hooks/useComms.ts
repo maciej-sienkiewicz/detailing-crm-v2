@@ -386,6 +386,21 @@ export function useCommsSocket(): void {
                     queryClient.invalidateQueries({
                         queryKey: [...COMMS_THREADS_KEY, 'detail', payload.threadId],
                     });
+                    /*
+                     * Ruch w wątku to także ruch na leadzie: odpowiedź wysłana z Outlooka
+                     * albo z telefonu wpada do nas importem poczty, zdejmuje z leada
+                     * „Nowy", stempluje czas pierwszej reakcji i dopisuje „Odpisaliśmy"
+                     * do przebiegu sprawy. Bez tych unieważnień osoba pracująca w module
+                     * Leadów widziała stan sprzed swojej własnej odpowiedzi, dopóki sama
+                     * nie odświeżyła strony.
+                     *
+                     * Klucze wypisane wprost, a nie zaimportowane z `useLeads` — to ONO
+                     * importuje `COMMS_THREADS_KEY` stąd i import w drugą stronę zamknąłby
+                     * cykl między modułami.
+                     */
+                    queryClient.invalidateQueries({ queryKey: ['leads', 'list'] });
+                    queryClient.invalidateQueries({ queryKey: ['leads', 'detail'] });
+                    queryClient.invalidateQueries({ queryKey: ['leads', 'history'] });
                     if (payload.newMessage && Date.now() - lastNewMailToastAt.current > NEW_MAIL_TOAST_THROTTLE_MS) {
                         lastNewMailToastAt.current = Date.now();
                         showInfo('Nowa wiadomość', 'Masz nową wiadomość w skrzynce');
