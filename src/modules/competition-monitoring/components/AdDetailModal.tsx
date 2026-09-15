@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { ExternalLink, X } from 'lucide-react';
 import {
@@ -195,9 +195,12 @@ const Panel = styled.section<{ $quiet?: boolean }>`
  *
  * Wcześniej każdy wiersz wyglądał inaczej — status jako zielona pigułka, płeć
  * gołym tekstem, lokalizacje jako chipy, płatnik pogrubioną nazwą łamiącą się
- * na cztery linijki. Teraz WSZYSTKO, co jest ustawieniem targetowania, jest
- * chipem tej samej klasy; tekstem zostaje tylko podmiot płacący, bo
- * pięćdziesięcioznakowa nazwa spółki w pigułce wygląda jak pomyłka.
+ * na cztery linijki. Teraz w tej sekcji jest WYŁĄCZNIE targetowanie i wszystko
+ * w niej jest chipem tej samej klasy.
+ *
+ * Czego tu świadomie NIE MA: statusu emisji (mówi to kafelka „Emisja" nad
+ * panelem — to samo dwa razy) i płatnika (to prawie zawsze ta sama spółka, co
+ * reklamodawca w nagłówku okna, i nie jest ustawieniem grupy odbiorców).
  */
 const Rows = styled.dl`
     display: grid;
@@ -271,13 +274,102 @@ const Chip = styled.span<{ $tone?: 'plain' | 'excluded' | 'active' | 'off' }>`
     }
 `;
 
-/** Nazwa płatnika — tekst, nie chip: w pigułce nazwa spółki wygląda jak pomyłka. */
-const Party = styled.span`
-    font-size: 12px;
-    font-weight: 500;
-    color: ${st.textSecondary};
+/**
+ * Treść reklamy pokazana U NAS, a nie za linkiem do Biblioteki Meta.
+ *
+ * Granica jest twarda i wynika z API, nie z naszej wygody: `ads_archive` oddaje
+ * TEKST kreacji (nagłówek, treść, opis, domenę) i NIE oddaje grafiki — adresu
+ * zdjęcia ani wideo nie ma w żadnym polu. Jedynym oknem na obrazek jest
+ * wyrenderowana strona Meta, której nie da się osadzić: leci z nią nasz token
+ * w adresie, a facebook.com i tak nie pozwala wstawić się w ramkę.
+ *
+ * Pokazujemy więc to, co da się pokazać uczciwie, i mówimy wprost, po co jest
+ * przycisk pod spodem.
+ */
+const Creative = styled.div`
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: ${st.text};
+`;
+
+/** Treść reklamy. Meta trzyma w niej łamania linii — i to one robią rytm oferty. */
+const Body = styled.p<{ $clamped: boolean }>`
+    margin: 0;
+    white-space: pre-line;
     overflow-wrap: anywhere;
-    line-height: 1.4;
+
+    ${p => p.$clamped && `
+        display: -webkit-box;
+        -webkit-line-clamp: 7;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    `}
+`;
+
+const MoreButton = styled.button`
+    margin-top: 6px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${st.accentBlue};
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+`;
+
+/**
+ * Pasek odnośnika — tak, jak układa go Meta pod treścią: domena, nagłówek,
+ * zdanie zachęty. Przy braku grafiki to on niesie ofertę.
+ */
+const LinkCard = styled.div`
+    margin-top: 12px;
+    padding: 10px 13px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCard};
+    min-width: 0;
+
+    .domain {
+        display: block;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: ${st.textMuted};
+        overflow-wrap: anywhere;
+    }
+
+    strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: ${st.text};
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .desc {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+        color: ${st.textSecondary};
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+`;
+
+/** Wyjaśnienie, czego w podglądzie nie ma i dlaczego — zaraz nad przyciskiem, który to dopełnia. */
+const Missing = styled.p`
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid ${st.border};
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: ${st.textMuted};
 `;
 
 const Legend = styled.span`
@@ -452,7 +544,11 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
     const targetAges = new Set(buckets.filter(bucket => bucket.inTargetAge).map(bucket => bucket.ageRange));
     const included = ad.locations.filter(location => !location.excluded);
     const excluded = ad.locations.filter(location => location.excluded);
-    const samePayer = !!ad.payer && ad.payer === ad.beneficiary;
+
+    // Reklama bez ani jednego pola tekstowego zdarza się (kreacja czysto graficzna)
+    // — wtedy panelu nie rysujemy wcale, zamiast pokazywać pustą ramkę.
+    const hasCreative = !!(ad.body || ad.title || ad.linkDescription || ad.linkCaption);
+    const hasLinkCard = !!(ad.linkCaption || ad.title || ad.linkDescription);
 
     return (
         <>
@@ -483,6 +579,14 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
             </Summary>
 
             <Stack>
+                {hasCreative && (
+                    <Panel>
+                        <h4>
+                            Treść reklamy <em>tak widzi ją odbiorca</em>
+                        </h4>
+                        <AdCreative ad={ad} hasLinkCard={hasLinkCard} />
+                    </Panel>
+                )}
                 <Panel>
                     <h4>
                         Zasięg według wieku i płci
@@ -531,13 +635,6 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                         Grupa odbiorców <em>ustawienia reklamodawcy</em>
                     </h4>
                     <Rows>
-                        <dt>Status</dt>
-                        <dd>
-                            <Chip $tone={ad.active ? 'active' : 'off'}>
-                                {ad.active ? 'aktywna' : 'zakończona'}
-                            </Chip>
-                        </dd>
-
                         <dt>Płeć</dt>
                         <dd>
                             <Chip>
@@ -586,42 +683,58 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                                 </dd>
                             </>
                         )}
-
-                        {/*
-                          * Płatnik i beneficjent to niemal zawsze ten sam podmiot. Dwa wiersze
-                          * z identyczną nazwą spółki zajmowały pół panelu i nie niosły niczego
-                          * poza powtórzeniem — scalamy, a rozdzielamy dopiero gdy się różnią.
-                          */}
-                        {samePayer ? (
-                            <>
-                                <dt>Płatnik</dt>
-                                <dd><Party>{ad.payer} · zarazem beneficjent</Party></dd>
-                            </>
-                        ) : (
-                            <>
-                                {ad.payer && (
-                                    <>
-                                        <dt>Płatnik</dt>
-                                        <dd><Party>{ad.payer}</Party></dd>
-                                    </>
-                                )}
-                                {ad.beneficiary && (
-                                    <>
-                                        <dt>Beneficjent</dt>
-                                        <dd><Party>{ad.beneficiary}</Party></dd>
-                                    </>
-                                )}
-                            </>
-                        )}
                     </Rows>
                 </Panel>
 
                 {ad.snapshotUrl && (
                     <SnapshotButton href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer">
-                        Zobacz reklamę w Bibliotece Meta <ExternalLink />
+                        Zobacz grafikę w Bibliotece Meta <ExternalLink />
                     </SnapshotButton>
                 )}
             </Stack>
         </>
+    );
+};
+
+/**
+ * Kreacja złożona z tego, co oddaje API: treść, a pod nią pasek odnośnika.
+ *
+ * Długie treści bywają na dwadzieścia linijek i wypychały panele zasięgu poza
+ * ekran, więc domyślnie przycinamy do siedmiu — rozwinięcie jest o jedno
+ * kliknięcie i nie chowa niczego bezpowrotnie.
+ */
+const AdCreative: React.FC<{ ad: AdDetail; hasLinkCard: boolean }> = ({ ad, hasLinkCard }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    // Przycisk „pokaż całość" tylko wtedy, gdy jest co pokazywać: przy trzech
+    // linijkach byłby obietnicą bez pokrycia. Siedem linijek to ~340 znaków.
+    const longBody = !!ad.body && (ad.body.length > 340 || ad.body.split('\n').length > 7);
+
+    return (
+        <Creative>
+            {ad.body && (
+                <>
+                    <Body $clamped={longBody && !expanded}>{ad.body}</Body>
+                    {longBody && (
+                        <MoreButton type="button" onClick={() => setExpanded(value => !value)}>
+                            {expanded ? 'Zwiń treść' : 'Pokaż całość'}
+                        </MoreButton>
+                    )}
+                </>
+            )}
+
+            {hasLinkCard && (
+                <LinkCard>
+                    {ad.linkCaption && <span className="domain">{ad.linkCaption}</span>}
+                    {ad.title && <strong>{ad.title}</strong>}
+                    {ad.linkDescription && <span className="desc">{ad.linkDescription}</span>}
+                </LinkCard>
+            )}
+
+            <Missing>
+                Biblioteka reklam Meta nie udostępnia przez API zdjęcia ani wideo z reklamy —
+                tylko jej tekst. Grafikę zobaczysz w oryginale u Meta.
+            </Missing>
+        </Creative>
     );
 };

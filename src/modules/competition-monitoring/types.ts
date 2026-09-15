@@ -493,6 +493,16 @@ export interface AdDetail {
     breakdown: AdReachBucket[];
     /** Ilu ludzi spoza ustawionego przedziału wieku reklama i tak dosięgła. */
     outOfTargetAgeReach: number;
+    /**
+     * Treść reklamy tak, jak widzi ją odbiorca. Razem z `title`, `linkDescription`
+     * i `linkCaption` to CAŁA kreacja, jaką oddaje Biblioteka reklam — grafiki
+     * Meta nie udostępnia w żadnym polu API.
+     */
+    body: string | null;
+    linkDescription: string | null;
+    /** Domena, na którą reklama kieruje — „folia-samochodowa.pl". */
+    linkCaption: string | null;
+    /** Publiczny link do reklamy w Bibliotece Meta. */
     snapshotUrl: string | null;
 }
 
