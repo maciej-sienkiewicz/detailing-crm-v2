@@ -18,7 +18,6 @@ import { KpiSlider } from '../components/KpiSlider';
 import { DashboardHintsBar } from '../components/DashboardHintsBar';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import { useDashboard, useDashboardSocket } from '../hooks';
-import type { OperationalStats } from '../types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -37,19 +36,6 @@ const formatLocalDate = (): string =>
   });
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-const getHeroDesc = (stats?: OperationalStats): string => {
-  if (!stats) return '';
-  const parts: string[] = [];
-  if (stats.incomingToday > 0) {
-    const n = stats.incomingToday;
-    const suffix = n === 1 ? 'wizyta' : n < 5 ? 'wizyty' : 'wizyt';
-    parts.push(`Dziś w salonie ${n} ${suffix}`);
-  }
-  if (stats.inProgress > 0) parts.push(`${stats.inProgress} w trakcie realizacji`);
-  if (stats.readyForPickup > 0) parts.push(`${stats.readyForPickup} gotowych do wydania`);
-  return parts.length > 0 ? parts.join(' · ') + '.' : 'Brak aktywnych wizyt na dziś.';
-};
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -149,7 +135,8 @@ const LiveDot = styled.span`
 const HeroGreeting = styled.h1`
   position: relative;
   z-index: 1;
-  margin: 0 0 8px 0;
+  /* Bez zdania pod powitaniem to ten margines dzieli naglowek od przyciskow. */
+  margin: 0 0 20px 0;
   font-size: 34px;
   font-weight: 700;
   color: #ffffff;
@@ -159,14 +146,6 @@ const HeroGreeting = styled.h1`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: 28px;
   }
-`;
-
-const HeroDesc = styled.p`
-  font-size: 14px;
-  color: #94a3b8;
-  max-width: 520px;
-  margin: 0 0 20px;
-  line-height: 1.55;
 `;
 
 const HeroActions = styled.div`
@@ -380,7 +359,6 @@ export const DashboardView = () => {
 
     const greeting = useMemo(() => getGreeting(), []);
     const localDate = useMemo(() => capitalize(formatLocalDate()), []);
-    const heroDesc = useMemo(() => getHeroDesc(stats), [stats]);
 
   if (!hasPiiAccess) {
     return (
@@ -406,7 +384,6 @@ export const DashboardView = () => {
         <HeroRow>
           <HeroLeft>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
-              {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
               <HeroActions>
               <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
                 <CalendarPlus />
