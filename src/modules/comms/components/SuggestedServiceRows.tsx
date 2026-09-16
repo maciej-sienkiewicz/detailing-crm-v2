@@ -163,15 +163,30 @@ const actBase = `
     svg { width: 13px; height: 13px; }
 `;
 
-/** Krok, po który ta sekcja istnieje - jedyny wypełniony przycisk w karcie. */
+/**
+ * Przyjęcie propozycji - zielone, ale NIE wypełnione.
+ *
+ * Wypełniona zieleń stała tu przez jedną iterację i była błędem wagi: „Akceptuj"
+ * jest akcją DRUGORZĘDNĄ i opcjonalną, a przy trzech propozycjach dawała trzy
+ * nasycone bloki na całą szerokość szyny - kontra jeden niebieski przycisk kroku
+ * następnego w stopce. Zieleń wygrywała liczbą, powierzchnią i pozycją, więc
+ * pierwszą rzeczą, w którą wpadał wzrok po otwarciu sprawy, była propozycja
+ * maszyny, a nie to, co trzeba z tą sprawą zrobić.
+ *
+ * Kolor zostaje - znaczy „tak" i ma znaczyć „tak". Znika wypełnienie, bo to ono,
+ * a nie odcień, niesie priorytet. Patrz CLAUDE.md: „jedno wypełnienie na okno".
+ */
 const AcceptBtn = styled.button`
     ${actBase}
     flex: 1 1 auto;
-    border: 1px solid ${p => p.theme.colors.success};
-    background: ${p => p.theme.colors.success};
-    color: #ffffff;
+    border: 1px solid #86efac;
+    background: ${p => p.theme.colors.successLight};
+    color: #15803d;
 
-    &:hover:not(:disabled) { filter: brightness(0.94); }
+    &:hover:not(:disabled) {
+        background: #dcfce7;
+        border-color: ${p => p.theme.colors.success};
+    }
 `;
 
 /** Odrzucenie jest ciche: dostępne, ale nie zaprasza. Czerwień dopiero pod kursorem. */

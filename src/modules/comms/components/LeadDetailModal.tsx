@@ -115,22 +115,30 @@ const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(
  */
 const BodyGrid = styled.div<{ $pane?: boolean }>`
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    /*
+     * JEDNA KOLEJNOŚĆ CZYTANIA, w panelu i w oknie: o co pyta klient → co mu
+     * proponujemy → co z tym zrobić. Przebieg sprawy idzie na lewo, wycena,
+     * kartoteka i podobne zlecenia do węższej szyny po prawej.
+     *
+     * Okno modalne miało wcześniej odwrotnie, z uzasadnieniem, że otwiera się je
+     * z widoku poczty, gdzie korespondencję ma się już przed sobą. Argument nie
+     * broni się z dwóch powodów: okno ZASŁANIA tę korespondencję, a poza pocztą
+     * otwiera je także wąski widok leadów i archiwum, gdzie żadnej korespondencji
+     * przed sobą nie ma. Dwie kolejności czytania dla tej samej treści kosztowały
+     * użytkownika sprawdzanie za każdym razem, gdzie tym razem jest wycena.
+     *
+     * Zamiana robi się porządkiem CSS, więc obie wersje renderują ten sam JSX.
+     */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
     gap: 16px;
     align-items: start;
 
-    /*
-     * W panelu obok kolejki kolumny zamieniają się rolami: przebieg sprawy idzie
-     * na lewo (to jest treść, po którą się tu wchodzi), a wycena, kartoteka
-     * i podobne zlecenia schodzą do wąskiej szyny po prawej. W oknie modalnym
-     * - otwieranym z widoku poczty, gdzie korespondencję ma się już przed sobą -
-     * pierwsza jest wycena. Zamiana robi się porządkiem CSS, więc obie wersje
-     * renderują dokładnie ten sam JSX.
-     */
+    & > *:nth-child(1) { order: 2; }
+    & > *:nth-child(2) { order: 1; }
+
+    /* Panel obok kolejki jest węższy, więc i szyna jest węższa. */
     ${p => p.$pane && `
         grid-template-columns: minmax(0, 1fr) minmax(0, 288px);
-        & > *:nth-child(1) { order: 2; }
-        & > *:nth-child(2) { order: 1; }
     `}
 
     /*
@@ -139,7 +147,13 @@ const BodyGrid = styled.div<{ $pane?: boolean }>`
      * Bez tego kolejność wynikałaby z DOM-u i oś czasu lądowała za kartoteką klienta,
      * podobnymi zleceniami i notatkami - czyli poza zasięgiem kciuka.
      *
-     * Kolejność: wycena (ile to warte), przebieg (co klient napisał), reszta.
+     * Kolejność: wycena (ile to warte), przebieg (co klient napisał), reszta -
+     * czyli ODWROTNIE niż na szerokim ekranie, i to jest świadome. Tam „kolejność"
+     * znaczy „gdzie pada wzrok", bo obie kolumny widać naraz; tutaj znaczy „ile
+     * trzeba przewinąć", bo widać jedną rzecz na raz. Oś czasu bywa długa, więc
+     * postawiona przed wyceną kazałaby przewijać ją w całości za każdym razem,
+     * żeby dojść do kwoty i do kroku następnego.
+     *
      * Sterowana atrybutem, a nie numerem dziecka: sekcje renderują się warunkowo,
      * więc nth-child wskazywałby raz na jedno, raz na drugie.
      */
