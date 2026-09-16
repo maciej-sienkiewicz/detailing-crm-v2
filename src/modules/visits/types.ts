@@ -10,6 +10,20 @@ export interface DoorToDoorInfo {
     pickupAddress: DoorToDoorAddress;
     deliveryAddress: DoorToDoorAddress;
     notes: string;
+    /**
+     * Kierowca i termin dostarczenia.
+     *
+     * UWAGA: tych dwóch pól backend jeszcze NIE przechowuje - kontrakt
+     * `PUT /visits/:id/door-to-door` przyjmuje dziś tylko adresy i uwagi.
+     * Frontend wysyła je zgodnie z przyjętą w tym repo konwencją (najpierw
+     * frontend, potem backend wg specyfikacji - patrz
+     * docs/door-to-door-api-spec.md). Do czasu wdrożenia po stronie backendu
+     * wrócą z API jako undefined.
+     */
+    driverId?: string | null;
+    driverName?: string | null;
+    /** ISO 8601, lokalna strefa studia. */
+    scheduledAt?: string | null;
 }
 
 export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' | 'DAMAGE_MAP' | 'OTHER';
