@@ -2357,13 +2357,18 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 initialServiceName={form.serviceSearch}
             />
 
-            <PriceInputModal
-                isOpen={form.isPriceInputModalOpen}
-                serviceName={form.pendingService?.name || ''}
-                vatRate={form.pendingService?.vatRate || 23}
-                onClose={form.handlePriceInputModalClose}
-                onConfirm={form.handlePriceConfirm}
-            />
+            {/* Montowane dopiero z wybraną usługą i z kluczem na jej id: każda kolejna
+                cena dostaje świeże pola bez efektu zerującego stan. */}
+            {form.isPriceInputModalOpen && form.pendingService && (
+                <PriceInputModal
+                    key={form.pendingService.id}
+                    isOpen
+                    serviceName={form.pendingService.name}
+                    vatRate={form.pendingService.vatRate || 23}
+                    onClose={form.handlePriceInputModalClose}
+                    onConfirm={form.handlePriceConfirm}
+                />
+            )}
 
             <QuickColorModal
                 isOpen={form.isQuickColorModalOpen}

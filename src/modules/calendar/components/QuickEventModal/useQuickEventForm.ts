@@ -11,6 +11,7 @@ import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmen
 import { useDebounce } from '@/common/hooks';
 import { formatDateTimeLocal, formatDate, roundTo2, calculateFinalPrice } from './helpers';
 import type { DoorToDoorInfo } from '@/modules/visits/types';
+import type { ManualPriceInput } from '../PriceInputModal';
 
 const EMPTY_DOOR_TO_DOOR: DoorToDoorInfo = {
     enabled: false,
@@ -869,8 +870,16 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setShowVehicleDropdown(false);
     };
 
-    const initPriceInputs = (id: string, grossPrice: number, vatRate: number) => {
-        const net = roundTo2(grossPrice / (1 + vatRate / 100));
+    /**
+     * Pola netto/brutto pokazywane przy pozycji w tabeli.
+     *
+     * [exactNetPln] jest tam, gdzie netto JEST znane dokładnie - z cennika albo
+     * z okna ceny. Odtwarzanie go z brutta dzieleniem przez stawkę potrafi minąć
+     * się o grosz z kwotą, którą za chwilę wyśle payload, więc na ekranie stałaby
+     * inna liczba niż w żądaniu (CLAUDE.md §1).
+     */
+    const initPriceInputs = (id: string, grossPrice: number, vatRate: number, exactNetPln?: number) => {
+        const net = exactNetPln ?? roundTo2(grossPrice / (1 + vatRate / 100));
         setServicePriceInputs(prev => ({
             ...prev,
             [id]: { gross: grossPrice.toFixed(2), net: net.toFixed(2) },
@@ -901,23 +910,35 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         // grossPrice z netta (1900,00 zł brutto -> 1544,72 zł netto -> z powrotem
         // odtworzone 1900,01 zł), więc cena wpisana jako netto zaczęłaby "pływać".
         setServiceBasePrices(prev => ({ ...prev, [lineId]: service.basePriceNet }));
-        initPriceInputs(lineId, grossPrice, service.vatRate);
+        initPriceInputs(lineId, grossPrice, service.vatRate, service.basePriceNet / 100);
         setServiceSearch('');
         setShowServiceDropdown(false);
     };
 
-    const handlePriceConfirm = (priceNet: number) => {
+    /**
+     * Potwierdzenie ceny usługi rozliczanej indywidualnie.
+     *
+     * Okno oddaje PARĘ kwot i obie są tu dokładne: [PriceInput] wie, w którym polu
+     * człowiek pisał, i drugą liczbę przeliczył raz, w chwili wpisywania. Wcześniej
+     * to okno oddawało samo netto, a brutto powstawało tutaj z mnożenia przez
+     * stawkę - i cena wpisana jako 1900,00 zł brutto wracała jako 1900,01 zł,
+     * bo przejście brutto → netto → brutto nie jest tożsamością (CLAUDE.md §1).
+     *
+     * Zapasowe przeliczenie zostaje wyłącznie dla kwoty podanej w netcie: wtedy
+     * brutto jest z definicji pochodne i nie ma czego chronić.
+     */
+    const handlePriceConfirm = ({ priceNet, priceGross }: ManualPriceInput) => {
         if (!pendingService) return;
         const vatRate = pendingService.vatRate || 23;
-        const gross = roundTo2((priceNet / 100) * (100 + vatRate) / 100);
+        const gross = priceGross > 0
+            ? roundTo2(priceGross / 100)
+            : roundTo2((priceNet / 100) * (100 + vatRate) / 100);
         const lineId = nextLineId(pendingService.id);
         setSelectedServiceIds(prev => [...prev, lineId]);
         setServiceRefs(prev => ({ ...prev, [lineId]: pendingService.id }));
         setServicePrices(prev => ({ ...prev, [lineId]: gross }));
-        // Tu netto JEST tym, co wpisał użytkownik (usługa wymaga ręcznej ceny za
-        // każdym razem) - zachowujemy je dokładnie, brutto jest tym, co pochodne.
         setServiceBasePrices(prev => ({ ...prev, [lineId]: priceNet }));
-        initPriceInputs(lineId, gross, vatRate);
+        initPriceInputs(lineId, gross, vatRate, priceNet / 100);
         setPendingService(null);
     };
 
@@ -941,7 +962,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         // przeżywa bez przeliczania - niezależnie od tego, czy w oknie wpisano netto
         // czy brutto.
         setServiceBasePrices(prev => ({ ...prev, [serviceId]: service.basePriceNet }));
-        initPriceInputs(serviceId, grossPrice, service.vatRate);
+        initPriceInputs(serviceId, grossPrice, service.vatRate, service.basePriceNet / 100);
         if (!service.id) {
             // Stawka wybrana w oknie tworzenia usługi - nie zawsze 23%. Ta wartość zasila
             // `servicesAsLineItems`/`buildAppointmentPayload` jako domyślna, gdy nikt

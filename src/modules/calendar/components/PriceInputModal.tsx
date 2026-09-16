@@ -1,6 +1,6 @@
 // src/modules/calendar/components/PriceInputModal.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import { FormInfoBox, FormInfoLabel, FormInfoValue } from '@/common/styles';
@@ -30,12 +30,29 @@ const IconX = () => (
     </svg>
 );
 
+/**
+ * Cena usługi rozliczanej indywidualnie - wynik okna to PARA kwot, nie jedna liczba.
+ *
+ * Wcześniej okno oddawało samo netto, a brutto odtwarzał sobie z niego formularz
+ * kreatora. To łamie regułę z CLAUDE.md §1: przejście brutto → netto → brutto nie
+ * jest tożsamością, więc człowiek, który wpisał 1900,00 zł w polu BRUTTO, dostawał
+ * z powrotem 1900,01 zł. [PriceInput] oddaje obie kwoty naraz i obie tu zostają -
+ * dokładnie tak, jak robi to bliźniacze okno przy przyjęciu pojazdu
+ * (`checkin/ManualPriceModal`).
+ */
+export interface ManualPriceInput {
+    /** Netto w groszach - dokładne, gdy człowiek wpisał netto. */
+    priceNet: number;
+    /** Brutto w groszach - dokładne, gdy człowiek wpisał brutto. */
+    priceGross: number;
+}
+
 interface PriceInputModalProps {
     isOpen: boolean;
     serviceName: string;
     vatRate?: number;
     onClose: () => void;
-    onConfirm: (priceNet: number) => void;
+    onConfirm: (price: ManualPriceInput) => void;
 }
 
 export const PriceInputModal: React.FC<PriceInputModalProps> = ({
@@ -47,15 +64,15 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
 }) => {
     const { isCollapsed } = useSidebar();
     const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
+    // Pola startują puste i nie mają się z niczym synchronizować: rodzic montuje
+    // to okno osobno dla każdej usługi (key), więc kolejna cena zaczyna od czystego
+    // stanu bez efektu zerującego. Ten sam wzorzec co w checkin/ManualPriceModal.
     const [priceNet, setPriceNet] = useState(0);
-
-    useEffect(() => {
-        if (isOpen) setPriceNet(0);
-    }, [isOpen]);
+    const [priceGross, setPriceGross] = useState(0);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(priceNet);
+        onConfirm({ priceNet, priceGross });
         onClose();
     };
 
@@ -87,8 +104,11 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
                         <FieldGroup>
                             <PriceInput
                                 netAmount={priceNet}
+                                /* Brutto oddane z powrotem do pola, żeby kwota wpisana
+                                   w brutcie nie została przeliczona na ekranie. */
+                                grossAmount={priceGross}
                                 vatRate={vatRate as 0 | 5 | 8 | 23 | -1}
-                                onChange={setPriceNet}
+                                onChange={(net, gross) => { setPriceNet(net); setPriceGross(gross); }}
                                 netLabel="Cena netto"
                                 grossLabel="Cena brutto"
                                 vatLabel="VAT"
