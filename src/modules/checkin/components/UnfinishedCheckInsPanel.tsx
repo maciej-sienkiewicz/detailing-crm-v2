@@ -219,7 +219,7 @@ export const UnfinishedCheckInsPanel = () => {
                         // Kartę Wizyty wysłał już backend razem z potwierdzeniem (flaga sendVisitCard).
                         setResuming(null);
                         refresh();
-                        showSuccess(`Wizyta ${resuming.visitNumber} rozpoczęta pomyślnie!`);
+                        showSuccess(`Wizyta rozpoczęta pomyślnie!`);
                         navigate(`/visits/${visitId}`);
                     }}
                     onCancelled={() => { setResuming(null); refresh(); }}

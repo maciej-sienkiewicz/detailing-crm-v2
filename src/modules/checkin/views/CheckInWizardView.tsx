@@ -385,7 +385,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const handleSigningModalConfirm = () => {
         if (signingModalState.visitId) {
             const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
-            showSuccess(`Wizyta ${visitNumber} rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
+            showSuccess(`Wizyta rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             onComplete(signingModalState.visitId);
         }
@@ -580,7 +580,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     draft={resumeDraft}
                     onConfirmed={visitId => {
                         setResumeDraft(null);
-                        showSuccess(`Wizyta ${resumeDraft.visitNumber} rozpoczęta pomyślnie!`);
+                        showSuccess(`Wizyta rozpoczęta pomyślnie!`);
                         onComplete(visitId);
                     }}
                     onCancelled={() => {
