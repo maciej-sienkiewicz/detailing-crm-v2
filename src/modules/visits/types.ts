@@ -419,6 +419,46 @@ export interface VisitDamageMapResponse {
     updatedByName: string | null;
 }
 
+// ─── Telefon jako narzędzie do mapy uszkodzeń ─────────────────────────────────
+
+export interface StartDamageMapMobileSessionPayload {
+    /** Punkty z otwartego edytora — telefon startuje od nich, nie od pustej mapy. */
+    damagePoints: DamagePoint[];
+    vehicleType?: string;
+    /** true unieważnia poprzedni kod QR. */
+    rotate?: boolean;
+}
+
+export interface DamageMapMobileTokenResponse {
+    token: string;
+    /** Identyfikator sesji mobilnej — dla wizyty jest nim jej własne id. */
+    checkinId: string;
+    expiresAt: string;
+    uploadEndpoint: string;
+}
+
+export interface DamageMapMobileSessionResponse {
+    /** false = nie ma otwartej sesji; to nie błąd. */
+    active: boolean;
+    damagePoints: DamagePoint[];
+    vehicleType: string | null;
+    savedAt: string | null;
+}
+
+/** Zdjęcie z telefonu przeniesione do galerii wizyty. */
+export interface ClaimedMobilePhoto {
+    /** Identyfikator, którym punkty wskazywały zdjęcie w sesji mobilnej. */
+    temporaryPhotoId: string;
+    /** Identyfikator zdjęcia wizyty, którym mają wskazywać od teraz. */
+    photoId: string;
+    fileName: string;
+    thumbnailUrl: string | null;
+}
+
+export interface ClaimMobilePhotosResponse {
+    photos: ClaimedMobilePhoto[];
+}
+
 export interface UpdateDamageMapPayload {
     damagePoints: DamagePoint[];
     vehicleType?: string;

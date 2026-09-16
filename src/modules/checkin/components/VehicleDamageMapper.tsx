@@ -1,8 +1,8 @@
 // src/modules/checkin/components/VehicleDamageMapper.tsx
 
 import { useState, useRef } from 'react';
+import type { ReactNode } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { Button } from '@/common/components/Button';
 import type { DamagePoint, DamagePointPhoto, PhotoSlot } from '../types';
 import { DamagePhotoAnnotator, AnnotationOverlay } from './DamagePhotoAnnotator';
 
@@ -157,10 +157,62 @@ const DamageMarker = styled.div<{ $isLast: boolean; $isHovered: boolean }>`
   }
 `;
 
+/*
+ * Pasek pod schematem. Wyrównany do prawej i wizualnie cichy, bo „Cofnij"
+ * i „Wyczyść wszystko" są poprawkami pomyłki, nie krokiem pracy — krokiem jest
+ * klikanie w schemat wyżej i opisywanie punktów niżej. Wcześniej stały tu dwa
+ * pełnowymiarowe `Button`i z emoji, które ciężarem konkurowały z jednym
+ * wypełnionym przyciskiem okna.
+ */
 const ControlsRow = styled.div`
   display: flex;
-  gap: ${props => props.theme.spacing.sm};
+  justify-content: flex-end;
+  gap: 8px;
   flex-wrap: wrap;
+`;
+
+const MapControlBtn = styled.button<{ $danger?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: ${props => props.theme.colors.textSecondary};
+  background: ${props => props.theme.colors.surface};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all ${props => props.theme.transitions.normal};
+
+  svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Czerwień wchodzi dopiero pod kursorem: „Wyczyść wszystko" NOSI znaczenie
+     nieodwracalności, ale nie ma jej krzyczeć z pustego ekranu. */
+  &:hover:not(:disabled) {
+    ${props => props.$danger
+        ? css`
+            color: #b91c1c;
+            border-color: rgba(220, 38, 38, 0.45);
+            background: rgba(220, 38, 38, 0.06);
+          `
+        : css`
+            color: ${props.theme.colors.text};
+            border-color: #cbd5e1;
+            background: ${props.theme.colors.surfaceAlt};
+          `}
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 `;
 
 const DamageList = styled.div`
@@ -409,6 +461,89 @@ const PickerBody = styled.div`
   overflow-y: auto;
 `;
 
+/*
+ * Trzy źródła zdjęcia stoją jako zakładki, nie jako trzy przyciski w rzędzie:
+ * operator wybiera DROGĘ do tego samego celu, a nie trzy różne akcje. Zakładki
+ * niosą swój odcień w podkreśleniu i tekście; wypełnienia nie ma żadna, bo
+ * wypełniony w tym oknie jest wyłącznie przycisk kroku następnego.
+ */
+const PickerTabs = styled.div`
+  display: flex;
+  gap: 2px;
+  padding: 0 18px;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
+const PickerTab = styled.button<{ $active: boolean }>`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: ${props => (props.$active ? 700 : 500)};
+  color: ${props => (props.$active ? '#0284c7' : props.theme.colors.textSecondary)};
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid ${props => (props.$active ? '#0ea5e9' : 'transparent')};
+  cursor: pointer;
+  transition: all ${props => props.theme.transitions.normal};
+  white-space: nowrap;
+
+  svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  &:hover:not(:disabled) { color: ${props => (props.$active ? '#0284c7' : props.theme.colors.text)}; }
+`;
+
+const FileDropLabel = styled.label<{ $busy: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 18px;
+  text-align: center;
+  border: 2px dashed ${props => props.theme.colors.border};
+  border-radius: ${props => props.theme.radii.md};
+  background: ${props => props.theme.colors.surfaceAlt};
+  color: ${props => props.theme.colors.textSecondary};
+  font-size: ${props => props.theme.fontSizes.sm};
+  font-weight: 500;
+  cursor: ${props => (props.$busy ? 'progress' : 'pointer')};
+  opacity: ${props => (props.$busy ? 0.6 : 1)};
+  transition: all ${props => props.theme.transitions.normal};
+
+  svg { width: 26px; height: 26px; color: ${props => props.theme.colors.textMuted}; }
+
+  &:hover {
+    ${props => !props.$busy && css`
+      border-color: ${props.theme.colors.primary};
+      background: rgba(14, 165, 233, 0.05);
+    `}
+  }
+`;
+
+const FileDropHint = styled.span`
+  font-size: ${props => props.theme.fontSizes.xs};
+  font-weight: 400;
+  color: ${props => props.theme.colors.textMuted};
+  line-height: 1.5;
+`;
+
+const HiddenFileInput = styled.input`
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+`;
+
+const PickerError = styled.p`
+  margin: 10px 0 0;
+  font-size: ${props => props.theme.fontSizes.xs};
+  color: #b91c1c;
+`;
+
 const PickerGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -484,7 +619,24 @@ interface VehicleDamageMapperProps {
    *  falls back to internal state when not provided */
   vehicleType?: string;
   onVehicleTypeChange?: (type: string) => void;
+  /**
+   * Źródło „Z pliku": wysyła wskazany plik i oddaje gotowy kafelek zdjęcia
+   * (albo rzuca, gdy się nie udało). Pominięte = zakładki nie ma.
+   *
+   * Wysyłkę robi GOSPODARZ, nie edytor: przy przyjęciu zdjęcie trafia do sesji
+   * zdjęciowej, a przy otwartej wizycie do jej galerii — dwie różne drogi do
+   * dwóch różnych miejsc, a edytor nie ma powodu znać żadnej z nich.
+   */
+  onUploadPhotoFile?: (file: File) => Promise<PhotoSlot>;
+  /**
+   * Źródło „Kod QR": panel z kodem dostarczany przez gospodarza (wizyta ma inny
+   * endpoint tokenu niż przyjęcie). Pominięte = zakładki nie ma.
+   */
+  renderQrPanel?: () => ReactNode;
 }
+
+/** Skąd bierzemy zdjęcie do punktu uszkodzenia. */
+type PhotoSource = 'existing' | 'file' | 'qr';
 
 export const VehicleDamageMapper = ({
   points,
@@ -492,6 +644,8 @@ export const VehicleDamageMapper = ({
   availablePhotos = [],
   vehicleType: vehicleTypeProp,
   onVehicleTypeChange,
+  onUploadPhotoFile,
+  renderQrPanel,
 }: VehicleDamageMapperProps) => {
   const [vehicleTypeLocal, setVehicleTypeLocal] = useState<VehicleBodyType>('sedan');
   const vehicleType = (vehicleTypeProp ?? vehicleTypeLocal) as VehicleBodyType;
@@ -502,6 +656,9 @@ export const VehicleDamageMapper = ({
   const [hoveredPointId, setHoveredPointId] = useState<number | null>(null);
   const [pickerPointId, setPickerPointId] = useState<number | null>(null);
   const [annotating, setAnnotating] = useState<{ pointId: number; photo: DamagePointPhoto } | null>(null);
+  const [photoSource, setPhotoSource] = useState<PhotoSource>('existing');
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -564,6 +721,36 @@ export const VehicleDamageMapper = ({
     // whole point of attaching it, so save the extra click.
     if (attached.thumbnailUrl) {
       setAnnotating({ pointId, photo: attached });
+    }
+  };
+
+  const openPicker = (pointId: number) => {
+    setUploadError(null);
+    // „Istniejące" tylko wtedy, gdy jest z czego wybierać. Otwieranie pustej
+    // siatki, kiedy obok czeka aparat w telefonie, to zakładka na pusto.
+    setPhotoSource(availablePhotos.length > 0 ? 'existing' : firstAvailableSource());
+    setPickerPointId(pointId);
+  };
+
+  const firstAvailableSource = (): PhotoSource =>
+    onUploadPhotoFile ? 'file' : renderQrPanel ? 'qr' : 'existing';
+
+  const handleFileSelected = async (pointId: number, file: File | undefined) => {
+    if (!file || !onUploadPhotoFile) return;
+    setUploadError(null);
+    setUploadingFile(true);
+    try {
+      const slot = await onUploadPhotoFile(file);
+      handleAttachPhoto(pointId, slot);
+      setPickerPointId(null);
+    } catch (err) {
+      /*
+       * Okno zostaje otwarte z komunikatem przy zakładce. Zamknięcie go po
+       * nieudanej wysyłce wyglądałoby jak sukces — a zdjęcia by nie było.
+       */
+      setUploadError(err instanceof Error ? err.message : 'Nie udało się wysłać zdjęcia');
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -633,20 +820,30 @@ export const VehicleDamageMapper = ({
       </ImageContainer>
 
       <ControlsRow>
-        <Button
-          $variant="secondary"
+        <MapControlBtn
+          type="button"
           onClick={handleUndo}
           disabled={points.length === 0}
+          title="Usuń ostatnio postawione oznaczenie"
         >
-          ↶ Cofnij
-        </Button>
-        <Button
-          $variant="secondary"
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 14 4 9l5-5" />
+            <path d="M4 9h11a5 5 0 0 1 0 10H9" />
+          </svg>
+          Cofnij
+        </MapControlBtn>
+        <MapControlBtn
+          type="button"
+          $danger
           onClick={handleClearAll}
           disabled={points.length === 0}
+          title="Usuń wszystkie oznaczenia"
         >
-          🗑️ Wyczyść wszystko
-        </Button>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+          </svg>
+          Wyczyść wszystko
+        </MapControlBtn>
       </ControlsRow>
 
       <DamageList>
@@ -714,7 +911,7 @@ export const VehicleDamageMapper = ({
                 ))}
                 <AttachPhotoBtn
                   type="button"
-                  onClick={() => setPickerPointId(point.id)}
+                  onClick={() => openPicker(point.id)}
                   title="Przypisz zdjęcie z dokumentacji do tego uszkodzenia"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -737,34 +934,125 @@ export const VehicleDamageMapper = ({
               <h4>Przypisz zdjęcie do uszkodzenia nr {getPointNumber(pickerPoint.id)}</h4>
               <PickerClose onClick={() => setPickerPointId(null)} title="Zamknij">×</PickerClose>
             </PickerHead>
+            {/* Zakładki pojawiają się tylko wtedy, gdy gospodarz dostarczył więcej niż
+                jedno źródło — przyjęcie ma swój własny kod QR nad edytorem i nie
+                potrzebuje ich wcale. */}
+            {(onUploadPhotoFile || renderQrPanel) && (
+              <PickerTabs role="tablist">
+                <PickerTab
+                  type="button"
+                  role="tab"
+                  aria-selected={photoSource === 'existing'}
+                  $active={photoSource === 'existing'}
+                  onClick={() => setPhotoSource('existing')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  Istniejące
+                  {availablePhotos.length > 0 && ` (${availablePhotos.length})`}
+                </PickerTab>
+
+                {onUploadPhotoFile && (
+                  <PickerTab
+                    type="button"
+                    role="tab"
+                    aria-selected={photoSource === 'file'}
+                    $active={photoSource === 'file'}
+                    onClick={() => setPhotoSource('file')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    Z pliku
+                  </PickerTab>
+                )}
+
+                {renderQrPanel && (
+                  <PickerTab
+                    type="button"
+                    role="tab"
+                    aria-selected={photoSource === 'qr'}
+                    $active={photoSource === 'qr'}
+                    onClick={() => setPhotoSource('qr')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7" rx="1" />
+                      <rect x="14" y="3" width="7" height="7" rx="1" />
+                      <rect x="3" y="14" width="7" height="7" rx="1" />
+                      <path d="M14 14h3v3h-3zM20 14v3M14 20h6" />
+                    </svg>
+                    Kod QR
+                  </PickerTab>
+                )}
+              </PickerTabs>
+            )}
+
             <PickerBody>
-              {availablePhotos.length === 0 ? (
-                <PickerEmpty>
-                  Brak zdjęć w dokumentacji. Prześlij zdjęcia w sekcji „Dokumentacja zdjęciowa"
-                  powyżej lub użyj telefonu (kod QR), aby dodać zdjęcia bezpośrednio do uszkodzenia.
-                </PickerEmpty>
-              ) : (
-                <PickerGrid>
-                  {availablePhotos.map(slot => {
-                    const attached = (pickerPoint.photos ?? []).some(ph => ph.photoId === slot.id);
-                    return (
-                      <PickerPhoto
-                        key={slot.id}
-                        $attached={attached}
-                        disabled={attached}
-                        onClick={() => {
-                          handleAttachPhoto(pickerPoint.id, slot);
-                          setPickerPointId(null);
-                        }}
-                        title={attached ? 'Zdjęcie już przypisane' : 'Przypisz to zdjęcie'}
-                      >
-                        {photoUrl(slot) && <img src={photoUrl(slot)} alt={slot.fileName} draggable={false} />}
-                        {attached && <PickerAttachedLabel>Przypisane</PickerAttachedLabel>}
-                      </PickerPhoto>
-                    );
-                  })}
-                </PickerGrid>
+              {photoSource === 'existing' && (
+                availablePhotos.length === 0 ? (
+                  <PickerEmpty>
+                    {onUploadPhotoFile || renderQrPanel
+                      ? 'Brak zdjęć do wyboru. Wyślij plik z komputera albo zrób zdjęcie telefonem — zakładki powyżej.'
+                      : 'Brak zdjęć w dokumentacji. Prześlij zdjęcia w sekcji „Dokumentacja zdjęciowa" powyżej lub użyj telefonu (kod QR), aby dodać zdjęcia bezpośrednio do uszkodzenia.'}
+                  </PickerEmpty>
+                ) : (
+                  <PickerGrid>
+                    {availablePhotos.map(slot => {
+                      const attached = (pickerPoint.photos ?? []).some(ph => ph.photoId === slot.id);
+                      return (
+                        <PickerPhoto
+                          key={slot.id}
+                          $attached={attached}
+                          disabled={attached}
+                          onClick={() => {
+                            handleAttachPhoto(pickerPoint.id, slot);
+                            setPickerPointId(null);
+                          }}
+                          title={attached ? 'Zdjęcie już przypisane' : 'Przypisz to zdjęcie'}
+                        >
+                          {photoUrl(slot) && <img src={photoUrl(slot)} alt={slot.fileName} draggable={false} />}
+                          {attached && <PickerAttachedLabel>Przypisane</PickerAttachedLabel>}
+                        </PickerPhoto>
+                      );
+                    })}
+                  </PickerGrid>
+                )
               )}
+
+              {photoSource === 'file' && onUploadPhotoFile && (
+                <>
+                  <FileDropLabel $busy={uploadingFile}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    {uploadingFile ? 'Wysyłanie zdjęcia...' : 'Wybierz zdjęcie z komputera'}
+                    <FileDropHint>
+                      Po wysłaniu zdjęcie od razu przypniemy do tego uszkodzenia
+                      i otworzymy pisak do zaznaczenia.
+                    </FileDropHint>
+                    <HiddenFileInput
+                      type="file"
+                      accept="image/*"
+                      disabled={uploadingFile}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        void handleFileSelected(pickerPoint.id, file);
+                      }}
+                    />
+                  </FileDropLabel>
+                  {uploadError && <PickerError>{uploadError}</PickerError>}
+                </>
+              )}
+
+              {photoSource === 'qr' && renderQrPanel?.()}
             </PickerBody>
           </PickerCard>
         </PickerOverlay>

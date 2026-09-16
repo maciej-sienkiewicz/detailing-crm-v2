@@ -20,7 +20,8 @@ import { useModalViewport } from '@/common/hooks';
    sam edytor mapy. */
 import { VehicleDamageMapper } from '@/modules/checkin/components/VehicleDamageMapper';
 import type { DamagePoint, PhotoSlot } from '@/modules/checkin/types';
-import type { DamageMapUpdateMode, VisitPhoto } from '../types';
+import type { ClaimedMobilePhoto, DamageMapUpdateMode, VisitPhoto } from '../types';
+import { DamageMapQrPanel } from './DamageMapQrPanel';
 import {
     buildDamageMapNotificationDraft,
     buildDamageMapPayload,
@@ -34,7 +35,14 @@ const BRAND_DARK = '#0284c7';
 
 type Step = 'mode' | 'edit' | 'notify';
 
-const STEP_ORDER: Step[] = ['mode', 'edit', 'notify'];
+/*
+ * Pytanie „co zrobić z dotychczasowym dokumentem" ma sens tylko wtedy, gdy ten
+ * dokument istnieje. Wizyta bez wygenerowanej mapy nie ma czego nadpisywać, więc
+ * krok z dwoma kafelkami byłby ekranem z jedną możliwą odpowiedzią — czyli
+ * kliknięciem na pusto przed właściwą pracą.
+ */
+const STEPS_WITH_DOCUMENT: Step[] = ['mode', 'edit', 'notify'];
+const STEPS_WITHOUT_DOCUMENT: Step[] = ['edit', 'notify'];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -162,13 +170,6 @@ const SectionTitle = styled.h5`
     font-size: 14px;
     font-weight: 700;
     color: ${st.text};
-`;
-
-const SectionNote = styled.p`
-    margin: 0;
-    font-size: 12.5px;
-    line-height: 1.55;
-    color: ${st.textSecondary};
 `;
 
 const OptionGrid = styled.div`
@@ -396,6 +397,7 @@ const LoadingRow = styled.div`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
+    visitId: string;
     visitNumber: string;
     /** Punkty zapisane dla tej wizyty (z API). */
     initialPoints: DamagePoint[];
@@ -414,9 +416,17 @@ interface Props {
     isSaving: boolean;
     onClose: () => void;
     onSubmit: (payload: ReturnType<typeof buildDamageMapPayload>) => Promise<unknown>;
+    /**
+     * Źródło „Z pliku": wysyła plik do galerii wizyty i oddaje gotowy kafelek.
+     * Rzuca, gdy się nie udało — edytor pokazuje wtedy komunikat i zostaje otwarty.
+     */
+    onUploadPhotoFile: (file: File) => Promise<PhotoSlot>;
+    /** Zdjęcia z telefonu weszły do galerii wizyty — trzeba odświeżyć listę zdjęć. */
+    onPhotosClaimed: (photos: ClaimedMobilePhoto[]) => void;
 }
 
 export const DamageMapUpdateModal = ({
+    visitId,
     visitNumber,
     initialPoints,
     initialVehicleType,
@@ -427,8 +437,16 @@ export const DamageMapUpdateModal = ({
     isSaving,
     onClose,
     onSubmit,
+    onUploadPhotoFile,
+    onPhotosClaimed,
 }: Props) => {
-    const [step, setStep] = useState<Step>('mode');
+    /*
+     * `null` = nie wybrano jeszcze kroku ręcznie, więc obowiązuje pierwszy z listy.
+     * Lista zależy od `hasDocument`, a ten przychodzi z zapytania — dlatego ciało okna
+     * pokazuje wczytywanie, dopóki nie wiemy, ile kroków ma ta ścieżka. Inaczej
+     * operator widziałby mapę, która po chwili przeskakuje na pytanie o dokument.
+     */
+    const [step, setStep] = useState<Step | null>(null);
     const [mode, setMode] = useState<DamageMapUpdateMode>('NEW_FILE');
     const [notifyCustomer, setNotifyCustomer] = useState<boolean | null>(null);
     const [messageFocused, setMessageFocused] = useState(false);
@@ -477,6 +495,27 @@ export const DamageMapUpdateModal = ({
         [visitPhotos]
     );
 
+    /*
+     * Punkty z telefonu ZASTĘPUJĄ listę w edytorze, nie doklejają się do niej.
+     * Sesja mobilna jest zasiewana aktualnymi punktami przy wydaniu kodu, więc to,
+     * co przychodzi z telefonu, jest pełną mapą po jego edycji — scalanie po
+     * numerach dublowałoby punkty usunięte na telefonie.
+     */
+    /*
+     * Zdjęcia, które telefon może oddać z NIEZMIENIONYM identyfikatorem: galeria
+     * wizyty plus to, co już wisi na punktach (świeżo wysłany plik trafia na punkt
+     * przed odświeżeniem listy zdjęć).
+     */
+    const knownPhotoIds = useMemo(() => [
+        ...visitPhotos.map(photo => photo.id),
+        ...points.flatMap(point => (point.photos ?? []).map(photo => photo.photoId)),
+    ], [visitPhotos, points]);
+
+    const handlePointsFromPhone = (fromPhone: DamagePoint[], phoneVehicleType: string | null) => {
+        setEditedPoints(fromPhone);
+        if (phoneVehicleType) setEditedVehicleType(phoneVehicleType);
+    };
+
     const handleSubmit = async () => {
         try {
             await onSubmit(buildDamageMapPayload({
@@ -497,7 +536,10 @@ export const DamageMapUpdateModal = ({
         onClose();
     };
 
-    const stepIndex = STEP_ORDER.indexOf(step);
+    const stepOrder = hasDocument ? STEPS_WITH_DOCUMENT : STEPS_WITHOUT_DOCUMENT;
+    const currentStep = step ?? stepOrder[0];
+    const stepIndex = stepOrder.indexOf(currentStep);
+    const isLastStep = stepIndex === stepOrder.length - 1;
 
     return (
         <Overlay ref={overlayRef} onClick={() => { if (!isSaving) onClose(); }}>
@@ -511,14 +553,16 @@ export const DamageMapUpdateModal = ({
                     <HeaderTexts>
                         <Title>Zaktualizuj uszkodzenia</Title>
                         <Subtitle>Wizyta {visitNumber}</Subtitle>
-                        <StepDots aria-hidden="true">
-                            {STEP_ORDER.map((s, index) => (
-                                <StepDot
-                                    key={s}
-                                    $state={index === stepIndex ? 'current' : index < stepIndex ? 'done' : 'todo'}
-                                />
-                            ))}
-                        </StepDots>
+                        {!isLoading && (
+                            <StepDots aria-hidden="true">
+                                {stepOrder.map((s, index) => (
+                                    <StepDot
+                                        key={s}
+                                        $state={index === stepIndex ? 'current' : index < stepIndex ? 'done' : 'todo'}
+                                    />
+                                ))}
+                            </StepDots>
+                        )}
                     </HeaderTexts>
                     <CloseBtn type="button" onClick={onClose} disabled={isSaving} aria-label="Zamknij">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -528,7 +572,11 @@ export const DamageMapUpdateModal = ({
                 </Header>
 
                 <Body>
-                    {step === 'mode' && (
+                    {isLoading && (
+                        <LoadingRow>Wczytywanie zapisanych oznaczeń...</LoadingRow>
+                    )}
+
+                    {!isLoading && currentStep === 'mode' && (
                         <>
                             <SectionHead>
                                 <SectionIcon>
@@ -539,11 +587,6 @@ export const DamageMapUpdateModal = ({
                                 </SectionIcon>
                                 <SectionTitle>Co zrobić z dotychczasowym dokumentem?</SectionTitle>
                             </SectionHead>
-
-                            <SectionNote>
-                                Mapa uszkodzeń z przyjęcia bywa podpisana przez klienta i wysłana mailem.
-                                Dlatego to pytanie jest pierwsze, a nie ostatnie.
-                            </SectionNote>
 
                             <OptionGrid>
                                 <OptionTile
@@ -625,7 +668,7 @@ export const DamageMapUpdateModal = ({
                         </>
                     )}
 
-                    {step === 'edit' && (
+                    {!isLoading && currentStep === 'edit' && (
                         <>
                             <SectionHead>
                                 <SectionIcon>
@@ -637,21 +680,28 @@ export const DamageMapUpdateModal = ({
                                 <SectionTitle>Oznacz uszkodzenia</SectionTitle>
                             </SectionHead>
 
-                            {isLoading ? (
-                                <LoadingRow>Wczytywanie zapisanych oznaczeń...</LoadingRow>
-                            ) : (
-                                <VehicleDamageMapper
-                                    points={points}
-                                    onChange={setEditedPoints}
-                                    availablePhotos={availablePhotos}
-                                    vehicleType={vehicleType}
-                                    onVehicleTypeChange={setEditedVehicleType}
-                                />
-                            )}
+                            <VehicleDamageMapper
+                                points={points}
+                                onChange={setEditedPoints}
+                                availablePhotos={availablePhotos}
+                                vehicleType={vehicleType}
+                                onVehicleTypeChange={setEditedVehicleType}
+                                onUploadPhotoFile={onUploadPhotoFile}
+                                renderQrPanel={() => (
+                                    <DamageMapQrPanel
+                                        visitId={visitId}
+                                        currentPoints={points}
+                                        vehicleType={vehicleType}
+                                        knownPhotoIds={knownPhotoIds}
+                                        onPointsFromPhone={handlePointsFromPhone}
+                                        onPhotosClaimed={onPhotosClaimed}
+                                    />
+                                )}
+                            />
                         </>
                     )}
 
-                    {step === 'notify' && (
+                    {!isLoading && currentStep === 'notify' && (
                         <>
                             <SummaryBox>
                                 <SummaryHeadline>
@@ -739,10 +789,10 @@ export const DamageMapUpdateModal = ({
 
                 <Footer>
                     <FooterLeft>
-                        {step !== 'mode' && (
+                        {stepIndex > 0 && (
                             <GhostBtn
                                 type="button"
-                                onClick={() => setStep(STEP_ORDER[stepIndex - 1])}
+                                onClick={() => setStep(stepOrder[stepIndex - 1])}
                                 disabled={isSaving}
                             >
                                 Wróć
@@ -753,7 +803,7 @@ export const DamageMapUpdateModal = ({
                         </GhostBtn>
                     </FooterLeft>
 
-                    {step === 'notify' ? (
+                    {isLastStep ? (
                         <PrimaryBtn
                             type="button"
                             onClick={handleSubmit}
@@ -775,11 +825,11 @@ export const DamageMapUpdateModal = ({
                     ) : (
                         <PrimaryBtn
                             type="button"
-                            onClick={() => setStep(STEP_ORDER[stepIndex + 1])}
-                            disabled={isSaving || (step === 'edit' && !diff.hasChanges)}
-                            title={step === 'edit' && !diff.hasChanges ? 'Dodaj lub popraw oznaczenie, żeby przejść dalej' : undefined}
+                            onClick={() => setStep(stepOrder[stepIndex + 1])}
+                            disabled={isLoading || isSaving || (currentStep === 'edit' && !diff.hasChanges)}
+                            title={currentStep === 'edit' && !diff.hasChanges ? 'Dodaj lub popraw oznaczenie, żeby przejść dalej' : undefined}
                         >
-                            {step === 'mode' ? 'Przejdź do mapy' : 'Podsumowanie'}
+                            {currentStep === 'mode' ? 'Przejdź do mapy' : 'Podsumowanie'}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="5" y1="12" x2="19" y2="12" />
                                 <polyline points="12 5 19 12 12 19" />

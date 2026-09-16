@@ -22,6 +22,10 @@ import type {
     VisitDamageMapResponse,
     UpdateDamageMapPayload,
     UpdateDamageMapResponse,
+    StartDamageMapMobileSessionPayload,
+    DamageMapMobileTokenResponse,
+    DamageMapMobileSessionResponse,
+    ClaimMobilePhotosResponse,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -731,6 +735,41 @@ export const visitApi = {
         const response = await apiClient.put<UpdateDamageMapResponse>(
             `${BASE_PATH}/${visitId}/damage-map`,
             payload
+        );
+        return response.data;
+    },
+
+    /**
+     * Otwiera sesję mobilną (kod QR) dla mapy uszkodzeń wizyty.
+     *
+     * Wysyłamy AKTUALNE punkty z edytora, bo backend zasiewa nimi sesję — bez tego
+     * telefon zaczynałby od pustej mapy, a jego pierwszy zapis skasowałby oznaczenia
+     * z przyjęcia.
+     */
+    startDamageMapMobileSession: async (
+        visitId: string,
+        payload: StartDamageMapMobileSessionPayload
+    ): Promise<DamageMapMobileTokenResponse> => {
+        const response = await apiClient.post<DamageMapMobileTokenResponse>(
+            `${BASE_PATH}/${visitId}/damage-map/qr-token`,
+            payload
+        );
+        return response.data;
+    },
+
+    /** Co telefon zdążył zaznaczyć; `active: false` znaczy „nie ma sesji". */
+    getDamageMapMobileSession: async (visitId: string): Promise<DamageMapMobileSessionResponse> => {
+        const response = await apiClient.get<DamageMapMobileSessionResponse>(
+            `${BASE_PATH}/${visitId}/damage-map/mobile`
+        );
+        return response.data;
+    },
+
+    /** Przenosi zdjęcia z telefonu do galerii wizyty i zwraca mapowanie identyfikatorów. */
+    claimDamageMapQrPhotos: async (visitId: string): Promise<ClaimMobilePhotosResponse> => {
+        const response = await apiClient.post<ClaimMobilePhotosResponse>(
+            `${BASE_PATH}/${visitId}/damage-map/qr-photos/claim`,
+            {}
         );
         return response.data;
     },

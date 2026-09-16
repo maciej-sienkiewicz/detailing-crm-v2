@@ -4,7 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import { PageContainer } from '@/common/components/PageContainer';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
-import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey } from '../hooks';
+import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey, visitPhotosQueryKey } from '../hooks';
 import { useVisitDamageMap, useUpdateVisitDamageMap } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
@@ -883,6 +883,27 @@ export const VisitDetailView = () => {
         uploadPhoto({ visitId: visitId!, file, description });
     };
 
+    /**
+     * „Z pliku" w oknie uszkodzeń: zdjęcie ma być zdjęciem WIZYTY, nie bytem
+     * lokalnym okna — inaczej przepadłoby przy pierwszym odświeżeniu, a mapa
+     * zostałaby ze wskaźnikiem na nic.
+     *
+     * Kafelek wraca z lokalnym `previewUrl`, bo `uploadPhoto` nie zwraca
+     * presignowanej miniatury, a pisak do zaznaczania otwiera się natychmiast po
+     * przypięciu (ten sam wzorzec ma kreator przyjęcia). Presignowany adres
+     * dociągnie unieważnione niżej zapytanie o zdjęcia wizyty.
+     */
+    const handleUploadDamagePhoto = async (file: File) => {
+        const uploaded = await visitApi.uploadPhoto({ visitId: visitId!, file });
+        queryClient.invalidateQueries({ queryKey: visitPhotosQueryKey(visitId!) });
+        return {
+            id: uploaded.photoId,
+            fileName: file.name,
+            uploadedAt: new Date().toISOString(),
+            previewUrl: URL.createObjectURL(file),
+        };
+    };
+
     const handleDeleteDocument = (documentId: string) => { deleteDocument(documentId); };
     const handleDeletePhoto = (photoId: string) => { deletePhoto(photoId); };
 
@@ -1321,6 +1342,7 @@ export const VisitDetailView = () => {
                 od zera przy każdym wejściu. */}
             {isDamageMapOpen && (
                 <DamageMapUpdateModal
+                    visitId={visitId!}
                     visitNumber={visit.visitNumber}
                     initialPoints={damageMap?.damagePoints ?? []}
                     initialVehicleType={damageMap?.vehicleType ?? null}
@@ -1331,6 +1353,12 @@ export const VisitDetailView = () => {
                     isSaving={isUpdatingDamageMap}
                     onClose={() => setIsDamageMapOpen(false)}
                     onSubmit={updateDamageMap}
+                    onUploadPhotoFile={handleUploadDamagePhoto}
+                    onPhotosClaimed={() => {
+                        // Zdjęcia z telefonu są już zdjęciami wizyty — lista
+                        // „Istniejące" w edytorze i galeria niżej muszą je zobaczyć.
+                        queryClient.invalidateQueries({ queryKey: visitPhotosQueryKey(visitId!) });
+                    }}
                 />
             )}
 

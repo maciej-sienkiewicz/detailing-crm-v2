@@ -30,12 +30,19 @@ type Overrides = Partial<Omit<Parameters<typeof DamageMapUpdateModal>[0], 'onSub
     onClose?: Mock;
 };
 
+/* Panel QR pyta backend o token przy montowaniu; w tych testach nie wchodzimy w tę
+   zakładkę, a gdyby test kiedyś wszedł, ma dostać przewidywalną atrapę. */
+vi.mock('./DamageMapQrPanel', () => ({
+    DamageMapQrPanel: () => <div data-testid="qr-panel" />,
+}));
+
 const renderModal = (overrides: Overrides = {}) => {
     const onSubmit: Mock = overrides.onSubmit ?? vi.fn().mockResolvedValue(undefined);
     const onClose: Mock = overrides.onClose ?? vi.fn();
     render(
         <ThemeProvider theme={theme}>
             <DamageMapUpdateModal
+                visitId="visit-1"
                 visitNumber="WIZ/2026/09/001"
                 initialPoints={existingPoints}
                 initialVehicleType="suv"
@@ -46,6 +53,8 @@ const renderModal = (overrides: Overrides = {}) => {
                 isSaving={false}
                 onClose={onClose}
                 onSubmit={onSubmit}
+                onUploadPhotoFile={vi.fn()}
+                onPhotosClaimed={vi.fn()}
                 {...overrides}
             />
         </ThemeProvider>
@@ -80,6 +89,11 @@ describe('DamageMapUpdateModal', () => {
         expect(newFile.getAttribute('aria-pressed')).toBe('true');
     });
 
+    it('nie tłumaczy już, dlaczego to pytanie jest pierwsze', () => {
+        renderModal();
+        expect(screen.queryByText(/Dlatego to pytanie jest pierwsze/i)).toBeNull();
+    });
+
     it('ostrzega przed nadpisaniem dokumentu, który klient mógł już dostać', async () => {
         const user = userEvent.setup();
         renderModal();
@@ -89,17 +103,43 @@ describe('DamageMapUpdateModal', () => {
         expect(screen.getByText(/nie pokażesz/i)).toBeTruthy();
     });
 
-    it('nie pozwala nadpisać pliku, którego nie ma', () => {
-        renderModal({ hasDocument: false, pointsRecoverable: false });
+    it('bez dotychczasowego dokumentu pomija pytanie o plik i otwiera od razu mapę', () => {
+        // Ekran z jedną możliwą odpowiedzią to kliknięcie na pusto przed właściwą pracą.
+        renderModal({ hasDocument: false, pointsRecoverable: false, initialPoints: [] });
 
-        const replace = screen.getByRole('button', { name: /Zaktualizuj istniejący/i }) as HTMLButtonElement;
-        expect(replace.disabled).toBe(true);
+        expect(screen.queryByText(/Co zrobić z dotychczasowym dokumentem/i)).toBeNull();
+        expect(screen.queryByRole('button', { name: /Zaktualizuj istniejący/i })).toBeNull();
+        expect(screen.getByAltText(/Schemat pojazdu/i)).toBeTruthy();
+        // Z dwóch kroków pierwszy nie ma już „Wróć".
+        expect(screen.queryByRole('button', { name: /^Wróć$/i })).toBeNull();
+    });
+
+    it('bez dokumentu prowadzi wprost do podsumowania i zapisuje jako nowy plik', async () => {
+        const user = userEvent.setup();
+        const { onSubmit } = renderModal({ hasDocument: false, pointsRecoverable: false, initialPoints: [] });
+
+        await addPointOnDiagram(user);
+        await user.click(screen.getByRole('button', { name: /Podsumowanie/i }));
+        await user.click(screen.getByRole('button', { name: /Nie, powiem osobiście/i }));
+        await user.click(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }));
+
+        expect(onSubmit.mock.calls[0][0]).toMatchObject({ mode: 'NEW_FILE' });
+    });
+
+    it('czeka z wyborem kroku, dopóki nie wie, czy jest dokument', () => {
+        // `hasDocument` przychodzi z zapytania. Gdyby okno rysowało mapę już w trakcie
+        // wczytywania, operator zobaczyłby ją i po chwili przeskok na pytanie o plik.
+        renderModal({ isLoading: true });
+
+        expect(screen.getByText(/Wczytywanie zapisanych oznaczeń/i)).toBeTruthy();
+        expect(screen.queryByAltText(/Schemat pojazdu/i)).toBeNull();
+        expect(screen.queryByText(/Co zrobić z dotychczasowym dokumentem/i)).toBeNull();
     });
 
     it('mówi wprost, gdy punktów z przyjęcia nie da się odtworzyć', () => {
         // Bez tego ostrzeżenia „aktualizacja" starej wizyty zapisałaby pustą mapę
         // i cicho skasowała wszystkie oznaczenia z przyjęcia.
-        renderModal({ pointsRecoverable: false, initialPoints: [] });
+        renderModal({ pointsRecoverable: false, initialPoints: [], hasDocument: true });
 
         expect(screen.getByText(/starsza niż zapis oznaczeń/i)).toBeTruthy();
     });
@@ -210,6 +250,7 @@ describe('DamageMapUpdateModal', () => {
         const { rerender } = render(
             <ThemeProvider theme={theme}>
                 <DamageMapUpdateModal
+                    visitId="visit-1"
                     visitNumber="WIZ/2026/09/001"
                     initialPoints={[]}
                     initialVehicleType={null}
@@ -220,6 +261,8 @@ describe('DamageMapUpdateModal', () => {
                     isSaving={false}
                     onClose={vi.fn()}
                     onSubmit={onSubmit}
+                    onUploadPhotoFile={vi.fn()}
+                    onPhotosClaimed={vi.fn()}
                 />
             </ThemeProvider>
         );
@@ -230,6 +273,7 @@ describe('DamageMapUpdateModal', () => {
         rerender(
             <ThemeProvider theme={theme}>
                 <DamageMapUpdateModal
+                    visitId="visit-1"
                     visitNumber="WIZ/2026/09/001"
                     initialPoints={existingPoints}
                     initialVehicleType="suv"
@@ -240,6 +284,8 @@ describe('DamageMapUpdateModal', () => {
                     isSaving={false}
                     onClose={vi.fn()}
                     onSubmit={onSubmit}
+                    onUploadPhotoFile={vi.fn()}
+                    onPhotosClaimed={vi.fn()}
                 />
             </ThemeProvider>
         );
