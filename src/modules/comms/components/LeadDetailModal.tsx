@@ -80,6 +80,7 @@ import {
     useLeadDictionaries,
     useLeadTimeline,
     useLeadNotes,
+    useSimilarVisits,
     useUpdateLeadServices,
     useAcceptAllSuggestions,
     useSuggestionActions,
@@ -376,6 +377,68 @@ const QuoteList = styled.div`
         font-size: 18px;
         font-weight: ${p => p.theme.fontWeights.bold};
         font-variant-numeric: tabular-nums;
+    }
+`;
+
+/**
+ * Zwijana sekcja szyny - nagłówek jest przyciskiem, treść wchodzi na żądanie.
+ *
+ * Nie wszystko w tej kolumnie waży tyle samo. „Podobne zlecenia" to materiał
+ * pomocniczy: przydaje się przy wycenie nietypowej roboty, a przy większości
+ * spraw jest tłem, przez które trzeba przewinąć, żeby dojść do notatek. Zwinięta
+ * zostawia po sobie jedną linijkę z liczbą, więc nie znika z pola widzenia -
+ * widać, że coś tam jest, i widać ile, zanim się kliknie.
+ *
+ * Liczba w nagłówku jest tu warunkiem, a nie ozdobą: sekcja zwinięta BEZ niej
+ * kazałaby otwierać ją za każdym razem tylko po to, żeby sprawdzić, czy jest pusta.
+ */
+const RailDisclosure = styled.button<{ $open: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    text-align: left;
+
+    &:hover { color: ${p => p.theme.colors.textSecondary}; }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 2px;
+        border-radius: ${p => p.theme.radii.sm};
+    }
+
+    .count {
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: ${p => p.theme.radii.full};
+        background: ${p => p.theme.colors.surfaceAlt};
+        border: 1px solid ${p => p.theme.colors.border};
+        color: ${p => p.theme.colors.textSecondary};
+        font-size: 10px;
+        line-height: 16px;
+        text-align: center;
+        letter-spacing: 0;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Strzałka dosunięta do prawej krawędzi: to ona mówi „da się to otworzyć". */
+    .chevron {
+        margin-left: auto;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        transition: transform ${p => p.theme.transitions.fast};
+        transform: rotate(${p => (p.$open ? '0deg' : '-90deg')});
     }
 `;
 
@@ -845,6 +908,17 @@ const VehiclePickers = styled.div`
 
 // ─── Notatki ──────────────────────────────────────────────────────────────────
 
+/**
+ * Notatki mają kolor papieru, nie formularza.
+ *
+ * Pusty biały textarea z szarą ramką czytał się jak pole do wypełnienia w
+ * urzędowym wniosku - i cała sekcja wyglądała na martwą, dopóki ktoś czegoś nie
+ * napisał. Ciepły odcień robi z niej kartkę, na której się notuje.
+ *
+ * Bursztyn, a nie dowolna barwa: w całym systemie notatka o kliencie jest
+ * bursztynowa (ikona notatek w nagłówku rozmowy, plakietka „są notatki").
+ * Ten sam odcień w trzecim miejscu to nie ozdoba, tylko ta sama informacja.
+ */
 const NoteComposer = styled.div`
     display: flex;
     flex-direction: column;
@@ -855,26 +929,34 @@ const NoteComposer = styled.div`
         font-size: 12.5px;
         line-height: 1.5;
         color: ${p => p.theme.colors.text};
-        background: ${p => p.theme.colors.surface};
-        border: 1px solid ${p => p.theme.colors.border};
+        background: #fffdf5;
+        border: 1px solid #fde68a;
         border-radius: ${p => p.theme.radii.md};
-        padding: 8px 10px;
+        padding: 9px 11px;
         resize: vertical;
-        min-height: 54px;
+        min-height: 60px;
+        transition: all ${p => p.theme.transitions.fast};
 
+        &::placeholder { color: #b0956a; }
+
+        &:hover { border-color: #fcd34d; }
         &:focus-visible {
             outline: none;
-            border-color: ${p => p.theme.colors.primary};
+            border-color: ${p => p.theme.colors.warning};
+            background: #fffbeb;
         }
     }
 `;
 
 const NoteItemRow = styled.div`
     position: relative;
-    padding: 8px 10px;
+    padding: 9px 11px 9px 12px;
     border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
+    background: #fffdf5;
+    border: 1px solid #fef3c7;
+    /* Pasek z lewej w tym samym języku co niebieski przy sugestiach: kolor
+       krawędzi mówi, czyja to treść. Bursztyn = zapisał to człowiek. */
+    border-left: 3px solid #fbbf24;
     font-size: 12.5px;
     line-height: 1.5;
     color: ${p => p.theme.colors.text};
@@ -883,9 +965,9 @@ const NoteItemRow = styled.div`
     word-break: break-word;
 
     .meta {
-        margin-top: 4px;
+        margin-top: 5px;
         font-size: 11px;
-        color: ${p => p.theme.colors.textMuted};
+        color: #a1824a;
     }
 
     .remove {
@@ -901,7 +983,7 @@ const NoteItemRow = styled.div`
         border-radius: ${p => p.theme.radii.sm};
 
         svg { width: 13px; height: 13px; display: block; }
-        &:hover { color: ${p => p.theme.colors.error}; background: ${p => p.theme.colors.surfaceAlt}; }
+        &:hover { color: ${p => p.theme.colors.error}; background: #fef3c7; }
     }
 
     &:hover .remove { display: block; }
@@ -985,6 +1067,19 @@ export function LeadDetailModal({
     const [booking, setBooking] = useState(false);
     // Wizytówka kontaktu - ta sama co w skrzynce, razem z „połącz" i „załóż".
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
+    /*
+     * „Podobne zlecenia" startują zwinięte: to materiał pomocniczy, przydatny przy
+     * wycenie nietypowej roboty, a przy większości spraw tło, przez które trzeba
+     * przewinąć do notatek. Liczba przy nagłówku pilnuje, żeby zwinięcie nie
+     * ukryło FAKTU istnienia podpowiedzi - inaczej trzeba by otwierać sekcję za
+     * każdym razem tylko po to, żeby sprawdzić, czy jest pusta.
+     *
+     * To samo zapytanie, którego używa sama sekcja - react-query oddaje je z tego
+     * samego cache'u, więc licznik nie kosztuje drugiego strzału do serwera.
+     */
+    const [similarOpen, setSimilarOpen] = useState(false);
+    const { data: similarVisits } = useSimilarVisits(leadId);
+    const similarCount = similarVisits?.items?.length ?? 0;
     // Edytor wyceny otwarty od pierwszej klatki, gdy wejściem było kliknięcie wartości.
     // Wystarczy stan początkowy: okno montuje się na jedno otwarcie jednego leada,
     // więc nie ma czego dosynchronizowywać efektem.
@@ -1668,8 +1763,17 @@ export function LeadDetailModal({
                                     z niej pasek narzędzi i konkurowała z jedyną akcją,
                                     która ma tu być widoczna: „Edytuj" przy wycenie. */}
                                 <RailSection>
-                                    <RailLabel>Podobne zlecenia</RailLabel>
-                                    <SimilarVisitsSection leadId={leadId} />
+                                    <RailDisclosure
+                                        type="button"
+                                        $open={similarOpen}
+                                        aria-expanded={similarOpen}
+                                        onClick={() => setSimilarOpen((open) => !open)}
+                                    >
+                                        Podobne zlecenia
+                                        {similarCount > 0 && <span className="count">{similarCount}</span>}
+                                        <ChevronDown className="chevron" />
+                                    </RailDisclosure>
+                                    {similarOpen && <SimilarVisitsSection leadId={leadId} />}
                                 </RailSection>
 
                                 <RailSection>

@@ -162,6 +162,11 @@ oraz stany krytyczne wymagające natychmiastowej reakcji. Zanim wypełnisz cokol
 innego, policz, ile wypełnień jest już w tym oknie — i ile ich będzie, gdy lista
 pod spodem ma trzy pozycje zamiast jednej.
 
+Jeden wyjątek: **otwarty edytor** (wycena, pojazd, usługi, notatka) przejmuje
+okno, więc jego „Zapisz" jest na ten moment krokiem następnym i wolno mu być
+wypełnionym. Wyjątek działa, bo edytor jest stanem PRZEJŚCIOWYM i sam znika —
+nie wolno go rozciągać na elementy widoczne stale.
+
 ### Kolejność czytania
 
 Podgląd leada ma jedną kolejność, w panelu i w oknie modalnym:
