@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { ArrowRight, User, AlertCircle } from 'lucide-react';
+import { CalendarDays, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PiiValue } from '@/common/pii';
 import { formatCurrency } from '@/common/utils/formatters';
@@ -59,21 +59,43 @@ const PanelTitle = styled.h3`
   color: ${p => p.theme.colors.text};
 `;
 
+/* Wcześniej goły niebieski link tekstowy - jedyny taki element w tym wierszu
+   siatki. Sąsiedni panel ("Do zrobienia") trzyma w nagłówku przyciski-pigułki,
+   więc ta akcja dostaje dokładnie ten sam kształt, rozmiar i kolor co tamtejszy
+   przycisk drugoplanowy. */
 const PanelLink = styled.button`
-  font-size: 12px;
-  font-weight: 500;
-  color: #0284c7;
-  background: none;
-  border: none;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
   font-family: inherit;
-  transition: opacity 150ms ease;
-  &:hover { opacity: 0.75; }
-  svg { width: 14px; height: 14px; stroke-width: 2; }
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #374151;
+  }
+
+  svg { width: 13px; height: 13px; stroke-width: 2; }
+
+  /* Na 320px "Najbliższe wizyty" i pełny podpis nie mieszczą się w jednym
+     wierszu - tytuł zaczyna się łamać na dwie linie. Zostaje sama ikona
+     kalendarza, która niesie tu znaczenie (tym samym zabiegiem sąsiedni panel
+     zwija swoje przyciski). Od 360px w górę podpis wraca. */
+  @media (max-width: 359px) {
+    font-size: 0;
+    padding: 7px 9px;
+    gap: 0;
+    svg { width: 15px; height: 15px; }
+  }
 `;
 
 const VisitRow = styled.div`
@@ -515,7 +537,6 @@ export const UpcomingVisitsPanel = () => {
   }, [editingId]);
 
   const visible = visits.slice(0, VISIBLE_LIMIT);
-  const hasMore = visits.length > VISIBLE_LIMIT;
 
   const handleRowClick = (visit: UpcomingVisit, e: React.MouseEvent) => {
     e.preventDefault();
@@ -566,8 +587,9 @@ export const UpcomingVisitsPanel = () => {
     <Panel>
       <PanelHead>
         <PanelTitle>Najbliższe wizyty</PanelTitle>
-        <PanelLink onClick={() => navigate('/calendar')}>
-          Pokaż w kalendarzu <ArrowRight />
+        <PanelLink onClick={() => navigate('/calendar')} title="Pokaż w kalendarzu" aria-label="Pokaż w kalendarzu">
+          <CalendarDays />
+          Pokaż w kalendarzu
         </PanelLink>
       </PanelHead>
 
@@ -605,15 +627,6 @@ export const UpcomingVisitsPanel = () => {
           inputRef={titleInputRef}
         />
       ))}
-
-      {!isLoading && !isError && hasMore && (
-        <PanelLink
-          onClick={() => navigate('/calendar')}
-          style={{ display: 'flex', justifyContent: 'center', padding: '12px 22px' }}
-        >
-          Pokaż wszystkie ({visits.length}) <ArrowRight />
-        </PanelLink>
-      )}
 
       {contextMenu && (
         <ReservationContextMenu
