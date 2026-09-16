@@ -49,9 +49,10 @@ import {
     PhoneCall,
     Reply,
     Send,
+    Tag,
     Trash2,
+    UserRound,
     X,
-    UserPlus,
 } from 'lucide-react';
 import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
@@ -207,31 +208,46 @@ const FactChips = styled.div`
     gap: 8px;
 `;
 
-/** [$soft] - fakt, którego nie potwierdził człowiek: obramowanie przerywane. */
-const FactChip = styled.button<{ $soft?: boolean }>`
+/**
+ * [$soft]     - fakt, którego nie potwierdził człowiek: obramowanie przerywane.
+ * [$tone]     - „known" znaczy zielony: klient jest w kartotece. Ten sam język
+ *               co świecący „ludzik" w nagłówku rozmowy w skrzynce, bo to ten sam
+ *               fakt - i ta sama ikona.
+ * [$iconOnly] - chip bez napisu: kwadratowy, żeby pojedyncza ikona nie pływała
+ *               w środku szerokiej pastylki.
+ */
+const FactChip = styled.button<{ $soft?: boolean; $tone?: 'known'; $iconOnly?: boolean }>`
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
     height: 36px;
-    padding: 0 14px;
+    width: ${p => (p.$iconOnly ? '36px' : 'auto')};
+    padding: ${p => (p.$iconOnly ? '0' : '0 14px')};
     border-radius: ${p => p.theme.radii.full};
-    border: 1px ${p => (p.$soft ? 'dashed' : 'solid')} ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
+    border: 1px ${p => (p.$soft ? 'dashed' : 'solid')}
+        ${p => (p.$tone === 'known' ? '#a7f3d0' : p.theme.colors.border)};
+    background: ${p => (p.$tone === 'known' ? '#f0fdf4' : p.theme.colors.surface)};
+    color: ${p => (p.$tone === 'known' ? '#15803d' : p.theme.colors.textSecondary)};
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.medium};
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
     cursor: pointer;
     transition: all ${p => p.theme.transitions.fast};
 
     &:hover {
-        background: ${p => p.theme.colors.surfaceHover};
-        border-color: ${p => p.theme.colors.textMuted};
+        background: ${p => (p.$tone === 'known' ? '#dcfce7' : p.theme.colors.surfaceHover)};
+        border-color: ${p => (p.$tone === 'known' ? '#6ee7b7' : p.theme.colors.textMuted)};
         border-style: solid;
     }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
 
-    svg { width: 13px; height: 13px; }
+    svg { width: ${p => (p.$iconOnly ? '15px' : '13px')}; height: ${p => (p.$iconOnly ? '15px' : '13px')}; }
 
     /* Chip „Rozpoznajemy auto…" - jedyne miejsce w tym oknie, gdzie coś się kręci.
        Reguła stała wcześniej przy ikonach odświeżania w szynie i zniknęła razem
@@ -287,11 +303,21 @@ const RailAction = styled.button`
     &:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
 `;
 
-/** Wycena jako spis „nazwa - brutto", nie tabela netto/VAT/brutto. */
+/**
+ * Wycena jako spis „nazwa - brutto", nie tabela netto/VAT/brutto.
+ *
+ * Nazwa pozycji stoi w kolorze tekstu, nie w szarości: pierwsze pytanie brzmi
+ * „co obiecaliśmy", a nie „za ile". Wiersze rozdziela włosowa kreska, bo przy
+ * czterech pozycjach sam odstęp nie wystarczał, żeby wzrok trzymał się linii.
+ *
+ * Suma jest PRZYSTANKIEM, nie kolejnym wierszem: własne tło i odstęp zatrzymują
+ * na niej wzrok. Wcześniej różniła się od pozycji jedną kreską u góry i grubszym
+ * pismem, więc cała sekcja czytała się jak jednolity szary spis - a to właśnie
+ * kwota jest tym, po co się do wyceny wraca.
+ */
 const QuoteList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
     font-size: 13.5px;
 
     .row {
@@ -299,22 +325,31 @@ const QuoteList = styled.div`
         align-items: baseline;
         justify-content: space-between;
         gap: 12px;
+        padding: 7px 0;
+        border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
     }
-    .row span:first-child { color: ${p => p.theme.colors.textSecondary}; min-width: 0; }
-    .row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .row:first-child { padding-top: 0; }
+    .row span:first-child { color: ${p => p.theme.colors.text}; min-width: 0; }
+    .row span:last-child {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        color: ${p => p.theme.colors.textSecondary};
+    }
 
     .total {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
         gap: 12px;
-        padding-top: 10px;
-        border-top: 1px solid ${p => p.theme.colors.border};
+        margin-top: 8px;
+        padding: 9px 12px;
+        border-radius: ${p => p.theme.radii.md};
+        background: ${p => p.theme.colors.surfaceAlt};
         font-weight: ${p => p.theme.fontWeights.semibold};
         color: ${p => p.theme.colors.text};
     }
     .total span:last-child {
-        font-size: 17px;
+        font-size: 18px;
         font-weight: ${p => p.theme.fontWeights.bold};
         font-variant-numeric: tabular-nums;
     }
@@ -431,6 +466,49 @@ const footerControl = css`
 `;
 
 const FooterButton = styled(IconButton)`${footerControl}`;
+
+/**
+ * Usunięcie leada: sam kosz, w lewym narożniku stopki.
+ *
+ * Wcześniej był opisanym przyciskiem na końcu szyny - do jedynej nieodwracalnej
+ * operacji w tym oknie trzeba było doscrollować przez wycenę, notatki i podobne
+ * zlecenia, a mimo to stał w środku treści, między informacjami. Stopka jest
+ * miejscem, w którym w tym oknie się DZIAŁA, więc kasacja należy do niej - tylko
+ * po przeciwnej stronie niż akcja główna i bez napisu, bo napis czynił z niej
+ * ofertę równorzędną z „Stwórz rezerwację".
+ *
+ * Domyślnie szary, czerwony pod kursorem: ma dać się znaleźć, a nie zapraszać.
+ */
+const FooterDanger = styled.button`
+    ${footerControl}
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    padding: 0;
+    /* Jak najdalej od akcji głównej, która stoi przy prawej krawędzi. */
+    margin-right: auto;
+    /* Stopka na telefonie rozciąga przyciski regułą "> button { flex: 1 1 auto }";
+       kosz ma zostać kwadratem, a nie zająć pół rzędu. */
+    flex: 0 0 auto;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textMuted};
+    font-family: inherit;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover:not(:disabled) {
+        border-color: ${p => p.theme.colors.error};
+        background: ${p => p.theme.colors.errorLight};
+        color: ${p => p.theme.colors.error};
+    }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.error};
+        outline-offset: 1px;
+    }
+    &:disabled { opacity: 0.5; cursor: default; }
+`;
 const FooterPrimary = styled(PrimaryButton)`
     ${footerControl}
     padding: 0 26px;
@@ -642,40 +720,6 @@ const VehiclePickers = styled.div`
 
 
 /** Jedyna akcja nieodwracalna w tym oknie - i jedyna, która wygląda groźnie. */
-const DangerButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    align-self: flex-start;
-    /* Odsunięte od reszty: to jedyna akcja nieodwracalna w tej stopce. */
-    margin-right: auto;
-
-    /*
-     * Na telefonie stopka się zawija i „Usuń lead" - jako pierwsza w kolejności
-     * dokumentu - lądowało w pierwszym rzędzie, nad akcją główną. Najbardziej
-     * wyeksponowanym przyciskiem okna była kasacja sprawy. Na wąskim ekranie
-     * schodzi więc na koniec i przestaje zabierać całą szerokość.
-     */
-    @media (max-width: 640px) {
-        order: 99;
-        margin-right: 0;
-        flex: 0 0 auto;
-    }
-    border: 1px solid rgba(220, 38, 38, 0.28);
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.error};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    font-family: inherit;
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.errorLight}; }
-    &:disabled { opacity: 0.5; cursor: default; }
-`;
 
 // ─── Notatki ──────────────────────────────────────────────────────────────────
 
@@ -1170,28 +1214,72 @@ export function LeadDetailModal({
                             </FactChip>
                         )}
 
-                        {/* Każdy tag osobnym chipem, nie listą po przecinku: tak wygląda
-                            zbiór, w którym da się coś dołożyć i coś wyjąć. */}
-                        {lead.tagLabels.map((label) => (
-                            <FactChip
-                                key={label}
-                                type="button"
-                                title="Kliknij, żeby zmienić usługi"
-                                onClick={() => setEditingTags(lead.tags)}
-                            >
-                                {label}
-                            </FactChip>
-                        ))}
-                        {lead.tagLabels.length === 0 && (
-                            <FactChip
-                                type="button"
-                                $soft
-                                title="Kliknij, żeby dodać usługi"
-                                onClick={() => setEditingTags(lead.tags)}
-                            >
-                                Dodaj usługi
-                            </FactChip>
-                        )}
+                        {/*
+                            KARTOTEKA KLIENTA JAKO IKONA, nie jako pasek.
+
+                            Wcześniej brak kartoteki ogłaszał pełnowymiarowy pasek nad
+                            korespondencją: „Tego kontaktu nie ma jeszcze w bazie klientów."
+                            - cały wiersz okna na jedno zdanie, które w dodatku mówiło
+                            o NIEOBECNOŚCI. Ludzik mówi to samo kolorem i zawsze zajmuje
+                            tyle samo miejsca: zielony, gdy klient jest w kartotece, szary
+                            z przerywaną ramką, gdy go tam nie ma. Kliknięcie prowadzi w to
+                            samo miejsce co dawny odnośnik - do wizytówki z wyszukiwarką
+                            klientów i zakładaniem profilu.
+
+                            Ta sama ikona i ten sam kolor co w nagłówku rozmowy w skrzynce:
+                            jeden fakt ma w całym systemie jeden znak.
+                        */}
+                        <FactChip
+                            type="button"
+                            $iconOnly
+                            $soft={unknownContact}
+                            $tone={customerFacts ? 'known' : undefined}
+                            aria-label={
+                                unknownContact
+                                    ? 'Tego kontaktu nie ma w bazie klientów — połącz albo załóż profil'
+                                    : 'Profil klienta'
+                            }
+                            title={
+                                unknownContact
+                                    ? 'Tego kontaktu nie ma jeszcze w bazie klientów — kliknij, żeby połączyć albo założyć profil'
+                                    : customerFacts
+                                      ? `${lead.customerName ?? lead.contactIdentifier} jest w kartotece — zobacz profil`
+                                      : 'Zobacz, kto to jest'
+                            }
+                            onClick={(event) => setContactAnchor(event.currentTarget)}
+                        >
+                            <UserRound />
+                        </FactChip>
+
+                        {/*
+                            USŁUGI, O KTÓRE PYTA KLIENT - za jedną ikoną taga.
+
+                            Każdy tag własnym chipem rozpychał rząd na pół okna: przy
+                            czterech usługach nagłówek zamieniał się w ścianę pastylek, na
+                            której nie dało się już znaleźć ani etapu, ani pojazdu. Ikona
+                            z liczbą zajmuje tyle samo miejsca przy jednym tagu i przy
+                            dziesięciu, pełną listę niesie tooltip, a kliknięcie otwiera
+                            ten sam edytor co wcześniej.
+                        */}
+                        <FactChip
+                            type="button"
+                            $soft={lead.tagLabels.length === 0}
+                            $iconOnly={lead.tagLabels.length === 0}
+                            aria-label={
+                                lead.tagLabels.length > 0
+                                    ? `Usługi, o które pyta klient (${lead.tagLabels.length})`
+                                    : 'Dodaj usługi, o które pyta klient'
+                            }
+                            title={
+                                lead.tagLabels.length > 0
+                                    ? `Usługi, o które pyta klient: ${lead.tagLabels.join(', ')} — kliknij, żeby zmienić`
+                                    : 'Kliknij, żeby dodać usługi, o które pyta klient'
+                            }
+                            onClick={() => setEditingTags(lead.tags)}
+                        >
+                            <Tag />
+                            {lead.tagLabels.length > 0 && lead.tagLabels.length}
+                        </FactChip>
                     </FactChips>
                 </LeadHeader>
 
@@ -1209,23 +1297,10 @@ export function LeadDetailModal({
                             </LostNote>
                         )}
 
-                        {/* Pasek klienta pojawia się tylko wtedy, gdy niesie decyzję
-                            albo ostrzeżenie. Znany klient bez porzuceń nie dostaje
-                            nic - cisza też jest informacją i nie zajmuje miejsca. */}
-                        {unknownContact && (
-                            <ClientNote>
-                                <UserPlus />
-                                <span>Tego kontaktu nie ma jeszcze w bazie klientów.</span>
-                                <span className="spacer" />
-                                <QuietLink
-                                    type="button"
-                                    onClick={(event) => setContactAnchor(event.currentTarget)}
-                                >
-                                    Połącz albo załóż profil
-                                </QuietLink>
-                            </ClientNote>
-                        )}
-
+                        {/* Brak kartoteki nie dostaje już paska - mówi o tym szary
+                            „ludzik" w rzędzie chipów, a kliknięcie prowadzi do tej samej
+                            wizytówki. Pasek zostaje dla OSTRZEŻENIA, czyli treści, której
+                            przeoczyć nie wolno; „czegoś nie ma" nie jest ostrzeżeniem. */}
                         {abandoned > 0 && (
                             <ClientNote $warn>
                                 <AlertTriangle />
@@ -1424,8 +1499,8 @@ export function LeadDetailModal({
                                 {/* Kartoteka w trzech liczbach: ile razy był, ile zostawił
                                     i kiedy ostatnio. To jest kontekst, w którym czyta się
                                     kwotę wyceny - inaczej wycena wisi w próżni. Sekcja
-                                    znika dla kontaktu spoza kartoteki: baner nad panelem
-                                    już powiedział, że go tam nie ma. */}
+                                    znika dla kontaktu spoza kartoteki: szary „ludzik"
+                                    w rzędzie chipów już powiedział, że go tam nie ma. */}
                                 {customerFacts && (
                                     <RailSection>
                                         <RailLabel>Klient</RailLabel>
@@ -1518,18 +1593,6 @@ export function LeadDetailModal({
                                     )}
                                 </RailSection>
 
-                                {/* Usunięcie na samym końcu szyny: w stopce sąsiadowało
-                                    z akcją główną, a na telefonie - gdzie rząd się zawija -
-                                    bywało pierwszym przyciskiem okna. Tutaj trzeba do niego
-                                    doscrollować, co jest właściwym kosztem dla jedynej
-                                    operacji nieodwracalnej w tym oknie. */}
-                                <DangerButton
-                                    type="button"
-                                    onClick={() => setDeleteDialogOpen(true)}
-                                    disabled={deleteLead.isPending}
-                                >
-                                    <Trash2 size={14} /> Usuń lead
-                                </DangerButton>
                             </Column>
 
                             <Column>
@@ -1555,6 +1618,20 @@ export function LeadDetailModal({
                 </ModalContent>
 
                 <ModalFooter>
+                    {/* Kasacja sprawy w lewym narożniku stopki - sam kosz, bez napisu,
+                        po przeciwnej stronie niż akcja główna. Stoi PIERWSZA w kolejności
+                        dokumentu, żeby czytnik ekranu podał ją jako akcję pomocniczą przed
+                        głównymi, a `margin-right: auto` odsuwa ją wizualnie na drugi koniec
+                        rzędu. */}
+                    <FooterDanger
+                        type="button"
+                        aria-label="Usuń lead"
+                        title="Usuń lead"
+                        onClick={() => setDeleteDialogOpen(true)}
+                        disabled={deleteLead.isPending}
+                    >
+                        <Trash2 />
+                    </FooterDanger>
 
                     {/*
                         Akcja główna wynika ze stanu leada - w tej kolejności:
