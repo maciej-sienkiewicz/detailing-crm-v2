@@ -18,6 +18,9 @@ import type {
     OpenDraftVisit,
     OpenDraftVisitListResponse,
     UpdateArrivalStatePayload,
+    VisitDamageMapResponse,
+    UpdateDamageMapPayload,
+    UpdateDamageMapResponse,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -695,6 +698,35 @@ export const visitApi = {
             return mockVisitPhotosMap[visitId] ?? mockVisitPhotos;
         }
         const response = await apiClient.get(`${BASE_PATH}/${visitId}/photos`);
+        return response.data;
+    },
+
+    /**
+     * Punkty uszkodzeń, od których startuje „Zaktualizuj uszkodzenia".
+     *
+     * Odpowiedź niesie `pointsRecoverable` — dla wizyt sprzed zapisu punktów jest
+     * false i UI musi o tym powiedzieć, zanim ktokolwiek zacznie klikać.
+     */
+    getDamageMap: async (visitId: string): Promise<VisitDamageMapResponse> => {
+        const response = await apiClient.get<VisitDamageMapResponse>(`${BASE_PATH}/${visitId}/damage-map`);
+        return response.data;
+    },
+
+    /**
+     * Nowa wersja mapy uszkodzeń.
+     *
+     * PUT, nie PATCH: przysyłamy CAŁĄ mapę, bo edytor i tak trzyma pełną listę
+     * punktów — usunięcie punktu wygląda wtedy dokładnie tak samo jak dodanie i
+     * nie ma drugiej ścieżki, którą trzeba pamiętać.
+     */
+    updateDamageMap: async (
+        visitId: string,
+        payload: UpdateDamageMapPayload
+    ): Promise<UpdateDamageMapResponse> => {
+        const response = await apiClient.put<UpdateDamageMapResponse>(
+            `${BASE_PATH}/${visitId}/damage-map`,
+            payload
+        );
         return response.data;
     },
 };

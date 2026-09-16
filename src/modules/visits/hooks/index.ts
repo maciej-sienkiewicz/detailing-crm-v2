@@ -13,6 +13,7 @@ import type {
     DeleteServicePayload,
     UpdateServiceStatusPayload,
     TechnicalNoteHistoryEntry,
+    UpdateDamageMapPayload,
 } from '../types';
 import {useToast} from "@/common/components/Toast";
 
@@ -528,4 +529,71 @@ export const useTechnicalNoteHistory = (visitId: string) => {
         isLoading,
         isError,
     };
+};
+
+// ─── Mapa uszkodzeń ───────────────────────────────────────────────────────────
+
+export const visitDamageMapQueryKey = (visitId: string) => ['visit', visitId, 'damage-map'];
+
+/**
+ * Punkty, od których startuje edycja mapy.
+ *
+ * `enabled` jest sterowane z zewnątrz, bo tego zapytania nie ma sensu robić przy
+ * każdym wejściu w kartę wizyty — interesuje nas dopiero w momencie otwarcia okna
+ * „Zaktualizuj uszkodzenia".
+ */
+export const useVisitDamageMap = (visitId: string, enabled = true) => {
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: visitDamageMapQueryKey(visitId),
+        queryFn: () => visitApi.getDamageMap(visitId),
+        enabled: !!visitId && enabled,
+        /*
+         * Mapę rysują dwie osoby naraz (recepcja i hala), a punkty z telefonu
+         * dochodzą asynchronicznie. Świeży odczyt przy otwarciu okna jest tańszy
+         * niż dorysowanie na nieaktualnym podkładzie.
+         */
+        staleTime: 0,
+    });
+
+    return { damageMap: data, isLoading, isError, refetch };
+};
+
+export const useUpdateVisitDamageMap = (visitId: string) => {
+    const queryClient = useQueryClient();
+    const { showSuccess, showError, showWarning } = useToast();
+
+    const { mutateAsync, isPending } = useMutation({
+        mutationFn: (payload: UpdateDamageMapPayload) => visitApi.updateDamageMap(visitId, payload),
+        onSuccess: (result) => {
+            queryClient.invalidateQueries({ queryKey: visitDamageMapQueryKey(visitId) });
+            // Nowy dokument pojawia się w sekcji Dokumentacja, a `damageMapFileId`
+            // wizyty wskazuje już inny plik — oba zapytania muszą to zobaczyć.
+            queryClient.invalidateQueries({ queryKey: visitDocumentsQueryKey(visitId) });
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            queryClient.invalidateQueries({ queryKey: visitCommunicationQueryKey(visitId) });
+
+            /*
+             * Zapis punktów i wygenerowanie pliku to dwie różne rzeczy i backend
+             * świadomie potrafi zrobić pierwszą bez drugiej. Komunikat „zapisano"
+             * bez tego rozróżnienia kłamałby o tym, co zobaczy klient.
+             */
+            if (!result.documentGenerated && result.pointsCount > 0) {
+                showWarning(
+                    'Oznaczenia zapisane, dokument nie',
+                    'Punkty są zapisane, ale nie udało się wygenerować pliku PDF. Spróbuj zapisać mapę ponownie.'
+                );
+            } else if (result.notification && !result.notification.emailSent && !result.notification.smsSent) {
+                showWarning('Mapa uszkodzeń zaktualizowana', result.notification.message);
+            } else if (result.notification) {
+                showSuccess('Mapa uszkodzeń zaktualizowana', result.notification.message);
+            } else {
+                showSuccess('Mapa uszkodzeń zaktualizowana');
+            }
+        },
+        onError: () => {
+            showError('Nie udało się zapisać mapy uszkodzeń');
+        },
+    });
+
+    return { updateDamageMap: mutateAsync, isUpdating: isPending };
 };

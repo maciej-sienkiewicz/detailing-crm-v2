@@ -5,6 +5,7 @@ import { PageContainer } from '@/common/components/PageContainer';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey } from '../hooks';
+import { useVisitDamageMap, useUpdateVisitDamageMap } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
@@ -32,6 +33,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
+import { DamageMapUpdateModal } from '../components/DamageMapUpdateModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -353,6 +355,43 @@ const DocsHeaderRight = styled.div`
     }
 `;
 
+/*
+ * „Zaktualizuj uszkodzenia" nosi swój ODCIEŃ (bursztyn = „przeczytaj to"), ale nie
+ * ma WYPEŁNIENIA. W nagłówku Dokumentacji wypełniony jest już „Dodaj plik"; drugi
+ * wypełniony przycisk w tym samym oknie znaczyłby tyle samo co zero wypełnień —
+ * użytkownik nie miałby czym rozstrzygnąć, na co patrzeć najpierw.
+ */
+const DamageMapHeaderBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: #b45309;
+    background: ${st.bgAccentAmber};
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: ${st.radiusFull};
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all ${st.transition};
+
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    &:hover {
+        background: rgba(245, 158, 11, 0.14);
+        border-color: ${st.accentAmber};
+    }
+
+    @media (max-width: 640px) {
+        flex: 1;
+        justify-content: center;
+        padding: 9px 14px;
+        min-height: 40px;
+    }
+`;
+
 const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
     display: inline-flex;
     align-items: center;
@@ -641,6 +680,7 @@ export const VisitDetailView = () => {
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
+    const [isDamageMapOpen, setIsDamageMapOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isCommunicationOpen, setIsCommunicationOpen] = useState(true);
     const [mobileTab, setMobileTab] = useState<MobileTab>('services');
@@ -671,6 +711,10 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(activeVisitId);
     const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(activeVisitId);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
+    // Punkty uszkodzeń pytamy dopiero przy otwartym oknie: przy każdym wejściu w
+    // kartę wizyty byłoby to zapytanie, którego nikt nie czyta.
+    const { damageMap, isLoading: isLoadingDamageMap } = useVisitDamageMap(activeVisitId, isDamageMapOpen);
+    const { updateDamageMap, isUpdating: isUpdatingDamageMap } = useUpdateVisitDamageMap(visitId!);
     const { showWarning, showSuccess, showError } = useToast();
     const { pendingReminder } = useSmsReminder(activeVisitId);
 
@@ -845,8 +889,19 @@ export const VisitDetailView = () => {
         updateServiceStatus({ serviceLineItemId, payload: { status } });
     };
 
-    const photoCount = visitPhotos.length + documents.filter(d => d.type === 'PHOTO' || d.type === 'DAMAGE_MAP').length;
-    const pdfCount = documents.filter(d => !['PHOTO', 'DAMAGE_MAP'].includes(d.type)).length;
+    /*
+     * Liczniki w nagłówku muszą zgadzać się z tym, co pokazuje galeria (patrz
+     * `documentPhotos` / `pdfs` w DocumentGallery), a ta dzieli pliki po
+     * ROZSZERZENIU, nie po typie dokumentu. Mapa uszkodzeń jest PDF-em od dawna
+     * (`S3DamageMapStorageService` zapisuje `damage-map.pdf`), więc licząc ją do
+     * zdjęć nagłówek obiecywał zdjęcie, którego w kafelkach nie było — a przy
+     * każdej aktualizacji mapy rozjazd rósł o jeden.
+     */
+    const isPdfDocument = (doc: { type: DocumentType; fileName: string }) =>
+        doc.fileName.toLowerCase().endsWith('.pdf') || !['PHOTO', 'DAMAGE_MAP'].includes(doc.type);
+
+    const photoCount = visitPhotos.length + documents.filter(d => !isPdfDocument(d)).length;
+    const pdfCount = documents.filter(isPdfDocument).length;
     const totalDocCount = photoCount + pdfCount;
 
     const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1014,6 +1069,29 @@ export const VisitDetailView = () => {
                                     </DocsHeaderStats>
                                 </DocsHeaderMain>
                                 <DocsHeaderRight>
+                                    {/* Mapa uszkodzeń jest edytowalna, dopóki pojazd jest w studiu.
+                                        Po wydaniu (COMPLETED) i po odrzuceniu wizyty backend odmawia
+                                        zapisu, więc przycisk też nie może obiecywać, że się uda. */}
+                                    {can('VISITS_CREATE') && visit.status !== 'COMPLETED'
+                                        && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && (
+                                        <DamageMapHeaderBtn
+                                            type="button"
+                                            onClick={e => { e.stopPropagation(); setIsDamageMapOpen(true); }}
+                                            /* Nagłówek sekcji sam reaguje na Enter/Spację (zwija ją),
+                                               więc bez tego klawiatura otwierałaby okno I zwijała
+                                               Dokumentację pod nim. */
+                                            onKeyDown={e => e.stopPropagation()}
+                                            title="Dopisz uszkodzenia, które pojawiły się w trakcie wizyty"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M5 17h14l-1.5-5a3 3 0 0 0-2.85-2h-6.3a3 3 0 0 0-2.85 2z" />
+                                                <circle cx="7.5" cy="17" r="1.6" />
+                                                <circle cx="16.5" cy="17" r="1.6" />
+                                                <path d="M12 3v4M12 7l2.2-2.2M12 7 9.8 4.8" />
+                                            </svg>
+                                            Zaktualizuj uszkodzenia
+                                        </DamageMapHeaderBtn>
+                                    )}
                                     <UploadHeaderLabel
                                         $uploading={isUploading || isUploadingPhoto}
                                         onClick={e => e.stopPropagation()}
@@ -1231,6 +1309,24 @@ export const VisitDetailView = () => {
                     }
                 }}
             />}
+
+            {/* Montowany warunkowo: okno pyta o punkty uszkodzeń dopiero przy
+                otwarciu, a jego stan (wybrany tryb, dorysowane punkty) ma zaczynać
+                od zera przy każdym wejściu. */}
+            {isDamageMapOpen && (
+                <DamageMapUpdateModal
+                    visitNumber={visit.visitNumber}
+                    initialPoints={damageMap?.damagePoints ?? []}
+                    initialVehicleType={damageMap?.vehicleType ?? null}
+                    pointsRecoverable={damageMap?.pointsRecoverable ?? false}
+                    hasDocument={damageMap?.hasDocument ?? false}
+                    visitPhotos={visitPhotos}
+                    isLoading={isLoadingDamageMap}
+                    isSaving={isUpdatingDamageMap}
+                    onClose={() => setIsDamageMapOpen(false)}
+                    onSubmit={updateDamageMap}
+                />
+            )}
 
             {isGeneratePostOpen && (
                 <GeneratePostModal

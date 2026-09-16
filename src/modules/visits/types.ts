@@ -1,3 +1,11 @@
+/* Punkt uszkodzenia jest wspólnym typem przyjęcia i wizyty: mapę rysuje ten sam
+   edytor, więc drugi, „prawie taki sam" typ byłby tylko okazją do rozjechania się. */
+// Import z pliku typów, nie z barrel-a: barrel checkinu ciągnie widoki, a te
+// wizyty — import typu nie może zawiązać cyklu modułów.
+import type { DamagePoint } from '@/modules/checkin/types';
+
+export type { DamagePoint };
+
 export type VisitStatus = 'DRAFT' | 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
 export interface DoorToDoorAddress {
@@ -382,6 +390,63 @@ export interface ConfirmVisitResponse {
     visitId: string;
     message: string;
     visitCard: ConfirmVisitCardResult | null;
+}
+
+// ─── Mapa uszkodzeń ───────────────────────────────────────────────────────────
+
+/**
+ * Co zrobić z dotychczasowym PDF-em mapy, gdy w trakcie wizyty dorysowano punkty.
+ *
+ * To nie jest wybór wizualny, tylko decyzja o dowodzie: mapa z przyjęcia bywa
+ * podpisana przez klienta i wysłana mailem.
+ */
+export type DamageMapUpdateMode =
+    /** Nowy plik obok dotychczasowego. Mapa z przyjęcia zostaje nietknięta. */
+    | 'NEW_FILE'
+    /** Nadpisanie aktualnego pliku. W galerii zostaje jedna, aktualna mapa. */
+    | 'REPLACE_EXISTING';
+
+export interface VisitDamageMapResponse {
+    damagePoints: DamagePoint[];
+    vehicleType: string | null;
+    /** 0 = mapy nigdy nie zapisano w postaci punktów. */
+    revision: number;
+    /** Czy wizyta ma w ogóle wygenerowany PDF mapy. */
+    hasDocument: boolean;
+    /**
+     * false = punktów nie da się odtworzyć (wizyta sprzed wprowadzenia zapisu
+     * punktów — został tylko PDF). UI musi wtedy ostrzec, że edycja startuje z
+     * pustej mapy, zanim ktokolwiek zacznie klikać.
+     */
+    pointsRecoverable: boolean;
+    updatedAt: string | null;
+    updatedByName: string | null;
+}
+
+export interface UpdateDamageMapPayload {
+    damagePoints: DamagePoint[];
+    vehicleType?: string;
+    mode: DamageMapUpdateMode;
+    /** „Poinformuj klienta o zmianach" — TAK/NIE z ostatniego kroku. */
+    notifyCustomer: boolean;
+    /** Treść wpisana przez operatora; pominięta = tekst domyślny z backendu. */
+    notifyMessage?: string;
+}
+
+export interface DamageMapNotificationResult {
+    emailSent: boolean;
+    smsSent: boolean;
+    message: string;
+}
+
+export interface UpdateDamageMapResponse {
+    revision: number;
+    pointsCount: number;
+    documentId: string | null;
+    fileName: string | null;
+    documentGenerated: boolean;
+    /** null, gdy operator wybrał „nie informuj". */
+    notification: DamageMapNotificationResult | null;
 }
 
 // ─── Communication History ────────────────────────────────────────────────────
