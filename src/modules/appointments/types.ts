@@ -80,6 +80,16 @@ export interface ServiceLineItem {
     serviceId: string;
     serviceName: string;
     basePriceNet: MoneyAmount;
+    /**
+     * Brutto bazowe DOKŁADNIE takie, jakie ustalił człowiek albo katalog usług.
+     *
+     * Nie jest to `basePriceNet` przeliczone stawką - przy 23% VAT nie istnieje
+     * kwota netto w groszach dająca równo 1900,00 zł brutto. Gdy tu stoi, wygrywa
+     * z każdym przeliczeniem; gdy nie stoi, brutto wolno policzyć z netta.
+     */
+    basePriceGross?: MoneyAmount;
+    /** Brutto końcowe policzone przez serwer dla tego rabatu (pozycje odczytane z API). */
+    finalPriceGross?: MoneyAmount | null;
     vatRate: number;
     requireManualPrice: boolean;
     adjustment: PriceAdjustment;
@@ -139,6 +149,8 @@ export interface Service {
     id: string;
     name: string;
     basePriceNet: MoneyAmount;
+    /** Brutto z cennika - dokładne, bo wpisał je człowiek zakładając usługę. */
+    basePriceGross?: MoneyAmount;
     vatRate: number;
     requireManualPrice: boolean;
     category: string;

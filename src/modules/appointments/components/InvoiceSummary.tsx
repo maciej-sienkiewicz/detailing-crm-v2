@@ -8,6 +8,7 @@ import { useInvoiceManagement } from '../hooks/useInvoiceManagement';
 import { EmptyState } from '@/common/components/EmptyState';
 import { Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
+import { netToGross } from '@/common/utils/priceAdjustment';
 import { ServiceItem } from './ServiceItem';
 import type { ServiceLineItem, Service } from '../types';
 
@@ -273,7 +274,11 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                         <SearchResults>
                             {filteredServices.map((service) => {
                                 const priceNet = service.basePriceNet;
-                                const priceGross = Math.round((service.basePriceNet * (100 + service.vatRate)) / 100);
+                                // Brutto z cennika wygrywa z przeliczeniem: usługa
+                                // wpisana jako 1900,00 zł brutto ma się tak pokazać
+                                // także na liście wyboru, a nie jako 1900,01 zł.
+                                const priceGross = service.basePriceGross
+                                    ?? netToGross(service.basePriceNet, service.vatRate);
 
                                 return (
                                     <SearchResultItem
