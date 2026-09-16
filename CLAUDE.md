@@ -167,6 +167,38 @@ okno, więc jego „Zapisz" jest na ten moment krokiem następnym i wolno mu by�
 wypełnionym. Wyjątek działa, bo edytor jest stanem PRZEJŚCIOWYM i sam znika —
 nie wolno go rozciągać na elementy widoczne stale.
 
+### Czego ta reguła NIE znaczy, część druga
+
+Nie znaczy „akcja główna ma być skromna". Zakazany jest REMIS, a nie zwycięstwo.
+Jedyny wypełniony element w oknie wolno — i należy — zbudować tak, żeby nie dało
+się go pomylić z „Zapisz": dwie linie (co się stanie + dokąd to prowadzi), kafelek
+ikony, gradient marki, cień w kolorze marki, strzałka reagująca na kursor. Dopóki
+jest JEDEN, im mocniejszy, tym lepiej działa reguła — bo tym szybciej wzrok kończy
+szukanie. Wzorzec: `FooterPrimary` w `LeadDetailModal.tsx`.
+
+### Trzeci nośnik: WYNIESIENIE niesie TEMAT
+
+| Nośnik | Co znaczy |
+|---|---|
+| **Odcień** | ZNACZENIE treści |
+| **Wypełnienie** | PRIORYTET akcji |
+| **Wyniesienie** | TEMAT okna |
+
+W jednej kolumnie treści dokładnie JEDNA sekcja leży na własnej powierzchni
+(biel/gradient, promień `xl`, dwa cienie, pasek marki u góry). Reszta leży płasko
+na tle i rozdziela ją odstęp. Dwie wyniesione karty znaczą dokładnie tyle samo co
+dwa wypełnione przyciski — czyli nic.
+
+Stąd bierze się też odpowiedź na „wszystko jest takie płaskie i tekstowe": płaskość
+NIE jest brakiem koloru i nie naprawia jej dosypanie barwy. Bierze się z tego, że
+każda sekcja jest tą samą ramą — kreska, etykieta 11 px wersalikami w szarości,
+tekst — więc nic w kolumnie nie jest PRZEDMIOTEM. Lekarstwem są: materiał (dwa
+plany zamiast pięciu identycznych ram), typografia nagłówka (nazwa pismem
+tekstowym z kafelkiem ikony zamiast podpisu pola) i hierarchia liczby (kwota, po
+którą się wraca, jest nagłówkiem sekcji, a rozpisanie na pozycje — dowodem pod
+nią). Wersaliki 11 px w `textMuted` jako JEDYNY sposób oznaczenia sekcji są w tym
+repozytorium wycofane; w module `comms` nie ma już ani jednego.
+
 ### Kolejność czytania
 
 Podgląd leada ma jedną kolejność, w panelu i w oknie modalnym:

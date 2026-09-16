@@ -40,15 +40,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import {
     AlertTriangle,
+    ArrowRight,
     CalendarCheck,
     CalendarPlus,
     Car,
     ChevronDown,
     ExternalLink,
+    History,
     Loader2,
+    MessagesSquare,
     PhoneCall,
+    Receipt,
     Reply,
     Send,
+    StickyNote,
     Tag,
     Trash2,
     UserRound,
@@ -280,28 +285,106 @@ const FactChip = styled.button<{ $soft?: boolean; $iconOnly?: boolean }>`
     svg { width: ${p => (p.$iconOnly ? '15px' : '13px')}; height: ${p => (p.$iconOnly ? '15px' : '13px')}; }
 `;
 
-/** Sekcja szyny: etykieta wersalikami i treść, bez szarej ramki panelu. */
-const RailSection = styled.section`
+/**
+ * Sekcja szyny w dwóch materiałach - i to jest cała hierarchia tej kolumny.
+ *
+ * Wcześniej każda sekcja była tym samym: włosowa kreska pod spodem, etykieta
+ * 11 px wersalikami w szarości i tekst. Pięć razy ta sama rama. Kolumna czytała
+ * się jak ekran ustawień, a nie jak sprawa klienta - i żadne dosypanie koloru
+ * tego nie ruszyło, bo problem nie był w barwie, tylko w tym, że nic w tej
+ * kolumnie nie było OBIEKTEM.
+ *
+ * Teraz są dwa plany:
+ *  - [$raised] to przedmiot na biurku: własna powierzchnia, promień, cień
+ *    i brandowy pasek u góry. Dostaje go DOKŁADNIE JEDNA sekcja - wycena, bo
+ *    to ona jest tematem tego okna;
+ *  - reszta leży płasko na tle strony i rozdziela ją odstęp, nie ramka.
+ *
+ * To jest reguła z CLAUDE.md §2 piętro wyżej: wypełnienie niesie priorytet
+ * wśród akcji, wyniesienie niesie temat wśród treści. Dwa wyniesione panele
+ * znaczą dokładnie tyle samo co dwa wypełnione przyciski - czyli nic.
+ */
+const RailSection = styled.section<{ $raised?: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    min-width: 0;
 
-    &:last-child { border-bottom: none; padding-bottom: 0; }
+    ${({ $raised, theme }) => ($raised ? css`
+        position: relative;
+        padding: 16px;
+        border: 1px solid #e6edf6;
+        border-radius: ${theme.radii.xl};
+        background: linear-gradient(160deg, #ffffff 0%, #fbfcfe 100%);
+        /* Dwa cienie: włosowy styk z tłem i miękki, daleki - sam daleki daje
+           mgłę zamiast krawędzi, sam bliski daje naklejkę zamiast przedmiotu. */
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px -20px rgba(15, 23, 42, 0.45);
+
+        /* Pasek marki u góry karty - ten sam zabieg, którym karta pojazdu
+           i karta dokumentu w kartotece mówią „to jest przedmiot". Tam pojawia
+           się pod kursorem, bo kart jest wiele; tu jest stały, bo jest jedna.
+           Przycinamy go własnym promieniem, a nie [overflow: hidden] na karcie:
+           w środku stoi edytor wyceny z podpowiedziami cennika, a obcięta
+           powierzchnia ucięłaby też je. */
+        &::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            height: 3px;
+            border-radius: ${theme.radii.xl} ${theme.radii.xl} 0 0;
+            background: linear-gradient(90deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 55%, #ffffff) 100%);
+        }
+    ` : css`
+        padding-bottom: 16px;
+        border-bottom: 1px solid ${theme.colors.surfaceAlt};
+
+        &:last-child { border-bottom: none; padding-bottom: 0; }
+    `)}
 `;
 
+/**
+ * Nagłówek sekcji: kafelek z ikoną i nazwa pismem tekstowym.
+ *
+ * Etykieta 11 px wersalikami w kolorze [textMuted] jest najtańszym sposobem
+ * powiedzenia „tu zaczyna się sekcja" i jednocześnie najbardziej biurowym -
+ * powtórzona pięć razy w jednej kolumnie robi z podglądu sprawy formularz.
+ * Nazwa w normalnej wielkości i w kolorze tekstu czyta się jak tytuł, a nie
+ * jak podpis pola; ikona niesie kategorię treści szybciej niż słowo i robi to
+ * ODCIENIEM, nie wypełnieniem - te 26 px nie konkuruje o uwagę z akcją.
+ */
 const RailLabel = styled.h4`
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
+    align-items: center;
+    gap: 9px;
     margin: 0;
-    font-size: 11px;
+    font-size: 13.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
+    letter-spacing: -0.01em;
+    color: ${p => p.theme.colors.text};
+`;
+
+/** Kafelek ikony nagłówka. Odcień = rodzaj treści, zgodnie z językiem okna. */
+const RailIcon = styled.span<{ $tone: 'brand' | 'slate' | 'amber' }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: ${p => p.theme.radii.md};
+
+    svg { width: 14px; height: 14px; }
+
+    ${({ $tone }) => {
+        if ($tone === 'brand') return css`
+            background: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+            color: var(--brand-primary);
+        `;
+        if ($tone === 'amber') return css`background: #fef3c7; color: #b45309;`;
+        return css`background: #f1f5f9; color: #64748b;`;
+    }}
 `;
 
 /**
@@ -313,6 +396,9 @@ const RailLabel = styled.h4`
  * ją odczytać.
  */
 const RailAction = styled.button`
+    /* Nagłówek nie rozpycha się już regułą [space-between] - ikona i tytuł stoją
+       przy sobie, więc akcję odsuwa margines. */
+    margin-left: auto;
     border: none;
     background: none;
     padding: 0;
@@ -329,54 +415,59 @@ const RailAction = styled.button`
 `;
 
 /**
- * Wycena jako spis „nazwa - brutto", nie tabela netto/VAT/brutto.
+ * Wycena: kwota jest NAGŁÓWKIEM, pozycje są dowodem.
  *
- * Nazwa pozycji stoi w kolorze tekstu, nie w szarości: pierwsze pytanie brzmi
- * „co obiecaliśmy", a nie „za ile". Wiersze rozdziela włosowa kreska, bo przy
- * czterech pozycjach sam odstęp nie wystarczał, żeby wzrok trzymał się linii.
+ * Wcześniej suma stała na końcu listy - 18 px w szarej belce, do której trzeba
+ * było przeczytać wszystkie pozycje. A to po nią się do tej sekcji wraca:
+ * w warsztacie pierwsze pytanie brzmi „na ile to wyszło", a rozpisanie na
+ * pozycje jest odpowiedzią na drugie, „z czego". Kolejność była odwrócona
+ * względem sposobu czytania, więc ją odwracamy: 30 px na górze karty, spis
+ * mniejszym pismem pod kreską.
  *
- * Suma jest PRZYSTANKIEM, nie kolejnym wierszem: własne tło i odstęp zatrzymują
- * na niej wzrok. Wcześniej różniła się od pozycji jedną kreską u góry i grubszym
- * pismem, więc cała sekcja czytała się jak jednolity szary spis - a to właśnie
- * kwota jest tym, po co się do wyceny wraca.
+ * Kwota nie jest niczym przeliczana - [quoteTotal] sumuje brutto pozycji tak,
+ * jak je zapisano (CLAUDE.md §1). Zmienił się stopień pisma, nie arytmetyka.
  */
 const QuoteList = styled.div`
     display: flex;
     flex-direction: column;
-    font-size: 13.5px;
+    font-size: 13px;
+
+    .hero {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-bottom: 12px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid ${p => p.theme.colors.border};
+    }
+    .hero .amount {
+        font-size: 30px;
+        line-height: 1.08;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        letter-spacing: -0.025em;
+        font-variant-numeric: tabular-nums;
+        color: ${p => p.theme.colors.text};
+    }
+    .hero .caption {
+        font-size: 11.5px;
+        font-weight: ${p => p.theme.fontWeights.medium};
+        color: ${p => p.theme.colors.textMuted};
+    }
 
     .row {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
         gap: 12px;
-        padding: 7px 0;
-        border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+        padding: 6px 0;
     }
-    .row:first-child { padding-top: 0; }
-    .row span:first-child { color: ${p => p.theme.colors.text}; min-width: 0; }
+    .row + .row { border-top: 1px solid ${p => p.theme.colors.surfaceHover}; }
+    .row span:first-child { color: ${p => p.theme.colors.textSecondary}; min-width: 0; }
     .row span:last-child {
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
-        color: ${p => p.theme.colors.textSecondary};
-    }
-
-    .total {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 8px;
-        padding: 9px 12px;
-        border-radius: ${p => p.theme.radii.md};
-        background: ${p => p.theme.colors.surfaceAlt};
-        font-weight: ${p => p.theme.fontWeights.semibold};
+        font-weight: ${p => p.theme.fontWeights.medium};
         color: ${p => p.theme.colors.text};
-    }
-    .total span:last-child {
-        font-size: 18px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        font-variant-numeric: tabular-nums;
     }
 `;
 
@@ -401,15 +492,14 @@ const RailDisclosure = styled.button<{ $open: boolean }>`
     border: none;
     background: none;
     font-family: inherit;
-    font-size: 11px;
+    font-size: 13.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
+    letter-spacing: -0.01em;
+    color: ${p => p.theme.colors.text};
     cursor: pointer;
     text-align: left;
 
-    &:hover { color: ${p => p.theme.colors.textSecondary}; }
+    &:hover .chevron { color: ${p => p.theme.colors.textSecondary}; }
     &:focus-visible {
         outline: 2px solid ${p => p.theme.colors.primary};
         outline-offset: 2px;
@@ -425,6 +515,7 @@ const RailDisclosure = styled.button<{ $open: boolean }>`
         border: 1px solid ${p => p.theme.colors.border};
         color: ${p => p.theme.colors.textSecondary};
         font-size: 10px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
         line-height: 16px;
         text-align: center;
         letter-spacing: 0;
@@ -434,6 +525,7 @@ const RailDisclosure = styled.button<{ $open: boolean }>`
     /* Strzałka dosunięta do prawej krawędzi: to ona mówi „da się to otworzyć". */
     .chevron {
         margin-left: auto;
+        color: ${p => p.theme.colors.textMuted};
         width: 14px;
         height: 14px;
         flex-shrink: 0;
@@ -443,26 +535,59 @@ const RailDisclosure = styled.button<{ $open: boolean }>`
 `;
 
 /** Fakty o kliencie: trzy linijki, bez ozdobników. */
+/**
+ * Kartoteka w kafelkach, nie w zdaniu.
+ *
+ * „2 zrealizowane wizyty, 4 300 zł obrotu, ostatnia: 14 marca" napisane ciągiem
+ * jest akapitem - żeby wyjąć z niego liczbę, trzeba przeczytać słowa. A cała
+ * sekcja istnieje po to, żeby te trzy liczby dało się porównać z kwotą wyceny
+ * stojącą nad nią. Liczba idzie więc na wierzch, słowo pod spód i mniejszym
+ * pismem, a trzy kafelki czytają się jednym ruchem oka zamiast trzema.
+ */
 const RailFacts = styled.div`
-    font-size: 13.5px;
-    line-height: 1.65;
-    color: ${p => p.theme.colors.textSecondary};
+    display: grid;
+    /* Dwa albo trzy kafelki - ostatnia wizyta bywa nieznana. [auto-fit] dzieli
+       szynę na tyle części, ile faktów jest, zamiast zostawiać pustą kolumnę. */
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 6px;
 
-    strong {
-        color: ${p => p.theme.colors.text};
-        font-weight: ${p => p.theme.fontWeights.semibold};
+    .cell {
+        min-width: 0;
+        padding: 8px 10px;
+        border-radius: ${p => p.theme.radii.md};
+        background: ${p => p.theme.colors.surfaceAlt};
+    }
+    .value {
+        font-size: 15px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        letter-spacing: -0.02em;
         font-variant-numeric: tabular-nums;
+        color: ${p => p.theme.colors.text};
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .label {
+        margin-top: 1px;
+        font-size: 10.5px;
+        font-weight: ${p => p.theme.fontWeights.medium};
+        color: ${p => p.theme.colors.textMuted};
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 `;
 
-/** Nagłówek sekcji w kolumnie przebiegu - ta sama waga co etykiety szyny. */
+/** Nagłówek kolumny przebiegu - ten sam materiał co nagłówki szyny. */
 const TimelineLabel = styled.h4`
+    display: flex;
+    align-items: center;
+    gap: 9px;
     margin: 0 0 14px 0;
-    font-size: 11px;
+    font-size: 13.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
+    letter-spacing: -0.01em;
+    color: ${p => p.theme.colors.text};
 `;
 
 /**
@@ -659,9 +784,111 @@ const FooterDanger = styled.button`
     }
     &:disabled { opacity: 0.5; cursor: default; }
 `;
-const FooterPrimary = styled(PrimaryButton)`
-    ${footerControl}
-    padding: 0 26px;
+/**
+ * Akcja główna stopki - jedyne miejsce w tym oknie, w którym sprawa RUSZA DALEJ.
+ *
+ * Do tej pory była to [PrimaryButton]: ta sama pastylka, którą w tym samym pliku
+ * podpisano „Zapisz" przy tagach, pojeździe i notatce. „Stwórz rezerwację"
+ * znaczy „zamień zapytanie w pieniądze" i nie ma prawa wyglądać jak zatwierdzenie
+ * formularza - a wyglądała identycznie, bo była tym samym komponentem.
+ *
+ * Co ją teraz odróżnia, po kolei i z powodem:
+ *  - DWIE LINIE. Tytuł mówi, co się stanie, podpis - dokąd to prowadzi. Jedna
+ *    linijka zmuszała do domyślania się, czy „Zobacz rezerwację" otwiera okno,
+ *    czy przenosi w inne miejsce aplikacji;
+ *  - KAFELEK IKONY na własnym tle zamiast ikony wklejonej przed tekstem: robi
+ *    z przycisku przedmiot o strukturze, a nie napis z ozdobnikiem;
+ *  - STRZAŁKA przy prawej krawędzi, która na najechaniu przesuwa się o 3 px.
+ *    To jedyna ruchoma rzecz w stopce i mówi „stąd się wychodzi";
+ *  - GRADIENT I CIEŃ W KOLORZE MARKI. Płaskie wypełnienie z szarym cieniem to
+ *    przycisk; barwny cień to przedmiot leżący nad powierzchnią okna.
+ *
+ * To NIE jest złamanie zasady „jedno wypełnienie na okno" (CLAUDE.md §2) -
+ * to jest jej wyostrzenie. Wypełniony zostaje dokładnie jeden element i jest
+ * nim krok następny; reszta okna (przyjęcie sugestii, „Kontakt poza pocztą",
+ * kosz) nosi swój odcień jako tło i obwódkę. Zasada mówi, że remis o pierwsze
+ * miejsce jest zakazany - nie mówi, że zwycięzca ma być ledwo widoczny.
+ */
+const FooterPrimary = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    height: 54px;
+    padding: 0 16px 0 14px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 76%, #0f172a) 100%);
+    color: #ffffff;
+    font-family: inherit;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.16),
+        0 12px 24px -12px color-mix(in srgb, var(--brand-primary) 75%, transparent);
+    transition: transform ${p => p.theme.transitions.fast}, box-shadow ${p => p.theme.transitions.fast};
+
+    .glyph {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 34px;
+        height: 34px;
+        border-radius: ${p => p.theme.radii.lg};
+        background: rgba(255, 255, 255, 0.18);
+
+        svg { width: 17px; height: 17px; }
+    }
+
+    .labels {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+    .title {
+        font-size: 14.5px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+    }
+    .sub {
+        font-size: 11px;
+        font-weight: ${p => p.theme.fontWeights.medium};
+        line-height: 1.2;
+        color: rgba(255, 255, 255, 0.76);
+    }
+
+    .arrow {
+        margin-left: auto;
+        flex-shrink: 0;
+        width: 17px;
+        height: 17px;
+        opacity: 0.8;
+        transition: transform ${p => p.theme.transitions.normal};
+    }
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow:
+            0 2px 4px rgba(15, 23, 42, 0.18),
+            0 18px 32px -14px color-mix(in srgb, var(--brand-primary) 80%, transparent);
+    }
+    &:hover .arrow { transform: translateX(3px); }
+    &:active { transform: translateY(0); }
+    &:focus-visible {
+        outline: 2px solid var(--brand-primary);
+        outline-offset: 3px;
+    }
+    &:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+
+    /* Stopka na telefonie rozciąga przyciski - wtedy z przycisku robi się pas
+       akcji przez całą szerokość, a strzałka siada przy prawej krawędzi. */
+    @media (max-width: 640px) {
+        height: 56px;
+        white-space: normal;
+    }
 `;
 
 const Column = styled.div`
@@ -687,19 +914,20 @@ const Panel = styled.section<{ $quiet?: boolean }>`
     background: ${({ $quiet, theme }) => ($quiet ? theme.colors.surfaceAlt : theme.colors.surface)};
     min-width: 0;
 
+    /* Ten sam nagłówek co w szynie - wersaliki 11 px zniknęły z całego okna,
+       a otwarty edytor jest jego częścią, nie osobnym ekranem. */
     h4 {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 7px;
         margin: 0;
-        font-size: 11px;
+        font-size: 13.5px;
         font-weight: ${p => p.theme.fontWeights.semibold};
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: ${p => p.theme.colors.textMuted};
+        letter-spacing: -0.01em;
+        color: ${p => p.theme.colors.text};
     }
 
-    h4 svg { width: 13px; height: 13px; }
+    h4 svg { width: 15px; height: 15px; color: ${p => p.theme.colors.textMuted}; }
 `;
 
 
@@ -1635,7 +1863,11 @@ export function LeadDetailModal({
 
                         <BodyGrid $pane={isPane}>
                             <Column>
-                                <RailSection>
+                                {/* Jedyna wyniesiona sekcja szyny. Wycena jest tematem tego
+                                    okna - po nią się tu wraca i o niej się rozmawia z klientem -
+                                    więc jako jedyna leży na własnej powierzchni. Druga taka
+                                    karta odebrałaby tej znaczenie. */}
+                                <RailSection $raised>
                                     {/*
                                         „Edytuj" w wierszu etykiety, a nie przyciskiem pod
                                         sumą: to jest akcja SEKCJI, więc stoi przy jej
@@ -1645,6 +1877,7 @@ export function LeadDetailModal({
                                         w przycisk.
                                     */}
                                     <RailLabel>
+                                        <RailIcon $tone="brand"><Receipt /></RailIcon>
                                         Wycena
                                         {editingServices === null && (
                                             <RailAction
@@ -1665,6 +1898,24 @@ export function LeadDetailModal({
                                                 tylko daje się kliknąć. */}
                                             {(quoteRows.length > 0 || suggestedServices.length > 0) && (
                                                 <QuoteList>
+                                                    {/* Kwota pierwsza, pozycje pod nią. Suma na końcu
+                                                        listy odpowiadała na pytanie, które pada jako
+                                                        pierwsze, dopiero po przeczytaniu odpowiedzi na
+                                                        drugie. Liczba jest ta sama co wcześniej -
+                                                        brutto pozycji zsumowane bez przeliczania. */}
+                                                    {quoteRows.length > 0 && (
+                                                        <div className="hero">
+                                                            <div className="amount">
+                                                                {formatMoney(quoteTotal((row) => row.grossCents))}
+                                                            </div>
+                                                            <div className="caption">
+                                                                {quoteRows.length}
+                                                                {' '}
+                                                                {plural(quoteRows.length, 'pozycja', 'pozycje', 'pozycji')}
+                                                                {' · kwota brutto'}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     {/* Nazwa i kwota brutto - tyle, ile potrzeba,
                                                         żeby wiedzieć, co komu obiecaliśmy. Netto
                                                         i VAT zostały w edytorze: w szynie obok osi
@@ -1678,12 +1929,6 @@ export function LeadDetailModal({
                                                             <span>{formatMoney(row.grossCents)}</span>
                                                         </div>
                                                     ))}
-                                                    {quoteRows.length > 0 && (
-                                                        <div className="total">
-                                                            <span>Razem</span>
-                                                            <span>{formatMoney(quoteTotal((row) => row.grossCents))}</span>
-                                                        </div>
-                                                    )}
                                                 </QuoteList>
                                             )}
 
@@ -1730,23 +1975,34 @@ export function LeadDetailModal({
                                     w rzędzie chipów już powiedział, że go tam nie ma. */}
                                 {customerFacts && (
                                     <RailSection>
-                                        <RailLabel>Klient</RailLabel>
+                                        <RailLabel>
+                                            <RailIcon $tone="slate"><UserRound /></RailIcon>
+                                            Klient
+                                        </RailLabel>
+                                        {/* Liczba na wierzchu, słowo pod spodem. Te trzy fakty
+                                            czyta się po to, żeby zestawić je z kwotą wyceny nad
+                                            nimi - a z akapitu trzeba je najpierw wyłuskać. */}
                                         <RailFacts>
-                                            <strong>{customerFacts.completedVisitCount}</strong>
-                                            {' '}
-                                            {plural(
-                                                customerFacts.completedVisitCount,
-                                                'zrealizowana wizyta',
-                                                'zrealizowane wizyty',
-                                                'zrealizowanych wizyt'
-                                            )}
-                                            <br />
-                                            <strong>{formatMoney(customerFacts.totalSpentGross)}</strong> obrotu
+                                            <div className="cell">
+                                                <div className="value">{customerFacts.completedVisitCount}</div>
+                                                <div className="label">
+                                                    {plural(
+                                                        customerFacts.completedVisitCount,
+                                                        'wizyta',
+                                                        'wizyty',
+                                                        'wizyt'
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="cell">
+                                                <div className="value">{formatMoney(customerFacts.totalSpentGross)}</div>
+                                                <div className="label">obrotu</div>
+                                            </div>
                                             {customerFacts.lastVisitAt && (
-                                                <>
-                                                    <br />
-                                                    Ostatnia: {formatDayMonth(customerFacts.lastVisitAt)}
-                                                </>
+                                                <div className="cell">
+                                                    <div className="value">{formatDayMonth(customerFacts.lastVisitAt)}</div>
+                                                    <div className="label">ostatnia</div>
+                                                </div>
                                             )}
                                         </RailFacts>
                                     </RailSection>
@@ -1769,6 +2025,7 @@ export function LeadDetailModal({
                                         aria-expanded={similarOpen}
                                         onClick={() => setSimilarOpen((open) => !open)}
                                     >
+                                        <RailIcon $tone="slate"><History /></RailIcon>
                                         Podobne zlecenia
                                         {similarCount > 0 && <span className="count">{similarCount}</span>}
                                         <ChevronDown className="chevron" />
@@ -1777,7 +2034,10 @@ export function LeadDetailModal({
                                 </RailSection>
 
                                 <RailSection>
-                                    <RailLabel>Notatki</RailLabel>
+                                    <RailLabel>
+                                        <RailIcon $tone="amber"><StickyNote /></RailIcon>
+                                        Notatki
+                                    </RailLabel>
                                     <NoteComposer>
                                         <textarea
                                             placeholder="Np. oddzwoniłem, klient prosił o kontakt po 15…"
@@ -1845,7 +2105,10 @@ export function LeadDetailModal({
                                     a nie materiał pomocniczy. Ramka wokół całej osi czasu
                                     robiła z przebiegu sprawy przypis. */}
                                 <div data-block="timeline">
-                                    <TimelineLabel>Przebieg sprawy</TimelineLabel>
+                                    <TimelineLabel>
+                                        <RailIcon $tone="slate"><MessagesSquare /></RailIcon>
+                                        Przebieg sprawy
+                                    </TimelineLabel>
                                     <LeadTimeline entries={timeline ?? []} />
                                 </div>
                             </Column>
@@ -1904,14 +2167,24 @@ export function LeadDetailModal({
                         if (lead.appointmentId) {
                             return (
                                 <FooterPrimary type="button" onClick={openAppointment}>
-                                    <CalendarCheck size={17} /> Zobacz rezerwację
+                                    <span className="glyph"><CalendarCheck /></span>
+                                    <span className="labels">
+                                        <span className="title">Zobacz rezerwację</span>
+                                        <span className="sub">Termin jest już umówiony</span>
+                                    </span>
+                                    <ArrowRight className="arrow" />
                                 </FooterPrimary>
                             );
                         }
                         if (closed) {
                             return canWrite ? (
                                 <FooterPrimary type="button" onClick={openThread}>
-                                    <Send size={17} /> Napisz wiadomość
+                                    <span className="glyph"><Send /></span>
+                                    <span className="labels">
+                                        <span className="title">Napisz wiadomość</span>
+                                        <span className="sub">Sprawa zamknięta, kontakt nadal możliwy</span>
+                                    </span>
+                                    <ArrowRight className="arrow" />
                                 </FooterPrimary>
                             ) : null;
                         }
@@ -1922,14 +2195,24 @@ export function LeadDetailModal({
                                         <CalendarPlus size={17} /> Stwórz rezerwację
                                     </FooterButton>
                                     <FooterPrimary type="button" onClick={openThread}>
-                                        <Send size={17} /> Odpisz klientowi
+                                        <span className="glyph"><Reply /></span>
+                                        <span className="labels">
+                                            <span className="title">Odpisz klientowi</span>
+                                            <span className="sub">Ruch jest po naszej stronie</span>
+                                        </span>
+                                        <ArrowRight className="arrow" />
                                     </FooterPrimary>
                                 </>
                             );
                         }
                         return (
                             <FooterPrimary type="button" onClick={openBooking}>
-                                <CalendarPlus size={17} /> Stwórz rezerwację
+                                <span className="glyph"><CalendarPlus /></span>
+                                <span className="labels">
+                                    <span className="title">Stwórz rezerwację</span>
+                                    <span className="sub">Termin, usługi, zaliczka</span>
+                                </span>
+                                <ArrowRight className="arrow" />
                             </FooterPrimary>
                         );
                     })()}
