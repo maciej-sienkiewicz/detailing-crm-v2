@@ -6,7 +6,7 @@ import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, Mod
 import { SharedButton } from '@/common/styles';
 import { usePermissions } from '@/core/permissions';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
-import { CarFront } from 'lucide-react';
+import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,6 +103,134 @@ const HeaderContent = styled.div`
     }
 `;
 
+/* ── Blok tożsamości pojazdu ──────────────────────────────────────────────
+   Nagłówek nie miał kotwicy: pod tytułem szły trzy wiersze tej samej szarej
+   czcionki, a 14-pikselowa kreska auta była punktorem, nie tożsamością.
+   Aplikacja ma już prawdziwe logotypy marek (CarLogoImage - CDN + własny
+   service worker; ten sam komponent jest w nagłówku pojazdu i tabeli
+   pojazdów), więc nagłówek wizyty dostaje to samo: logo jako awatar. */
+
+const HeaderLeftRow = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    min-width: 0;
+    flex: 1;
+
+    /* Na telefonie kolumna z logo zabierała 72px z ~330px, przez co tytuł łamał
+       się na dwie linie, a ołówek zostawał sam w trzeciej - wyglądało to na
+       błąd. Blok tożsamości kładzie się więc poziomo NAD treścią i oddaje
+       tytułowi całą szerokość. */
+    @media (max-width: 640px) {
+        flex-direction: column;
+        gap: 12px;
+    }
+`;
+
+const IdentityBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    width: 96px;
+
+    @media (max-width: 640px) {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        gap: 10px;
+        text-align: left;
+    }
+`;
+
+/* Jasna płytka pod logo: thumbnaile marek są rysowane na biało i część z nich
+   (Audi, Peugeot, Skoda) na granacie znika. Płytka gwarantuje kontrast każdej
+   marce, zamiast podbijać jasność i liczyć, że wyjdzie. */
+const LogoPlate = styled.div`
+    width: 96px;
+    height: 62px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    box-sizing: border-box;
+
+    @media (max-width: 640px) {
+        width: 64px;
+        height: 44px;
+        border-radius: 9px;
+        padding: 5px 8px;
+    }
+`;
+
+/* Marka pisana wprost, nie tylko w logo: gdy CDN nie odda logotypu,
+   CarLogoImage pokazuje ogólną ikonę auta i nazwa marki zniknęłaby z ekranu. */
+const IdentityCaption = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    max-width: 100%;
+
+    @media (max-width: 640px) {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 7px;
+    }
+`;
+
+const IdentityBrand = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 640px) {
+        text-align: left;
+    }
+`;
+
+const IdentityModel = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    text-align: center;
+    line-height: 1.25;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 640px) {
+        text-align: left;
+    }
+`;
+
+/* Numer rejestracyjny wychodzi z nawiasu. Na hali to on jest nazwą auta
+   ("WX 1234A jest gotowy"), a siedział szarym 14px w środku zdania. */
+const PlateBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 11px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #e2e8f0;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
 const HeaderLeft = styled.div`
     display: flex;
     flex-direction: column;
@@ -127,6 +255,8 @@ const TitleRow = styled.div`
 
     @media (max-width: 640px) {
         flex: 0 0 100%;
+        flex-wrap: nowrap;
+        align-items: flex-start;
         margin-top: 10px;
         margin-bottom: 6px;
         gap: 6px;
@@ -135,6 +265,10 @@ const TitleRow = styled.div`
 
 const VisitTitle = styled.h1`
     margin: 0;
+    /* Kurczliwy, ale nie rozpychający się: na desktopie ołówek ma stać zaraz
+       za tytułem, a nie przy prawej krawędzi. */
+    flex: 0 1 auto;
+    min-width: 0;
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.4px;
@@ -625,13 +759,20 @@ export const VisitHeader = ({
         : invoiceId && onPreviewInvoice ? 'preview'
         : visit.settlement?.documentType && visit.settlement.documentType !== 'INVOICE' && onIssueConsumerInvoice ? 'issue'
         : null;
-    const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate && `(${visit.vehicle.licensePlate})`]
-        .filter(Boolean)
-        .join(' ');
-
     return (
         <HeroHeader>
             <HeaderContent>
+                <HeaderLeftRow>
+                    <IdentityBlock>
+                        <LogoPlate title={visit.vehicle.brand || undefined}>
+                            <CarLogoImage brand={visit.vehicle.brand} size="md" />
+                        </LogoPlate>
+                        <IdentityCaption>
+                            {visit.vehicle.brand && <IdentityBrand>{visit.vehicle.brand}</IdentityBrand>}
+                            {visit.vehicle.model && <IdentityModel>{visit.vehicle.model}</IdentityModel>}
+                        </IdentityCaption>
+                    </IdentityBlock>
+
                 <HeaderLeft>
                     {/* Title row: tylko tytuł + ikona ołówka */}
                     <TitleRow>
@@ -691,16 +832,11 @@ export const VisitHeader = ({
                         )}
                     </TitleRow>
 
-                    {/* Wiersz pojazdu: marka, model, nr rejestracyjny */}
-                    {vehicleLabel && (
+                    {/* Marka i model stoją teraz pod logo, więc tutaj zostaje sam
+                        numer rejestracyjny - jako odznaka, nie jako tekst w nawiasie. */}
+                    {visit.vehicle.licensePlate && (
                         <VehicleRow>
-                            {/* Sylwetka z boku z kołami jako kółkami r=2 czytała się przy
-                                14px jak zabawka - same koła zjadały pół ikony. Widok
-                                z przodu jest symetryczny i geometryczny, więc przy tym
-                                rozmiarze zostaje czytelny i wygląda jak oznaczenie
-                                pojazdu w dokumencie, a nie jak autko. */}
-                            <CarFront strokeWidth={1.9} />
-                            {vehicleLabel}
+                            <PlateBadge>{visit.vehicle.licensePlate}</PlateBadge>
                         </VehicleRow>
                     )}
 
@@ -736,6 +872,7 @@ export const VisitHeader = ({
                         </MetaItem>
                     </MetaRow>
                 </HeaderLeft>
+                </HeaderLeftRow>
 
                 {/* Actions */}
                 <HeaderRight>
