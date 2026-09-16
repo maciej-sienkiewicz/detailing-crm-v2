@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { CustomerContactModal } from './CustomerContactModal';
+import { MileageModal } from './MileageModal';
 import styled, { css, keyframes } from 'styled-components';
 import { CarFront } from 'lucide-react';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
-import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { VisitCardLinkModal } from '@/modules/visit-card';
@@ -370,44 +370,6 @@ const MileageEditBtn = styled.button`
     &:hover { color: ${BRAND}; border-color: ${BRAND}; }
 `;
 
-const MileageEditor = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    min-width: 0;
-`;
-
-const MileageInput = styled.input`
-    width: 96px;
-    padding: 4px 8px;
-    border: 1px solid ${BRAND};
-    border-radius: 6px;
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    color: ${st.text};
-    background: ${st.bgCard};
-    outline: none;
-`;
-
-const MileageUnit = styled.span`
-    font-size: 12px;
-    color: ${st.textMuted};
-`;
-
-const MileageActionBtn = styled.button<{ $primary?: boolean }>`
-    padding: 3px 9px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid ${p => p.$primary ? BRAND : st.border};
-    background: ${p => p.$primary ? BRAND : 'transparent'};
-    color: ${p => p.$primary ? '#fff' : st.textSecondary};
-
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
 const StatusPill = styled.span<{ $ok: boolean }>`
     display: inline-flex;
     align-items: center;
@@ -713,23 +675,11 @@ export const VehicleInfoCard = ({
     const mileageStr = hasMileage ? `${mileageAtArrival!.toLocaleString('pl-PL')} km` : null;
     const [isOpen, setIsOpen] = useState(true);
 
-    // Przebieg spisany przy ladzie bywa z literówką (12 400 zamiast 124 000) — poprawka
-    // na miejscu, bez wracania do formularza przyjęcia. Enter zapisuje, Escape porzuca.
-    const [editingMileage, setEditingMileage] = useState(false);
-    const [mileageDraft, setMileageDraft] = useState('');
-
-    const startMileageEdit = () => {
-        setMileageDraft(hasMileage ? String(mileageAtArrival) : '');
-        setEditingMileage(true);
-    };
-    const cancelMileageEdit = () => setEditingMileage(false);
-    const commitMileageEdit = () => {
-        const parsed = Number(mileageDraft.replace(/\s/g, ''));
-        if (!Number.isInteger(parsed) || parsed < 0) return;
-        setEditingMileage(false);
-        if (parsed !== (mileageAtArrival ?? 0)) onMileageChange(parsed);
-    };
-    const mileageDraftValid = /^\d+$/.test(mileageDraft.replace(/\s/g, ''));
+    /* Przebieg spisany przy ladzie bywa z literówką (12 400 zamiast 124 000).
+       Poprawka idzie oknem - tak samo jak uzupełnienie kontaktu klienta
+       w sąsiedniej karcie. Wcześniej było to jedyne pole edytowane w miejscu,
+       więc dwa sąsiadujące pola uczyły dwóch różnych odruchów. */
+    const [mileageModalOpen, setMileageModalOpen] = useState(false);
 
     return (
         <SidebarCard>
@@ -770,42 +720,13 @@ export const VehicleInfoCard = ({
             <VehicleBody>
                 <KvRow>
                     <KvLabel>Przebieg</KvLabel>
-                    {editingMileage ? (
-                        <MileageEditor>
-                            <MileageInput
-                                type="text"
-                                inputMode="numeric"
-                                autoFocus
-                                aria-label="Przebieg przy przyjęciu w kilometrach"
-                                value={mileageDraft}
-                                onChange={e => setMileageDraft(e.target.value)}
-                                onKeyDown={e => {
-                                    if (e.key === 'Enter') commitMileageEdit();
-                                    if (e.key === 'Escape') cancelMileageEdit();
-                                }}
-                            />
-                            <MileageUnit>km</MileageUnit>
-                            <MileageActionBtn
-                                type="button"
-                                $primary
-                                onClick={commitMileageEdit}
-                                disabled={!mileageDraftValid}
-                                aria-label="Zapisz przebieg"
-                            >
-                                Zapisz
-                            </MileageActionBtn>
-                            <MileageActionBtn type="button" onClick={cancelMileageEdit} aria-label="Anuluj edycję przebiegu">
-                                Anuluj
-                            </MileageActionBtn>
-                        </MileageEditor>
-                    ) : (
-                        <MileageValueRow>
+                    <MileageValueRow>
                             {mileageStr
                                 ? <KvValue style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageStr}</KvValue>
                                 : <KvMissing>Nie podano</KvMissing>
                             }
                             {canEdit && (
-                                <MileageEditBtn type="button" onClick={startMileageEdit} aria-label="Edytuj przebieg">
+                                <MileageEditBtn type="button" onClick={() => setMileageModalOpen(true)} aria-label="Edytuj przebieg">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M12 20h9" />
                                         <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
@@ -813,8 +734,7 @@ export const VehicleInfoCard = ({
                                     {hasMileage ? 'Popraw' : 'Uzupełnij'}
                                 </MileageEditBtn>
                             )}
-                        </MileageValueRow>
-                    )}
+                    </MileageValueRow>
                 </KvRow>
 
                 <KvRow>
@@ -873,6 +793,15 @@ export const VehicleInfoCard = ({
                 )}
             </VehicleBody>
             </CardBody>
+
+            {mileageModalOpen && (
+                <MileageModal
+                    isOpen
+                    mileage={mileageAtArrival}
+                    onSave={onMileageChange}
+                    onClose={() => setMileageModalOpen(false)}
+                />
+            )}
         </SidebarCard>
     );
 };
