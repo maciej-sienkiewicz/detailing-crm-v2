@@ -77,12 +77,21 @@ podano w brutto.
   `FIXED_GROSS`) i rabat zerowy — nie wolno.
 - **Dokładne brutto musi przejść przez każdą granicę**: katalog → pozycja
   wyceny → payload API → odczyt z API. Zgubione raz, nie odtworzy się już nigdy.
+- **Mapowania odpowiedzi API to miejsce, w którym ginie najczęściej.** Funkcja
+  wypisująca pola ręcznie (`services.map(s => ({ id: s.id, basePriceNet: … }))`)
+  po cichu wyrzuca `finalPriceGross`, bo nikt o nim nie pomyślał — a wtedy każda
+  tabela niżej MUSI odtwarzać brutto z netta i cała naprawa idzie na marne.
+  Serwer nie zwraca `basePriceGross` przy pozycjach rezerwacji; dokładne brutto
+  siedzi w `finalPriceGross` i wydobywa je `exactBaseGross()`. Dodając pole do
+  takiego mapowania, sprawdź najpierw, czy nie gubisz kwoty.
 
 ### Wzorce do skopiowania
 
 - `src/common/utils/priceAdjustment.ts` — `exactBaseGross`, `applyAdjustment`
 - `src/modules/appointments/hooks/useServicePricing.ts` — wycena pozycji i sumy
 - `src/modules/checkin/components/SummaryStep.tsx` — podsumowanie protokołu
+- `src/modules/checkin/utils/toCheckInServiceLine.ts` — przeniesienie dokładnego
+  brutta przez granicę API (wzorzec dla każdego mapowania odpowiedzi)
 - Backend: `AppointmentLineItem.create(basePriceGross = …)`, `Visit.calculateFinalGross`
 
 ### Testy, które tego pilnują
@@ -91,6 +100,8 @@ podano w brutto.
   jako brutto nie pływa"
 - `src/modules/appointments/hooks/useServicePricing.test.ts` → odtworzenie
   zgłoszenia z produkcji (154472 gr / 23% / rabat zerowy → **190000**, nie 190001)
+- `src/modules/checkin/utils/toCheckInServiceLine.test.ts` → brutto przeżywa
+  granicę API; brak brutta daje `undefined`, a nie zmyśloną kwotę
 
 **Nie osłabiaj tych testów, żeby przepuścić zmianę.** Jeśli test zaczyna
 przeszkadzać, to zmiana jest zła, a nie test.

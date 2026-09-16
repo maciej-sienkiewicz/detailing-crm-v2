@@ -16,6 +16,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import type { Service, VatRate } from '@/modules/services/types';
 import { VAT_OPTIONS } from '@/modules/services/vatOptions';
+import { netToGross } from '@/common/utils/priceAdjustment';
 import {
     Overlay,
     ModalContainer,
@@ -77,11 +78,16 @@ export const ManualPriceModal = ({
         onConfirm({ basePriceNet, basePriceGross, vatRate });
     };
 
-    /** Zmiana stawki przelicza brutto od netto - netto jest tym, co wpisał użytkownik. */
+    /**
+     * Zmiana stawki przelicza brutto od netto - netto jest tym, co wpisał użytkownik.
+     *
+     * Wspólnym `netToGross`, a nie własnym mnożeniem: cała arytmetyka VAT ma jedną
+     * implementację (patrz CLAUDE.md), więc nie ma gdzie powstać drugiemu wynikowi
+     * dla tej samej pary liczb. `netToGross` sam obsługuje ZW i 0%.
+     */
     const handleVatChange = (nextRate: VatRate) => {
         setVatRate(nextRate);
-        const rate = Math.max(0, nextRate);
-        setBasePriceGross(Math.round(basePriceNet * (1 + rate / 100)));
+        setBasePriceGross(netToGross(basePriceNet, nextRate));
     };
 
     return createPortal(

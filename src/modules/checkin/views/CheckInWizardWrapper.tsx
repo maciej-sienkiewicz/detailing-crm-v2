@@ -8,6 +8,8 @@ import { appointmentApi } from '@/modules/appointments';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { fromInstantToLocalInput } from '@/common/dateTime';
+import { toCheckInServiceLine } from '../utils/toCheckInServiceLine';
+import type { ServiceLineItem } from '../types';
 
 const LoadingContainer = styled.div`
     min-height: 100vh;
@@ -115,18 +117,7 @@ interface ReservationResponse {
         licensePlate: string;
         color?: string;
     } | null;
-    services: Array<{
-        id: string;
-        serviceId: string;
-        serviceName: string;
-        basePriceNet: number;
-        vatRate: number;
-        adjustment: {
-            type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
-            value: number;
-        };
-        note?: string;
-    }>;
+    services: ServiceLineItem[];
     status: string;
     appointmentColor?: {
         id: string;
@@ -216,17 +207,10 @@ export const CheckInWizardWrapper = () => {
             licensePlate: reservationData.vehicle.licensePlate,
             color: reservationData.vehicle.color,
         } : null),
-        services: reservationData.services?.map((service: any) => ({
-            id: service.id,
-            serviceId: service.serviceId,
-            serviceName: service.serviceName || service.name,
-            basePriceNet: service.basePriceNet || service.priceNet || 0,
-            vatRate: service.vatRate ?? 23,
-            adjustment: service.adjustment || { type: 'PERCENT', value: 0 },
-            note: service.note,
-            isPackage: service.isPackage ?? false,
-            packageItems: service.packageItems ?? null,
-        })) || [],
+        // Mapowanie stoi w osobnej, testowanej funkcji, bo przenosi DOKŁADNE BRUTTO
+        // przez granicę API - a to ta jedna wartość, której zgubienie rozjeżdża
+        // cenę o grosz w całym dalszym check-inie (patrz CLAUDE.md).
+        services: reservationData.services?.map(toCheckInServiceLine) || [],
         status: reservationData.status,
         appointmentColor: reservationData.appointmentColor,
         doorToDoor: reservationData.doorToDoor,
