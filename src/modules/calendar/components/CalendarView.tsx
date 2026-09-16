@@ -124,8 +124,8 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         background: #0ea5e9;
         color: #fff;
         border-radius: 50%;
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -134,19 +134,24 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
     }
 
-    /* Day numbers */
+    /* Day numbers.
+
+       Wiersz z datą zjadał 32 px z ~98-pikselowej komórki - jedna trzecia
+       wysokości szła na światło wokół dwucyfrowej liczby, a nie na wydarzenia.
+       Kurczy się margines i kółko, NIE cyfra: font-size zostaje 12 px, bo to
+       ona decyduje o czytelności. Po zmianie wiersz ma 22 px. */
     .fc-daygrid-day-number {
-        padding: 0 4px;
+        padding: 0 3px;
         color: #475569;
         font-size: 12px;
         font-weight: 500;
         border-radius: 50%;
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 2px 0 4px 2px;
+        margin: 0 0 1px 2px;
         transition: background 0.15s ease;
         align-self: flex-start;
     }
@@ -158,7 +163,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
 
     .fc-daygrid-day-top {
         justify-content: center;
-        padding: 4px 0 0;
+        padding: 1px 0 0;
     }
 
     /* Other month days.
@@ -369,7 +374,9 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         border-color: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
-        margin: 1px 2px;
+        /* Odstęp tylko od dołu: 1 px z góry i z dołu na KAŻDYM chipie sumował
+           się szybciej niż same chipy. */
+        margin: 0 2px 1px;
     }
 
     .fc-daygrid-event.fc-event:hover {
@@ -382,7 +389,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     .fc-daygrid-day-events {
-        padding: 0 2px 3px;
+        padding: 0 2px 2px;
     }
 
     .fc-event-title {
@@ -525,7 +532,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         color: #475569;
         font-weight: 700;
         font-size: 11px;
-        padding: 3px 6px;
+        padding: 1px 6px;
         border-radius: 5px;
         letter-spacing: 0.2px;
         background: rgba(100, 116, 139, 0.10);
@@ -2933,14 +2940,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 // Bez lewej listwy na kafelku solidnym: kolor niesie całe
                                 // tło, a listwa zabierała 3 px z tych kilkudziesięciu,
                                 // które ma tytuł.
-                                padding: isSolid ? '3px 6px' : '3px 6px 3px 5px',
+                                /* Na telefonie chip jest celem dotknięcia, więc
+                                   zostaje o pikselek wyższy niż na desktopie. */
+                                padding: isNarrowViewport
+                                    ? (isSolid ? '2px 6px' : '2px 6px 2px 5px')
+                                    : (isSolid ? '1px 6px' : '1px 6px 1px 5px'),
                                 background: isSolid ? color : `${color}1F`,
                                 borderLeft: isSolid ? 'none' : `3px solid ${color}`,
                                 borderRadius: '5px',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
-                                lineHeight: 1.25,
+                                lineHeight: 1.2,
                             }}>
                                 <span style={{
                                     overflow: 'hidden',

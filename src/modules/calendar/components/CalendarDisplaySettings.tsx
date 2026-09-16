@@ -130,9 +130,9 @@ const ResetBtn = styled.button`
 
 const Row = styled.div`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
-    padding: 13px 16px;
+    padding: 11px 16px;
 
     & + & { border-top: 1px solid #f1f5f9; }
 `;
@@ -150,16 +150,8 @@ const RowLabel = styled.label`
     cursor: pointer;
 `;
 
-const RowHint = styled.p`
-    margin: 3px 0 0;
-    font-size: 12px;
-    line-height: 1.45;
-    color: #64748b;
-`;
-
 const ToggleSlot = styled.div`
     flex-shrink: 0;
-    padding-top: 1px;
 `;
 
 const GearIcon = () => (
@@ -245,11 +237,6 @@ export const CalendarDisplaySettings = ({
                         <Row>
                             <RowText>
                                 <RowLabel htmlFor="cal-weekends">Weekendy</RowLabel>
-                                <RowHint>
-                                    Bez sobót i niedziel siatka ma pięć szerszych kolumn,
-                                    więc w kafelku dnia mieści się więcej wydarzeń.
-                                    Wizyty z weekendu przestają być widoczne w tym widoku.
-                                </RowHint>
                             </RowText>
                             <ToggleSlot>
                                 <Toggle
@@ -265,11 +252,6 @@ export const CalendarDisplaySettings = ({
                         <Row>
                             <RowText>
                                 <RowLabel htmlFor="cal-adjacent">Dni z sąsiednich miesięcy</RowLabel>
-                                <RowHint>
-                                    Końcówka poprzedniego i początek następnego miesiąca.
-                                    Wyłączone pokazuje wyłącznie bieżący miesiąc - siatka
-                                    traci pusty szósty tydzień, a wiersze są wyższe.
-                                </RowHint>
                             </RowText>
                             <ToggleSlot>
                                 <Toggle
