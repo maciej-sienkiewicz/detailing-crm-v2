@@ -34,6 +34,7 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { formatDateTime } from '@/common/utils';
 
 // ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
 const BRAND = '#0ea5e9';
@@ -879,6 +880,9 @@ export const VisitDetailView = () => {
 
                 {visit.doorToDoor && (() => {
                     const d2d = visit.doorToDoor!;
+                    /* `enabled === false` to świadoma rezygnacja klienta - adresy
+                       zostają zapisane, ale wizyta nie jest już Door to Door. */
+                    if (d2d.enabled === false) return null;
                     const hasPickup = !!(d2d.pickupAddress?.city || d2d.pickupAddress?.street);
                     const hasDelivery = !!(d2d.deliveryAddress?.city || d2d.deliveryAddress?.street);
                     const modeText = hasPickup && hasDelivery
@@ -906,6 +910,8 @@ export const VisitDetailView = () => {
                                 {' · '}{modeText}
                                 {pickupStr && <> · odbiór: <D2dBannerAddress>{pickupStr}</D2dBannerAddress></>}
                                 {deliveryStr && <> · dostawa: <D2dBannerAddress>{deliveryStr}</D2dBannerAddress></>}
+                                {d2d.driverName && <> · kierowca: <D2dBannerAddress>{d2d.driverName}</D2dBannerAddress></>}
+                                {d2d.scheduledAt && <> · termin: <D2dBannerAddress>{formatDateTime(d2d.scheduledAt)}</D2dBannerAddress></>}
                             </span>
                         </D2dBanner>
                     );

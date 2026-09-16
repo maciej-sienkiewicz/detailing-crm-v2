@@ -6,9 +6,9 @@ Właściciel studia zgłosił, że przy zlecaniu dowozu pojazdu potrzebuje przyp
 **kierowcę** (pracownika studia) oraz **termin dostarczenia** (data + godzina).
 Dziś Door to Door przechowuje wyłącznie adresy i uwagi.
 
-Frontend już wysyła te pola. Backend musi zostać zaktualizowany, aby je
-przyjmować i zwracać — **do tego czasu kierowca i termin nie przetrwają
-odświeżenia strony.**
+Frontend już wysyła te pola. **Wdrożone po stronie backendu** w
+`automotive-crm-v2-backend`, gałąź `claude/door-to-door-driver-schedule`
+(migracja `V135__door_to_door_driver_and_schedule.sql`).
 
 Ustalone z właścicielem: **Door to Door nie ma ceny** — usługa nie trafia na
 rozliczenie wizyty i nie wymaga pola kwoty.
@@ -75,7 +75,10 @@ rozliczenie wizyty i nie wymaga pola kwoty.
 | `driverId` nie istnieje | `400` z komunikatem — front pokaże go użytkownikowi. |
 | `scheduledAt` w przeszłości | **Dozwolone.** Dane bywają uzupełniane po fakcie, np. następnego dnia rano. |
 | Adres niepełny (samo miasto lub sama ulica) | `400`. Front waliduje to samo, ale kontrakt nie może na tym polegać. |
-| Oba adresy puste przy `enabled: true` | `400`. |
+| **Tylko adres odbioru** przy `enabled: true` | **Dozwolone.** „Zabierzcie auto sprzed domu, wrócę po nie sam" — klient odbiera pojazd osobiście w studiu. |
+| **Tylko adres dostarczenia** przy `enabled: true` | **Dozwolone.** Klient przywozi auto sam, ale prosi o odwiezienie. |
+| Oba adresy puste przy `enabled: true` | `400` — nie ma czego przewozić. Włączona usługa wymaga **co najmniej jednego** kompletnego adresu. |
+| `scheduledAt` bez strefy (`"2026-09-23T20:15"`) | `400` — pole jest czytane jako `Instant`. Konwersję z czasu ściennego pickera robi front w `visitApi.updateDoorToDoor` (`localDateTimeToInstant`). |
 
 ---
 

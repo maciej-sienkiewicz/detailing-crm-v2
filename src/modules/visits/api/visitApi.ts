@@ -1,4 +1,5 @@
 import { apiClient } from '@/core';
+import { localDateTimeToInstant } from '@/common/utils';
 import type {
     VisitDetailResponse,
     UpdateVisitPayload,
@@ -640,10 +641,10 @@ export const visitApi = {
     /**
      * Zlecenie / aktualizacja Door to Door.
      *
-     * `enabled`, `driverId` i `scheduledAt` to pola, których backend jeszcze nie
-     * obsługuje - wysyłamy je zgodnie z konwencją repo (frontend pierwszy,
-     * backend wg docs/door-to-door-api-spec.md). Nieznane pola powinny zostać
-     * zignorowane, dopóki kontrakt nie zostanie rozszerzony.
+     * `scheduledAt` przychodzi z pickera jako czas ścienny (`2026-09-23T20:15`),
+     * a backend czyta to pole jako `Instant` - bez konwersji odpowiadał
+     * 400 "could not be parsed at index 16". Zamiana na instant siedzi tutaj,
+     * na granicy API, żeby formularz mógł zostać przy tym, co widzi użytkownik.
      */
     updateDoorToDoor: async (
         visitId: string,
@@ -653,10 +654,14 @@ export const visitApi = {
             deliveryAddress: { city: string; street: string };
             notes?: string;
             driverId?: string | null;
+            /** Czas ścienny `YYYY-MM-DDTHH:mm` albo instant - jedno i drugie zadziała. */
             scheduledAt?: string | null;
         }
     ): Promise<void> => {
-        await apiClient.put(`${BASE_PATH}/${visitId}/door-to-door`, data);
+        await apiClient.put(`${BASE_PATH}/${visitId}/door-to-door`, {
+            ...data,
+            scheduledAt: localDateTimeToInstant(data.scheduledAt),
+        });
     },
 
     updateEstimatedCompletionDate: async (visitId: string, date: string): Promise<void> => {
