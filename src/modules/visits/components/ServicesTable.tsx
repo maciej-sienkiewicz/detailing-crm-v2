@@ -1789,6 +1789,27 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
     const fmtVat = (v: number) => v === -1 ? 'zw.' : `${v}%`;
 
+    /**
+     * Cena bazowa pozycji - to, od czego liczy się rabat i co widać jako
+     * „Cena z cennika".
+     *
+     * Dla zwykłej usługi jest nią po prostu `basePriceNet`. Dla usługi z ceną
+     * ustalaną ręcznie cennik NIE MA ceny: serwer zapisuje przy takiej pozycji
+     * `basePriceNet = 0`, a kwotę ustaloną z klientem niesie rabat `SET_NET`
+     * albo `SET_GROSS` (tak wysyła ją przyjęcie pojazdu - patrz
+     * `toApiServiceLineItem`). Czytanie wtedy samego `basePriceNet` pokazywało
+     * „Cena z cennika: 0,00 zł" i liczyło każdy rabat od zera, więc rabatu nie
+     * dało się w ogóle nadać - kwota końcowa zawsze wychodziła zerowa.
+     *
+     * `resolveBaseNet` istnieje dokładnie po to i było już używane przy rabacie
+     * zbiorczym; edytor pojedynczej pozycji jako jedyny go pomijał.
+     */
+    const listBaseNet = (service: ServiceLineItem): number => resolveBaseNet({
+        basePriceNet: service.basePriceNet ?? 0,
+        vatRate: service.vatRate ?? edVatRate,
+        adjustment: service.adjustment ?? { type: 'PERCENT', value: 0 },
+    });
+
     /* ── Editor open / close / apply ── */
 
     const openEditor = (service: ServiceLineItem) => {
@@ -1826,7 +1847,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     /** Preview of the editor's current state against the ORIGINAL base price. */
     const editorPreview = (service: ServiceLineItem) => {
-        const baseNet = service.basePriceNet;
+        const baseNet = listBaseNet(service);
         let adj: { type: AdjustmentType; value: number };
         if (edMode === 'DISCOUNT') {
             const val = parseFloat(edDiscountValue.replace(',', '.'));
@@ -1853,7 +1874,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         const { adj } = editorPreview(service);
         setEditedPrices(prev => ({
             ...prev,
-            [editorId]: { basePriceNet: service.basePriceNet, vatRate: edVatRate, adjustment: adj },
+            // Baza zapisana wprost, a nie jako zero z rabatem SET_NET: dzięki temu
+            // kolejny rabat nałożony na tę pozycję ma od czego liczyć.
+            [editorId]: { basePriceNet: listBaseNet(service), vatRate: edVatRate, adjustment: adj },
         }));
         closeEditor();
     };
@@ -1865,7 +1888,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         if (!service) { closeEditor(); return; }
         setEditedPrices(prev => ({
             ...prev,
-            [editorId]: { basePriceNet: service.basePriceNet, vatRate: service.vatRate, adjustment: { type: 'PERCENT', value: 0 } },
+            // Dla usługi z ceną ręczną „cena cennikowa" to kwota ustalona z klientem -
+            // cennik nie ma dla niej żadnej innej.
+            [editorId]: { basePriceNet: listBaseNet(service), vatRate: service.vatRate, adjustment: { type: 'PERCENT', value: 0 } },
         }));
         closeEditor();
     };
@@ -2636,7 +2661,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         {editorService && (() => {
             const svc = editorService;
             const preview = editorPreview(svc);
-            const listNet = svc.basePriceNet;
+            const listNet = listBaseNet(svc);
             const listGross = preview.listGross;
             const changed = preview.finalGrossCents !== listGross;
             const existingAdj = editedPrices[svc.id]?.adjustment ?? svc.adjustment;
