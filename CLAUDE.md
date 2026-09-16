@@ -197,7 +197,10 @@ plany zamiast pięciu identycznych ram), typografia nagłówka (nazwa pismem
 tekstowym z kafelkiem ikony zamiast podpisu pola) i hierarchia liczby (kwota, po
 którą się wraca, jest nagłówkiem sekcji, a rozpisanie na pozycje — dowodem pod
 nią). Wersaliki 11 px w `textMuted` jako JEDYNY sposób oznaczenia sekcji są w tym
-repozytorium wycofane; w module `comms` nie ma już ani jednego.
+repozytorium wycofane wszędzie tam, gdzie były jedyną ramą sekcji — w podglądzie
+leada (`LeadDetailModal`, `SuggestedServiceRows`, `SimilarVisitsSection`) nie ma
+już ani jednego. Reszta modułu `comms` jeszcze je ma; przy okazji dotykania tych
+plików idą tą samą drogą.
 
 ### Kolejność czytania
 
