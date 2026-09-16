@@ -408,48 +408,55 @@ describe('EditableServicesTable', () => {
             expect(newList[0].basePriceGross).toBe(10800);
         });
 
-        it('przycisk "Dodaj usługę" jest nieaktywny gdy pole ceny jest puste', async () => {
+        it('pozwala dodać darmową usługę (0 zł) - przycisk aktywny mimo pustej ceny', async () => {
+            // Część usług ustalanych indywidualnie bywa darmowa. 0 zł to poprawna cena,
+            // nie brak ceny - przycisk musi być aktywny, a potwierdzenie ma dodać pozycję
+            // za zero, a nie zostać zablokowane.
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
-            renderTable([]);
+            const { onChange } = renderTable([]);
 
             const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            expect(screen.getByRole('button', { name: 'Dodaj usługę' })).toBeDisabled();
+            const addBtn = screen.getByRole('button', { name: 'Dodaj usługę' });
+            expect(addBtn).toBeEnabled();
+
+            await user.click(addBtn);
+
+            const [newList] = onChange.mock.calls[0];
+            expect(newList[0].basePriceNet).toBe(0);
+            expect(newList[0].basePriceGross).toBe(0);
+            expect(newList[0].requireManualPrice).toBe(true);
         });
     });
 
     // ── rabat dostępny dla NIESTANDARDOWA ────────────────────────────────────
 
-    describe('rabat dla usługi NIESTANDARDOWA', () => {
-        it('renderuje sekcję rabatu dla usługi z requireManualPrice=true', () => {
-            const customService = makeServiceLineItem({
-                id: 'line-custom',
-                serviceId: 'svc-2',
-                serviceName: 'Usługa niestandardowa',
-                basePriceNet: 10000,
-                requireManualPrice: true,
-            });
-            renderTable([customService]);
-
-            expect(screen.getByText('Procent (%)')).toBeInTheDocument();
+    describe('usługa z ceną ustaloną ręcznie w tabeli', () => {
+        const manualLine = () => makeServiceLineItem({
+            id: 'line-custom',
+            serviceId: 'svc-2',
+            serviceName: 'Usługa niestandardowa',
+            basePriceNet: 10000,
+            requireManualPrice: true,
         });
 
-        it('wyświetla cenę netto i brutto w kolumnie bazowej', () => {
-            const customService = makeServiceLineItem({
-                id: 'line-custom',
-                serviceId: 'svc-2',
-                serviceName: 'Usługa niestandardowa',
-                basePriceNet: 10000,
-                requireManualPrice: true,
-            });
-            const { container } = renderTable([customService]);
+        it('pozwala nadać rabat - przycisk rabatu jest dostępny', () => {
+            // Po zapisaniu ceny ręcznej pozycja zachowuje się jak każda inna:
+            // można jej nadać rabat. Wcześniej cena wpisana ręcznie „ginęła" do zera
+            // i rabat nie miał od czego liczyć - to jest sprawdzenie, że już ma.
+            renderTable([manualLine()]);
+            expect(screen.getByTitle('Dodaj rabat')).toBeInTheDocument();
+        });
 
-            const basePriceTd = container.querySelector('td[data-label="Cena bazowa"]');
-            expect(basePriceTd).not.toBeNull();
-            expect(basePriceTd!.textContent).toContain('100,00');
+        it('pokazuje wpisaną cenę netto i brutto w tabeli', () => {
+            // 100,00 zł netto przy 23% VAT -> 123,00 zł brutto. Kwota ustalona ręcznie
+            // ma się pokazywać normalnie, a nie jako 0.
+            renderTable([manualLine()]);
+            expect(screen.getAllByText('100.00').length).toBeGreaterThan(0);
+            expect(screen.getAllByText('123.00').length).toBeGreaterThan(0);
         });
     });
 });
