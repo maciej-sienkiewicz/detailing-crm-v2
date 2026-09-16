@@ -31,10 +31,22 @@ const Spinner = styled.div`
     margin: 12px auto;
 `;
 
+/**
+ * Pustka jako blok, nie jako sierocy szary wiersz.
+ *
+ * Zdanie wiszące samo na białym tle wyglądało jak resztka po czymś, co się nie
+ * wczytało - a każda z tych pustek jest ODPOWIEDZIĄ (nie ma historii; auto
+ * nieznane; usługa spoza cennika). Ramka i tło mówią „to jest treść, a nie brak
+ * treści", nie podnosząc przy tym wagi sekcji.
+ */
 const Hint = styled.div`
+    padding: 10px 12px;
+    border: 1px dashed ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    background: ${p => p.theme.colors.surfaceAlt};
     font-size: 12px;
     line-height: 1.5;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${p => p.theme.colors.textSecondary};
 `;
 
 const List = styled.ul`
@@ -64,13 +76,23 @@ const Row = styled.li`
     /* Trzy linie treści plus oddech — gwarantuje, że kciuki mają gdzie wylądować
        także przy zleceniu bez wykazanych usług. */
     min-height: 66px;
-    padding: 9px 10px;
+    padding: 9px 10px 9px 12px;
     border: 1px solid ${p => p.theme.colors.border};
+    /* Pasek z lewej w tym samym języku co niebieski przy sugestiach i bursztynowy
+       przy notatkach: kolor krawędzi mówi, jakiego rodzaju jest ta treść. Tutaj
+       to historia zleceń - fakt z przeszłości, więc spokojny grafit. */
+    border-left: 3px solid #cbd5e1;
     border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.surface};
-    transition: border-color ${p => p.theme.transitions.fast};
+    /* Tło, nie biel: wiersz na białym tle szyny był samym obrysem i cała sekcja
+       czytała się jak szkic, a nie jak lista. */
+    background: ${p => p.theme.colors.surfaceAlt};
+    transition: all ${p => p.theme.transitions.fast};
 
-    &:hover { border-color: ${p => p.theme.colors.textMuted}; }
+    &:hover {
+        background: ${p => p.theme.colors.surface};
+        border-color: ${p => p.theme.colors.textMuted};
+        border-left-color: ${p => p.theme.colors.primary};
+    }
 `;
 
 const Vehicle = styled.div`
@@ -127,7 +149,9 @@ const Chip = styled.span`
 
 const Amount = styled.div`
     text-align: right;
-    font-size: 13px;
+    /* Kwota jest powodem istnienia tej sekcji („ile braliśmy za taką robotę"),
+       więc czyta się ją pierwsza w wierszu. */
+    font-size: 14.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;

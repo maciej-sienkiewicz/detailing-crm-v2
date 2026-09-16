@@ -28,7 +28,7 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Check, Sparkles, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import type { useSuggestionActions } from '../hooks/useLeads';
 import { toQuoteRow } from '../utils/leadServiceLines';
 import type { LeadServiceItem } from '../types';
@@ -56,8 +56,6 @@ const BlockHeader = styled.h5`
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: ${p => p.theme.colors.primary};
-
-    svg { width: 13px; height: 13px; }
 
     .count {
         min-width: 16px;
@@ -250,7 +248,7 @@ export function SuggestedServiceRows({ suggestions, actions }: Props) {
     return (
         <Block>
             <BlockHeader>
-                <Sparkles /> Sugerowane usługi
+                Sugerowane usługi
                 <span className="count">{suggestions.length}</span>
             </BlockHeader>
 
