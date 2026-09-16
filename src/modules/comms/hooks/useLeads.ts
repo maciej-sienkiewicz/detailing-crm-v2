@@ -338,19 +338,6 @@ export const useSimilarVisits = (leadId: string | null) =>
         retry: false,
     });
 
-/** „Sprawdź ponownie": przelicza dobór na serwerze i podmienia wynik w miejscu. */
-export const useRefreshSimilarVisits = (leadId: string) => {
-    const queryClient = useQueryClient();
-    const { showError } = useToast();
-    return useMutation({
-        mutationFn: () => leadsApi.refreshSimilarVisits(leadId),
-        onSuccess: (fresh) => {
-            queryClient.setQueryData<SimilarVisits>([...LEADS_KEY, 'similar-visits', leadId], fresh);
-        },
-        onError: () => showError('Nie udało się przeliczyć podpowiedzi', 'Spróbuj ponownie za chwilę'),
-    });
-};
-
 /**
  * Zdjęcie jednej podpowiedzi. Odpowiedź serwera jest pusta, więc wiersz usuwamy
  * z pamięci podręcznej na miejscu — ma zniknąć od razu, a nie po ponownym

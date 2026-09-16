@@ -7,16 +7,19 @@
 // przeklikiwać historię wizyt ręcznie.
 //
 // Dobór jest policzony w tle przy tworzeniu leada i ZAPISANY, więc sekcja ładuje
-// się razem z leadem — otwarcie zastaje wynik gotowy. „Sprawdź ponownie" przelicza
-// na wyraźne życzenie: gdy historia urosła albo do cennika doszła brakująca usługa.
-// Stoi jako ikona w nagłówku sekcji (SimilarVisitsRefresh), a nie jako przycisk pod
-// listą: to wyjście awaryjne na świat, który się zmienił, więc ma być dostępne
-// zawsze i nie zabierać uwagi nigdy — także wtedy, gdy lista jest pusta.
+// się razem z leadem — otwarcie zastaje wynik gotowy.
+//
+// Przeliczenia na żądanie tu nie ma. Indeks odświeża zadanie cykliczne co pięć
+// minut, więc ręczny przycisk niczego nie przyspieszał, a ikona strzałek przy
+// etykiecie sekcji robiła z niej pasek narzędzi i konkurowała z jedyną akcją,
+// która ma być w tej kolumnie widoczna — „Edytuj" przy wycenie. Endpoint
+// przeliczający został po stronie serwera (`leadsApi.refreshSimilarVisits`):
+// gdyby wrócił powód, wraca sam przycisk, a nie cała droga do niego.
 
 import styled, { keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
-import { ExternalLink, RefreshCw, X } from 'lucide-react';
-import { useDismissSimilarVisit, useRefreshSimilarVisits, useSimilarVisits } from '../hooks/useLeads';
+import { ExternalLink, X } from 'lucide-react';
+import { useDismissSimilarVisit, useSimilarVisits } from '../hooks/useLeads';
 import { formatGrosze } from './shared';
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
@@ -219,33 +222,6 @@ const formatDate = (iso: string): string => {
 
 interface SimilarVisitsSectionProps {
     leadId: string;
-}
-
-interface SimilarVisitsRefreshProps {
-    leadId: string;
-    /** Styl nadaje nagłówek, w którym przycisk stoi. */
-    className?: string;
-}
-
-/**
- * Ikona przeliczenia do nagłówka sekcji. Osobny komponent, bo mieszka w cudzym
- * nagłówku, a mutację ma trzymać ten moduł - okno leada nie musi wiedzieć, że
- * podpowiedzi da się przeliczyć na żądanie.
- */
-export function SimilarVisitsRefresh({ leadId, className }: SimilarVisitsRefreshProps) {
-    const refresh = useRefreshSimilarVisits(leadId);
-    return (
-        <button
-            type="button"
-            className={className}
-            disabled={refresh.isPending}
-            title="Przelicz podobne zlecenia na nowo"
-            aria-label="Przelicz podobne zlecenia na nowo"
-            onClick={() => refresh.mutate()}
-        >
-            <RefreshCw className={refresh.isPending ? 'spin' : undefined} />
-        </button>
-    );
 }
 
 export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
