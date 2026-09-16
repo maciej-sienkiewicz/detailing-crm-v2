@@ -261,7 +261,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [upsellOpen, setUpsellOpen] = useState(false);
     const [smsSheetOpen, setSmsSheetOpen] = useState(false);
     const { isCollapsed } = useSidebar();
-    const sidebarWidth = isCollapsed ? 64 : 240;
+    /* Musi się zgadzać z SidebarContainer (SidebarStyles.ts): 64 px zwinięty,
+       248 px rozwinięty. Było tu 240 px, czyli o 8 px za mało - okno siadało
+       odrobinę pod sidebarem. Poniżej `md` sidebar jest zsunięty z ekranu,
+       a przesunięcie zeruje media query w S.Overlay. */
+    const sidebarWidth = isCollapsed ? 64 : 248;
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
     const [highlightedServiceIdx, setHighlightedServiceIdx] = useState(-1);
