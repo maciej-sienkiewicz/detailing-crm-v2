@@ -2,7 +2,7 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -49,18 +49,46 @@ vi.mock('@/common/hooks', () => ({
     useVisualViewportSheet: () => {},
 }));
 
+/**
+ * O tym, czy obok tabeli staje cennik, decyduje zmierzona szerokość komponentu.
+ * jsdom nie liczy layoutu i nie ma ResizeObservera, więc podstawiamy taki, który
+ * zgłasza szerokość ustawioną przez test - inaczej nie da się sprawdzić ANI
+ * układu dzielonego, ANI jego cofnięcia przy ciasnocie.
+ */
+const layoutWidth = { value: 0 };
+
+class StubResizeObserver {
+    constructor(private readonly callback: ResizeObserverCallback) {}
+    observe(target: Element) {
+        this.callback(
+            [{ target, contentRect: { width: layoutWidth.value } } as unknown as ResizeObserverEntry],
+            this as unknown as ResizeObserver
+        );
+    }
+    unobserve() {}
+    disconnect() {}
+}
+
+vi.stubGlobal('ResizeObserver', StubResizeObserver);
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 import { useQuery } from '@tanstack/react-query';
 
 const mockUseQuery = useQuery as ReturnType<typeof vi.fn>;
 
+// Dokładne brutto stoi w atrapie obok netta, bo tak wygląda pozycja cennika
+// z serwera - i bo to je, a nie przeliczenie z netta, czyta panel cennika
+// i tabela wyceny (CLAUDE.md §1). Atrapa bez tego pola uczyłaby odwrotnie.
 const NORMAL_SERVICE: Service = {
     id: 'svc-1',
     name: 'Mycie zewnętrzne',
     basePriceNet: 10000,
+    basePriceGross: 12300,
     vatRate: 23,
     requireManualPrice: false,
+    isPackage: false,
+    packageItems: null,
     isActive: true,
     createdAt: '',
     updatedAt: '',
@@ -74,8 +102,11 @@ const CUSTOM_PRICE_SERVICE: Service = {
     id: 'svc-2',
     name: 'Usługa niestandardowa',
     basePriceNet: 0,
+    basePriceGross: 0,
     vatRate: 23,
     requireManualPrice: true,
+    isPackage: false,
+    packageItems: null,
     isActive: true,
     createdAt: '',
     updatedAt: '',
@@ -99,14 +130,18 @@ function makeServiceLineItem(overrides: Partial<ServiceLineItem> = {}): ServiceL
     };
 }
 
-function renderTable(services: ServiceLineItem[], onChange = vi.fn()) {
+function renderTable(
+    services: ServiceLineItem[],
+    onChange = vi.fn(),
+    layout: 'stacked' | 'split' = 'stacked',
+) {
     return {
         onChange,
         ...render(
             // Modal ceny pozycjonuje się względem menu bocznego, więc potrzebuje jego kontekstu.
             <StyledThemeProvider theme={theme}>
                 <SidebarProvider>
-                    <EditableServicesTable services={services} onChange={onChange} />
+                    <EditableServicesTable services={services} onChange={onChange} layout={layout} />
                 </SidebarProvider>
             </StyledThemeProvider>
         ),
@@ -118,7 +153,43 @@ function renderTable(services: ServiceLineItem[], onChange = vi.fn()) {
 describe('EditableServicesTable', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        layoutWidth.value = 0;
         mockUseQuery.mockReturnValue({ data: { services: [] }, isLoading: false });
+    });
+
+    // ── cennik obok tabeli ───────────────────────────────────────────────────
+
+    describe('layout="split": cennik obok tabeli', () => {
+        it('pokazuje cennik i dodaje pozycję kliknięciem w usługę', async () => {
+            layoutWidth.value = 1000;
+            mockUseQuery.mockReturnValue({
+                data: { services: [NORMAL_SERVICE], pagination: { totalItems: 1 } },
+                isLoading: false,
+            });
+            const user = userEvent.setup();
+            const { onChange } = renderTable([], vi.fn(), 'split');
+
+            expect(screen.getByLabelText('Szukaj w cenniku')).toBeInTheDocument();
+
+            await user.click(screen.getByTitle(`Dodaj do wyceny: ${NORMAL_SERVICE.name}`));
+
+            expect(onChange).toHaveBeenCalledWith([
+                expect.objectContaining({ serviceId: NORMAL_SERVICE.id, serviceName: NORMAL_SERVICE.name }),
+            ]);
+        });
+
+        it('przy ciasnym miejscu wraca do pola z podpowiedziami', () => {
+            // 700 px: tabela owszem by się zmieściła, ale po odjęciu cennika
+            // zostałoby jej poniżej 400 - czyli panel odbierałby jej czytelność,
+            // zamiast jej pomagać.
+            layoutWidth.value = 700;
+            renderTable([], vi.fn(), 'split');
+
+            // Na cennik obok tabeli nie ma miejsca, więc droga do usługi jest ta sama
+            // co w układzie domyślnym - inaczej użytkownik zostałby bez żadnej.
+            expect(screen.queryByLabelText('Szukaj w cenniku')).not.toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...')).toBeInTheDocument();
+        });
     });
 
     // ── autocomplete: add-new option ─────────────────────────────────────────
