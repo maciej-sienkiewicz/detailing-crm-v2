@@ -1036,7 +1036,7 @@ export const VehicleDamageMapper = ({
                 availablePhotos.length === 0 ? (
                   <PickerEmpty>
                     {onUploadPhotoFile || renderQrPanel
-                      ? 'Brak zdjęć do wyboru. Wyślij plik z komputera albo zrób zdjęcie telefonem — zakładki powyżej.'
+                      ? 'Brak zdjęć do wyboru. Wyślij plik z komputera albo zrób zdjęcie telefonem, zakładki powyżej.'
                       : 'Brak zdjęć w dokumentacji. Prześlij zdjęcia w sekcji „Dokumentacja zdjęciowa" powyżej lub użyj telefonu (kod QR), aby dodać zdjęcia bezpośrednio do uszkodzenia.'}
                   </PickerEmpty>
                 ) : (

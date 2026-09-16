@@ -112,15 +112,6 @@ describe('DamageMapUpdateModal', () => {
         expect(screen.queryByText(/Dlatego to pytanie jest pierwsze/i)).toBeNull();
     });
 
-    it('ostrzega przed nadpisaniem dokumentu, który klient mógł już dostać', async () => {
-        const user = userEvent.setup();
-        renderModal();
-
-        expect(screen.queryByText(/nie pokażesz/i)).toBeNull();
-        await user.click(screen.getByRole('button', { name: /Zaktualizuj istniejący/i }));
-        expect(screen.getByText(/nie pokażesz/i)).toBeTruthy();
-    });
-
     it('bez dotychczasowego dokumentu pomija pytanie o plik i otwiera od razu mapę', () => {
         // Ekran z jedną możliwą odpowiedzią to kliknięcie na pusto przed właściwą pracą.
         renderModal({ hasDocument: false, pointsRecoverable: false, initialPoints: [] });
@@ -215,6 +206,9 @@ describe('DamageMapUpdateModal', () => {
         // Szkic składa się z różnicy i jest bez ogonków (ta sama treść może pójść SMS-em).
         expect(textarea.value).toContain('WIZ/2026/09/001');
         expect(textarea.value).not.toMatch(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/);
+        // Podpowiedź mówi, ile ta konkretna treść kosztuje, a nie jak działa kodowanie.
+        expect(screen.getByText(/zaoszczędzić kredyty SMS/i)).toBeTruthy();
+        expect(screen.getByText(new RegExp(`${textarea.value.trim().length} znak`))).toBeTruthy();
 
         await user.clear(textarea);
         await user.type(textarea, 'Doszla rysa na drzwiach');
@@ -267,18 +261,6 @@ describe('DamageMapUpdateModal', () => {
         } finally {
             phoneSeen.value = false;
         }
-    });
-
-    it('podsumowanie mówi, ile oznaczeń zostanie i co stanie się z plikiem', async () => {
-        const user = userEvent.setup();
-        renderModal();
-
-        await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
-        await addPointOnDiagram(user);
-        await user.click(screen.getByRole('button', { name: /Podsumowanie/i }));
-
-        expect(screen.getByText(/2 oznaczenia na mapie/i)).toBeTruthy();
-        expect(screen.getByText(/utworzy nowy plik/i)).toBeTruthy();
     });
 
     it('doładowanie punktów z API nie zdmuchuje świeżo postawionego oznaczenia', async () => {

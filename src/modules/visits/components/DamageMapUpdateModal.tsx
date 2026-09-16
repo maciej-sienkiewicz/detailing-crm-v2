@@ -26,10 +26,9 @@ import { useDamageMapMobileSession } from '../hooks/useDamageMapMobileSession';
 import {
     buildDamageMapNotificationDraft,
     buildDamageMapPayload,
-    describeDamageMapChange,
     diffDamagePoints,
-    markWord,
 } from '../utils/damageMapUpdate';
+import { hasPolishCharacters, pluralPl, smsSegments, smsWord } from '@/common/utils';
 
 const BRAND = '#0ea5e9';
 const BRAND_DARK = '#0284c7';
@@ -341,30 +340,6 @@ const WarnBox = styled.div`
     svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
 `;
 
-const SummaryBox = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px 14px;
-    background: ${st.bg};
-    border: 1px solid ${st.border};
-    border-radius: 10px;
-`;
-
-/* Liczba, po którą się wraca, jest nagłówkiem — rozpisanie jest dowodem pod nią. */
-const SummaryHeadline = styled.span`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${st.text};
-    font-variant-numeric: tabular-nums;
-`;
-
-const SummaryDetail = styled.span`
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: ${st.textSecondary};
-`;
-
 const FieldGroup = styled.div<{ $focused?: boolean }>`
     border: 1.5px solid ${p => (p.$focused ? BRAND : st.border)};
     border-radius: 10px;
@@ -557,6 +532,14 @@ export const DamageMapUpdateModal = ({
     );
     const messageValue = message ?? messageDraft;
 
+    /*
+     * Koszt wiadomości liczony tak, jak liczy go operator: jeden ogonek przełącza
+     * CAŁĄ treść na UCS-2 i segment kurczy się ze 160 znaków do 70. Operator widzi
+     * więc nie samą regułę, tylko jej skutek dla tego, co właśnie napisał.
+     */
+    const messageLength = messageValue.trim().length;
+    const messageSegments = smsSegments(messageLength, hasPolishCharacters(messageValue));
+
     const availablePhotos: PhotoSlot[] = useMemo(
         () => visitPhotos.map(photo => ({
             id: photo.id,
@@ -687,7 +670,7 @@ export const DamageMapUpdateModal = ({
                                     </OptionTitle>
                                     <OptionDesc>
                                         Nowa mapa pojawi się w dokumentacji obok dotychczasowej.
-                                        Wersja z przyjęcia zostaje nietknięta — widać, co było na starcie,
+                                        Wersja z przyjęcia zostaje nietknięta: widać, co było na starcie,
                                         a co dopisano w trakcie.
                                     </OptionDesc>
                                 </OptionTile>
@@ -710,25 +693,11 @@ export const DamageMapUpdateModal = ({
                                     </OptionTitle>
                                     <OptionDesc>
                                         {hasDocument
-                                            ? 'Dotychczasowy plik zostanie nadpisany. W dokumentacji zostanie jedna, aktualna mapa — poprzedniej wersji nie da się odzyskać.'
+                                            ? 'Dotychczasowy plik zostanie nadpisany. W dokumentacji zostanie jedna, aktualna mapa, a poprzedniej wersji nie da się odzyskać.'
                                             : 'Niedostępne: ta wizyta nie ma jeszcze wygenerowanej mapy uszkodzeń.'}
                                     </OptionDesc>
                                 </OptionTile>
                             </OptionGrid>
-
-                            {mode === 'REPLACE_EXISTING' && (
-                                <WarnBox>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                                        <line x1="12" y1="9" x2="12" y2="13" />
-                                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                                    </svg>
-                                    <span>
-                                        Jeśli klient dostał już mapę z przyjęcia, po nadpisaniu nie pokażesz,
-                                        jak dokument wyglądał przy przyjęciu pojazdu.
-                                    </span>
-                                </WarnBox>
-                            )}
 
                             {!pointsRecoverable && (
                                 <WarnBox>
@@ -739,8 +708,8 @@ export const DamageMapUpdateModal = ({
                                     </svg>
                                     <span>
                                         {hasDocument
-                                            ? 'Ta wizyta jest starsza niż zapis oznaczeń — z przyjęcia został tylko gotowy plik PDF, bez współrzędnych punktów. Mapę trzeba rozrysować od nowa; otwórz dotychczasowy dokument w sekcji Dokumentacja i przenieś z niego oznaczenia.'
-                                            : 'Ta wizyta nie ma jeszcze mapy uszkodzeń — rozrysujesz ją od zera.'}
+                                            ? 'Ta wizyta jest starsza niż zapis oznaczeń: z przyjęcia został tylko gotowy plik PDF, bez współrzędnych punktów. Mapę trzeba rozrysować od nowa. Otwórz dotychczasowy dokument w sekcji Dokumentacja i przenieś z niego oznaczenia.'
+                                            : 'Ta wizyta nie ma jeszcze mapy uszkodzeń, rozrysujesz ją od zera.'}
                                     </span>
                                 </WarnBox>
                             )}
@@ -816,18 +785,6 @@ export const DamageMapUpdateModal = ({
 
                     {!isLoading && currentStep === 'notify' && (
                         <>
-                            <SummaryBox>
-                                <SummaryHeadline>
-                                    {points.length} {markWord(points.length)} na mapie
-                                </SummaryHeadline>
-                                <SummaryDetail>{describeDamageMapChange(diff)}</SummaryDetail>
-                                <SummaryDetail>
-                                    {mode === 'NEW_FILE'
-                                        ? 'Zapis utworzy nowy plik w dokumentacji; wersja z przyjęcia zostaje.'
-                                        : 'Zapis nadpisze dotychczasowy plik mapy uszkodzeń.'}
-                                </SummaryDetail>
-                            </SummaryBox>
-
                             <SectionHead>
                                 <SectionIcon>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -854,7 +811,7 @@ export const DamageMapUpdateModal = ({
                                     </OptionTitle>
                                     <OptionDesc>
                                         Klient dostanie e-mail z aktualnym dokumentem w załączniku.
-                                        Jeśli nie ma adresu — SMS z informacją, że mapa się zmieniła.
+                                        Jeśli nie ma adresu, wyślemy SMS z informacją, że mapa się zmieniła.
                                     </OptionDesc>
                                 </OptionTile>
 
@@ -891,8 +848,9 @@ export const DamageMapUpdateModal = ({
                                         />
                                     </FieldGroup>
                                     <Hint>
-                                        Bez polskich znaków — tej samej treści używamy w SMS-ie,
-                                        a ogonki tną segment ze 160 znaków do 70.
+                                        Nie używaj polskich znaków, żeby zaoszczędzić kredyty SMS.
+                                        {' '}Twój rozmiar wiadomości: {messageLength} {pluralPl(messageLength, 'znak', 'znaki', 'znaków')}
+                                        {' '}({messageSegments} {smsWord(messageSegments)})
                                     </Hint>
                                 </>
                             )}
@@ -922,7 +880,7 @@ export const DamageMapUpdateModal = ({
                             onClick={handleSubmit}
                             disabled={isSaving || notifyCustomer === null || !diff.hasChanges}
                             title={
-                                !diff.hasChanges ? 'Nic się nie zmieniło — nie ma czego zapisywać'
+                                !diff.hasChanges ? 'Nic się nie zmieniło, nie ma czego zapisywać'
                                 : notifyCustomer === null ? 'Wybierz, czy poinformować klienta'
                                 : undefined
                             }

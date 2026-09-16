@@ -12,10 +12,10 @@ const POLISH_TO_ASCII: Record<string, string> = {
     Ą: 'A', Ć: 'C', Ę: 'E', Ł: 'L', Ń: 'N', Ó: 'O', Ś: 'S', Ź: 'Z', Ż: 'Z',
 };
 
-const POLISH_CHARS_RE = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
-
-/** Czy tekst zawiera znaki, które wypychają SMS-a do kodowania UCS-2. */
-export const hasPolishCharacters = (text: string): boolean => POLISH_CHARS_RE.test(text);
+/* Wykrywanie ogonków i arytmetyka segmentów mieszkają w `@/common/utils`: ta sama
+   reguła decyduje o rachunku w trzech oknach, więc nie może mieć trzech kopii.
+   Re-eksport zostaje, żeby nie przepisywać wszystkich importów naraz. */
+export { hasPolishCharacters } from '@/common/utils';
 
 /** Zamiana polskich znaków na ASCII - tańszy SMS (160 znaków na segment zamiast 70). */
 export const toAscii = (text: string): string =>

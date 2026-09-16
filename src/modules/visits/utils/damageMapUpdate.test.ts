@@ -3,9 +3,7 @@ import type { DamagePoint } from '@/modules/checkin/types';
 import {
     buildDamageMapNotificationDraft,
     buildDamageMapPayload,
-    describeDamageMapChange,
     diffDamagePoints,
-    markWord,
 } from './damageMapUpdate';
 
 const point = (over: Partial<DamagePoint> & { id: number }): DamagePoint => ({
@@ -85,49 +83,6 @@ describe('diffDamagePoints', () => {
         const after = [point({ id: 1, photos: [] })];
 
         expect(diffDamagePoints(before, after).hasChanges).toBe(false);
-    });
-});
-
-describe('describeDamageMapChange', () => {
-    it('mówi, ile oznaczeń zostanie po zapisie — to ostatni moment, żeby zauważyć skasowanie protokołu', () => {
-        const before = [point({ id: 1 }), point({ id: 2 }), point({ id: 3 })];
-        const after = [point({ id: 1 })];
-
-        const text = describeDamageMapChange(diffDamagePoints(before, after));
-
-        expect(text).toContain('2 oznaczenia mniej');
-        expect(text).toContain('zostanie 1 oznaczenie');
-    });
-
-    it('brak zmian mówi wprost, że nie ma czego zapisywać', () => {
-        const same = [point({ id: 1, note: 'rysa' })];
-        expect(describeDamageMapChange(diffDamagePoints(same, same)))
-            .toBe('Nic się nie zmieniło — nie ma czego zapisywać.');
-    });
-
-    it('łączy dodane, usunięte i poprawione w jedno zdanie', () => {
-        const before = [point({ id: 1, note: 'rysa' }), point({ id: 2 })];
-        const after = [point({ id: 1, note: 'głęboka rysa' }), point({ id: 3, x: 80, y: 80 })];
-
-        const text = describeDamageMapChange(diffDamagePoints(before, after));
-
-        expect(text).toContain('1 oznaczenie więcej');
-        expect(text).toContain('1 oznaczenie mniej');
-        expect(text).toContain('1 poprawione');
-    });
-});
-
-describe('markWord', () => {
-    it.each([
-        [1, 'oznaczenie'],
-        [2, 'oznaczenia'],
-        [4, 'oznaczenia'],
-        [5, 'oznaczeń'],
-        [12, 'oznaczeń'],
-        [22, 'oznaczenia'],
-        [25, 'oznaczeń'],
-    ])('%i → %s', (count, expected) => {
-        expect(markWord(count)).toBe(expected);
     });
 });
 

@@ -16,32 +16,13 @@ import { FormField, FieldLabel, InputShellTextArea, BareTextArea } from '@/commo
 import { SharedButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
 import { useProofread } from '@/modules/comms/hooks/useComms';
-import { hasPolishCharacters } from '@/modules/visits/utils/serviceChangeSms';
+import { hasPolishCharacters, smsSegments, smsWord } from '@/common/utils';
 import { customerEditApi } from '../api/customerEditApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 /* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
    dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
-const GSM_SINGLE = 160;
-const GSM_MULTI = 153;
-const UCS2_SINGLE = 70;
-const UCS2_MULTI = 67;
 const MAX_LENGTH = 612;
-
-const segmentsFor = (length: number, polish: boolean) => {
-    const single = polish ? UCS2_SINGLE : GSM_SINGLE;
-    const multi = polish ? UCS2_MULTI : GSM_MULTI;
-    if (length === 0) return 0;
-    return length <= single ? 1 : Math.ceil(length / multi);
-};
-
-/** Polska odmiana: 1 SMS, 2-4 SMS-y, 5+ SMS-ów. */
-const smsWord = (count: number) => {
-    if (count === 1) return 'SMS';
-    const last = count % 10;
-    const lastTwo = count % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? 'SMS-y' : 'SMS-ów';
-};
 
 const Meta = styled.div`
     display: flex;
@@ -89,7 +70,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
     });
 
     const polish = hasPolishCharacters(message);
-    const segments = useMemo(() => segmentsFor(message.trim().length, polish), [message, polish]);
+    const segments = useMemo(() => smsSegments(message.trim().length, polish), [message, polish]);
 
     const runProofread = () => {
         const source = message.trim();

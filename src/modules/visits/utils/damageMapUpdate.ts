@@ -73,35 +73,6 @@ const photoSignature = (point: DamagePoint): string =>
         .sort()
         .join('|');
 
-/** Polska odmiana: 1 oznaczenie, 2-4 oznaczenia, 5+ oznaczeń. */
-export const markWord = (count: number): string => {
-    if (count === 1) return 'oznaczenie';
-    const last = count % 10;
-    const lastTwo = count % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? 'oznaczenia' : 'oznaczeń';
-};
-
-/**
- * Jedno zdanie o tym, co zapis zrobi z mapą. Pokazywane NAD przyciskiem zapisu,
- * bo to ostatni moment, w którym da się zauważyć, że skasowało się pół protokołu
- * przyjęcia jednym „Wyczyść wszystko".
- */
-export const describeDamageMapChange = (diff: DamageMapDiff): string => {
-    if (!diff.hasChanges) return 'Nic się nie zmieniło — nie ma czego zapisywać.';
-
-    const parts: string[] = [];
-    if (diff.addedIds.length > 0) {
-        parts.push(`${diff.addedIds.length} ${markWord(diff.addedIds.length)} więcej`);
-    }
-    if (diff.removedIds.length > 0) {
-        parts.push(`${diff.removedIds.length} ${markWord(diff.removedIds.length)} mniej`);
-    }
-    if (diff.editedIds.length > 0) {
-        parts.push(`${diff.editedIds.length} poprawione`);
-    }
-    return `${parts.join(', ')} — na mapie zostanie ${diff.countAfter} ${markWord(diff.countAfter)}.`;
-};
-
 /**
  * Domyślna treść wiadomości do klienta.
  *

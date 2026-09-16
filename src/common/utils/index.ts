@@ -35,4 +35,4 @@ export { shouldAutoFocusInput } from './autoFocus';
 
 export { pluralPl } from './plural';
 
-export { localDateTimeToInstant, instantToLocalDateTime } from './localDateTime';
+export { smsSegments, smsWord, hasPolishCharacters } from './smsSegments';

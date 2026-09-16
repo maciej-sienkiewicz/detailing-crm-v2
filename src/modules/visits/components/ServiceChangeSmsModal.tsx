@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
+import { formatCurrency, shouldAutoFocusInput, smsSegments, smsWord } from '@/common/utils';
 import { useModalViewport } from '@/common/hooks';
 import {
     CONSENT_CALL_TO_ACTION,
@@ -25,26 +25,6 @@ const BRAND_DARK = '#0284c7';
 
 /* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
    dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
-const GSM_SINGLE = 160;
-const GSM_MULTI = 153;
-const UCS2_SINGLE = 70;
-const UCS2_MULTI = 67;
-
-const segmentsFor = (length: number, polish: boolean) => {
-    const single = polish ? UCS2_SINGLE : GSM_SINGLE;
-    const multi = polish ? UCS2_MULTI : GSM_MULTI;
-    if (length === 0) return 1;
-    return length <= single ? 1 : Math.ceil(length / multi);
-};
-
-/** Polska odmiana: 1 SMS, 2-4 SMS-y, 5+ SMS-ów. */
-const smsWord = (count: number) => {
-    if (count === 1) return 'SMS';
-    const last = count % 10;
-    const lastTwo = count % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? 'SMS-y' : 'SMS-ów';
-};
-
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
@@ -380,7 +360,7 @@ export const ServiceChangeSmsModal = ({
 
     const trimmed = displayed.trim();
     const fullLength = (trimmed ? trimmed.length : 0) + (suffix ? (trimmed ? 1 : 0) + suffix.length : 0);
-    const segments = segmentsFor(fullLength, usePolish);
+    const segments = smsSegments(fullLength, usePolish, false);
     const canSend = trimmed.length > 0 && !isSaving;
 
     return (
