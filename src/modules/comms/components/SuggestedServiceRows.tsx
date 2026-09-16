@@ -43,28 +43,32 @@ const Block = styled.div`
 `;
 
 /**
- * Nagłówek sekcji w tej samej wadze co etykiety szyny („WYCENA", „KLIENT"), ale
- * w kolorze akcentu - to nie kolejna pozycja listy, to inna kategoria treści.
+ * Nagłówek podsekcji wewnątrz karty wyceny.
+ *
+ * O stopień niżej niż „Wycena" (13,5 px w kolorze tekstu) i w kolorze marki:
+ * to nie jest kolejna sekcja szyny, tylko inna KATEGORIA treści wewnątrz tej
+ * samej karty - pozycje przyjęte kontra pozycje zaproponowane. Wersaliki 11 px
+ * zniknęły razem z resztą etykiet tego okna; podpis pola robił z propozycji
+ * wiersz formularza.
  */
 const BlockHeader = styled.h5`
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 0;
-    font-size: 11px;
+    gap: 7px;
+    margin: 2px 0 0;
+    font-size: 12.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.primary};
+    letter-spacing: -0.01em;
+    color: var(--brand-primary);
 
     .count {
-        min-width: 16px;
-        height: 16px;
-        padding: 0 4px;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 5px;
         border-radius: ${p => p.theme.radii.full};
-        background: rgba(14, 165, 233, 0.12);
+        background: color-mix(in srgb, var(--brand-primary) 13%, transparent);
         font-size: 10px;
-        line-height: 16px;
+        line-height: 17px;
         text-align: center;
         font-variant-numeric: tabular-nums;
     }
@@ -90,11 +94,13 @@ const Card = styled.li`
     align-items: baseline;
     gap: 6px 12px;
     padding: 10px 12px;
-    border: 1px solid #e0f2fe;
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
     border-left: 3px solid ${p => p.theme.colors.primary};
     border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.surface};
-    font-size: 13.5px;
+    /* Delikatny odcień marki, nie biel. Karta wyceny jest teraz sama białą
+       powierzchnią - biała propozycja na białej karcie nie miałaby krawędzi. */
+    background: color-mix(in srgb, var(--brand-primary) 5%, #ffffff);
+    font-size: 13px;
 `;
 
 const Name = styled.div`
