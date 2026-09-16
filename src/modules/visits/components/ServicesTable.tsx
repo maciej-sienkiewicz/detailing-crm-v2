@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
-import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, resolveBaseNet } from '@/common/utils/priceAdjustment';
+import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, exactBaseGross, resolveBaseNet } from '@/common/utils/priceAdjustment';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
@@ -2258,8 +2258,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         });
 
         newRows.filter(r => r.serviceName.trim()).forEach(r => {
-            const baseGross = r.vatRate <= 0 ? r.basePriceNet : Math.round(r.basePriceNet * (1 + r.vatRate / 100));
-            const { finalNetCents, finalGrossCents } = applyAdjustment(r.basePriceNet, r.vatRate, r.adjustment);
+            // To samo co wyżej: brutto wpisane albo wzięte z cennika jest dokładne
+            // i nie wolno go odtwarzać z netta.
+            const baseGross = exactBaseGross(r) ?? netToGross(r.basePriceNet, r.vatRate);
+            const { finalNetCents, finalGrossCents } = applyAdjustment(
+                r.basePriceNet, r.vatRate, r.adjustment, baseGross,
+            );
             totalFinalNet += finalNetCents;
             totalFinalGross += finalGrossCents;
             totalVat += Math.max(finalGrossCents - finalNetCents, 0);
@@ -2373,7 +2377,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 <Tbody>
                     {services.map(service => {
                         const ep = editedPrices[service.id];
-                        const effectiveService = ep ? { ...service, ...ep } : service;
+                        // Zmiana ceny w tabeli unieważnia brutto policzone przez serwer:
+                        // dotyczyło POPRZEDNIEJ ceny, a rozlany obiekt zachowałby je
+                        // i pokazywał kwotę sprzed edycji jako dokładną.
+                        const effectiveService = ep
+                            ? { ...service, ...ep, finalPriceGross: null }
+                            : service;
                         const pricing = pricesHidden ? null : calculateServicePrice(effectiveService as Parameters<typeof calculateServicePrice>[0]);
                         const showDiscount = !pricesHidden && !!pricing?.hasDiscount && service.basePriceNet !== 0;
                         const isMarkedForDelete = deletedIds.has(service.id);

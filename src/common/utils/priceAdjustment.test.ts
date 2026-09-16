@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     netToGross, grossToNet,
     netPlnToGrossPln, grossPlnToNetPln,
-    applyAdjustment, distributeAdjustment, toApiServiceLineItem, resolveBaseNet,
+    applyAdjustment, distributeAdjustment, toApiServiceLineItem, resolveBaseNet, exactBaseGross,
 } from './priceAdjustment';
 
 // ─── netToGross ───────────────────────────────────────────────────────────────
@@ -422,5 +422,93 @@ describe('bulk discount base resolution (regression)', () => {
 
         expect(finals[0]).toBe(90000);  // 100000 - 10%
         expect(finals[1]).toBe(45000);  // 50000 - 10% (previously collapsed to 0)
+    });
+});
+
+// ─── exactBaseGross ───────────────────────────────────────────────────────────
+
+/*
+ * Zgłoszenie z produkcji: usługa założona z ceną 1900,00 zł BRUTTO pokazywała się
+ * w tabeli „Usługi" jako 1900,01 zł.
+ *
+ * Powód jest arytmetyczny, nie przypadkowy: przy 23% VAT przejście brutto → netto
+ * → brutto nie jest tożsamością. 190000 gr brutto daje 154472 gr netto (190000/1,23
+ * = 154471,54), a 154472 gr netto daje z powrotem 190001 gr (154472 × 1,23 =
+ * 190000,56). Kwota 1900,00 zł jest w tę stronę NIEOSIĄGALNA - nie ma takiego
+ * netta w groszach. Jedyną obroną jest nie liczyć brutto po raz drugi.
+ */
+describe('exactBaseGross', () => {
+    const noOp = { type: 'PERCENT', value: 0 } as const;
+
+    it('brutto zapisane przy pozycji wygrywa z przeliczeniem', () => {
+        expect(exactBaseGross({
+            basePriceNet: 154472, vatRate: 23, adjustment: noOp, basePriceGross: 190000,
+        })).toBe(190000);
+    });
+
+    it('przy rabacie zerowym brutto końcowe z serwera JEST brutto bazowym', () => {
+        expect(exactBaseGross({
+            basePriceNet: 154472, vatRate: 23, adjustment: noOp, finalPriceGross: 190000,
+        })).toBe(190000);
+    });
+
+    it('upust kwotowy brutto da się cofnąć do bazy', () => {
+        expect(exactBaseGross({
+            basePriceNet: 100000,
+            vatRate: 23,
+            adjustment: { type: 'FIXED_GROSS', value: 2300 },
+            finalPriceGross: 120700,
+        })).toBe(123000);
+    });
+
+    it('rabatu liczonego od netta nie da się odwrócić - brak dokładnego brutto', () => {
+        expect(exactBaseGross({
+            basePriceNet: 100000,
+            vatRate: 23,
+            adjustment: { type: 'PERCENT', value: -10 },
+            finalPriceGross: 110700,
+        })).toBeUndefined();
+    });
+
+    it('bez jakiegokolwiek brutto zwraca undefined, a nie zgadniętą kwotę', () => {
+        expect(exactBaseGross({
+            basePriceNet: 154472, vatRate: 23, adjustment: noOp,
+        })).toBeUndefined();
+    });
+});
+
+describe('cena wpisana jako brutto nie pływa', () => {
+    it('1900,00 zł brutto zostaje 1900,00 zł po zapisie i odczycie', () => {
+        // Tak liczy katalog przy zakładaniu usługi: netto z brutta.
+        const net = grossToNet(190000, 23);
+        expect(net).toBe(154472);
+
+        // Tak WYGLĄDAŁ błąd: odtworzenie brutta z netta.
+        expect(netToGross(net, 23)).toBe(190001);
+
+        // Tak jest teraz: brutto bazowe bierze się z tego, co ustalone.
+        const line = { basePriceNet: net, vatRate: 23, adjustment: { type: 'PERCENT', value: 0 } as const, basePriceGross: 190000 };
+        const baseGross = exactBaseGross(line) ?? netToGross(net, 23);
+        const { finalNetCents, finalGrossCents } = applyAdjustment(net, 23, line.adjustment, baseGross);
+
+        expect(finalGrossCents).toBe(190000);
+        expect(finalNetCents).toBe(154472);
+        // VAT to różnica pokazanych kwot - netto + VAT musi dać brutto co do grosza.
+        expect(finalGrossCents - finalNetCents).toBe(35528);
+    });
+
+    it('cena wpisana jako netto nadal liczy brutto z netta', () => {
+        // Nikt nie ustalił brutta, więc wolno je policzyć.
+        const baseGross = exactBaseGross({ basePriceNet: 100000, vatRate: 23, adjustment: { type: 'PERCENT', value: 0 } })
+            ?? netToGross(100000, 23);
+        expect(baseGross).toBe(123000);
+    });
+
+    it('rabat procentowy liczy brutto od nowa, bo kwota bazowa przestała obowiązywać', () => {
+        const { finalNetCents, finalGrossCents } = applyAdjustment(
+            154472, 23, { type: 'PERCENT', value: -10 }, 190000,
+        );
+        expect(finalNetCents).toBe(139025);
+        expect(finalGrossCents).toBe(netToGross(139025, 23));
     });
 });

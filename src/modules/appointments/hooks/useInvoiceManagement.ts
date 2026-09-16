@@ -16,6 +16,10 @@ export const useInvoiceManagement = (
             serviceId: service.id,
             serviceName: service.name,
             basePriceNet: service.basePriceNet,
+            // Brutto z cennika jedzie razem z nettem. Bez niego pozycja wpisana
+            // jako 1900,00 zł brutto pokazywała się w wycenie jako 1900,01 zł -
+            // bo brutto powstawało wtedy z przeliczenia netta stawką VAT.
+            basePriceGross: service.basePriceGross,
             vatRate: service.vatRate,
             requireManualPrice: service.requireManualPrice,
             adjustment: {

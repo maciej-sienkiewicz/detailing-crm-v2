@@ -43,6 +43,50 @@ export const netPlnToGrossPln = (netPln: number, vatRate: number): number =>
 export const grossPlnToNetPln = (grossPln: number, vatRate: number): number =>
     vatRate <= 0 ? grossPln : grossPln / (1 + vatRate / 100);
 
+/**
+ * DOKŁADNE brutto bazowe pozycji - to, które wpisał człowiek, a nie to, które
+ * wychodzi z mnożenia netta przez stawkę.
+ *
+ * Powód istnienia tej funkcji jest arytmetyczny: przejście brutto → netto → brutto
+ * NIE jest tożsamością. Przy 23% VAT nie istnieje kwota netto w groszach, z której
+ * wyjdzie równo 1900,00 zł brutto - 154471 gr daje 1899,99, a 154472 gr daje
+ * 1900,01. Jeżeli więc użytkownik wpisał 1900,00 brutto, jedynym sposobem, żeby
+ * zobaczył 1900,00, jest NIE LICZYĆ tej kwoty ponownie.
+ *
+ * Kolejność źródeł, od najpewniejszego:
+ *  1. [basePriceGross] - brutto zapisane przy pozycji (katalog usług, cena ręczna).
+ *  2. [finalPriceGross] policzone przez serwer - można z niego wrócić do bazy,
+ *     o ile wiemy, co rabat z nim zrobił: przy rabacie zerowym baza równa się
+ *     kwocie końcowej, a przy upuście kwotowym brutto - kwocie końcowej plus upust.
+ *  3. Brak - dopiero wtedy wolno policzyć brutto z netta.
+ *
+ * @returns brutto bazowe w groszach albo `undefined`, gdy nie da się go ustalić
+ *          bez liczenia.
+ */
+export const exactBaseGross = (line: {
+    basePriceNet: number;
+    vatRate: number;
+    adjustment: PriceAdjustment;
+    /** Brutto bazowe zapisane wprost przy pozycji. */
+    basePriceGross?: number | null;
+    /** Brutto końcowe policzone przez serwer dla TEGO rabatu. */
+    finalPriceGross?: number | null;
+}): number | undefined => {
+    if (line.basePriceGross != null) return line.basePriceGross;
+    if (line.finalPriceGross == null) return undefined;
+
+    const { type, value } = line.adjustment;
+    // Rabat zerowy: kwota końcowa JEST kwotą bazową.
+    if (value === 0 && (type === 'PERCENT' || type === 'FIXED_NET' || type === 'FIXED_GROSS')) {
+        return line.finalPriceGross;
+    }
+    // Upust kwotowy brutto liczy się wprost od brutto bazowego, więc da się go cofnąć.
+    if (type === 'FIXED_GROSS') return line.finalPriceGross + value;
+    // Rabaty liczone od netta (procent, upust netto, ustawienie netta) przechodzą
+    // przez zaokrąglenie, którego nie da się jednoznacznie odwrócić.
+    return undefined;
+};
+
 // ─── Single-service calculation ───────────────────────────────────────────────
 
 /**

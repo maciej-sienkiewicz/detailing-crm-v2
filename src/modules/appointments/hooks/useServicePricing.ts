@@ -1,8 +1,22 @@
 // src/modules/appointments/hooks/useServicePricing.ts
-import { dinero, add, subtract, toDecimal } from 'dinero.js';
-import { PLN } from '@dinero.js/currencies';
+//
+// Jedna reguła cenowa dla pozycji usługowej - ta sama, którą liczy serwer
+// i której używa edytor wyceny (`applyAdjustment` w common/utils/priceAdjustment).
+//
+// KLUCZOWA ZASADA: brutto, które ktoś już ustalił, JEST brutto. Nie wolno go liczyć
+// po raz drugi. Przejście brutto → netto → brutto nie jest tożsamością: przy 23%
+// VAT nie istnieje kwota netto w groszach dająca równo 1900,00 zł brutto (154471 gr
+// → 1899,99; 154472 gr → 1900,01). Ta funkcja miała wcześniej własną, równoległą
+// implementację rabatów, w której brutto POWSTAWAŁO z netta w każdym przypadku
+// poza SET_GROSS - i dlatego usługa wpisana jako 1900,00 zł brutto pokazywała się
+// w tabeli „Usługi" jako 1900,01 zł, mimo że serwer przysłał poprawne 190000 gr.
+//
+// Teraz liczy się tylko to, czego nikt nie ustalił: kwotę końcową po rabacie
+// zmieniającym netto. Reszta jest przepisywana.
 import { interpolate, t } from '@/common/i18n';
-import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
+import { dinero, toDecimal } from 'dinero.js';
+import { PLN } from '@dinero.js/currencies';
+import { applyAdjustment, exactBaseGross, netToGross } from '@/common/utils/priceAdjustment';
 import type { ServiceLineItem, MoneyAmount } from '../types';
 
 export interface PricingResult {
@@ -17,127 +31,70 @@ export interface PricingResult {
 
 const createMoney = (amount: MoneyAmount) => dinero({ amount, currency: PLN });
 
-const toMoneyAmount = (money: ReturnType<typeof dinero>): MoneyAmount => {
-    const json = money.toJSON();
-    return json.amount;
-};
+/**
+ * Czy pozycja niesie rabat - w rozumieniu INTERFEJSU, nie arytmetyki.
+ *
+ * „Ustaw cenę" jest rabatem zawsze (ktoś świadomie nadpisał cennik), a upust
+ * o wartości zero nie jest rabatem nigdy. Celowo nie jest to porównanie kwot:
+ * rabat -0,4% na 100 zł zaokrągla się do zera groszy, ale etykieta „-0,4%" ma się
+ * pokazać, bo ktoś ją wpisał.
+ */
+const hasDiscountFor = (adjustment: ServiceLineItem['adjustment']): boolean =>
+    adjustment.type === 'SET_NET' || adjustment.type === 'SET_GROSS'
+        ? true
+        : adjustment.value !== 0;
 
 export const useServicePricing = () => {
     const calculateServicePrice = (item: ServiceLineItem): PricingResult => {
         const { basePriceNet, vatRate, adjustment } = item;
 
-        const baseNetMoney = createMoney(basePriceNet);
-
-        const originalVatAmount = netToGross(basePriceNet, vatRate) - basePriceNet;
-        const originalVat = createMoney(originalVatAmount);
-        const originalGrossMoney = add(baseNetMoney, originalVat);
-
-        let finalNetMoney = baseNetMoney;
-        let hasDiscount = false;
-
-        switch (adjustment.type) {
-            case 'PERCENT': {
-                if (adjustment.value !== 0) {
-                    hasDiscount = true;
-                    const percentageAmount = Math.round((basePriceNet * Math.abs(adjustment.value)) / 100);
-                    const adjustmentMoney = createMoney(percentageAmount);
-
-                    if (adjustment.value > 0) {
-                        finalNetMoney = add(baseNetMoney, adjustmentMoney);
-                    } else {
-                        finalNetMoney = subtract(baseNetMoney, adjustmentMoney);
-                    }
-                }
-                break;
-            }
-            case 'FIXED_NET': {
-                if (adjustment.value !== 0) {
-                    hasDiscount = true;
-                    const adjustmentMoney = createMoney(Math.abs(adjustment.value));
-                    finalNetMoney = subtract(baseNetMoney, adjustmentMoney);
-                }
-                break;
-            }
-            case 'FIXED_GROSS': {
-                if (adjustment.value !== 0) {
-                    hasDiscount = true;
-                    const adjustmentMoney = createMoney(Math.abs(adjustment.value));
-                    const targetGrossMoney = subtract(originalGrossMoney, adjustmentMoney);
-
-                    const targetGrossAmount = toMoneyAmount(targetGrossMoney);
-                    const finalNetAmount = grossToNet(targetGrossAmount, vatRate);
-                    finalNetMoney = createMoney(finalNetAmount);
-                }
-                break;
-            }
-            case 'SET_NET': {
-                hasDiscount = true;
-                finalNetMoney = createMoney(adjustment.value);
-                break;
-            }
-            case 'SET_GROSS': {
-                hasDiscount = true;
-                const finalNetAmount = grossToNet(adjustment.value, vatRate);
-                finalNetMoney = createMoney(finalNetAmount);
-                break;
-            }
-        }
-
-        if (toMoneyAmount(finalNetMoney) < 0) {
-            finalNetMoney = createMoney(0);
-        }
-
-        let finalVat;
-        let finalGrossMoney;
-
-        if (adjustment.type === 'SET_GROSS') {
-            // For SET_GROSS, ensure exact gross value
-            finalGrossMoney = createMoney(adjustment.value);
-            const finalVatAmount = adjustment.value - toMoneyAmount(finalNetMoney);
-            finalVat = createMoney(finalVatAmount);
-        } else {
-            const finalVatAmount = netToGross(toMoneyAmount(finalNetMoney), vatRate) - toMoneyAmount(finalNetMoney);
-            finalVat = createMoney(finalVatAmount);
-            finalGrossMoney = add(finalNetMoney, finalVat);
-        }
-
-        const discountLabel = getDiscountLabel(adjustment, hasDiscount);
+        // Brutto bazowe: najpierw to, co ktoś ustalił, i dopiero w ostateczności
+        // policzone ze stawki VAT.
+        const originalPriceGross = exactBaseGross(item) ?? netToGross(basePriceNet, vatRate);
+        const { finalNetCents, finalGrossCents } = applyAdjustment(
+            basePriceNet, vatRate, adjustment, originalPriceGross,
+        );
+        const hasDiscount = hasDiscountFor(adjustment);
 
         return {
-            originalPriceNet: toMoneyAmount(baseNetMoney),
-            originalPriceGross: toMoneyAmount(originalGrossMoney),
-            finalPriceNet: toMoneyAmount(finalNetMoney),
-            finalPriceGross: toMoneyAmount(finalGrossMoney),
-            vatAmount: toMoneyAmount(finalVat),
+            originalPriceNet: basePriceNet,
+            originalPriceGross,
+            finalPriceNet: finalNetCents,
+            finalPriceGross: finalGrossCents,
+            // VAT to różnica pokazanych kwot, a nie osobne mnożenie. Inaczej suma
+            // netto + VAT nie zgadzałaby się z brutto w tej samej linijce.
+            vatAmount: Math.max(finalGrossCents - finalNetCents, 0),
             hasDiscount,
-            discountLabel,
+            discountLabel: getDiscountLabel(adjustment, hasDiscount),
         };
     };
 
     const calculateTotal = (services: ServiceLineItem[]) => {
-        let totalOriginalNetMoney = createMoney(0);
-        let totalOriginalGrossMoney = createMoney(0);
-        let totalFinalNetMoney = createMoney(0);
-        let totalFinalGrossMoney = createMoney(0);
-        let totalVatMoney = createMoney(0);
-
-        services.forEach(item => {
-            const pricing = calculateServicePrice(item);
-
-            totalOriginalNetMoney = add(totalOriginalNetMoney, createMoney(pricing.originalPriceNet));
-            totalOriginalGrossMoney = add(totalOriginalGrossMoney, createMoney(pricing.originalPriceGross));
-            totalFinalNetMoney = add(totalFinalNetMoney, createMoney(pricing.finalPriceNet));
-            totalFinalGrossMoney = add(totalFinalGrossMoney, createMoney(pricing.finalPriceGross));
-            totalVatMoney = add(totalVatMoney, createMoney(pricing.vatAmount));
-        });
+        // Sumy to dodawanie groszy - liczb całkowitych. Owijanie każdej z nich
+        // w obiekt pieniężny niczego tu nie chroniło, a dawało trzecie miejsce,
+        // w którym te same kwoty mogły się rozjechać.
+        const totals = services.reduce(
+            (acc, item) => {
+                const pricing = calculateServicePrice(item);
+                acc.totalOriginalNet += pricing.originalPriceNet;
+                acc.totalOriginalGross += pricing.originalPriceGross;
+                acc.totalFinalNet += pricing.finalPriceNet;
+                acc.totalFinalGross += pricing.finalPriceGross;
+                acc.totalVat += pricing.vatAmount;
+                return acc;
+            },
+            {
+                totalOriginalNet: 0,
+                totalOriginalGross: 0,
+                totalFinalNet: 0,
+                totalFinalGross: 0,
+                totalVat: 0,
+            },
+        );
 
         return {
-            totalOriginalNet: toMoneyAmount(totalOriginalNetMoney),
-            totalOriginalGross: toMoneyAmount(totalOriginalGrossMoney),
-            totalFinalNet: toMoneyAmount(totalFinalNetMoney),
-            totalFinalGross: toMoneyAmount(totalFinalGrossMoney),
-            totalVat: toMoneyAmount(totalVatMoney),
-            hasTotalDiscount: toMoneyAmount(totalFinalGrossMoney) < toMoneyAmount(totalOriginalGrossMoney),
+            ...totals,
+            hasTotalDiscount: totals.totalFinalGross < totals.totalOriginalGross,
         };
     };
 

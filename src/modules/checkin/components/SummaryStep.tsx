@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Divider } from '@/common/components/Divider';
 import { formatPhoneNumber, formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
+import { applyAdjustment, exactBaseGross, netToGross } from '@/common/utils/priceAdjustment';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 
 const StepContainer = styled.div`
@@ -197,47 +198,26 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
     if (formData.technicalState.deposit.keys) depositItems.push(t.checkin.technical.depositItems.keys);
     if (formData.technicalState.deposit.registrationDocument) depositItems.push(t.checkin.technical.depositItems.registrationDocument);
 
-    // Calculate service prices
+    /**
+     * Ceny pozycji - tą samą regułą, którą liczy serwer, edytor wyceny i podsumowanie
+     * rezerwacji ([applyAdjustment]).
+     *
+     * Wcześniej stała tu czwarta, własna kopia tej arytmetyki, w której brutto ZAWSZE
+     * powstawało z netta: `finalPriceNet + round(finalPriceNet * vat / 100)`. Dla ceny
+     * wpisanej jako brutto to nie jest działanie odwrotne do tego, jak policzono netto -
+     * 1900,00 zł brutto wraca z niego jako 1900,01 zł. Klient podpisuje protokół
+     * z kwotą, którą mu podano, więc ta kwota nie ma prawa się ruszyć na ostatnim ekranie.
+     */
     const calculateServicePrice = (service: ServiceLineItem) => {
-        const { basePriceNet, vatRate, adjustment } = service;
-        let finalPriceNet = basePriceNet;
-
-        switch (adjustment.type) {
-            case 'PERCENT': {
-                const percentageAmount = Math.round((basePriceNet * Math.abs(adjustment.value)) / 100);
-                finalPriceNet = adjustment.value > 0
-                    ? basePriceNet + percentageAmount
-                    : basePriceNet - percentageAmount;
-                break;
-            }
-            case 'FIXED_NET': {
-                finalPriceNet = basePriceNet - Math.abs(adjustment.value);
-                break;
-            }
-            case 'FIXED_GROSS': {
-                const targetGross = (basePriceNet * (100 + vatRate)) / 100 - Math.abs(adjustment.value);
-                finalPriceNet = Math.round((targetGross * 100) / (100 + vatRate));
-                break;
-            }
-            case 'SET_NET': {
-                finalPriceNet = adjustment.value;
-                break;
-            }
-            case 'SET_GROSS': {
-                finalPriceNet = Math.round((adjustment.value * 100) / (100 + vatRate));
-                break;
-            }
-        }
-
-        if (finalPriceNet < 0) finalPriceNet = 0;
-
-        const vatAmount = Math.round((finalPriceNet * vatRate) / 100);
-        const finalPriceGross = finalPriceNet + vatAmount;
-
+        const baseGross = exactBaseGross(service) ?? netToGross(service.basePriceNet, service.vatRate);
+        const { finalNetCents, finalGrossCents } = applyAdjustment(
+            service.basePriceNet, service.vatRate, service.adjustment, baseGross,
+        );
         return {
-            finalPriceNet,
-            finalPriceGross,
-            vatAmount,
+            finalPriceNet: finalNetCents,
+            finalPriceGross: finalGrossCents,
+            // VAT jako różnica pokazanych kwot: netto + VAT ma dać brutto co do grosza.
+            vatAmount: Math.max(finalGrossCents - finalNetCents, 0),
         };
     };
 
