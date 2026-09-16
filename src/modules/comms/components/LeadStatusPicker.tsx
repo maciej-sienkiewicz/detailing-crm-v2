@@ -8,7 +8,7 @@
 //
 // Menu w portalu i pozycjonowane fixed, jak LeadCellEditor: panel szczegółów jest
 // przewijalny, a element absolutny zostałby przez niego przycięty przy przewinięciu.
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Check, ChevronDown } from 'lucide-react';
@@ -93,21 +93,58 @@ const Option = styled.button<{ $active: boolean }>`
     .check { margin-left: auto; width: 13px; height: 13px; flex-shrink: 0; }
 `;
 
+/**
+ * Własny wyzwalacz zamiast domyślnej pastylki ze statusem.
+ *
+ * Nagłówek leada nie ma miejsca na dwie plakietki obok siebie - „Czeka 6 dni"
+ * i „Nowy" mówią o tym samym stanie sprawy dwoma różnymi słowami. Zamiast trzeciej
+ * kopii mechaniki menu (portal, pozycjonowanie, Escape) picker wypożycza swój
+ * przycisk: kto woła, ten rysuje, a menu zostaje jedno na całą aplikację.
+ */
+export interface StatusTriggerApi {
+    open: boolean;
+    /** Podepnij pod `onClick` przycisku - kotwicą menu staje się klikniety element. */
+    toggle: (event: MouseEvent<HTMLElement>) => void;
+    disabled: boolean;
+}
+
 interface LeadStatusPickerProps {
     status: LeadStatus;
     onChange: (status: LeadStatus) => void;
     disabled?: boolean;
+    renderTrigger?: (api: StatusTriggerApi) => ReactNode;
 }
 
-export function LeadStatusPicker({ status, onChange, disabled }: LeadStatusPickerProps) {
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const [open, setOpen] = useState(false);
+export function LeadStatusPicker({ status, onChange, disabled, renderTrigger }: LeadStatusPickerProps) {
+    /*
+     * Otwartość i pozycja to jeden stan, liczony w chwili kliknięcia z elementu,
+     * w który kliknięto. Menu nie ma więc prawa mrugnąć w lewym górnym rogu, a
+     * przycisk może narysować ktoś inny (patrz [StatusTriggerApi]) i nie musi
+     * przyjmować cudzego refa.
+     */
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+    const open = position !== null;
 
-    // Pozycję liczymy przed malowaniem - menu nie ma prawa mrugnąć w lewym górnym rogu.
-    useLayoutEffect(() => {
-        if (!open || !triggerRef.current) return;
-        const rect = triggerRef.current.getBoundingClientRect();
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setPosition(null);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [open]);
+
+    const pick = (next: LeadStatus) => {
+        setPosition(null);
+        if (next !== status) onChange(next);
+    };
+
+    const toggle = (event: MouseEvent<HTMLElement>) => {
+        if (open) {
+            setPosition(null);
+            return;
+        }
+        const rect = event.currentTarget.getBoundingClientRect();
         const opensUpward = rect.bottom + MENU_GAP + MENU_MAX_HEIGHT > window.innerHeight;
         setPosition({
             top: opensUpward
@@ -115,40 +152,29 @@ export function LeadStatusPicker({ status, onChange, disabled }: LeadStatusPicke
                 : rect.bottom + MENU_GAP,
             left: Math.min(rect.left, window.innerWidth - MENU_WIDTH - MENU_GAP),
         });
-    }, [open]);
-
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setOpen(false);
-        };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [open]);
-
-    const pick = (next: LeadStatus) => {
-        setOpen(false);
-        if (next !== status) onChange(next);
     };
 
     return (
         <>
-            <Trigger
-                ref={triggerRef}
-                type="button"
-                disabled={disabled}
-                aria-haspopup="listbox"
-                aria-expanded={open}
-                onClick={() => setOpen((current) => !current)}
-            >
-                <Dot $color={LEAD_STATUS_COLORS[status].fg} />
-                {LEAD_STATUS_LABELS[status]}
-                <ChevronDown />
-            </Trigger>
+            {renderTrigger ? (
+                renderTrigger({ open, toggle, disabled: Boolean(disabled) })
+            ) : (
+                <Trigger
+                    type="button"
+                    disabled={disabled}
+                    aria-haspopup="listbox"
+                    aria-expanded={open}
+                    onClick={toggle}
+                >
+                    <Dot $color={LEAD_STATUS_COLORS[status].fg} />
+                    {LEAD_STATUS_LABELS[status]}
+                    <ChevronDown />
+                </Trigger>
+            )}
 
-            {open && position && createPortal(
+            {position && createPortal(
                 <>
-                    <Backdrop onClick={() => setOpen(false)} />
+                    <Backdrop onClick={() => setPosition(null)} />
                     <Menu role="listbox" style={{ top: position.top, left: position.left }}>
                         {LEAD_STATUS_FLOW.map((option) => (
                             <Option
