@@ -23,8 +23,8 @@
 //     telefonie miejsca na to nie ma i szczegóły wracają jako okno pełnoekranowe.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
-import { ArrowLeft, BarChart3, Search } from 'lucide-react';
+import styled, { css } from 'styled-components';
+import { ArrowLeft, BarChart3, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useBreakpoint } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
@@ -73,21 +73,93 @@ const ViewShell = styled.main`
     }
 `;
 
-const QueueColumn = styled.div<{ $split: boolean }>`
+/**
+ * Kolejka zwija się w lewo, gdy otwiera się sprawę.
+ *
+ * Panel szczegółów jest gęsty: wycena, sugestie, przebieg sprawy i notatki
+ * w dwóch kolumnach. Przy 1280 px zostawało mu 592 px, bo 440 zabierała lista,
+ * którą w trakcie czytania sprawy i tak się tylko mija. Zwinięcie oddaje te
+ * 440 px treści, a lista wraca jednym klawiszem (Esc) albo jednym kliknięciem
+ * w strzałkę - więc przeskakiwanie między sprawami nic nie traci.
+ *
+ * `visibility` zmienia się dopiero PO animacji: kolumna o zerowej szerokości
+ * nadal trzyma w sobie przyciski, które łapałyby Tab i czytnik ekranu.
+ */
+const QueueColumn = styled.div<{ $split: boolean; $collapsed: boolean; $railed: boolean }>`
     display: flex;
     flex-direction: column;
     min-height: 0;
-    flex: ${p => (p.$split ? '0 0 440px' : '1 1 auto')};
-    width: ${p => (p.$split ? '440px' : '100%')};
-    border-right: ${p => (p.$split ? `1px solid ${p.theme.colors.border}` : 'none')};
+    flex: ${p => (p.$split ? `0 0 ${p.$collapsed ? '0px' : '440px'}` : '1 1 auto')};
+    width: ${p => (p.$split ? (p.$collapsed ? '0px' : '440px') : '100%')};
+    border-right: ${p => (p.$split && !p.$railed ? `1px solid ${p.theme.colors.border}` : 'none')};
     background: ${p => p.theme.colors.surface};
+
+    ${p => p.$split && css`
+        overflow: hidden;
+        opacity: ${p.$collapsed ? 0 : 1};
+        visibility: ${p.$collapsed ? 'hidden' : 'visible'};
+        transition:
+            width 260ms cubic-bezier(0.4, 0, 0.2, 1),
+            flex-basis 260ms cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 170ms ease ${p.$collapsed ? '0ms' : '70ms'},
+            visibility 0s linear ${p.$collapsed ? '260ms' : '0s'};
+
+        @media (prefers-reduced-motion: reduce) { transition: none; }
+    `}
 
     @media (max-width: ${p => p.theme.breakpoints.xl}) {
         width: 100%;
         flex: 1 1 auto;
         border-right: none;
         background: transparent;
+        overflow: visible;
+        opacity: 1;
+        visibility: visible;
     }
+`;
+
+/**
+ * Rączka między kolejką a szczegółami - jedyna rzecz, która zostaje na ekranie
+ * po zwinięciu listy.
+ *
+ * Stoi w układzie, a nie na wierzchu: przycisk unoszący się nad panelem zasłaniałby
+ * jego treść, a tu nie ma czego zasłaniać, bo rączka ma własne 40 px.
+ */
+const QueueRail = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    padding-top: 22px;
+    border-right: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+`;
+
+const RailToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 44px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.lg};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        background: ${p => p.theme.colors.surfaceHover};
+        border-color: ${p => p.theme.colors.textMuted};
+        color: ${p => p.theme.colors.text};
+    }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+
+    svg { width: 18px; height: 18px; }
 `;
 
 const DetailColumn = styled.div`
@@ -279,6 +351,17 @@ export default function LeadsView() {
         [setSearchParams]
     );
 
+    /*
+     * Kolejka zwija się sama, gdy otwiera się sprawę, i wraca na żądanie.
+     *
+     * Stan trzyma ID sprawy, przy której użytkownik listę ROZWINĄŁ - a nie zwykłe
+     * „otwarta/zamknięta". Dzięki temu otwarcie kolejnej sprawy zwija listę z
+     * powrotem bez żadnego efektu synchronizującego: nowe ID po prostu nie zgadza
+     * się z zapamiętanym. Efekt ustawiający stan po zmianie propsa robiłby to samo,
+     * tylko o jeden render później i o jeden mechanizm drożej.
+     */
+    const [queueExpandedFor, setQueueExpandedFor] = useState<string | null>(null);
+
     const thresholds = useStagnationThresholds();
     const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
     // Archiwum pobiera się dopiero, gdy ktoś w nie wejdzie: pusta lista statusów
@@ -316,6 +399,36 @@ export default function LeadsView() {
     const owedValue = queue.ours.reduce((sum, entry) => sum + entry.lead.estimatedValue, 0);
     const visible = segment === 'CLIENT' ? queue.client : queue.ours;
     const inArchive = segment === 'ARCHIVE';
+
+    /** Rączka stoi tylko tam, gdzie jest co zwijać: panel obok kolejki i otwarta sprawa. */
+    const railed = isSplit && !inArchive && Boolean(selectedLeadId);
+    const queueCollapsed = railed && queueExpandedFor !== selectedLeadId;
+    const toggleQueue = useCallback(() => {
+        setQueueExpandedFor((current) => (current === selectedLeadId ? null : selectedLeadId));
+    }, [selectedLeadId]);
+
+    /**
+     * Esc wysuwa kolejkę z powrotem.
+     *
+     * Escape w tym widoku nie miał dotąd żadnego znaczenia - panel szczegółów nie
+     * jest oknem modalnym i nie ma czego zamykać. Teraz jest: „wyjdź ze sprawy
+     * z powrotem do listy" to najczęstszy odruch po przeczytaniu zapytania.
+     *
+     * Podokna i menu obsługują Escape same (kreator rezerwacji, potwierdzenie
+     * kasacji, wybierak etapu) - gdy któreś stoi na wierzchu, klawisz należy do
+     * niego, nie do kolejki.
+     */
+    useEffect(() => {
+        if (!queueCollapsed) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            if (document.querySelector('[role="dialog"], [role="listbox"], [role="menu"]')) return;
+            event.preventDefault();
+            setQueueExpandedFor(selectedLeadId);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [queueCollapsed, selectedLeadId]);
 
     /**
      * `j` / `k` - następna i poprzednia sprawa bez odrywania ręki od klawiatury.
@@ -379,7 +492,7 @@ export default function LeadsView() {
     if (mailboxSync.syncing) {
         return (
             <ViewShell>
-                <QueueColumn $split={false}>
+                <QueueColumn $split={false} $collapsed={false} $railed={false}>
                     <QueueHeader>
                         <div>
                             <h1>Zapytania</h1>
@@ -396,7 +509,11 @@ export default function LeadsView() {
 
     return (
         <ViewShell>
-            <QueueColumn $split={isSplit && !inArchive}>
+            <QueueColumn
+                $split={isSplit && !inArchive}
+                $collapsed={queueCollapsed}
+                $railed={railed}
+            >
                 <QueueHeader>
                     <div>
                         <h1>Zapytania</h1>
@@ -506,6 +623,23 @@ export default function LeadsView() {
                 )}
             </QueueColumn>
 
+            {/* Rączka kolejki: strzałka wysuwa listę z powrotem (to samo robi Esc)
+                i chowa ją ponownie. Zwinięcie dokłada panelowi 440 px - przy 1280 px
+                to różnica między dwiema wąskimi kolumnami a czytelnym oknem sprawy. */}
+            {railed && (
+                <QueueRail>
+                    <RailToggle
+                        type="button"
+                        aria-expanded={!queueCollapsed}
+                        aria-label={queueCollapsed ? 'Pokaż listę zapytań' : 'Ukryj listę zapytań'}
+                        title={queueCollapsed ? 'Pokaż listę zapytań (Esc)' : 'Ukryj listę zapytań'}
+                        onClick={toggleQueue}
+                    >
+                        {queueCollapsed ? <ChevronRight /> : <ChevronLeft />}
+                    </RailToggle>
+                </QueueRail>
+            )}
+
             {/* Szczegóły obok kolejki: przeskakiwanie między sprawami nie zamyka
                 i nie otwiera okna, więc obsłużenie pięciu zapytań pod rząd to pięć
                 kliknięć, a nie piętnaście. */}
@@ -519,6 +653,9 @@ export default function LeadsView() {
                         <LeadDetailPane
                             key={selectedLeadId}
                             leadId={selectedLeadId}
+                            /* Skrót bez podpowiedzi jest skrótem, którego nikt nie zna -
+                               a Esc jest tu jedyną drogą powrotu do listy z klawiatury. */
+                            keyHint={queueCollapsed ? 'Esc — lista zapytań' : undefined}
                             onClose={() => selectLead(null)}
                             onDeleted={() => selectLead(null)}
                         />

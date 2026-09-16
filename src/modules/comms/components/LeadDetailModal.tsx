@@ -36,7 +36,6 @@
 // z tą samą sumą, a ta sama liczba dwa razy na jednym ekranie to nie jest
 // podkreślenie, tylko szum.
 import { useState } from 'react';
-import { useBreakpoint } from '@/common/hooks/useBreakpoint';
 import { Link, useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import {
@@ -44,6 +43,7 @@ import {
     CalendarCheck,
     CalendarPlus,
     Car,
+    ChevronDown,
     ExternalLink,
     Loader2,
     PhoneCall,
@@ -94,7 +94,7 @@ import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
 import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
 import { describeLeadUrgency, type ReplyTone } from '../utils/leadUrgency';
-import type { LeadServiceItemInput } from '../types';
+import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadServiceItemInput } from '../types';
 import { TagMultiSelect } from './TagMultiSelect';
 import { useTagCatalogActions } from '../hooks/useTagCatalogActions';
 import { LeadStatusPicker } from './LeadStatusPicker';
@@ -169,16 +169,33 @@ const PaneShell = styled.div`
     overflow: hidden;
 `;
 
-/** „Czeka 6 dni" w prawym górnym rogu panelu - stan, po który sięga się pierwszy. */
-const HeaderUrgency = styled.span<{ $tone: ReplyTone }>`
+/**
+ * „Czeka 6 dni" w prawym górnym rogu - i zarazem wejście w zmianę etapu.
+ *
+ * Wcześniej stały tu dwie plakietki: ta i osobny wybierak „Nowy / W kontakcie".
+ * Mówiły o TYM SAMYM stanie sprawy dwoma różnymi słowami, a pytanie, które
+ * naprawdę pada po otwarciu leada, brzmi „ile klient już czeka". Etap został
+ * kropką koloru przy tej liczbie: widać go bez czytania, a pełna lista etapów
+ * jest tam, gdzie się jej szuka - pod kliknięciem w stan.
+ *
+ * W sprawie zamkniętej nikt na nic nie czeka, więc plakietka pokazuje wtedy samą
+ * nazwę etapu. Kliknięcie działa zawsze - inaczej przegranego leada nie dałoby
+ * się już otworzyć na nowo.
+ */
+const HeaderStage = styled.button<{ $tone: ReplyTone }>`
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 13px;
+    gap: 7px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid transparent;
     border-radius: ${p => p.theme.radii.md};
+    font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     white-space: nowrap;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
 
     background: ${({ $tone, theme }) =>
         $tone === 'due' ? theme.colors.errorLight
@@ -189,34 +206,33 @@ const HeaderUrgency = styled.span<{ $tone: ReplyTone }>`
         : $tone === 'stale' ? theme.colors.warning
         : theme.colors.textMuted};
 
+    &:hover:not(:disabled) { filter: brightness(0.96); border-color: currentColor; }
+    &:disabled { opacity: 0.6; cursor: default; }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+
     svg { width: 14px; height: 14px; }
+    .chevron { width: 13px; height: 13px; opacity: 0.7; }
+    /* Kropka etapu: kolor mówi, w jakim stanie jest sprawa, bez ani jednego słowa. */
+    .stage-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
 `;
 
+
 /**
- * Rząd faktów pod nagłówkiem: etap, pojazd i usługi, o które pyta klient.
+ * Usługi, o które pyta klient - jedyny chip, jaki został w nagłówku.
  *
- * Zastąpił czterokomórkowy pasek podsumowania. Pasek powtarzał kwotę, która stoi
- * w szynie po prawej, i wiek oczekiwania, który stoi plakietką w nagłówku - a to,
- * co niósł naprawdę (pojazd i usługi wraz z drogą do ich poprawienia), zajmowało
- * w nim ćwierć szerokości na komórkę. Chip mówi to samo w jednej linii i sam
- * jest przyciskiem.
- */
-const FactChips = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-`;
-
-/**
  * [$soft]     - fakt, którego nie potwierdził człowiek: obramowanie przerywane.
- * [$tone]     - „known" znaczy zielony: klient jest w kartotece. Ten sam język
- *               co świecący „ludzik" w nagłówku rozmowy w skrzynce, bo to ten sam
- *               fakt - i ta sama ikona.
- * [$iconOnly] - chip bez napisu: kwadratowy, żeby pojedyncza ikona nie pływała
+ * [$iconOnly] - chip bez liczby: kwadratowy, żeby pojedyncza ikona nie pływała
  *               w środku szerokiej pastylki.
  */
-const FactChip = styled.button<{ $soft?: boolean; $tone?: 'known'; $iconOnly?: boolean }>`
+const FactChip = styled.button<{ $soft?: boolean; $iconOnly?: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -225,10 +241,9 @@ const FactChip = styled.button<{ $soft?: boolean; $tone?: 'known'; $iconOnly?: b
     width: ${p => (p.$iconOnly ? '36px' : 'auto')};
     padding: ${p => (p.$iconOnly ? '0' : '0 14px')};
     border-radius: ${p => p.theme.radii.full};
-    border: 1px ${p => (p.$soft ? 'dashed' : 'solid')}
-        ${p => (p.$tone === 'known' ? '#a7f3d0' : p.theme.colors.border)};
-    background: ${p => (p.$tone === 'known' ? '#f0fdf4' : p.theme.colors.surface)};
-    color: ${p => (p.$tone === 'known' ? '#15803d' : p.theme.colors.textSecondary)};
+    border: 1px ${p => (p.$soft ? 'dashed' : 'solid')} ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textSecondary};
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.medium};
@@ -238,8 +253,8 @@ const FactChip = styled.button<{ $soft?: boolean; $tone?: 'known'; $iconOnly?: b
     transition: all ${p => p.theme.transitions.fast};
 
     &:hover {
-        background: ${p => (p.$tone === 'known' ? '#dcfce7' : p.theme.colors.surfaceHover)};
-        border-color: ${p => (p.$tone === 'known' ? '#6ee7b7' : p.theme.colors.textMuted)};
+        background: ${p => p.theme.colors.surfaceHover};
+        border-color: ${p => p.theme.colors.textMuted};
         border-style: solid;
     }
     &:focus-visible {
@@ -248,11 +263,6 @@ const FactChip = styled.button<{ $soft?: boolean; $tone?: 'known'; $iconOnly?: b
     }
 
     svg { width: ${p => (p.$iconOnly ? '15px' : '13px')}; height: ${p => (p.$iconOnly ? '15px' : '13px')}; }
-
-    /* Chip „Rozpoznajemy auto…" - jedyne miejsce w tym oknie, gdzie coś się kręci.
-       Reguła stała wcześniej przy ikonach odświeżania w szynie i zniknęła razem
-       z nimi, zostawiając zamrożonego Loader2. */
-    .spin { animation: ${spin} 900ms linear infinite; }
 `;
 
 /** Sekcja szyny: etykieta wersalikami i treść, bez szarej ramki panelu. */
@@ -440,12 +450,75 @@ const LeadHeader = styled(ModalHeader)`
     background: ${p => p.theme.colors.surfaceAlt};
 `;
 
-/** Wiersz tożsamości: nazwa sprawy z lewej, stan i zamknięcie z prawej. */
+/** Wiersz tożsamości: pojazd i nazwa sprawy z lewej, stan i zamknięcie z prawej. */
 const HeaderTop = styled.div`
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
+    /* Na wąskim ekranie prawa grupa schodzi pod tytuł zamiast go ściskać. */
+    flex-wrap: wrap;
+`;
+
+/** Lewa strona nagłówka: logo marki i dwuwierszowa nazwa sprawy jako jedna całość. */
+const HeaderIdentity = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1 1 320px;
+    min-width: 0;
+`;
+
+/**
+ * Logo marki w nagłówku - na wysokość całego wiersza z nazwą sprawy i kontaktem.
+ *
+ * Marka była dotąd chipem w rzędzie faktów: tekstem wielkości wszystkich innych
+ * chipów, w kolejce takich samych pastylek. A pojazd jest tym, po czym sprawę
+ * rozpoznaje się z drugiego końca warsztatu - i jedyną rzeczą w tym oknie, która
+ * ma gotowy, rozpoznawalny znak graficzny. Kafelek jest też drogą do poprawienia
+ * pojazdu, bo to jedyne miejsce, w którym pojazd w tym oknie stoi.
+ */
+const VehicleBadge = styled.button<{ $empty?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 52px;
+    min-width: 56px;
+    padding: 0 8px;
+    border-radius: 14px;
+    border: 1px ${p => (p.$empty ? 'dashed' : 'solid')} ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        border-color: ${p => p.theme.colors.textMuted};
+        background: ${p => p.theme.colors.surfaceHover};
+    }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+
+    svg { width: 24px; height: 24px; }
+    .spin { animation: ${spin} 900ms linear infinite; }
+
+    @media (max-width: 640px) {
+        height: 46px;
+        min-width: 48px;
+        border-radius: 12px;
+    }
+`;
+
+/** Prawa strona nagłówka: stan sprawy, usługi i zamknięcie okna. */
+const HeaderRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
 `;
 
 /**
@@ -660,6 +733,41 @@ const LeadIdentity = styled.div`
     font-size: 14px;
     line-height: 1.45;
     color: ${p => p.theme.colors.textSecondary};
+`;
+
+/**
+ * „Ludzik" przed nazwiskiem: zielony, gdy klient jest w kartotece, szary
+ * z przerywaną ramką, gdy go tam nie ma.
+ *
+ * Ta sama ikona, ten sam kolor i to samo kliknięcie co w nagłówku rozmowy
+ * w skrzynce - a stoi przy nazwisku, bo mówi właśnie o TEJ osobie, nie o sprawie.
+ * Element liniowy (`inline-flex` + `vertical-align`), żeby nie rozbić zdania
+ * tożsamości, które ma się łamać jak zdanie.
+ */
+const IdentityPerson = styled.button<{ $known?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: -7px;
+    margin-right: 7px;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border: 1px ${p => (p.$known ? 'solid' : 'dashed')}
+        ${p => (p.$known ? '#a7f3d0' : p.theme.colors.border)};
+    background: ${p => (p.$known ? '#f0fdf4' : p.theme.colors.surface)};
+    color: ${p => (p.$known ? '#15803d' : p.theme.colors.textMuted)};
+    border-radius: ${p => p.theme.radii.full};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover { filter: brightness(0.97); border-style: solid; }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+
+    svg { width: 14px; height: 14px; }
 `;
 
 /**
@@ -880,7 +988,6 @@ export function LeadDetailModal({
     const status = useLeadStatusChange();
     /* Powyżej sm nagłówek mieści nazwę sprawy i plakietkę „czyj ruch" w jednym
        wierszu; poniżej plakietka schodzi do rzędu chipów. */
-    const isWide = useBreakpoint('sm');
     const updateVehicle = useUpdateLeadVehicle();
     const updateTags = useUpdateLeadTags();
     const { data: dictionaries } = useLeadDictionaries();
@@ -1108,30 +1215,82 @@ export function LeadDetailModal({
         <>
             <LeadHeader>
                     <HeaderTop>
-                        <ModalTitleGroup>
+                        <HeaderIdentity>
                             {/*
-                                Nagłówkiem jest AUTO, tak samo jak na karcie w kolejce.
-                                Tapnięcie karty „Porsche Cayenne", po którym otwiera się
-                                okno zatytułowane nazwiskiem, każe użytkownikowi za każdym
-                                razem sprawdzać, czy trafił w tę sprawę, o którą mu szło.
-                                Gdy auta nie rozpoznano, nazwisko awansuje - dokładnie ta
-                                sama reguła co w LeadQueueCard.
+                                POJAZD JAKO ZNAK, nie jako chip.
+
+                                Marka stała dotąd tekstem w rzędzie jednakowych pastylek.
+                                A pojazd jest tym, po czym sprawę rozpoznaje się z drugiego
+                                końca warsztatu, i jedyną rzeczą w tym oknie z gotowym,
+                                rozpoznawalnym znakiem graficznym. Kafelek jest zarazem drogą
+                                do poprawienia pojazdu - to jedyne miejsce, w którym pojazd
+                                w tym oknie stoi.
                             */}
-                            <ModalTitle>
-                                {formatVehicle(lead) ?? lead.customerName ?? lead.contactIdentifier}
-                            </ModalTitle>
-                            {/*
-                                Tożsamość jednym zdaniem: „Marek Kowalczyk · 601 448 210 ·
-                                m.kowalczyk@wp.pl". Wcześniej stały tu ikona źródła i dwa
-                                przyciski-linki („Zadzwoń", „Kartoteka klienta"), przez co
-                                wiersz czytał się jak pasek narzędzi, a numeru telefonu
-                                w ogóle w nim nie było - był schowany pod słowem „Zadzwoń".
-                                Numer jest faktem, którego szuka się wzrokiem, i sam w sobie
-                                jest odnośnikiem: na telefonie da się go tapnąć, na biurku
-                                przepisać.
-                            */}
-                            <LeadIdentity>
-                                {identityParts.map((part, index) => (
+                            <VehicleBadge
+                                type="button"
+                                $empty={!lead.vehicleBrand}
+                                aria-label={formatVehicle(lead) ?? 'Dodaj pojazd'}
+                                title={
+                                    lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null
+                                        ? 'Rozpoznajemy auto z treści zapytania…'
+                                        : formatVehicle(lead)
+                                          ? `${formatVehicle(lead)} — kliknij, żeby poprawić`
+                                          : 'Kliknij, żeby dodać pojazd'
+                                }
+                                onClick={() => setEditingVehicle({
+                                    brand: lead.vehicleBrand ?? '',
+                                    model: lead.vehicleModel ?? '',
+                                })}
+                            >
+                                {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
+                                    <Loader2 className="spin" />
+                                ) : lead.vehicleBrand ? (
+                                    <CarLogoImage brand={lead.vehicleBrand} size="md" />
+                                ) : (
+                                    <Car />
+                                )}
+                            </VehicleBadge>
+
+                            <ModalTitleGroup>
+                                {/*
+                                    Nagłówkiem jest AUTO, tak samo jak na karcie w kolejce.
+                                    Tapnięcie karty „Porsche Cayenne", po którym otwiera się
+                                    okno zatytułowane nazwiskiem, każe użytkownikowi za każdym
+                                    razem sprawdzać, czy trafił w tę sprawę, o którą mu szło.
+                                    Gdy auta nie rozpoznano, nazwisko awansuje - dokładnie ta
+                                    sama reguła co w LeadQueueCard.
+                                */}
+                                <ModalTitle>
+                                    {formatVehicle(lead) ?? lead.customerName ?? lead.contactIdentifier}
+                                </ModalTitle>
+                                {/*
+                                    Tożsamość jednym zdaniem: „Marek Kowalczyk · 601 448 210 ·
+                                    m.kowalczyk@wp.pl", a przed nim „ludzik" mówiący kolorem,
+                                    czy ta osoba jest w kartotece. Numer jest faktem, którego
+                                    szuka się wzrokiem, i sam w sobie jest odnośnikiem: na
+                                    telefonie da się go tapnąć, na biurku przepisać.
+                                */}
+                                <LeadIdentity>
+                                    <IdentityPerson
+                                        type="button"
+                                        $known={Boolean(customerFacts)}
+                                        aria-label={
+                                            unknownContact
+                                                ? 'Tego kontaktu nie ma w bazie klientów — połącz albo załóż profil'
+                                                : 'Profil klienta'
+                                        }
+                                        title={
+                                            unknownContact
+                                                ? 'Tego kontaktu nie ma jeszcze w bazie klientów — kliknij, żeby połączyć albo założyć profil'
+                                                : customerFacts
+                                                  ? `${lead.customerName ?? lead.contactIdentifier} jest w kartotece — zobacz profil`
+                                                  : 'Zobacz, kto to jest'
+                                        }
+                                        onClick={(event) => setContactAnchor(event.currentTarget)}
+                                    >
+                                        <UserRound />
+                                    </IdentityPerson>
+                                    {identityParts.map((part, index) => (
                                         <IdentityPart key={part}>
                                             {part === phone && (
                                                 <IdentityLink
@@ -1160,127 +1319,86 @@ export function LeadDetailModal({
                                                 wiersz od „· ", co wygląda na urwane zdanie. */}
                                             {index < identityParts.length - 1 && (
                                                 <>
-                                                    <Separator>{' ·'}</Separator>{' '}
+                                                    <Separator>{' ·'}</Separator>{' '}
                                                 </>
                                             )}
                                         </IdentityPart>
                                     ))}
-                            </LeadIdentity>
-                        </ModalTitleGroup>
-                        {/* „Czyj ruch" w nagłówku także w oknie modalnym: to pierwsza
-                            rzecz, po którą sięga wzrok po otwarciu sprawy, niezależnie
-                            od tego, czy przyszło się z kolejki, czy z poczty.
+                                </LeadIdentity>
+                            </ModalTitleGroup>
+                        </HeaderIdentity>
 
-                            Na telefonie plakietka schodzi do rzędu chipów, obok etapu -
-                            w wierszu tytułu zostawiała nazwie sprawy tyle miejsca, że
-                            „Porsche Cayenne" łamało się na dwie linijki. */}
-                        {reply && isWide && (
-                            <HeaderUrgency $tone={reply.tone} title={reply.title}>
-                                <Reply /> {reply.label}
-                            </HeaderUrgency>
-                        )}
-                        {/* Panel nie ma czego zamykać - następna karta go podmienia. */}
-                        {!isPane && <CloseBtn onClick={onClose} />}
-                    </HeaderTop>
+                        <HeaderRight>
+                            {/* Stan sprawy i etap w jednym: „Czeka 6 dni" z kropką etapu,
+                                a pod kliknięciem pełna lista etapów. Dwie osobne plakietki
+                                mówiły o tym samym dwoma słowami i zabierały pół wiersza. */}
+                            <LeadStatusPicker
+                                status={lead.status}
+                                disabled={status.isPending}
+                                onChange={(next) => status.requestStatus(lead.id, next)}
+                                renderTrigger={({ open, toggle, disabled }) => (
+                                    <HeaderStage
+                                        type="button"
+                                        $tone={reply ? reply.tone : 'neutral'}
+                                        disabled={disabled}
+                                        aria-haspopup="listbox"
+                                        aria-expanded={open}
+                                        title={
+                                            reply
+                                                ? `${reply.title} · Etap: ${LEAD_STATUS_LABELS[lead.status]} — kliknij, żeby zmienić`
+                                                : `Etap: ${LEAD_STATUS_LABELS[lead.status]} — kliknij, żeby zmienić`
+                                        }
+                                        onClick={toggle}
+                                    >
+                                        <span
+                                            className="stage-dot"
+                                            style={{ background: LEAD_STATUS_COLORS[lead.status].fg }}
+                                        />
+                                        {reply ? (
+                                            <>
+                                                <Reply /> {reply.label}
+                                            </>
+                                        ) : (
+                                            LEAD_STATUS_LABELS[lead.status]
+                                        )}
+                                        <ChevronDown className="chevron" />
+                                    </HeaderStage>
+                                )}
+                            />
 
-                    <FactChips>
-                        {reply && !isWide && (
-                            <HeaderUrgency $tone={reply.tone} title={reply.title}>
-                                <Reply /> {reply.label}
-                            </HeaderUrgency>
-                        )}
-                        <LeadStatusPicker
-                            status={lead.status}
-                            disabled={status.isPending}
-                            onChange={(next) => status.requestStatus(lead.id, next)}
-                        />
+                            {/*
+                                USŁUGI, O KTÓRE PYTA KLIENT - za jedną ikoną taga.
 
-                        {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
-                            <FactChip as="span" $soft>
-                                <Loader2 className="spin" /> Rozpoznajemy auto…
-                            </FactChip>
-                        ) : (
+                                Każdy tag własnym chipem rozpychał rząd na pół okna: przy
+                                czterech usługach nagłówek zamieniał się w ścianę pastylek.
+                                Ikona z liczbą zajmuje tyle samo miejsca przy jednym tagu
+                                i przy dziesięciu, pełną listę niesie tooltip, a kliknięcie
+                                otwiera ten sam edytor co wcześniej.
+                            */}
                             <FactChip
                                 type="button"
-                                $soft={!formatVehicle(lead)}
-                                title="Kliknij, żeby poprawić pojazd"
-                                onClick={() => setEditingVehicle({
-                                    brand: lead.vehicleBrand ?? '',
-                                    model: lead.vehicleModel ?? '',
-                                })}
+                                $soft={lead.tagLabels.length === 0}
+                                $iconOnly={lead.tagLabels.length === 0}
+                                aria-label={
+                                    lead.tagLabels.length > 0
+                                        ? `Usługi, o które pyta klient (${lead.tagLabels.length})`
+                                        : 'Dodaj usługi, o które pyta klient'
+                                }
+                                title={
+                                    lead.tagLabels.length > 0
+                                        ? `Usługi, o które pyta klient: ${lead.tagLabels.join(', ')} — kliknij, żeby zmienić`
+                                        : 'Kliknij, żeby dodać usługi, o które pyta klient'
+                                }
+                                onClick={() => setEditingTags(lead.tags)}
                             >
-                                {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}
-                                {formatVehicle(lead) ?? 'Dodaj pojazd'}
+                                <Tag />
+                                {lead.tagLabels.length > 0 && lead.tagLabels.length}
                             </FactChip>
-                        )}
 
-                        {/*
-                            KARTOTEKA KLIENTA JAKO IKONA, nie jako pasek.
-
-                            Wcześniej brak kartoteki ogłaszał pełnowymiarowy pasek nad
-                            korespondencją: „Tego kontaktu nie ma jeszcze w bazie klientów."
-                            - cały wiersz okna na jedno zdanie, które w dodatku mówiło
-                            o NIEOBECNOŚCI. Ludzik mówi to samo kolorem i zawsze zajmuje
-                            tyle samo miejsca: zielony, gdy klient jest w kartotece, szary
-                            z przerywaną ramką, gdy go tam nie ma. Kliknięcie prowadzi w to
-                            samo miejsce co dawny odnośnik - do wizytówki z wyszukiwarką
-                            klientów i zakładaniem profilu.
-
-                            Ta sama ikona i ten sam kolor co w nagłówku rozmowy w skrzynce:
-                            jeden fakt ma w całym systemie jeden znak.
-                        */}
-                        <FactChip
-                            type="button"
-                            $iconOnly
-                            $soft={unknownContact}
-                            $tone={customerFacts ? 'known' : undefined}
-                            aria-label={
-                                unknownContact
-                                    ? 'Tego kontaktu nie ma w bazie klientów — połącz albo załóż profil'
-                                    : 'Profil klienta'
-                            }
-                            title={
-                                unknownContact
-                                    ? 'Tego kontaktu nie ma jeszcze w bazie klientów — kliknij, żeby połączyć albo założyć profil'
-                                    : customerFacts
-                                      ? `${lead.customerName ?? lead.contactIdentifier} jest w kartotece — zobacz profil`
-                                      : 'Zobacz, kto to jest'
-                            }
-                            onClick={(event) => setContactAnchor(event.currentTarget)}
-                        >
-                            <UserRound />
-                        </FactChip>
-
-                        {/*
-                            USŁUGI, O KTÓRE PYTA KLIENT - za jedną ikoną taga.
-
-                            Każdy tag własnym chipem rozpychał rząd na pół okna: przy
-                            czterech usługach nagłówek zamieniał się w ścianę pastylek, na
-                            której nie dało się już znaleźć ani etapu, ani pojazdu. Ikona
-                            z liczbą zajmuje tyle samo miejsca przy jednym tagu i przy
-                            dziesięciu, pełną listę niesie tooltip, a kliknięcie otwiera
-                            ten sam edytor co wcześniej.
-                        */}
-                        <FactChip
-                            type="button"
-                            $soft={lead.tagLabels.length === 0}
-                            $iconOnly={lead.tagLabels.length === 0}
-                            aria-label={
-                                lead.tagLabels.length > 0
-                                    ? `Usługi, o które pyta klient (${lead.tagLabels.length})`
-                                    : 'Dodaj usługi, o które pyta klient'
-                            }
-                            title={
-                                lead.tagLabels.length > 0
-                                    ? `Usługi, o które pyta klient: ${lead.tagLabels.join(', ')} — kliknij, żeby zmienić`
-                                    : 'Kliknij, żeby dodać usługi, o które pyta klient'
-                            }
-                            onClick={() => setEditingTags(lead.tags)}
-                        >
-                            <Tag />
-                            {lead.tagLabels.length > 0 && lead.tagLabels.length}
-                        </FactChip>
-                    </FactChips>
+                            {/* Panel nie ma czego zamykać - następna karta go podmienia. */}
+                            {!isPane && <CloseBtn onClick={onClose} />}
+                        </HeaderRight>
+                    </HeaderTop>
                 </LeadHeader>
 
                 <ModalContent>
