@@ -115,7 +115,63 @@ zostawiaj tego milcząco.
 
 ---
 
-## 2. Uwaga o `.masterPrompt.txt`
+## 2. HIERARCHIA: jedno wypełnienie na okno
+
+> **W jednym oknie dokładnie JEDNA rzecz jest wypełniona kolorem.**
+> Jest nią krok następny. Wszystko inne nosi swój odcień jako tło i obwódkę.
+
+### Dlaczego to jest reguła, a nie preferencja
+
+Kolor w tym interfejsie niesie dwie różne rzeczy naraz i łatwo je pomylić:
+
+| Nośnik | Co znaczy | Przykład |
+|---|---|---|
+| **Odcień** | ZNACZENIE | zielony = „tak / domknięte", bursztyn = „przeczytaj", błękit = „lead", czerwień = „nieodwracalne" |
+| **Wypełnienie** | PRIORYTET | wypełniony = „to zrób teraz"; tło + obwódka = „to jest dostępne" |
+
+Gdy dwa elementy są wypełnione, użytkownik nie ma czym rozstrzygnąć, który jest
+ważniejszy — i pyta „na co mam najpierw patrzeć". Tak właśnie zepsuł się podgląd
+leada: „Akceptuj" przy sugestii AI dostał wypełnioną zieleń, a przy trzech
+propozycjach dawało to trzy nasycone bloki w szynie kontra jeden przycisk kroku
+następnego w stopce. Akcja DRUGORZĘDNA i opcjonalna wygrywała liczbą,
+powierzchnią i pozycją.
+
+### Czego ta reguła NIE znaczy
+
+Nie znaczy „mniej kolorów". Odbieranie barw robi interfejs smutnym i gubi
+znaczenia, które odcień niesie za darmo. Wszystkie kolory zostają — znika tylko
+REMIS o pierwsze miejsce.
+
+### Jak to robić w kodzie
+
+```ts
+// DOBRZE — akcja drugorzędna: odcień zostaje, wypełnienia nie ma
+border: 1px solid #86efac;
+background: ${p => p.theme.colors.successLight};
+color: #15803d;
+```
+
+```ts
+// ŹLE — drugi wypełniony przycisk w tym samym oknie
+background: ${p => p.theme.colors.success};
+color: #ffffff;
+```
+
+Wypełnione zostają wyłącznie: `PrimaryButton` / `FooterPrimary` (krok następny)
+oraz stany krytyczne wymagające natychmiastowej reakcji. Zanim wypełnisz cokolwiek
+innego, policz, ile wypełnień jest już w tym oknie — i ile ich będzie, gdy lista
+pod spodem ma trzy pozycje zamiast jednej.
+
+### Kolejność czytania
+
+Podgląd leada ma jedną kolejność, w panelu i w oknie modalnym:
+**o co pyta klient → co mu proponujemy → co z tym zrobić**. Przebieg sprawy po
+lewej, wycena i szyna po prawej. Na telefonie jest odwrotnie i to jest świadome:
+tam „kolejność" znaczy „ile trzeba przewinąć", a nie „gdzie pada wzrok".
+
+---
+
+## 3. Uwaga o `.masterPrompt.txt`
 
 `.masterPrompt.txt` zawiera wytyczne architektoniczne, ale jeden jego punkt jest
 sprzeczny z kodem: „Zero-Comment Policy". Realna konwencja tego repozytorium jest
