@@ -6,6 +6,7 @@ import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, Mod
 import { SharedButton } from '@/common/styles';
 import { usePermissions } from '@/core/permissions';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
+import { CarFront } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -602,6 +603,8 @@ export const VisitHeader = ({
     const cancelEditTitle = () => setIsEditingTitle(false);
 
     const { can } = usePermissions();
+    /** Tytuł da się edytować tylko wtedy, gdy jest i handler, i uprawnienie. */
+    const canEditTitle = Boolean(onTitleUpdate) && can('VISITS_CREATE');
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
 
@@ -662,12 +665,20 @@ export const VisitHeader = ({
                                     <VisitTitle>
                                         {visit.title}
                                     </VisitTitle>
-                                ) : (
-                                    <TitlePlaceholder onClick={onTitleUpdate && can('VISITS_CREATE') ? startEditTitle : undefined} style={onTitleUpdate && can('VISITS_CREATE') ? { cursor: 'pointer' } : undefined}>
+                                ) : canEditTitle ? (
+                                    <TitlePlaceholder onClick={startEditTitle} style={{ cursor: 'pointer' }}>
                                         Kliknij, żeby ustawić tytuł...
                                     </TitlePlaceholder>
+                                ) : (
+                                    /* Bez uprawnienia do edycji "Kliknij, żeby ustawić tytuł"
+                                       było zaproszeniem donikąd - kliknięcie nic nie robiło. */
+                                    <TitlePlaceholder>Bez tytułu</TitlePlaceholder>
                                 )}
-                                {onTitleUpdate && !isEditingTitle && can('VISITS_CREATE') && (
+                                {/* Sam placeholder jest już przyciskiem ("Kliknij, żeby
+                                    ustawić tytuł..."), więc ołówek obok mówiłby to samo
+                                    drugi raz. Pokazujemy go tylko wtedy, gdy jest co
+                                    edytować. */}
+                                {canEditTitle && visit.title && (
                                     <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -683,10 +694,12 @@ export const VisitHeader = ({
                     {/* Wiersz pojazdu: marka, model, nr rejestracyjny */}
                     {vehicleLabel && (
                         <VehicleRow>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h1l2-4h10l2 4h1a2 2 0 012 2v6a2 2 0 01-2 2h-2" />
-                                <circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
-                            </svg>
+                            {/* Sylwetka z boku z kołami jako kółkami r=2 czytała się przy
+                                14px jak zabawka - same koła zjadały pół ikony. Widok
+                                z przodu jest symetryczny i geometryczny, więc przy tym
+                                rozmiarze zostaje czytelny i wygląda jak oznaczenie
+                                pojazdu w dokumencie, a nie jak autko. */}
+                            <CarFront strokeWidth={1.9} />
                             {vehicleLabel}
                         </VehicleRow>
                     )}

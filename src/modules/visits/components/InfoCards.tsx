@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
+import { CarFront } from 'lucide-react';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
@@ -666,13 +667,11 @@ export const VehicleInfoCard = ({
             >
                 <CardTitleGroup>
                     <CardIconWrap aria-hidden="true">
-                        <svg width="18" height="10" viewBox="0 0 120 56" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M6 40 C 6 40, 12 38, 18 38 L 30 38 L 36 28 C 40 23, 48 19, 60 19 C 72 19, 80 22, 86 27 L 95 34 L 108 35 C 112 35, 114 37, 114 40 L 114 44 L 6 44 Z"/>
-                            <line x1="36" y1="28" x2="95" y2="34"/>
-                            <line x1="60" y1="19" x2="64" y2="34"/>
-                            <circle cx="28" cy="44" r="7" fill="currentColor" stroke="none"/>
-                            <circle cx="92" cy="44" r="7" fill="currentColor" stroke="none"/>
-                        </svg>
+                        {/* Odręczna sylwetka auta z wypełnionymi kołami, ściśnięta do
+                            18x10, czytała się jak naklejka. Ten sam techniczny widok
+                            z przodu co w nagłówku wizyty - jedna ikona pojazdu w całej
+                            aplikacji zamiast dwóch różnych rysunków. */}
+                        <CarFront width={17} height={17} strokeWidth={1.9} />
                     </CardIconWrap>
                     <CardTitle>Stan przy przyjęciu</CardTitle>
                 </CardTitleGroup>
