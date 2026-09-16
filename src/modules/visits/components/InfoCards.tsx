@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CustomerContactModal } from './CustomerContactModal';
 import styled, { css, keyframes } from 'styled-components';
 import { CarFront } from 'lucide-react';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
@@ -124,21 +125,6 @@ const CustomerRow = styled.div`
     > div:last-child { min-width: 0; }
 `;
 
-const CustomerAvatar = styled.div`
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, ${BRAND} 0%, #6366f1 100%);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-`;
-
 const CustomerName = styled.div`
     font-size: 14px;
     font-weight: 700;
@@ -197,6 +183,33 @@ const ContactPlaceholder = styled.span`
     svg { flex-shrink: 0; opacity: 0.4; }
 `;
 
+/* Brak numeru to nie stan do odnotowania, tylko rzecz do uzupełnienia -
+   i najczęściej właśnie wtedy, gdy patrzy się na wizytę i trzeba zadzwonić.
+   Szara kursywa wyglądała na pole wyłączone, więc wiersz jest teraz
+   przyciskiem z widocznym zaproszeniem. */
+const ContactAddButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 0;
+    background: none;
+    border: none;
+    border-bottom: 1px solid ${st.border};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${BRAND};
+    cursor: pointer;
+    text-align: left;
+    transition: color 150ms ease;
+
+    &:last-child { border-bottom: none; }
+    &:hover { color: #0369a1; }
+
+    svg { flex-shrink: 0; }
+`;
+
 const CompanyRow = styled.div`
     display: flex;
     align-items: center;
@@ -210,32 +223,56 @@ const CompanyRow = styled.div`
 `;
 
 /* Dyskretna linia historii współpracy: kontekst, nie dashboard */
-const HistoryLine = styled.div`
+/* Najcenniejsza informacja w tej karcie - czy to stały klient i ile u nas
+   zostawił - była najmniej widoczna: 12-pikselowa szara linijka, do tego
+   z ikoną zegara, która z liczbą wizyt nie ma nic wspólnego. Teraz to pasek
+   z czytelnymi wartościami. Miękkie tło oddziela go od listy kontaktów,
+   nie dokładając kolejnej kreski. */
+const StatsStrip = styled.div`
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin-top: 12px;
-    font-size: 12px;
-    color: ${st.textMuted};
-    font-weight: 500;
-
-    svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.7; }
-
-    strong {
-        color: ${st.textSecondary};
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-    }
+    align-items: stretch;
+    gap: 2px;
+    margin-top: 14px;
+    padding: 10px 4px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid ${st.border};
 `;
 
-const HistoryDot = styled.span`
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: ${st.textMuted};
-    opacity: 0.5;
-    flex-shrink: 0;
+/* Kwota potrzebuje więcej miejsca niż licznik wizyt, więc komórki dzielą pasek
+   proporcjonalnie do treści (flex: auto), a nie po równo. */
+const StatCell = styled.div`
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 0 8px;
+
+    & + & { border-left: 1px solid ${st.border}; }
+`;
+
+const StatValue = styled.span`
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: ${st.text};
+    font-variant-numeric: tabular-nums;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+const StatLabel = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    line-height: 1.2;
+    text-align: center;
 `;
 
 /* Karta Wizyty: główna akcja sekcji klienta */
@@ -444,12 +481,6 @@ const HandoffVal = styled.span`
     overflow-wrap: anywhere;
 `;
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
-function getInitials(firstName: string, lastName: string): string {
-    return [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase();
-}
-
 // ─── CustomerInfoCard ─────────────────────────────────────────────────────────
 
 interface CustomerInfoCardProps {
@@ -461,14 +492,26 @@ interface CustomerInfoCardProps {
 export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerInfoCardProps) => {
     const fullName = joinPiiName(customer.firstName, customer.lastName) ?? '';
     const masked = isPiiMasked(fullName);
-    const initials = masked ? '•' : getInitials(customer.firstName, customer.lastName);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+    /* null = zamknięte; wartość mówi, od którego pola zaczął użytkownik. */
+    const [contactModalField, setContactModalField] = useState<'phone' | 'email' | null>(null);
     const [isOpen, setIsOpen] = useState(true);
     const { can } = usePermissions();
 
-    const visitsLabel = customer.stats.totalVisits === 1 ? 'wizyta' :
-        customer.stats.totalVisits % 10 >= 2 && customer.stats.totalVisits % 10 <= 4 && (customer.stats.totalVisits % 100 < 10 || customer.stats.totalVisits % 100 >= 20)
-            ? 'wizyty' : 'wizyt';
+    /* Dane osobowe zamaskowane przez backend = użytkownik i tak ich nie zobaczy,
+       więc nie ma czego uzupełniać. Edycja wymaga dostępu do kartoteki klientów. */
+    const canEditContact = can('CUSTOMERS_VIEW') && !masked;
+    /* Bez groszy: w sumie życiowej klienta ",00" nie niesie informacji, a to
+       właśnie te pięć znaków wypychało kwotę pod wielokropek. */
+    const totalSpentLabel = new Intl.NumberFormat('pl-PL', {
+        style: 'currency',
+        currency: customer.stats.totalSpent.currency || 'PLN',
+        maximumFractionDigits: 0,
+    }).format(customer.stats.totalSpent.grossAmount / 100);
+    const vehiclesLabel = customer.stats.vehiclesCount === 1 ? 'pojazd' :
+        customer.stats.vehiclesCount % 10 >= 2 && customer.stats.vehiclesCount % 10 <= 4
+            && (customer.stats.vehiclesCount % 100 < 10 || customer.stats.vehiclesCount % 100 >= 20)
+            ? 'pojazdy' : 'pojazdów';
 
     return (
         <SidebarCard>
@@ -506,9 +549,10 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
 
             <CardBody $visible={isOpen} id="customer-card-body">
             <CustomerBody>
-                {/* Avatar + name */}
+                {/* Nazwa klienta. Awatar z inicjałami zniknął: był najbardziej
+                    nasyconym elementem panelu, a powtarzał tylko to, co i tak
+                    stoi obok literami. */}
                 <CustomerRow>
-                    <CustomerAvatar aria-hidden="true">{initials || '?'}</CustomerAvatar>
                     <div>
                         <CustomerName><PiiValue value={fullName} kind="name" emptyFallback="Brak nazwy" /></CustomerName>
                         {customer.companyName && (
@@ -527,12 +571,21 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                             <PiiValue value={customer.phone} kind="phone" />
                         </ContactLink>
                     ) : (
+                        canEditContact ? (
+                            <ContactAddButton onClick={() => setContactModalField('phone')}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                            </svg>
+                                Dodaj numer telefonu
+                            </ContactAddButton>
+                        ) : (
                         <ContactPlaceholder>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
                             </svg>
                             Brak numeru
                         </ContactPlaceholder>
+                        )
                     )}
 
                     {customer.email ? (
@@ -544,6 +597,15 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                             <PiiValue value={customer.email} kind="email" />
                         </ContactLink>
                     ) : (
+                        canEditContact ? (
+                            <ContactAddButton onClick={() => setContactModalField('email')}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="4" width="20" height="16" rx="2" />
+                                <path d="M2 7l10 7 10-7" />
+                            </svg>
+                                Dodaj adres e-mail
+                            </ContactAddButton>
+                        ) : (
                         <ContactPlaceholder>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -551,31 +613,31 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                             </svg>
                             Brak adresu e-mail
                         </ContactPlaceholder>
+                        )
                     )}
                 </ContactLinks>
 
-                {/* Historia współpracy: subtelny kontekst */}
-                <HistoryLine title="Historia współpracy z klientem">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span><strong>{customer.stats.totalVisits}</strong> {visitsLabel}</span>
+                {/* Historia współpracy. Liczba pojazdów była dotąd w danych, ale
+                    nigdzie jej nie pokazywano - a "3 pojazdy" od razu mówi, że to
+                    klient flotowy, a nie jednorazowy. */}
+                <StatsStrip title="Historia współpracy z klientem">
+                    <StatCell>
+                        <StatValue>{customer.stats.totalVisits}</StatValue>
+                        <StatLabel>{customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyty'}</StatLabel>
+                    </StatCell>
                     {can('VISITS_SERVICE_PRICES_VIEW') && (
-                        <>
-                            <HistoryDot />
-                            <span>
-                                łącznie{' '}
-                                <strong>
-                                    {formatCurrency(
-                                        customer.stats.totalSpent.grossAmount / 100,
-                                        customer.stats.totalSpent.currency
-                                    )}
-                                </strong>
-                            </span>
-                        </>
+                        <StatCell>
+                            <StatValue>{totalSpentLabel}</StatValue>
+                            <StatLabel>łącznie</StatLabel>
+                        </StatCell>
                     )}
-                </HistoryLine>
+                    {customer.stats.vehiclesCount > 0 && (
+                        <StatCell>
+                            <StatValue>{customer.stats.vehiclesCount}</StatValue>
+                            <StatLabel>{vehiclesLabel}</StatLabel>
+                        </StatCell>
+                    )}
+                </StatsStrip>
 
                 {/* Karta Wizyty: widok dla klienta */}
                 {visitId && can('VISITS_CREATE') && (
@@ -597,6 +659,18 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                 )}
             </CustomerBody>
             </CardBody>
+
+            {contactModalField && (
+                <CustomerContactModal
+                    isOpen
+                    customerId={customer.id}
+                    visitId={visitId}
+                    initialPhone={customer.phone}
+                    initialEmail={customer.email}
+                    focusField={contactModalField}
+                    onClose={() => setContactModalField(null)}
+                />
+            )}
         </SidebarCard>
     );
 };
@@ -683,7 +757,7 @@ export const VehicleInfoCard = ({
                                 <polyline points="15 3 21 3 21 9" />
                                 <line x1="10" y1="14" x2="21" y2="3" />
                             </svg>
-                            Karta
+                            Profil
                         </ViewBtn>
                     )}
                     <CardChevron $open={isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
