@@ -42,6 +42,25 @@ vi.mock('./DamageMapQrPanel', () => ({
  * nie okno — a sama sesja ma własny plik testowy (useDamageMapMobileSession.test.tsx).
  */
 const phoneSeen = { value: false };
+
+/*
+ * Dostępność powiadomienia zależy od modułu komunikacji i kartoteki klienta. Tu
+ * steruje nią prosty przełącznik; sama reguła ma własny plik testowy
+ * (useDamageMapNotifyAvailability.test.ts).
+ */
+const notify = {
+    canNotify: true,
+    blockedReason: null as string | null,
+    isLoading: false,
+};
+vi.mock('../hooks/useDamageMapNotifyAvailability', () => ({
+    useDamageMapNotifyAvailability: () => ({
+        isLoading: notify.isLoading,
+        canNotify: notify.canNotify,
+        blockedReason: notify.blockedReason,
+        channel: notify.canNotify ? 'EMAIL' : null,
+    }),
+}));
 vi.mock('../hooks/useDamageMapMobileSession', () => ({
     useDamageMapMobileSession: () => ({
         qrUrl: null,
@@ -62,6 +81,8 @@ const renderModal = (overrides: Overrides = {}) => {
             <DamageMapUpdateModal
                 visitId="visit-1"
                 visitNumber="WIZ/2026/09/001"
+                customerEmail="jan@example.com"
+                customerPhone="534920205"
                 initialPoints={existingPoints}
                 initialVehicleType="suv"
                 pointsRecoverable
@@ -223,6 +244,55 @@ describe('DamageMapUpdateModal', () => {
         expect(onClose).toHaveBeenCalled();
     });
 
+    it('bez czym wysłać nie pyta o klienta i zapisuje wprost z mapy', async () => {
+        /*
+         * `COMM_SEND_TRANSACTIONAL` blokuje w bramce OBA kanały, nie tylko SMS, więc
+         * bez modułu komunikacji pytanie „poinformować klienta" miałoby jedną możliwą
+         * odpowiedź. Wcześniej okno oferowało „Tak, powiadom", a operator dowiadywał
+         * się o odmowie dopiero po zapisie.
+         */
+        const user = userEvent.setup();
+        notify.canNotify = false;
+        notify.blockedReason = 'moduł Komunikacja nie jest aktywny w tym studiu';
+        try {
+            const { onSubmit } = renderModal();
+            await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
+
+            expect(screen.getByText(/Klient nie zostanie powiadomiony o zmianie/i)).toBeTruthy();
+            expect(screen.getByText(/moduł Komunikacja nie jest aktywny/i)).toBeTruthy();
+
+            await addPointOnDiagram(user);
+            // Krok o kliencie odpada, więc z mapy zapisuje się bezpośrednio.
+            expect(screen.queryByRole('button', { name: /Podsumowanie/i })).toBeNull();
+            await user.click(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }));
+
+            expect(onSubmit.mock.calls[0][0]).toMatchObject({ notifyCustomer: false });
+            expect('notifyMessage' in onSubmit.mock.calls[0][0]).toBe(false);
+        } finally {
+            notify.canNotify = true;
+            notify.blockedReason = null;
+        }
+    });
+
+    it('gdy da się wysłać, nota o braku powiadomienia się nie pokazuje', async () => {
+        const user = userEvent.setup();
+        renderModal();
+        await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
+
+        expect(screen.queryByText(/Klient nie zostanie powiadomiony/i)).toBeNull();
+    });
+
+    it('czeka z kształtem ścieżki, dopóki nie wie, czy można powiadomić', () => {
+        notify.isLoading = true;
+        try {
+            renderModal();
+            expect(screen.getByText(/Wczytywanie zapisanych oznaczeń/i)).toBeTruthy();
+            expect(screen.queryByText(/Co zrobić z dotychczasowym dokumentem/i)).toBeNull();
+        } finally {
+            notify.isLoading = false;
+        }
+    });
+
     it('nieudany zapis nie zamyka okna — punkty zostają na ekranie', async () => {
         // Zamknięcie przy błędzie znaczyłoby klikanie mapy od nowa.
         const user = userEvent.setup();
@@ -274,6 +344,8 @@ describe('DamageMapUpdateModal', () => {
                 <DamageMapUpdateModal
                     visitId="visit-1"
                     visitNumber="WIZ/2026/09/001"
+                    customerEmail="jan@example.com"
+                    customerPhone="534920205"
                     initialPoints={[]}
                     initialVehicleType={null}
                     pointsRecoverable
@@ -297,6 +369,8 @@ describe('DamageMapUpdateModal', () => {
                 <DamageMapUpdateModal
                     visitId="visit-1"
                     visitNumber="WIZ/2026/09/001"
+                    customerEmail="jan@example.com"
+                    customerPhone="534920205"
                     initialPoints={existingPoints}
                     initialVehicleType="suv"
                     pointsRecoverable

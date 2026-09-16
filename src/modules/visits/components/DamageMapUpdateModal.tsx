@@ -23,6 +23,7 @@ import type { DamagePoint, PhotoSlot } from '@/modules/checkin/types';
 import type { DamageMapUpdateMode, VisitPhoto } from '../types';
 import { DamageMapQrPanel } from './DamageMapQrPanel';
 import { useDamageMapMobileSession } from '../hooks/useDamageMapMobileSession';
+import { useDamageMapNotifyAvailability } from '../hooks/useDamageMapNotifyAvailability';
 import {
     buildDamageMapNotificationDraft,
     buildDamageMapPayload,
@@ -36,13 +37,12 @@ const BRAND_DARK = '#0284c7';
 type Step = 'mode' | 'edit' | 'notify';
 
 /*
- * Pytanie „co zrobić z dotychczasowym dokumentem" ma sens tylko wtedy, gdy ten
- * dokument istnieje. Wizyta bez wygenerowanej mapy nie ma czego nadpisywać, więc
- * krok z dwoma kafelkami byłby ekranem z jedną możliwą odpowiedzią — czyli
- * kliknięciem na pusto przed właściwą pracą.
+ * Ścieżka nie jest stała. Odpadają z niej kroki, które miałyby JEDNĄ możliwą
+ * odpowiedź, bo taki ekran to kliknięcie na pusto przed właściwą pracą:
+ *  - „co zrobić z dokumentem", gdy wizyta nie ma jeszcze mapy (nie ma czego nadpisać),
+ *  - „poinformować klienta", gdy studio nie ma czym wysłać wiadomości.
+ * Składa ją `stepOrder` w komponencie.
  */
-const STEPS_WITH_DOCUMENT: Step[] = ['mode', 'edit', 'notify'];
-const STEPS_WITHOUT_DOCUMENT: Step[] = ['edit', 'notify'];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -325,6 +325,26 @@ const OptionBadge = styled.span`
     color: ${BRAND_DARK};
 `;
 
+/*
+ * „Klient nie zostanie powiadomiony, bo…". Neutralny, nie ostrzegawczy: to nie jest
+ * błąd operatora ani rzecz do naprawienia w tym oknie, tylko fakt o studiu, który
+ * musi być powiedziany przed zapisem, a nie po nim.
+ */
+const NoNotifyNote = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 13px;
+    border: 1px solid ${st.border};
+    background: ${st.bg};
+    border-radius: 10px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: ${st.textSecondary};
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: ${st.textMuted}; }
+`;
+
 const WarnBox = styled.div`
     display: flex;
     align-items: flex-start;
@@ -447,6 +467,9 @@ const LoadingRow = styled.div`
 interface Props {
     visitId: string;
     visitNumber: string;
+    /** Do rozstrzygnięcia, czy „Poinformuj klienta" ma czym wyjść. */
+    customerEmail: string | null;
+    customerPhone: string | null;
     /** Punkty zapisane dla tej wizyty (z API). */
     initialPoints: DamagePoint[];
     initialVehicleType: string | null;
@@ -476,6 +499,8 @@ interface Props {
 export const DamageMapUpdateModal = ({
     visitId,
     visitNumber,
+    customerEmail,
+    customerPhone,
     initialPoints,
     initialVehicleType,
     pointsRecoverable,
@@ -570,6 +595,11 @@ export const DamageMapUpdateModal = ({
      * siedziała w panelu, jego odmontowanie zabijało gniazdo i zdjęcia z telefonu
      * nigdy nie docierały do mapy.
      */
+    const notifyAvailability = useDamageMapNotifyAvailability({
+        customerEmail,
+        customerPhone,
+    });
+
     const mobileSession = useDamageMapMobileSession({
         visitId,
         points,
@@ -584,7 +614,10 @@ export const DamageMapUpdateModal = ({
                 damagePoints: points,
                 vehicleType,
                 mode,
-                notifyCustomer: notifyCustomer === true,
+                // Gdy kroku o klienta nie było, wysyłki nie zamawiamy — bramka i tak
+                // by odmówiła, a zamówienie zostawiłoby w historii komunikacji wpis
+                // o nieudanej wysyłce, której nikt nie zlecił.
+                notifyCustomer: notifyAvailability.canNotify && notifyCustomer === true,
                 notifyMessage: messageValue,
             }));
         } catch {
@@ -598,7 +631,25 @@ export const DamageMapUpdateModal = ({
         onClose();
     };
 
-    const stepOrder = hasDocument ? STEPS_WITH_DOCUMENT : STEPS_WITHOUT_DOCUMENT;
+    /*
+     * Krok z pytaniem o klienta ma sens tylko wtedy, gdy wiadomość ma czym wyjść.
+     * Bez modułu komunikacji nie pójdzie ani mail, ani SMS, więc pytanie miałoby
+     * jedną możliwą odpowiedź — a ekran z jedną możliwą odpowiedzią to kliknięcie
+     * na pusto przed zapisem.
+     */
+    /*
+     * Kształt ścieżki zależy od dwóch odpowiedzi z serwera (czy jest dokument, czy
+     * można powiadomić klienta). Dopóki ich nie znamy, ciało okna pokazuje
+     * wczytywanie — inaczej operator widziałby mapę, która po chwili przeskakuje
+     * na inny krok, albo krok, który zaraz zniknie.
+     */
+    const bodyLoading = isLoading || notifyAvailability.isLoading;
+
+    const stepOrder = useMemo<Step[]>(() => [
+        ...(hasDocument ? (['mode'] as Step[]) : []),
+        'edit' as Step,
+        ...(notifyAvailability.canNotify ? (['notify'] as Step[]) : []),
+    ], [hasDocument, notifyAvailability.canNotify]);
     const currentStep = step ?? stepOrder[0];
     const stepIndex = stepOrder.indexOf(currentStep);
     const isLastStep = stepIndex === stepOrder.length - 1;
@@ -615,7 +666,7 @@ export const DamageMapUpdateModal = ({
                     <HeaderTexts>
                         <Title>Zaktualizuj uszkodzenia</Title>
                         <Subtitle>Wizyta {visitNumber}</Subtitle>
-                        {!isLoading && (
+                        {!bodyLoading && (
                             <StepDots aria-hidden="true">
                                 {stepOrder.map((s, index) => (
                                     <StepDot
@@ -634,11 +685,11 @@ export const DamageMapUpdateModal = ({
                 </Header>
 
                 <Body>
-                    {isLoading && (
+                    {bodyLoading && (
                         <LoadingRow>Wczytywanie zapisanych oznaczeń...</LoadingRow>
                     )}
 
-                    {!isLoading && currentStep === 'mode' && (
+                    {!bodyLoading && currentStep === 'mode' && (
                         <>
                             <SectionHead>
                                 <SectionIcon>
@@ -716,7 +767,7 @@ export const DamageMapUpdateModal = ({
                         </>
                     )}
 
-                    {!isLoading && currentStep === 'edit' && (
+                    {!bodyLoading && currentStep === 'edit' && (
                         <>
                             <SectionHead>
                                 <SectionIcon>
@@ -769,6 +820,20 @@ export const DamageMapUpdateModal = ({
                                 </>
                             )}
 
+                            {!notifyAvailability.canNotify && notifyAvailability.blockedReason && (
+                                <NoNotifyNote>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="16" x2="12" y2="12" />
+                                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                                    </svg>
+                                    <span>
+                                        Klient nie zostanie powiadomiony o zmianie:
+                                        {' '}{notifyAvailability.blockedReason}. Mapa zapisze się normalnie.
+                                    </span>
+                                </NoNotifyNote>
+                            )}
+
                             <VehicleDamageMapper
                                 points={points}
                                 onChange={setEditedPoints}
@@ -783,7 +848,7 @@ export const DamageMapUpdateModal = ({
                         </>
                     )}
 
-                    {!isLoading && currentStep === 'notify' && (
+                    {!bodyLoading && currentStep === 'notify' && (
                         <>
                             <SectionHead>
                                 <SectionIcon>
@@ -878,10 +943,15 @@ export const DamageMapUpdateModal = ({
                         <PrimaryBtn
                             type="button"
                             onClick={handleSubmit}
-                            disabled={isSaving || notifyCustomer === null || !diff.hasChanges}
+                            disabled={
+                                isSaving
+                                || !diff.hasChanges
+                                || (notifyAvailability.canNotify && notifyCustomer === null)
+                            }
                             title={
                                 !diff.hasChanges ? 'Nic się nie zmieniło, nie ma czego zapisywać'
-                                : notifyCustomer === null ? 'Wybierz, czy poinformować klienta'
+                                : notifyAvailability.canNotify && notifyCustomer === null
+                                    ? 'Wybierz, czy poinformować klienta'
                                 : undefined
                             }
                         >
@@ -897,7 +967,7 @@ export const DamageMapUpdateModal = ({
                         <PrimaryBtn
                             type="button"
                             onClick={() => setStep(stepOrder[stepIndex + 1])}
-                            disabled={isLoading || isSaving || (currentStep === 'edit' && !diff.hasChanges)}
+                            disabled={bodyLoading || isSaving || (currentStep === 'edit' && !diff.hasChanges)}
                             title={currentStep === 'edit' && !diff.hasChanges ? 'Dodaj lub popraw oznaczenie, żeby przejść dalej' : undefined}
                         >
                             {currentStep === 'mode' ? 'Przejdź do mapy' : 'Podsumowanie'}

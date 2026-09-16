@@ -1353,6 +1353,8 @@ export const VisitDetailView = () => {
                 <DamageMapUpdateModal
                     visitId={visitId!}
                     visitNumber={visit.visitNumber}
+                    customerEmail={visit.customer.email ?? null}
+                    customerPhone={visit.customer.phone ?? null}
                     initialPoints={damageMap?.damagePoints ?? []}
                     initialVehicleType={damageMap?.vehicleType ?? null}
                     pointsRecoverable={damageMap?.pointsRecoverable ?? false}
