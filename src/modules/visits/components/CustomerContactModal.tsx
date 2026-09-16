@@ -6,7 +6,7 @@
  * dopisuje się właśnie wtedy, gdy patrzy się na wizytę i trzeba zadzwonić.
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -122,18 +122,13 @@ interface CustomerContactModalProps {
 export const CustomerContactModal = ({
     isOpen, customerId, visitId, initialPhone, initialEmail, focusField = 'phone', onClose,
 }: CustomerContactModalProps) => {
-    const [phone, setPhone] = useState('');
-    const [email, setEmail] = useState('');
+    /* Okno montuje się dopiero przy otwarciu (patrz InfoCards), więc stan
+       startowy bierzemy z propsów przy pierwszym renderze. */
+    const [phone, setPhone] = useState(() => initialPhone ?? '');
+    const [email, setEmail] = useState(() => initialEmail ?? '');
     const [touched, setTouched] = useState(false);
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
-
-    useEffect(() => {
-        if (!isOpen) return;
-        setPhone(initialPhone ?? '');
-        setEmail(initialEmail ?? '');
-        setTouched(false);
-    }, [isOpen, initialPhone, initialEmail]);
 
     const { updateCustomer, isUpdating } = useUpdateCustomer({
         customerId,
