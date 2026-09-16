@@ -227,13 +227,6 @@ export const CalendarDisplaySettings = ({
                 <>
                     <Backdrop onClick={() => setOpen(false)} />
                     <Panel $top={pos.top} $left={pos.left} role="dialog" aria-label="Ustawienia widoku miesiąca">
-                        <PanelHeader>
-                            <PanelTitle>Widok miesiąca</PanelTitle>
-                            <ResetBtn type="button" onClick={onReset} disabled={isDefault}>
-                                Przywróć domyślne
-                            </ResetBtn>
-                        </PanelHeader>
-
                         <Row>
                             <RowText>
                                 <RowLabel htmlFor="cal-weekends">Weekendy</RowLabel>
