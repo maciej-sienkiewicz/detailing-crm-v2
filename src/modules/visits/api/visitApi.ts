@@ -25,7 +25,6 @@ import type {
     StartDamageMapMobileSessionPayload,
     DamageMapMobileTokenResponse,
     DamageMapMobileSessionResponse,
-    ClaimMobilePhotosResponse,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -757,18 +756,18 @@ export const visitApi = {
         return response.data;
     },
 
-    /** Co telefon zdążył zaznaczyć; `active: false` znaczy „nie ma sesji". */
-    getDamageMapMobileSession: async (visitId: string): Promise<DamageMapMobileSessionResponse> => {
-        const response = await apiClient.get<DamageMapMobileSessionResponse>(
-            `${BASE_PATH}/${visitId}/damage-map/mobile`
-        );
-        return response.data;
-    },
-
-    /** Przenosi zdjęcia z telefonu do galerii wizyty i zwraca mapowanie identyfikatorów. */
-    claimDamageMapQrPhotos: async (visitId: string): Promise<ClaimMobilePhotosResponse> => {
-        const response = await apiClient.post<ClaimMobilePhotosResponse>(
-            `${BASE_PATH}/${visitId}/damage-map/qr-photos/claim`,
+    /**
+     * Uzgadnia sesję mobilną z wizytą i oddaje punkty GOTOWE do wstawienia w edytor:
+     * z identyfikatorami zdjęć wizyty i podpisanymi miniaturami.
+     *
+     * POST, bo ma skutek uboczny — przenosi zdjęcia zrobione telefonem do galerii
+     * wizyty. Jedno wywołanie zamiast „przenieś" + „przetłumacz u siebie": ta druga
+     * konstrukcja dublowała zdjęcia i gubiła je z punktów, bo telefon przy dodaniu
+     * zdjęcia wysyła dwa zdarzenia i oba odpalały przenoszenie równolegle.
+     */
+    syncDamageMapMobileSession: async (visitId: string): Promise<DamageMapMobileSessionResponse> => {
+        const response = await apiClient.post<DamageMapMobileSessionResponse>(
+            `${BASE_PATH}/${visitId}/damage-map/mobile/sync`,
             {}
         );
         return response.data;

@@ -438,25 +438,16 @@ export interface DamageMapMobileTokenResponse {
 }
 
 export interface DamageMapMobileSessionResponse {
-    /** false = nie ma otwartej sesji; to nie błąd. */
+    /** false = nie ma sesji ani zapisanych punktów; to nie błąd. */
     active: boolean;
+    /**
+     * Punkty gotowe do wstawienia w edytor: identyfikatory zdjęć są już
+     * identyfikatorami zdjęć WIZYTY, a miniatury mają podpisane adresy. Tłumaczeniem
+     * zajmuje się serwer — po stronie okna nie ma żadnej tablicy mapowań.
+     */
     damagePoints: DamagePoint[];
     vehicleType: string | null;
     savedAt: string | null;
-}
-
-/** Zdjęcie z telefonu przeniesione do galerii wizyty. */
-export interface ClaimedMobilePhoto {
-    /** Identyfikator, którym punkty wskazywały zdjęcie w sesji mobilnej. */
-    temporaryPhotoId: string;
-    /** Identyfikator zdjęcia wizyty, którym mają wskazywać od teraz. */
-    photoId: string;
-    fileName: string;
-    thumbnailUrl: string | null;
-}
-
-export interface ClaimMobilePhotosResponse {
-    photos: ClaimedMobilePhoto[];
 }
 
 export interface UpdateDamageMapPayload {

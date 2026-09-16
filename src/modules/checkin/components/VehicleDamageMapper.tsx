@@ -646,8 +646,12 @@ interface VehicleDamageMapperProps {
   /**
    * Źródło „Kod QR": panel z kodem dostarczany przez gospodarza (wizyta ma inny
    * endpoint tokenu niż przyjęcie). Pominięte = zakładki nie ma.
+   *
+   * `close` zamyka całe okno wyboru zdjęcia. Panel woła je, gdy telefon się
+   * połączy: od tej chwili kod QR nie jest już do niczego potrzebny, a operator
+   * ma przed sobą mapę, na której widzi to, co robi telefonem.
    */
-  renderQrPanel?: () => ReactNode;
+  renderQrPanel?: (close: () => void) => ReactNode;
 }
 
 /** Skąd bierzemy zdjęcie do punktu uszkodzenia. */
@@ -1087,7 +1091,7 @@ export const VehicleDamageMapper = ({
                 </>
               )}
 
-              {photoSource === 'qr' && renderQrPanel?.()}
+              {photoSource === 'qr' && renderQrPanel?.(() => setPickerPointId(null))}
             </PickerBody>
           </PickerCard>
         </PickerOverlay>

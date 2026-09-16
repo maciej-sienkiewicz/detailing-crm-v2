@@ -20,7 +20,7 @@ import { useModalViewport } from '@/common/hooks';
    sam edytor mapy. */
 import { VehicleDamageMapper } from '@/modules/checkin/components/VehicleDamageMapper';
 import type { DamagePoint, PhotoSlot } from '@/modules/checkin/types';
-import type { ClaimedMobilePhoto, DamageMapUpdateMode, VisitPhoto } from '../types';
+import type { DamageMapUpdateMode, VisitPhoto } from '../types';
 import { DamageMapQrPanel } from './DamageMapQrPanel';
 import { useDamageMapMobileSession } from '../hooks/useDamageMapMobileSession';
 import {
@@ -171,6 +171,78 @@ const SectionTitle = styled.h5`
     font-size: 14px;
     font-weight: 700;
     color: ${st.text};
+`;
+
+/*
+ * Pasek stanu telefonu nad mapą. Zielony ODCIEŃ (tło + obwódka), bez wypełnienia:
+ * wypełniony w tym oknie jest wyłącznie przycisk kroku następnego w stopce. To jest
+ * informacja, którą operator sprawdza wzrokiem, a nie rzecz „do zrobienia teraz".
+ */
+const PhoneLinkBar = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    font-family: inherit;
+    text-align: left;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: ${st.bgAccentGreen};
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover { background: rgba(16, 185, 129, 0.1); border-color: ${st.accentGreen}; }
+`;
+
+const PhoneLinkDot = styled.span`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.16);
+    color: #047857;
+
+    svg { width: 15px; height: 15px; }
+`;
+
+const PhoneLinkTexts = styled.span`
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+`;
+
+const PhoneLinkTitle = styled.span`
+    font-size: 13px;
+    font-weight: 700;
+    color: #047857;
+`;
+
+const PhoneLinkHint = styled.span`
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: ${st.textSecondary};
+`;
+
+const PhoneLinkChevron = styled.svg<{ $open: boolean }>`
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: #047857;
+    transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
+    transition: transform 180ms ease;
+`;
+
+const PhonePanelWrap = styled.div`
+    padding: 12px 14px;
+    border: 1px solid ${st.border};
+    border-radius: 10px;
+    background: ${st.bg};
 `;
 
 const OptionGrid = styled.div`
@@ -422,8 +494,8 @@ interface Props {
      * Rzuca, gdy się nie udało — edytor pokazuje wtedy komunikat i zostaje otwarty.
      */
     onUploadPhotoFile: (file: File) => Promise<PhotoSlot>;
-    /** Zdjęcia z telefonu weszły do galerii wizyty — trzeba odświeżyć listę zdjęć. */
-    onPhotosClaimed: (photos: ClaimedMobilePhoto[]) => void;
+    /** Telefon dorzucił zdjęcia do galerii wizyty — trzeba odświeżyć listę zdjęć. */
+    onPhotosClaimed: () => void;
 }
 
 export const DamageMapUpdateModal = ({
@@ -451,6 +523,7 @@ export const DamageMapUpdateModal = ({
     const [mode, setMode] = useState<DamageMapUpdateMode>('NEW_FILE');
     const [notifyCustomer, setNotifyCustomer] = useState<boolean | null>(null);
     const [messageFocused, setMessageFocused] = useState(false);
+    const [isPhonePanelOpen, setIsPhonePanelOpen] = useState(false);
 
     /*
      * Punkty dochodzą PO otwarciu okna (zapytanie leci dopiero wtedy), więc propsy
@@ -502,16 +575,6 @@ export const DamageMapUpdateModal = ({
      * co przychodzi z telefonu, jest pełną mapą po jego edycji — scalanie po
      * numerach dublowałoby punkty usunięte na telefonie.
      */
-    /*
-     * Zdjęcia, które telefon może oddać z NIEZMIENIONYM identyfikatorem: galeria
-     * wizyty plus to, co już wisi na punktach (świeżo wysłany plik trafia na punkt
-     * przed odświeżeniem listy zdjęć).
-     */
-    const knownPhotoIds = useMemo(() => [
-        ...visitPhotos.map(photo => photo.id),
-        ...points.flatMap(point => (point.photos ?? []).map(photo => photo.photoId)),
-    ], [visitPhotos, points]);
-
     const handlePointsFromPhone = (fromPhone: DamagePoint[], phoneVehicleType: string | null) => {
         setEditedPoints(fromPhone);
         if (phoneVehicleType) setEditedVehicleType(phoneVehicleType);
@@ -528,7 +591,6 @@ export const DamageMapUpdateModal = ({
         visitId,
         points,
         vehicleType,
-        knownPhotoIds,
         onPointsFromPhone: handlePointsFromPhone,
         onPhotosClaimed,
     });
@@ -697,6 +759,47 @@ export const DamageMapUpdateModal = ({
                                 <SectionTitle>Oznacz uszkodzenia</SectionTitle>
                             </SectionHead>
 
+                            {mobileSession.phoneSeen && (
+                                <>
+                                    <PhoneLinkBar
+                                        type="button"
+                                        onClick={() => setIsPhonePanelOpen(open => !open)}
+                                        aria-expanded={isPhonePanelOpen}
+                                    >
+                                        <PhoneLinkDot>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="6" y="2" width="12" height="20" rx="2" />
+                                                <line x1="10" y1="18" x2="14" y2="18" />
+                                            </svg>
+                                        </PhoneLinkDot>
+                                        <PhoneLinkTexts>
+                                            <PhoneLinkTitle>Połączono z telefonem</PhoneLinkTitle>
+                                            <PhoneLinkHint>
+                                                Oznaczenia i zdjęcia z telefonu pojawiają się tu na bieżąco.
+                                            </PhoneLinkHint>
+                                        </PhoneLinkTexts>
+                                        <PhoneLinkChevron
+                                            $open={isPhonePanelOpen}
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2.5"
+                                        >
+                                            <polyline points="6 9 12 15 18 9" />
+                                        </PhoneLinkChevron>
+                                    </PhoneLinkBar>
+
+                                    {isPhonePanelOpen && (
+                                        <PhonePanelWrap>
+                                            <DamageMapQrPanel
+                                                session={mobileSession}
+                                                onConnected={() => { /* już połączony — nie ma czego zamykać */ }}
+                                            />
+                                        </PhonePanelWrap>
+                                    )}
+                                </>
+                            )}
+
                             <VehicleDamageMapper
                                 points={points}
                                 onChange={setEditedPoints}
@@ -704,7 +807,9 @@ export const DamageMapUpdateModal = ({
                                 vehicleType={vehicleType}
                                 onVehicleTypeChange={setEditedVehicleType}
                                 onUploadPhotoFile={onUploadPhotoFile}
-                                renderQrPanel={() => <DamageMapQrPanel session={mobileSession} />}
+                                renderQrPanel={close => (
+                                    <DamageMapQrPanel session={mobileSession} onConnected={close} />
+                                )}
                             />
                         </>
                     )}

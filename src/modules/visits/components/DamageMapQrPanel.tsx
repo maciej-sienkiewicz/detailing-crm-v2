@@ -134,9 +134,11 @@ const formatCountdown = (seconds: number): string => {
 
 interface Props {
     session: DamageMapMobileSession;
+    /** Zamyka okno wyboru zdjęcia — wołane, gdy telefon się połączy. */
+    onConnected: () => void;
 }
 
-export const DamageMapQrPanel = ({ session }: Props) => {
+export const DamageMapQrPanel = ({ session, onConnected }: Props) => {
     const { qrUrl, secondsLeft, isExpired, isStarting, error, phoneSeen, start } = session;
 
     /*
@@ -151,6 +153,18 @@ export const DamageMapQrPanel = ({ session }: Props) => {
         requested.current = true;
         void start(false);
     }, [start, qrUrl]);
+
+    /*
+     * Telefon się zgłosił — kod QR przestał być do czegokolwiek potrzebny, a to, co
+     * operator chce teraz widzieć, to mapa. Zamykamy więc wybór zdjęcia; stan
+     * połączenia pokazuje pasek nad mapą (sesja żyje w oknie, nie w tym panelu).
+     */
+    const announced = useRef(false);
+    useEffect(() => {
+        if (!phoneSeen || announced.current) return;
+        announced.current = true;
+        onConnected();
+    }, [phoneSeen, onConnected]);
 
     return (
         <Wrap>

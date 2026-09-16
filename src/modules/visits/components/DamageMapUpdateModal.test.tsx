@@ -41,6 +41,7 @@ vi.mock('./DamageMapQrPanel', () => ({
  * uwierzytelnienia. Montowanie tu całego `AuthProvider` sprawdzałoby infrastrukturę,
  * nie okno — a sama sesja ma własny plik testowy (useDamageMapMobileSession.test.tsx).
  */
+const phoneSeen = { value: false };
 vi.mock('../hooks/useDamageMapMobileSession', () => ({
     useDamageMapMobileSession: () => ({
         qrUrl: null,
@@ -48,7 +49,7 @@ vi.mock('../hooks/useDamageMapMobileSession', () => ({
         isExpired: false,
         isStarting: false,
         error: null,
-        phoneSeen: false,
+        phoneSeen: phoneSeen.value,
         start: vi.fn(),
     }),
 }));
@@ -244,6 +245,28 @@ describe('DamageMapUpdateModal', () => {
         expect(onSubmit).toHaveBeenCalled();
         expect(onClose).not.toHaveBeenCalled();
         expect(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i })).toBeTruthy();
+    });
+
+    it('pasek „Połączono z telefonem" pojawia się dopiero, gdy telefon da znak życia', async () => {
+        const user = userEvent.setup();
+        phoneSeen.value = false;
+        renderModal();
+        await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
+        expect(screen.queryByText(/Połączono z telefonem/i)).toBeNull();
+    });
+
+    it('po połączeniu telefonu okno mówi o tym nad mapą', async () => {
+        // Kod QR przestaje być potrzebny — operator patrzy teraz na mapę, na której
+        // widzi to, co robi telefonem.
+        const user = userEvent.setup();
+        phoneSeen.value = true;
+        try {
+            renderModal();
+            await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
+            expect(screen.getByText(/Połączono z telefonem/i)).toBeTruthy();
+        } finally {
+            phoneSeen.value = false;
+        }
     });
 
     it('podsumowanie mówi, ile oznaczeń zostanie i co stanie się z plikiem', async () => {

@@ -7,55 +7,55 @@ import userEvent from '@testing-library/user-event';
 import type { DamagePoint } from '@/modules/checkin/types';
 import { useDamageMapMobileSession } from './useDamageMapMobileSession';
 import { visitApi } from '../api/visitApi';
-import type { ClaimedMobilePhoto } from '../types';
 
 /** Przechwycone wywołania zwrotne gniazda — test gra rolę telefonu. */
 const socketHandlers: {
     onPhotoUploaded?: () => void;
     onDamageUpdated?: (event: unknown) => void | Promise<void>;
-    enabled?: boolean;
 } = {};
 
 vi.mock('@/modules/checkin/hooks/useCheckinSocket', () => ({
     useCheckinSocket: (opts: {
         onPhotoUploaded: () => void;
         onDamageUpdated?: (event: unknown) => void | Promise<void>;
-        enabled?: boolean;
     }) => {
         socketHandlers.onPhotoUploaded = opts.onPhotoUploaded;
         socketHandlers.onDamageUpdated = opts.onDamageUpdated;
-        socketHandlers.enabled = opts.enabled;
     },
 }));
 
 vi.mock('../api/visitApi', () => ({
     visitApi: {
         startDamageMapMobileSession: vi.fn(),
-        claimDamageMapQrPhotos: vi.fn(),
+        syncDamageMapMobileSession: vi.fn(),
     },
 }));
 
 const startMock = vi.mocked(visitApi.startDamageMapMobileSession);
-const claimMock = vi.mocked(visitApi.claimDamageMapQrPhotos);
+const syncMock = vi.mocked(visitApi.syncDamageMapMobileSession);
 
 const existing: DamagePoint = { id: 1, x: 10, y: 20, note: 'rysa' };
 
-/**
- * Harness odwzorowuje prawdziwy układ: sesja mieszka w OKNIE, a panel z kodem jest
- * odmontowywalną zakładką. To właśnie ta różnica psuła wcześniej całą funkcję.
- */
+const withPhoto: DamagePoint = {
+    id: 1,
+    x: 10,
+    y: 20,
+    note: 'rysa',
+    photos: [{ photoId: 'visit-photo-1', strokes: [], thumbnailUrl: 'https://example.test/nowe.jpg' }],
+};
+
+/** Harness odwzorowuje prawdziwy układ: sesja mieszka w OKNIE, nie w panelu z kodem. */
 const Harness = ({
     onPoints,
     onClaimed,
 }: {
     onPoints: (p: DamagePoint[], v: string | null) => void;
-    onClaimed: (p: ClaimedMobilePhoto[]) => void;
+    onClaimed: () => void;
 }) => {
     const session = useDamageMapMobileSession({
         visitId: 'visit-1',
         points: [existing],
         vehicleType: 'sedan',
-        knownPhotoIds: ['photo-existing'],
         onPointsFromPhone: onPoints,
         onPhotosClaimed: onClaimed,
     });
@@ -79,7 +79,12 @@ describe('useDamageMapMobileSession', () => {
             expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
             uploadEndpoint: '/api/mobile/checkin/photos',
         });
-        claimMock.mockResolvedValue({ photos: [] });
+        syncMock.mockResolvedValue({
+            active: true,
+            damagePoints: [withPhoto],
+            vehicleType: 'sedan',
+            savedAt: new Date().toISOString(),
+        });
     });
 
     const startSession = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -100,137 +105,95 @@ describe('useDamageMapMobileSession', () => {
         });
     });
 
-    it('zdjęcie z telefonu trafia do punktu z adresem miniatury od razu', async () => {
-        // Sedno zgłoszenia: zdjęcie szło na serwer, ale nie było widać go na mapie.
-        const user = userEvent.setup();
-        const onPoints = vi.fn();
-        claimMock.mockResolvedValue({
-            photos: [{
-                temporaryPhotoId: 'temp-1',
-                photoId: 'visit-photo-1',
-                fileName: 'temp-1.jpg',
-                thumbnailUrl: 'https://example.test/nowe.jpg',
-            }],
-        });
-        render(<Harness onPoints={onPoints} onClaimed={vi.fn()} />);
-        await startSession(user);
-
-        await act(async () => {
-            await socketHandlers.onDamageUpdated?.({
-                type: 'CHECKIN_DAMAGE_UPDATED',
-                checkinId: 'visit-1',
-                vehicleType: 'sedan',
-                updatedAt: new Date().toISOString(),
-                damagePoints: [{ id: 1, x: 10, y: 20, note: 'rysa', photos: [{ photoId: 'temp-1', strokes: [] }] }],
-            });
-        });
-
-        const [points] = onPoints.mock.calls[0];
-        expect(points[0].photos).toEqual([{
-            photoId: 'visit-photo-1',
-            strokes: [],
-            thumbnailUrl: 'https://example.test/nowe.jpg',
-        }]);
-    });
-
-    it('zdjęcie przypięte przed sesją wraca nietknięte', async () => {
-        // Telefon oddaje pełną mapę, więc identyfikatory sprzed sesji wracają bez
-        // zmiany — pominięcie ich zrzucałoby zdjęcia z punktów.
+    it('zdjęcie z telefonu wchodzi w punkt razem z miniaturą', async () => {
+        // Sedno zgłoszenia: zdjęcie szło na serwer, ale nie pokazywało się pod
+        // uszkodzeniem. Identyfikatory tłumaczy serwer, okno tylko wstawia wynik.
         const user = userEvent.setup();
         const onPoints = vi.fn();
         render(<Harness onPoints={onPoints} onClaimed={vi.fn()} />);
         await startSession(user);
 
-        await act(async () => {
-            await socketHandlers.onDamageUpdated?.({
-                type: 'CHECKIN_DAMAGE_UPDATED',
-                checkinId: 'visit-1',
-                vehicleType: null,
-                updatedAt: new Date().toISOString(),
-                damagePoints: [{ id: 1, x: 10, y: 20, note: 'rysa', photos: [{ photoId: 'photo-existing', strokes: [] }] }],
-            });
-        });
+        await act(async () => { await socketHandlers.onDamageUpdated?.({}); });
 
-        const [points] = onPoints.mock.calls[0];
-        expect(points[0].photos[0].photoId).toBe('photo-existing');
+        expect(onPoints).toHaveBeenCalledWith([withPhoto], 'sedan');
+        expect(onPoints.mock.calls[0][0][0].photos[0].thumbnailUrl).toBe('https://example.test/nowe.jpg');
     });
 
-    it('zdjęcie bez rozwiązanego identyfikatora jest pomijane, nie wstawiane martwe', async () => {
-        const user = userEvent.setup();
-        const onPoints = vi.fn();
-        render(<Harness onPoints={onPoints} onClaimed={vi.fn()} />);
-        await startSession(user);
-
-        await act(async () => {
-            await socketHandlers.onDamageUpdated?.({
-                type: 'CHECKIN_DAMAGE_UPDATED',
-                checkinId: 'visit-1',
-                vehicleType: null,
-                updatedAt: new Date().toISOString(),
-                damagePoints: [{ id: 1, x: 10, y: 20, note: 'rysa', photos: [{ photoId: 'temp-nieznane', strokes: [] }] }],
-            });
-        });
-
-        const [points] = onPoints.mock.calls[0];
-        expect(points[0].photos).toEqual([]);
-    });
-
-    it('drugi zapis z telefonu nadal rozwiązuje zdjęcie, choć plik tymczasowy już nie istnieje', async () => {
+    it('dwa zdarzenia na jedno zdjęcie dają JEDNO uzgodnienie w locie, nie dwa równoległe', async () => {
         /*
-         * Telefon ma własny stan i przy każdym zapisie przysyła SWOJE identyfikatory,
-         * także po przeniesieniu zdjęcia do galerii wizyty. Drugie `claim` nie ma już
-         * czego przenieść — mapowanie musi przeżyć w pamięci sesji.
+         * To jest wyścig, który dublował zdjęcia: telefon przy dodaniu zdjęcia wysyła
+         * „wysłano zdjęcie" i „zapisano punkty", a dwa równoległe uzgodnienia
+         * przenosiły ten sam plik dwa razy i tworzyły dwa wiersze zdjęcia wizyty.
          */
         const user = userEvent.setup();
-        const onPoints = vi.fn();
-        claimMock.mockResolvedValueOnce({
-            photos: [{
-                temporaryPhotoId: 'temp-1',
-                photoId: 'visit-photo-1',
-                fileName: 'temp-1.jpg',
-                thumbnailUrl: 'https://example.test/nowe.jpg',
-            }],
-        });
-        claimMock.mockResolvedValue({ photos: [] });
-        render(<Harness onPoints={onPoints} onClaimed={vi.fn()} />);
+        let resolveFirst: (() => void) | undefined;
+        syncMock.mockImplementationOnce(() => new Promise(resolve => {
+            resolveFirst = () => resolve({
+                active: true,
+                damagePoints: [withPhoto],
+                vehicleType: 'sedan',
+                savedAt: new Date().toISOString(),
+            });
+        }));
+        render(<Harness onPoints={vi.fn()} onClaimed={vi.fn()} />);
         await startSession(user);
 
-        const event = (extraPoint: boolean) => ({
-            type: 'CHECKIN_DAMAGE_UPDATED',
-            checkinId: 'visit-1',
-            vehicleType: null,
-            updatedAt: new Date().toISOString(),
-            damagePoints: [
-                { id: 1, x: 10, y: 20, note: 'rysa', photos: [{ photoId: 'temp-1', strokes: [] }] },
-                ...(extraPoint ? [{ id: 2, x: 50, y: 50, note: 'wgniecenie', photos: [] }] : []),
-            ],
-        });
+        // Oba zdarzenia lecą, gdy pierwsze uzgodnienie jeszcze nie wróciło.
+        act(() => { socketHandlers.onPhotoUploaded?.(); });
+        act(() => { void socketHandlers.onDamageUpdated?.({}); });
+        expect(syncMock).toHaveBeenCalledTimes(1);
 
-        await act(async () => { await socketHandlers.onDamageUpdated?.(event(false)); });
-        await act(async () => { await socketHandlers.onDamageUpdated?.(event(true)); });
+        await act(async () => { resolveFirst?.(); });
 
-        const [points] = onPoints.mock.calls[1];
-        expect(points[0].photos[0].photoId).toBe('visit-photo-1');
-        expect(points).toHaveLength(2);
+        // Drugie zdarzenie nie przepadło — poszło SZEREGOWO, po pierwszym.
+        await waitFor(() => expect(syncMock).toHaveBeenCalledTimes(2));
     });
 
-    it('zdarzenie o samym zdjęciu przenosi je do wizyty bez czekania na zapis punktów', async () => {
+    it('odświeża listę zdjęć wizyty, bo telefon mógł dorzucić nowe', async () => {
         const user = userEvent.setup();
         const onClaimed = vi.fn();
-        claimMock.mockResolvedValue({
-            photos: [{
-                temporaryPhotoId: 'temp-1',
-                photoId: 'visit-photo-1',
-                fileName: 'temp-1.jpg',
-                thumbnailUrl: 'https://example.test/nowe.jpg',
-            }],
-        });
         render(<Harness onPoints={vi.fn()} onClaimed={onClaimed} />);
         await startSession(user);
 
+        await act(async () => { await socketHandlers.onDamageUpdated?.({}); });
+
+        expect(onClaimed).toHaveBeenCalled();
+    });
+
+    it('brak sesji po stronie serwera nie kasuje punktów w edytorze', async () => {
+        const user = userEvent.setup();
+        const onPoints = vi.fn();
+        syncMock.mockResolvedValue({ active: false, damagePoints: [], vehicleType: null, savedAt: null });
+        render(<Harness onPoints={onPoints} onClaimed={vi.fn()} />);
+        await startSession(user);
+
+        await act(async () => { await socketHandlers.onDamageUpdated?.({}); });
+
+        expect(onPoints).not.toHaveBeenCalled();
+    });
+
+    it('nieudane uzgodnienie nie wywraca okna ani nie czyści mapy', async () => {
+        const user = userEvent.setup();
+        const onPoints = vi.fn();
+        syncMock.mockRejectedValue(new Error('500'));
+        render(<Harness onPoints={onPoints} onClaimed={vi.fn()} />);
+        await startSession(user);
+
+        await act(async () => { await socketHandlers.onDamageUpdated?.({}); });
+
+        expect(onPoints).not.toHaveBeenCalled();
+        expect(screen.getByTestId('seen').textContent).toBe('true');
+    });
+
+    it('pierwszy sygnał z telefonu oznacza sesję jako połączoną', async () => {
+        // Po tym okno zamyka wybór zdjęcia i pokazuje pasek „Połączono z telefonem".
+        const user = userEvent.setup();
+        render(<Harness onPoints={vi.fn()} onClaimed={vi.fn()} />);
+        await startSession(user);
+        expect(screen.getByTestId('seen').textContent).toBe('false');
+
         await act(async () => { socketHandlers.onPhotoUploaded?.(); });
 
-        await waitFor(() => expect(onClaimed).toHaveBeenCalled());
-        expect(screen.getByTestId('seen').textContent).toBe('true');
+        await waitFor(() => expect(screen.getByTestId('seen').textContent).toBe('true'));
     });
 });

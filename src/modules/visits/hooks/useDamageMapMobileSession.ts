@@ -3,19 +3,24 @@
 // Sesja „telefon jako narzędzie do mapy uszkodzeń", trzymana przez CAŁY czas życia
 // okna aktualizacji uszkodzeń.
 //
-// Pierwsza wersja trzymała ją w panelu z kodem QR — a ten panel jest zakładką w
-// oknie wyboru zdjęcia, otwieranym z konkretnego punktu. Operator skanował kod,
-// zamykał wybór zdjęcia i szedł do samochodu; w tym momencie panel się odmontowywał,
-// gniazdo WebSocket znikało i nic z telefonu już nie docierało. Zdjęcie lądowało na
-// serwerze i w galerii wizyty, ale okno z mapą nigdy się o nim nie dowiadywało.
+// Dwie decyzje, obie wymuszone przez błędy z produkcji:
 //
-// Dlatego sesja mieszka tutaj, w stanie OKNA. Panel tylko ją pokazuje.
+// 1. Sesja mieszka w stanie OKNA, nie panelu z kodem QR. Panel jest zakładką w oknie
+//    wyboru zdjęcia — operator skanuje kod, zamyka ten wybór i idzie do samochodu,
+//    a wtedy panel się odmontowuje. Gdy sesja siedziała w panelu, gniazdo WebSocket
+//    znikało dokładnie w momencie, w którym telefon zaczynał być potrzebny.
+//
+// 2. Uzgadnianie stanu robi JEDNO wywołanie serwera, a nie „przenieś zdjęcia" +
+//    „przetłumacz identyfikatory u siebie". Telefon przy dodaniu zdjęcia wysyła DWA
+//    zdarzenia (wysłano zdjęcie, zapisano punkty); przy dwóch krokach oba odpalały
+//    przenoszenie równolegle, co dawało dwa wiersze zdjęcia wizyty (zdjęcie widoczne
+//    PODWÓJNIE na liście „Istniejące") i tłumaczenie czytające pustą jeszcze tablicę
+//    mapowań (zdjęcie WYPADAŁO z punktu). Teraz tłumaczy serwer, idempotentnie.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCheckinSocket } from '@/modules/checkin/hooks/useCheckinSocket';
-import type { CheckinDamageUpdatedEvent, DamagePoint } from '@/modules/checkin/types';
+import type { DamagePoint } from '@/modules/checkin/types';
 import { visitApi } from '../api/visitApi';
-import type { ClaimedMobilePhoto } from '../types';
 
 export interface DamageMapMobileSession {
     /** null, dopóki nikt nie poprosił o kod. */
@@ -35,17 +40,16 @@ interface Options {
     /** Aktualne punkty edytora — zasiewamy nimi sesję przy wydaniu kodu. */
     points: DamagePoint[];
     vehicleType: string;
-    /** Identyfikatory zdjęć, które są już zdjęciami wizyty. */
-    knownPhotoIds: string[];
+    /** Punkty przyszły z telefonu, już przetłumaczone przez serwer. */
     onPointsFromPhone: (points: DamagePoint[], vehicleType: string | null) => void;
-    onPhotosClaimed: (photos: ClaimedMobilePhoto[]) => void;
+    /** Zdjęcia z telefonu weszły do galerii wizyty — odśwież listę zdjęć. */
+    onPhotosClaimed: () => void;
 }
 
 export const useDamageMapMobileSession = ({
     visitId,
     points,
     vehicleType,
-    knownPhotoIds,
     onPointsFromPhone,
     onPhotosClaimed,
 }: Options): DamageMapMobileSession => {
@@ -56,28 +60,15 @@ export const useDamageMapMobileSession = ({
     const [error, setError] = useState<string | null>(null);
     const [phoneSeen, setPhoneSeen] = useState(false);
 
-    /*
-     * Tablica „identyfikator tymczasowy → zdjęcie wizyty", trzymana przez całe życie
-     * sesji. Telefon ma własny stan i przy każdym zapisie przysyła SWOJE, tymczasowe
-     * identyfikatory — także po tym, jak przenieśliśmy zdjęcie do galerii wizyty i
-     * obiekt tymczasowy przestał istnieć. Bez tej tablicy drugi zapis z telefonu
-     * wstawiałby wskaźniki, których nic już nie rozwiązuje.
-     */
-    const photoIdRemap = useRef<Map<string, string>>(new Map());
-    /** Adresy miniatur ze świeżo przeniesionych zdjęć — zanim dojdzie odświeżona lista zdjęć wizyty. */
-    const claimedThumbnails = useRef<Map<string, string>>(new Map());
-
     // Zasiew wymaga AKTUALNYCH punktów, ale token nie ma się przeładowywać przy
     // każdym postawionym punkcie — refy trzymają najnowsze bez wchodzenia w zależności.
     const pointsRef = useRef(points);
     const vehicleTypeRef = useRef(vehicleType);
-    const knownPhotoIdsRef = useRef(knownPhotoIds);
     const onPointsFromPhoneRef = useRef(onPointsFromPhone);
     const onPhotosClaimedRef = useRef(onPhotosClaimed);
     useEffect(() => {
         pointsRef.current = points;
         vehicleTypeRef.current = vehicleType;
-        knownPhotoIdsRef.current = knownPhotoIds;
         onPointsFromPhoneRef.current = onPointsFromPhone;
         onPhotosClaimedRef.current = onPhotosClaimed;
     });
@@ -108,76 +99,59 @@ export const useDamageMapMobileSession = ({
         return () => clearInterval(id);
     }, [hasSession]);
 
-    /**
-     * Przenosi świeże zdjęcia z telefonu do galerii wizyty i zapamiętuje mapowanie
-     * identyfikatorów oraz adresy miniatur.
+    /*
+     * Uzgadnianie jest SZEREGOWANE. Telefon wysyła dwa zdarzenia na jedno zdjęcie,
+     * a dwa równoległe uzgodnienia to dokładnie ten wyścig, który dublował zdjęcia.
+     * `inFlight` trzyma trwające wywołanie, `pending` pamięta, że w jego trakcie
+     * przyszło kolejne zdarzenie — po zakończeniu lecimy jeszcze raz, żeby nie
+     * zgubić ostatniej zmiany.
      */
-    const claimAndRemap = useCallback(async () => {
+    const inFlight = useRef<Promise<void> | null>(null);
+    const pending = useRef(false);
+
+    const runSync = useCallback(async (): Promise<void> => {
         try {
-            const { photos } = await visitApi.claimDamageMapQrPhotos(visitId);
-            if (photos.length === 0) return;
-            photos.forEach(p => {
-                photoIdRemap.current.set(p.temporaryPhotoId, p.photoId);
-                if (p.thumbnailUrl) claimedThumbnails.current.set(p.photoId, p.thumbnailUrl);
-            });
-            onPhotosClaimedRef.current(photos);
+            const state = await visitApi.syncDamageMapMobileSession(visitId);
+            if (!state.active) return;
+            onPointsFromPhoneRef.current(state.damagePoints, state.vehicleType);
+            // Zdjęcia mogły wejść do galerii wizyty — lista „Istniejące" i galeria
+            // pod oknem muszą je zobaczyć.
+            onPhotosClaimedRef.current();
         } catch {
             /*
-             * Cicho: przeniesienie zdjęć jest krokiem pomocniczym. Punkty z telefonu
-             * i tak wejdą do edytora, zdjęcie bez rozwiązanego identyfikatora zostanie
-             * pominięte, a kolejne zdarzenie spróbuje ponownie.
+             * Cicho: kolejne zdarzenie z telefonu spróbuje ponownie, a operator nie
+             * ma tu żadnej decyzji do podjęcia. Alarmowanie przy każdym mignięciu
+             * sieci byłoby szumem nad otwartym edytorem.
              */
         }
     }, [visitId]);
 
-    const handlePhotoUploaded = useCallback(() => {
+    const sync = useCallback((): Promise<void> => {
+        if (inFlight.current) {
+            pending.current = true;
+            return inFlight.current;
+        }
+        const run = (async () => {
+            await runSync();
+            while (pending.current) {
+                pending.current = false;
+                await runSync();
+            }
+            inFlight.current = null;
+        })();
+        inFlight.current = run;
+        return run;
+    }, [runSync]);
+
+    const handleEventFromPhone = useCallback(() => {
         setPhoneSeen(true);
-        void claimAndRemap();
-    }, [claimAndRemap]);
-
-    const handleDamageUpdated = useCallback(async (event: CheckinDamageUpdatedEvent) => {
-        setPhoneSeen(true);
-        // Najpierw przenieś zdjęcia, potem podmieniaj wskaźniki — inaczej punkt
-        // przyszedłby ze wskaźnikiem, którego tablica jeszcze nie zna.
-        await claimAndRemap();
-
-        const known = new Set(knownPhotoIdsRef.current);
-        const remapped: DamagePoint[] = event.damagePoints.map(point => ({
-            ...point,
-            photos: (point.photos ?? [])
-                .map(photo => {
-                    // 1. Zdjęcie zrobione telefonem, już przeniesione do wizyty.
-                    const resolved = photoIdRemap.current.get(photo.photoId);
-                    if (resolved) {
-                        return {
-                            ...photo,
-                            photoId: resolved,
-                            // Adres z odpowiedzi przeniesienia, żeby kafelek pokazał
-                            // zdjęcie OD RAZU — nie dopiero po odświeżeniu listy zdjęć wizyty.
-                            thumbnailUrl: claimedThumbnails.current.get(resolved),
-                        };
-                    }
-                    // 2. Zdjęcie przypięte jeszcze przed sesją: telefon oddaje je z tym
-                    //    samym identyfikatorem i tak ma zostać. Adres znajdzie edytor
-                    //    po identyfikatorze w liście zdjęć wizyty.
-                    if (known.has(photo.photoId)) return { ...photo, thumbnailUrl: undefined };
-                    /*
-                     * 3. Nierozwiązane: świeże zdjęcie z telefonu, którego przeniesienie
-                     *    jeszcze nie doszło. Pomijamy zamiast wstawiać martwy wskaźnik —
-                     *    kolejne zdarzenie przyniesie je z rozwiązanym identyfikatorem.
-                     */
-                    return null;
-                })
-                .filter((photo): photo is NonNullable<typeof photo> => photo !== null),
-        }));
-
-        onPointsFromPhoneRef.current(remapped, event.vehicleType ?? null);
-    }, [claimAndRemap]);
+        void sync();
+    }, [sync]);
 
     useCheckinSocket({
         checkinId,
-        onPhotoUploaded: handlePhotoUploaded,
-        onDamageUpdated: handleDamageUpdated,
+        onPhotoUploaded: handleEventFromPhone,
+        onDamageUpdated: handleEventFromPhone,
         enabled: !!checkinId && hasSession,
     });
 
