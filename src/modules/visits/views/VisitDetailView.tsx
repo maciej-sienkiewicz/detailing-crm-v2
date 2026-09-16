@@ -357,10 +357,16 @@ const DocsHeaderRight = styled.div`
 `;
 
 /*
- * „Zaktualizuj uszkodzenia" nosi swój ODCIEŃ (bursztyn = „przeczytaj to"), ale nie
- * ma WYPEŁNIENIA. W nagłówku Dokumentacji wypełniony jest już „Dodaj plik"; drugi
- * wypełniony przycisk w tym samym oknie znaczyłby tyle samo co zero wypełnień —
- * użytkownik nie miałby czym rozstrzygnąć, na co patrzeć najpierw.
+ * „Zaktualizuj uszkodzenia" jest NEUTRALNE i takie ma zostać.
+ *
+ * Miało wcześniej bursztynowy odcień, a bursztyn znaczy w tym interfejsie
+ * „przeczytaj to". Sięga się tu raz na kilkanaście wizyt, więc kolor obiecywał
+ * uwagę, której ta akcja nie potrzebuje, i konkurował z „Dodaj plik" obok.
+ * Wypełnienia nie ma żadne z dwojga poza „Dodaj plik" (krok następny sekcji), a
+ * odcień zostaje tam, gdzie faktycznie coś znaczy.
+ *
+ * Ta sama cicha pastylka co „Cofnij" i „Wyczyść wszystko" pod mapą: narzędzie
+ * dostępne, ale nie proszące się o kliknięcie.
  */
 const DamageMapHeaderBtn = styled.button`
     display: inline-flex;
@@ -370,19 +376,22 @@ const DamageMapHeaderBtn = styled.button`
     font-family: inherit;
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: #b45309;
-    background: ${st.bgAccentAmber};
-    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: ${st.textSecondary};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
     border-radius: ${st.radiusFull};
     cursor: pointer;
     white-space: nowrap;
     transition: all ${st.transition};
 
-    svg { width: 13px; height: 13px; flex-shrink: 0; }
+    svg { width: 13px; height: 13px; flex-shrink: 0; color: ${st.textMuted}; }
 
     &:hover {
-        background: rgba(245, 158, 11, 0.14);
-        border-color: ${st.accentAmber};
+        color: ${st.text};
+        background: ${st.bgCardAlt};
+        border-color: ${st.borderHover};
+
+        svg { color: ${st.textSecondary}; }
     }
 
     @media (max-width: 640px) {
