@@ -1525,9 +1525,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         () => !_incomingHighlight && window.innerWidth < 768,
     );
 
+    /* Licznik na mobilnej pigułce filtra. Ukryte kolory liczą się tak samo jak
+       ukryte statusy: schowanie koloru też sprawia, że kalendarz czegoś nie
+       pokazuje, a pigułka była wtedy nieodróżnialna od czystego filtra. */
     const deselectedCount =
         (3 - selectedAppointmentStatuses.length) +
-        (5 - selectedVisitStatuses.length);
+        (5 - selectedVisitStatuses.length) +
+        hiddenColorIds.length;
 
     // Gdy sidebar się zwija/rozwija, CSS transition trwa 200ms, wywołujemy updateSize()
     // na każdej klatce przez czas trwania animacji, żeby kalendarz rozciągał się płynnie

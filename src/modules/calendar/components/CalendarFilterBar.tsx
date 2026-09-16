@@ -92,20 +92,6 @@ const ShowLabel = styled.span`
     white-space: nowrap;
 `;
 
-const Chip = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 4px 4px 10px;
-    border-radius: 8px;
-    background: ${p => p.$color}14;
-    border: 1px solid ${p => p.$color}40;
-    font-size: 12px;
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
-`;
-
 const AllChip = styled.span`
     display: inline-flex;
     align-items: center;
@@ -128,42 +114,24 @@ const ChipDot = styled.span<{ $color: string }>`
     flex-shrink: 0;
 `;
 
-const ChipRemove = styled.button`
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #64748b;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    padding: 0;
-    margin-left: 2px;
-    transition: background 150ms ease, color 150ms ease;
-
-    &:hover {
-        background: rgba(0, 0, 0, 0.08);
-        color: #0f172a;
-    }
-
-    svg {
-        width: 11px;
-        height: 11px;
-    }
-`;
-
-const AddButton = styled.button`
+/* Dwa stany tego samego przycisku.
+   Nieaktywny: przerywana ramka, zaproszenie do dodania pierwszego filtra.
+   Aktywny: pełna ramka w akcencie i licznik - to JEDYNY sygnał, że kalendarz
+   czegoś nie pokazuje, odkąd pasek przestał wypisywać statusy. */
+const AddButton = styled.button<{ $active?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
     border-radius: 8px;
-    background: transparent;
-    border: 1px dashed #cbd5e1;
+    background: ${p => p.$active
+        ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 10%, #fff)'
+        : 'transparent'};
+    border: 1px ${p => p.$active ? 'solid' : 'dashed'} ${p => p.$active
+        ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 45%, transparent)'
+        : '#cbd5e1'};
     font-size: 12px;
-    color: #64748b;
+    color: ${p => p.$active ? '#0284c7' : '#64748b'};
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
@@ -171,9 +139,13 @@ const AddButton = styled.button`
     white-space: nowrap;
 
     &:hover {
-        border-color: #94a3b8;
-        color: #475569;
-        background: #f8fafc;
+        border-color: ${p => p.$active
+            ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 70%, transparent)'
+            : '#94a3b8'};
+        color: ${p => p.$active ? '#0369a1' : '#475569'};
+        background: ${p => p.$active
+            ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 16%, #fff)'
+            : '#f8fafc'};
     }
 
     svg {
@@ -181,6 +153,22 @@ const AddButton = styled.button`
         height: 11px;
         flex-shrink: 0;
     }
+`;
+
+const FilterCountBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 9999px;
+    background: var(--brand-primary, #0ea5e9);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
 `;
 
 const Spacer = styled.div`
@@ -505,20 +493,6 @@ const ColorSwatch = styled.span<{ $hex: string }>`
     border: 1px solid rgba(0,0,0,0.08);
 `;
 
-const ColorChip = styled.span<{ $hex: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 4px 4px 8px;
-    border-radius: 8px;
-    background: ${p => p.$hex}18;
-    border: 1px solid ${p => p.$hex}50;
-    font-size: 12px;
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
-`;
-
 /* ─────────────────────────────────────────────────────────────────
    SVG helpers
 ───────────────────────────────────────────────────────────────── */
@@ -527,14 +501,6 @@ const CheckIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
-
-const XIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
 );
 
@@ -566,6 +532,13 @@ const CalendarIcon = () => (
         <line x1="16" y1="2" x2="16" y2="6" />
         <line x1="8" y1="2" x2="8" y2="6" />
         <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+);
+
+const FunnelIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     </svg>
 );
 
@@ -630,6 +603,11 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
 
     const allStatusesActive = activeStatuses.length === ALL_STATUSES.length;
     const allActive = allStatusesActive && hiddenColorIds.length === 0;
+
+    /* Liczymy to, co UKRYTE, a nie to, co widoczne - bo tyle właśnie zmienił
+       użytkownik i tyle musi cofnąć, żeby wrócić do pełnego kalendarza. */
+    const hiddenFilterCount =
+        (ALL_STATUSES.length - activeStatuses.length) + hiddenColorIds.length;
 
     const toggle = (status: AppointmentStatus | VisitStatus) => {
         const meta = STATUS_META[status];
@@ -774,64 +752,49 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                     </svg>
                 </SearchIcon>
 
-                <ShowLabel>Pokaż:</ShowLabel>
-
-                {/* All-active single chip */}
-                {allActive ? (
-                    <AllChip>
-                        <ChipDot $color="#0ea5e9" />
-                        Wszystkie wydarzenia
-                    </AllChip>
-                ) : (
+                {/* Odznaczenie JEDNEGO statusu wypisywało tu siedem pozostałych:
+                    lista rosła tym bardziej, im mniej użytkownik zmienił, i
+                    rozpychała pasek. Kiedy filtr jest aktywny, pasek nie
+                    wylicza już nic - cały komunikat niesie podświetlony
+                    przycisk z licznikiem, a szczegóły są o jedno kliknięcie
+                    dalej, w tym samym panelu, w którym się je ustawia. */}
+                {allActive && (
                     <>
-                        {!allStatusesActive && activeStatuses.map(s => {
-                            const m = STATUS_META[s];
-                            return (
-                                <Chip key={s} $color={m.dot}>
-                                    <ChipDot $color={m.dot} />
-                                    {m.label}
-                                    <ChipRemove
-                                        onClick={() => toggle(s)}
-                                        title={`Usuń filtr: ${m.label}`}
-                                        aria-label={`Usuń filtr: ${m.label}`}
-                                    >
-                                        <XIcon />
-                                    </ChipRemove>
-                                </Chip>
-                            );
-                        })}
-
-                        {hiddenColorIds.length > 0 && availableColors
-                            .filter(color => !hiddenColorIds.includes(color.id))
-                            .map(color => (
-                                <ColorChip key={color.id} $hex={color.hexColor}>
-                                    <ColorSwatch $hex={color.hexColor} />
-                                    {color.name}
-                                    <ChipRemove
-                                        onClick={() => toggleColor(color.id)}
-                                        title={`Ukryj kolor: ${color.name}`}
-                                        aria-label={`Ukryj kolor: ${color.name}`}
-                                    >
-                                        <XIcon />
-                                    </ChipRemove>
-                                </ColorChip>
-                            ))}
+                        <ShowLabel>Pokaż:</ShowLabel>
+                        <AllChip>
+                            <ChipDot $color="#0ea5e9" />
+                            Wszystkie wydarzenia
+                        </AllChip>
                     </>
                 )}
 
                 {/* Add filter button */}
                 <AddButton
                     ref={addButtonRef}
+                    $active={!allActive}
                     onClick={togglePopup}
                     aria-expanded={popupOpen}
                     aria-haspopup="menu"
+                    title={allActive
+                        ? undefined
+                        : `Aktywne filtry: ${hiddenFilterCount}`}
                 >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Dodaj filtr
+                    {allActive ? (
+                        <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Dodaj filtr
+                        </>
+                    ) : (
+                        <>
+                            <FunnelIcon />
+                            Filtry
+                            <FilterCountBadge>{hiddenFilterCount}</FilterCountBadge>
+                        </>
+                    )}
                 </AddButton>
 
                 {/* Right side: clear + count */}
