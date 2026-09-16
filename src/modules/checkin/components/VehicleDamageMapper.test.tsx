@@ -123,6 +123,44 @@ describe('VehicleDamageMapper — źródła zdjęcia', () => {
     });
 });
 
+describe('VehicleDamageMapper — miniatura przypiętego zdjęcia', () => {
+    const attached: DamagePoint = {
+        ...point,
+        photos: [{ photoId: 'photo-1', strokes: [] }],
+    };
+
+    it('odnajduje adres po identyfikatorze, gdy punkt go nie niesie', () => {
+        /*
+         * Tak wygląda KAŻDE ponowne otwarcie zapisanej mapy: punkty wracają z API z
+         * samym `photoId`, bo `thumbnailUrl` jest polem wyświetleniowym i nikt go nie
+         * zapisuje. Wcześniej kafelek był pusty, a pisak nie dawał się otworzyć.
+         */
+        renderMapper({ points: [attached], availablePhotos: [slot] });
+
+        const img = screen.getByAltText('Zdjęcie uszkodzenia') as HTMLImageElement;
+        expect(img.src).toBe(slot.thumbnailUrl);
+    });
+
+    it('adres niesiony przez punkt wygrywa z listą', () => {
+        // Świeżo wysłany plik ma lokalny podgląd, zanim wróci presignowany adres.
+        const withOwnUrl: DamagePoint = {
+            ...point,
+            photos: [{ photoId: 'photo-1', strokes: [], thumbnailUrl: 'blob:local-preview' }],
+        };
+        renderMapper({ points: [withOwnUrl], availablePhotos: [slot] });
+
+        const img = screen.getByAltText('Zdjęcie uszkodzenia') as HTMLImageElement;
+        expect(img.src).toContain('blob:local-preview');
+    });
+
+    it('skasowane zdjęcie daje znak zapytania, nie pusty kafelek', () => {
+        renderMapper({ points: [attached], availablePhotos: [] });
+
+        expect(screen.queryByAltText('Zdjęcie uszkodzenia')).toBeNull();
+        expect(screen.getByTitle(/Zdjęcia nie ma już w dokumentacji/i)).toBeTruthy();
+    });
+});
+
 describe('VehicleDamageMapper — sterowanie mapą', () => {
     it('Cofnij i Wyczyść wszystko są wyłączone na pustej mapie', () => {
         renderMapper({ points: [] });

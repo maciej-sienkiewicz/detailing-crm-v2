@@ -376,6 +376,21 @@ const DamagePhotoAnnotatedBadge = styled.span`
   }
 `;
 
+/* Zdjęcie przypięte do punktu, którego nie ma już w dokumentacji wizyty (ktoś je
+   skasował). Pusty kafelek wyglądał jak błąd ładowania; znak zapytania mówi, że
+   oznaczenie zostało, a obrazka nie ma. */
+const DamagePhotoMissing = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 20px;
+  font-weight: 700;
+  color: ${props => props.theme.colors.textMuted};
+  background: ${props => props.theme.colors.surfaceAlt};
+`;
+
 const AttachPhotoBtn = styled.button`
   display: inline-flex;
   flex-direction: column;
@@ -705,6 +720,23 @@ export const VehicleDamageMapper = ({
 
   const photoUrl = (slot: PhotoSlot) => slot.thumbnailUrl || slot.previewUrl;
 
+  /**
+   * Adres obrazka dla zdjęcia PRZYPIĘTEGO do punktu.
+   *
+   * `DamagePointPhoto.thumbnailUrl` jest polem wyświetleniowym, którego nikt nie
+   * zapisuje — wypełnia je tylko ta sesja, w której zdjęcie przypięto. Po ponownym
+   * otwarciu mapy (albo gdy zdjęcie przyszło z telefonu) pole jest puste i kafelek
+   * był PUSTY, a pisak do zaznaczania nie dawał się otworzyć. Adresy podpisane
+   * niesie lista dostępnych zdjęć, więc bierzemy je stamtąd po identyfikatorze;
+   * `thumbnailUrl` zostaje jako wariant szybszy (świeżo wysłany plik, który jeszcze
+   * nie wrócił z serwera).
+   */
+  const attachedPhotoUrl = (photo: DamagePointPhoto): string | undefined => {
+    if (photo.thumbnailUrl) return photo.thumbnailUrl;
+    const slot = availablePhotos.find(candidate => candidate.id === photo.photoId);
+    return slot ? photoUrl(slot) : undefined;
+  };
+
   const handleAttachPhoto = (pointId: number, slot: PhotoSlot) => {
     const attached: DamagePointPhoto = {
       photoId: slot.id,
@@ -879,15 +911,17 @@ export const VehicleDamageMapper = ({
 
               {/* Photos attached to this damage point */}
               <DamagePhotoStrip onClick={e => e.stopPropagation()}>
-                {(point.photos ?? []).map(photo => (
+                {(point.photos ?? []).map(photo => {
+                  const url = attachedPhotoUrl(photo);
+                  return (
                   <DamagePhotoThumb
                     key={photo.photoId}
-                    onClick={() => photo.thumbnailUrl && setAnnotating({ pointId: point.id, photo })}
-                    title="Kliknij, aby zaznaczyć uszkodzenie na zdjęciu"
+                    onClick={() => url && setAnnotating({ pointId: point.id, photo: { ...photo, thumbnailUrl: url } })}
+                    title={url ? 'Kliknij, aby zaznaczyć uszkodzenie na zdjęciu' : 'Zdjęcia nie ma już w dokumentacji wizyty'}
                   >
-                    {photo.thumbnailUrl && (
-                      <img src={photo.thumbnailUrl} alt="Zdjęcie uszkodzenia" draggable={false} />
-                    )}
+                    {url
+                      ? <img src={url} alt="Zdjęcie uszkodzenia" draggable={false} />
+                      : <DamagePhotoMissing aria-hidden="true">?</DamagePhotoMissing>}
                     <AnnotationOverlay strokes={photo.strokes} />
                     {photo.strokes.length > 0 && (
                       <DamagePhotoAnnotatedBadge title="Zdjęcie z oznaczeniem">
@@ -908,7 +942,8 @@ export const VehicleDamageMapper = ({
                       ×
                     </DamagePhotoRemove>
                   </DamagePhotoThumb>
-                ))}
+                  );
+                })}
                 <AttachPhotoBtn
                   type="button"
                   onClick={() => openPicker(point.id)}

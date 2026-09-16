@@ -369,9 +369,18 @@ export interface QRTokenResponse {
 
 // ─── Mobile Checkin Context ───────────────────────────────────────────────────
 
+/** Po co otwarto sesję mobilną — decyduje, co telefon pokaże po zeskanowaniu kodu. */
+export type UploadSessionPurpose =
+    /** Przyjęcie pojazdu: zdjęcia dokumentacji ORAZ mapa uszkodzeń. */
+    | 'CHECKIN'
+    /** Aktualizacja mapy otwartej wizyty: wyłącznie uszkodzenia. */
+    | 'DAMAGE_MAP';
+
 export interface MobileCheckinContext {
     checkinId: string;
     tenantId: string;
+    /** Brak = starszy token sprzed wprowadzenia pola; traktujemy jak przyjęcie. */
+    purpose?: UploadSessionPurpose;
 }
 
 // ─── Mobile Damage Points ─────────────────────────────────────────────────────

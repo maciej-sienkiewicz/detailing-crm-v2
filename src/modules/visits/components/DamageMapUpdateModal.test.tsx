@@ -36,6 +36,23 @@ vi.mock('./DamageMapQrPanel', () => ({
     DamageMapQrPanel: () => <div data-testid="qr-panel" />,
 }));
 
+/*
+ * Sesja telefonu żyje w oknie, więc okno wciąga gniazdo WebSocket, a to kontekst
+ * uwierzytelnienia. Montowanie tu całego `AuthProvider` sprawdzałoby infrastrukturę,
+ * nie okno — a sama sesja ma własny plik testowy (useDamageMapMobileSession.test.tsx).
+ */
+vi.mock('../hooks/useDamageMapMobileSession', () => ({
+    useDamageMapMobileSession: () => ({
+        qrUrl: null,
+        secondsLeft: 0,
+        isExpired: false,
+        isStarting: false,
+        error: null,
+        phoneSeen: false,
+        start: vi.fn(),
+    }),
+}));
+
 const renderModal = (overrides: Overrides = {}) => {
     const onSubmit: Mock = overrides.onSubmit ?? vi.fn().mockResolvedValue(undefined);
     const onClose: Mock = overrides.onClose ?? vi.fn();

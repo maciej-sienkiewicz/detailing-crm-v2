@@ -22,6 +22,7 @@ import { VehicleDamageMapper } from '@/modules/checkin/components/VehicleDamageM
 import type { DamagePoint, PhotoSlot } from '@/modules/checkin/types';
 import type { ClaimedMobilePhoto, DamageMapUpdateMode, VisitPhoto } from '../types';
 import { DamageMapQrPanel } from './DamageMapQrPanel';
+import { useDamageMapMobileSession } from '../hooks/useDamageMapMobileSession';
 import {
     buildDamageMapNotificationDraft,
     buildDamageMapPayload,
@@ -516,6 +517,22 @@ export const DamageMapUpdateModal = ({
         if (phoneVehicleType) setEditedVehicleType(phoneVehicleType);
     };
 
+    /*
+     * Sesja telefonu żyje tak długo jak OKNO, nie jak zakładka z kodem QR. Panel
+     * niżej jest zakładką w oknie wyboru zdjęcia — operator zamyka je i odchodzi do
+     * samochodu, a to jest dokładnie moment, w którym telefon ma działać. Gdy sesja
+     * siedziała w panelu, jego odmontowanie zabijało gniazdo i zdjęcia z telefonu
+     * nigdy nie docierały do mapy.
+     */
+    const mobileSession = useDamageMapMobileSession({
+        visitId,
+        points,
+        vehicleType,
+        knownPhotoIds,
+        onPointsFromPhone: handlePointsFromPhone,
+        onPhotosClaimed,
+    });
+
     const handleSubmit = async () => {
         try {
             await onSubmit(buildDamageMapPayload({
@@ -687,16 +704,7 @@ export const DamageMapUpdateModal = ({
                                 vehicleType={vehicleType}
                                 onVehicleTypeChange={setEditedVehicleType}
                                 onUploadPhotoFile={onUploadPhotoFile}
-                                renderQrPanel={() => (
-                                    <DamageMapQrPanel
-                                        visitId={visitId}
-                                        currentPoints={points}
-                                        vehicleType={vehicleType}
-                                        knownPhotoIds={knownPhotoIds}
-                                        onPointsFromPhone={handlePointsFromPhone}
-                                        onPhotosClaimed={onPhotosClaimed}
-                                    />
-                                )}
+                                renderQrPanel={() => <DamageMapQrPanel session={mobileSession} />}
                             />
                         </>
                     )}

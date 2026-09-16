@@ -141,6 +141,18 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
     const { context, totalCount, hasPending } = photoLogic;
     const { damagePoints } = damageLogic;
 
+    /*
+     * Sesja otwarta z karty wizyty („Zaktualizuj uszkodzenia") służy wyłącznie mapie
+     * uszkodzeń: zdjęcie ma tam sens tylko przypięte do konkretnego punktu, a osobna
+     * zakładka „Zdjęcia" prowadziłaby do wysyłki, której okno na komputerze nie
+     * wiąże z żadnym uszkodzeniem. Przy przyjęciu pojazdu obie zakładki zostają.
+     *
+     * Brak `purpose` (starszy token wydany przed wprowadzeniem tego pola) znaczy
+     * przyjęcie — czyli zachowanie dotychczasowe.
+     */
+    const damageOnly = context?.purpose === 'DAMAGE_MAP';
+    const currentTab: ActiveTab = damageOnly ? 'damage' : activeTab;
+
     return (
         <MobileContainer>
             <Header>
@@ -149,16 +161,16 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                     </svg>
-                    Dokumentacja pojazdu
+                    {damageOnly ? 'Mapa uszkodzeń' : 'Dokumentacja pojazdu'}
                 </Logo>
-                <Title>Dokumentacja pojazdu</Title>
+                <Title>{damageOnly ? 'Mapa uszkodzeń' : 'Dokumentacja pojazdu'}</Title>
                 {context && (
                     <Subtitle>Sesja: {context.checkinId.slice(0, 8)}...</Subtitle>
                 )}
             </Header>
 
             {/* Tab navigation */}
-            <TabBar>
+            {!damageOnly && <TabBar>
                 <Tab $active={activeTab === 'photos'} onClick={() => setActiveTab('photos')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -176,11 +188,11 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                     Uszkodzenia
                     {damagePoints.length > 0 && <TabBadge>{damagePoints.length}</TabBadge>}
                 </Tab>
-            </TabBar>
+            </TabBar>}
 
             {/* Tab content */}
-            {activeTab === 'photos' && <MobilePhotoSection logic={photoLogic} />}
-            {activeTab === 'damage' && <MobileDamageSection logic={damageLogic} />}
+            {currentTab === 'photos' && <MobilePhotoSection logic={photoLogic} />}
+            {currentTab === 'damage' && <MobileDamageSection logic={damageLogic} />}
 
             {/* Gotowe button */}
             <GotowFooter>
