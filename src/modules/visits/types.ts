@@ -18,19 +18,15 @@ export interface DoorToDoorInfo {
     pickupAddress: DoorToDoorAddress;
     deliveryAddress: DoorToDoorAddress;
     notes: string;
-    /**
-     * Kierowca i termin dostarczenia.
-     *
-     * UWAGA: tych dwóch pól backend jeszcze NIE przechowuje - kontrakt
-     * `PUT /visits/:id/door-to-door` przyjmuje dziś tylko adresy i uwagi.
-     * Frontend wysyła je zgodnie z przyjętą w tym repo konwencją (najpierw
-     * frontend, potem backend wg specyfikacji - patrz
-     * docs/door-to-door-api-spec.md). Do czasu wdrożenia po stronie backendu
-     * wrócą z API jako undefined.
-     */
+    /** Kierowca; `driverName` to migawka nazwiska z chwili przypisania. */
     driverId?: string | null;
     driverName?: string | null;
-    /** ISO 8601, lokalna strefa studia. */
+    /**
+     * Termin dostarczenia. Z API przychodzi jako instant UTC
+     * (`2026-09-23T18:15:00Z`), w formularzu żyje jako czas ścienny
+     * (`2026-09-23T20:15`) - konwersję robią `instantToLocalDateTime`
+     * i `localDateTimeToInstant` na granicy okna i API.
+     */
     scheduledAt?: string | null;
 }
 

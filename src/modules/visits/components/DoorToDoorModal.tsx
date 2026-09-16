@@ -4,6 +4,7 @@ import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, Mod
 import { SharedButton } from '@/common/styles';
 import { Toggle } from '@/common/components/Toggle';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
+import { instantToLocalDateTime } from '@/common/utils';
 import { useEmployees } from '@/modules/employees/hooks';
 import type { DoorToDoorInfo } from '../types';
 
@@ -94,38 +95,6 @@ const Divider = styled.hr`
     margin: 4px 0;
 `;
 
-// ─── Confirm phase ────────────────────────────────────────────────────────────
-
-/* "Prowadź" zostaje, ale przy adresie dostarczenia, a nie na osobnym ekranie
-   "potwierdzenia" - nawigacja to właściwość adresu, nie krok procesu. */
-const NavButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px 20px;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid #0ea5e9;
-    background: #0ea5e9;
-    color: #fff;
-    transition: all 160ms ease;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
-
-    svg { width: 17px; height: 17px; }
-
-    &:hover {
-        background: #0284c7;
-        border-color: #0284c7;
-        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.38);
-        transform: translateY(-1px);
-    }
-`;
-
-
 // ─── Dodane przy przebudowie ──────────────────────────────────────────────────
 
 const EnableRow = styled.div`
@@ -178,6 +147,39 @@ const CopyBtn = styled.button`
 
     &:hover { color: #0369a1; }
     &:disabled { color: #cbd5e1; cursor: default; }
+`;
+
+/* Który odcinek trasy bierzemy na siebie, wynika z tego, które adresy są
+   wypełnione - nie każde zlecenie to przejazd w obie strony. Mówimy to wprost,
+   zamiast kazać użytkownikowi zgadywać. */
+const RouteSummary = styled.p`
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 0;
+    padding: 9px 11px;
+    border-radius: 8px;
+    background: #f0f9ff;
+    color: #075985;
+    font-size: 12.5px;
+    line-height: 1.45;
+
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+`;
+
+const FormError = styled.p`
+    margin: 0;
+    padding: 9px 11px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 12.5px;
+    line-height: 1.45;
 `;
 
 const FieldError = styled.p`
@@ -254,6 +256,9 @@ export const DoorToDoorModal = ({
         pickupAddress: initialData?.pickupAddress?.city || initialData?.pickupAddress?.street
             ? initialData.pickupAddress
             : { city: customerAddress?.city ?? '', street: customerAddress?.street ?? '' },
+        /* Backend przechowuje termin jako instant UTC, a picker pracuje na czasie
+           ściennym - bez tej zamiany zapisana 20:15 wracałaby jako 18:15. */
+        scheduledAt: instantToLocalDateTime(initialData?.scheduledAt),
     }));
     const [touched, setTouched] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -267,16 +272,33 @@ export const DoorToDoorModal = ({
     const pickupState = addressState(data.pickupAddress);
     const deliveryState = addressState(data.deliveryAddress);
 
+    /* Door to Door to JEDEN LUB DWA odcinki, nie zawsze oba. Klient może chcieć
+       tylko odbioru ("zabierzcie auto sprzed domu, wrócę po nie sam") albo tylko
+       dostarczenia ("przywiozę je rano, odwieźcie do biura"). Wymóg adresu
+       dostarczenia blokował ten pierwszy przypadek - stąd zasada: przy włączonej
+       usłudze musi być kompletny CO NAJMNIEJ JEDEN adres. */
     const errors = useMemo(() => {
         if (!data.enabled) return {};
+        const noLeg = pickupState === 'empty' && deliveryState === 'empty';
         return {
             pickup: pickupState === 'partial' ? 'Podaj miasto i ulicę albo zostaw puste' : null,
-            delivery: deliveryState === 'partial' ? 'Podaj miasto i ulicę albo zostaw puste'
-                : deliveryState === 'empty' ? 'Podaj adres dostarczenia' : null,
+            delivery: deliveryState === 'partial' ? 'Podaj miasto i ulicę albo zostaw puste' : null,
+            form: noLeg
+                ? 'Podaj adres odbioru, adres dostarczenia albo oba - inaczej nie ma czego przewozić.'
+                : null,
         };
     }, [data.enabled, pickupState, deliveryState]);
 
-    const hasErrors = Boolean(errors.pickup || errors.delivery);
+    const hasErrors = Boolean(errors.pickup || errors.delivery || errors.form);
+
+    const routeSummary =
+        pickupState === 'complete' && deliveryState === 'complete'
+            ? 'Odbieramy pojazd i odwozimy go po realizacji.'
+            : pickupState === 'complete'
+                ? 'Odbieramy pojazd. Po realizacji klient odbiera go osobiście w studiu.'
+                : deliveryState === 'complete'
+                    ? 'Klient dostarcza pojazd do studia. Po realizacji odwozimy go pod wskazany adres.'
+                    : null;
 
     const copyPickupToDelivery = () =>
         update({ deliveryAddress: { ...data.pickupAddress } });
@@ -405,21 +427,18 @@ export const DoorToDoorModal = ({
                                     </FieldGroup>
                                 </TwoCol>
                                 {touched && errors.delivery && <FieldError>{errors.delivery}</FieldError>}
-                                {deliveryState === 'complete' && (
-                                    <NavButton
-                                        type="button"
-                                        onClick={() => {
-                                            const addr = `${data.deliveryAddress.street}, ${data.deliveryAddress.city}`;
-                                            window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`, '_blank', 'noopener');
-                                        }}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                        </svg>
-                                        Prowadź
-                                    </NavButton>
-                                )}
                             </div>
+
+                            {routeSummary && (
+                                <RouteSummary>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 16v-4M12 8h.01" />
+                                    </svg>
+                                    {routeSummary}
+                                </RouteSummary>
+                            )}
+                            {touched && errors.form && <FormError>{errors.form}</FormError>}
 
                             <Divider />
 
