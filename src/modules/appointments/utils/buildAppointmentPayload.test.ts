@@ -43,7 +43,7 @@ describe('buildAppointmentPayload - basePriceGross', () => {
     expect(payload.services[0].serviceId).toBeNull();
   });
 
-  it('usługa z katalogu (z serviceId) też niesie basePriceGross - nieszkodliwe, backend i tak czyta własny rekord', () => {
+  it('usługa z katalogu (z serviceId) też niesie basePriceGross', () => {
     const data = baseData({
       serviceRefs: { 'line-1': 'catalog-svc-1' },
       serviceBasePrices: { 'line-1': 154472 },
@@ -54,6 +54,32 @@ describe('buildAppointmentPayload - basePriceGross', () => {
 
     expect(payload.services[0].serviceId).toBe('catalog-svc-1');
     expect(payload.services[0].basePriceGross).toBe(190000);
+  });
+
+  // Ten przypadek NIE jest ozdobnikiem, choć pozycja ma serviceId.
+  //
+  // Dla zwykłej usługi backend istotnie czyta cenę z własnego rekordu i kwota
+  // z żądania go nie obchodzi. Usługa z `requireManualPrice` nie ma jednak ceny
+  // katalogowej - serwer trzyma przy niej zero, celowo - więc obie kwoty z tego
+  // payloadu są JEDYNYM źródłem ceny takiej pozycji. Zgubione tutaj, nie odtworzą
+  // się już nigdzie: rezerwacja zapisze się za 0 zł.
+  it('cena ustalona ręcznie jedzie w obu kwotach - dla usługi bez ceny w cenniku to jedyne źródło', () => {
+    // Człowiek wpisał 1900,00 zł w polu BRUTTO okna „Wprowadź cenę". Netto jest
+    // pochodne (154472 gr), ale brutto musi dojechać dokładnie takie, jakie wpisał:
+    // odtworzone z netta dałoby 1900,01 zł.
+    const data = baseData({
+      serviceRefs: { 'line-1': 'manual-price-svc' },
+      serviceBasePrices: { 'line-1': 154472 },
+      servicePrices: { 'line-1': 1900 },
+    });
+
+    const payload = buildAppointmentPayload(data);
+
+    expect(payload.services[0].serviceId).toBe('manual-price-svc');
+    expect(payload.services[0].basePriceNet).toBe(154472);
+    expect(payload.services[0].basePriceGross).toBe(190000);
+    // Rabat zerowy: kwota bazowa JEST kwotą końcową, nic jej po drodze nie zmienia.
+    expect(payload.services[0].adjustment).toEqual({ type: 'PERCENT', value: 0 });
   });
 
   it('grosze są zaokrąglane, nie ucinane (1900,005 → 190001, nie 190000)', () => {
