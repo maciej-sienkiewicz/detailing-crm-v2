@@ -32,6 +32,8 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { useDeleteOperation } from '@/modules/operations/hooks/useDeleteOperation';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { CalendarFilterBar } from './CalendarFilterBar';
+import { CalendarDisplaySettings } from './CalendarDisplaySettings';
+import { useCalendarDisplaySettings } from '../hooks/useCalendarDisplaySettings';
 import { StudioEventModal } from './StudioEventModal';
 import { useStudioCalendarEvents, useStudioCalendarEventMutations, toIsoDate } from '../hooks/useStudioCalendarEvents';
 import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
@@ -1497,6 +1499,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
     const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
+
+    /* Ustawienia siatki miesiąca, zapamiętywane per urządzenie. */
+    const {
+        showWeekends,
+        showAdjacentMonthDays,
+        isDefault: displayIsDefault,
+        setShowWeekends,
+        setShowAdjacentMonthDays,
+        reset: resetDisplaySettings,
+    } = useCalendarDisplaySettings();
     // Domyślnie na telefonie kalendarz otwiera się w widoku Lista, ale nie wtedy,
     // gdy trafiliśmy tu z Tablicy przez "Pokaż w kalendarzu": karta lecąca do
     // konkretnej wizyty ma dokąd wylądować dopiero na siatce miesiąca. Uruchomienie
@@ -2451,6 +2463,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             <MobileFilterBadge>{deselectedCount}</MobileFilterBadge>
                         )}
                     </MobileFilterPill>
+                    {!selectionMode && !agendaListActive && currentView === 'dayGridMonth' && (
+                        <CalendarDisplaySettings
+                            withLabel
+                            showWeekends={showWeekends}
+                            showAdjacentMonthDays={showAdjacentMonthDays}
+                            onShowWeekendsChange={setShowWeekends}
+                            onShowAdjacentMonthDaysChange={setShowAdjacentMonthDays}
+                            isDefault={displayIsDefault}
+                            onReset={resetDisplaySettings}
+                        />
+                    )}
                     {!selectionMode && can('VISITS_CREATE') && (
                         <>
                             <MobileEventModeBtn
@@ -2538,6 +2561,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 </ViewSwitchBtn>
                             ))}
                         </ViewSwitchGroup>
+
+                        {/* Ustawienia dotyczą siatki miesiąca, więc pokazują się
+                            tylko wtedy, gdy ta siatka jest na ekranie. */}
+                        {!selectionMode && currentView === 'dayGridMonth' && (
+                            <CalendarDisplaySettings
+                                showWeekends={showWeekends}
+                                showAdjacentMonthDays={showAdjacentMonthDays}
+                                onShowWeekendsChange={setShowWeekends}
+                                onShowAdjacentMonthDaysChange={setShowAdjacentMonthDays}
+                                isDefault={displayIsDefault}
+                                onReset={resetDisplaySettings}
+                            />
+                        )}
 
                         {!selectionMode && can('VISITS_CREATE') && (
                             <>
@@ -2704,6 +2740,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 views={{
                     dayGridMonth: {
                         titleFormat: { year: 'numeric', month: 'long' },
+                        /* Ustawienia dotyczą WYŁĄCZNIE siatki miesiąca i celowo
+                           siedzą w `views`, a nie na głównym poziomie. Globalne
+                           `weekends={false}` przycina zakres, który FullCalendar
+                           zgłasza w datesSet (zmierzone: miesiąc kończył się
+                           10-10 zamiast 10-12), a z tego zakresu pobierane są
+                           wydarzenia dla WSZYSTKICH widoków - także własnego
+                           widoku tygodnia i dnia, które weekendy pokazują.
+                           Sobotnie i niedzielne wizyty zniknęłyby wtedy również
+                           tam, gdzie nikt o to nie prosił. */
+                        weekends: showWeekends,
+                        showNonCurrentDates: showAdjacentMonthDays,
+                        /* Bez dni sąsiednich szósty wiersz byłby pusty - siatka
+                           schodzi do tylu tygodni, ile miesiąc naprawdę zajmuje,
+                           a wiersze robią się wyższe. O to chodzi w tym trybie. */
+                        fixedWeekCount: showAdjacentMonthDays,
                     },
                     timeGridWeek: {
                         titleFormat: { year: 'numeric', month: 'long', day: 'numeric' },
