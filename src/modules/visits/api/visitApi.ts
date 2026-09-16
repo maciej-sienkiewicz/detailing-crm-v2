@@ -637,9 +637,24 @@ export const visitApi = {
         await apiClient.patch(`${BASE_PATH}/${visitId}/title`, { title });
     },
 
+    /**
+     * Zlecenie / aktualizacja Door to Door.
+     *
+     * `enabled`, `driverId` i `scheduledAt` to pola, których backend jeszcze nie
+     * obsługuje - wysyłamy je zgodnie z konwencją repo (frontend pierwszy,
+     * backend wg docs/door-to-door-api-spec.md). Nieznane pola powinny zostać
+     * zignorowane, dopóki kontrakt nie zostanie rozszerzony.
+     */
     updateDoorToDoor: async (
         visitId: string,
-        data: { pickupAddress: { city: string; street: string }; deliveryAddress: { city: string; street: string }; notes?: string }
+        data: {
+            enabled?: boolean;
+            pickupAddress: { city: string; street: string };
+            deliveryAddress: { city: string; street: string };
+            notes?: string;
+            driverId?: string | null;
+            scheduledAt?: string | null;
+        }
     ): Promise<void> => {
         await apiClient.put(`${BASE_PATH}/${visitId}/door-to-door`, data);
     },

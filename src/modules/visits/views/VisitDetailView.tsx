@@ -671,7 +671,7 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(activeVisitId);
     const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(activeVisitId);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
-    const { showWarning } = useToast();
+    const { showWarning, showSuccess, showError } = useToast();
     const { pendingReminder } = useSmsReminder(activeVisitId);
 
     const { can } = usePermissions();
@@ -1192,18 +1192,43 @@ export const VisitDetailView = () => {
                 />
             )}
 
-            {can('VISITS_CREATE') && <DoorToDoorModal
-                isOpen={isDoorToDoorOpen}
+            {/* Montowany warunkowo: inaczej stan formularza zamraża się przy
+                pierwszym renderze widoku i nie widzi danych wizyty, gdy te
+                doładują się później. */}
+            {can('VISITS_CREATE') && isDoorToDoorOpen && <DoorToDoorModal
+                isOpen
                 initialData={visit.doorToDoor}
+                customerAddress={{
+                    city: visit.customer.companyAddress?.city,
+                    street: visit.customer.companyAddress?.street,
+                }}
                 onClose={() => setIsDoorToDoorOpen(false)}
-                onConfirm={(data) => {
-                    visitApi.updateDoorToDoor(visit.id, {
-                        pickupAddress: data.pickupAddress,
-                        deliveryAddress: data.deliveryAddress,
-                        notes: data.notes || undefined,
-                    }).then(() => {
+                onConfirm={async (data) => {
+                    /* Wcześniej: .then() bez .catch(). Gdy zapis padał (brak
+                       sieci, 4xx), użytkownik i tak widział ekran wyglądający
+                       na potwierdzenie - wizyta zostawała bez adresu, a nikt
+                       o tym nie wiedział. */
+                    try {
+                        await visitApi.updateDoorToDoor(visit.id, {
+                            enabled: data.enabled,
+                            pickupAddress: data.pickupAddress,
+                            deliveryAddress: data.deliveryAddress,
+                            notes: data.notes || undefined,
+                            driverId: data.driverId ?? null,
+                            scheduledAt: data.scheduledAt ?? null,
+                        });
+                        /* Karta wizyty czyta Door to Door z zapytania o WIZYTĘ -
+                           bez tego unieważnienia zmiana była widoczna dopiero po
+                           odświeżeniu strony. */
+                        queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visit.id) });
                         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-                    });
+                        showSuccess(data.enabled
+                            ? 'Door to Door zapisany'
+                            : 'Door to Door wyłączony dla tej wizyty');
+                    } catch {
+                        showError('Nie udało się zapisać Door to Door');
+                        throw new Error('door-to-door save failed');
+                    }
                 }}
             />}
 
