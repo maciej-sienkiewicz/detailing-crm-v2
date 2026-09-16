@@ -74,7 +74,9 @@ export const ManualPriceModal = ({
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
-        if (basePriceGross <= 0 && basePriceNet <= 0) return;
+        // Bez blokady na cenę większą od zera. 0 zł to LEGALNA cena, nie brak ceny:
+        // część usług bywa darmowa (gratis, gest wobec klienta, coś dorzuconego do
+        // pakietu). Blokada zmuszała do wpisania grosza tam, gdzie miało być za darmo.
         onConfirm({ basePriceNet, basePriceGross, vatRate });
     };
 
@@ -142,11 +144,9 @@ export const ManualPriceModal = ({
                         <Button type="button" $variant="secondary" onClick={onClose}>
                             Anuluj
                         </Button>
-                        <Button
-                            type="submit"
-                            $variant="primary"
-                            disabled={basePriceNet <= 0 && basePriceGross <= 0}
-                        >
+                        {/* Przycisk aktywny również przy 0 zł - darmowa usługa to
+                            poprawny wynik tego okna, nie stan do zablokowania. */}
+                        <Button type="submit" $variant="primary">
                             Dodaj usługę
                         </Button>
                     </Footer>

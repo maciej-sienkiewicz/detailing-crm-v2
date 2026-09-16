@@ -82,6 +82,21 @@ describe('buildAppointmentPayload - basePriceGross', () => {
     expect(payload.services[0].adjustment).toEqual({ type: 'PERCENT', value: 0 });
   });
 
+  it('usługa darmowa (0 zł) - payload niesie 0 netto i 0 brutto, nie jest pomijana', () => {
+    // Cena 0 jest legalna: usługa ustalana ręcznie bywa darmowa. Payload ma nieść
+    // jawne zero, żeby backend dostał cenę, a nie musiał jej zgadywać.
+    const data = baseData({
+      serviceRefs: { 'line-1': 'manual-price-svc' },
+      serviceBasePrices: { 'line-1': 0 },
+      servicePrices: { 'line-1': 0 },
+    });
+
+    const payload = buildAppointmentPayload(data);
+
+    expect(payload.services[0].basePriceNet).toBe(0);
+    expect(payload.services[0].basePriceGross).toBe(0);
+  });
+
   it('grosze są zaokrąglane, nie ucinane (1900,005 → 190001, nie 190000)', () => {
     const data = baseData({
       tempServices: { 'temp-1': { name: 'X', basePriceNet: 0, vatRate: 23 } },
