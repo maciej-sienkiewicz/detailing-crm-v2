@@ -44,6 +44,7 @@ import {
     CalendarCheck,
     CalendarPlus,
     Car,
+    Check,
     ChevronDown,
     ExternalLink,
     History,
@@ -119,7 +120,7 @@ const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(
  * wizualnie cichsza. Wcześniej wszystko szło jedną kolumną w dół, więc zapytanie,
  * od którego cała sprawa się zaczęła, leżało poza pierwszym ekranem.
  */
-const BodyGrid = styled.div<{ $pane?: boolean }>`
+const BodyGrid = styled.div<{ $pane?: boolean; $editing?: boolean }>`
     display: grid;
     /*
      * JEDNA KOLEJNOŚĆ CZYTANIA, w panelu i w oknie: o co pyta klient → co mu
@@ -145,6 +146,25 @@ const BodyGrid = styled.div<{ $pane?: boolean }>`
     /* Panel obok kolejki jest węższy, więc i szyna jest węższa. */
     ${p => p.$pane && `
         grid-template-columns: minmax(0, 1fr) minmax(0, 288px);
+    `}
+
+    /*
+     * OTWARTY EDYTOR WYCENY ODWRACA PROPORCJE.
+     *
+     * Tabela usług ma siatkę [1fr 74px 60px 74px 118px] - same kolumny stałe to
+     * 326 px. W szynie szerokiej na 288-360 px na nazwę usługi zostawało zero,
+     * a układ zwinięty (nazwa + brutto w dwóch wierszach) odpala media query na
+     * szerokość OKNA PRZEGLĄDARKI, więc na monitorze nigdy się nie włączał.
+     * Efekt: tabela była w tej szynie nieczytelna, a wybór usługi niemożliwy.
+     *
+     * Edytor dostaje więc całą wolną szerokość, a zapytanie klienta zwęża się do
+     * kolumny, w której nadal daje się je czytać. Czytać trzeba: to jest ta chwila,
+     * w której sprawdza się, czy klient prosił o powłokę na trzy lata czy na pięć.
+     * Drugiej nakładki nad oknem nie stawiamy - w tym module okno leada ZASTĘPUJE
+     * się oknem kreatora, a nie przykrywa (patrz BookingFlowModal niżej).
+     */
+    ${p => p.$editing && css`
+        grid-template-columns: minmax(0, ${p.$pane ? '340px' : '380px'}) minmax(0, 1fr);
     `}
 
     /*
@@ -1861,7 +1881,7 @@ export function LeadDetailModal({
                             </Panel>
                         )}
 
-                        <BodyGrid $pane={isPane}>
+                        <BodyGrid $pane={isPane} $editing={editingServices !== null}>
                             <Column>
                                 {/* Jedyna wyniesiona sekcja szyny. Wycena jest tematem tego
                                     okna - po nią się tu wraca i o niej się rozmawia z klientem -
@@ -1954,19 +1974,29 @@ export function LeadDetailModal({
                                             <EditableServicesTable
                                                 services={editingServices}
                                                 onChange={setEditingServices}
+                                                /* Cennik jako panel obok tabeli. Pole z podpowiedziami
+                                                   wymaga, żeby wiedzieć, czego się szuka - a przy wycenie
+                                                   zapytania częściej się PRZEGLĄDA, co warsztat robi,
+                                                   niż szuka konkretnej pozycji z nazwy. */
+                                                layout="split"
                                             />
                                             {/* Sumy netto / VAT / łącznie liczy sam edytor -
                                                 druga suma pod nim byłaby tą samą liczbą
-                                                napisaną drugi raz, tylko innym stylem. */}
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <PrimaryButton onClick={saveServices} disabled={updateServices.isPending}>
-                                                    Zapisz
-                                                </PrimaryButton>
-                                                <IconButton onClick={() => setEditingServices(null)}>Anuluj</IconButton>
-                                            </div>
+                                                napisaną drugi raz, tylko innym stylem.
+                                                „Zapisz" i „Anuluj" stoją w stopce okna: edytor
+                                                przejął okno, więc jego zapis JEST teraz krokiem
+                                                następnym, a stopka jest rzędem, w którym się
+                                                w tym oknie działa (CLAUDE.md §2). */}
                                         </>
                                     )}
                                 </RailSection>
+
+                                {/* Reszta szyny znika na czas edycji wyceny. Edytor przejął
+                                    okno i zajmuje kolumnę, w której te sekcje stoją - a materiał
+                                    pomocniczy (kartoteka, podobne zlecenia, notatki) zepchnięty
+                                    pod tabelę i tak nie byłby czytany, bo wzrok pracuje wtedy
+                                    na pozycjach i kwotach. */}
+                                {editingServices === null && (<>
 
                                 {/* Kartoteka w trzech liczbach: ile razy był, ile zostawił
                                     i kiedy ostatnio. To jest kontekst, w którym czyta się
@@ -2089,6 +2119,7 @@ export function LeadDetailModal({
                                     )}
                                 </RailSection>
 
+                                </>)}
                             </Column>
 
                             <Column>
@@ -2117,6 +2148,50 @@ export function LeadDetailModal({
                 </ModalContent>
 
                 <ModalFooter>
+                    {/*
+                        OTWARTY EDYTOR PRZEJMUJE STOPKĘ.
+                        
+                        Zapis wyceny jest na ten moment krokiem następnym, a krok następny
+                        w tym oknie stoi w stopce - więc „Zapisz" idzie tutaj, zamiast
+                        zostawać przyciskiem pod tabelą. Gdyby został, okno miałoby DWA
+                        wypełnione przyciski naraz: zapis edytora i „Stwórz rezerwację"
+                        obok niego. Dokładnie ten remis zakazuje CLAUDE.md §2 i dokładnie
+                        z jego powodu użytkownik pyta, na co ma najpierw patrzeć.
+                        
+                        Kosz i „Kontakt poza pocztą" też znikają: to akcje na SPRAWIE,
+                        a otwarty edytor jest stanem, z którego najpierw się wychodzi.
+                    */}
+                    {editingServices !== null ? (
+                        <>
+                            <FooterButton
+                                type="button"
+                                onClick={() => setEditingServices(null)}
+                                disabled={updateServices.isPending}
+                            >
+                                Anuluj
+                            </FooterButton>
+                            {/* Bez strzałki, bo zapis nie prowadzi nigdzie dalej - zostaje
+                                w tym samym oknie. Strzałka jest zarezerwowana dla przejść. */}
+                            <FooterPrimary
+                                type="button"
+                                onClick={saveServices}
+                                disabled={updateServices.isPending}
+                            >
+                                <span className="glyph"><Check /></span>
+                                <span className="labels">
+                                    <span className="title">
+                                        {updateServices.isPending ? 'Zapisuję…' : 'Zapisz wycenę'}
+                                    </span>
+                                    <span className="sub">
+                                        {editingServices.length}
+                                        {' '}
+                                        {plural(editingServices.length, 'pozycja', 'pozycje', 'pozycji')}
+                                    </span>
+                                </span>
+                            </FooterPrimary>
+                        </>
+                    ) : (
+                    <>
                     {/* Kasacja sprawy w lewym narożniku stopki - sam kosz, bez napisu,
                         po przeciwnej stronie niż akcja główna. Stoi PIERWSZA w kolejności
                         dokumentu, żeby czytnik ekranu podał ją jako akcję pomocniczą przed
@@ -2220,6 +2295,8 @@ export function LeadDetailModal({
                     {/* Bez „Zamknij" w stopce: okno zamyka krzyżyk w nagłówku, a drugi
                         przycisk o tym samym znaczeniu stawał na telefonie tuż obok akcji
                         głównej i był od niej równie widoczny. */}
+                    </>
+                    )}
                 </ModalFooter>
         </>
     );
@@ -2229,7 +2306,18 @@ export function LeadDetailModal({
             {isPane ? (
                 <PaneShell>{body}</PaneShell>
             ) : (
-                <ModalShell isOpen onClose={onClose} maxWidth="1040px">{body}</ModalShell>
+                /* Okno rośnie na czas edycji wyceny. Tabela usług potrzebuje
+                   ~560 px, cennik obok niej kolejnych 314, a zapytanie klienta
+                   zostaje w kolumnie po lewej - przy 1040 px któreś z tych trzech
+                   musiałoby zniknąć. Poza edycją szersze okno byłoby tylko pustym
+                   miejscem, bo treści jest wtedy mniej. */
+                <ModalShell
+                    isOpen
+                    onClose={onClose}
+                    maxWidth={editingServices !== null ? 'min(1400px, 100%)' : '1040px'}
+                >
+                    {body}
+                </ModalShell>
             )}
 
             {callbackDialogOpen && (

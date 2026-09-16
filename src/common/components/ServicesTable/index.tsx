@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
@@ -44,6 +44,14 @@ interface Props {
     onSaveService?: (serviceId: string, data: SaveServiceData) => Promise<string | null>;
 }
 
+/**
+ * Poniżej tej szerokości tabela przechodzi w układ wąski (nazwa + brutto + akcje
+ * w dwóch wierszach). 560 px to punkt, w którym kolumny stałe (326 px) zjadają
+ * nazwę usługi do kilkudziesięciu pikseli - a nazwa jest jedyną rzeczą, po której
+ * pozycję da się rozpoznać.
+ */
+const NARROW_TABLE_WIDTH = 560;
+
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
 const VAT_LABEL = (rate: number) => rate === -1 ? 'ZW' : `${rate}%`;
 
@@ -56,6 +64,33 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'SET_GROSS', label: '=Brutto' },
 ];
 
+
+/**
+ * Czy tabela jest wąska - mierzone na NIEJ SAMEJ, a nie na oknie przeglądarki.
+ *
+ * Media query odpowiada na pytanie „czy to telefon", a tabela potrzebuje odpowiedzi
+ * na „czy mam gdzie się rozłożyć". To dwie różne rzeczy: wstawiona w 288-pikselową
+ * szynę na monitorze 1920 px tabela dostawała układ szeroki i nazwy usług znikały
+ * całkowicie. Obserwator odpowiada na to drugie pytanie.
+ */
+const useNarrowTable = () => {
+    const blockRef = useRef<HTMLDivElement>(null);
+    const [isNarrow, setIsNarrow] = useState(false);
+
+    useEffect(() => {
+        const element = blockRef.current;
+        // jsdom w testach nie ma ResizeObservera; wtedy zostaje media query.
+        if (!element || typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver((entries) => {
+            const width = entries[0]?.contentRect.width ?? 0;
+            setIsNarrow(width > 0 && width < NARROW_TABLE_WIDTH);
+        });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, []);
+
+    return { blockRef, isNarrow };
+};
 
 const grossToNet = (grossCents: number, vatRate: number): number => {
     if (vatRate <= 0) return grossCents;
@@ -110,6 +145,8 @@ const IconPencil = () => (
 );
 
 export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
+    const { blockRef, isNarrow } = useNarrowTable();
+
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
 
     // Per-service discount modal state
@@ -308,7 +345,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
 
     return (
         <>
-            <S.ServicesBlock>
+            <S.ServicesBlock ref={blockRef} $narrow={isNarrow}>
                 <S.ServicesTableHeader>
                     <S.ServicesHeaderCell>Usługa</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell>Netto</S.ServicesHeaderCell>

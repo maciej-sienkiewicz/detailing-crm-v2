@@ -1,13 +1,4 @@
-import styled, { keyframes } from 'styled-components';
-
-export const ServicesBlock = styled.div`
-    border: 1.5px solid #e2e8f0;
-    border-radius: 14px;
-    overflow: hidden;
-    transition: border-color 180ms ease;
-
-    &:focus-within { border-color: #bae6fd; }
-`;
+import styled, { css, keyframes } from 'styled-components';
 
 export const ServicesTableHeader = styled.div`
     display: grid;
@@ -808,4 +799,92 @@ export const EditSaveBtn = styled.button`
 
     &:hover { background: #6d28d9; }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+/**
+ * Układ wąski: to samo, co dotąd robiła tylko media query na 639 px.
+ *
+ * Siatka szeroka ma kolumny [1fr 74px 60px 74px 118px] - same stałe to 326 px.
+ * Poniżej mniej więcej 560 px na nazwę usługi nie zostaje nic i tabela robi się
+ * nieczytelna. Dotąd pilnowała tego WYŁĄCZNIE szerokość okna przeglądarki, więc
+ * tabela wstawiona w wąską kolumnę na dużym monitorze rozsypywała się po cichu -
+ * dokładnie to stało się z edytorem wyceny w szynie leada (288 px). Teraz decyduje
+ * szerokość WŁASNA tabeli, mierzona w index.tsx.
+ *
+ * Media query zostaje obok jako natychmiastowa odpowiedź przy pierwszym renderze,
+ * zanim obserwator zdąży się odezwać. Obie ścieżki dają ten sam układ, więc nie
+ * ma między nimi konfliktu.
+ */
+const narrowLayout = css`
+    ${ServicesTableHeader} { display: none; }
+
+    ${ServiceItemRow} {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 4px 8px;
+        padding: 10px 12px;
+
+        /* netto: chowamy - w wąskiej kolumnie liczy się brutto */
+        & > :nth-child(2) { display: none; }
+        /* VAT: chowamy */
+        & > :nth-child(3) { display: none; }
+        /* brutto: prawy górny róg */
+        & > :nth-child(4) {
+            grid-column: 2;
+            grid-row: 1;
+            align-self: center;
+        }
+        /* akcje: prawy dolny róg */
+        & > :nth-child(5) {
+            grid-column: 2;
+            grid-row: 2;
+            justify-self: end;
+        }
+    }
+
+    ${ServiceNameWrap} {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        align-self: center;
+        padding-right: 0;
+    }
+
+    ${SummarySection} {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    ${SummaryTotals} {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 0;
+    }
+
+    ${SummaryItem} {
+        padding: 5px 0;
+        border-right: none;
+        border-bottom: 1px solid #f1f5f9;
+        justify-content: space-between;
+        align-items: center;
+
+        &:last-child { border-bottom: none; }
+        &:first-child { padding-left: 0; }
+    }
+`;
+
+/**
+ * Powłoka tabeli. Stoi na końcu pliku, bo [narrowLayout] adresuje jej dzieci
+ * selektorami komponentów - a te muszą być zadeklarowane wcześniej.
+ */
+export const ServicesBlock = styled.div<{ $narrow?: boolean }>`
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 180ms ease;
+
+    &:focus-within { border-color: #bae6fd; }
+
+    ${p => p.$narrow && narrowLayout}
 `;
