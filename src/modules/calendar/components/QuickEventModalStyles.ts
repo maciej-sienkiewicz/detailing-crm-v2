@@ -38,8 +38,17 @@ export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
     z-index: 1300;
     left: ${p => p.$contentLeft ?? 0}px;
 
-    @media (max-width: 639px) {
+    /* Poniżej progu md sidebar jest zsunięty z ekranu (translateX(-100%) w
+       SidebarContainer) i zamienia się w szufladę. Przesuwanie nakładki o jego
+       szerokość zabierało wtedy 248 px na element, którego nikt nie widzi -
+       przy 700 px okno miało do dyspozycji 452 px zamiast całego ekranu.
+       Warunek jest celowo TAKI SAM jak w SidebarContainer (max-width: md,
+       nie 767px), żeby oba nie mogly sie rozjechac o piksel. */
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
         left: 0;
+    }
+
+    @media (max-width: 639px) {
         padding: 0;
         align-items: flex-start;
     }
@@ -49,6 +58,7 @@ export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
 export const ModalWithPanel = styled.div`
     display: flex;
     align-items: stretch;
+    max-width: 100%;
     max-height: 88vh;
     border-radius: 16px;
     overflow: hidden;
@@ -68,11 +78,17 @@ export const ModalWithPanel = styled.div`
 
 export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
     width: 700px;
-    max-width: 700px;
+    /* 700px to szerokość DOCELOWA, nie wymuszona. Sztywne max-width: 700px
+       razem z flex-shrink: 0 sprawiało, że okno trzymało 700 px nawet wtedy,
+       gdy nakładka miała 452 px - wychodziło poza ekran z obu stron naraz i
+       nie dało się do niego doscrollować, bo nakładka jest position: fixed.
+       Teraz okno kurczy się do dostępnego miejsca. */
+    max-width: 100%;
+    min-width: 0;
     max-height: 88vh;
     box-shadow: none;
     border-radius: 0;
-    flex-shrink: 0;
+    flex-shrink: 1;
 
     &:first-child {
         border-radius: 16px 0 0 16px;
@@ -1669,6 +1685,12 @@ export const FooterActions = styled.div`
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+    /* Trzy przyciski w jednym rzędzie mieszczą się w oknie 700 px, ale nie
+       w 380 px, na które okno się kurczy po rozwinięciu panelu cykliczności.
+       Bez zawijania najdalszy w lewo ("Wyczyść wszystko") był ucinany krawędzią
+       okna - przycisk zostawał widoczny w połowie i nie dało się go przeczytać. */
+    flex-wrap: wrap;
+    row-gap: 10px;
 
     @media (max-width: 639px) {
         flex-wrap: wrap;
