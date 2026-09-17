@@ -290,6 +290,60 @@ export const useMarkThreadRead = () => {
     });
 };
 
+/**
+ * Oznaczenie POJEDYNCZEJ wiadomości jako nieprzeczytanej (menu kontekstowe rozmowy).
+ *
+ * Optymistycznie: wiadomość wraca do stanu nieprzeczytanej, a licznik wątku rośnie
+ * o jeden - w szczegółach, na liście i w sumie. Echo WS (COMM_MESSAGE_READ) i tak
+ * chwilę później unieważni wątek i listę, więc źródłem prawdy zostaje serwer;
+ * ta zmiana tylko usuwa mignięcie do czasu odświeżenia.
+ */
+export const useMarkMessageUnread = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ messageId }: { messageId: string; threadId: string }) =>
+            commsApi.markMessageUnread(messageId),
+        onMutate: async ({ messageId, threadId }) => {
+            queryClient.setQueryData<CommThreadDetail>(
+                [...COMMS_THREADS_KEY, 'detail', threadId],
+                (old) => {
+                    if (!old) return old;
+                    const target = old.messages.find((m) => m.id === messageId);
+                    // Już nieprzeczytana albo wychodząca - nic nie ruszamy (jak backend).
+                    if (!target || !target.isRead || target.direction !== 'INBOUND') return old;
+                    return {
+                        ...old,
+                        thread: { ...old.thread, unreadCount: old.thread.unreadCount + 1 },
+                        messages: old.messages.map((m) =>
+                            m.id === messageId ? { ...m, isRead: false, readSource: null, readAt: null } : m
+                        ),
+                    };
+                }
+            );
+            queryClient.setQueriesData<CommThreadPage>(
+                { queryKey: [...COMMS_THREADS_KEY, 'list'] },
+                (page) => {
+                    if (!page) return page;
+                    const target = page.items.find((item) => item.id === threadId);
+                    if (!target) return page;
+                    return {
+                        ...page,
+                        totalUnread: page.totalUnread + 1,
+                        items: page.items.map((item) =>
+                            item.id === threadId ? { ...item, unreadCount: item.unreadCount + 1 } : item
+                        ),
+                    };
+                }
+            );
+        },
+        // Gdy zapis padnie, odświeżamy z serwera - optymistyczny +1 nie może zostać.
+        onError: (_error, { threadId }) => {
+            queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'detail', threadId] });
+            queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+        },
+    });
+};
+
 export const useSetThreadArchived = () => {
     const queryClient = useQueryClient();
     return useMutation({

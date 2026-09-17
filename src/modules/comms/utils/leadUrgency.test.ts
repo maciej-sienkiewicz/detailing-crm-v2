@@ -86,24 +86,29 @@ describe('lead mailowy - ruch po stronie klienta', () => {
  */
 describe('kontakt poza pocztą przesuwa ruch do klienta', () => {
     it('telefon PO ostatniej wiadomości klienta oddaje ruch klientowi', () => {
+        // ago(HOUR) liczymy RAZ: dwa osobne wywołania mogą wypaść w różnych
+        // milisekundach, a ISO-string z .toISOString() ma dokładność milisekundy -
+        // wtedy toBe pada w wolniejszym przebiegu suity. To nie logika, to pomiar.
+        const firstResponseAt = ago(HOUR);
         const urgency = describeLeadUrgency(mailLead({
             waitingSince: ago(3 * DAY),
-            firstResponseAt: ago(HOUR),
+            firstResponseAt,
         }));
 
         expect(urgency.turn).toBe('CLIENT');
-        expect(urgency.waitingSince).toBe(ago(HOUR));
+        expect(urgency.waitingSince).toBe(firstResponseAt);
     });
 
     it('odpowiedź SPRZED ostatniej wiadomości klienta zostawia ruch u nas', () => {
         // Odpisaliśmy tydzień temu, klient napisał wczoraj - piłka wróciła.
+        const waitingSince = ago(DAY);
         const urgency = describeLeadUrgency(mailLead({
-            waitingSince: ago(DAY),
+            waitingSince,
             firstResponseAt: ago(7 * DAY),
         }));
 
         expect(urgency.turn).toBe('OURS');
-        expect(urgency.waitingSince).toBe(ago(DAY));
+        expect(urgency.waitingSince).toBe(waitingSince);
     });
 
     it('lead bez żadnej naszej reakcji zostaje w „Twój ruch"', () => {

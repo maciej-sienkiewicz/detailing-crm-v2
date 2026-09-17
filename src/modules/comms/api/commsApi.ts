@@ -96,6 +96,11 @@ export const commsApi = {
         await apiClient.post(`/v1/comms/threads/${threadId}/read`);
     },
 
+    /** Oznaczenie POJEDYNCZEJ wiadomości jako nieprzeczytanej (odwrotność otwarcia wątku). */
+    markMessageUnread: async (messageId: string): Promise<void> => {
+        await apiClient.post(`/v1/comms/messages/${messageId}/unread`);
+    },
+
     setThreadArchived: async (threadId: string, archived: boolean): Promise<void> => {
         await apiClient.put(`/v1/comms/threads/${threadId}/archive`, { archived });
     },
