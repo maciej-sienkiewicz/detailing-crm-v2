@@ -11,6 +11,43 @@ Dokument jest jednym źródłem prawdy dla tego modułu. Backend ma własny plik
 
 ---
 
+## 0a. Zmiany po decyzjach właściciela (v1.1 — wdrożone)
+
+Ten dokument powstał jako propozycja (v1.0). Po akceptacji właściciel doprecyzował
+sześć punktów; poniższe zmiany są **wdrożone w kodzie** i mają pierwszeństwo nad
+sekcjami, których dotyczą.
+
+1. **Relacja wizyta↔produkt jest czysto informacyjna.** Znika ewidencja zużycia:
+   żadnej ilości, ceny snapshotowej, kosztu materiału ani wpływu na `totalCost` czy
+   statystyki. `visit_products` niesie wyłącznie „do tej wizyty użyliśmy tego
+   produktu". **Zastępuje** §5.1–§5.3 w części o zużyciu i koszcie; §2.3 (kolumny
+   ilości/ceny w `visit_products`) — te kolumny NIE powstają. Reguła brutto (CLAUDE.md
+   §1) obowiązuje już tylko na jednym polu: opcjonalnej cenie jednostkowej w nakładce
+   studia (`product_studio`).
+2. **Krok AI ma niezależny weryfikator.** Łańcuch to LOKALNY → AI (odczyt niską
+   temperaturą + drugi, mniejszy model „czy na pewno ta karta należy do tego kodu")
+   → GS1. Weryfikator może tylko obniżyć pewność; „nie" spycha wynik poniżej progu
+   0,90 i łańcuch schodzi do GS1. **Rozszerza** §3.1/§3.3.
+3. **Skanowanie tylko przez kod QR + telefon — jak mapa uszkodzeń.** Bez wsparcia
+   skanerów USB. Komputer pokazuje kod QR, telefon otwiera aparat, wykryte kody
+   wracają po WebSocketcie (+ polling). **Zastępuje** §4.2 (część o skanerze USB)
+   i doprecyzowuje §4.3.
+4. **Uprawnienia produktów żyją w module wizyt (wzorzec BATCH_ORDERS), nie jako
+   osobny `PermissionModule`.** Repo egzekwuje testem, że każdy korzeń SPOZA modułu
+   wizyt implikuje `VISITS_CREATE` (a to ciągnie `CUSTOMERS_VIEW`). Żeby dać osobie
+   od zaopatrzenia sam katalog bez kartoteki klientów — jak chce wymaganie — korzeń
+   `PRODUCTS_VIEW` musi być niezależny i nic nie implikować, co w tym repo znaczy:
+   w module wizyt, z `featureKeyOverride = FeatureKey.PRODUCTS`. „Osobny moduł"
+   z wymagania realizują finanse/abonament (FeatureKey/AddOnKey/CapabilityKey).
+   **Zastępuje** §7.2 w części o `PermissionModule.PRODUCTS`.
+5. **Nazwa modułu:** „Produkty w studiu" (bez słowa „zużycie", które sugerowałoby
+   ewidencję rozchodu).
+
+Reszta dokumentu (dwuwarstwowy katalog, ślad pochodzenia, governance, hierarchia
+wizualna, kontrakt API poza zużyciem) obowiązuje bez zmian.
+
+---
+
 ## 0. Streszczenie decyzji
 
 Zespół (Lead Software Architect, Lead Frontend Developer, Lead CX/UX Designer, Project

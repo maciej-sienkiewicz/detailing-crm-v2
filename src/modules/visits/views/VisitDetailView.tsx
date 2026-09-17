@@ -35,6 +35,8 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { DamageMapUpdateModal } from '../components/DamageMapUpdateModal';
 import { EntityActivityTimeline } from '@/modules/activity';
+import { VisitProductsSection } from '@/modules/products';
+import { useFeature } from '@/modules/subscription/hooks/useFeature';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatDateTime } from '@/common/utils';
 
@@ -729,6 +731,9 @@ export const VisitDetailView = () => {
     const { pendingReminder } = useSmsReminder(activeVisitId);
 
     const { can } = usePermissions();
+    // Sekcja produktów pojawia się tylko, gdy studio ma wykupiony moduł — inaczej
+    // API zwróciłoby 402 i sekcja pokazywałaby błąd zamiast treści.
+    const productsFeatureEnabled = useFeature('PRODUCTS').enabled;
 
     const queryClient = useQueryClient();
 
@@ -1021,6 +1026,22 @@ export const VisitDetailView = () => {
                                 />
                             </MobileOnlyWrap>
                         </MobileSectionPanel>
+
+                        {/* Użyte produkty ───────────────────────────────── */}
+                        {productsFeatureEnabled && can('PRODUCTS_VIEW') && (
+                            <MobileSectionPanel $visible={mobileTab === 'services'}>
+                                <Section>
+                                    <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <SectionTitle>Użyte produkty</SectionTitle>
+                                    </div>
+                                    <SectionBody $visible $flush id="products-section">
+                                        <div style={{ padding: 16 }}>
+                                            <VisitProductsSection visitId={visitId!} canManage={can('PRODUCTS_USAGE')} />
+                                        </div>
+                                    </SectionBody>
+                                </Section>
+                            </MobileSectionPanel>
+                        )}
 
                         {/* Komunikacja ──────────────────────────────────── */}
                         {can('COMMUNICATION_SEND') && <MobileSectionPanel $visible={mobileTab === 'communication'}>

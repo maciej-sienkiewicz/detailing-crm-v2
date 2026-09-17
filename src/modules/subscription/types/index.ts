@@ -15,7 +15,8 @@ export type FeatureKey =
     | 'CAMPAIGNS'
     | 'E_SIGNATURES'
     | 'FINANCE'
-    | 'STATISTICS';
+    | 'STATISTICS'
+    | 'PRODUCTS';
 
 export type AddOnKey =
     | 'AI_LEAD_ASSISTANT'
@@ -24,7 +25,8 @@ export type AddOnKey =
     | 'MARKETING_CAMPAIGNS'
     | 'E_SIGNATURES'
     | 'FINANCE_MODULE'
-    | 'STATISTICS_MODULE';
+    | 'STATISTICS_MODULE'
+    | 'PRODUCTS_MODULE';
 
 export type PaymentEventType =
     | 'SUBSCRIPTION_PURCHASE'

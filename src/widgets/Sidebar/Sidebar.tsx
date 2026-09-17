@@ -23,6 +23,7 @@ import {
     Images,
     Activity,
     CircleAlert,
+    Package,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -104,6 +105,12 @@ const buildMenuSections = (
             items: [
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
                 { path: '/vehicles',  label: 'Samochody', icon: Car,   requires: 'CUSTOMERS_VIEW' },
+            ],
+        },
+        {
+            title: 'Studio',
+            items: [
+                { path: '/products', label: 'Produkty', icon: Package, requires: 'PRODUCTS_VIEW' },
             ],
         },
         {

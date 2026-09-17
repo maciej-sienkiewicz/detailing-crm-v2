@@ -45,6 +45,12 @@ export const PERMISSIONS = {
     // zdarzenia kadrowo-płacowe oraz bezpieczeństwa, więc nie może jechać na
     // uprawnieniu żadnego pojedynczego modułu. Właściciel ma dostęp zawsze.
     AUDIT_VIEW: 'AUDIT_VIEW',
+    // Produkty w studiu: niezależny korzeń (jak BATCH_ORDERS) — samo PRODUCTS_VIEW
+    // daje kompletny katalog bez kartoteki klientów. Ceny jednostkowe za PRODUCTS_COSTS.
+    PRODUCTS_VIEW: 'PRODUCTS_VIEW',
+    PRODUCTS_USAGE: 'PRODUCTS_USAGE',
+    PRODUCTS_MANAGE: 'PRODUCTS_MANAGE',
+    PRODUCTS_COSTS: 'PRODUCTS_COSTS',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

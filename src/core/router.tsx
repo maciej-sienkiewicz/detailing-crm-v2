@@ -23,6 +23,7 @@ import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { BatchOrdersView } from "@/modules/batch-orders";
+import { ProductListView, ProductDetailView, MobileProductScanView } from "@/modules/products";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
 import { NotificationsView } from '@/modules/notifications';
@@ -101,6 +102,11 @@ const INSTAGRAM_BENEFITS = [
     'Śledzenie profili konkurencji na Instagramie',
     'Analiza trendów i najpopularniejszych treści',
     'Inspiracje do własnych publikacji',
+];
+const PRODUCTS_BENEFITS = [
+    'Katalog preparatów z danymi pobieranymi z kodu kreskowego',
+    'Notatki i ocena zespołu przy każdym produkcie',
+    'Powiązania produktów z wizytami — czym było robione to auto',
 ];
 const E_SIGNATURES_BENEFITS = [
     'Elektroniczne podpisywanie dokumentów na tablecie',
@@ -234,6 +240,11 @@ export const router = createBrowserRouter([
             // Publiczny odbiór kontaktów z telefonu, bez logowania; sekret sesji w ?s=
             path: '/m/contacts',
             element: <MobileContactsImportView />,
+        },
+        {
+            // Publiczne skanowanie produktu telefonem, bez logowania; token sesji w ?s=
+            path: '/m/scan',
+            element: <MobileProductScanView />,
         },
         {
             // Public voice intake route, no auth required, token via ?token=
@@ -416,6 +427,14 @@ export const router = createBrowserRouter([
         {
             path: '/batch-orders',
             element: page(<BatchOrdersView />, 'BATCH_ORDERS'),
+        },
+        {
+            path: '/products',
+            element: gatedPage(<ProductListView />, 'PRODUCTS', PRODUCTS_BENEFITS, 'PRODUCTS_VIEW'),
+        },
+        {
+            path: '/products/:id',
+            element: gatedPage(<ProductDetailView />, 'PRODUCTS', PRODUCTS_BENEFITS, 'PRODUCTS_VIEW'),
         },
         // Landing page for users whose role grants no permissions; see getDefaultRoute.
         {
