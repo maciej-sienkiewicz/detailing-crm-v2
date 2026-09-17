@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Loader2, ArrowRight, Camera, X } from 'lucide-react';
+import { Loader2, Camera, X } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { Input, Label, FieldGroup, Select } from '@/common/components/Form';
+import { Input, Label, FieldGroup, Select, InputShell, BareInput } from '@/common/components/Form';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBreakpoint } from '@/common/hooks/useBreakpoint';
 import { UNIT_LABELS } from '../types';
@@ -27,17 +27,21 @@ import { ScanHandoffPanel } from './ScanHandoffPanel';
 // (wyjątek „otwarty edytor", CLAUDE.md §2). „Pobierz dane" i aparat noszą odcień
 // akcji bez wypełnienia.
 
-const BarcodeRow = styled.div` display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; `;
-const BarcodeInputWrap = styled.div` flex: 1 1 200px; min-width: 0; `;
-const FetchBtn = styled(SharedButton)` flex-shrink: 0; `;
-const IconBtn = styled.button`
-    flex-shrink: 0;
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px;
-    border-radius: 999px; cursor: pointer;
-    color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
-    &:hover { background: ${st.accentBlueDim}; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+// Przyciski „wmontowane" w pole — wzorzec z NipInputWithGus: siedzą wewnątrz
+// InputShell, oddzielone kreską po lewej, prawy dostaje zaokrąglenie rogu pola.
+const InFieldBtn = styled.button`
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 14px; align-self: stretch;
+    border: none; border-left: 1px solid #e2e8f0; background: none;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--brand-primary); cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background 0.15s ease;
+    &:hover:not(:disabled) { background: #f0f9ff; }
+    &:disabled { color: #94a3b8; cursor: not-allowed; }
+`;
+const InFieldIconBtn = styled(InFieldBtn)`
+    padding: 0 12px;
+    border-radius: 0 10px 10px 0;
 `;
 const StatusLine = styled.p<{ $tone: 'muted' | 'error' | 'ok' }>`
     margin: 6px 0 0; font-size: 12.5px;
@@ -260,32 +264,31 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
                 {/* Kod kreskowy — pole opcjonalne z pobraniem danych i aparatem */}
                 <FieldGroup>
                     <Label>Kod kreskowy (opcjonalnie)</Label>
-                    <BarcodeRow>
-                        <BarcodeInputWrap>
-                            <Input
-                                placeholder="np. 5901234123457"
-                                value={barcode}
-                                onChange={e => setBarcode(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') runLookup(barcode); }}
-                            />
-                        </BarcodeInputWrap>
-                        <FetchBtn
+                    <InputShell>
+                        <BareInput
+                            placeholder="np. 5901234123457"
+                            value={barcode}
+                            onChange={e => setBarcode(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') runLookup(barcode); }}
+                        />
+                        <InFieldBtn
                             type="button"
-                            $variant="secondary"
                             onClick={() => runLookup(barcode)}
                             disabled={looking || !barcode.trim()}
+                            title="Pobierz dane produktu po kodzie"
                         >
-                            {looking ? <Spin size={16} /> : <ArrowRight size={16} />} Pobierz dane
-                        </FetchBtn>
-                        <IconBtn
+                            {looking ? <Spin size={13} /> : null}
+                            {looking ? 'Pobieranie…' : 'Pobierz dane'}
+                        </InFieldBtn>
+                        <InFieldIconBtn
                             type="button"
                             onClick={() => setScanOpen(o => !o)}
                             aria-label={isDesktop ? 'Zeskanuj telefonem' : 'Zeskanuj aparatem'}
                             title={isDesktop ? 'Zeskanuj telefonem (kod QR)' : 'Zeskanuj aparatem'}
                         >
-                            <Camera size={18} />
-                        </IconBtn>
-                    </BarcodeRow>
+                            <Camera size={16} />
+                        </InFieldIconBtn>
+                    </InputShell>
                     {lookupMsg && <StatusLine $tone={lookupMsg.tone}>{lookupMsg.text}</StatusLine>}
 
                     {scanOpen && (
