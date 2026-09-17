@@ -162,12 +162,13 @@ komplet danych w 40 ms i za zero złotych.
 
 ### 2.3 Schemat bazy
 
-Schemat powstaje z encji JPA (`spring.jpa.hibernate.ddl-auto=update`), a plik
-`db/migration/V138__products_module.sql` jest **skryptem przeglądowym uruchamianym
-ręcznie** — Flyway jest w tym repo wyłączony (`spring.flyway.enabled=false`). Skrypt
-zawiera to, czego Hibernate nie zrobi: indeksy częściowe, ograniczenia `CHECK`,
-`COMMENT ON` i ewentualne backfille. Taka jest realna konwencja repozytorium (patrz
-`V99__customer_import.sql`), nie odstępstwo.
+Repo ma dwa tryby: lokalnie `ddl-auto=update` + Flyway wyłączony (schemat z encji),
+a na WDROŻENIU (`application-docker-props`) `spring.flyway.enabled=true` +
+`ddl-auto=validate` — Flyway buduje schemat, Hibernate go tylko weryfikuje. Dlatego
+`db/migration/V138__products_module.sql` jest **pełną migracją tworzącą tabele**
+(`CREATE TABLE IF NOT EXISTS`), z kolumnami dokładnie jak w encjach (inaczej `validate`
+wywali start), plus indeksy częściowe/GIN, ograniczenia `CHECK` i `COMMENT ON`. Numer
+migracji bierz z `ls … | sort -V | tail -1`, nie z gołego `ls` (V100 stoi przed V99).
 
 ```sql
 -- ── WARSTWA GLOBALNA ────────────────────────────────────────────────────────
