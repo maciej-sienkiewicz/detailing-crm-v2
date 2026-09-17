@@ -23,6 +23,7 @@ import { ProtocolSection } from './ProtocolSection';
 import { ThankYouSmsSection } from './ThankYouSmsSection';
 import { advanceLabel, allProtocolsSigned, type ProtocolSignatureStatus } from './signatureStep';
 import { HandoverResultView } from './HandoverResultView';
+import { resolveThankYouSendAt } from './thankYouSms';
 import type { Visit } from '../../types';
 
 type Step = 'signature' | 'payment';
@@ -161,6 +162,15 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     const isSignatureStep = step === 'signature';
     const signatureDone = allProtocolsSigned(signatureStatus);
 
+    // Potwierdzenie na ekranie „Pojazd wydany": SMS-a z podziękowaniem NIE da się
+    // zaplanować po zakończeniu wizyty (jedzie w payloadzie `complete`), więc sama
+    // decyzja zapada w kroku 1. Tu odtwarzamy termin tą samą regułą, którą backend
+    // zastosuje u siebie, żeby na wyniku pokazać, kiedy podziękowanie wyjdzie.
+    const thankYouAt =
+        handover.thankYouSms.available && handover.state.thankYouSms
+            ? resolveThankYouSendAt(handover.state.thankYouSmsAt)
+            : null;
+
     return (
         <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
             <ModalHeader>
@@ -181,6 +191,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         result={handover.result}
                         grossAmount={handover.totals.gross}
                         currency={handover.currency}
+                        thankYouAt={thankYouAt}
                         onClose={onClose}
                     />
                 ) : (
@@ -205,6 +216,21 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                     isOpen={isOpen}
                                     onStatusChange={handleSignatureStatus}
                                 />
+                                {/* Podziękowanie to kontakt z klientem, nie rozliczenie: stoi
+                                    przy kliencie (krok 1), a nie w środku pieniędzy. Decyzja
+                                    musi zapaść przed „Wydaj pojazd", bo termin jedzie w
+                                    payloadzie zakończenia wizyty; na ekranie wyniku zostaje
+                                    już tylko potwierdzenie, kiedy SMS wyjdzie.
+                                    Studio z wyłączonym szablonem „Podziękowanie po wizycie"
+                                    nie zobaczy tu nic: nie ma czego zaplanować. */}
+                                {handover.thankYouSms.available && (
+                                    <ThankYouSmsSection
+                                        enabled={handover.state.thankYouSms}
+                                        onEnabledChange={value => handover.patch({ thankYouSms: value })}
+                                        sendAt={handover.state.thankYouSmsAt}
+                                        onSendAtChange={value => handover.patch({ thankYouSmsAt: value })}
+                                    />
+                                )}
                             </Body>
                         </StepPane>
 
@@ -237,18 +263,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             currency={handover.currency}
                                         />
                                     )
-                                )}
-
-                                {/* Studio z wyłączonym szablonem „Podziękowanie po wizycie"
-                                    nie zobaczy tu nic: nie ma czego zaplanować, a pytanie
-                                    o godzinę byłoby obietnicą bez pokrycia. */}
-                                {handover.thankYouSms.available && (
-                                    <ThankYouSmsSection
-                                        enabled={handover.state.thankYouSms}
-                                        onEnabledChange={value => handover.patch({ thankYouSms: value })}
-                                        sendAt={handover.state.thankYouSmsAt}
-                                        onSendAtChange={value => handover.patch({ thankYouSmsAt: value })}
-                                    />
                                 )}
                             </Body>
                         </StepPane>

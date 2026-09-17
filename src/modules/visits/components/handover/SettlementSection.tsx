@@ -1,9 +1,9 @@
 import styled from 'styled-components';
+import { Wallet } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
-import { Toggle } from '@/common/components/Toggle';
-import { Box, BoxRow, Money, Muted, Pill, PillRow, Section, SectionLabel } from './HandoverKit';
+import { Muted, Pill, PillRow } from './HandoverKit';
 import { InvoiceSection } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { documentTypes } from './paymentOptions';
@@ -11,59 +11,119 @@ import type { HandoverProblem, HandoverState } from '../../types/handover';
 import type { KsefAutomation } from '@/modules/finance/hooks';
 import type { InvoiceType } from '../../types/stateTransitions';
 
-const AmountBox = styled(Box)`
-    gap: 6px;
-    background: ${st.bg};
+/**
+ * Kwota „Do zapłaty" to JEDYNA wyniesiona powierzchnia w tym oknie (reguła 2:
+ * „wyniesienie niesie temat"). To liczba, po którą się tu wraca, więc jest
+ * nagłówkiem sekcji, a nie kolejną białą ramą w rzędzie identycznych. Pasek
+ * marki u góry, kafelek ikony i cień odróżniają ją od reszty, która leży płasko
+ * na tle. Netto i VAT to dowód pod liczbą, nie druga liczba tej samej wagi.
+ */
+const AmountCard = styled.div`
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: ${st.radiusLg};
+    background: ${st.gradientCardBlue};
+    border: 1px solid ${st.border};
+    box-shadow: ${st.shadowMd};
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: ${st.gradientBlue};
+    }
 `;
 
-const AmountLabel = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
+const AmountHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+const IconTile = styled.div`
+    width: 30px;
+    height: 30px;
+    border-radius: ${st.radiusSm};
+    background: ${st.gradientBlue};
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: ${st.shadowXs};
+
+    svg { width: 16px; height: 16px; }
+`;
+
+// Nazwa pismem tekstowym z kafelkiem ikony, nie 11 px wersalikami w szarości -
+// wersaliki jako JEDYNy znacznik sekcji są w tym module wycofane (CLAUDE.md).
+const AmountTitle = styled.span`
+    font-size: ${st.fontMd};
+    font-weight: 700;
     color: ${st.text};
 `;
 
-// Right-aligned value stack: each amount sits directly next to its own
-// "brutto"/"netto" label (law of proximity) instead of the label living in a
-// separate column on the far left of the row.
-const ValueStack = styled.div`
+const HeroRow = styled.div`
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
 `;
 
-const SubValue = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
+const HeroValue = styled.span`
+    font-size: ${st.fontXxl};
+    font-weight: 800;
+    color: ${st.text};
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+`;
+
+const HeroUnit = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.textSecondary};
+`;
+
+const ProofLine = styled.span`
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
     font-variant-numeric: tabular-nums;
 `;
 
-const Group = styled.div`
+// Płaskie pole na tle: etykieta pismem zdaniowym (nie wersaliki-jedyny-znacznik)
+// nad kontrolką. „Forma zapłaty" i „Dokument" nie są przedmiotem okna, więc nie
+// dostają własnej ramy - rozdziela je odstęp.
+const Field = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
 `;
 
-const SendRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    margin-top: 3px;
-`;
-
-const SendTexts = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-`;
-
-const SendLabel = styled.label`
+const FieldTitle = styled.span`
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${st.text};
-    cursor: pointer;
+    color: ${st.textSecondary};
+`;
+
+const FreeCard = styled(AmountCard)`
+    &::before { background: ${st.border}; }
+`;
+
+// Więcej powietrza niż domyślny odstęp sekcji: przy płaskich polach na tle to
+// odstęp - nie ramka - rozdziela plany (reguła 2: „Reszta leży płasko na tle
+// i rozdziela ją odstęp").
+const Stack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 `;
 
 interface SettlementSectionProps {
@@ -86,6 +146,10 @@ interface SettlementSectionProps {
 /**
  * Rozliczenie wizyty: kwota, forma zapłaty, dokument.
  *
+ * Jeden przedmiot okna (kwota), reszta płasko pod nim. Gdy dokumentem jest
+ * faktura, cała jej konfiguracja schodzi na jeden zatopiony plan [InvoiceSection]
+ * zamiast rozlewać się na kolejne białe karty.
+ *
  * Wizyta bezpłatna nie ma czego rozliczać: sekcja zwija się wtedy do jednej
  * informacji, zamiast pokazywać wybory bez znaczenia.
  */
@@ -107,146 +171,71 @@ export const SettlementSection = ({
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
 
-    // Ostrzegamy dopiero, gdy znamy odpowiedź: `configured` jest false także w trakcie
-    // ładowania, a to pokazałoby „brak tokenu" studiom, które token mają.
-    const ksefAnswerKnown =
-        state.documentType === 'INVOICE' && !ksef.isLoading && ksef.moduleEnabled;
-
-    /**
-     * Podpowiedź pod przełącznikiem mówi, co się stanie z tą fakturą - szczegóły
-     * przeszkody i drogę wyjścia niesie baner poniżej, więc tu wystarczy jedno zdanie.
-     */
-    // Wadliwy token sprawdzany PRZED „!sendToKsef": przełącznik jest wtedy zgaszony
-    // przymusowo, a „wyślesz ją później" byłoby obietnicą bez pokrycia - wysyłka
-    // wróci dopiero po naprawie tokenu.
-    const sendHint = ksef.isLoading
-        ? 'Sprawdzamy konfigurację KSeF…'
-        : !ksef.configured
-          ? 'Bez tokenu KSeF wysyłka jest niemożliwa.'
-          : ksef.lacksIssuePermission
-            ? 'Wysyłka wyłączona: token nie pozwala wystawiać faktur.'
-            : !sendToKsef
-              ? 'Faktura zostanie zapisana bez wysyłki; wyślesz ją później z dokumentów przychodowych.'
-              : 'Faktura trafi do KSeF automatycznie po wydaniu pojazdu.';
-
     if (isFreeVisit) {
         return (
-            <Section>
-                <SectionLabel>Rozliczenie</SectionLabel>
-                <Box>
-                    <BoxRow>
-                        <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
-                            Wizyta bezpłatna, łączna wartość usług wynosi 0 zł.
-                        </span>
-                        <Money $strong>{fmt(0)}</Money>
-                    </BoxRow>
-                    <Muted>Dokument finansowy nie zostanie wygenerowany.</Muted>
-                </Box>
-            </Section>
+            <Stack>
+                <FreeCard>
+                    <AmountHead>
+                        <IconTile>
+                            <Wallet />
+                        </IconTile>
+                        <AmountTitle>Wizyta bezpłatna</AmountTitle>
+                    </AmountHead>
+                    <HeroRow>
+                        <HeroValue>{fmt(0)}</HeroValue>
+                    </HeroRow>
+                    <Muted>
+                        Łączna wartość usług wynosi 0 zł, dokument finansowy nie zostanie
+                        wygenerowany.
+                    </Muted>
+                </FreeCard>
+            </Stack>
         );
     }
 
     return (
-        <Section>
-            <SectionLabel>Rozliczenie</SectionLabel>
+        <Stack>
+            <AmountCard>
+                <AmountHead>
+                    <IconTile>
+                        <Wallet />
+                    </IconTile>
+                    <AmountTitle>Do zapłaty</AmountTitle>
+                </AmountHead>
+                <HeroRow>
+                    {/* VAT to RÓŻNICA pokazanych kwot (reguła 1): totals.vat = gross - net,
+                        liczone w useHandover, tu tylko pokazywane. */}
+                    <HeroValue>{fmt(totals.gross)}</HeroValue>
+                    <HeroUnit>brutto</HeroUnit>
+                </HeroRow>
+                <ProofLine>
+                    netto {fmt(totals.net)} · VAT {fmt(totals.vat)}
+                </ProofLine>
+            </AmountCard>
 
-            <AmountBox>
-                <BoxRow>
-                    <AmountLabel>Do zapłaty</AmountLabel>
-                    <ValueStack>
-                        <Money $strong>{fmt(totals.gross)} brutto</Money>
-                        <SubValue>{fmt(totals.net)} netto</SubValue>
-                    </ValueStack>
-                </BoxRow>
-            </AmountBox>
+            <Field>
+                <FieldTitle>Forma zapłaty</FieldTitle>
+                <PaymentMethodPicker
+                    value={state.paymentMethod}
+                    onChange={paymentMethod => patch({ paymentMethod })}
+                />
+            </Field>
 
-            <Box>
-                <Group>
-                    <SectionLabel as="h4">Zapłacono</SectionLabel>
-                    <PaymentMethodPicker
-                        value={state.paymentMethod}
-                        onChange={paymentMethod => patch({ paymentMethod })}
-                    />
-                </Group>
-
-                <Group>
-                    <SectionLabel as="h4">Dokument</SectionLabel>
-                    <PillRow>
-                        {documentTypes.map(type => (
-                            <Pill
-                                key={type.value}
-                                type="button"
-                                $selected={state.documentType === type.value}
-                                onClick={() => patch({ documentType: type.value as InvoiceType })}
-                            >
-                                {type.label}
-                            </Pill>
-                        ))}
-                    </PillRow>
-
-                    {/* Wysyłka do KSeF to część tej samej decyzji co wybór dokumentu:
-                        „faktura" i „co się z nią dalej dzieje" czyta się razem, więc
-                        przełącznik stoi tuż pod wyborem, a nie w osobnej sekcji niżej. */}
-                    {state.documentType === 'INVOICE' && ksef.moduleEnabled && (
-                        <SendRow>
-                            <SendTexts>
-                                <SendLabel htmlFor="handover-send-ksef">
-                                    Wyślij fakturę do KSeF
-                                </SendLabel>
-                                <Muted>{sendHint}</Muted>
-                            </SendTexts>
-                            <Toggle
-                                checked={sendToKsef}
-                                onChange={onSendToKsefChange}
-                                disabled={!canChooseSendToKsef}
-                                size="sm"
-                                inputId="handover-send-ksef"
-                                ariaLabel="Wyślij fakturę do KSeF"
-                            />
-                        </SendRow>
-                    )}
-                </Group>
-            </Box>
-
-            {ksefAnswerKnown && !ksef.configured && (
-                <KsefNotice>
-                    <KsefNoticeIcon aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                    </KsefNoticeIcon>
-                    <div>
-                        <KsefNoticeTitle>Brak tokenu KSeF</KsefNoticeTitle>
-                        Fakturę wystawimy i zapiszemy, ale nie wyślemy - plik pobierzesz po
-                        wydaniu pojazdu. Token dodasz w <strong>Ustawienia → Faktury</strong>.
-                    </div>
-                </KsefNotice>
-            )}
-
-            {/* Token bez prawa wystawiania kończył wysyłkę odmową KSeF i fakturą
-                w kolejce retry bez szans powodzenia - dlatego przełącznik jest przy
-                takim tokenie zgaszony i zablokowany, a baner mówi, co naprawić. */}
-            {ksefAnswerKnown && ksef.configured && ksef.lacksIssuePermission && (
-                <KsefNotice>
-                    <KsefNoticeIcon aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                    </KsefNoticeIcon>
-                    <div>
-                        <KsefNoticeTitle>Token KSeF nie pozwala wystawiać faktur</KsefNoticeTitle>
-                        Ma prawo tylko do odczytu, więc wysyłka do KSeF jest wyłączona.
-                        Fakturę wystawimy i zapiszemy razem z danymi nabywcy - plik
-                        pobierzesz po wydaniu pojazdu, a po naprawie tokenu wyślesz ją
-                        z dokumentów przychodowych. Token z prawem wystawiania faktur
-                        dodasz w <strong>Ustawienia → Faktury</strong>.
-                    </div>
-                </KsefNotice>
-            )}
+            <Field>
+                <FieldTitle>Dokument</FieldTitle>
+                <PillRow>
+                    {documentTypes.map(type => (
+                        <Pill
+                            key={type.value}
+                            type="button"
+                            $selected={state.documentType === type.value}
+                            onClick={() => patch({ documentType: type.value as InvoiceType })}
+                        >
+                            {type.label}
+                        </Pill>
+                    ))}
+                </PillRow>
+            </Field>
 
             {state.documentType === 'INVOICE' && (
                 <InvoiceSection
@@ -259,37 +248,12 @@ export const SettlementSection = ({
                     sellerComplete={sellerComplete}
                     company={company}
                     problemsIn={problemsIn}
+                    ksef={ksef}
+                    sendToKsef={sendToKsef}
+                    canChooseSendToKsef={canChooseSendToKsef}
+                    onSendToKsefChange={onSendToKsefChange}
                 />
             )}
-        </Section>
+        </Stack>
     );
 };
-
-const KsefNotice = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 11px 13px;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    background: rgba(245, 158, 11, 0.08);
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    color: #78350f;
-    line-height: 1.55;
-
-    strong { font-weight: 700; }
-`;
-
-const KsefNoticeIcon = styled.span`
-    display: flex;
-    flex-shrink: 0;
-    color: #d97706;
-    margin-top: 1px;
-    svg { width: 15px; height: 15px; }
-`;
-
-const KsefNoticeTitle = styled.strong`
-    display: block;
-    font-weight: 700;
-    margin-bottom: 2px;
-`;
