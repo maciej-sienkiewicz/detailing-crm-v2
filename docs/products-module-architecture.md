@@ -183,9 +183,9 @@ CREATE TABLE products (
 
     name                    VARCHAR(200) NOT NULL,
     brand                   VARCHAR(120) NOT NULL,
-    -- Właściciel licencji GTIN wg GS1 albo producent wpisany ręcznie.
-    -- To NIE jest dostawca, u którego studio kupuje — ten siedzi w nakładce studia.
-    manufacturer_name       VARCHAR(200) NOT NULL,
+    -- Osobnego „producenta" NIE MA (usunięty w V139): marka identyfikuje produkt na
+    -- etykiecie, a pole było w praktyce kopią marki. Dostawca, u którego studio kupuje,
+    -- siedzi w nakładce studia (supplier_name).
 
     -- Jednostka, w której MIERZY SIĘ ZUŻYCIE: ML, L, G, KG, PIECE, PAIR, M, M2.
     unit_of_measure         VARCHAR(10)  NOT NULL,
@@ -236,7 +236,7 @@ CREATE UNIQUE INDEX uq_products_natural_key
     WHERE gtin IS NULL;
 
 CREATE INDEX idx_products_search ON products USING GIN (
-    to_tsvector('simple', COALESCE(brand,'') || ' ' || COALESCE(name,'') || ' ' || COALESCE(manufacturer_name,''))
+    to_tsvector('simple', COALESCE(brand,'') || ' ' || COALESCE(name,''))
 );
 CREATE INDEX idx_products_brand ON products (LOWER(brand));
 

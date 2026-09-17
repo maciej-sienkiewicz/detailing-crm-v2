@@ -72,6 +72,20 @@ export const productsApi = {
         return data;
     },
 
+    /**
+     * Odczyt cyfr kodu ZE ZDJĘCIA modelem wizyjnym — zapas, gdy dekoder w przeglądarce nie
+     * odczyta kadru (wzorzec z `batchOrderApi.extractVin`). Zwraca sam GTIN; lookup woła caller.
+     */
+    extractBarcodeFromImage: async (file: File): Promise<string | null> => {
+        const formData = new FormData();
+        formData.append('image', file);
+        const { data } = await apiClient.post<{ gtin: string | null }>(`${BASE}/barcode/extract`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            skipErrorToast: true,
+        });
+        return data.gtin;
+    },
+
     // ── Notatki ──
     listNotes: async (id: string): Promise<ProductNote[]> => {
         const { data } = await apiClient.get(`${BASE}/${id}/notes`);
@@ -144,6 +158,17 @@ export const mobileScanApi = {
     },
     submit: async (token: string, codes: string[]): Promise<{ status: string; scannedCount: number; expiresAt: string }> => {
         const { data } = await apiClient.post(`/mobile/products/scan/${token}`, { codes }, { skipAuthRedirect: true });
+        return data;
+    },
+    /** Zapas: zdjęcie kodu → model wizyjny czyta cyfry → kod trafia do sesji jak przy skanie na żywo. */
+    submitPhoto: async (token: string, file: File): Promise<{ gtin: string | null; status: string; scannedCount: number; expiresAt: string }> => {
+        const formData = new FormData();
+        formData.append('image', file);
+        const { data } = await apiClient.post(`/mobile/products/scan/${token}/photo`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            skipAuthRedirect: true,
+            skipErrorToast: true,
+        });
         return data;
     },
 };

@@ -47,7 +47,6 @@ export interface Product {
     gtin: string | null;
     name: string;
     brand: string;
-    manufacturerName: string;
     unitOfMeasure: UnitOfMeasure;
     packageSizeValue: string;
     packageSizeUnit: UnitOfMeasure;
@@ -76,7 +75,6 @@ export interface ProductListItem {
     gtin: string | null;
     name: string;
     brand: string;
-    manufacturerName: string;
     unitOfMeasure: UnitOfMeasure;
     packageSizeValue: string;
     packageSizeUnit: UnitOfMeasure;
@@ -122,7 +120,6 @@ export interface CreateProductRequest {
     gtin?: string | null;
     name: string;
     brand: string;
-    manufacturerName?: string | null;
     unitOfMeasure: UnitOfMeasure;
     packageSizeValue: string;
     packageSizeUnit?: UnitOfMeasure | null;
@@ -139,7 +136,6 @@ export interface CreateProductRequest {
 export interface UpdateProductRequest {
     name: string;
     brand: string;
-    manufacturerName?: string | null;
     unitOfMeasure: UnitOfMeasure;
     packageSizeValue: string;
     packageSizeUnit?: UnitOfMeasure | null;
@@ -163,7 +159,6 @@ export interface ProductDraft {
     gtin: string | null;
     name: string;
     brand: string;
-    manufacturerName: string;
     unitOfMeasure: UnitOfMeasure;
     packageSizeValue: string;
     packageSizeUnit: UnitOfMeasure;

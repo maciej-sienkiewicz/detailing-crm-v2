@@ -48,7 +48,6 @@ export function ProductTable({ products, canSeeCosts, onOpen }: Props) {
             <thead>
                 <tr>
                     <Th>Produkt</Th>
-                    <Th>Producent</Th>
                     <Th>Opakowanie</Th>
                     {canSeeCosts && <Th $right>Cena jedn.</Th>}
                     <Th $right>Ocena</Th>
@@ -68,7 +67,6 @@ export function ProductTable({ products, canSeeCosts, onOpen }: Props) {
                                 </NameMain>
                             </NameCell>
                         </Td>
-                        <Td><Muted>{p.manufacturerName}</Muted></Td>
                         <Td>{formatPackage(p.packageSizeValue, p.packageSizeUnit)}</Td>
                         {canSeeCosts && (
                             <Td $right>{p.price ? formatPrice(p.price) : <Muted>—</Muted>}</Td>

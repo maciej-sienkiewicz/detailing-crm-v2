@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Package, X, Search, Camera, Plus, Loader2 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -41,8 +42,12 @@ const CamBtn = styled.button`
     transition: background 0.15s ease;
     &:hover { background: ${st.accentBlueDim}; }
 `;
+// Lista podpowiedzi żyje w PORTALU (document.body) z pozycją `fixed` mierzoną od pola.
+// Sekcja wizyty ma `overflow: hidden` (zaokrąglone rogi karty), więc zwykły `absolute`
+// wewnątrz niej ucinał listę razem z komponentem — żaden z-index tego nie obchodzi,
+// bo przycięcie robi rodzic, nie warstwa.
 const Menu = styled.div`
-    position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
+    position: fixed; z-index: 1200;
     background: ${st.bgCard}; border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
     box-shadow: ${st.shadowMd}; overflow: hidden; max-height: 280px; overflow-y: auto;
 `;
@@ -77,6 +82,8 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
     const debounced = useDebounce(search, 250);
     const { products, isLoading } = useProducts({ search: debounced, page: 1, limit: 8 });
     const wrapRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
     const linkedIds = new Set(links.map(l => l.productId));
     const suggestions = products.filter(p => !linkedIds.has(p.id)).slice(0, 8);
@@ -84,10 +91,14 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
     const exactHit = suggestions.some(p => p.name.toLowerCase() === trimmed.toLowerCase());
     const showAddNew = canManageProducts && trimmed.length >= 2 && !exactHit;
 
-    // Klik poza polem zamyka listę — bez tego dropdown wisiałby po wyborze.
+    // Klik poza polem I poza listą zamyka ją. Lista jest w portalu, więc DOM-owo nie
+    // siedzi w wrapRef — bez menuRef mousedown na opcji zamykałby listę, zanim doszłoby
+    // do click, i wybór przepadałby.
     useEffect(() => {
         const onDoc = (e: MouseEvent) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+            const t = e.target as Node;
+            if (wrapRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+            setOpen(false);
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
@@ -97,6 +108,23 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
         link.mutate({ productId }, { onSuccess: () => { setSearch(''); setOpen(false); } });
 
     const menuVisible = open && trimmed.length > 0;
+
+    // Pozycja listy = dolna krawędź pola w układzie okna. Mierzymy przy otwarciu i przy
+    // każdym przewinięciu/zmianie rozmiaru (capture: true łapie scroll w kontenerach).
+    const measure = useCallback(() => {
+        const r = wrapRef.current?.getBoundingClientRect();
+        if (r) setMenuRect({ top: r.bottom + 4, left: r.left, width: r.width });
+    }, []);
+    useLayoutEffect(() => {
+        if (!menuVisible) return;
+        measure();
+        window.addEventListener('scroll', measure, true);
+        window.addEventListener('resize', measure);
+        return () => {
+            window.removeEventListener('scroll', measure, true);
+            window.removeEventListener('resize', measure);
+        };
+    }, [menuVisible, measure]);
 
     return (
         <Wrap>
@@ -144,8 +172,8 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                         )}
                     </InputShell>
 
-                    {menuVisible && (
-                        <Menu>
+                    {menuVisible && menuRect && createPortal(
+                        <Menu ref={menuRef} style={{ top: menuRect.top, left: menuRect.left, width: menuRect.width }}>
                             {suggestions.map(p => (
                                 <Option key={p.id} type="button" onClick={() => linkProduct(p.id)}>
                                     <Package size={14} color={st.textMuted} />
@@ -167,7 +195,8 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                                         : 'Brak wyników — dodanie nowego produktu wymaga uprawnienia.'}
                                 </MenuHint>
                             )}
-                        </Menu>
+                        </Menu>,
+                        document.body,
                     )}
                 </Combo>
             )}

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import styled from 'styled-components';
-import { Loader2, Camera, X } from 'lucide-react';
+import { Loader2, Camera, X, ImageIcon } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
@@ -18,6 +18,7 @@ import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { productsApi } from '../api/productsApi';
 import { useCreateProduct, useCreateFromDraft } from '../hooks/useProducts';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
+import { fileToCanvas, canvasToJpegFile } from '../utils/imageTools';
 import { ScanHandoffPanel } from './ScanHandoffPanel';
 
 // Jeden formularz, bez zakładek. Kod kreskowy jest opcjonalnym polem u góry:
@@ -62,6 +63,17 @@ const Video = styled.video`
     background: #000; border-radius: ${st.radiusSm}; border: 1px solid ${st.border};
 `;
 const ScanHint = styled.p` margin: 0 0 4px; font-size: 12.5px; color: ${st.textSecondary}; `;
+// Zapas „zrób zdjęcie" na telefonie — akcja drugorzędna: odcień, bez wypełnienia (§2).
+const PhotoBtn = styled.button`
+    margin-top: 10px; width: 100%;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px; font-family: inherit; font-size: 13.5px; font-weight: 600;
+    color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
+    border-radius: ${st.radiusSm}; cursor: pointer;
+    &:hover:not(:disabled) { background: ${st.accentBlueDim}; }
+    &:disabled { opacity: 0.6; cursor: default; }
+`;
+const HiddenFile = styled.input` display: none; `;
 const Grid2 = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 12px; @media (max-width: 560px) { grid-template-columns: 1fr; } `;
 const DraftBanner = styled.div`
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -78,7 +90,6 @@ interface FormState {
     gtin: string;
     name: string;
     brand: string;
-    manufacturerName: string;
     unitOfMeasure: UnitOfMeasure;
     packageSizeValue: string;
     packageSizeUnit: UnitOfMeasure;
@@ -90,7 +101,7 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-    gtin: '', name: '', brand: '', manufacturerName: '',
+    gtin: '', name: '', brand: '',
     unitOfMeasure: 'ML', packageSizeValue: '', packageSizeUnit: 'ML',
     description: '', supplierName: '', priceValue: '', priceDirection: 'GROSS', vatRate: 23,
 };
@@ -114,6 +125,8 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
     const [looking, setLooking] = useState(false);
     const [lookupMsg, setLookupMsg] = useState<{ tone: 'muted' | 'error' | 'ok'; text: string } | null>(null);
     const [scanOpen, setScanOpen] = useState(!!autoScan);
+    const [photoBusy, setPhotoBusy] = useState(false);
+    const photoInputRef = useRef<HTMLInputElement>(null);
     const create = useCreateProduct();
     const createFromDraft = useCreateFromDraft();
     const scanner = useBarcodeScanner();
@@ -140,7 +153,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
             gtin: d.gtin ?? '',
             name: d.name,
             brand: d.brand,
-            manufacturerName: d.manufacturerName,
             unitOfMeasure: d.unitOfMeasure,
             packageSizeValue: d.packageSizeValue,
             packageSizeUnit: d.packageSizeUnit,
@@ -179,6 +191,34 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
         }
     };
 
+    // Telefon, zapas: zdjęcie kodu → najpierw dekoder w przeglądarce (za darmo), a gdy nie
+    // odczyta — model wizyjny na serwerze czyta cyfry pod kreskami (jak przy VIN).
+    const onPhotoFile = async (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        setPhotoBusy(true);
+        setLookupMsg({ tone: 'muted', text: 'Odczytuję kod ze zdjęcia…' });
+        try {
+            let code = await scanner.decodeImageFile(file);
+            if (!code) {
+                const jpeg = await canvasToJpegFile(await fileToCanvas(file, 1600));
+                code = await productsApi.extractBarcodeFromImage(jpeg);
+            }
+            if (code) {
+                setBarcode(code);
+                setScanOpen(false);
+                runLookup(code);
+            } else {
+                setLookupMsg({ tone: 'error', text: 'Nie udało się odczytać kodu ze zdjęcia. Zrób je z bliska, ostro i w dobrym świetle.' });
+            }
+        } catch {
+            setLookupMsg({ tone: 'error', text: 'Nie udało się odczytać kodu ze zdjęcia.' });
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
     // Desktop: kody zeskanowane telefonem wracają po WebSocketcie.
     const onHandoffCodes = (codes: string[]) => {
         if (!codes.length) return;
@@ -210,7 +250,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                 ...draft,
                 name: form.name.trim(),
                 brand: form.brand.trim(),
-                manufacturerName: form.manufacturerName.trim() || form.brand.trim(),
                 unitOfMeasure: form.unitOfMeasure,
                 packageSizeValue: form.packageSizeValue.trim(),
                 packageSizeUnit: form.packageSizeUnit,
@@ -229,7 +268,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
             gtin: normalizeGtin(form.gtin || barcode),
             name: form.name.trim(),
             brand: form.brand.trim(),
-            manufacturerName: form.manufacturerName.trim() || null,
             unitOfMeasure: form.unitOfMeasure,
             packageSizeValue: form.packageSizeValue.trim(),
             packageSizeUnit: form.packageSizeUnit,
@@ -290,16 +328,22 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                             </ScanClose>
                             {isDesktop ? (
                                 <ScanHandoffPanel onCodes={onHandoffCodes} />
-                            ) : scanner.supported ? (
-                                <>
-                                    <ScanHint>Skieruj aparat na kod kreskowy — złapiemy go automatycznie.</ScanHint>
-                                    <Video ref={scanner.videoRef} playsInline muted />
-                                    {scanner.error && <StatusLine $tone="error">{scanner.error}</StatusLine>}
-                                </>
                             ) : (
-                                <ScanHint>
-                                    Ta przeglądarka nie odczyta kodu z aparatu — wpisz kod kreskowy ręcznie w polu powyżej.
-                                </ScanHint>
+                                <>
+                                    {scanner.error ? (
+                                        <StatusLine $tone="error">{scanner.error}</StatusLine>
+                                    ) : (
+                                        <>
+                                            <ScanHint>Skieruj aparat na kod kreskowy — złapiemy go automatycznie.</ScanHint>
+                                            <Video ref={scanner.videoRef} playsInline muted />
+                                        </>
+                                    )}
+                                    <PhotoBtn type="button" disabled={photoBusy} onClick={() => photoInputRef.current?.click()}>
+                                        {photoBusy ? <Spin size={14} /> : <ImageIcon size={15} />}
+                                        {photoBusy ? 'Odczytuję zdjęcie…' : scanner.error ? 'Zrób zdjęcie kodu' : 'Nie łapie? Zrób zdjęcie kodu'}
+                                    </PhotoBtn>
+                                    <HiddenFile ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={onPhotoFile} />
+                                </>
                             )}
                         </ScanArea>
                     )}
@@ -314,16 +358,10 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                     <Label>Nazwa produktu *</Label>
                     <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="np. Powłoka ceramiczna Pro" />
                 </FieldGroup>
-                <Grid2>
-                    <FieldGroup>
-                        <Label>Marka *</Label>
-                        <Input value={form.brand} onChange={e => set('brand', e.target.value)} />
-                    </FieldGroup>
-                    <FieldGroup>
-                        <Label>Producent</Label>
-                        <Input value={form.manufacturerName} onChange={e => set('manufacturerName', e.target.value)} placeholder="jak marka, jeśli puste" />
-                    </FieldGroup>
-                </Grid2>
+                <FieldGroup>
+                    <Label>Marka *</Label>
+                    <Input value={form.brand} onChange={e => set('brand', e.target.value)} />
+                </FieldGroup>
                 <Grid2>
                     <FieldGroup>
                         <Label>Wielkość opakowania *</Label>

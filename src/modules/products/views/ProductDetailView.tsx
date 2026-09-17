@@ -114,7 +114,6 @@ export function ProductDetailView() {
                         <FlatSection>
                             <SectionLabel>Specyfikacja</SectionLabel>
                             <SpecGrid>
-                                <DKey>Producent</DKey><DVal>{product.manufacturerName}</DVal>
                                 <DKey>Jednostka</DKey><DVal>{UNIT_LABELS[product.unitOfMeasure]}</DVal>
                                 <DKey>Opakowanie</DKey><DVal>{formatPackage(product.packageSizeValue, product.packageSizeUnit)}</DVal>
                                 {product.gtin && (<><DKey>Kod (GTIN)</DKey><DVal>{product.gtin}</DVal></>)}
