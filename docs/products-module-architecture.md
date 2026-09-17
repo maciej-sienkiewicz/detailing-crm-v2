@@ -27,7 +27,7 @@ sekcjami, których dotyczą.
 2. **Krok AI ma niezależny weryfikator.** Łańcuch to LOKALNY → AI (odczyt niską
    temperaturą + drugi, mniejszy model „czy na pewno ta karta należy do tego kodu")
    → GS1. Weryfikator może tylko obniżyć pewność; „nie" spycha wynik poniżej progu
-   0,90 i łańcuch schodzi do GS1. **Rozszerza** §3.1/§3.3.
+   0,90. *(Krok GS1 i osobny weryfikator usunięte — patrz §3.1.)* **Rozszerza** §3.1/§3.3.
 3. **Skanowanie tylko przez kod QR + telefon — jak mapa uszkodzeń.** Bez wsparcia
    skanerów USB. Komputer pokazuje kod QR, telefon otwiera aparat, wykryte kody
    wracają po WebSocketcie (+ polling). **Zastępuje** §4.2 (część o skanerze USB)
@@ -59,7 +59,7 @@ poniżej rozpisana; tu skrót, żeby dało się przeczytać jedną tabelą.
 | 1 | Katalog dzieli się na **warstwę globalną** (specyfikacja produktu) i **nakładkę studia** (cena, notatki, ocena, zużycie) | Wszystko globalne, dokładnie jak w wymaganiu | Cena zakupu i notatki to tajemnica przedsiębiorstwa. Studia detailingowe w jednym mieście to konkurenci — wspólny wiersz z ceną zakupu byłby wyciekiem, nie funkcją. Szczegóły: §2.2 |
 | 2 | GTIN jest **kluczem tożsamości** produktu; produkty bez kodu też są obsługiwane | Klucz na (nazwa, marka) | Kod kreskowy jest jedyną wartością, co do której wszystkie studia zgodzą się bez negocjacji. Nazwy wpisuje człowiek — będą trzy warianty tego samego |
 | 3 | Dane z LLM nigdy nie awansują do poziomu „zweryfikowane" bez drugiego, niezależnego potwierdzenia | Zapis danych z LLM jako pełnoprawnych | Model potrafi wypełnić kartę produktu, którego nie zna, i zrobi to płynnie. Bez śladu pochodzenia zatruwa katalog wszystkim tenantom naraz. §3.2 |
-| 4 | Łańcuch rozpoznawania: **baza → LLM (≥90% pewności) → GS1**, jak w wymaganiu, ale konfigurowalny i z twardą walidacją sumy kontrolnej przed pierwszym płatnym zapytaniem | GS1 najpierw | Kolejność jest wymaganiem biznesowym; ryzyko neutralizujemy śladem pochodzenia (§3.1) zamiast zmieniać kolejność na własną rękę |
+| 4 | Rozpoznawanie: **nasz katalog → wyszukiwanie w sieci**, z twardą walidacją sumy kontrolnej przed pierwszym płatnym zapytaniem | baza → LLM z pamięci → GS1 | Zweryfikowane produkcją: model pytany z pamięci nie mapuje EAN na produkt (zawsze confidence 0.0), a GS1 wymaga umowy licencyjnej, której nie ma. Zostały kroki, które realnie zwracają dane (§3.1) |
 | 5 | Zużycie produktu na wizycie to **snapshot** (ilość + cena + VAT z momentu użycia) | Wyliczanie kosztu z bieżącej ceny | Cena chemii zmienia się co kwartał. Rentowność wizyty sprzed roku musi zostać taka, jaka była |
 | 6 | Koszt materiału **nigdy** nie wchodzi do `totalCost` wizyty | Doliczanie materiału do rachunku klienta | To koszt wewnętrzny studia. Klient płaci za usługę, a nie za butelkę. Wejście do `totalCost` zmieniłoby kwoty na protokołach i fakturach |
 | 7 | Nowy moduł abonamentowy `PRODUCTS` + nowy `PermissionModule.PRODUCTS` z czterema uprawnieniami | Doklejenie do modułu wizyt | Wymaganie wprost. Poza tym zaopatrzeniem w studiu zajmuje się często ktoś inny niż recepcja |
@@ -203,7 +203,7 @@ CREATE TABLE products (
     image_file_id           VARCHAR(500),             -- S3, ten sam storage co zdjęcia wizyt
 
     -- ── Ślad pochodzenia. Bez tego katalog globalny nie da się moderować. ──
-    source                  VARCHAR(20) NOT NULL,     -- MANUAL | AI | GS1 | CURATED
+    source                  VARCHAR(20) NOT NULL,     -- MANUAL | WEB | CURATED (+ AI, GS1 historycznie)
     verification_level      VARCHAR(20) NOT NULL,     -- UNVERIFIED | AI_SUGGESTED | GS1_VERIFIED | STUDIO_CONFIRMED | CURATED
     source_confidence       NUMERIC(4,3),             -- 0.000–1.000, wypełnione tylko dla source = AI
     source_payload          JSONB,                    -- surowa odpowiedź dostawcy, do audytu i reprocessingu
@@ -425,61 +425,76 @@ od pierwszego dnia, żeby po włączeniu panelu było na czym pracować.
 
 ## 3. Rozpoznawanie produktu po kodzie
 
-### 3.1 Łańcuch i jego kolejność
+### 3.1 Dwa kroki: nasz katalog → wyszukiwanie w sieci
 
-Wymaganie: *baza → LLM → (gdy pewność < 90%) GS1*. Realizujemy dokładnie to.
+Pierwotny projekt zakładał łańcuch *baza → LLM → GS1*. Produkcja zweryfikowała go
+bezlitośnie i zostały z niego dwa kroki:
 
 ```
-              ┌──────────────────────────────────────────┐
-  kod ───────▶│ 0. WALIDACJA LOKALNA                     │
-              │    suma kontrolna GTIN, normalizacja      │──✗──▶ 422, zero kosztu
-              │    do 14 cyfr                             │
-              └────────────────┬─────────────────────────┘
-                               ▼
-              ┌──────────────────────────────────────────┐
-              │ 1. KATALOG LOKALNY (products.gtin)       │──✓──▶ FOUND_LOCAL, ~40 ms, 0 zł
-              └────────────────┬─────────────────────────┘
-                               ▼ brak
-              ┌──────────────────────────────────────────┐
-              │ 2. LLM — „co to za produkt o GTIN X?"    │
-              │    structured output + confidence         │
-              └────────────────┬─────────────────────────┘
-                               ▼
-                     confidence ≥ 0,90 ?
-                    ┌──────────┴──────────┐
-                  tak                    nie
-                    │                     ▼
-                    │        ┌──────────────────────────────┐
-                    │        │ 3. GS1 (Verified by GS1 /    │
-                    │        │    GEPIR jako zapas)         │
-                    │        └──────────────┬───────────────┘
-                    │                       │
-                    ▼                       ▼
-        source = AI                  source = GS1
-        verification = AI_SUGGESTED  verification = GS1_VERIFIED
-                    └───────────┬───────────┘
-                                ▼
-                    zapis do katalogu globalnego
-                    + zwrot karty do uzupełnienia przez człowieka
+        kod z aparatu / wpisany ręcznie
+                    │
+                    ▼
+        walidacja sumy kontrolnej GTIN     ← brama przed płatnym zapytaniem
+                    │
+                    ▼
+   ┌────────────────────────────────────┐
+   │ 1. NASZ KATALOG (globalny)         │  darmowy, natychmiastowy
+   └────────────────────────────────────┘
+                    │ brak
+                    ▼
+   ┌────────────────────────────────────┐
+   │ 2. WYSZUKIWANIE W SIECI            │  model z web_search_options
+   │    (model, który naprawdę szuka)   │
+   └────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+  pewność ≥ 0,90          pewność < 0,90
+  trafienie               SZKIC do potwierdzenia
+        │                       │
+        └───────────┬───────────┘
+                    ▼
+        source = WEB, verification = AI_SUGGESTED
+        (nic nie zapisuje się samo — formularz czeka na człowieka)
 ```
 
-**Zastrzeżenie zespołu, zgłaszane wprost i tylko raz:** technicznie właściwsza kolejność to
-GS1 przed LLM — GS1 jest rejestrem, a model językowy potrafi napisać wiarygodnie brzmiącą
-kartę produktu, którego nigdy nie widział, i zrobi to również przy wysokiej deklarowanej
-pewności. Kolejność z wymagania zostaje (jest szybsza, tańsza i pokrywa produkty, których
-w GS1 nie ma), a ryzyko neutralizujemy trzema rzeczami zamiast zmianą kolejności:
+**Dlaczego zniknął krok „LLM z pamięci".** Kod kreskowy to numer nadany przez GS1;
+nazwa produktu nie jest z niego wyprowadzalna, a model nie ma w wagach tablicy
+EAN → produkt. Zapytany o realny kod (`5902806493015`) odpowiadał `confidence: 0.0`
+z pustymi polami — zgodnie z własną regułą „NIE ZGADUJ", więc **działał poprawnie i
+bezużytecznie zarazem**. Mocniejszy model tego nie naprawiał, bo problemem nie była
+siła modelu, tylko brak dostępu do danych. Krok usunięty; płacenie za to wywołanie
+nic nie wnosiło.
 
-- **krok 0** odrzuca kody z literówką, zanim cokolwiek kosztuje;
-- **ślad pochodzenia** (§3.2) trzyma dane z LLM w osobnej, widocznej klasie zaufania;
-- **kolejność jest konfiguracją**, nie kodem: `crm.products.resolution.order=LOCAL,AI,GS1`.
-  Zmiana na `LOCAL,GS1,AI` to jedna właściwość w `application.properties`, bez deployu kodu.
+**Dlaczego zniknął krok GS1.** „Verified by GS1" wymaga umowy licencyjnej, której nie
+ma. Adapter zwracał `null` i tylko udawał ogniwo łańcucha. GEPIR, nawet podłączony,
+zwraca licencjobiorcę prefiksu, a nie kartę produktu — czyli nie to, czego potrzebuje
+formularz.
+
+**Co zostało i dlaczego działa.** Model z włączonym wyszukiwaniem (`web_search_options`)
+przed odpowiedzią wykonuje realne zapytanie do sieci i odpowiada z tego, co znalazł —
+dokładnie tak, jak człowiek, który wkleja EAN w wyszukiwarkę i widzi oferty sklepów.
+Ten sam klucz OpenAI co reszta systemu, bez nowego dostawcy i bez klucza do wyszukiwarki.
+
+Dwa szczegóły, bez których to nie działa:
+
+- **Kod wychodzi w postaci DRUKOWANEJ.** Wewnątrz katalog kluczujemy GTIN-em-14 (inaczej
+  EAN-13 i UPC-A tego samego produktu rozjadą się na dwa wiersze), ale `05902806493015`
+  nie znajduje w sieci niczego, a `5902806493015` znajduje produkt. Służy do tego
+  `Gtin.displayValue`; pilnuje go `GtinDisplayValueTest`.
+- **`user_location` ustawione na kraj studia** (domyślnie PL). Oferty tego samego kodu są
+  lokalne — bez tego wyniki przychodzą z innego rynku.
+
+Ryzyko zmyślonej karty neutralizujemy tak samo jak wcześniej, bo katalog jest
+współdzielony: prompt zakazuje zgadywania, wynik niesie jawną pewność i ślad
+pochodzenia (§3.2), a nic nie trafia do katalogu bez zatwierdzenia przez człowieka.
 
 ### 3.2 Poziomy zaufania
 
 | Poziom | Skąd | Co widzi użytkownik | Czy trafia do pola „gotowe" |
 |---|---|---|---|
-| `AI_SUGGESTED` | LLM, pewność ≥ 0,90 | Bursztynowa plakietka „Dane z AI — sprawdź etykietę" | Nie. Formularz jest wstępnie wypełniony, ale pola są edytowalne i wymagają zatwierdzenia |
-| `GS1_VERIFIED` | Rejestr GS1 | Plakietka neutralna „GS1" | Tak |
+| `AI_SUGGESTED` | Wyszukiwanie w sieci | Bursztynowa plakietka „Dane z AI — sprawdź etykietę" | Nie. Formularz jest wstępnie wypełniony, ale pola są edytowalne i wymagają zatwierdzenia |
+| `GS1_VERIFIED` | *(historyczny — krok GS1 usunięty)* | Plakietka neutralna „GS1" | Tak |
 | `STUDIO_CONFIRMED` | Człowiek potwierdził, że etykieta się zgadza | Bez plakietki | Tak |
 | `CURATED` | Moderacja platformy | Bez plakietki | Tak |
 | `UNVERIFIED` | Wpis w pełni ręczny | Plakietka szara „Wpisane ręcznie" | Tak, ale nie blokuje korekty in-place |
@@ -506,7 +521,7 @@ pl.detailing.crm.product/
 ├── adapter/
 │   ├── local/            LocalCatalogProvider       (krok 1)
 │   ├── ai/               AiProductProvider          (krok 2) + AiProductConfig
-│   └── gs1/              Gs1ProductProvider         (krok 3) + GEPIR jako zapas
+│   └── web/              OpenAiWebSearchClient      (krok 2) — model z web_search_options
 ├── application/          ProductResolutionService   ← łańcuch, limity, cache
 ├── create/ update/ list/ get/   (handlery + walidatory, konwencja jak w `service/`)
 ├── notes/ rating/        handlery warstwy studia
@@ -525,7 +540,7 @@ interface ProductDataProvider {
 data class ProductLookupResult(
     val spec: ProductSpec,
     val source: ProductSource,
-    /** 0.0–1.0. Rejestry zwracają 1.0; tylko LLM zwraca wartość pośrednią. */
+    /** 0.0–1.0. Wypełnione dla źródła WEB; katalog lokalny zwraca 1.0. */
     val confidence: Double,
     val rawPayload: String?
 )
@@ -541,22 +556,21 @@ repozytorium już działa („NIE ZGADUJ. Jeśli marki nie podano, zostaw pole p
 
 - **Cache globalny to sam katalog.** Drugi tenant skanujący ten sam kod nie wywołuje
   niczego zewnętrznego — to jest cały zwrot z inwestycji we wspólną tabelę.
-- **Negatywny cache w Redis**, TTL 7 dni: kod, którego nie zna ani LLM, ani GS1, nie jest
+- **Negatywny cache w Redis**, TTL 7 dni (klucz niesie nazwę modelu, więc jego zmiana
+  unieważnia stare wpisy): kod, którego nie zna sieć, nie jest
   odpytywany ponownie przy każdym skanie. Klucz `product:lookup:miss:{gtin}`.
 - **Limit dzienny na studio**: `crm.products.lookup.rate-limit.per-day=100`, konwencja
   z `crm.ai.lead-classification.rate-limit.per-day`. Przekroczenie → `429` z czytelnym
   komunikatem i propozycją wpisania ręcznego, nigdy cicha awaria.
 - **Twardy budżet miesięczny platformy** z alarmem — jedno studio nie może przepalić
   budżetu wszystkim.
-- **Timeouty:** LLM 8 s, GS1 5 s. Po timeoucie łańcuch idzie dalej, a przy całkowitym
+- **Timeout** wyszukiwania. Po timeoucie oddajemy „nie znaleziono”, a przy całkowitym
   niepowodzeniu użytkownik dostaje pusty formularz z wpisanym kodem, nie błąd.
 
-**Zależność operacyjna do domknięcia przed fazą 3:** „Verified by GS1" wymaga umowy
-licencyjnej z GS1; GEPIR jest dostępny szerzej, ale zwraca głównie dane licencjobiorcy
-(nazwa firmy, kraj), bez nazwy handlowej i pojemności. Moduł działa bez GS1 — traci
-wtedy krok 3, a produkty o niskiej pewności lądują w formularzu do ręcznego uzupełnienia.
-Adapter jest tak zaprojektowany, żeby brak umowy był konfiguracją (`gs1.enabled=false`),
-a nie blokadą wdrożenia.
+**Zależność operacyjna — zamknięta przez usunięcie kroku.** „Verified by GS1" wymagało
+umowy licencyjnej, której nie ma, a GEPIR zwraca licencjobiorcę prefiksu, nie kartę
+produktu. Krok GS1 został usunięty zamiast trzymać w kodzie adapter zwracający `null`;
+rozpoznanie opiera się na wyszukiwaniu w sieci (§3.1).
 
 ---
 
@@ -1159,7 +1173,7 @@ pieniądze albo zaufanie.
    dokładnie tyle, ile wpisano*: cena 190000 gr brutto przy 23% i `ratio = 1,0` daje
    190000, nie 190001. Dodatkowo: VAT jako różnica, suma pozycji sumująca strony osobno.
 3. **`ProductResolutionChainTest`** (backend) — kolejność LOCAL → AI → GS1; pewność 0,89
-   schodzi do GS1, 0,90 nie schodzi; brak odpowiedzi z obu źródeł zwraca `NOT_FOUND`
+   wraca jako szkic, 0,90 jest trafieniem; brak odpowiedzi z sieci zwraca `NOT_FOUND`
    i **nie zapisuje** niczego zmyślonego.
 4. **`ProductTenantIsolationTest`** (backend, integracyjny po API) — studio B widzi ten sam
    wiersz katalogu, a **nie widzi** ceny, notatek, oceny ani zużycia studia A; nie widzi
@@ -1201,7 +1215,7 @@ opóźnienia umowy z GS1 nic się nie zablokowało.
 | Ryzyko | Skutek | Co z tym robimy |
 |---|---|---|
 | LLM zmyśla dane produktu przy wysokiej deklarowanej pewności | Zatruty katalog u wszystkich tenantów naraz | Ślad pochodzenia, brak awansu bez potwierdzenia, metryka odsetka poprawek po AI, możliwość odwrócenia kolejności jedną właściwością |
-| Brak umowy „Verified by GS1" | Krok 3 nie działa, gorsze pokrycie | `gs1.enabled=false` — moduł działa bez niego; GEPIR jako częściowy zapas |
+| Wyszukiwanie w sieci nie zna kodu | Formularz zostaje do ręcznego uzupełnienia | Kod trafia do negatywnego cache (klucz z nazwą modelu), a katalog i tak rośnie z wpisów ludzi |
 | Zatrucie katalogu przez literówkę tenanta | Wszyscy widzą błędne dane | Brak edycji in-place na wpisach zweryfikowanych, propozycje korekt, wycofanie z powodem |
 | Przepalenie budżetu zapytań przez jedno studio | Koszt platformy | Limit dzienny na studio, budżet miesięczny z alarmem, negatywny cache |
 | iOS bez `BarcodeDetector` | Połowa telefonów nie skanuje | Dekoder WASM jako ścieżka główna na iOS, przetestowana przed wydaniem; uczciwy komunikat zamiast martwego przycisku |
