@@ -7,7 +7,7 @@ export const UNIT_LABELS: Record<UnitOfMeasure, string> = {
     ML: 'ml', L: 'l', G: 'g', KG: 'kg', PIECE: 'szt.', PAIR: 'para', M: 'm', M2: 'm²',
 };
 
-export type ProductSource = 'MANUAL' | 'AI' | 'GS1' | 'CURATED';
+export type ProductSource = 'MANUAL' | 'AI' | 'WEB' | 'GS1' | 'CURATED';
 
 export type VerificationLevel =
     | 'UNVERIFIED'
