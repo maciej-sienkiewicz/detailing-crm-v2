@@ -1,106 +1,14 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { Download } from 'lucide-react';
+import {
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
+    ModalContent, CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { useSettlementHistory } from '../hooks/useBatchOrders';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, SettlementHistoryRecord } from '../types';
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    height: 100vh;
-    height: 100dvh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding:
-        max(16px, env(safe-area-inset-top, 0px))
-        max(16px, env(safe-area-inset-right, 0px))
-        max(16px, env(safe-area-inset-bottom, 0px))
-        max(16px, env(safe-area-inset-left, 0px));
-
-    @media (max-height: 480px) {
-        padding-top: max(8px, env(safe-area-inset-top, 0px));
-        padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
-    }
-`;
-
-const Modal = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border-radius: 16px;
-    width: 100%;
-    max-width: 640px;
-    max-height: 100%;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
-
-    @media (max-width: 640px) {
-        border-radius: 14px;
-    }
-`;
-
-const ModalHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-        padding: 16px 16px 12px;
-    }
-`;
-
-const Title = styled.h2`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.md};
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    overflow-wrap: anywhere;
-    min-width: 0;
-`;
-
-const CloseBtn = styled.button`
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: transparent;
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 120ms ease;
-
-    &:hover {
-        background: ${p => p.theme.colors.surfaceAlt};
-        color: ${p => p.theme.colors.text};
-    }
-`;
-
-const ModalBody = styled.div`
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    flex: 1;
-    min-height: 0;
-    padding: 16px 24px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    @media (max-width: 640px) {
-        padding: 12px 16px 20px;
-    }
-`;
 
 const EmptyMsg = styled.p`
     text-align: center;
@@ -148,33 +56,6 @@ const PeriodLabel = styled.span`
 const ClosedBy = styled.span`
     font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.textMuted};
-`;
-
-const DownloadBtn = styled.button<{ $loading?: boolean }>`
-    padding: 5px 12px;
-    border-radius: 7px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 600;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: transparent;
-    color: ${p => p.theme.colors.text};
-    cursor: ${p => p.$loading ? 'not-allowed' : 'pointer'};
-    opacity: ${p => p.$loading ? 0.6 : 1};
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
-    min-height: 32px;
-
-    @media (hover: none) and (pointer: coarse) {
-        min-height: 40px;
-        padding: 8px 14px;
-    }
-
-    &:hover:not(:disabled) {
-        background: ${p => p.theme.colors.primary};
-        color: #fff;
-        border-color: ${p => p.theme.colors.primary};
-    }
 `;
 
 const MetaRow = styled.div`
@@ -279,9 +160,10 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
                         <ClosedBy>Wygenerował/a: {record.closedByUserName}</ClosedBy>
                     )}
                 </DateInfo>
-                <DownloadBtn $loading={downloading} onClick={handleDownload}>
-                    {downloading ? 'Pobieranie...' : '↓ Pobierz raport'}
-                </DownloadBtn>
+                <SharedButton $variant="secondary" $size="sm" type="button" onClick={handleDownload} disabled={downloading}>
+                    <Download size={14} />
+                    {downloading ? 'Pobieranie...' : 'Pobierz raport'}
+                </SharedButton>
             </CardTop>
 
             <MetaRow>
@@ -323,24 +205,25 @@ export function SettlementHistoryModal({ contractor, onClose }: Props) {
     const { data: records, isLoading } = useSettlementHistory(contractor.id);
 
     return (
-        <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <Modal>
-                <ModalHeader>
-                    <Title>Historia rozliczeń: {contractor.name}</Title>
-                    <CloseBtn onClick={onClose} title="Zamknij">×</CloseBtn>
-                </ModalHeader>
-                <ModalBody>
-                    {isLoading ? (
-                        <EmptyMsg>Ładowanie...</EmptyMsg>
-                    ) : !records || records.length === 0 ? (
-                        <EmptyMsg>Brak historii rozliczeń dla tego kontrahenta.</EmptyMsg>
-                    ) : (
-                        records.map(r => (
-                            <HistoryCard key={r.id} record={r} contractorName={contractor.name} />
-                        ))
-                    )}
-                </ModalBody>
-            </Modal>
-        </Overlay>
+        <ModalShell isOpen onClose={onClose} size="lg">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Historia rozliczeń</ModalTitle>
+                    <ModalSubtitle>{contractor.name}</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+            <ModalContent>
+                {isLoading ? (
+                    <EmptyMsg>Ładowanie...</EmptyMsg>
+                ) : !records || records.length === 0 ? (
+                    <EmptyMsg>Brak historii rozliczeń dla tego kontrahenta.</EmptyMsg>
+                ) : (
+                    records.map(r => (
+                        <HistoryCard key={r.id} record={r} contractorName={contractor.name} />
+                    ))
+                )}
+            </ModalContent>
+        </ModalShell>
     );
 }

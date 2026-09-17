@@ -10,6 +10,7 @@
 
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { Plus } from 'lucide-react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { formatCurrency } from '@/common/utils';
 import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
@@ -20,6 +21,7 @@ import {
 } from '@/common/components/ModalKit';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { SharedButton } from '@/common/styles';
+import { InputShell, BareInput, Select } from '@/common/components/Form';
 import * as S from '@/common/components/ServicesTable/styles';
 import {
     useBatchServices,
@@ -42,44 +44,10 @@ const Toolbar = styled.div`
     flex-wrap: wrap;
 `;
 
-const SearchInput = styled.input`
-    flex: 1 1 180px;
-    min-width: 0;
-    padding: 8px 12px;
-    font-size: 13px;
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    color: #0f172a;
-    outline: none;
-    font-family: inherit;
-    box-sizing: border-box;
-    transition: all 150ms ease;
-
-    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14,165,233,0.12); }
-    &::placeholder { color: #b0bec5; }
-
-    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
-`;
-
-const AddBtn = styled.button`
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
-    background: #0ea5e9;
-    border: none;
-    border-radius: 9px;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    transition: background 150ms ease;
-
-    &:hover { background: #0284c7; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
-`;
+// Wyszukiwarka i przyciski to teraz wspólne prymitywy (InputShell/BareInput,
+// SharedButton, Select) - własne AddBtn/SearchInput/VatSelect w tym module
+// zaszywały sky-blue #0ea5e9 na sztywno (nie szły za kolorem marki klienta)
+// i miały prostokątny kształt obcy pigułkom reszty aplikacji.
 
 /**
  * The editor opens under the row it edits rather than in an overlay: this list already
@@ -88,8 +56,10 @@ const AddBtn = styled.button`
  */
 const EditPanel = styled.div`
     padding: 10px 14px 12px;
-    background: #f0f9ff;
-    border-top: 1px dashed #bae6fd;
+    /* Tint edytora liczony z koloru marki, nie zaszyty sky-blue: idzie za
+       kolorem klienta i nie rozjeżdża się z resztą aplikacji. */
+    background: color-mix(in srgb, var(--brand-primary) 6%, #ffffff);
+    border-top: 1px dashed color-mix(in srgb, var(--brand-primary) 40%, #ffffff);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -104,24 +74,6 @@ const PanelRow = styled.div`
         grid-template-columns: 1fr 1fr;
         > :last-child { grid-column: 1 / -1; }
     }
-`;
-
-const VatSelect = styled.select`
-    width: 100%;
-    padding: 8px 10px;
-    font-size: 13px;
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    color: #0f172a;
-    outline: none;
-    font-family: inherit;
-    box-sizing: border-box;
-    cursor: pointer;
-
-    &:focus { border-color: #0ea5e9; }
-
-    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;
 
 const PanelActions = styled.div`
@@ -339,24 +291,25 @@ export function BatchServicesModal({ onClose }: Props) {
                 </S.EditPriceField>
                 <S.EditPriceField>
                     <S.EditPriceFieldLabel>VAT</S.EditPriceFieldLabel>
-                    <VatSelect
+                    <Select
+                        $compact
                         value={draft.vatRate}
                         onChange={e => handleVatChange(Number(e.target.value))}
                     >
                         {VAT_RATES.map(r => (
                             <option key={r} value={r}>{vatLabel(r)}</option>
                         ))}
-                    </VatSelect>
+                    </Select>
                 </S.EditPriceField>
             </PanelRow>
             {error && <S.EditErrorMsg>{error}</S.EditErrorMsg>}
             <PanelActions>
-                <S.DiscountRemoveButton type="button" onClick={closeEditor} disabled={saving}>
+                <SharedButton $variant="secondary" $size="sm" type="button" onClick={closeEditor} disabled={saving}>
                     Anuluj
-                </S.DiscountRemoveButton>
-                <AddBtn type="button" onClick={handleSave} disabled={saving}>
+                </SharedButton>
+                <SharedButton $variant="primary" $size="sm" type="button" onClick={handleSave} disabled={saving}>
                     {saving ? 'Zapisywanie...' : 'Zapisz'}
-                </AddBtn>
+                </SharedButton>
             </PanelActions>
         </EditPanel>
     );
@@ -374,15 +327,24 @@ export function BatchServicesModal({ onClose }: Props) {
 
                 <ModalContent>
                     <Toolbar>
-                        <SearchInput
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Szukaj usługi..."
-                            aria-label="Szukaj usługi"
-                        />
-                        <AddBtn type="button" onClick={openNew} disabled={editingId === ''}>
-                            + Dodaj usługę
-                        </AddBtn>
+                        <InputShell $compact style={{ flex: '1 1 180px' }}>
+                            <BareInput
+                                $compact
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Szukaj usługi..."
+                                aria-label="Szukaj usługi"
+                            />
+                        </InputShell>
+                        <SharedButton
+                            $variant="primary"
+                            $size="sm"
+                            type="button"
+                            onClick={openNew}
+                            disabled={editingId === ''}
+                        >
+                            <Plus size={15} /> Dodaj usługę
+                        </SharedButton>
                     </Toolbar>
 
                     <S.ServicesBlock>

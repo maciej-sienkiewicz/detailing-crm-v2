@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
-import styled from 'styled-components';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
     ModalContent, ModalFooter, CloseBtn,
@@ -13,8 +12,6 @@ import {
 import { SharedButton } from '@/common/styles';
 import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
 import type { BatchContractor, ContractorRequest } from '../types';
-
-const NipWrapper = styled(InputShell)``;
 
 function formatGusAddress(addr: CompanyInfoResponse['address']): string {
     const parts: string[] = [];

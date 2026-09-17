@@ -10,7 +10,7 @@ interface Props {
 type ActivePreset = 'current' | 'previous' | 'pick-month' | 'custom';
 
 const MONTHS_PL = [
-    'Styčeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
     'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
 ];
 
@@ -72,7 +72,7 @@ const MobileSummaryBtn = styled.button<{ $open: boolean }>`
         white-space: nowrap;
         min-height: 36px;
         border: 1px solid ${p => p.$open ? p.theme.colors.primary : p.theme.colors.border};
-        background: ${p => p.$open ? p.theme.colors.primary + '18' : 'transparent'};
+        background: ${p => p.$open ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
         color: ${p => p.$open ? p.theme.colors.primary : p.theme.colors.text};
         transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
@@ -106,7 +106,7 @@ const Chip = styled.button<{ $active?: boolean }>`
     font-weight: 600;
     cursor: pointer;
     border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-    background: ${p => p.$active ? p.theme.colors.primary + '18' : 'transparent'};
+    background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
     color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textMuted};
     white-space: nowrap;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
@@ -115,7 +115,7 @@ const Chip = styled.button<{ $active?: boolean }>`
     &:hover {
         border-color: ${p => p.theme.colors.primary};
         color: ${p => p.theme.colors.primary};
-        background: ${p => p.theme.colors.primary}10;
+        background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
     }
 
     @media (hover: none) and (pointer: coarse) { min-height: 40px; }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
-import { Camera } from 'lucide-react';
+import { Camera, Plus, Trash2 } from 'lucide-react';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
@@ -11,7 +11,7 @@ import {
 import {
     FormField, FormGrid, FieldLabel,
     InputShell, BareInput, InputShellTextArea, BareTextArea,
-    FormErrorMsg, FormAlertBanner,
+    Select, FormAlertBanner,
 } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
 import { MAX_2_DECIMALS, centsToInput, inputToCents, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
@@ -40,44 +40,32 @@ const ServiceCardHeader = styled.div`
     align-items: center;
 `;
 
-const ServiceNameInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    padding: 9px 12px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #0f172a;
-    background: white;
-    font-family: inherit;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    &::placeholder { color: #94a3b8; }
-
-    @media (hover: none) and (pointer: coarse) {
-        min-height: 44px;
-    }
-`;
-
-const RemoveBtn = styled.button`
-    padding: 6px 9px;
-    border: 1.5px solid #e2e8f0;
+/**
+ * Usuwanie pozycji tą samą ikoną i tym samym zachowaniem co w tabeli usług
+ * (ServicesTable → DeleteButton): przezroczyste tło, czerwień dopiero na hover.
+ * Wcześniej był to obramowany „✕" - czwarty krój przycisku w jednym oknie.
+ */
+const IconRemoveBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: none;
     border-radius: 8px;
     background: transparent;
     color: #94a3b8;
     cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    flex-shrink: 0;
-    transition: all 150ms ease;
+    transition: background 150ms ease, color 150ms ease;
 
-    &:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
+    &:hover { background: #fef2f2; color: #ef4444; }
+    svg { width: 15px; height: 15px; }
+
+    @media (hover: none) and (pointer: coarse) {
+        width: 40px;
+        height: 40px;
+    }
 `;
 
 const PriceGrid = styled.div`
@@ -99,76 +87,19 @@ const PriceField = styled.div`
     gap: 4px;
 `;
 
+/* Etykieta pola ceny w metryce edytora usług w tabeli (ServicesTable →
+   EditPriceFieldLabel): 11px, 600, slate - zamiast wersalików własnego kroju. */
 const PriceLabel = styled.label`
     font-size: 11px;
     font-weight: 600;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: #64748b;
 `;
 
-const PriceInput = styled.input`
-    width: 100%;
-    padding: 8px 10px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0f172a;
-    background: white;
-    font-family: inherit;
-    box-sizing: border-box;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    &::placeholder { color: #94a3b8; }
-
-    @media (hover: none) and (pointer: coarse) {
-        min-height: 44px;
-    }
-`;
-
-const PriceSelect = styled.select`
-    width: 100%;
-    padding: 8px 10px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0f172a;
-    background: white;
-    font-family: inherit;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: #0ea5e9;
-    }
-
-    @media (hover: none) and (pointer: coarse) {
-        min-height: 44px;
-    }
-`;
-
-const AddServiceBtn = styled.button`
-    padding: 9px 14px;
-    border: 1.5px dashed #e2e8f0;
-    border-radius: 10px;
-    background: transparent;
-    color: #0ea5e9;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    width: 100%;
-    font-family: inherit;
-    transition: background 150ms ease, border-color 150ms ease;
-
-    &:hover { background: rgba(14, 165, 233, 0.04); border-color: #bae6fd; }
+/** Lewy dosuw dla przycisku „Dodaj usługę": w kolumnie flex bez tego rozciąga
+ *  się na całą szerokość, a pełnowymiarowy przycisk dodawania był właśnie tym,
+ *  co odstawało od pigułek w stopce. */
+const AddRow = styled.div`
+    display: flex;
 `;
 
 // ─── Autocomplete ─────────────────────────────────────────────────────────────
@@ -322,9 +253,9 @@ const SheetSearchInput = styled.input`
     outline: none;
 
     &:focus {
-        border-color: #0ea5e9;
+        border-color: var(--brand-primary);
         background: #fff;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 18%, transparent);
     }
 `;
 
@@ -863,17 +794,19 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                             <ServiceCard key={idx}>
                                 <ServiceCardHeader>
                                     <AutocompleteWrapper style={{ flex: 1, minWidth: 0 }}>
-                                        <ServiceNameInput
-                                            value={svc.name}
-                                            onChange={e => {
-                                                updateService(idx, { name: capitalizeFirst(e.target.value) });
-                                                openSuggestions(idx, e.currentTarget);
-                                            }}
-                                            onFocus={e => openSuggestions(idx, e.currentTarget)}
-                                            placeholder={`Nazwa usługi ${idx + 1}...`}
-                                            autoComplete="off"
-                                            style={{ width: '100%' }}
-                                        />
+                                        <InputShell $compact style={{ width: '100%' }}>
+                                            <BareInput
+                                                $compact
+                                                value={svc.name}
+                                                onChange={e => {
+                                                    updateService(idx, { name: capitalizeFirst(e.target.value) });
+                                                    openSuggestions(idx, e.currentTarget);
+                                                }}
+                                                onFocus={e => openSuggestions(idx, e.currentTarget)}
+                                                placeholder={`Nazwa usługi ${idx + 1}`}
+                                                autoComplete="off"
+                                            />
+                                        </InputShell>
                                         {!isMobile && suggestions.length > 0 && createPortal(
                                             <FixedSuggestionList ref={suggestListRef} style={suggestStyle}>
                                                 {suggestions.map(s => (
@@ -952,48 +885,72 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                         )}
                                     </AutocompleteWrapper>
                                     {services.length > 1 && (
-                                        <RemoveBtn type="button" onClick={() => removeService(idx)}>✕</RemoveBtn>
+                                        <IconRemoveBtn
+                                            type="button"
+                                            onClick={() => removeService(idx)}
+                                            title="Usuń usługę"
+                                            aria-label={`Usuń usługę ${idx + 1}`}
+                                        >
+                                            <Trash2 />
+                                        </IconRemoveBtn>
                                     )}
                                 </ServiceCardHeader>
                                 <PriceGrid>
                                     <PriceField>
                                         <PriceLabel>Netto (zł)</PriceLabel>
-                                        <PriceInput
-                                            type="text"
-                                            inputMode="decimal"
-                                            value={svc.netDisplay}
-                                            onChange={e => updateNet(idx, e.target.value)}
-                                            onKeyDown={handleZeroAwareKeyDown(svc.netDisplay, val => updateNet(idx, val))}
-                                            placeholder="0,00"
-                                        />
+                                        <InputShell $compact>
+                                            <BareInput
+                                                $compact
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={svc.netDisplay}
+                                                onChange={e => updateNet(idx, e.target.value)}
+                                                onKeyDown={handleZeroAwareKeyDown(svc.netDisplay, val => updateNet(idx, val))}
+                                                placeholder="0,00"
+                                            />
+                                        </InputShell>
                                     </PriceField>
                                     <PriceField>
                                         <PriceLabel>Brutto (zł)</PriceLabel>
-                                        <PriceInput
-                                            type="text"
-                                            inputMode="decimal"
-                                            value={svc.grossDisplay}
-                                            onChange={e => updateGross(idx, e.target.value)}
-                                            onKeyDown={handleZeroAwareKeyDown(svc.grossDisplay, val => updateGross(idx, val))}
-                                            placeholder="0,00"
-                                        />
+                                        <InputShell $compact>
+                                            <BareInput
+                                                $compact
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={svc.grossDisplay}
+                                                onChange={e => updateGross(idx, e.target.value)}
+                                                onKeyDown={handleZeroAwareKeyDown(svc.grossDisplay, val => updateGross(idx, val))}
+                                                placeholder="0,00"
+                                            />
+                                        </InputShell>
                                     </PriceField>
                                     <PriceField>
                                         <PriceLabel>VAT</PriceLabel>
-                                        <PriceSelect
+                                        <Select
+                                            $compact
                                             value={svc.vatRate}
                                             onChange={e => updateVat(idx, Number(e.target.value))}
                                         >
                                             {VAT_OPTIONS.map(opt => (
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                             ))}
-                                        </PriceSelect>
+                                        </Select>
                                     </PriceField>
                                 </PriceGrid>
                             </ServiceCard>
                             );
                         })}
-                        <AddServiceBtn type="button" onClick={addService}>+ Dodaj usługę</AddServiceBtn>
+                        <AddRow>
+                            <SharedButton
+                                $variant="secondary"
+                                $size="sm"
+                                type="button"
+                                onClick={addService}
+                                style={{ alignSelf: 'flex-start' }}
+                            >
+                                <Plus size={15} /> Dodaj usługę
+                            </SharedButton>
+                        </AddRow>
                     </div>
                 </div>
 

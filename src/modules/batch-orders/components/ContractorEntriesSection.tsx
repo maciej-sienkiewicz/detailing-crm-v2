@@ -199,10 +199,10 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
     &:disabled { opacity: 0.55; cursor: not-allowed; }
 
     ${p => p.$variant === 'primary' && `
-        background: #0ea5e9;
+        background: var(--brand-primary);
         color: #fff;
-        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
-        &:hover:not(:disabled) { background: #0284c7; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36); }
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-primary) 28%, transparent);
+        &:hover:not(:disabled) { background: var(--brand-primary-dark); box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 38%, transparent); }
     `}
     ${p => p.$variant === 'success' && `
         background: #f0fdf4;
@@ -238,7 +238,7 @@ const MoreActionsTrigger = styled.button<{ $active?: boolean }>`
         line-height: 1;
         cursor: pointer;
         border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-        background: ${p => p.$active ? p.theme.colors.primary + '18' : 'transparent'};
+        background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
         color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textMuted};
         transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
     }
