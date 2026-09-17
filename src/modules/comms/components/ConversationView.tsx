@@ -57,7 +57,8 @@ import { LeadDetailModal } from './LeadDetailModal';
 import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
-import { useContactCard, useFormMailSources, useThreadContactBadges } from '../hooks/useComms';
+import { useContactCard, useFormMailSources, useMarkMessageUnread, useThreadContactBadges } from '../hooks/useComms';
+import { MessageContextMenu } from './MessageContextMenu';
 import { MarkAsFormLeadModal } from './MarkAsFormLeadModal';
 import { ThreadActionsMenu, type ThreadAction } from './ThreadActionsMenu';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
@@ -624,6 +625,19 @@ function ConversationViewImpl({
     // Lead otwarty z konkretnej wiadomości wątku formularza. Trzymany razem z id
     // wątku, tak jak pozostałe okna - przejście do innej rozmowy zamyka go samo.
     const [messageLead, setMessageLead] = useState<{ threadId: string; leadId: string } | null>(null);
+
+    // Prawy przycisk na wiadomości -> „Oznacz jako nieprzeczytaną". Trzymamy pozycję
+    // kursora i id wiadomości; menu rysuje się w portalu.
+    const [messageMenu, setMessageMenu] = useState<{ x: number; y: number; messageId: string } | null>(null);
+    const markMessageUnread = useMarkMessageUnread();
+
+    const openMessageMenu = (event: React.MouseEvent, message: CommMessage) => {
+        // Tylko dla wiadomości PRZYCZYTANEJ i PRZYCHODZĄCEJ - inne nie mają czego cofać,
+        // a na treści rozwiniętej wiadomości (linki, obrazki) zostawiamy menu przeglądarki.
+        if (message.direction !== 'INBOUND' || !message.isRead) return;
+        event.preventDefault();
+        setMessageMenu({ x: event.clientX, y: event.clientY, messageId: message.id });
+    };
     const openMessageLeadId = messageLead?.threadId === thread.id ? messageLead.leadId : null;
     // Oznaczeni nadawcy-formularze: jedna cache'owana lista na całą skrzynkę.
     // Z niej bierze się plakietka „Formularz" przy adresie robota.
@@ -933,6 +947,16 @@ function ConversationViewImpl({
                         onClose={() => setNotesAnchor(null)}
                     />
                 )}
+                {messageMenu && (
+                    <MessageContextMenu
+                        x={messageMenu.x}
+                        y={messageMenu.y}
+                        onClose={() => setMessageMenu(null)}
+                        onMarkUnread={() =>
+                            markMessageUnread.mutate({ messageId: messageMenu.messageId, threadId: thread.id })
+                        }
+                    />
+                )}
                 {leadDetailOpen && thread.leadId && (
                     <LeadDetailModal
                         key={thread.leadId}
@@ -1031,6 +1055,7 @@ function ConversationViewImpl({
                                 key={message.id}
                                 $outbound={outbound}
                                 onClick={() => toggleMessage(message.id, expanded)}
+                                onContextMenu={(event) => openMessageMenu(event, message)}
                                 aria-expanded={false}
                                 title="Rozwiń wiadomość"
                             >
@@ -1074,7 +1099,7 @@ function ConversationViewImpl({
 
                     return (
                         <Article key={message.id} $outbound={outbound}>
-                            <MessageHeader>
+                            <MessageHeader onContextMenu={(event) => openMessageMenu(event, message)}>
                                 {outbound ? (
                                     <Avatar $hue={hue} $outbound>{initials}</Avatar>
                                 ) : (
