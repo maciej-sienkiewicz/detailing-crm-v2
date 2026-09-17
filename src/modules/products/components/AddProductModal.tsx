@@ -81,6 +81,12 @@ const DraftBanner = styled.div`
     background: ${st.bgAccentAmber}; border: 1px solid rgba(245,158,11,0.35);
     font-size: 12.5px; color: #92400e; margin-bottom: 4px;
 `;
+// Cytowanie źródła MUSI być widoczne i klikalne, gdy pokazujemy dane z wyszukiwania
+// w sieci — to wymóg dokumentacji OpenAI, nie ozdoba.
+const SourceLink = styled.a`
+    font-weight: 700; color: #92400e; text-decoration: underline; white-space: nowrap;
+    &:hover { color: #78350f; }
+`;
 const Spin = styled(Loader2)` animation: spin 1s linear infinite; @keyframes spin { to { transform: rotate(360deg); } } `;
 
 const UNITS = Object.keys(UNIT_LABELS) as UnitOfMeasure[];
@@ -351,7 +357,12 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
 
                 {draft && (
                     <DraftBanner>
-                        Sprawdź dane z etykietą przed zapisaniem — pochodzą z automatycznego rozpoznania.
+                        <span>Sprawdź dane z etykietą przed zapisaniem — pochodzą z wyszukiwania w sieci.</span>
+                        {draft.sourceUrl && (
+                            <SourceLink href={draft.sourceUrl} target="_blank" rel="noopener noreferrer">
+                                Źródło ↗
+                            </SourceLink>
+                        )}
                     </DraftBanner>
                 )}
                 <FieldGroup>

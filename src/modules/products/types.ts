@@ -164,6 +164,8 @@ export interface ProductDraft {
     packageSizeUnit: UnitOfMeasure;
     description: string | null;
     provenance: Provenance;
+    /** Adres źródła rozpoznania — pokazywany jako klikalny link przy szkicu. */
+    sourceUrl?: string | null;
 }
 
 export type LookupStatus = 'FOUND_LOCAL' | 'RESOLVED' | 'NOT_FOUND';
