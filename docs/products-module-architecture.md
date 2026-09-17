@@ -163,7 +163,7 @@ komplet danych w 40 ms i za zero złotych.
 ### 2.3 Schemat bazy
 
 Schemat powstaje z encji JPA (`spring.jpa.hibernate.ddl-auto=update`), a plik
-`db/migration/V100__products_module.sql` jest **skryptem przeglądowym uruchamianym
+`db/migration/V138__products_module.sql` jest **skryptem przeglądowym uruchamianym
 ręcznie** — Flyway jest w tym repo wyłączony (`spring.flyway.enabled=false`). Skrypt
 zawiera to, czego Hibernate nie zrobi: indeksy częściowe, ograniczenia `CHECK`,
 `COMMENT ON` i ewentualne backfille. Taka jest realna konwencja repozytorium (patrz
