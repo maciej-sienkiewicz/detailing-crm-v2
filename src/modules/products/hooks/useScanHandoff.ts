@@ -13,6 +13,29 @@ import type { ScanSession } from '../types';
 
 const POLL_MS = 3000;
 
+/**
+ * Kody z sesji jako ciągi — niezależnie od tego, czy ramka niesie `["590..."]`, czy
+ * `[{code:"590...", scannedAt:"..."}]`.
+ *
+ * Serwer wysyłał po WebSocketcie surową sesję (obiekty), a REST-em już same ciągi.
+ * `String(obiekt)` dawało `"[object Object]"`, które lądowało w polu kodu i odbijało
+ * się od walidacji sumy kontrolnej. Serwer jest naprawiony, ale ta funkcja zostaje:
+ * podczas wdrożenia stara i nowa wersja żyją przez chwilę obok siebie.
+ */
+function toCodeStrings(raw: unknown): string[] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+        .map(entry => {
+            if (typeof entry === 'string') return entry;
+            if (entry && typeof entry === 'object' && 'code' in entry) {
+                const code = (entry as { code: unknown }).code;
+                return typeof code === 'string' ? code : '';
+            }
+            return '';
+        })
+        .filter(Boolean);
+}
+
 export function useScanHandoff() {
     const { user } = useAuth();
     const [session, setSession] = useState<ScanSession | null>(null);
@@ -39,7 +62,7 @@ export function useScanHandoff() {
         try {
             const s = await productsApi.openScanSession();
             setSession(s);
-            setCodes(s.scannedCodes);
+            setCodes(toCodeStrings(s.scannedCodes));
 
             // WebSocket: /topic/studio.{studioId}.product-scan.{sessionId}
             if (user?.studioId) {
@@ -49,7 +72,7 @@ export function useScanHandoff() {
                     msg => {
                         try {
                             const payload = JSON.parse(msg.body) as ScanSession;
-                            mergeCodes(payload.scannedCodes.map(String));
+                            mergeCodes(toCodeStrings(payload.scannedCodes));
                         } catch { /* ignoruj złą ramkę */ }
                     },
                 );
@@ -58,7 +81,7 @@ export function useScanHandoff() {
             pollRef.current = window.setInterval(async () => {
                 try {
                     const fresh = await productsApi.getScanSession(s.sessionId);
-                    mergeCodes(fresh.scannedCodes);
+                    mergeCodes(toCodeStrings(fresh.scannedCodes));
                     if (fresh.status !== 'OPEN') stop();
                 } catch { /* sesja mogła wygasnąć — poll zgaśnie z komponentem */ }
             }, POLL_MS);

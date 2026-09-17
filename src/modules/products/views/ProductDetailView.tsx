@@ -134,7 +134,6 @@ export function ProductDetailView() {
                                         netto {(product.price.unitPriceNet / 100).toFixed(2)} zł ·
                                         VAT {product.price.vatRate === -1 ? 'zw.' : `${product.price.vatRate}%`} ·
                                         brutto {(product.price.unitPriceGross / 100).toFixed(2)} zł
-                                        {product.supplierName ? ` · dostawca: ${product.supplierName}` : ''}
                                     </PriceProof>
                                 </PriceHead>
                             </FlatSection>

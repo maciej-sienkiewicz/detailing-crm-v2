@@ -57,7 +57,6 @@ export interface Product {
     imageFileId: string | null;
     provenance: Provenance;
     internalName: string | null;
-    supplierName: string | null;
     internalNote: string | null;
     isFavourite: boolean;
     isHidden: boolean;
@@ -118,16 +117,16 @@ export interface PriceInput {
 
 export interface CreateProductRequest {
     gtin?: string | null;
+    /** Jedyne wymagane pole. */
     name: string;
-    brand: string;
-    unitOfMeasure: UnitOfMeasure;
-    packageSizeValue: string;
+    brand?: string | null;
+    unitOfMeasure?: UnitOfMeasure | null;
+    packageSizeValue?: string | null;
     packageSizeUnit?: UnitOfMeasure | null;
     packageHeightMm?: number | null;
     packageWidthMm?: number | null;
     packageDepthMm?: number | null;
     description?: string | null;
-    supplierName?: string | null;
     internalName?: string | null;
     internalNote?: string | null;
     price?: PriceInput | null;
@@ -135,9 +134,9 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest {
     name: string;
-    brand: string;
-    unitOfMeasure: UnitOfMeasure;
-    packageSizeValue: string;
+    brand?: string | null;
+    unitOfMeasure?: UnitOfMeasure | null;
+    packageSizeValue?: string | null;
     packageSizeUnit?: UnitOfMeasure | null;
     packageHeightMm?: number | null;
     packageWidthMm?: number | null;
@@ -146,7 +145,6 @@ export interface UpdateProductRequest {
 }
 
 export interface UpdateProductStudioRequest {
-    supplierName?: string | null;
     internalName?: string | null;
     internalNote?: string | null;
     isFavourite: boolean;

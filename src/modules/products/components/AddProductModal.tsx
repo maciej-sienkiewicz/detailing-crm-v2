@@ -100,7 +100,6 @@ interface FormState {
     packageSizeValue: string;
     packageSizeUnit: UnitOfMeasure;
     description: string;
-    supplierName: string;
     priceValue: string;       // złotówki jako tekst
     priceDirection: PriceDirection;
     vatRate: VatRate;
@@ -109,7 +108,7 @@ interface FormState {
 const EMPTY: FormState = {
     gtin: '', name: '', brand: '',
     unitOfMeasure: 'ML', packageSizeValue: '', packageSizeUnit: 'ML',
-    description: '', supplierName: '', priceValue: '', priceDirection: 'GROSS', vatRate: 23,
+    description: '', priceValue: '', priceDirection: 'GROSS', vatRate: 23,
 };
 
 interface Props {
@@ -261,9 +260,8 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                 packageSizeUnit: form.packageSizeUnit,
                 description: form.description.trim() || null,
             });
-            if (canSeeCosts && (priceInput() || form.supplierName.trim())) {
+            if (canSeeCosts && priceInput()) {
                 await productsApi.updateStudio(saved.id, {
-                    supplierName: form.supplierName.trim() || null,
                     isFavourite: false, isHidden: false, price: priceInput(),
                 });
             }
@@ -278,14 +276,15 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
             packageSizeValue: form.packageSizeValue.trim(),
             packageSizeUnit: form.packageSizeUnit,
             description: form.description.trim() || null,
-            supplierName: form.supplierName.trim() || null,
             price: priceInput(),
         };
         const saved = await create.mutateAsync(req);
         onCreated(saved.id);
     };
 
-    const canSubmit = form.name.trim().length >= 2 && form.brand.trim() && form.packageSizeValue.trim();
+    // Wymagana jest WYŁĄCZNIE nazwa — resztę można uzupełnić później. Produkt dodaje
+    // się często w biegu, przy regale, i blokowanie zapisu na marce zatrzymywało pracę.
+    const canSubmit = form.name.trim().length >= 2;
 
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="720px">
@@ -370,13 +369,13 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                     <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="np. Powłoka ceramiczna Pro" />
                 </FieldGroup>
                 <FieldGroup>
-                    <Label>Marka *</Label>
+                    <Label>Marka</Label>
                     <Input value={form.brand} onChange={e => set('brand', e.target.value)} />
                 </FieldGroup>
                 <Grid2>
                     <FieldGroup>
-                        <Label>Wielkość opakowania *</Label>
-                        <Input value={form.packageSizeValue} onChange={e => set('packageSizeValue', e.target.value)} placeholder="np. 50" inputMode="decimal" />
+                        <Label>Wielkość opakowania</Label>
+                        <Input value={form.packageSizeValue} onChange={e => set('packageSizeValue', e.target.value)} placeholder="np. 50 — opcjonalnie" inputMode="decimal" />
                     </FieldGroup>
                     <FieldGroup>
                         <Label>Jednostka</Label>
@@ -404,12 +403,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                             </div>
                         </FieldGroup>
                     </Grid2>
-                )}
-                {canSeeCosts && (
-                    <FieldGroup>
-                        <Label>Dostawca</Label>
-                        <Input value={form.supplierName} onChange={e => set('supplierName', e.target.value)} placeholder="u kogo kupujecie — opcjonalnie" />
-                    </FieldGroup>
                 )}
                 <FieldGroup>
                     <Label>Opis / notatka</Label>
