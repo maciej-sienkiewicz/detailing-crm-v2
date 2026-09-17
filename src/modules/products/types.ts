@@ -56,6 +56,8 @@ export interface Product {
     description: string | null;
     imageFileId: string | null;
     provenance: Provenance;
+    /** true = wpis prywatny tego studia (bez poprawnego kodu) — nikt inny go nie widzi. */
+    isPrivate: boolean;
     internalName: string | null;
     internalNote: string | null;
     isFavourite: boolean;
@@ -194,6 +196,28 @@ export interface VisitProductLink {
     note: string | null;
     addedByName: string;
     addedAt: string;
+}
+
+/** Jedna wizyta na liście „Wykorzystano podczas wizyty". */
+export interface ProductVisitUsage {
+    linkId: string;
+    visitId: string;
+    visitNumber: string;
+    title: string | null;
+    vehicle: string;
+    status: string;
+    scheduledDate: string;
+    note: string | null;
+    addedByName: string;
+    addedAt: string;
+}
+
+export interface ProductVisitUsagePage {
+    items: ProductVisitUsage[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
 }
 
 export interface ScanSession {

@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Package, ArrowLeft, Star, CheckCircle2 } from 'lucide-react';
+import { Package, ArrowLeft, Star, CheckCircle2, Lock, Flag } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PageContainer } from '@/common/components/PageContainer';
@@ -8,6 +9,8 @@ import { usePermissions } from '@/core/permissions';
 import { useProductDetail, useConfirmProduct, useProductRating } from '../hooks/useProducts';
 import { ProductRatingStars } from '../components/ProductRatingStars';
 import { ProductNotes } from '../components/ProductNotes';
+import { ProductVisitsSection } from '../components/ProductVisitsSection';
+import { ReportProductIssueModal } from '../components/ReportProductIssueModal';
 import { formatPackage, formatPrice } from '../utils/productFormat';
 import { UNIT_LABELS } from '../types';
 
@@ -26,13 +29,18 @@ const Hero = styled.header`
     @media (max-width: 640px) { flex-direction: column; }
 `;
 const HeroIcon = styled.div` width: 56px; height: 56px; flex-shrink: 0; border-radius: ${st.radius}; background: ${st.bgCardAlt}; display: flex; align-items: center; justify-content: center; color: ${st.textMuted}; `;
-const HeroMain = styled.div` flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; `;
+const HeroMain = styled.div` flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; overflow-wrap: anywhere; `;
 const HeroTitle = styled.h1` margin: 0; font-size: 22px; font-weight: 700; color: ${st.text}; `;
 const HeroMeta = styled.div` display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: ${st.textSecondary}; `;
 
+// `min-width: 0` na dzieciach jest OBOWIĄZKOWE: element siatki ma domyślnie
+// `min-width: auto`, więc jedna długa linia (wklejony adres w notatce) rozpycha
+// kolumnę ponad szerokość ekranu i rozjeżdża cały widok.
 const Columns = styled.div`
     display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start;
+    min-width: 0;
     @media (max-width: 900px) { grid-template-columns: 1fr; }
+    > * { min-width: 0; }
 `;
 // Kolumna dowodów. Jedna wspólna powierzchnia (karta na tle innym niż layout) —
 // wewnątrz Specyfikacja i Cena leżą płasko, rozdzielone kreską. Jedno WYNIESIENIE
@@ -40,24 +48,24 @@ const Columns = styled.div`
 const LeftCol = styled.div`
     background: ${st.bgCard}; border: 1px solid ${st.border};
     border-radius: ${st.radius}; box-shadow: ${st.shadowSm};
-    padding: 20px; display: flex; flex-direction: column; gap: 16px;
+    padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0;
     @media (max-width: 900px) { order: 2; }
 `;
 // JEDYNA mocno wyniesiona sekcja w oknie: doświadczenie studia (CLAUDE.md §2).
-const RightCol = styled.div` @media (max-width: 900px) { order: 1; } `;
+const RightCol = styled.div` min-width: 0; @media (max-width: 900px) { order: 1; } `;
 
 const FlatSection = styled.section` display: flex; flex-direction: column; gap: 10px; `;
 const RowDivider = styled.hr` border: none; border-top: 1px solid ${st.border}; margin: 2px 0; width: 100%; `;
 const SectionLabel = styled.h2` margin: 0; font-size: 15px; font-weight: 700; color: ${st.text}; display: flex; align-items: center; gap: 8px; `;
-const SpecGrid = styled.dl` margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; `;
+const SpecGrid = styled.dl` margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; font-size: 14px; `;
 const DKey = styled.dt` color: ${st.textMuted}; `;
-const DVal = styled.dd` margin: 0; color: ${st.text}; `;
+const DVal = styled.dd` margin: 0; color: ${st.text}; min-width: 0; overflow-wrap: anywhere; `;
 
 const Elevated = styled.section`
     position: relative; overflow: hidden;
     background: ${st.bgCard}; border: 1px solid ${st.border};
     border-radius: ${st.radiusLg}; box-shadow: ${st.shadowMd};
-    padding: 20px; display: flex; flex-direction: column; gap: 18px;
+    padding: 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0;
     &::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--brand-primary); }
 `;
 const PriceHead = styled.div` display: flex; flex-direction: column; gap: 2px; `;
@@ -71,6 +79,18 @@ const ConfirmBtn = styled.button`
     border-radius: ${st.radiusSm}; cursor: pointer;
 `;
 const RatingRow = styled.div` display: flex; flex-direction: column; gap: 8px; `;
+// Akcje drugorzędne: odcień i obwódka, bez wypełnienia (CLAUDE.md §2).
+const ReportBtn = styled.button`
+    display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+    padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 600;
+    color: #b45309; background: ${st.bgAccentAmber}; border: 1px solid rgba(245,158,11,0.45);
+    border-radius: ${st.radiusSm}; cursor: pointer;
+    &:hover { border-color: rgba(245,158,11,0.75); }
+`;
+const PrivateNote = styled.p`
+    margin: 0; display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: ${st.textMuted};
+`;
 
 export function ProductDetailView() {
     const { id } = useParams<{ id: string }>();
@@ -79,6 +99,7 @@ export function ProductDetailView() {
     const canManage = can('PRODUCTS_MANAGE');
     const canSeeCosts = can('PRODUCTS_COSTS');
 
+    const [reporting, setReporting] = useState(false);
     const { product, isLoading } = useProductDetail(id);
     const confirm = useConfirmProduct(id ?? '');
     const rating = useProductRating(id ?? '');
@@ -122,6 +143,13 @@ export function ProductDetailView() {
                                 )}
                                 {product.description && (<><DKey>Opis</DKey><DVal>{product.description}</DVal></>)}
                             </SpecGrid>
+                            {product.isPrivate && (
+                                <PrivateNote>
+                                    <Lock size={13} />
+                                    Wpis widoczny tylko w Twoim studiu — bez poprawnego kodu kreskowego
+                                    nie trafia do wspólnego katalogu.
+                                </PrivateNote>
+                            )}
                         </FlatSection>
 
                         {canSeeCosts && product.price && (
@@ -144,6 +172,14 @@ export function ProductDetailView() {
                                 <CheckCircle2 size={16} /> Dane zgadzają się z etykietą
                             </ConfirmBtn>
                         )}
+
+                        <RowDivider />
+                        {id && <ProductVisitsSection productId={id} />}
+
+                        <RowDivider />
+                        <ReportBtn type="button" onClick={() => setReporting(true)}>
+                            <Flag size={15} /> Zgłoś nieprawidłowość
+                        </ReportBtn>
                     </LeftCol>
 
                     <RightCol>
@@ -169,6 +205,10 @@ export function ProductDetailView() {
                         </Elevated>
                     </RightCol>
                 </Columns>
+
+                {reporting && (
+                    <ReportProductIssueModal product={product} onClose={() => setReporting(false)} />
+                )}
             </Body>
         </View>
     );

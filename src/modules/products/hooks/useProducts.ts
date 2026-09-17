@@ -128,6 +128,27 @@ export const useProductRating = (id: string) => {
     return { set, clear };
 };
 
+/** Lista „Wykorzystano podczas wizyty" — stronicowana i z wyszukiwarką. */
+export const useProductVisits = (
+    id: string | undefined,
+    params: { search: string; page: number; limit: number },
+) => {
+    const { data, isLoading, isError } = useQuery({
+        queryKey: [KEY, 'visits', id, params],
+        queryFn: () => productsApi.productVisits(id!, params),
+        enabled: !!id,
+        placeholderData: previous => previous,
+    });
+    return {
+        items: data?.items ?? [],
+        totalItems: data?.totalItems ?? 0,
+        totalPages: data?.totalPages ?? 0,
+        currentPage: data?.currentPage ?? params.page,
+        isLoading,
+        isError,
+    };
+};
+
 // ── Powiązania z wizytą ──
 export const useVisitProducts = (visitId: string | undefined) => {
     const qc = useQueryClient();

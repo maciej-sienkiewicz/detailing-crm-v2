@@ -5,7 +5,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatDateTime } from '@/common/utils';
 import { useProductNotes } from '../hooks/useProducts';
 
-const Wrap = styled.div` display: flex; flex-direction: column; gap: 12px; `;
+const Wrap = styled.div` display: flex; flex-direction: column; gap: 12px; min-width: 0; `;
 
 const Composer = styled.div` display: flex; flex-direction: column; gap: 8px; `;
 
@@ -39,6 +39,7 @@ const AddBtn = styled.button`
 `;
 
 const NoteRow = styled.div`
+    min-width: 0;
     padding: 10px 0;
     border-top: 1px solid ${st.border};
     display: flex;
@@ -46,7 +47,13 @@ const NoteRow = styled.div`
     gap: 4px;
 `;
 
-const NoteContent = styled.p` margin: 0; font-size: 14px; color: ${st.text}; white-space: pre-wrap; `;
+// `pre-wrap` sam nie złamie adresu bez spacji — wklejony link z Allegro rozpychał
+// kartę i całą stronę. `overflow-wrap: anywhere` łamie go w dowolnym miejscu.
+const NoteContent = styled.p`
+    margin: 0; font-size: 14px; color: ${st.text};
+    white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;
+    min-width: 0;
+`;
 const NoteMeta = styled.div` display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: ${st.textMuted}; `;
 const DeleteBtn = styled.button` background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 2px; &:hover { color: ${st.accentRed}; } `;
 const Empty = styled.p` margin: 0; font-size: 13px; color: ${st.textMuted}; `;

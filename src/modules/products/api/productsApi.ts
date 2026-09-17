@@ -12,6 +12,7 @@ import type {
     ProductNote,
     ProductRating,
     VisitProductLink,
+    ProductVisitUsagePage,
     ScanSession,
 } from '../types';
 
@@ -113,8 +114,16 @@ export const productsApi = {
     },
 
     // ── Gdzie używaliśmy ──
-    productVisits: async (id: string): Promise<Array<{ linkId: string; visitId: string; note: string | null; addedByName: string; addedAt: string }>> => {
-        const { data } = await apiClient.get(`${BASE}/${id}/visits`);
+    productVisits: async (
+        id: string,
+        params: { search: string; page: number; limit: number },
+    ): Promise<ProductVisitUsagePage> => {
+        const query = new URLSearchParams({
+            search: params.search,
+            page: String(params.page),
+            limit: String(params.limit),
+        });
+        const { data } = await apiClient.get(`${BASE}/${id}/visits?${query}`);
         return data;
     },
 
