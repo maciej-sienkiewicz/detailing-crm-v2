@@ -24,6 +24,8 @@ export function useBarcodeScanner() {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const detectorRef = useRef<BarcodeDetectorLike | null>(null);
+    const loopRef = useRef<number | null>(null);
+    const lastHit = useRef<{ code: string; at: number }>({ code: '', at: 0 });
     const [active, setActive] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const supported = isBarcodeDetectorAvailable();
@@ -51,6 +53,10 @@ export function useBarcodeScanner() {
     }, [supported]);
 
     const stop = useCallback(() => {
+        if (loopRef.current !== null) {
+            clearInterval(loopRef.current);
+            loopRef.current = null;
+        }
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         setActive(false);
@@ -71,7 +77,26 @@ export function useBarcodeScanner() {
         }
     }, []);
 
+    /**
+     * Skan ciągły „jak MyFitnessPal": włącza aparat i sam wykrywa kody w pętli, bez
+     * przycisku migawki. Ten sam kod nie leci dwa razy w ciągu 2,5 s (dedup), żeby
+     * pojedyncze opakowanie w kadrze nie zgłaszało się kilkanaście razy na sekundę.
+     */
+    const startContinuous = useCallback(async (onDetected: (code: string) => void) => {
+        await start();
+        if (!supported) return;
+        if (loopRef.current !== null) clearInterval(loopRef.current);
+        loopRef.current = window.setInterval(async () => {
+            const code = await capture();
+            if (!code) return;
+            const now = Date.now();
+            if (code === lastHit.current.code && now - lastHit.current.at < 2500) return;
+            lastHit.current = { code, at: now };
+            onDetected(code);
+        }, 400);
+    }, [start, capture, supported]);
+
     useEffect(() => () => stop(), [stop]);
 
-    return { videoRef, active, error, supported, start, stop, capture };
+    return { videoRef, active, error, supported, start, stop, capture, startContinuous };
 }

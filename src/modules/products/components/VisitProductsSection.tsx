@@ -1,20 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Package, Plus, X, Search, ScanLine } from 'lucide-react';
+import { Package, X, Search, Camera, Plus, Loader2 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { InputShell, BareInput } from '@/common/components/Form';
 import { useVisitProducts, useProducts } from '../hooks/useProducts';
 import { useDebounce } from '@/common/hooks/useDebounce';
 import { AddProductModal } from './AddProductModal';
 
 // Sekcja „Użyte produkty" osadzana w karcie wizyty. Czysto informacyjna: dopięcie
-// produktu do wizyty, bez ilości i kosztu. Dwie drogi dodania:
-//  - „Z katalogu"     — wybór produktu, który już jest w bazie (najczęstsze),
-//  - „Nowy / zeskanuj" — dodanie produktu, którego jeszcze nie ma (ręcznie, z kodu
-//    albo skanem telefonem), po czym od razu podpinamy go do wizyty.
-// Obie akcje mają odcień, nie wypełnienie — w oknie wizyty krokiem następnym jest
-// co innego (CLAUDE.md §2).
+// produktu do wizyty, bez ilości i kosztu.
+//
+// JEDNO pole (nie dwa przyciski) — wzorzec z pól wyszukiwarki: wpisujesz nazwę,
+// dostajesz podpowiedzi z katalogu, a gdy pozycji nie ma, ta sama lista oferuje
+// „Dodaj nowy produkt". Aparat siedzi wmontowany w polu (jak w oknie nowego
+// produktu) i uruchamia skan — na telefonie aparat, na desktopie kod QR.
+// W oknie wizyty żadne z tych działań nie jest KROKIEM NASTĘPNYM, więc pole i jego
+// przyciski noszą odcień bez wypełnienia (CLAUDE.md §2); jedyny wypełniony przycisk
+// pojawia się dopiero w otwartym oknie „Nowy produkt" (wyjątek otwartego edytora).
 
-const Wrap = styled.div` display: flex; flex-direction: column; gap: 10px; `;
+const Wrap = styled.div` display: flex; flex-direction: column; gap: 12px; `;
 const List = styled.div` display: flex; flex-direction: column; gap: 8px; `;
 const Item = styled.div`
     display: flex; align-items: center; gap: 10px;
@@ -26,18 +30,31 @@ const ItemMain = styled.div` flex: 1; min-width: 0; `;
 const ItemTitle = styled.div` font-size: 14px; font-weight: 600; color: ${st.text}; `;
 const ItemSub = styled.div` font-size: 12px; color: ${st.textMuted}; `;
 const RemoveBtn = styled.button` background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 4px; &:hover { color: ${st.accentRed}; } `;
-const Actions = styled.div` display: flex; gap: 8px; flex-wrap: wrap; `;
-const ActionBtn = styled.button`
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 600;
-    color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
-    border-radius: ${st.radiusSm}; cursor: pointer;
+
+// Pole „wyszukaj lub dodaj" — kreska pod ikoną lupy po lewej, aparat wmontowany po prawej.
+const Combo = styled.div` position: relative; `;
+const LeadIcon = styled.span` display: inline-flex; padding-left: 12px; color: ${st.textMuted}; flex-shrink: 0; `;
+const CamBtn = styled.button`
+    display: flex; align-items: center; align-self: stretch;
+    padding: 0 12px; border: none; border-left: 1px solid ${st.border}; background: none;
+    color: ${st.accentBlue}; cursor: pointer; border-radius: 0 8px 8px 0;
+    transition: background 0.15s ease;
     &:hover { background: ${st.accentBlueDim}; }
 `;
-const PickerBox = styled.div` border: 1px solid ${st.border}; border-radius: ${st.radiusSm}; overflow: hidden; `;
-const SearchRow = styled.div` position: relative; svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: ${st.textMuted}; } `;
-const SearchInput = styled.input` width: 100%; padding: 9px 10px 9px 34px; border: none; border-bottom: 1px solid ${st.border}; font-family: inherit; font-size: 14px; color: ${st.text}; &:focus { outline: none; } `;
-const Result = styled.button` display: block; width: 100%; text-align: left; padding: 9px 12px; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 13px; color: ${st.text}; &:hover { background: ${st.bgCardAlt}; } `;
+const Menu = styled.div`
+    position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
+    background: ${st.bgCard}; border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
+    box-shadow: ${st.shadowMd}; overflow: hidden; max-height: 280px; overflow-y: auto;
+`;
+const Option = styled.button`
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    padding: 10px 12px; background: none; border: none; cursor: pointer;
+    font-family: inherit; font-size: 13px; color: ${st.text};
+    &:hover { background: ${st.bgCardAlt}; }
+    & + & { border-top: 1px solid ${st.border}; }
+`;
+const AddNew = styled(Option)` color: ${st.accentBlue}; font-weight: 600; `;
+const MenuHint = styled.div` padding: 10px 12px; font-size: 12.5px; color: ${st.textMuted}; `;
 const Empty = styled.p` margin: 0; font-size: 13px; color: ${st.textMuted}; `;
 
 interface Props {
@@ -50,84 +67,122 @@ interface Props {
     canSeeCosts: boolean;
 }
 
+type Adding = { name?: string; scan?: boolean } | null;
+
 export function VisitProductsSection({ visitId, canUsage, canManageProducts, canSeeCosts }: Props) {
     const { links, link, unlink } = useVisitProducts(visitId);
-    const [picking, setPicking] = useState(false);
-    const [adding, setAdding] = useState(false);
     const [search, setSearch] = useState('');
-    const debounced = useDebounce(search, 300);
-    const { products } = useProducts({ search: debounced, page: 1, limit: 8 });
+    const [open, setOpen] = useState(false);
+    const [adding, setAdding] = useState<Adding>(null);
+    const debounced = useDebounce(search, 250);
+    const { products, isLoading } = useProducts({ search: debounced, page: 1, limit: 8 });
+    const wrapRef = useRef<HTMLDivElement>(null);
 
     const linkedIds = new Set(links.map(l => l.productId));
+    const suggestions = products.filter(p => !linkedIds.has(p.id)).slice(0, 8);
+    const trimmed = search.trim();
+    const exactHit = suggestions.some(p => p.name.toLowerCase() === trimmed.toLowerCase());
+    const showAddNew = canManageProducts && trimmed.length >= 2 && !exactHit;
 
-    const closePicker = () => { setSearch(''); setPicking(false); };
+    // Klik poza polem zamyka listę — bez tego dropdown wisiałby po wyborze.
+    useEffect(() => {
+        const onDoc = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', onDoc);
+        return () => document.removeEventListener('mousedown', onDoc);
+    }, []);
+
+    const linkProduct = (productId: string) =>
+        link.mutate({ productId }, { onSuccess: () => { setSearch(''); setOpen(false); } });
+
+    const menuVisible = open && trimmed.length > 0;
 
     return (
         <Wrap>
-            {links.length === 0 && !picking && (
+            {links.length === 0 && (
                 <Empty>Nie dopięto jeszcze żadnego produktu do tej wizyty.</Empty>
             )}
-            <List>
-                {links.map(l => (
-                    <Item key={l.id}>
-                        <Thumb><Package size={16} /></Thumb>
-                        <ItemMain>
-                            <ItemTitle>{l.productName}</ItemTitle>
-                            <ItemSub>{[l.brand, l.packageLabel].filter(Boolean).join(' · ')}</ItemSub>
-                        </ItemMain>
-                        {canUsage && (
-                            <RemoveBtn type="button" onClick={() => unlink.mutate(l.id)} aria-label="Usuń powiązanie">
-                                <X size={16} />
-                            </RemoveBtn>
-                        )}
-                    </Item>
-                ))}
-            </List>
-
-            {canUsage && !picking && (
-                <Actions>
-                    <ActionBtn type="button" onClick={() => setPicking(true)}>
-                        <Plus size={16} /> Z katalogu
-                    </ActionBtn>
-                    {canManageProducts && (
-                        <ActionBtn type="button" onClick={() => setAdding(true)}>
-                            <ScanLine size={16} /> Nowy / zeskanuj
-                        </ActionBtn>
-                    )}
-                </Actions>
+            {links.length > 0 && (
+                <List>
+                    {links.map(l => (
+                        <Item key={l.id}>
+                            <Thumb><Package size={16} /></Thumb>
+                            <ItemMain>
+                                <ItemTitle>{l.productName}</ItemTitle>
+                                <ItemSub>{[l.brand, l.packageLabel].filter(Boolean).join(' · ')}</ItemSub>
+                            </ItemMain>
+                            {canUsage && (
+                                <RemoveBtn type="button" onClick={() => unlink.mutate(l.id)} aria-label="Usuń powiązanie">
+                                    <X size={16} />
+                                </RemoveBtn>
+                            )}
+                        </Item>
+                    ))}
+                </List>
             )}
 
-            {canUsage && picking && (
-                <PickerBox>
-                    <SearchRow>
-                        <Search size={15} />
-                        <SearchInput autoFocus placeholder="Szukaj produktu w katalogu…" value={search} onChange={e => setSearch(e.target.value)} />
-                    </SearchRow>
-                    {products.filter(p => !linkedIds.has(p.id)).slice(0, 8).map(p => (
-                        <Result
-                            key={p.id}
-                            type="button"
-                            onClick={() => link.mutate({ productId: p.id }, { onSuccess: closePicker })}
-                        >
-                            {p.name} <span style={{ color: st.textMuted }}>· {p.brand}</span>
-                        </Result>
-                    ))}
-                    {debounced && products.length === 0 && (
-                        <Result as="div" style={{ color: st.textMuted, cursor: 'default' }}>
-                            Brak wyników — dodaj nowy produkt przyciskiem „Nowy / zeskanuj".
-                        </Result>
+            {canUsage && (
+                <Combo ref={wrapRef}>
+                    <InputShell>
+                        <LeadIcon><Search size={15} /></LeadIcon>
+                        <BareInput
+                            placeholder="Wpisz nazwę produktu, aby dopiąć lub dodać nowy…"
+                            value={search}
+                            onChange={e => { setSearch(e.target.value); setOpen(true); }}
+                            onFocus={() => setOpen(true)}
+                        />
+                        {canManageProducts && (
+                            <CamBtn
+                                type="button"
+                                onClick={() => setAdding({ scan: true })}
+                                aria-label="Zeskanuj kod produktu"
+                                title="Zeskanuj kod (telefonem lub aparatem)"
+                            >
+                                <Camera size={16} />
+                            </CamBtn>
+                        )}
+                    </InputShell>
+
+                    {menuVisible && (
+                        <Menu>
+                            {suggestions.map(p => (
+                                <Option key={p.id} type="button" onClick={() => linkProduct(p.id)}>
+                                    <Package size={14} color={st.textMuted} />
+                                    <span>{p.name} <span style={{ color: st.textMuted }}>· {p.brand}</span></span>
+                                </Option>
+                            ))}
+                            {isLoading && suggestions.length === 0 && (
+                                <MenuHint><Loader2 size={13} style={{ verticalAlign: '-2px' }} /> Szukam…</MenuHint>
+                            )}
+                            {showAddNew && (
+                                <AddNew type="button" onClick={() => { setAdding({ name: trimmed }); setOpen(false); }}>
+                                    <Plus size={14} /> Dodaj nowy produkt „{trimmed}"
+                                </AddNew>
+                            )}
+                            {!isLoading && suggestions.length === 0 && !showAddNew && (
+                                <MenuHint>
+                                    {canManageProducts
+                                        ? 'Brak produktów w katalogu.'
+                                        : 'Brak wyników — dodanie nowego produktu wymaga uprawnienia.'}
+                                </MenuHint>
+                            )}
+                        </Menu>
                     )}
-                </PickerBox>
+                </Combo>
             )}
 
             {adding && (
                 <AddProductModal
-                    isOpen={adding}
-                    onClose={() => setAdding(false)}
+                    isOpen
+                    onClose={() => setAdding(null)}
                     canSeeCosts={canSeeCosts}
+                    initialName={adding.name}
+                    autoScan={adding.scan}
                     onCreated={(id) => {
-                        // Nowy produkt trafił do katalogu — od razu podpinamy go do wizyty.
-                        setAdding(false);
+                        // Nowy (lub rozpoznany) produkt trafił do katalogu — od razu podpinamy go do wizyty.
+                        setAdding(null);
+                        setSearch('');
                         link.mutate({ productId: id });
                     }}
                 />

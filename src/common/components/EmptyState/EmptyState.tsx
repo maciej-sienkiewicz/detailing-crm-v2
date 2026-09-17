@@ -38,7 +38,9 @@ const Description = styled.p`
 `;
 
 interface EmptyStateProps {
-    icon?: string;
+    // Emoji/tekst albo gotowy element ikony (np. lucide <Package/>) — string ⊂ ReactNode,
+    // więc dotychczasowi wołający z emoji działają bez zmian.
+    icon?: React.ReactNode;
     title: string;
     description?: string;
     children?: React.ReactNode;

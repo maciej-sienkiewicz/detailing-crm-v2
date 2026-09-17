@@ -61,13 +61,6 @@ const Video = styled.video`
     width: 100%; max-height: 320px; aspect-ratio: 3/4; object-fit: cover;
     background: #000; border-radius: ${st.radiusSm}; border: 1px solid ${st.border};
 `;
-const CaptureBtn = styled.button`
-    margin-top: 10px; width: 100%;
-    padding: 12px; font-family: inherit; font-size: 14px; font-weight: 700;
-    color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
-    border-radius: ${st.radiusSm}; cursor: pointer;
-    &:hover { background: ${st.accentBlueDim}; }
-`;
 const ScanHint = styled.p` margin: 0 0 4px; font-size: 12.5px; color: ${st.textSecondary}; `;
 const Grid2 = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 12px; @media (max-width: 560px) { grid-template-columns: 1fr; } `;
 const DraftBanner = styled.div`
@@ -107,16 +100,20 @@ interface Props {
     onClose: () => void;
     canSeeCosts: boolean;
     onCreated: (id: string) => void;
+    /** Wstępna nazwa — gdy okno otwiera „Dodaj nowy produkt" z wpisanej frazy. */
+    initialName?: string;
+    /** Otwórz od razu panel skanowania — gdy okno otwiera przycisk aparatu. */
+    autoScan?: boolean;
 }
 
-export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Props) {
+export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initialName, autoScan }: Props) {
     const isDesktop = useBreakpoint('lg');
-    const [form, setForm] = useState<FormState>(EMPTY);
+    const [form, setForm] = useState<FormState>(() => (initialName ? { ...EMPTY, name: initialName } : EMPTY));
     const [draft, setDraft] = useState<ProductDraft | null>(null);
     const [barcode, setBarcode] = useState('');
     const [looking, setLooking] = useState(false);
     const [lookupMsg, setLookupMsg] = useState<{ tone: 'muted' | 'error' | 'ok'; text: string } | null>(null);
-    const [scanOpen, setScanOpen] = useState(false);
+    const [scanOpen, setScanOpen] = useState(!!autoScan);
     const create = useCreateProduct();
     const createFromDraft = useCreateFromDraft();
     const scanner = useBarcodeScanner();
@@ -124,8 +121,15 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
     const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(f => ({ ...f, [k]: v }));
 
     // Aparat uruchamiamy tylko na telefonie (desktop pokazuje kod QR do handoffu).
+    // Skan ciągły „jak MyFitnessPal": kod łapie się sam, bez przycisku migawki.
     useEffect(() => {
-        if (scanOpen && !isDesktop) scanner.start();
+        if (scanOpen && !isDesktop) {
+            scanner.startContinuous((code) => {
+                setBarcode(code);
+                setScanOpen(false);
+                runLookup(code);
+            });
+        }
         if (!scanOpen) scanner.stop();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scanOpen, isDesktop]);
@@ -172,18 +176,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
             set('gtin', normalized);
         } finally {
             setLooking(false);
-        }
-    };
-
-    // Telefon: pojedyncze zdjęcie z aparatu → wykrycie kodu → pobranie danych.
-    const captureFromCamera = async () => {
-        const code = await scanner.capture();
-        if (code) {
-            setBarcode(code);
-            setScanOpen(false);
-            runLookup(code);
-        } else {
-            setLookupMsg({ tone: 'error', text: 'Nie wykryto kodu — ustaw go w kadrze i spróbuj ponownie.' });
         }
     };
 
@@ -300,9 +292,8 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
                                 <ScanHandoffPanel onCodes={onHandoffCodes} />
                             ) : scanner.supported ? (
                                 <>
-                                    <ScanHint>Skieruj aparat na kod kreskowy produktu.</ScanHint>
+                                    <ScanHint>Skieruj aparat na kod kreskowy — złapiemy go automatycznie.</ScanHint>
                                     <Video ref={scanner.videoRef} playsInline muted />
-                                    <CaptureBtn type="button" onClick={captureFromCamera}>Zeskanuj kod</CaptureBtn>
                                     {scanner.error && <StatusLine $tone="error">{scanner.error}</StatusLine>}
                                 </>
                             ) : (

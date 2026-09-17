@@ -35,7 +35,7 @@ import { DeleteOperationModal } from '@/modules/operations/components/DeleteOper
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { DamageMapUpdateModal } from '../components/DamageMapUpdateModal';
 import { EntityActivityTimeline } from '@/modules/activity';
-import { VisitProductsSection } from '@/modules/products';
+import { VisitProductsSection, useVisitProducts } from '@/modules/products';
 import { useFeature } from '@/modules/subscription/hooks/useFeature';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatDateTime } from '@/common/utils';
@@ -695,6 +695,7 @@ export const VisitDetailView = () => {
     const [isDamageMapOpen, setIsDamageMapOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isCommunicationOpen, setIsCommunicationOpen] = useState(true);
+    const [isProductsOpen, setIsProductsOpen] = useState(true);
     const [mobileTab, setMobileTab] = useState<MobileTab>('services');
 
     const handleMobileTabChange = (tab: MobileTab) => {
@@ -734,6 +735,11 @@ export const VisitDetailView = () => {
     // Sekcja produktów pojawia się tylko, gdy studio ma wykupiony moduł — inaczej
     // API zwróciłoby 402 i sekcja pokazywałaby błąd zamiast treści.
     const productsFeatureEnabled = useFeature('PRODUCTS').enabled;
+    // Liczba dopiętych produktów zasila licznik w nagłówku sekcji — ten sam klucz
+    // zapytania co w VisitProductsSection, więc to odczyt z cache, nie drugi request.
+    const { links: visitProductLinks } = useVisitProducts(
+        productsFeatureEnabled && can('PRODUCTS_VIEW') ? visitId : undefined
+    );
 
     const queryClient = useQueryClient();
 
@@ -1031,18 +1037,36 @@ export const VisitDetailView = () => {
                         {productsFeatureEnabled && can('PRODUCTS_VIEW') && (
                             <MobileSectionPanel $visible={mobileTab === 'services'}>
                                 <Section>
-                                    <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <SectionTitle>Użyte produkty</SectionTitle>
-                                    </div>
-                                    <SectionBody $visible $flush id="products-section">
-                                        <div style={{ padding: 16 }}>
-                                            <VisitProductsSection
-                                                visitId={visitId!}
-                                                canUsage={can('PRODUCTS_USAGE')}
-                                                canManageProducts={can('PRODUCTS_MANAGE')}
-                                                canSeeCosts={can('PRODUCTS_COSTS')}
-                                            />
-                                        </div>
+                                    <SectionHeader
+                                        onClick={() => setIsProductsOpen(v => !v)}
+                                        aria-expanded={isProductsOpen}
+                                        aria-controls="products-section"
+                                    >
+                                        <SectionHeaderLeft>
+                                            <SectionIconPlain>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M16.5 9.4 7.5 4.21" />
+                                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                                                    <path d="m3.3 7 8.7 5 8.7-5" />
+                                                    <path d="M12 22V12" />
+                                                </svg>
+                                            </SectionIconPlain>
+                                            <SectionTitle>Użyte produkty</SectionTitle>
+                                            {visitProductLinks.length > 0 && (
+                                                <SectionCount>{visitProductLinks.length}</SectionCount>
+                                            )}
+                                        </SectionHeaderLeft>
+                                        <ChevronIcon $open={isProductsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="6 9 12 15 18 9" />
+                                        </ChevronIcon>
+                                    </SectionHeader>
+                                    <SectionBody $visible={isProductsOpen} id="products-section">
+                                        <VisitProductsSection
+                                            visitId={visitId!}
+                                            canUsage={can('PRODUCTS_USAGE')}
+                                            canManageProducts={can('PRODUCTS_MANAGE')}
+                                            canSeeCosts={can('PRODUCTS_COSTS')}
+                                        />
                                     </SectionBody>
                                 </Section>
                             </MobileSectionPanel>
