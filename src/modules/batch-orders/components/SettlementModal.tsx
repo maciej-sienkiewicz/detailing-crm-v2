@@ -2,81 +2,12 @@ import { useState } from 'react';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useCapability } from '@/modules/subscription';
 import styled from 'styled-components';
+import {
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
+    ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import type { BatchContractor, SettlementMode, SettlementRequest } from '../types';
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    height: 100vh;
-    height: 100dvh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding:
-        max(16px, env(safe-area-inset-top, 0px))
-        max(16px, env(safe-area-inset-right, 0px))
-        max(16px, env(safe-area-inset-bottom, 0px))
-        max(16px, env(safe-area-inset-left, 0px));
-
-    @media (max-height: 480px) {
-        padding-top: max(8px, env(safe-area-inset-top, 0px));
-        padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
-    }
-`;
-
-const Modal = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border-radius: 16px;
-    width: 100%;
-    max-width: 480px;
-    max-height: 100%;
-    min-height: 0;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-
-    @media (max-width: 640px) {
-        border-radius: 14px;
-    }
-`;
-
-const ModalBody = styled.div`
-    flex: 1;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    padding: 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-height: 0;
-
-    @media (max-width: 640px) {
-        padding: 20px;
-    }
-
-    @media (max-height: 480px) {
-        padding-top: 16px;
-        padding-bottom: 16px;
-    }
-`;
-
-const Title = styled.h2`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-`;
-
-const Subtitle = styled.p`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.textMuted};
-    line-height: 1.5;
-`;
 
 const WarningBox = styled.div`
     border: 1px solid #f59e0b;
@@ -108,7 +39,7 @@ const ModeOption = styled.label<{ $active?: boolean }>`
     padding: 10px 12px;
     border-radius: 8px;
     border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.05)' : 'transparent'};
+    background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' : 'transparent'};
     cursor: pointer;
     transition: border-color 150ms ease, background 150ms ease;
 
@@ -146,7 +77,7 @@ const OptionBlock = styled.div<{ $active?: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.04)' : 'transparent'};
+    background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' : 'transparent'};
     transition: border-color 150ms ease, background 150ms ease;
     cursor: pointer;
 
@@ -223,48 +154,10 @@ const EmailInput = styled.input`
     }
 `;
 
-const Actions = styled.div`
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    padding: 16px 28px;
-    border-top: 1px solid ${p => p.theme.colors.border};
-    flex-shrink: 0;
-    flex-wrap: wrap;
-
-    @media (max-width: 400px) {
-        flex-direction: column-reverse;
-
-        > button { width: 100%; }
-    }
-
-    @media (max-width: 640px) {
-        padding: 12px 20px;
-    }
-`;
-
-const Btn = styled.button<{ $variant?: 'primary' | 'outline' }>`
-    padding: 8px 20px;
-    border-radius: 8px;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 150ms ease, background 150ms ease;
-
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    ${p => p.$variant === 'primary' && `
-        background: ${p.theme.colors.primary};
-        border: 1px solid ${p.theme.colors.primary};
-        color: #fff;
-        &:hover:not(:disabled) { opacity: 0.9; }
-    `}
-    ${p => (!p.$variant || p.$variant === 'outline') && `
-        background: transparent;
-        border: 1px solid ${p.theme.colors.border};
-        color: ${p.theme.colors.text};
-        &:hover:not(:disabled) { background: ${p.theme.colors.surfaceAlt}; }
-    `}
+const SavedHint = styled.span`
+    font-size: 11px;
+    color: ${p => p.theme.colors.success};
+    margin-top: 2px;
 `;
 
 interface Props {
@@ -300,74 +193,74 @@ export function SettlementModal({ contractor, from, to, hasPartialSettlement, pr
     }
 
     return (
-        <Overlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <Modal>
-                <ModalBody>
-                    <div>
-                        <Title>Rozlicz okres</Title>
-                        <Subtitle style={{ marginTop: 6 }}>
-                            {contractor.name} · {periodLabel}
-                        </Subtitle>
-                    </div>
+        <ModalShell isOpen onClose={onClose} size="sm">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Rozlicz okres</ModalTitle>
+                    <ModalSubtitle>{contractor.name} · {periodLabel}</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                    {hasPartialSettlement && (
-                        <WarningBox>
-                            <WarningTitle>
-                                Część pozycji została już rozliczona we wcześniejszym zestawieniu.
-                            </WarningTitle>
-                            <ModeOptions>
-                                <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
-                                    <ModeRadio
-                                        type="radio"
-                                        name="settlement-mode"
-                                        checked={mode === 'ALL'}
-                                        onChange={() => setMode('ALL')}
-                                        onClick={e => e.stopPropagation()}
-                                    />
-                                    <div>
-                                        <ModeLabel>Wszystkie pozycje</ModeLabel>
-                                        <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już rozliczonymi.</ModeDesc>
-                                    </div>
-                                </ModeOption>
-                                <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
-                                    <ModeRadio
-                                        type="radio"
-                                        name="settlement-mode"
-                                        checked={mode === 'NEW_ONLY'}
-                                        onChange={() => setMode('NEW_ONLY')}
-                                        onClick={e => e.stopPropagation()}
-                                    />
-                                    <div>
-                                        <ModeLabel>Tylko nowo dodane</ModeLabel>
-                                        <ModeDesc>Rozlicza wyłącznie wpisy, które nie były jeszcze ujęte w żadnym zestawieniu.</ModeDesc>
-                                    </div>
-                                </ModeOption>
-                            </ModeOptions>
-                        </WarningBox>
-                    )}
+            <ModalContent>
+                {hasPartialSettlement && (
+                    <WarningBox>
+                        <WarningTitle>
+                            Część pozycji została już rozliczona we wcześniejszym zestawieniu.
+                        </WarningTitle>
+                        <ModeOptions>
+                            <ModeOption $active={mode === 'ALL'} onClick={() => setMode('ALL')}>
+                                <ModeRadio
+                                    type="radio"
+                                    name="settlement-mode"
+                                    checked={mode === 'ALL'}
+                                    onChange={() => setMode('ALL')}
+                                    onClick={e => e.stopPropagation()}
+                                />
+                                <div>
+                                    <ModeLabel>Wszystkie pozycje</ModeLabel>
+                                    <ModeDesc>Generuje zestawienie ze wszystkimi wpisami z wybranego okresu, łącznie z już rozliczonymi.</ModeDesc>
+                                </div>
+                            </ModeOption>
+                            <ModeOption $active={mode === 'NEW_ONLY'} onClick={() => setMode('NEW_ONLY')}>
+                                <ModeRadio
+                                    type="radio"
+                                    name="settlement-mode"
+                                    checked={mode === 'NEW_ONLY'}
+                                    onChange={() => setMode('NEW_ONLY')}
+                                    onClick={e => e.stopPropagation()}
+                                />
+                                <div>
+                                    <ModeLabel>Tylko nowo dodane</ModeLabel>
+                                    <ModeDesc>Rozlicza wyłącznie wpisy, które nie były jeszcze ujęte w żadnym zestawieniu.</ModeDesc>
+                                </div>
+                            </ModeOption>
+                        </ModeOptions>
+                    </WarningBox>
+                )}
 
-                    <OptionBlock
-                        $active={addToFinances}
-                        onClick={() => setAddToFinances(v => !v)}
-                    >
-                        <CheckRow>
-                            <Checkbox
-                                type="checkbox"
-                                checked={addToFinances}
-                                onChange={e => { e.stopPropagation(); setAddToFinances(e.target.checked); }}
-                                onClick={e => e.stopPropagation()}
-                            />
-                            <CheckLabel>Dodaj wpis do finansów</CheckLabel>
-                        </CheckRow>
-                        <CheckDescription>
-                            Tworzy dokument finansowy z sumą brutto za wybrany okres (przelew, przychód).
-                        </CheckDescription>
-                    </OptionBlock>
+                <OptionBlock
+                    $active={addToFinances}
+                    onClick={() => setAddToFinances(v => !v)}
+                >
+                    <CheckRow>
+                        <Checkbox
+                            type="checkbox"
+                            checked={addToFinances}
+                            onChange={e => { e.stopPropagation(); setAddToFinances(e.target.checked); }}
+                            onClick={e => e.stopPropagation()}
+                        />
+                        <CheckLabel>Dodaj wpis do finansów</CheckLabel>
+                    </CheckRow>
+                    <CheckDescription>
+                        Tworzy dokument finansowy z sumą brutto za wybrany okres (przelew, przychód).
+                    </CheckDescription>
+                </OptionBlock>
 
-                    <LockedSection
-                        locked={!comms.enabled}
-                        message="Wysyłka podsumowania e-mailem wymaga modułu Automatyzacja kontaktu z klientem."
-                    >
+                <LockedSection
+                    locked={!comms.enabled}
+                    message="Wysyłka podsumowania e-mailem wymaga modułu Automatyzacja kontaktu z klientem."
+                >
                     <OptionBlock
                         $active={sendEmail}
                         onClick={() => comms.enabled && setSendEmail(v => !v)}
@@ -402,27 +295,27 @@ export function SettlementModal({ contractor, from, to, hasPartialSettlement, pr
                                     autoFocus
                                 />
                                 {!contractor.email && email && (
-                                    <span style={{ fontSize: 11, color: '#22c55e', marginTop: 2 }}>
-                                        Adres zostanie zapisany do karty kontrahenta.
-                                    </span>
+                                    <SavedHint>Adres zostanie zapisany do karty kontrahenta.</SavedHint>
                                 )}
                             </EmailField>
                         )}
                     </OptionBlock>
-                    </LockedSection>
-                </ModalBody>
+                </LockedSection>
+            </ModalContent>
 
-                <Actions>
-                    <Btn $variant="outline" onClick={onClose} disabled={isLoading}>Anuluj</Btn>
-                    <Btn
-                        $variant="primary"
-                        onClick={handleConfirm}
-                        disabled={isLoading || (sendEmail && !email.trim())}
-                    >
-                        {isLoading ? 'Rozliczanie...' : 'Rozlicz'}
-                    </Btn>
-                </Actions>
-            </Modal>
-        </Overlay>
+            <ModalFooter>
+                <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isLoading}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton
+                    $variant="primary"
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={isLoading || (sendEmail && !email.trim())}
+                >
+                    {isLoading ? 'Rozliczanie...' : 'Rozlicz'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }

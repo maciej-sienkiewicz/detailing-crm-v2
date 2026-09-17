@@ -15,6 +15,7 @@ import { ContractorFormModal } from '../components/ContractorFormModal';
 import { ContractorEntriesSection } from '../components/ContractorEntriesSection';
 import { BatchServicesModal } from '../components/BatchServicesModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { SharedButton } from '@/common/styles';
 import type { BatchContractor, ContractorRequest } from '../types';
 
 const ViewContainer = styled(PageContainer)`
@@ -58,19 +59,6 @@ const EmptyDesc = styled.p`
     max-width: 400px;
     margin-left: auto;
     margin-right: auto;
-`;
-
-const EmptyBtn = styled.button`
-    padding: 10px 24px;
-    border: none;
-    border-radius: 8px;
-    background: ${p => p.theme.colors.primary};
-    color: #fff;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover { opacity: 0.9; }
 `;
 
 const LoadingState = styled.div`
@@ -165,9 +153,9 @@ export function BatchOrdersView() {
                     <EmptyDesc>
                         Dodaj pierwszego kontrahenta B2B, aby zacząć rejestrować zlecenia zbiorcze i generować zestawienia do rozliczenia.
                     </EmptyDesc>
-                    <EmptyBtn onClick={() => setShowCreateModal(true)}>
+                    <SharedButton $variant="primary" onClick={() => setShowCreateModal(true)}>
                         Dodaj kontrahenta
-                    </EmptyBtn>
+                    </SharedButton>
                 </EmptyState>
             )}
 
