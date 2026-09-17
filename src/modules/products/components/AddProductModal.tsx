@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Loader2, Keyboard, ScanBarcode, Smartphone, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, Camera, X } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
@@ -8,6 +8,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { Input, Label, FieldGroup, Select } from '@/common/components/Form';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useBreakpoint } from '@/common/hooks/useBreakpoint';
 import { UNIT_LABELS } from '../types';
 import type {
     CreateProductRequest, ProductDraft, UnitOfMeasure, PriceDirection, VatRate,
@@ -16,28 +17,54 @@ import { normalizeGtin } from '../utils/gtin';
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { productsApi } from '../api/productsApi';
 import { useCreateProduct, useCreateFromDraft } from '../hooks/useProducts';
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { ScanHandoffPanel } from './ScanHandoffPanel';
 
-type Mode = 'manual' | 'barcode' | 'phone';
+// Jeden formularz, bez zakładek. Kod kreskowy jest opcjonalnym polem u góry:
+// „Pobierz dane" rozpoznaje produkt po kodzie, a ikona aparatu na desktopie pokazuje
+// kod QR do zeskanowania telefonem, a na telefonie otwiera aparat od razu.
+// W oknie edytora tylko JEDEN przycisk jest wypełniony — „Dodaj produkt" w stopce
+// (wyjątek „otwarty edytor", CLAUDE.md §2). „Pobierz dane" i aparat noszą odcień
+// akcji bez wypełnienia.
 
-// Przełącznik ścieżki wejścia — trzy drogi, JEDEN formularz. To nie remis: przełącznik
-// tylko wybiera, skąd wziąć wartości początkowe (CLAUDE.md §2).
-const ModeTabs = styled.div` display: flex; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; `;
-const ModeTab = styled.button<{ $active: boolean }>`
-    flex: 1 1 0; min-width: 120px;
-    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-    padding: 10px 12px; font-family: inherit; font-size: 13px; font-weight: 600;
-    border-radius: ${st.radiusSm}; cursor: pointer;
-    border: 1px solid ${p => (p.$active ? st.accentBlue : st.border)};
-    background: ${p => (p.$active ? st.accentBlueDim : st.bgCard)};
-    color: ${p => (p.$active ? st.accentBlue : st.textSecondary)};
-`;
-const BarcodeRow = styled.div` display: flex; gap: 8px; align-items: flex-end; `;
+const BarcodeRow = styled.div` display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; `;
+const BarcodeInputWrap = styled.div` flex: 1 1 200px; min-width: 0; `;
 const FetchBtn = styled(SharedButton)` flex-shrink: 0; `;
+const IconBtn = styled.button`
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    border-radius: 999px; cursor: pointer;
+    color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
+    &:hover { background: ${st.accentBlueDim}; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
 const StatusLine = styled.p<{ $tone: 'muted' | 'error' | 'ok' }>`
     margin: 6px 0 0; font-size: 12.5px;
     color: ${p => (p.$tone === 'error' ? st.accentRed : p.$tone === 'ok' ? '#047857' : st.textMuted)};
 `;
+const ScanArea = styled.div`
+    margin-top: 10px; padding: 14px;
+    border: 1px solid ${st.border}; border-radius: ${st.radiusSm}; background: ${st.bgCardAlt};
+    position: relative;
+`;
+const ScanClose = styled.button`
+    position: absolute; top: 8px; right: 8px;
+    background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 4px;
+    &:hover { color: ${st.text}; }
+`;
+const Video = styled.video`
+    width: 100%; max-height: 320px; aspect-ratio: 3/4; object-fit: cover;
+    background: #000; border-radius: ${st.radiusSm}; border: 1px solid ${st.border};
+`;
+const CaptureBtn = styled.button`
+    margin-top: 10px; width: 100%;
+    padding: 12px; font-family: inherit; font-size: 14px; font-weight: 700;
+    color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
+    border-radius: ${st.radiusSm}; cursor: pointer;
+    &:hover { background: ${st.accentBlueDim}; }
+`;
+const ScanHint = styled.p` margin: 0 0 4px; font-size: 12.5px; color: ${st.textSecondary}; `;
 const Grid2 = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 12px; @media (max-width: 560px) { grid-template-columns: 1fr; } `;
 const DraftBanner = styled.div`
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -79,16 +106,25 @@ interface Props {
 }
 
 export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Props) {
-    const [mode, setMode] = useState<Mode>('manual');
+    const isDesktop = useBreakpoint('lg');
     const [form, setForm] = useState<FormState>(EMPTY);
     const [draft, setDraft] = useState<ProductDraft | null>(null);
     const [barcode, setBarcode] = useState('');
     const [looking, setLooking] = useState(false);
     const [lookupMsg, setLookupMsg] = useState<{ tone: 'muted' | 'error' | 'ok'; text: string } | null>(null);
+    const [scanOpen, setScanOpen] = useState(false);
     const create = useCreateProduct();
     const createFromDraft = useCreateFromDraft();
+    const scanner = useBarcodeScanner();
 
     const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(f => ({ ...f, [k]: v }));
+
+    // Aparat uruchamiamy tylko na telefonie (desktop pokazuje kod QR do handoffu).
+    useEffect(() => {
+        if (scanOpen && !isDesktop) scanner.start();
+        if (!scanOpen) scanner.stop();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [scanOpen, isDesktop]);
 
     const applyDraftToForm = (d: ProductDraft) => {
         setForm(f => ({
@@ -135,6 +171,27 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
         }
     };
 
+    // Telefon: pojedyncze zdjęcie z aparatu → wykrycie kodu → pobranie danych.
+    const captureFromCamera = async () => {
+        const code = await scanner.capture();
+        if (code) {
+            setBarcode(code);
+            setScanOpen(false);
+            runLookup(code);
+        } else {
+            setLookupMsg({ tone: 'error', text: 'Nie wykryto kodu — ustaw go w kadrze i spróbuj ponownie.' });
+        }
+    };
+
+    // Desktop: kody zeskanowane telefonem wracają po WebSocketcie.
+    const onHandoffCodes = (codes: string[]) => {
+        if (!codes.length) return;
+        const last = codes[codes.length - 1];
+        setBarcode(last);
+        setScanOpen(false);
+        runLookup(last);
+    };
+
     const priceInput = () => {
         if (!canSeeCosts || !form.priceValue.trim()) return null;
         const zl = parseFloat(form.priceValue.replace(',', '.'));
@@ -163,7 +220,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
                 packageSizeUnit: form.packageSizeUnit,
                 description: form.description.trim() || null,
             });
-            // Cena i dostawca to nakładka studia — dołóż osobnym zapisem, jeśli podano.
             if (canSeeCosts && (priceInput() || form.supplierName.trim())) {
                 await productsApi.updateStudio(saved.id, {
                     supplierName: form.supplierName.trim() || null,
@@ -174,7 +230,7 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
             return;
         }
         const req: CreateProductRequest = {
-            gtin: normalizeGtin(form.gtin),
+            gtin: normalizeGtin(form.gtin || barcode),
             name: form.name.trim(),
             brand: form.brand.trim(),
             manufacturerName: form.manufacturerName.trim() || null,
@@ -190,138 +246,143 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
     };
 
     const canSubmit = form.name.trim().length >= 2 && form.brand.trim() && form.packageSizeValue.trim();
-    // Krok następny zależy od stanu: przed pobraniem to „Pobierz dane", po — to zapis.
-    // W oknie edytora tylko jeden przycisk jest wypełniony (wyjątek „otwarty edytor").
-    const showFetchAsPrimary = mode === 'barcode' && !draft && !form.name.trim();
 
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="720px">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Nowy produkt</ModalTitle>
-                    <ModalSubtitle>Wpisz ręcznie, pobierz z kodu albo zeskanuj telefonem</ModalSubtitle>
+                    <ModalSubtitle>Wpisz dane; opcjonalnie podaj kod kreskowy, aby pobrać je automatycznie</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
             <ModalContent>
-                <ModeTabs>
-                    <ModeTab type="button" $active={mode === 'manual'} onClick={() => setMode('manual')}>
-                        <Keyboard size={16} /> Ręcznie
-                    </ModeTab>
-                    <ModeTab type="button" $active={mode === 'barcode'} onClick={() => setMode('barcode')}>
-                        <ScanBarcode size={16} /> Kod kreskowy
-                    </ModeTab>
-                    <ModeTab type="button" $active={mode === 'phone'} onClick={() => setMode('phone')}>
-                        <Smartphone size={16} /> Skanuj telefonem
-                    </ModeTab>
-                </ModeTabs>
-
-                {mode === 'barcode' && (
-                    <FieldGroup>
-                        <Label>Kod kreskowy (GTIN)</Label>
-                        <BarcodeRow>
+                {/* Kod kreskowy — pole opcjonalne z pobraniem danych i aparatem */}
+                <FieldGroup>
+                    <Label>Kod kreskowy (opcjonalnie)</Label>
+                    <BarcodeRow>
+                        <BarcodeInputWrap>
                             <Input
-                                autoFocus
                                 placeholder="np. 5901234123457"
                                 value={barcode}
                                 onChange={e => setBarcode(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') runLookup(barcode); }}
                             />
-                            <FetchBtn
-                                type="button"
-                                $variant={showFetchAsPrimary ? 'primary' : 'secondary'}
-                                onClick={() => runLookup(barcode)}
-                                disabled={looking || !barcode.trim()}
-                            >
-                                {looking ? <Spin size={16} /> : <ArrowRight size={16} />} Pobierz dane
-                            </FetchBtn>
-                        </BarcodeRow>
-                        {lookupMsg && <StatusLine $tone={lookupMsg.tone}>{lookupMsg.text}</StatusLine>}
+                        </BarcodeInputWrap>
+                        <FetchBtn
+                            type="button"
+                            $variant="secondary"
+                            onClick={() => runLookup(barcode)}
+                            disabled={looking || !barcode.trim()}
+                        >
+                            {looking ? <Spin size={16} /> : <ArrowRight size={16} />} Pobierz dane
+                        </FetchBtn>
+                        <IconBtn
+                            type="button"
+                            onClick={() => setScanOpen(o => !o)}
+                            aria-label={isDesktop ? 'Zeskanuj telefonem' : 'Zeskanuj aparatem'}
+                            title={isDesktop ? 'Zeskanuj telefonem (kod QR)' : 'Zeskanuj aparatem'}
+                        >
+                            <Camera size={18} />
+                        </IconBtn>
+                    </BarcodeRow>
+                    {lookupMsg && <StatusLine $tone={lookupMsg.tone}>{lookupMsg.text}</StatusLine>}
+
+                    {scanOpen && (
+                        <ScanArea>
+                            <ScanClose type="button" onClick={() => setScanOpen(false)} aria-label="Zamknij skanowanie">
+                                <X size={16} />
+                            </ScanClose>
+                            {isDesktop ? (
+                                <ScanHandoffPanel onCodes={onHandoffCodes} />
+                            ) : scanner.supported ? (
+                                <>
+                                    <ScanHint>Skieruj aparat na kod kreskowy produktu.</ScanHint>
+                                    <Video ref={scanner.videoRef} playsInline muted />
+                                    <CaptureBtn type="button" onClick={captureFromCamera}>Zeskanuj kod</CaptureBtn>
+                                    {scanner.error && <StatusLine $tone="error">{scanner.error}</StatusLine>}
+                                </>
+                            ) : (
+                                <ScanHint>
+                                    Ta przeglądarka nie odczyta kodu z aparatu — wpisz kod kreskowy ręcznie w polu powyżej.
+                                </ScanHint>
+                            )}
+                        </ScanArea>
+                    )}
+                </FieldGroup>
+
+                {draft && (
+                    <DraftBanner>
+                        Sprawdź dane z etykietą przed zapisaniem — pochodzą z automatycznego rozpoznania.
+                    </DraftBanner>
+                )}
+                <FieldGroup>
+                    <Label>Nazwa produktu *</Label>
+                    <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="np. Powłoka ceramiczna Pro" />
+                </FieldGroup>
+                <Grid2>
+                    <FieldGroup>
+                        <Label>Marka *</Label>
+                        <Input value={form.brand} onChange={e => set('brand', e.target.value)} />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Producent</Label>
+                        <Input value={form.manufacturerName} onChange={e => set('manufacturerName', e.target.value)} placeholder="jak marka, jeśli puste" />
+                    </FieldGroup>
+                </Grid2>
+                <Grid2>
+                    <FieldGroup>
+                        <Label>Wielkość opakowania *</Label>
+                        <Input value={form.packageSizeValue} onChange={e => set('packageSizeValue', e.target.value)} placeholder="np. 50" inputMode="decimal" />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <Label>Jednostka</Label>
+                        <Select value={form.packageSizeUnit} onChange={e => set('packageSizeUnit', e.target.value as UnitOfMeasure)}>
+                            {UNITS.map(u => <option key={u} value={u}>{UNIT_LABELS[u]}</option>)}
+                        </Select>
+                    </FieldGroup>
+                </Grid2>
+                {canSeeCosts && (
+                    <Grid2>
+                        <FieldGroup>
+                            <Label>Cena jednostkowa (zł)</Label>
+                            <Input value={form.priceValue} onChange={e => set('priceValue', e.target.value)} placeholder="opcjonalnie" inputMode="decimal" />
+                        </FieldGroup>
+                        <FieldGroup>
+                            <Label>Rodzaj / VAT</Label>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <Select value={form.priceDirection} onChange={e => set('priceDirection', e.target.value as PriceDirection)}>
+                                    <option value="GROSS">brutto</option>
+                                    <option value="NET">netto</option>
+                                </Select>
+                                <Select value={String(form.vatRate)} onChange={e => set('vatRate', Number(e.target.value) as VatRate)}>
+                                    {VATS.map(v => <option key={v} value={v}>{v === -1 ? 'zw.' : `${v}%`}</option>)}
+                                </Select>
+                            </div>
+                        </FieldGroup>
+                    </Grid2>
+                )}
+                {canSeeCosts && (
+                    <FieldGroup>
+                        <Label>Dostawca</Label>
+                        <Input value={form.supplierName} onChange={e => set('supplierName', e.target.value)} placeholder="u kogo kupujecie — opcjonalnie" />
                     </FieldGroup>
                 )}
-
-                {mode === 'phone' && (
-                    <ScanHandoffPanel onCodes={codes => { if (codes.length) { setMode('barcode'); setBarcode(codes[codes.length - 1]); runLookup(codes[codes.length - 1]); } }} />
-                )}
-
-                {(mode === 'manual' || mode === 'barcode') && (
-                    <>
-                        {draft && (
-                            <DraftBanner>
-                                Sprawdź dane z etykietą przed zapisaniem — pochodzą z automatycznego rozpoznania.
-                            </DraftBanner>
-                        )}
-                        <FieldGroup>
-                            <Label>Nazwa produktu *</Label>
-                            <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="np. Powłoka ceramiczna Pro" />
-                        </FieldGroup>
-                        <Grid2>
-                            <FieldGroup>
-                                <Label>Marka *</Label>
-                                <Input value={form.brand} onChange={e => set('brand', e.target.value)} />
-                            </FieldGroup>
-                            <FieldGroup>
-                                <Label>Producent</Label>
-                                <Input value={form.manufacturerName} onChange={e => set('manufacturerName', e.target.value)} placeholder="jak marka, jeśli puste" />
-                            </FieldGroup>
-                        </Grid2>
-                        <Grid2>
-                            <FieldGroup>
-                                <Label>Wielkość opakowania *</Label>
-                                <Input value={form.packageSizeValue} onChange={e => set('packageSizeValue', e.target.value)} placeholder="np. 50" inputMode="decimal" />
-                            </FieldGroup>
-                            <FieldGroup>
-                                <Label>Jednostka</Label>
-                                <Select value={form.packageSizeUnit} onChange={e => set('packageSizeUnit', e.target.value as UnitOfMeasure)}>
-                                    {UNITS.map(u => <option key={u} value={u}>{UNIT_LABELS[u]}</option>)}
-                                </Select>
-                            </FieldGroup>
-                        </Grid2>
-                        {canSeeCosts && (
-                            <Grid2>
-                                <FieldGroup>
-                                    <Label>Cena jednostkowa (zł)</Label>
-                                    <Input value={form.priceValue} onChange={e => set('priceValue', e.target.value)} placeholder="opcjonalnie" inputMode="decimal" />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Rodzaj / VAT</Label>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <Select value={form.priceDirection} onChange={e => set('priceDirection', e.target.value as PriceDirection)}>
-                                            <option value="GROSS">brutto</option>
-                                            <option value="NET">netto</option>
-                                        </Select>
-                                        <Select value={String(form.vatRate)} onChange={e => set('vatRate', Number(e.target.value) as VatRate)}>
-                                            {VATS.map(v => <option key={v} value={v}>{v === -1 ? 'zw.' : `${v}%`}</option>)}
-                                        </Select>
-                                    </div>
-                                </FieldGroup>
-                            </Grid2>
-                        )}
-                        {canSeeCosts && (
-                            <FieldGroup>
-                                <Label>Dostawca</Label>
-                                <Input value={form.supplierName} onChange={e => set('supplierName', e.target.value)} placeholder="u kogo kupujecie — opcjonalnie" />
-                            </FieldGroup>
-                        )}
-                        <FieldGroup>
-                            <Label>Opis / notatka</Label>
-                            <Input value={form.description} onChange={e => set('description', e.target.value)} placeholder="opcjonalnie" />
-                        </FieldGroup>
-                    </>
-                )}
+                <FieldGroup>
+                    <Label>Opis / notatka</Label>
+                    <Input value={form.description} onChange={e => set('description', e.target.value)} placeholder="opcjonalnie" />
+                </FieldGroup>
             </ModalContent>
             <ModalFooter>
                 <SharedButton type="button" $variant="ghost" onClick={onClose}>Anuluj</SharedButton>
-                {(mode === 'manual' || mode === 'barcode') && (
-                    <SharedButton
-                        type="button"
-                        $variant="primary"
-                        onClick={submit}
-                        disabled={!canSubmit || create.isPending || createFromDraft.isPending}
-                    >
-                        {(create.isPending || createFromDraft.isPending) ? <Spin size={16} /> : null} Dodaj produkt
-                    </SharedButton>
-                )}
+                <SharedButton
+                    type="button"
+                    $variant="primary"
+                    onClick={submit}
+                    disabled={!canSubmit || create.isPending || createFromDraft.isPending}
+                >
+                    {(create.isPending || createFromDraft.isPending) ? <Spin size={16} /> : null} Dodaj produkt
+                </SharedButton>
             </ModalFooter>
         </ModalShell>
     );
