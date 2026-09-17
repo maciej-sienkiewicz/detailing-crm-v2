@@ -43,16 +43,25 @@ const pulse = keyframes`
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+/*
+ * `min-width: 0` na kolumnie i na każdej kratce niżej nie jest ozdobą: bez tego
+ * pole „Opis uszkodzenia" narzuca rzędowi swoją szerokość minimalnej treści
+ * (domyślne `size` inputa to ~170 px + padding), więc na telefonie rząd jest
+ * szerszy od okna i modal daje się przesuwać na boki.
+ */
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${props => props.theme.spacing.lg};
+  min-width: 0;
 `;
 
 const TypeSelectorRow = styled.div`
   display: flex;
   align-items: center;
   gap: ${props => props.theme.spacing.sm};
+  flex-wrap: wrap;
+  min-width: 0;
 `;
 
 const TypeLabel = styled.label`
@@ -64,6 +73,8 @@ const TypeLabel = styled.label`
 `;
 
 const TypeSelect = styled.select`
+  min-width: 0;
+  max-width: 100%;
   padding: 7px 32px 7px 12px;
   border: 1.5px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.md};
@@ -91,6 +102,7 @@ const ImageContainer = styled.div`
   border: 2px solid ${props => props.theme.colors.border};
   background-color: white;
   box-shadow: ${props => props.theme.shadows.md};
+  width: 100%;
   max-width: 800px;
   margin: 0 auto;
 
@@ -231,6 +243,7 @@ const DamageItem = styled.div<{ $isHovered: boolean }>`
   border: 2px solid ${props => props.$isHovered ? props.theme.colors.primary : 'transparent'};
   transition: all ${props => props.theme.transitions.normal};
   cursor: pointer;
+  min-width: 0;
 
   &:hover {
     background-color: rgba(14, 165, 233, 0.05);
@@ -253,6 +266,8 @@ const DamageNumber = styled.div`
 `;
 
 const DamageInput = styled.input`
+  width: 100%;
+  min-width: 0;
   padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.md};
@@ -299,9 +314,14 @@ const DeleteButton = styled.button`
 
 const DamageItemRow = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: ${props => props.theme.spacing.md};
   align-items: center;
+  min-width: 0;
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    gap: ${props => props.theme.spacing.sm};
+  }
 `;
 
 // ─── Damage photos (desktop) ──────────────────────────────────────────────────
@@ -312,6 +332,11 @@ const DamagePhotoStrip = styled.div`
   gap: 8px;
   flex-wrap: wrap;
   padding-left: 44px; /* align with input, past the number badge */
+  min-width: 0;
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    padding-left: 0;
+  }
 `;
 
 const DamagePhotoThumb = styled.button`
@@ -431,6 +456,10 @@ const PickerOverlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: 20px;
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    padding: 10px;
+  }
 `;
 
 const PickerCard = styled.div`
@@ -474,6 +503,11 @@ const PickerClose = styled.button`
 const PickerBody = styled.div`
   padding: 16px 18px;
   overflow-y: auto;
+  min-width: 0;
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    padding: 14px;
+  }
 `;
 
 /*
@@ -487,6 +521,10 @@ const PickerTabs = styled.div`
   gap: 2px;
   padding: 0 18px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
 `;
 
 const PickerTab = styled.button<{ $active: boolean }>`

@@ -56,18 +56,27 @@ const Overlay = styled.div`
     justify-content: center;
     padding: 16px;
     z-index: 9999;
+
+    @media (max-width: 640px) {
+        padding: 8px;
+    }
 `;
 
 const Card = styled.div`
     width: 100%;
     max-width: 880px;
     max-height: calc(100dvh - 32px);
+    min-width: 0;
     display: flex;
     flex-direction: column;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: 16px;
     overflow: hidden;
+
+    @media (max-width: 640px) {
+        max-height: calc(100dvh - 16px);
+    }
     box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
 `;
 
@@ -79,6 +88,10 @@ const Header = styled.div`
     gap: 12px;
     padding: 16px 20px 12px;
     border-bottom: 1px solid ${st.border};
+
+    @media (max-width: 640px) {
+        padding: 14px 14px 10px;
+    }
 `;
 
 const HeaderTexts = styled.div`
@@ -132,14 +145,27 @@ const StepDot = styled.span<{ $state: 'done' | 'current' | 'todo' }>`
     ${p => p.$state === 'todo' && css`width: 14px; background: ${st.border};`}
 `;
 
+/*
+ * `overflow-x: hidden` to nie zamiatanie problemu pod dywan, a granica: przy
+ * `overflow-y: auto` przeglądarka liczy drugą oś jako `auto`, więc jedna zbyt
+ * szeroka kratka w środku sprawiała, że CAŁE okno dawało się przesuwać na boki
+ * („pływało"). Kratki niżej same się zwężają (`min-width: 0` w mapperze), a to
+ * jest zabezpieczenie na następną treść, która o tym zapomni.
+ */
 const Body = styled.div`
     flex: 1;
     min-height: 0;
+    min-width: 0;
     padding: 18px 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;
     overflow-y: auto;
+    overflow-x: hidden;
+
+    @media (max-width: 640px) {
+        padding: 14px;
+    }
 `;
 
 const SectionHead = styled.div`
@@ -403,6 +429,11 @@ const Footer = styled.div`
     padding: 12px 20px;
     background: ${st.bg};
     border-top: 1px solid ${st.border};
+    flex-wrap: wrap;
+
+    @media (max-width: 640px) {
+        padding: 10px 14px;
+    }
 `;
 
 const FooterLeft = styled.div`
