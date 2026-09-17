@@ -5,8 +5,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PageContainer } from '@/common/components/PageContainer';
 import { usePermissions } from '@/core/permissions';
-import { useProductDetail, useConfirmProduct, useUpdateProductStudio, useProductRating } from '../hooks/useProducts';
-import { ProductProvenanceBadge } from '../components/ProductProvenanceBadge';
+import { useProductDetail, useConfirmProduct, useProductRating } from '../hooks/useProducts';
 import { ProductRatingStars } from '../components/ProductRatingStars';
 import { ProductNotes } from '../components/ProductNotes';
 import { formatPackage, formatPrice } from '../utils/productFormat';
@@ -35,12 +34,20 @@ const Columns = styled.div`
     display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start;
     @media (max-width: 900px) { grid-template-columns: 1fr; }
 `;
-// Kolumna dowodów (płasko). Na telefonie idzie DRUGA — patrz $order.
-const LeftCol = styled.div` display: flex; flex-direction: column; gap: 18px; @media (max-width: 900px) { order: 2; } `;
-// JEDYNA wyniesiona sekcja w oknie: doświadczenie studia (CLAUDE.md §2).
+// Kolumna dowodów. Jedna wspólna powierzchnia (karta na tle innym niż layout) —
+// wewnątrz Specyfikacja i Cena leżą płasko, rozdzielone kreską. Jedno WYNIESIENIE
+// na kolumnę (CLAUDE.md §2): tu skromna karta, po prawej mocna karta doświadczenia.
+const LeftCol = styled.div`
+    background: ${st.bgCard}; border: 1px solid ${st.border};
+    border-radius: ${st.radius}; box-shadow: ${st.shadowSm};
+    padding: 20px; display: flex; flex-direction: column; gap: 16px;
+    @media (max-width: 900px) { order: 2; }
+`;
+// JEDYNA mocno wyniesiona sekcja w oknie: doświadczenie studia (CLAUDE.md §2).
 const RightCol = styled.div` @media (max-width: 900px) { order: 1; } `;
 
 const FlatSection = styled.section` display: flex; flex-direction: column; gap: 10px; `;
+const RowDivider = styled.hr` border: none; border-top: 1px solid ${st.border}; margin: 2px 0; width: 100%; `;
 const SectionLabel = styled.h2` margin: 0; font-size: 15px; font-weight: 700; color: ${st.text}; display: flex; align-items: center; gap: 8px; `;
 const SpecGrid = styled.dl` margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; `;
 const DKey = styled.dt` color: ${st.textMuted}; `;
@@ -63,14 +70,6 @@ const ConfirmBtn = styled.button`
     color: #15803d; background: ${st.bgAccentGreen}; border: 1px solid #86efac;
     border-radius: ${st.radiusSm}; cursor: pointer;
 `;
-const FavBtn = styled.button<{ $on: boolean }>`
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; font-family: inherit; font-size: 13px; font-weight: 600;
-    border-radius: ${st.radiusFull}; cursor: pointer;
-    border: 1px solid ${p => (p.$on ? 'rgba(245,158,11,0.5)' : st.border)};
-    background: ${p => (p.$on ? st.bgAccentAmber : st.bgCard)};
-    color: ${p => (p.$on ? '#92400e' : st.textSecondary)};
-`;
 const RatingRow = styled.div` display: flex; flex-direction: column; gap: 8px; `;
 
 export function ProductDetailView() {
@@ -82,19 +81,11 @@ export function ProductDetailView() {
 
     const { product, isLoading } = useProductDetail(id);
     const confirm = useConfirmProduct(id ?? '');
-    const overlay = useUpdateProductStudio(id ?? '');
     const rating = useProductRating(id ?? '');
 
     if (isLoading || !product) {
         return <View><Body><Back onClick={() => navigate('/products')}><ArrowLeft size={16} /> Wróć</Back><p style={{ color: st.textMuted }}>Ładowanie…</p></Body></View>;
     }
-
-    const toggleFav = () => overlay.mutate({
-        supplierName: product.supplierName, internalName: product.internalName,
-        internalNote: product.internalNote, isFavourite: !product.isFavourite, isHidden: product.isHidden,
-        // Cena nie jest tu edytowana — bez PRODUCTS_COSTS backend i tak zignoruje pole.
-        price: null,
-    });
 
     return (
         <View>
@@ -109,7 +100,6 @@ export function ProductDetailView() {
                             <span>{product.brand}</span>
                             <span>·</span>
                             <span>{formatPackage(product.packageSizeValue, product.packageSizeUnit)}</span>
-                            <ProductProvenanceBadge level={product.provenance.verificationLevel} />
                             {product.rating && (
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: st.accentAmber }}>
                                     <Star size={14} fill={st.accentAmber} color={st.accentAmber} /> {product.rating.rating}
@@ -117,12 +107,6 @@ export function ProductDetailView() {
                             )}
                         </HeroMeta>
                     </HeroMain>
-                    {canManage && (
-                        <FavBtn $on={product.isFavourite} onClick={toggleFav} type="button">
-                            <Star size={14} fill={product.isFavourite ? '#f59e0b' : 'none'} color="#f59e0b" />
-                            {product.isFavourite ? 'Ulubiony' : 'Do ulubionych'}
-                        </FavBtn>
-                    )}
                 </Hero>
 
                 <Columns>
@@ -143,6 +127,7 @@ export function ProductDetailView() {
 
                         {canSeeCosts && product.price && (
                             <FlatSection>
+                                <RowDivider />
                                 <SectionLabel>Cena jednostkowa</SectionLabel>
                                 <PriceHead>
                                     <PriceNumber>{formatPrice(product.price)}</PriceNumber>

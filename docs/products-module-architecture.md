@@ -888,10 +888,10 @@ Kody błędów: `422` niepoprawna suma kontrolna GTIN · `429` limit dzienny stu
 
 | Metoda | Ścieżka | Uprawnienie | Opis |
 |---|---|---|---|
-| `GET` | `/visits/{visitId}/products` | `PRODUCTS_VIEW` + `VISITS_VIEW` | Zużycie na wizycie; `cost*` tylko z `PRODUCTS_COSTS` |
-| `POST` | `/visits/{visitId}/products` | `PRODUCTS_USAGE` | Dopisanie zużycia (ilość + jednostka); serwer robi snapshot ceny |
-| `PATCH` | `/visits/{visitId}/products/{linkId}` | `PRODUCTS_USAGE` | Korekta ilości/notatki; **nie** przelicza snapshotu ceny |
-| `DELETE` | `/visits/{visitId}/products/{linkId}` | `PRODUCTS_USAGE` | |
+| `GET` | `/api/visits/{visitId}/products` | `PRODUCTS_VIEW` + `VISITS_VIEW` | Zużycie na wizycie; `cost*` tylko z `PRODUCTS_COSTS` |
+| `POST` | `/api/visits/{visitId}/products` | `PRODUCTS_USAGE` | Dopisanie zużycia (ilość + jednostka); serwer robi snapshot ceny |
+| `PATCH` | `/api/visits/{visitId}/products/{linkId}` | `PRODUCTS_USAGE` | Korekta ilości/notatki; **nie** przelicza snapshotu ceny |
+| `DELETE` | `/api/visits/{visitId}/products/{linkId}` | `PRODUCTS_USAGE` | |
 | `GET` | `/products/{id}/visits` | `PRODUCTS_VIEW` | Wizyty tego studia, na których użyto produktu |
 
 ### 8.5 Sesja skanowania

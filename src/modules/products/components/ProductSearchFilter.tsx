@@ -65,14 +65,12 @@ interface Props {
     search: string;
     onSearch: (v: string) => void;
     onlyOurs: boolean;
-    onlyFavourite: boolean;
     onToggleOurs: () => void;
-    onToggleFavourite: () => void;
     onScan?: () => void;
 }
 
 export function ProductSearchFilter({
-    search, onSearch, onlyOurs, onlyFavourite, onToggleOurs, onToggleFavourite, onScan,
+    search, onSearch, onlyOurs, onToggleOurs, onScan,
 }: Props) {
     return (
         <Bar>
@@ -85,7 +83,6 @@ export function ProductSearchFilter({
                 />
             </SearchBox>
             <Chip type="button" $active={onlyOurs} onClick={onToggleOurs}>Nasze</Chip>
-            <Chip type="button" $active={onlyFavourite} onClick={onToggleFavourite}>Ulubione</Chip>
             {onScan && (
                 <ScanBtn type="button" onClick={onScan}>
                     <ScanLine size={16} /> Skanuj

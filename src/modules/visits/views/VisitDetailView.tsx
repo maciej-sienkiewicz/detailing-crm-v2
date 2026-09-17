@@ -1036,7 +1036,12 @@ export const VisitDetailView = () => {
                                     </div>
                                     <SectionBody $visible $flush id="products-section">
                                         <div style={{ padding: 16 }}>
-                                            <VisitProductsSection visitId={visitId!} canManage={can('PRODUCTS_USAGE')} />
+                                            <VisitProductsSection
+                                                visitId={visitId!}
+                                                canUsage={can('PRODUCTS_USAGE')}
+                                                canManageProducts={can('PRODUCTS_MANAGE')}
+                                                canSeeCosts={can('PRODUCTS_COSTS')}
+                                            />
                                         </div>
                                     </SectionBody>
                                 </Section>

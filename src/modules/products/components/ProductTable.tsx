@@ -3,7 +3,6 @@ import { Star, Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ProductListItem } from '../types';
 import { formatPackage, formatPrice } from '../utils/productFormat';
-import { ProductProvenanceBadge } from './ProductProvenanceBadge';
 
 const Table = styled.table` width: 100%; border-collapse: collapse; font-size: 14px; `;
 const Th = styled.th<{ $right?: boolean }>`
@@ -63,9 +62,7 @@ export function ProductTable({ products, canSeeCosts, onOpen }: Props) {
                                 <Thumb><Package size={18} /></Thumb>
                                 <NameMain>
                                     <NameTitle>
-                                        {p.isFavourite && <Star size={13} fill={st.accentAmber} color={st.accentAmber} />}
                                         {p.name}
-                                        <ProductProvenanceBadge level={p.verificationLevel} />
                                     </NameTitle>
                                     <NameSub>{p.brand}</NameSub>
                                 </NameMain>

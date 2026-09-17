@@ -3,7 +3,6 @@ import { Star, Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ProductListItem } from '../types';
 import { formatPackage, formatPrice } from '../utils/productFormat';
-import { ProductProvenanceBadge } from './ProductProvenanceBadge';
 
 const Grid = styled.div`
     display: grid;
@@ -34,7 +33,6 @@ const Title = styled.div` font-weight: 600; color: ${st.text}; font-size: 14px; 
 const Sub = styled.div` font-size: 12px; color: ${st.textMuted}; `;
 const Meta = styled.div` display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: ${st.textSecondary}; `;
 const StarWrap = styled.span` display: inline-flex; align-items: center; gap: 4px; color: ${st.accentAmber}; `;
-const BadgeRow = styled.div` display: flex; gap: 6px; align-items: center; flex-wrap: wrap; `;
 
 interface Props {
     products: ProductListItem[];
@@ -54,10 +52,6 @@ export function ProductGrid({ products, canSeeCosts, onOpen }: Props) {
                             <Sub>{p.brand}</Sub>
                         </div>
                     </Top>
-                    <BadgeRow>
-                        {p.isFavourite && <Star size={14} fill={st.accentAmber} color={st.accentAmber} />}
-                        <ProductProvenanceBadge level={p.verificationLevel} />
-                    </BadgeRow>
                     <Meta>
                         <span>{formatPackage(p.packageSizeValue, p.packageSizeUnit)}</span>
                         {p.ratingValue

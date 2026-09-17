@@ -45,13 +45,12 @@ export function ProductListView() {
 
     const [search, setSearch] = useState('');
     const [onlyOurs, setOnlyOurs] = useState(false);
-    const [onlyFavourite, setOnlyFavourite] = useState(false);
     const [page, setPage] = useState(1);
     const [adding, setAdding] = useState(false);
     const debounced = useDebounce(search, 300);
 
     const { products, pagination, isLoading } = useProducts({
-        search: debounced, onlyOurs, onlyFavourite, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
+        search: debounced, onlyOurs, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
     });
 
     const open = (id: string) => navigate(`/products/${id}`);
@@ -89,9 +88,7 @@ export function ProductListView() {
                     search={search}
                     onSearch={v => { setSearch(v); setPage(1); }}
                     onlyOurs={onlyOurs}
-                    onlyFavourite={onlyFavourite}
                     onToggleOurs={() => { setOnlyOurs(v => !v); setPage(1); }}
-                    onToggleFavourite={() => { setOnlyFavourite(v => !v); setPage(1); }}
                     onScan={canManage ? () => setAdding(true) : undefined}
                 />
 

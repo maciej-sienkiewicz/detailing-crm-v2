@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Package, Plus, X, Search } from 'lucide-react';
+import { Package, Plus, X, Search, ScanLine } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useVisitProducts } from '../hooks/useProducts';
-import { useProducts } from '../hooks/useProducts';
+import { useVisitProducts, useProducts } from '../hooks/useProducts';
 import { useDebounce } from '@/common/hooks/useDebounce';
+import { AddProductModal } from './AddProductModal';
 
 // Sekcja „Użyte produkty" osadzana w karcie wizyty. Czysto informacyjna: dopięcie
-// produktu do wizyty, bez ilości i kosztu. „Dodaj produkt" ma odcień, nie wypełnienie —
-// w oknie wizyty krokiem następnym jest co innego (CLAUDE.md §2).
+// produktu do wizyty, bez ilości i kosztu. Dwie drogi dodania:
+//  - „Z katalogu"     — wybór produktu, który już jest w bazie (najczęstsze),
+//  - „Nowy / zeskanuj" — dodanie produktu, którego jeszcze nie ma (ręcznie, z kodu
+//    albo skanem telefonem), po czym od razu podpinamy go do wizyty.
+// Obie akcje mają odcień, nie wypełnienie — w oknie wizyty krokiem następnym jest
+// co innego (CLAUDE.md §2).
 
 const Wrap = styled.div` display: flex; flex-direction: column; gap: 10px; `;
 const List = styled.div` display: flex; flex-direction: column; gap: 8px; `;
@@ -22,8 +26,8 @@ const ItemMain = styled.div` flex: 1; min-width: 0; `;
 const ItemTitle = styled.div` font-size: 14px; font-weight: 600; color: ${st.text}; `;
 const ItemSub = styled.div` font-size: 12px; color: ${st.textMuted}; `;
 const RemoveBtn = styled.button` background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 4px; &:hover { color: ${st.accentRed}; } `;
-const AddBtn = styled.button`
-    align-self: flex-start;
+const Actions = styled.div` display: flex; gap: 8px; flex-wrap: wrap; `;
+const ActionBtn = styled.button`
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 600;
     color: ${st.accentBlue}; background: ${st.bgCard}; border: 1px solid ${st.accentBlue};
@@ -38,21 +42,31 @@ const Empty = styled.p` margin: 0; font-size: 13px; color: ${st.textMuted}; `;
 
 interface Props {
     visitId: string;
-    canManage: boolean;   // PRODUCTS_USAGE
+    /** PRODUCTS_USAGE — dopinanie/odpinanie produktów wizyty. */
+    canUsage: boolean;
+    /** PRODUCTS_MANAGE — dodawanie zupełnie nowego produktu (ręcznie/kod/skan). */
+    canManageProducts: boolean;
+    /** PRODUCTS_COSTS — czy w oknie nowego produktu pokazać cenę jednostkową. */
+    canSeeCosts: boolean;
 }
 
-export function VisitProductsSection({ visitId, canManage }: Props) {
+export function VisitProductsSection({ visitId, canUsage, canManageProducts, canSeeCosts }: Props) {
     const { links, link, unlink } = useVisitProducts(visitId);
     const [picking, setPicking] = useState(false);
+    const [adding, setAdding] = useState(false);
     const [search, setSearch] = useState('');
     const debounced = useDebounce(search, 300);
     const { products } = useProducts({ search: debounced, page: 1, limit: 8 });
 
     const linkedIds = new Set(links.map(l => l.productId));
 
+    const closePicker = () => { setSearch(''); setPicking(false); };
+
     return (
         <Wrap>
-            {links.length === 0 && !picking && <Empty>Nie dopięto jeszcze żadnego produktu do tej wizyty.</Empty>}
+            {links.length === 0 && !picking && (
+                <Empty>Nie dopięto jeszcze żadnego produktu do tej wizyty.</Empty>
+            )}
             <List>
                 {links.map(l => (
                     <Item key={l.id}>
@@ -61,7 +75,7 @@ export function VisitProductsSection({ visitId, canManage }: Props) {
                             <ItemTitle>{l.productName}</ItemTitle>
                             <ItemSub>{[l.brand, l.packageLabel].filter(Boolean).join(' · ')}</ItemSub>
                         </ItemMain>
-                        {canManage && (
+                        {canUsage && (
                             <RemoveBtn type="button" onClick={() => unlink.mutate(l.id)} aria-label="Usuń powiązanie">
                                 <X size={16} />
                             </RemoveBtn>
@@ -69,32 +83,54 @@ export function VisitProductsSection({ visitId, canManage }: Props) {
                     </Item>
                 ))}
             </List>
-            {canManage && !picking && (
-                <AddBtn type="button" onClick={() => setPicking(true)}>
-                    <Plus size={16} /> Dodaj produkt
-                </AddBtn>
+
+            {canUsage && !picking && (
+                <Actions>
+                    <ActionBtn type="button" onClick={() => setPicking(true)}>
+                        <Plus size={16} /> Z katalogu
+                    </ActionBtn>
+                    {canManageProducts && (
+                        <ActionBtn type="button" onClick={() => setAdding(true)}>
+                            <ScanLine size={16} /> Nowy / zeskanuj
+                        </ActionBtn>
+                    )}
+                </Actions>
             )}
-            {canManage && picking && (
+
+            {canUsage && picking && (
                 <PickerBox>
                     <SearchRow>
                         <Search size={15} />
-                        <SearchInput autoFocus placeholder="Szukaj produktu…" value={search} onChange={e => setSearch(e.target.value)} />
+                        <SearchInput autoFocus placeholder="Szukaj produktu w katalogu…" value={search} onChange={e => setSearch(e.target.value)} />
                     </SearchRow>
                     {products.filter(p => !linkedIds.has(p.id)).slice(0, 8).map(p => (
                         <Result
                             key={p.id}
                             type="button"
-                            onClick={() => {
-                                link.mutate({ productId: p.id }, { onSuccess: () => { setSearch(''); setPicking(false); } });
-                            }}
+                            onClick={() => link.mutate({ productId: p.id }, { onSuccess: closePicker })}
                         >
                             {p.name} <span style={{ color: st.textMuted }}>· {p.brand}</span>
                         </Result>
                     ))}
                     {debounced && products.length === 0 && (
-                        <Result as="div" style={{ color: st.textMuted, cursor: 'default' }}>Brak wyników.</Result>
+                        <Result as="div" style={{ color: st.textMuted, cursor: 'default' }}>
+                            Brak wyników — dodaj nowy produkt przyciskiem „Nowy / zeskanuj".
+                        </Result>
                     )}
                 </PickerBox>
+            )}
+
+            {adding && (
+                <AddProductModal
+                    isOpen={adding}
+                    onClose={() => setAdding(false)}
+                    canSeeCosts={canSeeCosts}
+                    onCreated={(id) => {
+                        // Nowy produkt trafił do katalogu — od razu podpinamy go do wizyty.
+                        setAdding(false);
+                        link.mutate({ productId: id });
+                    }}
+                />
             )}
         </Wrap>
     );

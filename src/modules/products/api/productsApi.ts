@@ -121,18 +121,18 @@ export const productsApi = {
 // ── Powiązania produktów z wizytą (pod /visits/{id}/products) ──
 export const visitProductsApi = {
     list: async (visitId: string): Promise<VisitProductLink[]> => {
-        const { data } = await apiClient.get(`/v1/visits/${visitId}/products`);
+        const { data } = await apiClient.get(`/visits/${visitId}/products`);
         return data;
     },
     link: async (visitId: string, productId: string, note?: string): Promise<VisitProductLink> => {
-        const { data } = await apiClient.post(`/v1/visits/${visitId}/products`, { productId, note });
+        const { data } = await apiClient.post(`/visits/${visitId}/products`, { productId, note });
         return data;
     },
     updateNote: async (visitId: string, linkId: string, note: string | null): Promise<void> => {
-        await apiClient.patch(`/v1/visits/${visitId}/products/${linkId}`, { note });
+        await apiClient.patch(`/visits/${visitId}/products/${linkId}`, { note });
     },
     unlink: async (visitId: string, linkId: string): Promise<void> => {
-        await apiClient.delete(`/v1/visits/${visitId}/products/${linkId}`);
+        await apiClient.delete(`/visits/${visitId}/products/${linkId}`);
     },
 };
 

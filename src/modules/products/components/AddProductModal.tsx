@@ -17,7 +17,6 @@ import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { productsApi } from '../api/productsApi';
 import { useCreateProduct, useCreateFromDraft } from '../hooks/useProducts';
 import { ScanHandoffPanel } from './ScanHandoffPanel';
-import { ProductProvenanceBadge } from './ProductProvenanceBadge';
 
 type Mode = 'manual' | 'barcode' | 'phone';
 
@@ -249,7 +248,6 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated }: Pro
                     <>
                         {draft && (
                             <DraftBanner>
-                                <ProductProvenanceBadge level={draft.provenance.verificationLevel} />
                                 Sprawdź dane z etykietą przed zapisaniem — pochodzą z automatycznego rozpoznania.
                             </DraftBanner>
                         )}
