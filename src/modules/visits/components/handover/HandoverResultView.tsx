@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { CheckCircle2, AlertTriangle, Clock, Download } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Clock, Download, MessageSquareHeart } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { useToast } from '@/common/components/Toast';
 import { useKsefAutomation } from '@/modules/finance/hooks';
@@ -61,6 +61,16 @@ const DocNumber = styled.span`
     font-weight: 600;
     color: ${st.text};
     font-variant-numeric: tabular-nums;
+`;
+
+const ThankYouLabel = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+
+    svg { width: 14px; height: 14px; color: ${st.accentBlue}; }
 `;
 
 const Actions = styled.div`
@@ -158,10 +168,25 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
     }
 };
 
+/** Termin podziękowania → „17.09, 16:30", w tym samym formacie co pole wyboru. */
+const formatThankYouWhen = (date: Date): string =>
+    date.toLocaleString('pl-PL', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
 interface HandoverResultViewProps {
     result: CompleteVisitResponse;
     grossAmount: number;
     currency: string;
+    /**
+     * Kiedy wyjdzie SMS z podziękowaniem, albo `null`, gdy studio go nie wysyła
+     * lub pracownik wyłączył go w kroku 1. Sama decyzja zapada przed wydaniem
+     * (jedzie w payloadzie), tu pokazujemy już tylko jej skutek.
+     */
+    thankYouAt: Date | null;
     onClose: () => void;
 }
 
@@ -169,6 +194,7 @@ export const HandoverResultView = ({
     result,
     grossAmount,
     currency,
+    thankYouAt,
     onClose,
 }: HandoverResultViewProps) => {
     const status = result.ksefStatus ?? null;
@@ -237,6 +263,15 @@ export const HandoverResultView = ({
                     <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Rozliczono</span>
                     <Money>{formatCurrency(grossAmount / 100, currency)}</Money>
                 </BoxRow>
+                {thankYouAt && (
+                    <BoxRow>
+                        <ThankYouLabel>
+                            <MessageSquareHeart aria-hidden="true" />
+                            SMS z podziękowaniem
+                        </ThankYouLabel>
+                        <DocNumber>{formatThankYouWhen(thankYouAt)}</DocNumber>
+                    </BoxRow>
+                )}
                 {status === 'REJECTED' && (
                     <Muted>
                         {error ?? 'Szczegóły błędu walidacji znajdziesz w module Finanse → Dokumenty przychodowe.'}

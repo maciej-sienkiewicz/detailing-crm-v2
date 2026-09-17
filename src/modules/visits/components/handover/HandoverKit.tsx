@@ -76,19 +76,25 @@ export const Pill = styled.button<{ $selected: boolean }>`
     transition: all 140ms ease;
     white-space: nowrap;
 
+    /* Zaznaczenie niesie ODCIEŃ, nie WYPEŁNIENIE (reguła 2): pełny błękit robił
+       z każdej wybranej pigułki drugie „zrób to teraz" obok przycisku w stopce.
+       Przy dwóch pickerach naraz (forma zapłaty + dokument) dawało to dwa nasycone
+       bloki konkurujące z jedynym prawowitym wypełnieniem. Wybór pokazujemy więc
+       odcieniem i obwódką; hover pigułki niewybranej jest neutralny, żeby błękit
+       znaczył wyłącznie „to jest wybrane". */
     ${p =>
         p.$selected
             ? `
-        background: ${st.accentBlue};
-        color: white;
+        background: ${st.accentBlueDim};
+        color: ${st.accentBlue};
         border: 1px solid ${st.accentBlue};
-        box-shadow: ${st.shadowXs};
+        box-shadow: inset 0 0 0 1px ${st.accentBlue};
     `
             : `
         background: ${st.bgCard};
         color: ${st.textSecondary};
         border: 1px solid ${st.border};
-        &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
+        &:hover { border-color: ${st.borderHover}; color: ${st.text}; background: ${st.bgCardAlt}; }
     `}
 
     svg { width: 13px; height: 13px; flex-shrink: 0; }
