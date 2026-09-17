@@ -328,6 +328,53 @@ const ServiceSuggestionPrice = styled.span`
     white-space: nowrap;
 `;
 
+/**
+ * Wiersz „użyj wpisanej nazwy" - jawna akcja dla usługi spoza katalogu.
+ *
+ * Wcześniej nazwa spoza katalogu zostawiała arkusz w stanie bez żadnej akcji:
+ * jedynym wyjściem był „✕", więc żeby dojść do pól ceny, trzeba było najpierw
+ * zamknąć podgląd. To był ślepy zaułek. Teraz picker daje wprost „Użyj «…»",
+ * która ustawia nazwę i zamyka picker jednym kliknięciem - na telefonie i na
+ * desktopie tak samo.
+ */
+const CreateSuggestionItem = styled(ServiceSuggestionItem)`
+    color: var(--brand-primary);
+    font-weight: 600;
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+`;
+
+const CreateName = styled(ServiceSuggestionName)`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--brand-primary);
+`;
+
+const CreateTag = styled(ServiceSuggestionPrice)`
+    color: var(--brand-primary);
+    font-weight: 600;
+`;
+
+const SheetCreateItem = styled(SheetItem)`
+    color: var(--brand-primary);
+    font-weight: 600;
+`;
+
+const SheetCreateLead = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    svg { width: 16px; height: 16px; flex-shrink: 0; }
+`;
+
+const SheetCreateTag = styled.span`
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--brand-primary);
+`;
+
 // ─── VIN camera inline button ─────────────────────────────────────────────────
 
 const CameraInlineBtn = styled.button`
@@ -504,6 +551,24 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
             vatRate: service.vatRate,
         });
         setSuggestFor(null);
+    }
+
+    /**
+     * Zatwierdza wpisaną nazwę jako usługę spoza katalogu i zamyka picker: jedno
+     * kliknięcie zamiast „wpisz → zamknij ✕ → wróć do pól ceny". Nazwa i tak jest
+     * już w wierszu (ustawiana przy każdym znaku), więc tu wystarczy domknięcie -
+     * ale ustawiamy ją jeszcze raz, żeby akcja była samowystarczalna.
+     */
+    function commitTypedName(idx: number, name: string) {
+        const clean = name.trim();
+        if (clean) updateService(idx, { name: capitalizeFirst(clean) });
+        setSuggestFor(null);
+    }
+
+    /** Czy wpisana nazwa jest już pozycją katalogu (dokładne dopasowanie). */
+    function isExactCatalogName(name: string): boolean {
+        const q = name.trim().toLowerCase();
+        return !!q && (catalog ?? []).some(s => s.name.trim().toLowerCase() === q);
     }
 
     useEffect(() => {
@@ -790,6 +855,9 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                     <div ref={servicesRef} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {services.map((svc, idx) => {
                             const suggestions = suggestFor === idx ? suggestionsFor(svc.name) : [];
+                            // Nazwa spoza katalogu dostaje jawną akcję „Użyj «…»" zamiast pustej listy.
+                            const showCreate =
+                                suggestFor === idx && svc.name.trim().length > 0 && !isExactCatalogName(svc.name);
                             return (
                             <ServiceCard key={idx}>
                                 <ServiceCardHeader>
@@ -807,7 +875,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                                 autoComplete="off"
                                             />
                                         </InputShell>
-                                        {!isMobile && suggestions.length > 0 && createPortal(
+                                        {!isMobile && (suggestions.length > 0 || showCreate) && createPortal(
                                             <FixedSuggestionList ref={suggestListRef} style={suggestStyle}>
                                                 {suggestions.map(s => (
                                                     <ServiceSuggestionItem
@@ -822,6 +890,14 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                                         </ServiceSuggestionPrice>
                                                     </ServiceSuggestionItem>
                                                 ))}
+                                                {showCreate && (
+                                                    <CreateSuggestionItem
+                                                        onMouseDown={() => commitTypedName(idx, svc.name)}
+                                                    >
+                                                        <CreateName><Plus />Użyj „{svc.name.trim()}"</CreateName>
+                                                        <CreateTag>nowa usługa</CreateTag>
+                                                    </CreateSuggestionItem>
+                                                )}
                                             </FixedSuggestionList>,
                                             document.body
                                         )}
@@ -871,12 +947,21 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
                                                                 </SheetItemPrice>
                                                             </SheetItem>
                                                         ))}
-                                                        {suggestionsFor(sheetQuery).length === 0 && (
-                                                            <SheetEmpty>
-                                                                {sheetQuery.trim()
-                                                                    ? 'Brak usługi w katalogu - zostanie zapisana jako wpisana ręcznie.'
-                                                                    : 'Katalog usług jest pusty.'}
-                                                            </SheetEmpty>
+                                                        {/* Nazwa spoza katalogu: jawna akcja domykająca picker,
+                                                            zamiast martwego komunikatu z jedynym wyjściem „✕". */}
+                                                        {sheetQuery.trim() && !isExactCatalogName(sheetQuery) && (
+                                                            <SheetCreateItem
+                                                                type="button"
+                                                                onClick={() => commitTypedName(idx, sheetQuery)}
+                                                            >
+                                                                <SheetCreateLead>
+                                                                    <Plus />Użyj „{sheetQuery.trim()}"
+                                                                </SheetCreateLead>
+                                                                <SheetCreateTag>nowa usługa</SheetCreateTag>
+                                                            </SheetCreateItem>
+                                                        )}
+                                                        {suggestionsFor(sheetQuery).length === 0 && !sheetQuery.trim() && (
+                                                            <SheetEmpty>Katalog usług jest pusty.</SheetEmpty>
                                                         )}
                                                     </SheetList>
                                                 </Sheet>
