@@ -35,7 +35,7 @@ import {
     CategoryAssignMenu, ctxMenuPosition,
     // date picker + helpers
     HeaderDatePicker,
-    fmtPLNFromGrosz, today, currentMonthStart,
+    fmtPLNFromGrosz, today, spMonthsAgo,
 } from '../components/shared';
 
 // ─── View-specific styled ─────────────────────────────────────────────────────
@@ -135,10 +135,12 @@ type ServiceCtxMenu = {
 };
 
 export const StatisticsView = () => {
-    // Domyślnie bieżący miesiąc: to okres, o który właściciel pyta najczęściej,
-    // a roczny zakres kazał przy każdym wejściu szukać aktualnych liczb.
-    const [granularity, setGranularity] = useState<Granularity>('DAILY');
-    const [startDate, setStartDate] = useState(currentMonthStart());
+    // Domyślnie ostatnie trzy miesiące w podziale tygodniowym. Bieżący miesiąc dziennie
+    // odpowiadał na pytanie „ile dziś", a nie na to, po które się tu wchodzi: czy idzie
+    // lepiej niż wcześniej. Kwartał pokazuje sezon, a tydzień to najdrobniejszy podział,
+    // przy którym widać trend zamiast szumu pojedynczych dni.
+    const [granularity, setGranularity] = useState<Granularity>('WEEKLY');
+    const [startDate, setStartDate] = useState(spMonthsAgo(3));
     const [endDate, setEndDate] = useState(today());
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();

@@ -156,7 +156,9 @@ const getPresets = (): Preset[] => [
     { label: 'Bieżący miesiąc',      hint: currentMonthName(), startDate: currentMonthStart(), endDate: today(), granularity: 'DAILY' },
     { label: 'Ostatnie 7 dni',       hint: '7 dni',    startDate: spDaysAgo(7),    endDate: today(), granularity: 'DAILY' },
     { label: 'Ostatnie 30 dni',      hint: '30 dni',   startDate: spDaysAgo(30),   endDate: today(), granularity: 'WEEKLY' },
-    { label: 'Ostatnie 3 miesiące',  hint: '3 mies.',  startDate: spMonthsAgo(3),  endDate: today(), granularity: 'MONTHLY' },
+    // Tygodniowo, nie miesięcznie: kwartał w trzech słupkach nie jest wykresem. To jest
+    // też ustawienie domyślne widoku, więc preset ma do niego WRACAĆ, a nie dawać co innego.
+    { label: 'Ostatnie 3 miesiące',  hint: '3 mies.',  startDate: spMonthsAgo(3),  endDate: today(), granularity: 'WEEKLY' },
     { label: 'Ostatnie 12 miesięcy', hint: '12 mies.', startDate: spMonthsAgo(12), endDate: today(), granularity: 'MONTHLY' },
 ];
 
