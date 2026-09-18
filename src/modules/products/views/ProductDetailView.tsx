@@ -32,6 +32,14 @@ const HeroIcon = styled.div` width: 56px; height: 56px; flex-shrink: 0; border-r
 const HeroMain = styled.div` flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; overflow-wrap: anywhere; `;
 const HeroTitle = styled.h1` margin: 0; font-size: 22px; font-weight: 700; color: ${st.text}; `;
 const HeroMeta = styled.div` display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: ${st.textSecondary}; `;
+// Akcje dotyczące CAŁEGO produktu stoją przy jego nazwie, a nie na końcu kolumny
+// dowodów. „Zgłoś nieprawidłowość" nie odnosi się do ceny ani do wizyt, obok
+// których leżało - a jako ostatni element lewej kolumny domykało jej czytanie,
+// czyli dostawało pozycję należną wnioskowi.
+const HeroActions = styled.div`
+    display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0;
+    @media (max-width: 640px) { margin-left: 0; }
+`;
 
 // `min-width: 0` na dzieciach jest OBOWIĄZKOWE: element siatki ma domyślnie
 // `min-width: auto`, więc jedna długa linia (wklejony adres w notatce) rozpycha
@@ -79,13 +87,23 @@ const ConfirmBtn = styled.button`
     border-radius: ${st.radiusSm}; cursor: pointer;
 `;
 const RatingRow = styled.div` display: flex; flex-direction: column; gap: 8px; `;
-// Akcje drugorzędne: odcień i obwódka, bez wypełnienia (CLAUDE.md §2).
+/**
+ * Neutralna szarość, nie bursztyn. Bursztyn w tym interfejsie znaczy
+ * „przeczytaj to" (CLAUDE.md §2) - niesie STAN, który wymaga uwagi. Tymczasem
+ * tu nic złego się nie wydarzyło: to furtka na rzadki przypadek, gdy dane
+ * produktu nie zgadzają się z etykietą. Odcień ostrzegawczy obiecywał problem,
+ * którego nie ma, i ściągał wzrok mocniej niż cena i ocena obok.
+ *
+ * Bursztyn zostaje zarezerwowany dla gwiazdki oceny, gdzie faktycznie niesie
+ * znaczenie - dzięki temu jest w tym oknie jedyny i da się go zauważyć.
+ */
 const ReportBtn = styled.button`
     display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
-    padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 600;
-    color: #b45309; background: ${st.bgAccentAmber}; border: 1px solid rgba(245,158,11,0.45);
+    padding: 7px 12px; font-family: inherit; font-size: 12.5px; font-weight: 600;
+    color: ${st.textMuted}; background: transparent; border: 1px solid ${st.border};
     border-radius: ${st.radiusSm}; cursor: pointer;
-    &:hover { border-color: rgba(245,158,11,0.75); }
+    transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+    &:hover { color: ${st.textSecondary}; border-color: ${st.textMuted}; background: ${st.bgCardAlt}; }
 `;
 const PrivateNote = styled.p`
     margin: 0; display: flex; align-items: center; gap: 6px;
@@ -128,6 +146,11 @@ export function ProductDetailView() {
                             )}
                         </HeroMeta>
                     </HeroMain>
+                    <HeroActions>
+                        <ReportBtn type="button" onClick={() => setReporting(true)}>
+                            <Flag size={14} /> Zgłoś nieprawidłowość
+                        </ReportBtn>
+                    </HeroActions>
                 </Hero>
 
                 <Columns>
@@ -175,11 +198,6 @@ export function ProductDetailView() {
 
                         <RowDivider />
                         {id && <ProductVisitsSection productId={id} />}
-
-                        <RowDivider />
-                        <ReportBtn type="button" onClick={() => setReporting(true)}>
-                            <Flag size={15} /> Zgłoś nieprawidłowość
-                        </ReportBtn>
                     </LeftCol>
 
                     <RightCol>
