@@ -35,6 +35,7 @@ import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarDisplaySettings } from './CalendarDisplaySettings';
 import { useCalendarDisplaySettings } from '../hooks/useCalendarDisplaySettings';
 import { StudioEventModal } from './StudioEventModal';
+import { LeaveSetupModal, LeaveConfirmModal, type LeaveDraft } from './LeaveFlowModals';
 import { useStudioCalendarEvents, useStudioCalendarEventMutations, toIsoDate } from '../hooks/useStudioCalendarEvents';
 import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
@@ -1167,6 +1168,65 @@ const EventModeBtn = styled.button<{ $active: boolean }>`
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
+/* Menu pod przyciskiem „Wydarzenie" - ten sam wzór co „Dodaj" w cenniku usług
+   (ServicesSection): biała karta z cieniem, pozycja = ikona + tytuł + jedno zdanie
+   wyjaśnienia. Dwa różne menu rozwijane w jednej aplikacji nie mają prawa wyglądać
+   inaczej tylko dlatego, że powstały w innym tygodniu. */
+const AddMenuWrap = styled.div`
+    position: relative;
+    flex-shrink: 0;
+`;
+
+const AddMenu = styled.div`
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 40;
+    min-width: 248px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    text-align: left;
+`;
+
+const AddMenuItem = styled.button`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    color: #0f172a;
+
+    & + & { border-top: 1px solid #f1f5f9; }
+    &:hover { background: #f8fafc; }
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; color: #0369a1; }
+`;
+
+const AddMenuTexts = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+const AddMenuTitle = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+`;
+
+const AddMenuDesc = styled.span`
+    font-size: 11.5px;
+    color: #64748b;
+`;
+
 /** Pasek podpowiedzi w trybie dodawania - mówi, co zrobić i jak wyjść. */
 const EventModeHint = styled.div`
     display: flex;
@@ -1489,6 +1549,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
      * otwieralo formularz, ktorego i tak nie dalo sie zapisac.
      */
     const canCreateVisits = can('VISITS_CREATE');
+    /** Urlop to wpis w kartotece pracownika, więc wymaga prawa do kadr, nie do kalendarza. */
+    const canManageEmployees = can('EMPLOYEES_MANAGE');
     const openQuickEvent = useCallback((range: { start: Date; end: Date; allDay: boolean }) => {
         if (!canCreateVisits) return;
         setSelectedEventData(range);
@@ -1751,6 +1813,50 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const [eventMode, setEventMode] = useState(false);
     const [eventDraftRange, setEventDraftRange] = useState<{ startDate: string; endDate: string } | null>(null);
     const [editedStudioEvent, setEditedStudioEvent] = useState<StudioCalendarEvent | null>(null);
+
+    /* ── Urlop pracownika ───────────────────────────────────────────────────
+       Ta sama mechanika co wydarzenie studia, ale w trzech krokach: najpierw
+       KOMU i JAKI urlop, potem dni na siatce, na końcu potwierdzenie. Środkowy
+       krok jest na kalendarzu, a nie w oknie, bo przy planowaniu urlopu trzeba
+       widzieć cały grafik: kto jeszcze jest wtedy poza warsztatem i co stoi
+       w tych dniach na warsztacie. */
+    const [addMenuOpen, setAddMenuOpen] = useState(false);
+    const [leaveSetupOpen, setLeaveSetupOpen] = useState(false);
+    const [leaveDraft, setLeaveDraft] = useState<LeaveDraft | null>(null);
+    const [leaveDraftRange, setLeaveDraftRange] = useState<{ startDate: string; endDate: string } | null>(null);
+
+    /** Tryb zaznaczania dni urlopu: draft jest, dni jeszcze nie ma. */
+    const leaveMode = leaveDraft !== null && leaveDraftRange === null;
+
+    const exitLeaveFlow = useCallback(() => {
+        setLeaveSetupOpen(false);
+        setLeaveDraft(null);
+        setLeaveDraftRange(null);
+    }, []);
+
+    /**
+     * Menu zamyka się kliknięciem obok i Escape - jak każde menu rozwijane w aplikacji.
+     *
+     * Szukamy po atrybucie, a nie po ref: nagłówek telefonu i nagłówek pulpitu SIEDZĄ W DRZEWIE
+     * OBA (różni je tylko media query), więc jeden ref trzymałby ten, który zamontował się
+     * później - i kliknięcie w drugie menu zamykałoby je, zanim pozycja zdąży zadziałać.
+     */
+    useEffect(() => {
+        if (!addMenuOpen) return;
+        const onPointerDown = (event: MouseEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (!target?.closest('[data-calendar-add-menu]')) setAddMenuOpen(false);
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setAddMenuOpen(false);
+        };
+        document.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onPointerDown);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [addMenuOpen]);
 
     const studioEventsRange = useMemo(() => (dateRange
         ? { start: new Date(dateRange.start), end: new Date(dateRange.end) }
@@ -2141,6 +2247,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         const start = info.date;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
+        if (leaveMode) {
+            setLeaveDraftRange({ startDate: toIsoDate(start), endDate: toIsoDate(start) });
+            return;
+        }
         if (eventMode) {
             setEventDraftRange({ startDate: toIsoDate(start), endDate: toIsoDate(start) });
             return;
@@ -2150,7 +2260,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return;
         }
         openQuickEvent({ start, end, allDay: Boolean(info.allDay) });
-    }, [eventMode, selectionMode, onRangeSelected, openQuickEvent]);
+    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openQuickEvent]);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
@@ -2168,9 +2278,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             calendarApi.unselect();
         }
 
+        // Zaznaczenie kończy się na początku kolejnego dnia - użytkownik wskazał
+        // ostatni dzień, nie pierwszy wolny po nim.
+        if (leaveMode) {
+            const lastDay = new Date(range.end.getTime() - 1);
+            setLeaveDraftRange({ startDate: toIsoDate(range.start), endDate: toIsoDate(lastDay) });
+            return;
+        }
         if (eventMode) {
-            // Zaznaczenie kończy się na początku kolejnego dnia - użytkownik
-            // wskazał ostatni dzień, nie pierwszy wolny po nim.
             const lastDay = new Date(range.end.getTime() - 1);
             setEventDraftRange({ startDate: toIsoDate(range.start), endDate: toIsoDate(lastDay) });
             return;
@@ -2180,14 +2295,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return;
         }
         openQuickEvent(range);
-    }, [eventMode, selectionMode, onRangeSelected, openQuickEvent]);
+    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openQuickEvent]);
 
     /**
      * Handle event click - Show popover with event summary
      */
     const handleEventClick = useCallback((clickInfo: EventClickArg) => {
-        // W trybie dodawania wydarzenia wizyty i rezerwacje są tylko tłem.
-        if (eventMode) return;
+        // W trybie dodawania wydarzenia i w trybie urlopu wizyty są tylko tłem.
+        if (eventMode || leaveMode) return;
 
         const eventData = clickInfo.event.extendedProps as AppointmentEventData | VisitEventData;
 
@@ -2208,7 +2323,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setPopoverAnchor({ top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
         setPopoverPosition({ x: rect.right + 10, y: rect.top });
         setPopoverOpen(true);
-    }, [eventMode]);
+    }, [eventMode, leaveMode]);
 
     /**
      * Handle quick event save
@@ -2522,25 +2637,66 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     )}
                     {!selectionMode && can('VISITS_CREATE') && (
                         <>
-                            <MobileEventModeBtn
-                                $active={eventMode}
-                                onClick={() => {
-                                    // Dni zaznacza się w siatce miesiąca, a telefon startuje
-                                    // na liście - włączenie trybu samo przełącza widok,
-                                    // inaczej przycisk nic by nie robił.
-                                    if (!eventMode && agendaListActive) handleMobileViewChange('dayGridMonth');
-                                    setEventMode(v => !v);
-                                    closeStudioEventModal();
-                                }}
-                                aria-label={eventMode ? 'Zakończ dodawanie wydarzenia' : 'Dodaj wydarzenie'}
-                                aria-pressed={eventMode}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                </svg>
-                            </MobileEventModeBtn>
+                            <AddMenuWrap data-calendar-add-menu>
+                                <MobileEventModeBtn
+                                    $active={eventMode || leaveMode}
+                                    onClick={() => {
+                                        if (eventMode) { setEventMode(false); closeStudioEventModal(); return; }
+                                        if (leaveMode) { exitLeaveFlow(); return; }
+                                        setAddMenuOpen(open => !open);
+                                    }}
+                                    aria-label={eventMode || leaveMode ? 'Zakończ zaznaczanie dni' : 'Dodaj wydarzenie albo urlop'}
+                                    aria-pressed={eventMode || leaveMode}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                    </svg>
+                                </MobileEventModeBtn>
+                                {addMenuOpen && !eventMode && !leaveMode && (
+                                    <AddMenu role="menu">
+                                        <AddMenuItem
+                                            role="menuitem"
+                                            onClick={() => {
+                                                setAddMenuOpen(false);
+                                                // Dni zaznacza się w siatce miesiąca, a telefon startuje
+                                                // na liście - włączenie trybu samo przełącza widok,
+                                                // inaczej przycisk nic by nie robił.
+                                                if (agendaListActive) handleMobileViewChange('dayGridMonth');
+                                                setEventMode(true);
+                                                closeStudioEventModal();
+                                            }}
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                            </svg>
+                                            <AddMenuTexts>
+                                                <AddMenuTitle>Wydarzenie</AddMenuTitle>
+                                                <AddMenuDesc>Dzień wolny studia, szkolenie, targi</AddMenuDesc>
+                                            </AddMenuTexts>
+                                        </AddMenuItem>
+                                        {canManageEmployees && (
+                                            <AddMenuItem
+                                                role="menuitem"
+                                                onClick={() => { setAddMenuOpen(false); setEventMode(false); setLeaveSetupOpen(true); }}
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                    <circle cx="12" cy="7" r="4" />
+                                                </svg>
+                                                <AddMenuTexts>
+                                                    <AddMenuTitle>Urlop</AddMenuTitle>
+                                                    <AddMenuDesc>Nieobecność jednego pracownika</AddMenuDesc>
+                                                </AddMenuTexts>
+                                            </AddMenuItem>
+                                        )}
+                                    </AddMenu>
+                                )}
+                            </AddMenuWrap>
                             <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
                                 +
                             </MobileAddBtn>
@@ -2623,18 +2779,71 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                         {!selectionMode && can('VISITS_CREATE') && (
                             <>
-                                <EventModeBtn
-                                    $active={eventMode}
-                                    onClick={() => { setEventMode(v => !v); closeStudioEventModal(); }}
-                                    title="Zaznacz dni, w które wypada wydarzenie"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                    </svg>
-                                    {eventMode ? 'Zakończ' : 'Wydarzenie'}
-                                </EventModeBtn>
+                                <AddMenuWrap data-calendar-add-menu>
+                                    <EventModeBtn
+                                        $active={eventMode || leaveMode}
+                                        onClick={() => {
+                                            // W trakcie zaznaczania przycisk ma jedno zadanie: wyjść.
+                                            // Rozwijanie menu nad włączonym trybem tylko myliłoby.
+                                            if (eventMode) { setEventMode(false); closeStudioEventModal(); return; }
+                                            if (leaveMode) { exitLeaveFlow(); return; }
+                                            setAddMenuOpen(open => !open);
+                                        }}
+                                        aria-haspopup={!eventMode && !leaveMode ? 'menu' : undefined}
+                                        aria-expanded={addMenuOpen}
+                                        title={eventMode || leaveMode
+                                            ? 'Zakończ zaznaczanie dni'
+                                            : 'Dodaj wydarzenie studia albo urlop pracownika'}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                        </svg>
+                                        {eventMode || leaveMode ? 'Zakończ' : 'Wydarzenie'}
+                                        {!eventMode && !leaveMode && (
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                                                style={{ width: 11, height: 11 }}>
+                                                <polyline points="6 9 12 15 18 9" />
+                                            </svg>
+                                        )}
+                                    </EventModeBtn>
+                                    {addMenuOpen && !eventMode && !leaveMode && (
+                                        <AddMenu role="menu">
+                                            <AddMenuItem
+                                                role="menuitem"
+                                                onClick={() => { setAddMenuOpen(false); setEventMode(true); closeStudioEventModal(); }}
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                                </svg>
+                                                <AddMenuTexts>
+                                                    <AddMenuTitle>Wydarzenie</AddMenuTitle>
+                                                    <AddMenuDesc>Dzień wolny studia, szkolenie, targi</AddMenuDesc>
+                                                </AddMenuTexts>
+                                            </AddMenuItem>
+                                            {canManageEmployees && (
+                                                <AddMenuItem
+                                                    role="menuitem"
+                                                    onClick={() => { setAddMenuOpen(false); setEventMode(false); setLeaveSetupOpen(true); }}
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                        <circle cx="12" cy="7" r="4" />
+                                                    </svg>
+                                                    <AddMenuTexts>
+                                                        <AddMenuTitle>Urlop</AddMenuTitle>
+                                                        <AddMenuDesc>Nieobecność jednego pracownika</AddMenuDesc>
+                                                    </AddMenuTexts>
+                                                </AddMenuItem>
+                                            )}
+                                        </AddMenu>
+                                    )}
+                                </AddMenuWrap>
 
                                 <NewEventBtn onClick={handleMobileAddClick}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2680,8 +2889,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </EventModeHint>
             )}
 
+            {leaveMode && leaveDraft && (
+                <EventModeHint role="status">
+                    Zaznacz dni urlopu dla: <strong>{leaveDraft.employeeName}</strong>. Kliknięcie to jeden dzień,
+                    przeciągnięcie - cały zakres.
+                    <EventModeHintBtn onClick={exitLeaveFlow}>Anuluj</EventModeHintBtn>
+                </EventModeHint>
+            )}
+
             <CalendarWrapper>
-              <EventModeLayer $active={eventMode}>
+              <EventModeLayer $active={eventMode || leaveMode}>
 
                 {/* ── Agenda list view: mobile "Lista" tab ── */}
                 {agendaListActive && dateRange && (
@@ -3064,6 +3281,33 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     onSave={saveStudioEvent}
                     onDelete={editedStudioEvent ? deleteStudioEvent : undefined}
                     onClose={closeStudioEventModal}
+                />
+            )}
+
+            {leaveSetupOpen && (
+                <LeaveSetupModal
+                    onClose={() => setLeaveSetupOpen(false)}
+                    onConfirm={draft => {
+                        setLeaveSetupOpen(false);
+                        setLeaveDraft(draft);
+                        setLeaveDraftRange(null);
+                        // Dni zaznacza się w siatce miesiąca, a telefon startuje na liście.
+                        if (agendaListActive) handleMobileViewChange('dayGridMonth');
+                    }}
+                />
+            )}
+
+            {leaveDraft && leaveDraftRange && (
+                <LeaveConfirmModal
+                    draft={leaveDraft}
+                    range={leaveDraftRange}
+                    onBack={() => setLeaveDraftRange(null)}
+                    onClose={exitLeaveFlow}
+                    onError={message => showError('Nie udało się zapisać urlopu', message)}
+                    onSaved={() => {
+                        showSuccess('Urlop zapisany', `${leaveDraft.employeeName}: ${leaveDraftRange.startDate} - ${leaveDraftRange.endDate}`);
+                        exitLeaveFlow();
+                    }}
                 />
             )}
 
