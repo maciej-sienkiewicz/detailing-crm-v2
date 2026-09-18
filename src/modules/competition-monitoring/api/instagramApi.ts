@@ -19,6 +19,7 @@ import type {
     InstagramStyleRule,
     Overview,
     PageCandidate,
+    PageLinkResult,
     ProfileSuggestion,
     ResyncResult,
     SaveAreaSettings,
@@ -156,19 +157,30 @@ export const instagramApi = {
 
     /**
      * Powiązanie obserwowanego profilu ze stroną na Facebooku - bez niego nie ma czego szukać.
-     * Serwer pobiera reklamy od razu i oddaje ich liczbę ORAZ nazwę strony, jaką zwróciła
-     * Meta: sam numer nic nie mówi, a wpisany z pomyłką wciąga do kalendarza obcą firmę.
+     *
+     * Dwa możliwe wyniki, bo powiązanie jest wspólne dla wszystkich studiów obserwujących
+     * profil (razem z pobranymi reklamami):
+     *  - `LINKED` - pierwsze wskazanie, zapisane od ręki; serwer pobiera reklamy od razu
+     *    i oddaje ich liczbę ORAZ nazwę strony, jaką zwróciła Meta (sam numer nic nie mówi,
+     *    a wpisany z pomyłką wciąga do kalendarza obcą firmę),
+     *  - `REQUESTED` - zmiana istniejącego powiązania poszła do administratora i czeka
+     *    na jego decyzję; w bazie nic się nie zmieniło.
      */
     linkFacebookPage: async (
         profileId: string,
         pageId: string,
         pageName?: string
-    ): Promise<{ adsFound: number; pageName: string }> => {
-        const response = await apiClient.put<{ linked: boolean; adsFound: number; pageName: string }>(
+    ): Promise<PageLinkResult> => {
+        const response = await apiClient.put<{ status?: string; adsFound?: number; pageName?: string }>(
             `${ADS_PATH}/profiles/${profileId}/page`,
             { pageId, pageName: pageName ?? null }
         );
-        return { adsFound: response.data.adsFound ?? 0, pageName: response.data.pageName ?? '' };
+        if (response.data.status === 'REQUESTED') return { status: 'REQUESTED' };
+        return {
+            status: 'LINKED',
+            adsFound: response.data.adsFound ?? 0,
+            pageName: response.data.pageName ?? '',
+        };
     },
 
     /**
@@ -183,7 +195,10 @@ export const instagramApi = {
         return response.data.candidates ?? [];
     },
 
-    /** Odpięcie strony - razem z pobranymi reklamami, bo opisują już cudzą firmę. */
+    /**
+     * Odpięcie strony - prośba do administratora, nie zapis. Odpięcie kasuje pobrane
+     * reklamy, a te są wspólne dla wszystkich studiów obserwujących profil.
+     */
     unlinkFacebookPage: async (profileId: string): Promise<void> => {
         await apiClient.delete(`${ADS_PATH}/profiles/${profileId}/page`);
     },

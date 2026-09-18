@@ -253,9 +253,14 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
         link.mutate(
             { profileId, pageId: digitsOnly },
             {
-                onSuccess: ({ adsFound, pageName }) => {
-                    if (pageName) {
-                        showSuccess(`Powiązano z: ${pageName}`, `Pobrano reklam: ${adsFound}`);
+                onSuccess: result => {
+                    if (result.status === 'REQUESTED') {
+                        showSuccess(
+                            'Zgłoszenie wysłane',
+                            'Administrator sprawdzi numer i wprowadzi zmianę — zajmuje to do 24 godzin.'
+                        );
+                    } else if (result.pageName) {
+                        showSuccess(`Powiązano z: ${result.pageName}`, `Pobrano reklam: ${result.adsFound}`);
                     } else {
                         showError(
                             'Powiązano, ale bez reklam',
@@ -387,40 +392,57 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
 
                 {currentPageId && (
                     <FormAlertBanner style={{ marginTop: 18 }}>
-                        Zmiana strony kasuje reklamy pobrane dla poprzedniej - to reklamy innej firmy.
+                        <b>Zmiana wchodzi w życie do 24 godzin.</b> Ten profil obserwują też inne studia,
+                        a powiązanie i pobrane reklamy są wspólne — dlatego numer sprawdza administrator
+                        i on wprowadza zmianę. Zapisujemy zgłoszenie, nie samą zmianę.
                     </FormAlertBanner>
                 )}
                 {link.isError && (
                     <FormAlertBanner style={{ marginTop: 10 }}>
-                        Nie udało się powiązać strony. Sprawdź, czy identyfikator to sama liczba z adresu.
+                        {currentPageId
+                            ? 'Nie udało się wysłać zgłoszenia. Sprawdź, czy identyfikator to sama liczba z adresu.'
+                            : 'Nie udało się powiązać strony. Sprawdź, czy identyfikator to sama liczba z adresu.'}
                     </FormAlertBanner>
                 )}
                 {unlink.isError && (
                     <FormAlertBanner style={{ marginTop: 10 }}>
-                        Nie udało się odpiąć strony. Spróbuj ponownie.
+                        Nie udało się wysłać zgłoszenia odpięcia. Spróbuj ponownie.
                     </FormAlertBanner>
                 )}
             </ModalContent>
 
             <ModalFooter>
-                {/* Odpięcie stoi z lewej, odsunięte od akcji głównej: kasuje pobrane
-                    reklamy, więc nie ma prawa sąsiadować z „Zapisz" na odległość omyłki. */}
+                {/* Odpięcie stoi z lewej, odsunięte od akcji głównej: prowadzi do skasowania
+                    reklam wspólnych dla wielu studiów, więc nie ma prawa sąsiadować
+                    z akcją główną na odległość omyłki. */}
                 {currentPageId && (
                     <SharedButton
                         type="button"
                         $variant="danger"
                         style={{ marginRight: 'auto' }}
                         disabled={busy}
-                        onClick={() => unlink.mutate(profileId, { onSuccess: onClose })}
+                        onClick={() =>
+                            unlink.mutate(profileId, {
+                                onSuccess: () => {
+                                    showSuccess(
+                                        'Zgłoszenie wysłane',
+                                        'Administrator odepnie stronę — zajmuje to do 24 godzin.'
+                                    );
+                                    onClose();
+                                },
+                            })
+                        }
                     >
-                        {unlink.isPending ? 'Odpinam…' : 'Odepnij stronę'}
+                        {unlink.isPending ? 'Zgłaszam…' : 'Zgłoś odpięcie'}
                     </SharedButton>
                 )}
                 <SharedButton type="button" $variant="secondary" onClick={onClose}>
                     Anuluj
                 </SharedButton>
                 <SharedButton type="button" disabled={!canSubmit} onClick={submit}>
-                    {link.isPending ? 'Sprawdzam reklamy…' : currentPageId ? 'Zapisz' : 'Powiąż'}
+                    {link.isPending
+                        ? currentPageId ? 'Zgłaszam…' : 'Sprawdzam reklamy…'
+                        : currentPageId ? 'Zgłoś zmianę' : 'Powiąż'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

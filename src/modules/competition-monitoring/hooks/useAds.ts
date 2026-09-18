@@ -36,6 +36,10 @@ export const useAdDetail = (adId: string | null) =>
  * Wskazanie strony na Facebooku. Po udanym powiązaniu unieważniamy kalendarz
  * i listę profili: profil przestaje być „bez powiązania", ale reklam nabierze
  * dopiero po najbliższej synchronizacji.
+ *
+ * Przy ZMIANIE istniejącego powiązania serwer niczego nie zapisuje — wysyła zgłoszenie
+ * do administratora (wynik `REQUESTED`). Unieważnienie i tak wykonujemy: nic nie kosztuje,
+ * a gdyby administrator zdążył już wprowadzić zmianę, ekran pokaże stan aktualny.
  */
 export const useLinkFacebookPage = () => {
     const queryClient = useQueryClient();
@@ -55,7 +59,7 @@ export const useSearchAdPages = () =>
         mutationFn: (query: string) => instagramApi.searchAdPages(query),
     });
 
-/** Odpięcie strony kasuje też pobrane reklamy, więc unieważniamy to samo co przy powiązaniu. */
+/** Odpięcie też jest zgłoszeniem do administratora, nie zapisem — kasowałoby reklamy wspólne dla wielu studiów. */
 export const useUnlinkFacebookPage = () => {
     const queryClient = useQueryClient();
     return useMutation({

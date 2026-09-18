@@ -429,6 +429,16 @@ export interface AdCalendarRow {
     ads: AdBar[];
 }
 
+/**
+ * Wynik próby wskazania strony na Facebooku.
+ *
+ * Powiązanie jest wspólne dla wszystkich studiów obserwujących profil, więc zapisuje się
+ * od ręki tylko przy PIERWSZYM wskazaniu. Zmiana i odpięcie idą do administratora.
+ */
+export type PageLinkResult =
+    | { status: 'LINKED'; adsFound: number; pageName: string }
+    | { status: 'REQUESTED' };
+
 /** Kandydat na stronę reklamodawcy - wynik szukania po nazwie. */
 export interface PageCandidate {
     pageId: string;
