@@ -62,11 +62,6 @@ export const productsApi = {
         return data;
     },
 
-    confirm: async (id: string): Promise<Product> => {
-        const { data } = await apiClient.post(`${BASE}/${id}/confirm`);
-        return data;
-    },
-
     lookup: async (barcode: string): Promise<LookupResponse> => {
         // Rozpoznanie bywa wolne (LLM + weryfikator) — nie chowamy błędu w globalnym toaście,
         // bo obsługujemy go w kroku formularza.

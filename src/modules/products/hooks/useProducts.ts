@@ -78,14 +78,6 @@ export const useUpdateProductStudio = (id: string) => {
     });
 };
 
-export const useConfirmProduct = (id: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: () => productsApi.confirm(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: [KEY, 'detail', id] }),
-    });
-};
-
 export const useProductLookup = () =>
     useMutation({ mutationFn: (barcode: string) => productsApi.lookup(barcode) });
 

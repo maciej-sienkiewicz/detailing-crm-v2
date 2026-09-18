@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Package, ArrowLeft, Star, CheckCircle2, Lock, Flag } from 'lucide-react';
+import { Package, ArrowLeft, Star, Lock, Flag } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PageContainer } from '@/common/components/PageContainer';
 import { usePermissions } from '@/core/permissions';
-import { useProductDetail, useConfirmProduct, useProductRating } from '../hooks/useProducts';
+import { useProductDetail, useProductRating } from '../hooks/useProducts';
 import { ProductRatingStars } from '../components/ProductRatingStars';
 import { ProductNotes } from '../components/ProductNotes';
 import { ProductVisitsSection } from '../components/ProductVisitsSection';
@@ -80,12 +80,6 @@ const PriceHead = styled.div` display: flex; flex-direction: column; gap: 2px; `
 const PriceNumber = styled.div` font-size: 26px; font-weight: 700; color: ${st.text}; `;
 const PriceProof = styled.div` font-size: 12px; color: ${st.textMuted}; `;
 
-const ConfirmBtn = styled.button`
-    display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
-    padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 600;
-    color: #15803d; background: ${st.bgAccentGreen}; border: 1px solid #86efac;
-    border-radius: ${st.radiusSm}; cursor: pointer;
-`;
 const RatingRow = styled.div` display: flex; flex-direction: column; gap: 8px; `;
 /**
  * Neutralna szarość, nie bursztyn. Bursztyn w tym interfejsie znaczy
@@ -119,7 +113,6 @@ export function ProductDetailView() {
 
     const [reporting, setReporting] = useState(false);
     const { product, isLoading } = useProductDetail(id);
-    const confirm = useConfirmProduct(id ?? '');
     const rating = useProductRating(id ?? '');
 
     if (isLoading || !product) {
@@ -188,12 +181,6 @@ export function ProductDetailView() {
                                     </PriceProof>
                                 </PriceHead>
                             </FlatSection>
-                        )}
-
-                        {product.provenance.verificationLevel === 'AI_SUGGESTED' && canManage && (
-                            <ConfirmBtn type="button" onClick={() => confirm.mutate()}>
-                                <CheckCircle2 size={16} /> Dane zgadzają się z etykietą
-                            </ConfirmBtn>
                         )}
 
                         <RowDivider />
