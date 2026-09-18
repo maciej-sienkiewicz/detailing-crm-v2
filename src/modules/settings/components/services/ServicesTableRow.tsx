@@ -1,45 +1,53 @@
 // src/modules/settings/components/services/ServicesTableRow.tsx
 import styled from 'styled-components';
-import { Badge } from '@/common/components/Badge';
 import { calculateGrossFromNet } from '@/modules/services/utils/priceCalculator';
 import type { Service } from '@/modules/services/types';
-import { SERVICES_TABLE_GRID, formatPLN, vatLabel } from './servicesTable.helpers';
+import {
+    SERVICES_TABLE_GRID,
+    SERVICES_TABLE_GRID_WITH_STATUS,
+    formatPLN,
+    vatLabel,
+} from './servicesTable.helpers';
 
 /**
- * One row of the services price list, composed from four cells:
- * name → VAT → price → status (+ actions). Extracted from `ServicesSection`
- * so the row contract is typed and the section file stays orchestration-only.
+ * Jeden wiersz cennika: nazwa → cena → (status) → akcje.
  *
- * Pricing rule: a service without a fixed price (`requireManualPrice`) shows a
- * "Wycena ręczna" badge in the PRICE column: pricing mode is a fact about the
- * price, not about the name, so the name column stays clean.
+ * Zasada barwy w tej tabeli: KOLOR OZNACZA ODSTĘPSTWO. Stawka 23% i status „aktywna"
+ * są przy niemal każdej pozycji, więc pokolorowane nie niosły informacji — malowały
+ * całe kolumny i konkurowały z „Wyceną ręczną", która naprawdę coś mówi. Dlatego VAT
+ * jest szarym dopiskiem przy cenie i barwi się dopiero, gdy jest inny niż podstawowy,
+ * a status pojawia się tylko wtedy, gdy na liście są też wiersze archiwalne.
  */
+
+/** Stawka podstawowa — wszystko inne jest na tej liście wyjątkiem i dlatego ma kolor. */
+const DEFAULT_VAT_RATE = 23;
 
 export interface ServicesTableRowProps {
     service: Service;
     /** Disables edit/archive while any form panel is open. */
     actionsDisabled: boolean;
+    /** Kolumna statusu dochodzi dopiero, gdy lista pokazuje też archiwalne. */
+    showStatus: boolean;
     onEdit: (service: Service) => void;
     onArchive: (service: Service) => void;
 }
 
-export function ServicesTableRow({ service, actionsDisabled, onEdit, onArchive }: ServicesTableRowProps) {
+export function ServicesTableRow({
+    service, actionsDisabled, showStatus, onEdit, onArchive,
+}: ServicesTableRowProps) {
     return (
-        <Row>
+        <Row $withStatus={showStatus}>
             <ServiceNameCell service={service} />
-
-            <VatCell>
-                <VatBadge>{vatLabel(service.vatRate)}</VatBadge>
-            </VatCell>
 
             <ServicePriceCell service={service} />
 
-            <StatusCell>
-                <StatusDot $active={service.isActive} />
-                <StatusLabel $active={service.isActive}>
-                    {service.isActive ? 'Aktywna' : 'Archiwalna'}
-                </StatusLabel>
-            </StatusCell>
+            {showStatus && (
+                <StatusCell>
+                    {service.isActive
+                        ? <StatusLabel>Aktywna</StatusLabel>
+                        : <StatusLabel $archived>Archiwalna</StatusLabel>}
+                </StatusCell>
+            )}
 
             <ActionsCell>
                 {service.isActive && (
@@ -84,10 +92,14 @@ function ServiceNameCell({ service }: { service: Service }) {
 }
 
 function ServicePriceCell({ service }: { service: Service }) {
+    const vat = vatLabel(service.vatRate);
+    const vatIsDefault = service.vatRate === DEFAULT_VAT_RATE;
+
     if (service.requireManualPrice) {
         return (
             <PriceCell>
-                <Badge $variant="warning">Wycena ręczna</Badge>
+                <ManualPrice>Wycena ręczna</ManualPrice>
+                <PriceGross>cena ustalana przy zleceniu</PriceGross>
             </PriceCell>
         );
     }
@@ -99,7 +111,12 @@ function ServicePriceCell({ service }: { service: Service }) {
     return (
         <PriceCell>
             <PriceNet>{formatPLN(service.basePriceNet)}</PriceNet>
-            <PriceGross>{formatPLN(priceGross)} brutto</PriceGross>
+            <PriceGross>
+                {formatPLN(priceGross)} brutto{' '}
+                {vatIsDefault
+                    ? <VatMuted>· {vat}</VatMuted>
+                    : <VatOdd>· VAT {vat}</VatOdd>}
+            </PriceGross>
         </PriceCell>
     );
 }
@@ -123,9 +140,9 @@ const ArchiveIcon = () => (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const Row = styled.div`
+const Row = styled.div<{ $withStatus: boolean }>`
     display: grid;
-    grid-template-columns: ${SERVICES_TABLE_GRID};
+    grid-template-columns: ${p => (p.$withStatus ? SERVICES_TABLE_GRID_WITH_STATUS : SERVICES_TABLE_GRID)};
     gap: 8px;
     align-items: center;
     padding: 13px 20px;
@@ -135,19 +152,18 @@ const Row = styled.div`
     &:last-child { border-bottom: none; }
     &:hover { background: #fafbfc; }
 
-    /* Pięć kolumn nie mieści się na telefonie - wiersz czyta się wtedy jako
-       kafelka: nazwa z VAT-em, pod nią cena, status i akcje w jednym rzędzie. */
+    /* Na telefonie wiersz czyta się jako kafelka: nazwa w pierwszej linii,
+       pod nią cena, a status i akcje w jednym rzędzie na dole. */
     @media (max-width: 900px) {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 6px 10px;
         padding: 12px 14px;
         align-items: start;
 
-        > :nth-child(1) { grid-column: 1; grid-row: 1; }
-        > :nth-child(2) { grid-column: 2; grid-row: 1; justify-self: end; }
-        > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; align-items: flex-start; text-align: left; }
-        > :nth-child(4) { grid-column: 1; grid-row: 3; }
-        > :nth-child(5) { grid-column: 2; grid-row: 3; justify-self: end; }
+        > :nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
+        > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; align-items: flex-start; text-align: left; }
+        > :nth-child(3) { grid-column: 1; grid-row: 3; }
+        > :nth-child(4) { grid-column: 2; grid-row: 3; justify-self: end; }
     }
 `;
 
@@ -175,15 +191,17 @@ const ServiceName = styled.span<{ $muted?: boolean }>`
     text-overflow: ellipsis;
 `;
 
+/* Ten sam błękit marki co reszta interfejsu. Wcześniej był tu drugi, ciemniejszy
+   niebieski (#2563eb) — dwa odcienie znaczące co innego, nie do rozróżnienia z metra. */
 const PackageBadge = styled.span`
     display: inline-flex;
     align-items: center;
     padding: 2px 7px;
     font-size: 10px;
     font-weight: 700;
-    background: rgba(37,99,235,0.08);
-    color: #2563eb;
-    border: 1px solid rgba(37,99,235,0.18);
+    background: rgba(14,165,233,0.1);
+    color: #0369a1;
+    border: 1px solid rgba(14,165,233,0.22);
     border-radius: 6px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -201,29 +219,12 @@ const PackageItemsHint = styled.div`
     max-width: 340px;
 `;
 
-const VatCell = styled.div`
-    display: flex;
-    justify-content: center;
-`;
-
-const VatBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: 700;
-    background: rgba(14, 165, 233, 0.1);
-    color: #0ea5e9;
-    border-radius: 9999px;
-    white-space: nowrap;
-`;
-
 const PriceCell = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 1px;
+    min-width: 0;
 `;
 
 const PriceNet = styled.span`
@@ -239,25 +240,33 @@ const PriceGross = styled.span`
     white-space: nowrap;
 `;
 
+const VatMuted = styled.span`
+    color: #94a3b8;
+`;
+
+/* Jedyne miejsce, w którym VAT dostaje barwę: stawka inna niż podstawowa. */
+const VatOdd = styled.span`
+    font-weight: 700;
+    color: #b45309;
+`;
+
+const ManualPrice = styled.span`
+    font-size: 13px;
+    font-weight: 700;
+    color: #b45309;
+    white-space: nowrap;
+`;
+
 const StatusCell = styled.div`
     display: flex;
     align-items: center;
-    gap: 5px;
     padding-left: 14px;
 `;
 
-const StatusDot = styled.div<{ $active: boolean }>`
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: ${p => p.$active ? '#10b981' : '#94a3b8'};
-`;
-
-const StatusLabel = styled.span<{ $active: boolean }>`
+const StatusLabel = styled.span<{ $archived?: boolean }>`
     font-size: 11px;
     font-weight: 600;
-    color: ${p => p.$active ? '#10b981' : '#94a3b8'};
+    color: ${p => p.$archived ? '#94a3b8' : '#475569'};
 `;
 
 const ActionsCell = styled.div`
@@ -276,10 +285,12 @@ const ActionBtn = styled.button<{ $danger?: boolean }>`
     border-radius: 7px;
     border: 1px solid transparent;
     background: transparent;
-    color: ${p => p.$danger ? '#ef4444' : '#94a3b8'};
+    color: #94a3b8;
     cursor: pointer;
     transition: all 150ms;
 
+    /* Czerwień pojawia się dopiero pod kursorem: w spoczynku ikona archiwizacji
+       przy każdym wierszu malowała listę na czerwono bez powodu. */
     &:hover:not(:disabled) {
         background: ${p => p.$danger ? 'rgba(239,68,68,0.08)' : '#f1f5f9'};
         border-color: ${p => p.$danger ? 'rgba(239,68,68,0.2)' : '#e2e8f0'};

@@ -20,7 +20,7 @@ import type { Service, VatRate, AffectedPackage } from '@/modules/services/types
 import { useCareInstructions, useCareInstructionMutations } from '../hooks/useCareInstructions';
 import { CareInstructionPickerModal } from './services/CareInstructionPickerModal';
 import { ServicesTableRow } from './services/ServicesTableRow';
-import { SERVICES_TABLE_GRID } from './services/servicesTable.helpers';
+import { SERVICES_TABLE_GRID, SERVICES_TABLE_GRID_WITH_STATUS } from './services/servicesTable.helpers';
 
 // ─── Animations ───────────────────────────────────────────────────────────────────────────────
 
@@ -88,25 +88,25 @@ const SearchInput = styled.input`
   &::placeholder { color: #94a3b8; }
 `;
 
-const ToggleFilterBtn = styled.button<{ $on: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: ${p => p.$on ? 600 : 500};
-  background: ${p => p.$on ? 'rgba(14,165,233,0.08)' : 'white'};
-  color: ${p => p.$on ? '#0ea5e9' : '#475569'};
-  border: 1.5px solid ${p => p.$on ? 'rgba(14,165,233,0.4)' : '#e2e8f0'};
-  border-radius: 9px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+/**
+ * „Pokaż archiwalne" jako link w linijce statystyk, nie przycisk w pasku narzędzi.
+ *
+ * Archiwalne ogląda się raz na kwartał, a przycisk zajmował w pasku ~175 px na stałe —
+ * to przez niego „Utwórz pakiet" spadał do drugiej linii na typowym laptopie.
+ */
+const ArchivedToggle = styled.button<{ $on: boolean }>`
+  background: none;
+  border: none;
+  padding: 0;
   font-family: inherit;
-  transition: all 150ms;
+  font-size: 11px;
+  font-weight: 600;
+  color: ${p => p.$on ? '#0369a1' : '#64748b'};
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 
-  &:hover { border-color: #0ea5e9; color: #0ea5e9; }
+  &:hover { color: #0369a1; }
 `;
 
 const TypeFilterGroup = styled.div`
@@ -124,17 +124,21 @@ const TypeFilterBtn = styled.button<{ $active: boolean }>`
   padding: 0 14px;
   font-size: 13px;
   font-weight: ${p => p.$active ? 600 : 500};
-  background: ${p => p.$active ? '#0f172a' : 'white'};
-  color: ${p => p.$active ? '#fff' : '#475569'};
+  /* Aktywny segment nosi odcień marki, nie czerń. Wypełnienie na #0f172a było
+     mocniejsze niż akcja główna obok, więc w pasku remisowały trzy elementy
+     o pierwsze miejsce (CLAUDE.md §2). Teraz wypełniony jest tylko „Dodaj". */
+  background: ${p => p.$active ? '#f0f9ff' : 'white'};
+  color: ${p => p.$active ? '#0369a1' : '#475569'};
   border: none;
   border-right: 1.5px solid #e2e8f0;
+  box-shadow: ${p => p.$active ? 'inset 0 -2px 0 #0ea5e9' : 'none'};
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
   transition: all 150ms;
 
   &:last-child { border-right: none; }
-  &:hover:not(:disabled) { background: ${p => p.$active ? '#0f172a' : '#f8fafc'}; }
+  &:hover:not(:disabled) { background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'}; }
 `;
 
 const NewServiceBadge = styled.span`
@@ -148,12 +152,20 @@ const NewServiceBadge = styled.span`
   flex-shrink: 0;
 `;
 
+/**
+ * Jedyny wypełniony element w tym widoku (CLAUDE.md §2).
+ *
+ * Wcześniej stały tu DWA wypełnione przyciski — „Dodaj usługę" w błękicie marki i
+ * „Utwórz pakiet" w innym niebieskim — plus wypełniony na czarno aktywny filtr. Trzy
+ * elementy walczące o pierwsze miejsce znaczą tyle samo co żaden. Pakiet schodzi do
+ * menu pod tym przyciskiem: zakłada się go rzadziej niż zwykłą usługę.
+ */
 const AddButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 7px;
   height: 38px;
-  padding: 0 18px;
+  padding: 0 16px;
   font-size: 13px;
   font-weight: 600;
   background: #0ea5e9;
@@ -169,6 +181,61 @@ const AddButton = styled.button`
   &:hover:not(:disabled) { opacity: 0.9; }
   &:active { transform: scale(0.98); }
   &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+`;
+
+const AddWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const AddMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 230px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  animation: ${expandDown} 140ms ease both;
+`;
+
+const AddMenuItem = styled.button`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  color: #0f172a;
+
+  & + & { border-top: 1px solid #f1f5f9; }
+  &:hover { background: #f8fafc; }
+
+  svg { flex-shrink: 0; margin-top: 2px; color: #0369a1; }
+`;
+
+const AddMenuTexts = styled.span`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+`;
+
+const AddMenuTitle = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+`;
+
+const AddMenuDesc = styled.span`
+  font-size: 11.5px;
+  color: #64748b;
 `;
 
 // ─── Stats ───────────────────────────────────────────────────────────────────────────────
@@ -431,9 +498,9 @@ const ServiceList = styled.div`
   overflow: hidden;
 `;
 
-const ListHeader = styled.div`
+const ListHeader = styled.div<{ $withStatus: boolean }>`
   display: grid;
-  grid-template-columns: ${SERVICES_TABLE_GRID};
+  grid-template-columns: ${p => (p.$withStatus ? SERVICES_TABLE_GRID_WITH_STATUS : SERVICES_TABLE_GRID)};
   gap: 8px;
   padding: 10px 20px;
   border-bottom: 1px solid #f1f5f9;
@@ -462,9 +529,9 @@ const SkeletonBox = styled.div<{ $w?: string }>`
   border-radius: 4px;
 `;
 
-const SkeletonRow = styled.div`
+const SkeletonRow = styled.div<{ $withStatus: boolean }>`
   display: grid;
-  grid-template-columns: ${SERVICES_TABLE_GRID};
+  grid-template-columns: ${p => (p.$withStatus ? SERVICES_TABLE_GRID_WITH_STATUS : SERVICES_TABLE_GRID)};
   gap: 8px;
   align-items: center;
   padding: 16px 20px;
@@ -612,29 +679,6 @@ const DangerBtn = styled.button`
 `;
 
 // ─── Package-specific styles ────────────────────────────────────────────────────────────────
-
-const AddPackageButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 18px;
-  font-size: 13px;
-  font-weight: 600;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-family: inherit;
-  transition: opacity 150ms, transform 100ms;
-
-  &:hover:not(:disabled) { opacity: 0.9; }
-  &:active { transform: scale(0.98); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-`;
 
 const ServicePickerWrap = styled.div`
   position: relative;
@@ -1011,6 +1055,23 @@ export const ServicesSection: React.FC = () => {
   const { setForService: setServiceCare } = useCareInstructionMutations();
   const [formCareIds, setFormCareIds] = useState<string[]>([]);
   const [carePickerOpen, setCarePickerOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  // Menu „Dodaj" zamyka klik poza nim i Escape — jak każde menu w tej aplikacji.
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!addMenuRef.current?.contains(e.target as Node)) setAddMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAddMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [addMenuOpen]);
 
   const createMutation  = useCreateService();
   const updateMutation  = useUpdateService();
@@ -1361,36 +1422,39 @@ export const ServicesSection: React.FC = () => {
           </TypeFilterBtn>
         </TypeFilterGroup>
 
-        <ToggleFilterBtn $on={showInactive} onClick={() => { setShowInactive(v => !v); setPage(1); }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {showInactive ? (
-              <>
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </>
-            ) : (
-              <>
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </>
-            )}
-          </svg>
-          Pokaż archiwalne
-        </ToggleFilterBtn>
-
-        <AddButton onClick={openAdd} disabled={anyFormOpen}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Dodaj usługę
-        </AddButton>
-
-        <AddPackageButton onClick={openAddPackage} disabled={anyFormOpen}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-          </svg>
-          Utwórz pakiet
-        </AddPackageButton>
+        <AddWrap ref={addMenuRef}>
+          <AddButton onClick={() => setAddMenuOpen(v => !v)} disabled={anyFormOpen} aria-haspopup="menu" aria-expanded={addMenuOpen}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Dodaj
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </AddButton>
+          {addMenuOpen && (
+            <AddMenu role="menu">
+              <AddMenuItem role="menuitem" onClick={() => { setAddMenuOpen(false); openAdd(); }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3"/>
+                </svg>
+                <AddMenuTexts>
+                  <AddMenuTitle>Usługa</AddMenuTitle>
+                  <AddMenuDesc>Pojedyncza pozycja cennika</AddMenuDesc>
+                </AddMenuTexts>
+              </AddMenuItem>
+              <AddMenuItem role="menuitem" onClick={() => { setAddMenuOpen(false); openAddPackage(); }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+                <AddMenuTexts>
+                  <AddMenuTitle>Pakiet</AddMenuTitle>
+                  <AddMenuDesc>Kilka usług sprzedawanych razem</AddMenuDesc>
+                </AddMenuTexts>
+              </AddMenuItem>
+            </AddMenu>
+          )}
+        </AddWrap>
       </Toolbar>
 
       {/* ── Stats ── */}
@@ -1400,6 +1464,17 @@ export const ServicesSection: React.FC = () => {
             <strong>{totalItems}</strong>{' '}
             {showInactive ? 'usług łącznie (w tym archiwalne)' : 'aktywnych usług'}
           </StatText>
+        )}
+        {!isLoading && (
+          <>
+            <StatText>·</StatText>
+            <ArchivedToggle
+              $on={showInactive}
+              onClick={() => { setShowInactive(v => !v); setPage(1); }}
+            >
+              {showInactive ? 'ukryj archiwalne' : 'pokaż archiwalne'}
+            </ArchivedToggle>
+          </>
         )}
       </StatsRow>
 
@@ -1693,24 +1768,22 @@ export const ServicesSection: React.FC = () => {
 
       {/* ── List ── */}
       <ServiceList>
-        <ListHeader>
+        <ListHeader $withStatus={showInactive}>
           <ColLabel>Usługa</ColLabel>
-          <ColLabel style={{ textAlign: 'center' }}>VAT</ColLabel>
           <ColLabel style={{ textAlign: 'right' }}>Cena</ColLabel>
-          <ColLabel style={{ paddingLeft: '14px' }}>Status</ColLabel>
+          {showInactive && <ColLabel style={{ paddingLeft: '14px' }}>Status</ColLabel>}
           <ColLabel />
         </ListHeader>
 
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonRow key={i}>
+            <SkeletonRow key={i} $withStatus={showInactive}>
               <SkeletonBox $w={`${42 + (i % 4) * 10}%`} />
-              <SkeletonBox $w="36px" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
                 <SkeletonBox $w="90px" />
                 <SkeletonBox $w="70px" />
               </div>
-              <SkeletonBox $w="56px" />
+              {showInactive && <SkeletonBox $w="56px" />}
               <SkeletonBox $w="52px" />
             </SkeletonRow>
           ))
@@ -1732,6 +1805,7 @@ export const ServicesSection: React.FC = () => {
               key={service.id}
               service={service}
               actionsDisabled={anyFormOpen}
+              showStatus={showInactive}
               onEdit={openEdit}
               onArchive={setArchiveTarget}
             />
