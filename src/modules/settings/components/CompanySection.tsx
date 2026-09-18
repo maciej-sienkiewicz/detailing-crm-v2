@@ -90,43 +90,6 @@ const LogoActions = styled.div`
     gap: 8px;
 `;
 
-const PreviewPair = styled.div`
-    display: flex;
-    gap: 10px;
-`;
-
-// Ten sam plik na jasnym i ciemnym tle: menu boczne jest ciemne, dokumenty białe,
-// więc użytkownik od razu widzi, czy jego logo czyta się w obu miejscach.
-const PreviewTile = styled.div<{ $dark?: boolean }>`
-    width: 84px;
-    height: 48px;
-    border-radius: 10px;
-    border: 1px solid ${p => (p.$dark ? 'rgba(255,255,255,0.08)' : '#e2e8f0')};
-    background: ${p => (p.$dark ? '#0f172a' : '#ffffff')};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-    position: relative;
-
-    img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
-
-    span {
-        position: absolute;
-        bottom: 3px;
-        right: 6px;
-        font-size: 9px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: ${p => (p.$dark ? '#64748b' : '#94a3b8')};
-    }
-`;
-
 const Grid = styled.div`
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -444,18 +407,6 @@ export function CompanySection() {
                                 <InfoTooltip text={LOGO_GUIDANCE} width={340} />
                             </LogoMeta>
                         </LogoInfo>
-                        {showLogo && (
-                            <PreviewPair aria-label="Podgląd logo na dokumencie i w menu">
-                                <PreviewTile>
-                                    <img src={logoUrl!} alt="" />
-                                    <span>dokument</span>
-                                </PreviewTile>
-                                <PreviewTile $dark>
-                                    <img src={logoUrl!} alt="" />
-                                    <span>menu</span>
-                                </PreviewTile>
-                            </PreviewPair>
-                        )}
                         <LogoActions>
                             <input
                                 ref={fileInputRef}
