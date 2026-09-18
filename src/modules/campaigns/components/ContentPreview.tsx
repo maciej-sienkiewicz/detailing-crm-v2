@@ -260,6 +260,13 @@ const EmptyState = styled.div`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
+  /**
+   * Nagłówek wnosi rodzic. Okno kampanii daje sekcjom własny nagłówek z kafelkiem
+   * ikony (język okna leada), więc wewnętrzny „Treść wiadomości" renderowałby się
+   * drugi raz tuż pod tym samym napisem.
+   */
+  hideHeading?: boolean;
+
   smsTemplate?: string | null;
   emailSubject?: string | null;
   emailBody?: string | null;
@@ -285,6 +292,7 @@ export function ContentPreview({
   emailBody: body,
   channel,
   layout = 'auto',
+  hideHeading = false,
 }: Props) {
   const hasSms = !!smsTemplate?.trim() || channel === 'SMS' || channel === 'BOTH';
   const hasEmail = !!(subject?.trim() || body?.trim()) || channel === 'EMAIL' || channel === 'BOTH';
@@ -299,7 +307,7 @@ export function ContentPreview({
   if (!hasSms && !hasEmail) {
     return (
       <Wrap>
-        <Head>Treść wiadomości</Head>
+        {!hideHeading && <Head>Treść wiadomości</Head>}
         <EmptyState>Ta kampania nie ma jeszcze treści.</EmptyState>
       </Wrap>
     );
@@ -307,10 +315,12 @@ export function ContentPreview({
 
   return (
     <Wrap>
-      <Head>
-        Treść wiadomości
-        <span className="hint">podgląd z przykładowymi danymi</span>
-      </Head>
+      {!hideHeading && (
+        <Head>
+          Treść wiadomości
+          <span className="hint">podgląd z przykładowymi danymi</span>
+        </Head>
+      )}
 
       <Grid $cols={cols}>
         {hasSms && (
