@@ -7,6 +7,12 @@
 // marketingowej. Samo logo wgrywa się w „Dane firmy" — ta karta tylko mówi,
 // czy go tam w ogóle jest, i odsyła do właściwego miejsca, gdy brakuje.
 //
+// Karta nie ma osobnego nagłówka ani akapitu wstępnego: pytanie JEST nagłówkiem,
+// a podpis pod nim mówi, co się stanie po przestawieniu. Poprzednia wersja
+// tłumaczyła w czterech linijkach zasady, których i tak nie da się tu zmienić
+// (że dotyczy tylko szablonów systemowych i tylko dokumentów przyszłych) —
+// czytało się to przed każdym kliknięciem jednego przełącznika.
+//
 // Zapis natychmiast po kliknięciu (jak w Karcie Wizyty), bez przycisku „Zapisz";
 // błąd cofa stan przez ponowne pobranie konfiguracji.
 
@@ -26,27 +32,12 @@ const Card = styled.div`
     padding: 22px 26px;
 `;
 
-const CardTitle = styled.h3`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    margin: 0 0 6px;
-`;
-
-const CardDescription = styled.p`
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-    margin: 0 0 16px;
-    line-height: 1.5;
-    max-width: 640px;
-`;
-
+// Kreska u góry rozdzielała wiersz od akapitu, który stał nad nim. Akapitu nie
+// ma, więc kreska zostałaby wiszącą linią tuż pod krawędzią karty.
 const OptionRow = styled.div<{ $disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 14px 0 2px;
-    border-top: 1px solid ${p => p.theme.colors.border};
     opacity: ${p => (p.$disabled ? 0.6 : 1)};
 `;
 
@@ -55,9 +46,12 @@ const OptionTexts = styled.div`
     min-width: 0;
 `;
 
-const OptionLabel = styled.div`
-    font-size: 14px;
-    font-weight: 600;
+// Pytanie jest teraz jedynym tytułem tej karty, więc bierze metrykę nagłówka
+// sekcji (15px/700) zamiast etykiety pola.
+const OptionLabel = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
     color: ${p => p.theme.colors.text};
 `;
 
@@ -99,13 +93,6 @@ export function DocumentLogoCard() {
 
     return (
         <Card>
-            <CardTitle>Logo na dokumentach</CardTitle>
-            <CardDescription>
-                Logo firmy z sekcji „Dane firmy" może trafiać w nagłówek systemowych protokołów
-                przyjęcia i wydania oraz systemowej zgody marketingowej. Własne szablony wgrane
-                przez studio nie są zmieniane. Ustawienie dotyczy dokumentów generowanych od tej chwili.
-            </CardDescription>
-
             <OptionRow $disabled={!isOwner}>
                 <OptionTexts>
                     <OptionLabel>Czy umieszczać logo na dokumentach?</OptionLabel>
