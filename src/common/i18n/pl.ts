@@ -673,11 +673,15 @@ export const pl: TranslationKeys = {
             submitting: 'Tworzenie konta...',
             hasAccount: 'Masz już konto?',
             loginLink: 'Zaloguj się',
-            passwordStrength: {
-                weak: 'Słabe hasło',
-                medium: 'Średnie hasło',
-                strong: 'Silne hasło',
-            },
+        },
+        passwordRules: {
+            title: 'Hasło musi zawierać:',
+            minLength: 'co najmniej 8 znaków',
+            uppercase: 'wielką literę',
+            lowercase: 'małą literę',
+            digit: 'cyfrę',
+            met: 'spełnione',
+            unmet: 'jeszcze niespełnione',
         },
         forgotPassword: {
             title: 'Przypomnij hasło',

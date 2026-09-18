@@ -64,11 +64,15 @@ export interface TranslationKeys {
             submitting: string;
             hasAccount: string;
             loginLink: string;
-            passwordStrength: {
-                weak: string;
-                medium: string;
-                strong: string;
-            };
+        };
+        passwordRules: {
+            title: string;
+            minLength: string;
+            uppercase: string;
+            lowercase: string;
+            digit: string;
+            met: string;
+            unmet: string;
         };
         forgotPassword: {
             title: string;

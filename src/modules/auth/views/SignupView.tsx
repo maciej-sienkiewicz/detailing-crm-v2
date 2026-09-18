@@ -6,11 +6,12 @@ import styled from 'styled-components';
 import { useSignup } from '../hooks/useAuth';
 import { signupSchema, type SignupFormData } from '../utils/validators';
 import { PasswordInput } from '../components/PasswordInput';
-import { PasswordStrengthIndicator } from '../components/PasswordStrengthIndicator';
+import { AuthInput } from '../components/AuthInput';
+import { PasswordRequirements } from '../components/PasswordRequirements';
 import { Checkbox } from '../components/Checkbox';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { t } from '@/common/i18n';
-import { Input, Label, FieldGroup, ErrorMessage, FormGrid } from '@/common/components/Form';
+import { Label, FieldGroup, ErrorMessage, FormGrid } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 
 const Container = styled.div`
@@ -115,6 +116,10 @@ export const SignupView = () => {
     });
     const [errors, setErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
     const [apiError, setApiError] = useState<string>('');
+    // Wymogi hasła pokazujemy od wejścia w pole, a potem dopóki cokolwiek w nim
+    // stoi - listę trzeba znać PRZED pisaniem, a po wyjściu z pola wciąż bywa
+    // potrzebna (użytkownik poprawia hasło po zobaczeniu błędu niżej).
+    const [passwordFocused, setPasswordFocused] = useState(false);
 
     const signupMutation = useSignup();
 
@@ -127,9 +132,14 @@ export const SignupView = () => {
 
         if (!result.success) {
             const fieldErrors: Partial<Record<keyof SignupFormData, string>> = {};
+            // Pierwszy zarzut, nie ostatni: zod zgłasza je w kolejności sprawdzeń,
+            // więc dla pustego pola pierwszy mówi „jest wymagane", a kolejny już
+            // „nieprawidłowy format" - i to ten drugi widział użytkownik, który
+            // po prostu niczego nie wpisał.
             result.error.issues.forEach((err) => {
-                if (err.path[0]) {
-                    fieldErrors[err.path[0] as keyof SignupFormData] = err.message;
+                const field = err.path[0] as keyof SignupFormData | undefined;
+                if (field && !fieldErrors[field]) {
+                    fieldErrors[field] = err.message;
                 }
             });
             setErrors(fieldErrors);
@@ -159,7 +169,7 @@ export const SignupView = () => {
                     <FormGrid $columns={2}>
                         <FieldGroup>
                             <Label htmlFor="firstName">{t.auth.signup.firstNameLabel}</Label>
-                            <Input
+                            <AuthInput
                                 type="text"
                                 id="firstName"
                                 name="given-name"
@@ -167,13 +177,14 @@ export const SignupView = () => {
                                 placeholder={t.auth.signup.firstNamePlaceholder}
                                 value={formData.firstName}
                                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                $hasError={!!errors.firstName}
                             />
                             {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
                             <Label htmlFor="lastName">{t.auth.signup.lastNameLabel}</Label>
-                            <Input
+                            <AuthInput
                                 type="text"
                                 id="lastName"
                                 name="family-name"
@@ -181,6 +192,7 @@ export const SignupView = () => {
                                 placeholder={t.auth.signup.lastNamePlaceholder}
                                 value={formData.lastName}
                                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                $hasError={!!errors.lastName}
                             />
                             {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                         </FieldGroup>
@@ -188,7 +200,7 @@ export const SignupView = () => {
 
                     <FieldGroup>
                         <Label htmlFor="email">{t.auth.signup.emailLabel}</Label>
-                        <Input
+                        <AuthInput
                             type="email"
                             id="email"
                             name="email"
@@ -196,6 +208,7 @@ export const SignupView = () => {
                             placeholder={t.auth.signup.emailPlaceholder}
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            $hasError={!!errors.email}
                         />
                         {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                     </FieldGroup>
@@ -210,8 +223,13 @@ export const SignupView = () => {
                             placeholder={t.auth.signup.passwordPlaceholder}
                             hasError={!!errors.password}
                             autoComplete="new-password"
+                            onFocus={() => setPasswordFocused(true)}
+                            onBlur={() => setPasswordFocused(false)}
                         />
-                        <PasswordStrengthIndicator password={formData.password} />
+                        <PasswordRequirements
+                            password={formData.password}
+                            visible={passwordFocused || formData.password.length > 0}
+                        />
                         {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
                     </FieldGroup>
 

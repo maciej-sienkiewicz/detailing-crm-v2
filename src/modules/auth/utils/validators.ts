@@ -1,6 +1,31 @@
 // src/modules/auth/utils/validators.ts
 import { z } from 'zod';
 import { t } from '@/common/i18n';
+import { PASSWORD_RULES } from './passwordRules';
+
+/**
+ * Hasło USTAWIANE przez użytkownika (rejestracja, reset, aktywacja konta).
+ * Reguły biorą się z PASSWORD_RULES - z tej samej listy, którą widzi pod polem
+ * jako ptaszki. Rozjazd między tym, co pokazujemy, a tym, co przyjmujemy, jest
+ * tu niemożliwy z konstrukcji, a nie z uwagi recenzenta.
+ *
+ * Hasło PODAWANE przy logowaniu tych reguł nie sprawdza: konta założone przed
+ * zaostrzeniem wymogów muszą się dalej logować, a walidacja siły na ekranie
+ * logowania i tak niczego nie chroni.
+ */
+export const newPasswordSchema = z
+    .string()
+    .min(1, t.auth.validation.passwordRequired)
+    .superRefine((password, ctx) => {
+        // Puste hasło opisuje już `min(1)` - bez tego użytkownik dostaje
+        // komplet czterech zarzutów za niewpisanie niczego.
+        if (!password) return;
+        for (const rule of PASSWORD_RULES) {
+            if (!rule.test(password)) {
+                ctx.addIssue({ code: 'custom', message: rule.message });
+            }
+        }
+    });
 
 export const loginSchema = z.object({
     email: z
@@ -26,10 +51,7 @@ export const signupSchema = z.object({
         .string()
         .min(1, t.auth.validation.emailRequired)
         .email(t.auth.validation.emailInvalid),
-    password: z
-        .string()
-        .min(1, t.auth.validation.passwordRequired)
-        .min(8, t.auth.validation.passwordMin),
+    password: newPasswordSchema,
     confirmPassword: z
         .string()
         .min(1, t.auth.validation.passwordRequired),
@@ -51,12 +73,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-    password: z
-        .string()
-        .min(8, t.auth.validation.passwordMin)
-        .regex(/[A-Z]/, t.auth.validation.passwordUppercase)
-        .regex(/[a-z]/, t.auth.validation.passwordLowercase)
-        .regex(/[0-9]/, t.auth.validation.passwordDigit),
+    password: newPasswordSchema,
     confirmPassword: z
         .string()
         .min(1, t.auth.validation.passwordRequired),

@@ -5,11 +5,12 @@ import styled from 'styled-components';
 import { useLogin, useDemoAccount } from '../hooks/useAuth';
 import { loginSchema, type LoginFormData } from '../utils/validators';
 import { PasswordInput } from '../components/PasswordInput';
+import { AuthInput } from '../components/AuthInput';
 import { Checkbox } from '../components/Checkbox';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { SuccessAlert } from '../components/SuccessAlert';
 import { t } from '@/common/i18n';
-import { Input, Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
+import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 
 const Container = styled.div`
@@ -220,9 +221,14 @@ export const LoginView = () => {
 
         if (!result.success) {
             const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
+            // Pierwszy zarzut, nie ostatni: zod zgłasza je w kolejności sprawdzeń,
+            // więc dla pustego pola pierwszy mówi „jest wymagane", a kolejny już
+            // „nieprawidłowy format" - i to ten drugi widział użytkownik, który
+            // po prostu niczego nie wpisał.
             result.error.issues.forEach((err) => {
-                if (err.path[0]) {
-                    fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
+                const field = err.path[0] as keyof LoginFormData | undefined;
+                if (field && !fieldErrors[field]) {
+                    fieldErrors[field] = err.message;
                 }
             });
             setErrors(fieldErrors);
@@ -251,7 +257,7 @@ export const LoginView = () => {
                 <Form onSubmit={handleSubmit}>
                     <FieldGroup>
                         <Label htmlFor="email">{t.auth.login.emailLabel}</Label>
-                        <Input
+                        <AuthInput
                             type="email"
                             id="email"
                             name="email"
@@ -259,6 +265,7 @@ export const LoginView = () => {
                             placeholder={t.auth.login.emailPlaceholder}
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            $hasError={!!errors.email}
                         />
                         {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                     </FieldGroup>
