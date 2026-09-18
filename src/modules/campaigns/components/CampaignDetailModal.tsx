@@ -29,7 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     AlertTriangle, CalendarClock, CheckCircle2, Coins, Copy, Mail, MessageSquare,
-    Pause, Pencil, Play, RefreshCw, Send, SkipForward, Square, Trash2, Users,
+    Pause, Pencil, Play, RefreshCw, Send, Square, Trash2, Users,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
@@ -48,17 +48,16 @@ import {
     useScheduleCampaign, useStopCampaign,
 } from '../hooks/useCampaigns';
 import { emptyAudience } from '../types';
-import type { AudienceCriteria, Campaign, RecipientChannel } from '../types';
+import type { AudienceCriteria, AudienceEstimate, Campaign, RecipientChannel } from '../types';
 import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, STATUS_COLORS } from '../constants';
 import { audienceChips, useServiceCatalog } from './AudienceBuilder';
 import { ContentPreview } from './ContentPreview';
 import {
-    CLOSED_STATUSES, describeCampaign, describeMoment, messageWord, recipientsFigure,
-    type CampaignTone,
+    CLOSED_STATUSES, describeMoment, messageWord,
 } from '../utils/campaignState';
 import {
     CampaignKindMark, CampaignStatusLine, Chip, ChipRow, DangerButton, IconButton,
-    MutedText, Note, Panel, PrimaryButton, QuietLink, TextField, Timeline, TimelineItem,
+    MutedText, Note, PrimaryButton, QuietLink, TextField, Timeline, TimelineItem,
 } from './shared';
 // Daty w tym samym formacie, co w oknie leada - jedna implementacja na aplikację.
 import { formatDateTime } from '@/modules/comms/components/shared';
@@ -123,130 +122,242 @@ const HeaderStatus = styled.div`
     }
 `;
 
-/**
- * Pasek podsumowania - jedyny element, który ma się rzucić w oczy pierwszy.
+/* ── Wynik kampanii: jedna liczba, która się ROZLICZA ───────────────────────
  *
- * Cztery fakty, po które ludzie tu przychodzą, w kolejności ważności od lewej:
- * do ilu ludzi to idzie, ile kosztuje, czy coś się z tym dzieje i którym kanałem.
- * Kolorowy pasek przy krawędzi to ten sam język, którym pilność oznaczona jest
- * w tabeli kampanii i w tabeli leadów.
+ * Wcześniej stał tu pasek czterech komórek: „Odbiorcy 171 / wysłanych
+ * wiadomości", „Koszt", „Co dalej", „Kanał". Miał trzy wady i wszystkie trzy
+ * sprowadzały się do tego samego - nie dało się z niego wyczytać, ile osób
+ * właściwie jest w tej kampanii:
+ *
+ *  1. Etykieta mówiła „Odbiorcy", liczba była LICZBĄ WYSŁANYCH WIADOMOŚCI,
+ *     a podpis pod nią - jeszcze czymś trzecim. Trzy rzeczowniki na jedną cyfrę.
+ *  2. W grze jest PIĘĆ populacji (pasujących, kwalifikujących się, wysłanych,
+ *     nieudanych, pominiętych), a pasek pokazywał jedną i rozsypywał resztę:
+ *     pominięte i nieudane lądowały prozą w szarym pudełku po prawej
+ *     („Kogo ominęło: Pominiętych: 9. Nieudanych: 4."), kilkanaście centymetrów
+ *     od liczby, której dotyczyły.
+ *  3. Nic nigdzie nie mówiło, że 171 + 4 + 9 = 184. Użytkownik musiał dodać to
+ *     sam, czytając z trzech miejsc.
+ *
+ * Teraz jest jeden blok, w którym liczby SIĘ SUMUJĄ i widać to gołym okiem:
+ * zdanie u góry, pasek proporcji pod nim, a pod paskiem legenda, której składniki
+ * dają dokładnie tę sumę. Pasek nie jest ozdobą - jest dowodem, że nic nie zginęło.
  */
-const Summary = styled.section<{ $tone: CampaignTone }>`
-    position: relative;
-    overflow: hidden;
+const Outcome = styled.section`
     display: flex;
-    flex-wrap: wrap;
-    gap: 0 4px;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 20px;
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.lg};
     background: ${p => p.theme.colors.surface};
-    padding: 16px 18px 16px 21px;
 
     @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        flex-direction: column;
-        padding: 10px 14px 10px 17px;
+        padding: 14px 16px;
+        gap: 10px;
     }
+`;
+
+/**
+ * Zdanie, nie etykieta z liczbą. „171 z 184 wiadomości dotarło" odpowiada na
+ * pytanie od razu i nie wymaga, żeby czytać podpis pod spodem i sklejać go
+ * z nagłówkiem nad spodem.
+ */
+const OutcomeHead = styled.h3`
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    font-size: 15px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    color: ${p => p.theme.colors.textSecondary};
+`;
+
+/* Sama liczba zostaje dominantą okna - przez ROZMIAR, nie przez barwę.
+   Cyfry o stałej szerokości, żeby kolejne kampanie dały się porównać wzrokiem. */
+const OutcomeNumber = styled.strong<{ $empty?: boolean }>`
+    font-size: 30px;
+    line-height: 1;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: ${({ $empty, theme }) => ($empty ? theme.colors.textMuted : theme.colors.text)};
+`;
+
+type PartTone = 'ok' | 'bad' | 'muted' | 'brand';
+
+const partColor = (tone: PartTone) =>
+    tone === 'ok' ? '#22c55e'
+    : tone === 'bad' ? '#ef4444'
+    : tone === 'brand' ? 'var(--brand-primary)'
+    : '#cbd5e1';
+
+/* Pasek proporcji: jedna linia, w której każdy kawałek jest tak szeroki, jak
+   duża jest jego część. Wysokość 8px - ma być czytelny, ale nie ma udawać
+   wykresu; to podpis pod liczbą, nie druga treść. */
+const Bar = styled.div`
+    display: flex;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: ${p => p.theme.colors.surfaceAlt};
+`;
+
+const BarPart = styled.span<{ $tone: PartTone }>`
+    background: ${p => partColor(p.$tone)};
+    min-width: 3px;
+`;
+
+const Legend = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 13px;
+    color: ${p => p.theme.colors.textSecondary};
+`;
+
+const LegendItem = styled.span`
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    white-space: nowrap;
+
+    strong {
+        font-weight: ${p => p.theme.fontWeights.bold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
+const LegendDot = styled.span<{ $tone: PartTone }>`
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    align-self: center;
+    background: ${p => partColor(p.$tone)};
+`;
+
+/* Koszt, kanał i moment - fakty towarzyszące, nie odpowiedzi. Jedna linia
+   pod kreską, bo dotąd każdy z nich miał własną komórkę tej samej wagi
+   co liczba odbiorców. */
+const OutcomeMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    padding-top: 11px;
+    border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
+    font-size: 13px;
+    color: ${p => p.theme.colors.textMuted};
+
+    span.item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    svg { width: 14px; height: 14px; }
+`;
+
+/* ── Nagłówek sekcji: język z okna leada ───────────────────────────────────
+ *
+ * Kafelek z ikoną i nazwa pismem TEKSTOWYM. Wersaliki 11px w [textMuted] jako
+ * jedyny sposób oznaczenia sekcji są w tym repozytorium wycofane (CLAUDE.md §2)
+ * - powtórzone pięć razy w jednej kolumnie robią z okna formularz, w którym nic
+ * nie jest przedmiotem. Tu było ich pięć: TREŚĆ WIADOMOŚCI, ODBIORCY, KRYTERIA
+ * ODBIORCÓW, KOGO OMINĘŁO, PRZEBIEG.
+ */
+/* Podpowiedź przy nagłówku sekcji - na telefonie znika: „podgląd z przykładowymi
+   danymi" łamał się tam na dwie linie obok dwuwierszowego już tytułu i wyglądał
+   jak druga połowa nagłówka. */
+const HeadHint = styled(MutedText)`
+    margin-left: auto;
+    text-transform: none;
+    letter-spacing: 0;
+
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+        display: none;
+    }
+`;
+
+const SectionHead = styled.h4`
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: ${p => p.theme.colors.text};
+
+    .spacer { flex: 1; }
+`;
+
+const SectionIcon = styled.span<{ $tone: 'brand' | 'slate' | 'amber' }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: ${p => p.theme.radii.md};
+
+    svg { width: 14px; height: 14px; }
+
+    ${({ $tone }) =>
+        $tone === 'brand'
+            ? 'background: color-mix(in srgb, var(--brand-primary) 12%, transparent); color: var(--brand-primary);'
+            : $tone === 'amber'
+                ? 'background: #fef3c7; color: #b45309;'
+                : 'background: #f1f5f9; color: #64748b;'}
+`;
+
+/**
+ * Powierzchnia tematu okna - dokładnie JEDNA na widok (CLAUDE.md §2:
+ * wyniesienie niesie temat). Dostaje ją treść wiadomości, bo to jedyna rzecz
+ * w tym oknie, którą zobaczy klient; reszta to dane o wysyłce.
+ *
+ * Wcześniej wyniesione były wszystkie panele naraz (ramka + biel), a trzy panele
+ * po prawej miały dodatkowo własne szare pudełka - czyli sześć powierzchni
+ * o tej samej wadze i żadnego tematu.
+ */
+const RaisedPanel = styled.section`
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #e6edf6;
+    border-radius: ${p => p.theme.radii.xl};
+    background: linear-gradient(160deg, #ffffff 0%, #fbfcfe 100%);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px -20px rgba(15, 23, 42, 0.45);
 
     &::before {
         content: '';
         position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: ${({ $tone, theme }) =>
-            $tone === 'due' ? theme.colors.error
-            : $tone === 'stale' ? theme.colors.warning
-            : theme.colors.primary};
+        top: -1px;
+        left: -1px;
+        right: -1px;
+        height: 3px;
+        border-radius: ${p => p.theme.radii.xl} ${p => p.theme.radii.xl} 0 0;
+        background: linear-gradient(90deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 55%, #ffffff) 100%);
     }
 `;
 
-const SummaryCell = styled.div<{ $order?: number; $hideOnPhone?: boolean }>`
+/** Sekcja płaska: leży na tle, rozdziela ją kreska - jak szyna w oknie leada. */
+const FlatSection = styled.section`
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 3px;
+    gap: 10px;
     min-width: 0;
-    padding: 2px 20px;
-    border-left: 1px solid ${p => p.theme.colors.border};
+    padding-bottom: 16px;
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
 
-    &:first-child {
-        padding-left: 0;
-        border-left: none;
-    }
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        display: ${p => (p.$hideOnPhone ? 'none' : 'flex')};
-        order: ${p => p.$order ?? 0};
-        padding: 5px 0;
-        border-left: none;
-    }
-`;
-
-const CellLabel = styled.span`
-    font-size: 10.5px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
-    white-space: nowrap;
-`;
-
-/**
- * Liczba odbiorców - największy element okna. To jedyna liczba, dla której ktoś
- * otwiera kampanię w biegu, więc ma być czytelna z odległości, z której reszta
- * jest jeszcze nieczytelna. Cyfry o stałej szerokości, żeby kolejne kampanie
- * dawały się porównać wzrokiem bez czytania.
- */
-const CellBig = styled.span<{ $empty?: boolean }>`
-    font-size: 27px;
-    line-height: 1.1;
-    font-weight: ${p => p.theme.fontWeights.bold};
-    letter-spacing: -0.02em;
-    color: ${({ $empty, theme }) => ($empty ? theme.colors.textMuted : theme.colors.text)};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-`;
-
-const CellValue = styled.span<{ $empty?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${({ $empty, theme }) => ($empty ? theme.colors.textMuted : theme.colors.text)};
-    min-width: 0;
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
-    span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-`;
-
-const CellNote = styled.span`
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-`;
-
-/** „Co dalej" w pasku podsumowania: kropka i zdanie, kolor tylko przy kłopocie. */
-const ToneValue = styled(CellValue)<{ $tone: CampaignTone }>`
-    color: ${({ $tone, theme }) =>
-        $tone === 'due' ? theme.colors.error
-        : $tone === 'stale' ? theme.colors.warning
-        : theme.colors.text};
-    font-weight: ${({ $tone, theme }) =>
-        $tone === 'neutral' ? theme.fontWeights.medium : theme.fontWeights.semibold};
-`;
-
-const Dot = styled.span<{ $tone: CampaignTone }>`
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: ${({ $tone, theme }) =>
-        $tone === 'due' ? theme.colors.error
-        : $tone === 'stale' ? theme.colors.warning
-        : theme.colors.textMuted};
+    &:last-child { border-bottom: none; padding-bottom: 0; }
 `;
 
 /**
@@ -351,6 +462,106 @@ const ELIGIBILITY_LABELS: Record<string, string> = {
     FREQUENCY_CAP: 'Niedawno kontaktowany',
 };
 
+/** Polska odmiana po liczbie: 1 osoba, 2-4 osoby, 5+ osób. */
+function peopleWord(n: number) {
+    if (n === 1) return 'osoba';
+    const lastTwo = n % 100;
+    const last = n % 10;
+    if (lastTwo >= 12 && lastTwo <= 14) return 'osób';
+    return last >= 2 && last <= 4 ? 'osoby' : 'osób';
+}
+
+interface OutcomePart {
+    key: string;
+    count: number;
+    label: string;
+    tone: PartTone;
+}
+
+interface OutcomeSummary {
+    /** Zdanie nad paskiem - liczba plus reszta zdania wokół niej. */
+    value: string;
+    before: string | null;
+    after: string;
+    parts: OutcomePart[];
+    total: number;
+}
+
+/**
+ * Rozliczenie kampanii na części, które SUMUJĄ SIĘ do całości.
+ *
+ * To jest sedno tej przebudowy: każda zwracana tu lista musi dać się dodać
+ * do `total`, bo pasek i legenda pod spodem są dowodem tej sumy. Dlatego
+ * „pominiętych" i „nieudanych" nie liczymy osobno gdzie indziej - są
+ * składnikami tej samej całości co „dostarczone".
+ */
+function summarizeOutcome(c: Campaign, estimate: AudienceEstimate | undefined): OutcomeSummary {
+    const projection = c.status === 'DRAFT' || c.status === 'SCHEDULED';
+
+    if (projection) {
+        if (!estimate) {
+            return { value: '—', before: null, after: 'liczymy odbiorców…', parts: [], total: 0 };
+        }
+        // Tu odpowiadamy na pytanie, którego stary pasek nie zadawał w ogóle:
+        // ilu klientów PASUJE do kryteriów, a mimo to nic nie dostanie i dlaczego.
+        // Ta różnica bywa spora (tu: 13 z 197) i dotąd nie było jej w oknie nigdzie.
+        const lost: OutcomePart[] = [
+            { key: 'optedOut', count: estimate.optedOut, label: 'wypisani', tone: 'muted' },
+            { key: 'noConsent', count: estimate.noConsent, label: 'bez zgody', tone: 'muted' },
+            { key: 'noAddress', count: estimate.noAddress, label: 'bez numeru', tone: 'muted' },
+            { key: 'cap', count: estimate.frequencyCapped, label: 'niedawno pisaliśmy', tone: 'muted' },
+            { key: 'excluded', count: estimate.excludedManually, label: 'wykluczeni ręcznie', tone: 'muted' },
+        ].filter((part) => part.count > 0);
+
+        return {
+            value: String(estimate.eligible),
+            before: null,
+            after: lost.length > 0
+                ? `${peopleWord(estimate.eligible)} z ${estimate.matched} pasujących dostanie wiadomość`
+                : `${peopleWord(estimate.eligible)} dostanie wiadomość`,
+            parts: [
+                { key: 'eligible', count: estimate.eligible, label: 'dostanie', tone: 'brand' },
+                ...lost,
+            ],
+            total: estimate.matched,
+        };
+    }
+
+    const parts: OutcomePart[] = [
+        { key: 'sent', count: c.recipientsSent, label: 'dostarczone', tone: 'ok' },
+        { key: 'failed', count: c.recipientsFailed, label: 'nieudane', tone: 'bad' },
+        { key: 'skipped', count: c.recipientsSkipped, label: 'pominięte', tone: 'muted' },
+    ].filter((part) => part.count > 0);
+
+    // `recipientsTotal` bywa zerowe na starszych kampaniach - wtedy całością jest
+    // suma części, żeby pasek nadal się domykał.
+    const total = c.recipientsTotal || parts.reduce((sum, part) => sum + part.count, 0);
+
+    if (total === 0) {
+        return { value: '—', before: null, after: 'lista odbiorców powstanie przy wysyłce', parts: [], total: 0 };
+    }
+
+    if (c.status === 'SENDING') {
+        return {
+            value: String(c.recipientsSent),
+            before: null,
+            after: `z ${total} — wysyłka trwa`,
+            parts,
+            total,
+        };
+    }
+
+    return {
+        value: String(c.recipientsSent),
+        before: null,
+        after: c.recipientsSent === total
+            ? `${messageWord(c.recipientsSent)} dotarło do wszystkich`
+            : `z ${total} ${messageWord(total)} dotarło`,
+        parts,
+        total,
+    };
+}
+
 type PendingAction = 'stop' | 'cancel' | 'delete' | 'send' | null;
 
 export interface CampaignDetailModalProps {
@@ -427,9 +638,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
     const creditsShort =
         plannedCredits != null && stats != null && plannedCredits > stats.smsCreditsAvailable;
 
-    const marker = describeCampaign(c, creditsShort);
-    const figure = recipientsFigure(c);
-    const projectedRecipients = isProjection && estimate ? String(estimate.eligible) : null;
+    const outcome = summarizeOutcome(c, estimate);
 
     const openEditor = () => navigate(`/campaigns/${c.id}/edit`);
 
@@ -485,21 +694,16 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             miejsca - kampania, która idzie zgodnie z planem, nie
                             dostaje nad sobą ani jednego paska. */}
                         {failed > 0 && (
+                            /* Baner mówi, CO się stało; ponowienie stoi w stopce
+                               jako akcja główna okna. Dotąd „Ponów nieudane" było
+                               w oknie TRZY razy - tu, w nagłówku listy odbiorców
+                               i w stopce - a trzy kopie jednej akcji czytają się
+                               jak trzy różne akcje. */
                             <Note $tone="error">
                                 <AlertTriangle />
                                 <span>
                                     <strong>{failed}</strong> {messageWord(failed)} nie dotarło do odbiorców.
                                 </span>
-                                <span className="spacer" />
-                                {hasRetryable && (
-                                    <QuietLink
-                                        type="button"
-                                        onClick={() => retryAllFailed.mutate()}
-                                        disabled={retryAllFailed.isPending}
-                                    >
-                                        <RefreshCw /> Ponów nieudane
-                                    </QuietLink>
-                                )}
                             </Note>
                         )}
 
@@ -527,81 +731,98 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             </Note>
                         )}
 
-                        {/* Pasek podsumowania: cztery odpowiedzi, po które ktoś tu wchodzi,
-                            zanim zacznie cokolwiek czytać. */}
-                        <Summary $tone={marker.tone}>
-                            {/*
-                             * Liczba odbiorców znika na telefonie: kilka centymetrów niżej
-                             * stoi panel odbiorców z tą samą liczbą w nagłówku, a ta sama
-                             * liczba dwa razy na jednym ekranie to szum, nie podkreślenie.
-                             */}
-                            <SummaryCell $hideOnPhone>
-                                <CellLabel>{isProjection ? 'Prognoza odbiorców' : 'Odbiorcy'}</CellLabel>
-                                <CellBig $empty={(projectedRecipients ?? figure.value) === '-'}>
-                                    {projectedRecipients ?? figure.value}
-                                </CellBig>
-                                <CellNote>
-                                    {projectedRecipients ? 'dostanie wiadomość' : figure.note}
-                                </CellNote>
-                            </SummaryCell>
+                        {/* Wynik: jedna liczba i jej rozliczenie. Zob. komentarz przy [Outcome]. */}
+                        <Outcome>
+                            <OutcomeHead>
+                                <OutcomeNumber $empty={outcome.value === '—'}>{outcome.value}</OutcomeNumber>
+                                <span>{outcome.after}</span>
+                            </OutcomeHead>
 
-                            <SummaryCell $order={2}>
-                                <CellLabel>Koszt</CellLabel>
-                                <CellValue $empty={plannedCredits == null && c.creditsSpent === 0}>
-                                    <Coins />
-                                    <span>
-                                        {isProjection
-                                            ? plannedCredits != null ? `${plannedCredits} kredytów` : 'liczymy…'
-                                            : c.creditsSpent > 0 ? `${c.creditsSpent} kredytów` : 'bez kosztu'}
-                                    </span>
-                                </CellValue>
-                                {isProjection && <CellNote>szacunek na dziś</CellNote>}
-                            </SummaryCell>
+                            {outcome.parts.length > 0 && (
+                                <>
+                                    <Bar>
+                                        {outcome.parts.map((part) => (
+                                            <BarPart
+                                                key={part.key}
+                                                $tone={part.tone}
+                                                style={{ flexGrow: part.count }}
+                                                title={`${part.count} ${part.label}`}
+                                            />
+                                        ))}
+                                    </Bar>
+                                    <Legend>
+                                        {outcome.parts.map((part) => (
+                                            <LegendItem key={part.key}>
+                                                <LegendDot $tone={part.tone} />
+                                                <strong>{part.count}</strong>
+                                                <span>{part.label}</span>
+                                            </LegendItem>
+                                        ))}
+                                    </Legend>
+                                </>
+                            )}
 
-                            {/* Na telefonie pierwsze: to jedyna komórka, która mówi,
-                                czy trzeba coś zrobić teraz. */}
-                            <SummaryCell $order={1}>
-                                <CellLabel>Co dalej</CellLabel>
-                                <ToneValue $tone={marker.tone} title={marker.title}>
-                                    <Dot $tone={marker.tone} />
-                                    <span>{marker.label}</span>
-                                </ToneValue>
-                                {c.status === 'SCHEDULED' && c.scheduledAt && (
-                                    <CellNote>{formatDateTime(c.scheduledAt)}</CellNote>
-                                )}
-                            </SummaryCell>
-
-                            <SummaryCell $order={3} $hideOnPhone>
-                                <CellLabel>Kanał</CellLabel>
-                                <CellValue>
+                            <OutcomeMeta>
+                                <span className="item">
                                     {c.channel === 'EMAIL' ? <Mail /> : <MessageSquare />}
-                                    <span>{CHANNEL_LABELS[c.channel]}</span>
-                                </CellValue>
-                            </SummaryCell>
-                        </Summary>
+                                    {CHANNEL_LABELS[c.channel]}
+                                </span>
+                                <span className="item">
+                                    <Coins />
+                                    {isProjection
+                                        ? plannedCredits != null
+                                            ? `${plannedCredits} kredytów (szacunek)`
+                                            : 'koszt liczymy…'
+                                        : c.creditsSpent > 0
+                                            ? `${c.creditsSpent} kredytów`
+                                            : 'bez kosztu'}
+                                </span>
+                                <span className="item">
+                                    <CalendarClock />
+                                    {c.status === 'SCHEDULED' && c.scheduledAt
+                                        ? `wyjdzie ${formatDateTime(c.scheduledAt)} (${describeMoment(c.scheduledAt)})`
+                                        : c.completedAt
+                                            ? `zakończona ${formatDateTime(c.completedAt)}`
+                                            : c.startedAt
+                                                ? `ruszyła ${formatDateTime(c.startedAt)}`
+                                                : `utworzona ${formatDateTime(c.createdAt)}`}
+                                </span>
+                            </OutcomeMeta>
+                        </Outcome>
 
                         <BodyGrid>
                             <Column>
-                                {/* Powierzchnia robocza: to, co klient naprawdę zobaczy. */}
-                                <Panel>
+                                {/* Jedyna wyniesiona sekcja w oknie: to, co zobaczy klient. */}
+                                <RaisedPanel>
+                                    <SectionHead>
+                                        <SectionIcon $tone="brand">
+                                            {c.channel === 'EMAIL' ? <Mail /> : <MessageSquare />}
+                                        </SectionIcon>
+                                        Treść wiadomości
+                                        <HeadHint>podgląd z przykładowymi danymi</HeadHint>
+                                    </SectionHead>
                                     <ContentPreview
+                                        hideHeading
                                         smsTemplate={c.smsTemplate}
                                         emailSubject={c.emailSubject}
                                         emailBody={c.emailBody}
                                     />
-                                </Panel>
+                                </RaisedPanel>
 
-                                <Panel>
-                                    <h4>
-                                        <Users />
-                                        {isProjection ? 'Prognozowani odbiorcy' : 'Odbiorcy'}
+                                <FlatSection>
+                                    <SectionHead>
+                                        <SectionIcon $tone="slate"><Users /></SectionIcon>
+                                        {isProjection ? 'Kto pasuje do kryteriów' : 'Odbiorcy'}
                                         <span className="spacer" />
-                                        {recipients.length > 0 && (
+                                        {/* Całość listy, nie długość wczytanej strony. Nagłówek
+                                            pokazywał dotąd `recipients.length`, czyli „8" przy
+                                            kampanii do 184 osób. */}
+                                        {outcome.total > 0 && (
                                             <MutedText style={{ textTransform: 'none', letterSpacing: 0 }}>
-                                                {recipients.length}
+                                                {outcome.total}
                                             </MutedText>
                                         )}
-                                    </h4>
+                                    </SectionHead>
 
                                     {isProjection && (
                                         <MutedText>
@@ -619,15 +840,6 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                     value={search}
                                                     onChange={(e) => setSearch(e.target.value)}
                                                 />
-                                                {hasRetryable && (
-                                                    <QuietLink
-                                                        type="button"
-                                                        onClick={() => retryAllFailed.mutate()}
-                                                        disabled={retryAllFailed.isPending}
-                                                    >
-                                                        <RefreshCw /> Ponów nieudane
-                                                    </QuietLink>
-                                                )}
                                             </SearchRow>
                                             <TableScroll>
                                                 <RecipientsTable>
@@ -701,14 +913,17 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                     ) : (
                                         <MutedText>Lista odbiorców powstanie w momencie wysyłki.</MutedText>
                                     )}
-                                </Panel>
+                                </FlatSection>
                             </Column>
 
                             {/* Materiał pomocniczy: cofnięty o plan, bez ramki, na tle strony. */}
                             <Column>
                                 {c.kind === 'AUTOMATIC' && c.trigger && (
-                                    <Panel $quiet>
-                                        <h4><CalendarClock /> Warunek</h4>
+                                    <FlatSection>
+                                        <SectionHead>
+                                            <SectionIcon $tone="amber"><CalendarClock /></SectionIcon>
+                                            Kiedy wychodzi
+                                        </SectionHead>
                                         <ConditionText>
                                             <strong>{c.trigger.afterDays} dni</strong> po usłudze{' '}
                                             <strong>
@@ -721,33 +936,32 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                 ', z pominięciem klientów, którzy byli w międzyczasie'}
                                             .
                                         </ConditionText>
-                                    </Panel>
+                                    </FlatSection>
                                 )}
 
-                                <Panel $quiet>
-                                    <h4><Users /> Kryteria odbiorców</h4>
+                                <FlatSection>
+                                    <SectionHead>
+                                        <SectionIcon $tone="slate"><Users /></SectionIcon>
+                                        Kryteria odbiorców
+                                    </SectionHead>
                                     {chips.length > 0 ? (
                                         <ChipRow>{chips.map((ch) => <Chip key={ch}>{ch}</Chip>)}</ChipRow>
                                     ) : (
                                         <MutedText>Bez zawężeń - wszyscy klienci ze zgodą.</MutedText>
                                     )}
-                                </Panel>
+                                </FlatSection>
 
-                                {(c.recipientsSkipped > 0 || failed > 0) && (
-                                    <Panel $quiet>
-                                        <h4><SkipForward /> Kogo ominęło</h4>
-                                        <ConditionText>
-                                            {c.recipientsSkipped > 0 && (
-                                                <>Pominiętych: <strong>{c.recipientsSkipped}</strong>. </>
-                                            )}
-                                            {failed > 0 && <>Nieudanych: <strong>{failed}</strong>.</>}
-                                        </ConditionText>
-                                    </Panel>
-                                )}
+                                {/* „Kogo ominęło" usunięte: pominięci i nieudani są teraz
+                                    składnikami rozliczenia u góry, obok liczby, której
+                                    dotyczą - a nie prozą w osobnym pudełku po drugiej
+                                    stronie okna. */}
 
                                 {/* Przebieg jako ciąg zdarzeń, nie lista zdań z datą. */}
-                                <Panel $quiet>
-                                    <h4><CalendarClock /> Przebieg</h4>
+                                <FlatSection>
+                                    <SectionHead>
+                                        <SectionIcon $tone="slate"><CalendarClock /></SectionIcon>
+                                        Przebieg
+                                    </SectionHead>
                                     <Timeline>
                                         <TimelineItem $color={STATUS_COLORS.DRAFT}>
                                             <strong>Utworzono</strong>
@@ -772,7 +986,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                             </TimelineItem>
                                         )}
                                     </Timeline>
-                                </Panel>
+                                </FlatSection>
                             </Column>
                         </BodyGrid>
                     </ModalBody>
