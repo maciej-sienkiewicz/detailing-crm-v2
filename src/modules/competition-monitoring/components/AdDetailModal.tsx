@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { ExternalLink, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, X } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -467,23 +467,64 @@ const PyramidFoot = styled.div`
  * w oknie bez ramki i tła, wyglądał jak wklejony z innej aplikacji. Teraz jest
  * przyciskiem w stylu reszty, na pełną szerokość kolumny, domykającym panel.
  */
-const SnapshotButton = styled.a`
+/**
+ * Odnośnik do oryginału w nagłówku, nie na dole okna.
+ *
+ * Na dole kończył długą kolumnę paneli i trzeba było do niego doscrollować przez
+ * całą demografię — czyli znajdował go ten, kto i tak już wszystko przeczytał.
+ * Tu jest widoczny od pierwszej chwili, obok tytułu kampanii, której dotyczy.
+ */
+/**
+ * Przełącznik „Pokaż / Ukryj" przy nagłówku panelu.
+ *
+ * Treść reklamy bywa na dwadzieścia linijek i stoi PRZED danymi zasięgu, po które
+ * najczęściej się tu wchodzi. Domyślnie więc leży zwinięta — kto chce przeczytać
+ * ofertę konkurenta, rozwija ją jednym kliknięciem.
+ */
+const PanelToggle = styled.button`
+    margin-left: auto;
     display: inline-flex;
-    align-self: flex-start;
-    flex-shrink: 0;
     align-items: center;
-    justify-content: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCard};
+    font-family: inherit;
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: ${st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
+
+    svg { width: 12px; height: 12px; }
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    align-items: center;
     gap: 8px;
-    padding: 10px 18px;
+    flex-shrink: 0;
+`;
+
+const HeaderSnapshotLink = styled.a`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
     border-radius: ${st.radiusSm};
-    border: 1.5px solid ${st.border};
+    border: 1px solid ${st.border};
     background: ${st.bgCard};
     color: ${st.textSecondary};
     font-family: inherit;
-    font-size: 13px;
+    font-size: ${st.fontSm};
     font-weight: 600;
+    white-space: nowrap;
     text-decoration: none;
-    text-align: center;
     transition: all ${st.transition};
 
     &:hover {
@@ -493,6 +534,12 @@ const SnapshotButton = styled.a`
     }
 
     svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* Na telefonie zostaje sama ikona: nagłówek ma tam do podziału 320 px. */
+    @media (max-width: 599px) {
+        padding: 7px 9px;
+        span { display: none; }
+    }
 `;
 
 const formatDay = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL');
@@ -522,9 +569,22 @@ export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
                         {data ? `@${data.username}` : 'Wczytuję szczegóły…'}
                     </ModalSubtitle>
                 </ModalTitleGroup>
-                <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
-                    <X />
-                </ModalCloseButton>
+                <HeaderActions>
+                    {data?.snapshotUrl && (
+                        <HeaderSnapshotLink
+                            href={data.snapshotUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Zobacz oryginał w Bibliotece Meta"
+                        >
+                            <ExternalLink />
+                            <span>Oryginał w Bibliotece Meta</span>
+                        </HeaderSnapshotLink>
+                    )}
+                    <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
+                        <X />
+                    </ModalCloseButton>
+                </HeaderActions>
             </ModalHeader>
 
             <ModalContent>
@@ -542,6 +602,9 @@ export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
 };
 
 const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
+    // Treść reklamy startuje zwinięta: stoi przed danymi zasięgu, a bywa dłuższa
+    // niż cała reszta okna razem wzięta.
+    const [creativeOpen, setCreativeOpen] = useState(false);
     const buckets = fullBreakdown(ad.breakdown);
     const total = buckets.reduce((sum, bucket) => sum + bucket.male + bucket.female, 0);
     const scale = Math.max(1, ...buckets.map(bucket => Math.max(bucket.male, bucket.female)));
@@ -590,9 +653,18 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                 {hasCreative && (
                     <Panel>
                         <h4>
-                            Treść reklamy <em>tak widzi ją odbiorca</em>
+                            Treść reklamy
+                            {creativeOpen && <em>tak widzi ją odbiorca</em>}
+                            <PanelToggle
+                                type="button"
+                                onClick={() => setCreativeOpen(open => !open)}
+                                aria-expanded={creativeOpen}
+                            >
+                                {creativeOpen ? <ChevronUp /> : <ChevronDown />}
+                                {creativeOpen ? 'Ukryj' : 'Pokaż'}
+                            </PanelToggle>
                         </h4>
-                        <AdCreative ad={ad} hasLinkCard={hasLinkCard} />
+                        {creativeOpen && <AdCreative ad={ad} hasLinkCard={hasLinkCard} />}
                     </Panel>
                 )}
                 <Panel>
@@ -693,12 +765,6 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                         )}
                     </Rows>
                 </Panel>
-
-                {ad.snapshotUrl && (
-                    <SnapshotButton href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer">
-                        Zobacz oryginał w Bibliotece Meta <ExternalLink />
-                    </SnapshotButton>
-                )}
             </Stack>
         </>
     );

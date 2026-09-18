@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { X } from 'lucide-react';
+import { Check, Link2, Search, X } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -10,7 +10,9 @@ import {
     ModalCloseButton,
     ModalContent,
     ModalFooter,
+    ModalSectionTitle,
 } from '@/common/components/ModalKit';
+import { FieldLabel, InputShell, BareInput, FormAlertBanner } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useToast } from '@/common/components/Toast';
@@ -22,32 +24,42 @@ import { useLinkFacebookPage, useSearchAdPages, useUnlinkFacebookPage } from '..
  * Robi to człowiek, a nie kod, bo Meta nie udostępnia mostu profil IG → strona FB,
  * a wyszukiwanie po nazwie trafia na zbieżności - „Auto Spa" jest w każdym mieście
  * i pomyłka podpięłaby właścicielowi cudze kampanie jako kampanie konkurenta.
+ *
+ * Układ okna: jedno pole szukania u góry, pod nim POLE WYNIKÓW o stałej wysokości,
+ * na końcu wybrany numer. Stała wysokość jest celowa - wcześniej okno było w 3/4
+ * puste, a po wyszukaniu podskakiwało o 200 px, więc lista wysuwała się spod kursora.
+ * Puste pole wyników nie zostaje puste: tłumaczy, co wpisać i gdzie szukać numeru,
+ * czyli dokładnie to, po co ktoś tu zagląda pierwszy raz.
  */
 
-
-const Field = styled.label`
+const CurrentLink = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const Input = styled.input`
-    height: 40px;
-    padding: 0 12px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 18px;
+    background: ${st.bgCardAlt};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
-    font-family: inherit;
-    font-size: ${st.fontMd};
-    font-variant-numeric: tabular-nums;
-    color: ${st.text};
 
-    &:focus {
-        outline: none;
-        border-color: ${st.borderFocus};
-        box-shadow: ${st.shadowBlue};
+    svg { flex-shrink: 0; color: ${st.textMuted}; }
+`;
+
+const CurrentCopy = styled.div`
+    min-width: 0;
+
+    span {
+        display: block;
+        font-size: ${st.fontXs};
+        color: ${st.textMuted};
+    }
+    strong {
+        display: block;
+        font-size: ${st.fontSm};
+        font-weight: 600;
+        color: ${st.text};
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
     }
 `;
 
@@ -55,42 +67,55 @@ const SearchRow = styled.div`
     display: flex;
     gap: 8px;
     align-items: stretch;
-    margin-bottom: 14px;
+
+    > *:first-child { flex: 1; min-width: 0; }
+    button { flex-shrink: 0; }
+`;
+
+/**
+ * Pole wyników: jedna wysokość niezależnie od tego, czy jest pusto, czy jest sześć
+ * firm. Okno przestaje przez to skakać, a wolna przestrzeń dostaje treść zamiast
+ * bieli.
+ */
+const Results = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-height: 208px;
+    max-height: 288px;
+    margin-top: 12px;
+    overflow-y: auto;
 `;
 
 const Candidates = styled.ul`
     list-style: none;
-    margin: 0 0 16px;
+    margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 220px;
-    overflow-y: auto;
 `;
 
-/** Nazwa firmy i jej konto na Instagramie jedno pod drugim; licznik reklam zostaje po prawej. */
-const Who = styled.div`
-    min-width: 0;
-`;
-
-/** Kandydat: nazwa, liczba reklam i data - tyle, żeby odróżnić firmę od zbieżnej nazwy. */
+/** Kandydat: nazwa, konto IG, liczba reklam i data - tyle, żeby odróżnić firmę od zbieżnej nazwy. */
 const Candidate = styled.button<{ $chosen: boolean }>`
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 10px;
     width: 100%;
-    padding: 8px 11px;
+    padding: 9px 11px;
     border: 1px solid ${p => (p.$chosen ? st.accentBlue : st.border)};
     border-radius: ${st.radiusSm};
     background: ${p => (p.$chosen ? st.accentBlueDim : st.bgCard)};
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color ${st.transition};
+    transition: border-color ${st.transition}, background ${st.transition};
 
     &:hover { border-color: ${st.borderHover}; }
+`;
+
+const Who = styled.div`
+    min-width: 0;
 
     strong {
         display: block;
@@ -107,8 +132,15 @@ const Candidate = styled.button<{ $chosen: boolean }>`
         color: ${st.textMuted};
         overflow-wrap: anywhere;
     }
+`;
+
+const Meta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
     span {
-        flex-shrink: 0;
         font-size: ${st.fontXs};
         color: ${st.textMuted};
         font-variant-numeric: tabular-nums;
@@ -116,9 +148,47 @@ const Candidate = styled.button<{ $chosen: boolean }>`
     }
 `;
 
-const Hint = styled.p`
-    margin: 10px 0 0;
+const Chosen = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: ${st.radiusFull};
+    background: ${st.accentBlue};
+    color: #fff;
+`;
+
+/** Puste pole wyników: instrukcja zamiast bieli. */
+const Placeholder = styled.div`
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    padding: 0 4px;
     font-size: ${st.fontSm};
+    line-height: 1.55;
+    color: ${st.textMuted};
+
+    b {
+        display: block;
+        font-size: ${st.fontSm};
+        font-weight: 600;
+        color: ${st.textSecondary};
+    }
+    code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        background: ${st.bgCardAlt};
+        padding: 1px 5px;
+        border-radius: 4px;
+    }
+`;
+
+const Hint = styled.p`
+    margin: 8px 0 0;
+    font-size: ${st.fontXs};
     color: ${st.textMuted};
     line-height: 1.5;
 
@@ -131,10 +201,8 @@ const Hint = styled.p`
     }
 `;
 
-const ErrorText = styled.p`
-    margin: 10px 0 0;
-    font-size: ${st.fontSm};
-    color: ${st.accentRed};
+const Section = styled.div`
+    & + & { margin-top: 22px; }
 `;
 
 const formatDay = (iso: string) =>
@@ -213,87 +281,124 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
             </ModalHeader>
 
             <ModalContent>
-                {/* Jedno pole na wszystko, co człowiek ma pod ręką: wklejony adres strony
-                    (z numerem albo z aliasem), sam numer albo nazwę firmy. Facebook pokazuje
-                    tę samą stronę raz jako profile.php?id=…, raz jako /CarArtDetailing -
-                    rozpoznanie postaci jest robotą aplikacji, nie użytkownika. */}
-                <Field as="div">
-                    Adres strony, nazwa albo numer
+                {currentPageId && (
+                    <CurrentLink>
+                        <Link2 size={16} />
+                        <CurrentCopy>
+                            <span>Obecnie powiązana strona</span>
+                            <strong>{currentPageId}</strong>
+                        </CurrentCopy>
+                    </CurrentLink>
+                )}
+
+                <Section>
+                    <ModalSectionTitle>Znajdź stronę</ModalSectionTitle>
+                    {/* Jedno pole na wszystko, co człowiek ma pod ręką: wklejony adres strony
+                        (z numerem albo z aliasem), sam numer albo nazwę firmy. Facebook pokazuje
+                        tę samą stronę raz jako profile.php?id=…, raz jako /CarArtDetailing -
+                        rozpoznanie postaci jest robotą aplikacji, nie użytkownika. */}
+                    <FieldLabel htmlFor="fb-page-query">Adres strony, nazwa albo numer</FieldLabel>
                     <SearchRow>
-                        <Input
-                            value={query}
-                            onChange={event => setQuery(event.target.value)}
-                            onKeyDown={event => event.key === 'Enter' && canSearch && runSearch()}
-                            placeholder="np. facebook.com/CarArtDetailing"
-                            autoFocus
-                        />
-                        <SharedButton
-                            type="button"
-                            $variant="secondary"
-                            disabled={!canSearch}
-                            onClick={runSearch}
-                        >
+                        <InputShell>
+                            <BareInput
+                                id="fb-page-query"
+                                value={query}
+                                onChange={event => setQuery(event.target.value)}
+                                onKeyDown={event => event.key === 'Enter' && canSearch && runSearch()}
+                                placeholder="np. facebook.com/CarArtDetailing"
+                                autoFocus
+                            />
+                        </InputShell>
+                        <SharedButton type="button" $variant="secondary" disabled={!canSearch} onClick={runSearch}>
+                            <Search size={15} />
                             {search.isPending ? 'Szukam…' : 'Szukaj'}
                         </SharedButton>
                     </SearchRow>
-                </Field>
 
-                {search.isSuccess && candidates.length === 0 && (
-                    <Hint>
-                        Nic nie znaleziono. Wklej adres strony na Facebooku albo wpisz numer ręcznie -
-                        po nazwie znajdziemy tylko firmy, które reklamowały się w ostatnim roku.
-                    </Hint>
-                )}
+                    <Results>
+                        {candidates.length > 0 ? (
+                            <Candidates>
+                                {candidates.map(candidate => (
+                                    <li key={candidate.pageId}>
+                                        <Candidate
+                                            type="button"
+                                            $chosen={candidate.pageId === digitsOnly}
+                                            onClick={() => setPageId(candidate.pageId)}
+                                        >
+                                            <Who>
+                                                <strong>{candidate.pageName || 'Nazwa nieznana'}</strong>
+                                                {candidate.instagram && <em>@{candidate.instagram}</em>}
+                                            </Who>
+                                            <Meta>
+                                                <span>
+                                                    {candidate.ads > 0
+                                                        ? `${candidate.ads} rekl.${candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}`
+                                                        : 'bez reklam'}
+                                                </span>
+                                                {candidate.pageId === digitsOnly && (
+                                                    <Chosen><Check size={12} strokeWidth={3} /></Chosen>
+                                                )}
+                                            </Meta>
+                                        </Candidate>
+                                    </li>
+                                ))}
+                            </Candidates>
+                        ) : (
+                            <Placeholder>
+                                {search.isSuccess ? (
+                                    <>
+                                        <b>Nic nie znaleziono</b>
+                                        Po nazwie znajdziemy tylko firmy, które reklamowały się w ostatnim roku.
+                                        Wklej adres strony na Facebooku albo wpisz numer niżej.
+                                    </>
+                                ) : (
+                                    <>
+                                        <b>Czego szukamy</b>
+                                        Strony na Facebooku, z której ta firma wykupuje reklamy. Wklej adres jej
+                                        profilu, wpisz nazwę albo numer strony - wyniki pokażą, ile reklam ma
+                                        każda z firm, żeby nie pomylić jej ze zbieżną nazwą.
+                                        <span>
+                                            Numer znajdziesz też w adresie Biblioteki reklam Meta,
+                                            po <code>view_all_page_id=</code>.
+                                        </span>
+                                    </>
+                                )}
+                            </Placeholder>
+                        )}
+                    </Results>
+                </Section>
 
-                {candidates.length > 0 && (
-                    <Candidates>
-                        {candidates.map(candidate => (
-                            <li key={candidate.pageId}>
-                                <Candidate
-                                    type="button"
-                                    $chosen={candidate.pageId === digitsOnly}
-                                    onClick={() => setPageId(candidate.pageId)}
-                                >
-                                    <Who>
-                                        <strong>{candidate.pageName || 'Nazwa nieznana'}</strong>
-                                        {candidate.instagram && <em>@{candidate.instagram}</em>}
-                                    </Who>
-                                    <span>
-                                        {candidate.ads > 0
-                                            ? `${candidate.ads} rekl.${candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}`
-                                            : 'bez reklam'}
-                                    </span>
-                                </Candidate>
-                            </li>
-                        ))}
-                    </Candidates>
-                )}
+                <Section>
+                    <ModalSectionTitle>Wybrana strona</ModalSectionTitle>
+                    <FieldLabel htmlFor="fb-page-id">Identyfikator strony</FieldLabel>
+                    <InputShell>
+                        <BareInput
+                            id="fb-page-id"
+                            value={pageId}
+                            onChange={event => setPageId(event.target.value)}
+                            onKeyDown={event => event.key === 'Enter' && submit()}
+                            placeholder="np. 100064123456789"
+                            inputMode="numeric"
+                            style={{ fontVariantNumeric: 'tabular-nums' }}
+                        />
+                    </InputShell>
+                    <Hint>Wypełnia się samo po wybraniu firmy z listy wyżej.</Hint>
+                </Section>
 
-                <Field>
-                    Identyfikator strony
-                    <Input
-                        value={pageId}
-                        onChange={event => setPageId(event.target.value)}
-                        onKeyDown={event => event.key === 'Enter' && submit()}
-                        placeholder="np. 100064123456789"
-                        inputMode="numeric"
-                    />
-                </Field>
-                <Hint>
-                    Wypełnia się samo po wybraniu firmy wyżej. Numer znajdziesz też w adresie Biblioteki
-                    reklam po <code>view_all_page_id=</code>.
-                </Hint>
-
-                {link.isError && (
-                    <ErrorText>
-                        Nie udało się powiązać strony. Sprawdź, czy identyfikator to sama liczba z adresu.
-                    </ErrorText>
-                )}
-                {unlink.isError && <ErrorText>Nie udało się odpiąć strony. Spróbuj ponownie.</ErrorText>}
                 {currentPageId && (
-                    <Hint>
+                    <FormAlertBanner style={{ marginTop: 18 }}>
                         Zmiana strony kasuje reklamy pobrane dla poprzedniej - to reklamy innej firmy.
-                    </Hint>
+                    </FormAlertBanner>
+                )}
+                {link.isError && (
+                    <FormAlertBanner style={{ marginTop: 10 }}>
+                        Nie udało się powiązać strony. Sprawdź, czy identyfikator to sama liczba z adresu.
+                    </FormAlertBanner>
+                )}
+                {unlink.isError && (
+                    <FormAlertBanner style={{ marginTop: 10 }}>
+                        Nie udało się odpiąć strony. Spróbuj ponownie.
+                    </FormAlertBanner>
                 )}
             </ModalContent>
 
