@@ -11,10 +11,16 @@ import type {
 
 const KEY = 'products';
 
-export const useProducts = (filters: ProductListFilters) => {
+/**
+ * @param options.enabled `false` wstrzymuje zapytanie. Potrzebne tam, gdzie katalogu
+ *   może w ogóle nie być pod ręką (studio bez modułu produktów) — bez tego lista
+ *   strzelałaby po 403 i wywalała globalny toast przy każdym wpisanym znaku.
+ */
+export const useProducts = (filters: ProductListFilters, options?: { enabled?: boolean }) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: [KEY, 'list', filters],
         queryFn: () => productsApi.list(filters),
+        enabled: options?.enabled ?? true,
     });
     return {
         products: data?.products ?? [],

@@ -21,6 +21,7 @@ import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
 import { HandoverSheet, MarkReadyDialog } from '../components/handover';
+import { QualityCertificateModal } from '../components/QualityCertificateModal';
 import { SmsReminderModal } from '../components/SmsReminderModal';
 import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminder';
 import { useDeleteVisit } from '../hooks/useDeleteVisit';
@@ -616,6 +617,30 @@ const ReminderActionBtn = styled.button<{ $danger?: boolean }>`
     svg { width: 11px; height: 11px; }
 `;
 
+// Akcja drugorzędna po zakończonej wizycie: odcień marki, obwódka, zero wypełnienia
+// (CLAUDE.md §2). Wypełnienie pojawia się dopiero w otwartym oknie certyfikatu.
+const CertificateBtn = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: ${st.radius};
+    border: 1px solid #fcd34d;
+    background: ${st.bgAccentAmber};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #b45309;
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    &:hover { border-color: #f59e0b; }
+`;
+
 const ScheduleSmsBtn = styled.button`
     width: 100%;
     display: flex;
@@ -689,6 +714,7 @@ export const VisitDetailView = () => {
     const [isConsumerInvoiceOpen, setIsConsumerInvoiceOpen] = useState(false);
     const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
     const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
+    const [isCertificateOpen, setIsCertificateOpen] = useState(false);
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
@@ -1279,6 +1305,17 @@ export const VisitDetailView = () => {
                                 </ReminderCardActions>
                             </ReminderCard>
                         )}
+                        {/* Certyfikat jakości — dopiero po wydaniu pojazdu. Wcześniej byłby
+                            obietnicą, a nie potwierdzeniem wykonanej pracy. */}
+                        {visit.status === 'COMPLETED' && (
+                            <CertificateBtn onClick={() => setIsCertificateOpen(true)}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="8" r="6"/>
+                                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                                </svg>
+                                Certyfikat jakości
+                            </CertificateBtn>
+                        )}
                         {!pendingReminder && visit.status === 'COMPLETED' && (() => {
                             const hasPhone = !!visit.customer.phone?.trim();
                             // The button always opens something. Disabling it with a note
@@ -1346,6 +1383,10 @@ export const VisitDetailView = () => {
                     onClose={closeTransition}
                     onSuccess={closeTransition}
                 />
+            )}
+
+            {isCertificateOpen && (
+                <QualityCertificateModal visit={visit} onClose={() => setIsCertificateOpen(false)} />
             )}
 
             {transitionType === 'ready_to_completed' && (
