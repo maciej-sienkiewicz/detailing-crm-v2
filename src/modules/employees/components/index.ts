@@ -1,5 +1,4 @@
 export { EmployeeStatusBadge } from './EmployeeStatusBadge';
-export { EmployeeTable } from './EmployeeTable';
 export { AddEmployeeModal } from './AddEmployeeModal';
 export { TerminateEmployeeModal } from './TerminateEmployeeModal';
 export { ContractCompensationTab } from './ContractCompensationTab';
