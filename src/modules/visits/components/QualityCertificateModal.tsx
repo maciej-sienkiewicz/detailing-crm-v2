@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { Award, Package, Plus, Search, Wrench, X } from 'lucide-react';
+import { Award, Droplets, Package, Plus, Search, Wrench, X } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
@@ -56,6 +56,14 @@ const Manual = styled.div`
     background: ${st.bgCard};
 `;
 const ManualHead = styled.div` display: flex; align-items: flex-start; gap: 10px; `;
+const CareArea = styled.textarea`
+    width: 100%; min-height: 76px; resize: vertical;
+    padding: 10px 12px; font-family: inherit; font-size: 13px; line-height: 1.5;
+    color: ${st.text}; background: ${st.bgInput};
+    border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
+    &:focus { outline: none; border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
+`;
+
 const NoteInput = styled.input`
     width: 100%; padding: 8px 10px; font-family: inherit; font-size: 12.5px;
     color: ${st.text}; background: ${st.bgInput};
@@ -226,6 +234,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
     const [linkIds, setLinkIds] = useState<Set<string>>(new Set());
     const [extras, setExtras] = useState<ManualEntry[]>([]);
     const [recommended, setRecommended] = useState<ManualEntry[]>([]);
+    const [careNote, setCareNote] = useState('');
     const [busy, setBusy] = useState(false);
 
     // Powiązania z produktami dociągają się osobnym zapytaniem, więc ich zaznaczenie musi
@@ -251,7 +260,8 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
     ) => apply(list.map(e => (e.key === key ? { ...e, note: note || null } : e)));
 
     const nothingSelected =
-        serviceIds.size === 0 && linkIds.size === 0 && extras.length === 0 && recommended.length === 0;
+        serviceIds.size === 0 && linkIds.size === 0 && extras.length === 0
+        && recommended.length === 0 && careNote.trim().length === 0;
 
     const generate = async () => {
         setBusy(true);
@@ -263,6 +273,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                     productLinkIds: [...linkIds],
                     extraProducts: extras.map(({ productId, name, note }) => ({ productId, name, note })),
                     recommendations: recommended.map(({ productId, name, note }) => ({ productId, name, note })),
+                    careNote: careNote.trim() || null,
                 },
                 visit.visitNumber,
             );
@@ -384,6 +395,22 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                             : 'Poleć produkt…'}
                         catalog={canProducts}
                         onPick={entry => setRecommended(prev => [...prev, entry])}
+                    />
+                </Section>
+
+                <Divider />
+
+                <Section>
+                    <SectionHead><Droplets size={16} /> Zalecenia dla tej realizacji</SectionHead>
+                    <SectionNote>
+                        Certyfikat ma już stałą sekcję o pielęgnacji — mycie dwoma wiadrami, osuszanie,
+                        odchody ptaków, odczyn preparatów. Tu wpisz to, co dotyczy TEJ pracy, np. termin
+                        pierwszego mycia po nałożeniu powłoki. Puste pole nie dodaje niczego do dokumentu.
+                    </SectionNote>
+                    <CareArea
+                        value={careNote}
+                        onChange={e => setCareNote(e.target.value)}
+                        placeholder="Np. powłoka utwardza się 7 dni — do tego czasu nie myj auta i nie parkuj pod drzewami."
                     />
                 </Section>
             </ModalContent>

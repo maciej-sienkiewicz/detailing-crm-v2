@@ -15,6 +15,8 @@ export interface GenerateCertificateRequest {
     /** Produkty dopisane do „użytych" ręcznie, spoza powiązań wizyty. */
     extraProducts: CertificateProductEntry[];
     recommendations: CertificateProductEntry[];
+    /** Zalecenia szczegółowe tej realizacji — np. termin pierwszego mycia po powłoce. */
+    careNote: string | null;
 }
 
 export const qualityCertificateApi = {

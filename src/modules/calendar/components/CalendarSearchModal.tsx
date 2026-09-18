@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
 import { calendarApi } from '../api/calendarApi';
 import { PiiValue, PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
@@ -32,9 +33,8 @@ const Backdrop = styled.div`
     padding-top: 80px;
     animation: ${fadeIn} 0.15s ease;
 
-    @media (max-width: 600px) {
+    @media (max-width: 640px) {
         padding-top: 0;
-        align-items: flex-end;
     }
 `;
 
@@ -53,10 +53,28 @@ const Panel = styled.div`
     display: flex;
     flex-direction: column;
 
-    @media (max-width: 600px) {
-        max-width: 100vw;
-        border-radius: 16px 16px 0 0;
-        max-height: 80vh;
+    /* Telefon: arkusz na pełnym ekranie, liczony od GÓRY.
+     *
+     * Wcześniej było to okno przyklejone do dołu (align-items: flex-end, 80vh).
+     * position: fixed rozlicza się z LAYOUT viewportem, a ten w Safari nie kurczy się
+     * po otwarciu klawiatury — więc dolna krawędź arkusza lądowała pod klawiaturą
+     * razem z polem wyszukiwania i całą listą. Teraz pole stoi na górze, lista bierze
+     * resztę ekranu, a wysokość klawiatury schodzi do listy jako --kb-inset
+     * (useVisualViewportSheet) — dokładnie tak jak w pickerze usług przy wizycie
+     * (ServiceInlineRow) i w oknie pozycji zlecenia zbiorczego. */
+    @media (max-width: 640px) {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: auto;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+        box-shadow: none;
+        animation: none;
+        padding-top: env(safe-area-inset-top);
     }
 `;
 
@@ -109,10 +127,43 @@ const ClearBtn = styled.button`
     svg { width: 14px; height: 14px; }
 `;
 
+/**
+ * Wyjście z arkusza na telefonie. Arkusz zakrywa cały ekran, więc kliknięcie w tło
+ * — jedyna droga wyjścia na desktopie — jest tam nieosiągalne.
+ */
+const SheetClose = styled.button`
+    display: none;
+
+    @media (max-width: 640px) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        margin-right: -8px;
+        flex-shrink: 0;
+        border: none;
+        border-radius: 12px;
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+
+        svg { width: 20px; height: 20px; }
+        &:active { background: #f1f5f9; color: #0f172a; }
+    }
+`;
+
 const ResultsArea = styled.div`
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     flex: 1;
+    min-height: 0;
     padding: 8px 0 12px;
+    /* Zapas pod ostatnim wynikiem: margines telefonu plus wysokość klawiatury.
+       Dzięki niemu do ostatniej pozycji da się doscrollować, zamiast kurczyć arkusz. */
+    padding-bottom: calc(12px + env(safe-area-inset-bottom) + var(--kb-inset, 0px));
     scrollbar-width: thin;
     scrollbar-color: #e2e8f0 transparent;
 
@@ -362,7 +413,12 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
     const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const sheetRef = useRef<HTMLDivElement>(null);
     const fetchedRef = useRef(false);
+    const isMobile = !useBreakpoint('sm');
+
+    // Przypina arkusz do WIDOCZNEGO obszaru ekranu i oddaje wysokość klawiatury liście.
+    useVisualViewportSheet(isMobile, sheetRef);
 
     // Fetch a wide range of events once on mount
     useEffect(() => {
@@ -418,7 +474,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
 
     return (
         <Backdrop onClick={onClose}>
-            <Panel onClick={e => e.stopPropagation()}>
+            <Panel ref={sheetRef} onClick={e => e.stopPropagation()}>
                 <SearchHeader>
                     <SearchIconWrapper>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
@@ -443,6 +499,13 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                             </svg>
                         </ClearBtn>
                     )}
+                    <SheetClose type="button" onClick={onClose} aria-label="Zamknij wyszukiwanie">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </SheetClose>
                 </SearchHeader>
 
                 <ResultsArea>
