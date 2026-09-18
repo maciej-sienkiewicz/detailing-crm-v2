@@ -171,8 +171,6 @@ interface CalendarDisplaySettingsProps {
     onShowAdjacentMonthDaysChange: (value: boolean) => void;
     isDefault: boolean;
     onReset: () => void;
-    /** Na telefonie przycisk stoi w rzędzie pigułek i ma nieść podpis. */
-    withLabel?: boolean;
 }
 
 export const CalendarDisplaySettings = ({
@@ -182,7 +180,6 @@ export const CalendarDisplaySettings = ({
     onShowAdjacentMonthDaysChange,
     isDefault,
     onReset,
-    withLabel = false,
 }: CalendarDisplaySettingsProps) => {
     const [open, setOpen] = useState(false);
     const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -218,8 +215,10 @@ export const CalendarDisplaySettings = ({
                 aria-label="Ustawienia widoku miesiąca"
                 title="Ustawienia widoku miesiąca"
             >
+                {/* Sam znak, bez podpisu — na telefonie stoi w rzędzie z lupką jako
+                    para ikon, a „Widok" rozpychało rząd i tłumaczyło to, co i tak mówi
+                    panel po otwarciu. */}
                 <GearIcon />
-                {withLabel && 'Widok'}
                 {!isDefault && !open && <ModifiedDot />}
             </TriggerBtn>
 

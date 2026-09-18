@@ -517,14 +517,53 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }
     };
 
-    const validateForm = (): { [key: string]: string } => {
-        const newErrors: { [key: string]: string } = {};
+    /**
+     * Klient, z którym wychodzimy z formularza.
+     *
+     * Wpisane pola LICZĄ SIĘ jako klient, nawet jeśli nikt nie zatwierdził ich osobnym
+     * gestem. Wcześniej klient nowy powstawał tylko przez Enter w polu e-mail albo przez
+     * pozycję z listy podpowiedzi — na telefonie nie ma ani jednego, ani drugiego, więc
+     * wypełnienie imienia, nazwiska i telefonu kończyło się komunikatem „Wybór klienta
+     * jest wymagany" nad polami, w których ten klient był już wpisany.
+     *
+     * Ta sama zasada domyka edycję: poprawki w danych wybranego klienta wchodzą do zapisu
+     * także wtedy, gdy nikt nie kliknął „gotowe". To jest ten sam wzorzec, którym niżej
+     * rozwiązuje się pojazd (`vehicleToSubmit`) — formularz czyta pola, a nie ceremonię.
+     */
+    const resolveCustomerForSubmit = (): SelectedCustomer | null => {
+        const fn = customerFirstName.trim();
+        const ln = customerLastName.trim();
+        const ph = customerFullPhone;
+        const em = customerEmail.trim();
 
         if (!selectedCustomer) {
+            if (!fn && !ln && !ph && !em) return null;
+            return { id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true };
+        }
+        if (!customerEditMode) return selectedCustomer;
+
+        const changed = fn !== (selectedCustomer.firstName ?? '')
+            || ln !== (selectedCustomer.lastName ?? '')
+            || ph !== (selectedCustomer.phone ?? '')
+            || em !== (selectedCustomer.email ?? '');
+        return {
+            ...selectedCustomer,
+            firstName: fn,
+            lastName: ln,
+            phone: ph,
+            email: em,
+            hasUpdates: !selectedCustomer.isNew && changed,
+        };
+    };
+
+    const validateForm = (customer: SelectedCustomer | null): { [key: string]: string } => {
+        const newErrors: { [key: string]: string } = {};
+
+        if (!customer) {
             newErrors.customer = 'Wybór klienta jest wymagany';
-        } else if (selectedCustomer.isNew) {
-            const hasPhone = selectedCustomer.phone && selectedCustomer.phone.trim().length > 0;
-            const hasEmail = selectedCustomer.email && selectedCustomer.email.trim().length > 0;
+        } else if (customer.isNew) {
+            const hasPhone = customer.phone && customer.phone.trim().length > 0;
+            const hasEmail = customer.email && customer.email.trim().length > 0;
             if (!hasPhone && !hasEmail) {
                 newErrors.customer = 'Podaj co najmniej numer telefonu lub adres email klienta';
             }
@@ -583,11 +622,19 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         e.preventDefault();
         if (isSubmitting) return;
         setErrors({});
-        const errs = validateForm();
+        const customerToSubmit = resolveCustomerForSubmit();
+        const errs = validateForm(customerToSubmit);
         if (Object.keys(errs).length > 0) {
             showError('Nie można zapisać wizyty', 'Sprawdź zaznaczone pola formularza.');
             focusFirstError(errs);
             return;
+        }
+        // Stan podnosimy DOPIERO po udanej walidacji. Wcześniej sekcja klienta zamieniłaby
+        // się w podsumowanie i schowała pola, w których trzeba poprawić błąd.
+        if (customerToSubmit && customerToSubmit !== selectedCustomer) {
+            setSelectedCustomer(customerToSubmit);
+            if (customerToSubmit.isNew) setSelectedCustomerId(undefined);
+            setCustomerEditMode(false);
         }
         setIsSubmitting(true);
         const vehicleToSubmit = selectedVehicle ?? (
@@ -598,7 +645,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         try {
             await Promise.resolve(onSave({
                 title,
-                customer: selectedCustomer,
+                customer: customerToSubmit,
                 vehicle: vehicleToSubmit,
                 startDateTime,
                 endDateTime,

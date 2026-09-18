@@ -919,6 +919,28 @@ const MobileFilterBadge = styled.span`
 
 /* Tryb wydarzenia był dostępny tylko z nagłówka desktopowego, więc na telefonie
    nie dało się dodać wydarzenia w ogóle. Dzwoneczek obok „+" włącza ten sam tryb. */
+// Lupka na telefonie. Ten sam kształt i te same barwy co koło zębate obok —
+// oba są ikonami narzędziowymi, więc mają wyglądać jak para, a nie jak dwa
+// przyciski z różnych rodzin.
+const MobileSearchBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    min-width: 36px;
+    padding: 0 9px;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+
+    svg { width: 17px; height: 17px; display: block; }
+    &:active { background: #f1f5f9; color: #334155; }
+`;
+
 const MobileEventModeBtn = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
@@ -2474,9 +2496,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             <MobileFilterBadge>{deselectedCount}</MobileFilterBadge>
                         )}
                     </MobileFilterPill>
+                    {/* Wyszukiwarka wizyt — na desktopie stoi w nagłówku strony, którego
+                        telefon nie ma; bez tego przycisku była na telefonie nieosiągalna. */}
+                    <MobileSearchBtn
+                        type="button"
+                        onClick={() => setSearchOpen(true)}
+                        aria-label="Szukaj wizyt"
+                        title="Szukaj wizyt"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                    </MobileSearchBtn>
                     {!selectionMode && !agendaListActive && currentView === 'dayGridMonth' && (
                         <CalendarDisplaySettings
-                            withLabel
                             showWeekends={showWeekends}
                             showAdjacentMonthDays={showAdjacentMonthDays}
                             onShowWeekendsChange={setShowWeekends}

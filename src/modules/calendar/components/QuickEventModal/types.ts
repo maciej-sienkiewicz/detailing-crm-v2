@@ -48,6 +48,15 @@ export interface Service {
     id: string;
     name: string;
     basePriceNet: number;
+    /**
+     * Dokładne brutto z katalogu — w groszach, gdy cenę wpisano od strony brutto.
+     *
+     * Typ go nie niósł, choć `addService` już je czytało: TypeScript zgłaszał błąd,
+     * a każdy, kto składał `Service` ręcznie, pomijał to pole, bo go tu nie widział.
+     * Tak właśnie ginie dokładne brutto (CLAUDE.md §1) — nie na obliczeniu, tylko na
+     * mapowaniu, w którym nikt o nim nie pomyślał.
+     */
+    basePriceGross?: number | null;
     vatRate: number;
     requireManualPrice: boolean;
     isPackage?: boolean;
