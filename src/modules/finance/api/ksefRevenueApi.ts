@@ -72,6 +72,30 @@ export const ksefRevenueApi = {
   downloadUpo: (id: string, invoiceNumber: string): Promise<void> =>
     downloadXml(`${BASE}/invoices/${id}/upo`, `upo-${invoiceNumber.replace(/\//g, '-')}.xml`),
 
+  /**
+   * Otwiera wizualizację faktury (PDF) w nowej karcie.
+   *
+   * Podgląd, nie pobranie: fakturę najpierw się ogląda, a zapis na dysk i wydruk
+   * ma już czytnik PDF w przeglądarce. Karta powstaje PRZED await — otwarta po nim
+   * wypada poza gest kliknięcia i ląduje w blokadzie wyskakujących okien (Safari,
+   * Firefox z domyślnymi ustawieniami).
+   */
+  openInvoicePdf: async (id: string): Promise<void> => {
+    const tab = window.open('', '_blank');
+    try {
+      const response = await apiClient.get(`${BASE}/invoices/${id}/pdf`, { responseType: 'blob' });
+      const blobUrl = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      if (tab) tab.location.href = blobUrl;
+      else window.open(blobUrl, '_blank');
+      // Adres zwalniamy z opóźnieniem: cofnięty od razu zabiera karcie treść,
+      // zanim zdąży ją wczytać.
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) {
+      tab?.close();
+      throw error;
+    }
+  },
+
   // ── Duplikaty / płatność / notatka ─────────────────────────────────────────
 
   resolveDuplicate: async (

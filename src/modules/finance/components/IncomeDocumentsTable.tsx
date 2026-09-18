@@ -1,9 +1,11 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, FileText } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
+import { useToast } from '@/common/components/Toast';
 import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
+import { ksefRevenueApi } from '../api/ksefRevenueApi';
 import { formatMoney, formatDate } from '../utils/formatters';
 
 // ─── Layout (spójny z pozostałymi tabelami modułu finansowego) ───────────────
@@ -122,7 +124,10 @@ const ActionsCell = styled.div`
   gap: 6px;
 `;
 
-const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' }>`
+/* „pdf" chodzi po tej samej ścieżce co „exclude": w tabeli żadna akcja wiersza nie
+   jest wypełniona kolorem — krokiem następnym na tym widoku jest „Wystaw fakturę"
+   w nagłówku (CLAUDE.md §2). */
+const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'pdf' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -314,12 +319,33 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   const restoreMutation = useRestoreIncomeDocument();
   const busy = excludeMutation.isPending || restoreMutation.isPending;
   const isMobile = useMediaQuery('(max-width: 639px)');
+  const { showError } = useToast();
+  const [pdfPendingId, setPdfPendingId] = React.useState<string | null>(null);
 
   /** Ukrycie to akcja wiersza, nie wejście w szczegóły - klik nie może otwierać modala. */
   const toggleExcluded = (event: React.MouseEvent, doc: IncomeDocument) => {
     event.stopPropagation();
     const mutation = doc.excluded ? restoreMutation : excludeMutation;
     mutation.mutate({ sourceKind: doc.sourceKind, id: doc.id });
+  };
+
+  /**
+   * Wizualizacja PDF jest tylko dla faktur z ledgera KSeF: to one mają pozycje, strony
+   * z adresami i numer KSeF. Dokument kasowy z modułu finansów trzyma same sumy, więc
+   * nie da się z niego złożyć faktury spełniającej art. 106e.
+   */
+  const canPreviewPdf = (doc: IncomeDocument) => doc.sourceKind === 'KSEF';
+
+  const openPdf = async (event: React.MouseEvent, doc: IncomeDocument) => {
+    event.stopPropagation();
+    setPdfPendingId(doc.id);
+    try {
+      await ksefRevenueApi.openInvoicePdf(doc.id);
+    } catch {
+      showError('Nie udało się otworzyć faktury', 'Spróbuj ponownie za chwilę.');
+    } finally {
+      setPdfPendingId(null);
+    }
   };
 
   if (!isLoading && documents.length === 0) {
@@ -388,6 +414,18 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       <Badge $bg="#f1f5f9" $fg="#475569" $border="#cbd5e1">Ukryty</Badge>
                     )}
                     <CardBadgeSpacer />
+                    {canPreviewPdf(doc) && (
+                      <ActionBtn
+                        type="button"
+                        $variant="pdf"
+                        disabled={pdfPendingId === doc.id}
+                        onClick={(e) => openPdf(e, doc)}
+                        title="Faktura PDF"
+                        aria-label="Faktura PDF"
+                      >
+                        <FileText size={15} />
+                      </ActionBtn>
+                    )}
                     <ActionBtn
                       type="button"
                       $variant={doc.excluded ? 'restore' : 'exclude'}
@@ -498,6 +536,18 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     </Td>
                     <Td $align="right">
                       <ActionsCell>
+                        {canPreviewPdf(doc) && (
+                          <ActionBtn
+                            type="button"
+                            $variant="pdf"
+                            disabled={pdfPendingId === doc.id}
+                            onClick={(e) => openPdf(e, doc)}
+                            title="Faktura PDF"
+                            aria-label="Faktura PDF"
+                          >
+                            <FileText size={15} />
+                          </ActionBtn>
+                        )}
                         <ActionBtn
                           type="button"
                           $variant={doc.excluded ? 'restore' : 'exclude'}

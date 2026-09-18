@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { CheckCircle2, AlertTriangle, Clock, Download, MessageSquareHeart } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Clock, Download, FileText, MessageSquareHeart } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { useToast } from '@/common/components/Toast';
 import { useKsefAutomation } from '@/modules/finance/hooks';
@@ -214,6 +214,24 @@ export const HandoverResultView = ({
     const canDownloadXml =
         !!result.ksefInvoiceId && status !== 'ACCEPTED' && status !== 'REJECTED';
 
+    /**
+     * Wizualizacja faktury tuż po rozliczeniu: klient stoi przy ladzie i to jest
+     * moment, w którym prosi o fakturę. XML obok niej zostaje dla księgowości.
+     */
+    const [openingPdf, setOpeningPdf] = useState(false);
+
+    const handleOpenPdf = async () => {
+        if (!result.ksefInvoiceId) return;
+        setOpeningPdf(true);
+        try {
+            await ksefRevenueApi.openInvoicePdf(result.ksefInvoiceId);
+        } catch {
+            showError('Nie udało się otworzyć faktury', 'Spróbuj ponownie w module Finanse → Dokumenty przychodowe.');
+        } finally {
+            setOpeningPdf(false);
+        }
+    };
+
     const handleDownload = async () => {
         if (!result.ksefInvoiceId) return;
         setDownloading(true);
@@ -280,6 +298,17 @@ export const HandoverResultView = ({
             </Details>
 
             <Actions>
+                {!!result.ksefInvoiceId && (
+                    <SharedButton
+                        $variant="secondary"
+                        type="button"
+                        onClick={handleOpenPdf}
+                        disabled={openingPdf}
+                    >
+                        <FileText size={15} />
+                        {openingPdf ? 'Otwieranie...' : 'Faktura PDF'}
+                    </SharedButton>
+                )}
                 {canDownloadXml && (
                     <SharedButton
                         $variant="secondary"

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Eye, EyeOff, FileCheck2, RefreshCw, Trash2 } from 'lucide-react';
+import { Download, Eye, EyeOff, FileCheck2, FileText, RefreshCw, Trash2 } from 'lucide-react';
 import {
   ModalShell,
   ModalHeader,
@@ -814,6 +814,14 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             <ModalSectionTitle>Akcje</ModalSectionTitle>
             <ActionsRow>
+              {/* Wizualizacja PDF stoi pierwsza: to ona idzie do nabywcy i to po nią
+                  się tu wraca. XML i UPO są dla księgowości, nie dla klienta. */}
+              <SharedButton
+                $variant="secondary" $size="sm"
+                onClick={() => run(() => ksefRevenueApi.openInvoicePdf(invoice.id))}
+              >
+                <FileText size={14} /> Faktura PDF
+              </SharedButton>
               {invoice.hasXml && (
                 <SharedButton
                   $variant="secondary" $size="sm"
