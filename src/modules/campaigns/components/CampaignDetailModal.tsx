@@ -28,7 +28,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    AlertTriangle, CalendarClock, CheckCircle2, Coins, Copy, Mail, MessageSquare,
+    AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Coins, Copy, Mail, MessageSquare,
     Pause, Pencil, Play, RefreshCw, Send, Square, Trash2, Users,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -49,14 +49,14 @@ import {
 } from '../hooks/useCampaigns';
 import { emptyAudience } from '../types';
 import type { AudienceCriteria, AudienceEstimate, Campaign, RecipientChannel } from '../types';
-import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, STATUS_COLORS } from '../constants';
+import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, STATUS_COLORS, STATUS_LABELS } from '../constants';
 import { audienceChips, useServiceCatalog } from './AudienceBuilder';
 import { ContentPreview } from './ContentPreview';
 import {
     CLOSED_STATUSES, describeMoment, messageWord,
 } from '../utils/campaignState';
 import {
-    CampaignKindMark, CampaignStatusLine, Chip, ChipRow, DangerButton, IconButton,
+    CampaignKindMark, Chip, ChipRow, DangerButton, IconButton,
     MutedText, Note, PrimaryButton, QuietLink, TextField, Timeline, TimelineItem,
 } from './shared';
 // Daty w tym samym formacie, co w oknie leada - jedna implementacja na aplikację.
@@ -106,6 +106,69 @@ const CampaignIdentity = styled.div`
     flex-wrap: wrap;
     font-size: 13px;
     color: ${p => p.theme.colors.textSecondary};
+`;
+
+/**
+ * Etap jako plakietka, nie gołe słowo z kropką.
+ *
+ * Etap to jedyny stan widoczny niezależnie od przewinięcia i ma się czytać jako
+ * PRZEDMIOT, a nie jako dopisek przy krzyżyku zamykającym. Odcień niesie
+ * znaczenie (zielony = domknięte, bursztyn = czeka, czerwień = kłopot), ale
+ * pigułka zostaje TŁEM I OBWÓDKĄ - wypełnienie jest zarezerwowane dla akcji
+ * głównej w stopce (CLAUDE.md §2).
+ */
+const StatusPill = styled.span<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid color-mix(in srgb, ${p => p.$color} 38%, transparent);
+    background: color-mix(in srgb, ${p => p.$color} 10%, transparent);
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: color-mix(in srgb, ${p => p.$color} 75%, #0f172a);
+    white-space: nowrap;
+
+    .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: ${p => p.$color};
+    }
+`;
+
+/**
+ * „Duplikuj" jako przycisk o kształcie, nie link wtopiony w wiersz danych.
+ * Dotąd stał w jednej linii z rodzajem kampanii i datą - czyli akcja udawała
+ * metadaną i czytała się jak jej część.
+ */
+const HeaderDuplicate = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 11px;
+    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid ${p => p.theme.colors.border};
+    background: transparent;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+    transition: border-color ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast};
+
+    svg { width: 13px; height: 13px; }
+
+    &:hover:not(:disabled) {
+        border-color: ${p => p.theme.colors.textMuted};
+        background: ${p => p.theme.colors.surfaceAlt};
+        color: ${p => p.theme.colors.text};
+    }
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;
 
 /** Etap w nagłówku - jedyne miejsce widoczne niezależnie od przewinięcia. */
@@ -296,6 +359,48 @@ const SectionHead = styled.h4`
     .spacer { flex: 1; }
 `;
 
+/**
+ * Nagłówek sekcji, który się rozwija.
+ *
+ * Kryteria odbiorców to OSIEM chipów - czyli osiem osobnych rzeczy do
+ * przeczytania - a odpowiadają na pytanie zadawane raz, przy zakładaniu
+ * kampanii. Później liczy się, ILU ludzi to objęło (blok u góry), nie jakim
+ * filtrem ich wybrano. Domyślnie schowane, na wyciągnięcie jednego kliknięcia.
+ */
+const SectionToggle = styled.button<{ $open: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    letter-spacing: -0.01em;
+    color: ${p => p.theme.colors.text};
+    text-align: left;
+    cursor: pointer;
+
+    .count {
+        font-weight: ${p => p.theme.fontWeights.normal};
+        color: ${p => p.theme.colors.textMuted};
+    }
+
+    .chev {
+        margin-left: auto;
+        flex-shrink: 0;
+        width: 15px;
+        height: 15px;
+        color: ${p => p.theme.colors.textMuted};
+        transform: ${p => (p.$open ? 'rotate(180deg)' : 'none')};
+        transition: transform ${p => p.theme.transitions.normal};
+    }
+
+    &:hover .chev { color: ${p => p.theme.colors.text}; }
+`;
+
 const SectionIcon = styled.span<{ $tone: 'brand' | 'slate' | 'amber' }>`
     display: inline-flex;
     align-items: center;
@@ -361,6 +466,86 @@ const FlatSection = styled.section`
 `;
 
 /**
+ * Nazwisko z adresem pod kursorem.
+ *
+ * W tabeli stoi imię i nazwisko, bo tylko po nich da się rozpoznać klienta -
+ * „693 004 221" nie mówi nikomu nic, a przy nieudanej wysyłce właśnie od
+ * rozpoznania człowieka zaczyna się reakcja. Numer jest nadal potrzebny (żeby
+ * oddzwonić), ale dopiero w drugim kroku, więc czeka w dymku.
+ */
+const NameCell = styled.span`
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+
+    .tip {
+        position: absolute;
+        top: calc(100% + 7px);
+        left: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: ${p => p.theme.radii.md};
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 12px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        box-shadow: 0 10px 24px -12px rgba(15, 23, 42, 0.6);
+        opacity: 0;
+        transform: translateY(-3px);
+        pointer-events: none;
+        transition: opacity ${p => p.theme.transitions.fast}, transform ${p => p.theme.transitions.fast};
+    }
+
+    .tip svg { width: 12px; height: 12px; opacity: 0.75; }
+
+    /* Dziobek - ten sam zabieg co w dymkach kartoteki klienta. */
+    .tip::after {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 14px;
+        border: 5px solid transparent;
+        border-bottom-color: #0f172a;
+    }
+
+    &:hover .tip, &:focus-visible .tip {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+
+/** Bez nazwiska zostaje sam adres - i wtedy to on jest nazwą wiersza. */
+const NoName = styled.span`
+    color: ${p => p.theme.colors.textMuted};
+    font-variant-numeric: tabular-nums;
+`;
+
+/**
+ * Powód niepowodzenia przy wierszu, nie w zbiorczej liczbie.
+ *
+ * „4 nieudane" mówi, ILE, ale nie mówi DO KOGO ani DLACZEGO - a bez tego nie da
+ * się nic z tym zrobić. Komunikat błędu z bramki stoi więc pod nazwiskiem,
+ * w czerwieni, i jest widoczny bez najeżdżania na cokolwiek.
+ */
+const FailReason = styled.span`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+    font-size: 12px;
+    color: ${p => p.theme.colors.error};
+
+    svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
+
+/**
  * Tabela odbiorców. Ten sam krój co tabela wyceny w oknie leada: nagłówki
  * wersalikami, cyfry o stałej szerokości, kreski tylko między wierszami.
  */
@@ -405,7 +590,10 @@ const TableScroll = styled.div`
     max-height: 320px;
     overflow-y: auto;
     margin: 0 -4px;
-    padding: 0 4px;
+    /* Zapas u dołu na dymek z numerem przy OSTATNIM wierszu: przewijanie w pionie
+       przycina wszystko poza ramką, a dopełnienie należy do obszaru
+       przewijanego, więc dymek ostatniego wiersza ma się gdzie zmieścić. */
+    padding: 0 4px 40px;
 `;
 
 const RetryButton = styled.button`
@@ -590,6 +778,8 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
     const retryAllFailed = useRetryAllFailed(campaignId);
 
     const [search, setSearch] = useState('');
+    // Schowane domyślnie - patrz komentarz przy [SectionToggle].
+    const [showCriteria, setShowCriteria] = useState(false);
     const [pending, setPending] = useState<PendingAction>(null);
 
     /*
@@ -617,7 +807,9 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
     const filteredRecipients = useMemo(() => {
         if (!search.trim()) return recipients;
         const query = search.toLowerCase();
-        return recipients.filter((item) => item.address.toLowerCase().includes(query));
+        return recipients.filter((item) =>
+            item.address.toLowerCase().includes(query) ||
+            [item.firstName, item.lastName].filter(Boolean).join(' ').toLowerCase().includes(query));
     }, [recipients, search]);
 
     const chips = useMemo(
@@ -675,14 +867,18 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                         <CampaignIdentity>
                             <CampaignKindMark kind={c.kind} />
                             {CHANNEL_LABELS[c.channel]}
-                            <span>utworzona {formatDateTime(c.createdAt)}</span>
-                            <QuietLink type="button" onClick={runDuplicate} disabled={duplicate.isPending}>
+                            {/* Data utworzenia zeszła stąd do „Przebiegu": tam stoi
+                                razem z resztą dat i nie rozpycha wiersza tożsamości. */}
+                            <HeaderDuplicate type="button" onClick={runDuplicate} disabled={duplicate.isPending}>
                                 <Copy /> Duplikuj
-                            </QuietLink>
+                            </HeaderDuplicate>
                         </CampaignIdentity>
                     </ModalTitleGroup>
                     <HeaderStatus>
-                        <CampaignStatusLine status={c.status} />
+                        <StatusPill $color={STATUS_COLORS[c.status]}>
+                            <span className="dot" />
+                            {STATUS_LABELS[c.status]}
+                        </StatusPill>
                     </HeaderStatus>
                     <CloseBtn onClick={onClose} />
                 </CampaignHeader>
@@ -803,6 +999,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                     </SectionHead>
                                     <ContentPreview
                                         hideHeading
+                                        compact
                                         smsTemplate={c.smsTemplate}
                                         emailSubject={c.emailSubject}
                                         emailBody={c.emailBody}
@@ -836,7 +1033,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                             <SearchRow>
                                                 <TextField
                                                     style={{ flex: '1 1 240px', maxWidth: 320 }}
-                                                    placeholder="Szukaj po numerze lub adresie…"
+                                                    placeholder="Szukaj po nazwisku lub numerze…"
                                                     value={search}
                                                     onChange={(e) => setSearch(e.target.value)}
                                                 />
@@ -846,22 +1043,44 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                     <thead>
                                                         <tr>
                                                             <th />
-                                                            <th>Adres</th>
+                                                            <th>Klient</th>
                                                             <th>Status</th>
                                                             <th>Wysłano</th>
                                                             <th />
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {filteredRecipients.map((r) => (
+                                                        {filteredRecipients.map((r) => {
+                                                            const name = [r.firstName, r.lastName]
+                                                                .filter(Boolean).join(' ').trim();
+                                                            return (
                                                             <tr key={r.id}>
                                                                 <td className="channel">
                                                                     {r.channel === 'SMS' ? <MessageSquare /> : <Mail />}
                                                                 </td>
-                                                                <td className="address">{r.address}</td>
+                                                                <td>
+                                                                    {name ? (
+                                                                        <NameCell tabIndex={0}>
+                                                                            {name}
+                                                                            <span className="tip" role="tooltip">
+                                                                                {r.channel === 'SMS' ? <MessageSquare /> : <Mail />}
+                                                                                {r.address}
+                                                                            </span>
+                                                                        </NameCell>
+                                                                    ) : (
+                                                                        /* Kartoteka „na numer" albo usunięta - wtedy
+                                                                           adres JEST nazwą wiersza. */
+                                                                        <NoName>{r.address}</NoName>
+                                                                    )}
+                                                                </td>
                                                                 <td>
                                                                     {RECIPIENT_STATUS_LABELS[r.status]}
-                                                                    {r.errorMessage && <> - {r.errorMessage}</>}
+                                                                    {r.errorMessage && (
+                                                                        <FailReason>
+                                                                            <AlertTriangle />
+                                                                            {r.errorMessage}
+                                                                        </FailReason>
+                                                                    )}
                                                                 </td>
                                                                 <td className="when">
                                                                     {r.sentAt ? formatDateTime(r.sentAt) : '-'}
@@ -880,7 +1099,8 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                                     )}
                                                                 </td>
                                                             </tr>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </RecipientsTable>
                                             </TableScroll>
@@ -940,14 +1160,23 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                 )}
 
                                 <FlatSection>
-                                    <SectionHead>
+                                    <SectionToggle
+                                        type="button"
+                                        $open={showCriteria}
+                                        aria-expanded={showCriteria}
+                                        onClick={() => setShowCriteria((v) => !v)}
+                                    >
                                         <SectionIcon $tone="slate"><Users /></SectionIcon>
                                         Kryteria odbiorców
-                                    </SectionHead>
-                                    {chips.length > 0 ? (
-                                        <ChipRow>{chips.map((ch) => <Chip key={ch}>{ch}</Chip>)}</ChipRow>
-                                    ) : (
-                                        <MutedText>Bez zawężeń - wszyscy klienci ze zgodą.</MutedText>
+                                        {chips.length > 0 && <span className="count">{chips.length}</span>}
+                                        <ChevronDown className="chev" />
+                                    </SectionToggle>
+                                    {showCriteria && (
+                                        chips.length > 0 ? (
+                                            <ChipRow>{chips.map((ch) => <Chip key={ch}>{ch}</Chip>)}</ChipRow>
+                                        ) : (
+                                            <MutedText>Bez zawężeń - wszyscy klienci ze zgodą.</MutedText>
+                                        )
                                     )}
                                 </FlatSection>
 

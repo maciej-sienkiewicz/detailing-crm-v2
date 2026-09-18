@@ -65,9 +65,9 @@ const Grid = styled.div<{ $cols: 1 | 2 }>`
 
 // ─── Karta kanału ─────────────────────────────────────────────────────────────
 
-const ChannelCard = styled.article`
-  background: ${(p) => p.theme.colors.surface};
-  border: 1px solid ${(p) => p.theme.colors.border};
+const ChannelCard = styled.article<{ $bare?: boolean }>`
+  background: ${(p) => (p.$bare ? 'transparent' : p.theme.colors.surface)};
+  border: ${(p) => (p.$bare ? 'none' : `1px solid ${p.theme.colors.border}`)};
   border-radius: ${(p) => p.theme.radii.md};
   overflow: hidden;
   display: flex;
@@ -133,13 +133,12 @@ const PhoneBackdrop = styled.div`
   gap: 6px;
 `;
 
+/* Nadawca - podpis nad dymkiem, nie wypełniona plakietka. Wypełnienie robiło
+   z nazwy studia trzeci obiekt w kadrze, w którym liczy się tylko treść SMS-a. */
 const SenderCap = styled.div`
   align-self: center;
-  padding: 3px 10px;
-  border-radius: ${(p) => p.theme.radii.full};
-  background: ${(p) => p.theme.colors.border};
-  color: ${(p) => p.theme.colors.textSecondary};
-  font-size: 10px;
+  color: ${(p) => p.theme.colors.textMuted};
+  font-size: 10.5px;
   font-weight: ${(p) => p.theme.fontWeights.semibold};
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -266,6 +265,20 @@ interface Props {
    * drugi raz tuż pod tym samym napisem.
    */
   hideHeading?: boolean;
+  /**
+   * Podgląd bez własnych ram i bez metryki technicznej.
+   *
+   * W oknie kampanii ten podgląd siedział w SIEDMIU zagnieżdżonych
+   * powierzchniach: karta sekcji → karta kanału → pasek „SMS" → tło telefonu →
+   * pigułka nadawcy → dymek wiadomości → pasek kodowania. Sześć z nich mówiło
+   * to samo słowo „SMS" innym sposobem, a jedyne, co liczy się dla oglądającego,
+   * to treść dymka. Tu zostają dwie: tło telefonu i dymek.
+   *
+   * Liczba znaków, kodowanie i segmenty to fakt z etapu PISANIA wiadomości -
+   * w kreatorze zostają, w podglądzie gotowej kampanii nie da się już z nimi
+   * nic zrobić.
+   */
+  compact?: boolean;
 
   smsTemplate?: string | null;
   emailSubject?: string | null;
@@ -293,6 +306,7 @@ export function ContentPreview({
   channel,
   layout = 'auto',
   hideHeading = false,
+  compact = false,
 }: Props) {
   const hasSms = !!smsTemplate?.trim() || channel === 'SMS' || channel === 'BOTH';
   const hasEmail = !!(subject?.trim() || body?.trim()) || channel === 'EMAIL' || channel === 'BOTH';
@@ -303,6 +317,12 @@ export function ContentPreview({
   const smsInfo = useMemo(() => (smsTemplate ? smsMeta(smsTemplate) : null), [smsTemplate]);
 
   const cols: 1 | 2 = hasSms && hasEmail && layout === 'auto' ? 2 : 1;
+  /*
+   * Ramę i pasek z nazwą kanału zdejmujemy tylko wtedy, gdy kanał jest JEDEN.
+   * Przy dwóch obok siebie rama jest jedyną rzeczą, która mówi, gdzie kończy
+   * się SMS, a zaczyna e-mail.
+   */
+  const bare = compact && cols === 1;
 
   if (!hasSms && !hasEmail) {
     return (
@@ -324,17 +344,19 @@ export function ContentPreview({
 
       <Grid $cols={cols}>
         {hasSms && (
-          <ChannelCard>
-            <ChannelHead>
-              <MessageSquare />
-              <h5>SMS</h5>
-            </ChannelHead>
+          <ChannelCard $bare={bare}>
+            {!bare && (
+              <ChannelHead>
+                <MessageSquare />
+                <h5>SMS</h5>
+              </ChannelHead>
+            )}
             <PhoneBackdrop>
               <SenderCap>Twoje studio</SenderCap>
               {smsBody ? <SmsBubble>{smsBody}</SmsBubble> : <Placeholder>Brak treści SMS.</Placeholder>}
               <BubbleTime>teraz</BubbleTime>
             </PhoneBackdrop>
-            {smsInfo && (
+            {smsInfo && !compact && (
               <MetaRow>
                 <span><strong>{smsInfo.length}</strong> znaków</span>
                 <MetaDot />
@@ -350,11 +372,13 @@ export function ContentPreview({
         )}
 
         {hasEmail && (
-          <ChannelCard>
-            <ChannelHead>
-              <Mail />
-              <h5>E-mail</h5>
-            </ChannelHead>
+          <ChannelCard $bare={bare}>
+            {!bare && (
+              <ChannelHead>
+                <Mail />
+                <h5>E-mail</h5>
+              </ChannelHead>
+            )}
             <EmailHead>
               <EmailFromRow>
                 <Avatar>TS</Avatar>

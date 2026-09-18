@@ -96,8 +96,10 @@ const recipients = RECIPIENT_NAMES.map(([first, last, phone, status], i) => ({
     customerId: `c${i}`,
     channel: 'SMS',
     address: phone,
+    firstName: first,
+    lastName: last,
     status,
-    errorMessage: status === 'FAILED' ? 'Numer nieosiągalny' : null,
+    errorMessage: status === 'FAILED' ? 'Numer nieosiągalny - abonent niedostępny' : null,
     scheduledFor: daysAgo(5),
     sentAt: status === 'SENT' ? daysAgo(5) : null,
 }));
@@ -213,6 +215,13 @@ const SHOTS = [
     { name: '03-desktop-automatyczna', scenario: 'automatic', viewport: { width: 1440, height: 1000 } },
     { name: '04-telefon-zakonczona', scenario: 'completed', viewport: { width: 390, height: 844 } },
     { name: '05-telefon-zaplanowana', scenario: 'scheduled', viewport: { width: 390, height: 844 } },
+    // Dymek z numerem pod kursorem - inaczej nie da się sprawdzić, czy numer
+    // jest nadal dostępny po zastąpieniu go nazwiskiem.
+    { name: '06-desktop-dymek-numeru', scenario: 'completed', viewport: { width: 1440, height: 1000 },
+      hoverName: 'Tomasz Wiśniewski' },
+    // Kryteria odbiorców po rozwinięciu.
+    { name: '07-desktop-kryteria-rozwiniete', scenario: 'completed', viewport: { width: 1440, height: 1000 },
+      expandCriteria: true },
 ];
 
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop());
@@ -239,6 +248,16 @@ if (isMain) await (async () => {
         await page.goto(`${BASE}/campaigns?campaign=${ID}`, { waitUntil: 'networkidle' });
         await page.waitForSelector(process.env.SHOT_WAIT ?? 'text=Odbiorcy', { timeout: 20_000 });
         await page.waitForTimeout(1000);
+        if (shot.expandCriteria) {
+            await page.getByText('Kryteria odbiorców').first().click();
+            await page.waitForTimeout(400);
+        }
+        if (shot.hoverName) {
+            const cell = page.getByText(shot.hoverName).first();
+            await cell.scrollIntoViewIfNeeded();
+            await cell.hover();
+            await page.waitForTimeout(500);
+        }
         await page.screenshot({ path: `${OUT}/${shot.name}.png`, fullPage: process.env.FULL === '1' });
         console.log(`\u2713 ${shot.name}`);
         await context.close();
