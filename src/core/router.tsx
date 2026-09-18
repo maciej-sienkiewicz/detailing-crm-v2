@@ -46,7 +46,7 @@ const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
+import { EmployeeDetailView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
@@ -401,10 +401,9 @@ export const router = createBrowserRouter([
         },
 
         // ── Zespół ───────────────────────────────────────────────────────────
-        {
-            path: '/team',
-            element: page(<EmployeeListView />, 'EMPLOYEES_MANAGE'),
-        },
+        // Lista pracowników stoi w Ustawieniach (`/settings?tab=team`); osobna
+        // trasa `/team` była jej drugą, równoległą wersją i została usunięta.
+        // Karta pojedynczego pracownika zostaje - Ustawienia do niej prowadzą.
         {
             path: '/team/:employeeId',
             element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),

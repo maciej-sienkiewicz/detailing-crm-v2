@@ -226,6 +226,15 @@ const PencilIcon = () => (
 
 // ─── Komponent ───────────────────────────────────────────────────────────────
 
+/**
+ * Lista pracowników mieszka w Ustawieniach, w zakładce „Pracownicy i role" -
+ * i to jedyne miejsce, z którego da się tu wejść. Strzałka powrotu prowadziła
+ * pod `/team`, czyli do drugiej, równoległej listy, więc użytkownik wracał
+ * gdzie indziej niż wyszedł. Adres w jednym miejscu, bo korzystają z niego dwie
+ * ścieżki wyjścia: strzałka i usunięcie pracownika.
+ */
+const EMPLOYEES_LIST_PATH = '/settings?tab=team&view=employees';
+
 export const EmployeeDetailView = () => {
     const { employeeId } = useParams<{ employeeId: string }>();
     const navigate = useNavigate();
@@ -261,7 +270,7 @@ export const EmployeeDetailView = () => {
                 title={employee.fullName}
                 subtitle={
                     <>
-                        <SubtitleLink onClick={() => navigate('/team')}>
+                        <SubtitleLink onClick={() => navigate(EMPLOYEES_LIST_PATH)}>
                             <ArrowLeftIcon /> Pracownicy
                         </SubtitleLink>
                         {employee.email && (
@@ -321,7 +330,7 @@ export const EmployeeDetailView = () => {
                     <AccountManagementCard
                         employee={employee}
                         onChanged={() => refetch()}
-                        onEmployeeDeleted={() => navigate('/team')}
+                        onEmployeeDeleted={() => navigate(EMPLOYEES_LIST_PATH)}
                     />
                 </SideCard>
 
